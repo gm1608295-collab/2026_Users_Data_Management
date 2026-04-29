@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MLBB Security System - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        :root {
+            --primary: #0c0e27; --secondary: #1a1f4b; --accent: #4a1c7a;
+            --danger: #e74c3c; --success: #2ecc71; --warning: #f39c12;
+            --info: #3498db; --light: #ecf0f1; --text: #ffffff;
+            --bg-gradient: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        html, body { height: 100%; overflow: hidden; }
+        body {
+            background: var(--bg-gradient);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; padding: 15px;
+        }
+        .login-container {
+            width: 100%; max-width: 380px;
+            background: rgba(12,14,39,0.95);
+            border-radius: 15px; overflow: hidden;
+            border: 1px solid #4a1c7a;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+        }
+        .login-header {
+            background: linear-gradient(to right, var(--accent), var(--secondary));
+            padding: 25px 20px; text-align: center;
+            border-bottom: 4px solid var(--warning);
+        }
+        .login-header .logo-icon {
+            width: 60px; height: 60px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%; margin: 0 auto 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; color: var(--warning);
+        }
+        .login-header h1 { font-size: 18px; margin-bottom: 4px; }
+        .login-header p { font-size: 12px; opacity: 0.85; }
+        .login-body { padding: 20px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label {
+            display: block; margin-bottom: 5px;
+            font-weight: 600; color: var(--light); font-size: 13px;
+        }
+        .form-group input {
+            width: 100%; padding: 12px 14px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px; font-size: 14px; color: white;
+            transition: all 0.3s;
+        }
+        .form-group input:focus {
+            outline: none; border-color: var(--info);
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.15);
+        }
+        .form-group input::placeholder { color: rgba(255,255,255,0.4); }
+        .btn {
+            display: block; width: 100%; padding: 12px;
+            border: none; border-radius: 8px; font-size: 14px;
+            font-weight: 600; cursor: pointer; text-align: center;
+            transition: all 0.3s; margin-top: 8px;
+        }
+        .btn-login { background: var(--accent); color: white; }
+        .btn-login:hover { background: #5d2a92; transform: translateY(-1px); }
+        .btn-register { background: transparent; color: var(--warning); border: 1px solid var(--warning); }
+        .btn-register:hover { background: rgba(243,156,18,0.1); }
+        .divider {
+            display: flex; align-items: center; gap: 10px;
+            margin: 18px 0; color: rgba(255,255,255,0.4); font-size: 12px;
+        }
+        .divider::before, .divider::after {
+            content: ""; flex: 1; height: 1px;
+            background: rgba(255,255,255,0.15);
+        }
+        .google-btn {
+            display: flex; align-items: center; justify-content: center;
+            gap: 10px; width: 100%; padding: 12px;
+            background: white; color: #333; border: none;
+            border-radius: 8px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s;
+        }
+        .google-btn:hover { background: #f0f0f0; }
+        .google-btn img { width: 20px; height: 20px; }
+        .toggle-link {
+            text-align: center; margin-top: 12px; font-size: 13px;
+        }
+        .toggle-link a { color: var(--warning); text-decoration: none; cursor: pointer; }
+        .toggle-link a:hover { text-decoration: underline; }
+        .notification {
+            position: fixed; top: 20px; right: 20px;
+            color: white; padding: 12px 15px; border-radius: 8px;
+            display: none; z-index: 1000; font-size: 13px;
+            max-width: 280px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .login-footer {
+            text-align: center; padding: 12px;
+            color: rgba(255,255,255,0.5); font-size: 11px;
+            border-top: 1px solid rgba(74,28,122,0.4);
+        }
+        #registerForm { display: none; }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo-icon"><i class="fas fa-shield-alt"></i></div>
+            <h1>MLBB Security System</h1>
+            <p><i class="fas fa-lock"></i> Secure Login</p>
+        </div>
+
+        <div class="login-body">
+            <!-- Login Form -->
+            <div id="loginForm">
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password">
+                </div>
+                <button class="btn btn-login" onclick="localLogin()">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+
+                <div class="divider">or continue with</div>
+
+                <div id="googleSignIn" style="display:flex;justify-content:center;"></div>
+
+                <div class="toggle-link">
+                    Don't have an account? <a onclick="showRegister()">Register</a>
+                </div>
+            </div>
+
+            <!-- Register Form -->
+            <div id="registerForm">
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Username</label>
+                    <input type="text" id="regUsername" placeholder="Choose a username">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-envelope"></i> Email</label>
+                    <input type="email" id="regEmail" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <input type="password" id="regPassword" placeholder="Create a password">
+                </div>
+                <button class="btn btn-login" onclick="localRegister()">
+                    <i class="fas fa-user-plus"></i> Register
+                </button>
+                <button class="btn btn-register" onclick="showLogin()">
+                    <i class="fas fa-arrow-left"></i> Back to Login
+                </button>
+            </div>
+        </div>
+
+        <div class="login-footer">
+            © 2025 MLBB Account Management System
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '';
+
+        function showNotification(msg, type = "success") {
+            const n = document.getElementById("notification");
+            n.textContent = msg;
+            n.style.background = type === "success" ? "#2ecc71" : "#e74c3c";
+            n.style.display = "block";
+            setTimeout(() => n.style.display = "none", 3000);
+        }
+
+        function showRegister() {
+            document.getElementById("loginForm").style.display = "none";
+            document.getElementById("registerForm").style.display = "block";
+        }
+
+        function showLogin() {
+            document.getElementById("registerForm").style.display = "none";
+            document.getElementById("loginForm").style.display = "block";
+        }
+
+        async function localRegister() {
+            const username = document.getElementById("regUsername").value;
+            const email = document.getElementById("regEmail").value;
+            const password = document.getElementById("regPassword").value;
+            if (!username || !email || !password) return showNotification("Please fill all fields", "error");
+
+            try {
+                const res = await fetch("/api/register", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await res.json();
+                if (data.success) { showNotification("Registration successful! Please login."); showLogin(); }
+                else showNotification(data.message, "error");
+            } catch (e) { showNotification("Connection error", "error"); }
+        }
+
+        async function localLogin() {
+            const email = document.getElementById("loginEmail").value;
+            const password = document.getElementById("loginPassword").value;
+            if (!email || !password) return showNotification("Please fill all fields", "error");
+
+            try {
+                const res = await fetch("/api/login", {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem("auth_token", data.token);
+                    localStorage.setItem("user", JSON.stringify(data.user));
+                    showNotification("Login successful!");
+                    setTimeout(() => window.location.href = "/dashboard", 500);
+                } else showNotification(data.message, "error");
+            } catch (e) { showNotification("Connection error", "error"); }
+        }
+
+        function handleGoogleLogin(response) {
+            const payload = JSON.parse(atob(response.credential.split('.')[1]));
+            fetch("/api/auth/google", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: response.credential, userInfo: { sub: payload.sub, email: payload.email, name: payload.name, picture: payload.picture } })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    localStorage.setItem("auth_token", data.token);
+                    localStorage.setItem("user", JSON.stringify(data.user));
+                    showNotification("Google login successful!");
+                    setTimeout(() => window.location.href = "/dashboard", 500);
+                } else showNotification("Google login failed", "error");
+            }).catch(() => showNotification("Connection error", "error"));
+        }
+
+        window.onload = function() {
+            google.accounts.id.initialize({
+                client_id: "968523580383-2ou2ei00epntihsdgltr0e3igj2m2mq7.apps.googleusercontent.com",
+                callback: handleGoogleLogin
+            });
+            google.accounts.id.renderButton(
+                document.getElementById("googleSignIn"),
+                { theme: "filled_blue", size: "large", text: "signin_with", width: "100%" }
+            );
+        };
+    </script>
+</body>
+</html>
