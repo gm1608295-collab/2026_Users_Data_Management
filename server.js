@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres.jdntekwhahnkoshitvdh:SoloMK28Aa2008@db.jdntekwhahnkoshitvdh.supabase.co:5432/postgres',
     ssl: { rejectUnauthorized: false }
 });
 
