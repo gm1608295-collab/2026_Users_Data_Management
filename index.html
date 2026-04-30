@@ -8,196 +8,172 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
+        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff;--lt:#e0e0e0}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        html,body{height:100%;overflow-x:hidden}
         body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;padding:10px}
-        .top-link{text-align:right;padding:5px 10px;font-size:11px}
-        .top-link a{color:var(--b);text-decoration:none;cursor:pointer}
+        .top-link{text-align:right;padding:5px 10px 0}
+        .top-link a{color:var(--b);text-decoration:none;font-size:11px;cursor:pointer}
         .top-link a:hover{text-decoration:underline}
-        .login-container{width:100%;max-width:380px;margin:0 auto;background:rgba(12,14,39,0.95);border-radius:15px;overflow:hidden;border:1px solid #4a1c7a;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
-        .login-header{background:linear-gradient(to right,var(--a),var(--p));padding:20px;text-align:center;border-bottom:4px solid var(--w)}
-        .login-header .logo-icon{width:50px;height:50px;background:rgba(255,255,255,0.1);border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--w)}
-        .login-header h1{font-size:16px;margin-bottom:3px}
-        .login-header p{font-size:11px;opacity:0.85}
-        .login-body{padding:15px 20px}
-        .form-group{margin-bottom:10px}
-        .form-group label{display:block;margin-bottom:4px;font-weight:600;color:var(--t);font-size:12px}
-        .form-group input{width:100%;padding:10px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:13px;color:var(--t)}
-        .form-group input::placeholder{color:rgba(255,255,255,0.4)}
+        .container{width:100%;max-width:380px;margin:0 auto;background:rgba(12,14,39,0.95);border-radius:15px;overflow:hidden;border:1px solid #4a1c7a;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+        .header{background:linear-gradient(to right,var(--a),var(--p));padding:20px;text-align:center;border-bottom:4px solid var(--w)}
+        .header .icon{width:50px;height:50px;background:rgba(255,255,255,0.1);border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:24px;color:var(--w)}
+        .header h1{font-size:16px;margin-bottom:3px}
+        .header p{font-size:11px;opacity:0.85}
+        .body{padding:15px 20px}
+        .fg{margin-bottom:10px}
+        .fg label{display:block;margin-bottom:4px;font-weight:600;color:var(--lt);font-size:12px}
+        .fg input{width:100%;padding:10px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:13px;color:var(--t)}
+        .fg input::placeholder{color:rgba(255,255,255,0.35)}
         .btn{display:block;width:100%;padding:10px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;margin-top:6px;transition:all 0.3s}
-        .btn-login{background:var(--a);color:var(--t)}
-        .btn-login:hover{background:#5d2a92}
-        .btn-register{background:transparent;color:var(--w);border:1px solid var(--w);margin-top:8px}
-        .btn-register:hover{background:rgba(243,156,18,0.1)}
+        .btn-a{background:var(--a);color:var(--t)}.btn-a:hover{background:#5d2a92}
+        .btn-b{background:transparent;color:var(--w);border:1px solid var(--w);margin-top:8px}
+        .btn-b:hover{background:rgba(243,156,18,0.1)}
         .divider{display:flex;align-items:center;gap:8px;margin:12px 0;color:rgba(255,255,255,0.4);font-size:11px}
         .divider::before,.divider::after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.15)}
+        .social-row{display:flex;gap:8px;align-items:stretch}
+        .social-row>div{flex:1}
+        .social-row iframe{width:100%!important}
+        .guest-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--lt);font-size:12px;cursor:pointer;transition:all 0.3s}
+        .guest-btn:hover{background:rgba(255,255,255,0.2)}
+        .guest-btn i{font-size:16px}
         .toggle-link{text-align:center;margin-top:10px;font-size:12px}
         .toggle-link a{color:var(--w);text-decoration:none;cursor:pointer}
-        .notif{position:fixed;top:20px;right:20px;color:var(--t);padding:12px 15px;border-radius:8px;display:none;z-index:1000;font-size:13px;max-width:280px;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
-        .login-footer{text-align:center;padding:10px;color:rgba(255,255,255,0.5);font-size:10px;border-top:1px solid rgba(74,28,122,0.4)}
-        .g-recaptcha{margin:10px 0}
+        .notif{position:fixed;top:20px;right:20px;color:var(--t);padding:12px 15px;border-radius:8px;display:none;z-index:9999;font-size:13px;max-width:280px;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
+        .footer{text-align:center;padding:10px;color:rgba(255,255,255,0.5);font-size:10px;border-top:1px solid rgba(74,28,122,0.4)}
+        .g-recaptcha{margin:8px 0;transform:scale(0.85);transform-origin:0 0}
         #registerForm{display:none}
-        #guideModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:3000;overflow-y:auto;padding:20px}
-        #guideModal .guide-content{max-width:500px;margin:0 auto;background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;font-size:12px;line-height:1.8}
-        #guideModal h2{color:var(--w);text-align:center;margin-bottom:15px;font-size:16px}
-        #guideModal h3{color:var(--w);margin:10px 0 5px;font-size:14px}
-        #guideModal p{margin:5px 0;color:rgba(255,255,255,0.9)}
-        #guideModal .close-btn{background:var(--r);color:#fff;border:none;padding:8px 15px;border-radius:5px;cursor:pointer;float:right;font-size:12px}
-        #guideModal .lang-btn{background:var(--a);color:#fff;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:11px;margin:5px}
-        #guideModal .lang-btn.active{background:var(--w);color:#000}
+        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;justify-content:center;align-items:center;padding:20px}
+        .modal-overlay.active{display:flex}
+        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;font-size:12px;line-height:1.8;color:var(--lt)}
+        .modal-box h2{color:var(--w);text-align:center;margin-bottom:15px;font-size:16px}
+        .modal-box h3{color:var(--w);margin:10px 0 5px;font-size:14px}
+        .modal-box .close-btn{background:var(--r);color:#fff;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;float:right;font-size:11px}
+        .modal-box .lang-btn{background:var(--a);color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:10px;margin:3px}
+        .modal-box .lang-btn.active{background:var(--w);color:#000}
+        .guest-modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;max-width:340px;width:90%;text-align:center;color:var(--lt);font-size:13px}
+        .guest-modal-box h3{color:var(--w);margin-bottom:10px;font-size:15px}
+        .guest-modal-box p{font-size:12px;line-height:1.6;margin-bottom:15px}
+        .guest-modal-box .btn-row{display:flex;gap:8px;justify-content:center}
+        .guest-modal-box .btn-row button{padding:8px 15px;border:none;border-radius:5px;font-size:12px;cursor:pointer}
+        .btn-cancel{background:rgba(255,255,255,0.2);color:var(--t)}
+        .btn-confirm{background:var(--a);color:var(--t)}
     </style>
 </head>
 <body>
     <div class="notif" id="notif"></div>
     <div class="top-link"><a onclick="openGuide()"><i class="fas fa-question-circle"></i> User Guide</a></div>
-    <div class="login-container">
-        <div class="login-header">
-            <div class="logo-icon"><i class="fas fa-shield-alt"></i></div>
+    <div class="container">
+        <div class="header">
+            <div class="icon"><i class="fas fa-shield-alt"></i></div>
             <h1>MLBB Security System</h1>
             <p><i class="fas fa-lock"></i> Secure Login</p>
         </div>
-        <div class="login-body">
-            <!-- LOGIN FORM -->
+        <div class="body">
             <div id="loginForm">
-                <div class="form-group"><label><i class="fas fa-envelope"></i> Email</label><input type="email" id="loginEmail" placeholder="Enter your email"></div>
-                <div class="form-group"><label><i class="fas fa-lock"></i> Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
+                <div class="fg"><label><i class="fas fa-envelope"></i> Email</label><input type="email" id="loginEmail" placeholder="Enter your email"></div>
+                <div class="fg"><label><i class="fas fa-lock"></i> Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
                 <div class="g-recaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw"></div>
-                <button class="btn btn-login" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
+                <button class="btn btn-a" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
                 <div class="divider">or continue with</div>
-                <div id="googleSignIn" style="display:flex;justify-content:center"></div>
+                <div class="social-row">
+                    <div id="googleSignIn"></div>
+                    <div class="guest-btn" onclick="showGuestModal()"><i class="fas fa-user-secret"></i> Guest</div>
+                </div>
                 <div class="toggle-link">Don't have an account? <a onclick="showReg()">Register</a></div>
             </div>
-
-            <!-- REGISTER FORM -->
             <div id="registerForm">
-                <div class="form-group"><label><i class="fas fa-user"></i> Full Name</label><input type="text" id="regName" placeholder="Enter your full name"></div>
-                <div class="form-group"><label><i class="fas fa-envelope"></i> Email</label><input type="email" id="regEmail" placeholder="Enter your email"></div>
-                <div class="form-group"><label><i class="fas fa-phone"></i> Phone Number</label><input type="tel" id="regPhone" placeholder="Enter phone number"></div>
-                <div class="form-group"><label><i class="fas fa-lock"></i> Create Password</label><input type="password" id="regPass" placeholder="Create password (min 6 chars)"></div>
-                <div class="form-group"><label><i class="fas fa-check-circle"></i> Confirm Password</label><input type="password" id="regConfirm" placeholder="Confirm your password"></div>
+                <div class="fg"><label><i class="fas fa-user"></i> Full Name</label><input type="text" id="regName" placeholder="Enter your full name"></div>
+                <div class="fg"><label><i class="fas fa-envelope"></i> Email</label><input type="email" id="regEmail" placeholder="Enter your email"></div>
+                <div class="fg"><label><i class="fas fa-phone"></i> Phone Number</label><input type="tel" id="regPhone" placeholder="Enter phone number"></div>
+                <div class="fg"><label><i class="fas fa-lock"></i> Create Password</label><input type="password" id="regPass" placeholder="Min 6 characters"></div>
+                <div class="fg"><label><i class="fas fa-check-circle"></i> Confirm Password</label><input type="password" id="regConfirm" placeholder="Confirm your password"></div>
                 <div class="g-recaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw"></div>
-                <button class="btn btn-login" onclick="doRegister()"><i class="fas fa-user-plus"></i> Register</button>
-                <button class="btn btn-register" onclick="showLogin()"><i class="fas fa-arrow-left"></i> Back to Login</button>
+                <button class="btn btn-a" onclick="doRegister()"><i class="fas fa-user-plus"></i> Register</button>
+                <button class="btn btn-b" onclick="showLogin()"><i class="fas fa-arrow-left"></i> Back to Login</button>
             </div>
         </div>
-        <div class="login-footer">© 2025 MLBB Account Management System</div>
+        <div class="footer">© 2026 MLBB Account Management System</div>
     </div>
 
-    <!-- GUIDE MODAL -->
-    <div id="guideModal">
-        <div class="guide-content" id="guideContent"></div>
+    <div class="modal-overlay" id="guideModal"><div class="modal-box" id="guideContent"></div></div>
+    <div class="modal-overlay" id="guestModal">
+        <div class="guest-modal-box">
+            <h3><i class="fas fa-user-secret"></i> Guest Login</h3>
+            <p>Guests ဖြင့်လော့ခ်အင်ဝင်ရောက်ပါက ချက်ချင်းဝင်ရောက်မှာဖြစ်ပြီး အရာအားလုံးကို သိမ်းဆည်းပေးနိုင်မည်မဟုတ်ပါ။ Guests သည် ယာယီဧည့်သည်အနေဖြင့်သာ ဝင်ရောက်နိုင်ပါသည်။</p>
+            <div class="btn-row">
+                <button class="btn-cancel" onclick="closeGuestModal()">Cancel</button>
+                <button class="btn-confirm" onclick="guestLogin()">Confirm</button>
+            </div>
+        </div>
     </div>
 
     <script>
         let guideLang='en';
         const guideData={
-            en:{
-                title:'User Guide & Terms',
-                about:'About This System',
-                aboutText:'MLBB Security System is a secure platform for managing Mobile Legends accounts. It provides account recovery, data management, and security features.',
-                usage:'How to Use',
-                usageText:'1. Register with your name, email, phone & password.<br>2. Login to access the dashboard.<br>3. Use Gmail/MLBB Generator tools.<br>4. Recovery tab to restore lost accounts.<br>5. Contact us for support.',
-                security:'Account Security Guarantee',
-                securityText:'We use advanced encryption to protect your data. All passwords are stored securely. Auto-logout after 5 minutes of inactivity.',
-                admin:'Admin Rights',
-                adminText:'Admin has the right to ban/delete users who violate rules. Providing false information may result in permanent ban.',
-                disclaimer:'External Liability',
-                disclaimerText:'We are not responsible for any external links, third-party services, or user actions. Users are responsible for their own account safety.',
-                privacy:'Privacy Policy',
-                privacyText:'Your data will never be shared with third parties. Only authorized admin can access user data with correct password.',
-                close:'Close'
-            },
-            my:{
-                title:'အသုံးပြုသူလမ်းညွှန်နှင့် စည်းမျဉ်းများ',
-                about:'ဒီစနစ်အကြောင်း',
-                aboutText:'MLBB Security System သည် Mobile Legends အကောင့်များကို လုံခြုံစွာ စီမံခန့်ခွဲနိုင်သော ပလက်ဖောင်းတစ်ခုဖြစ်သည်။',
-                usage:'အသုံးပြုပုံ',
-                usageText:'၁။ နာမည်၊ အီးမေးလ်၊ ဖုန်းနှင့် စကားဝှက်ဖြင့် မှတ်ပုံတင်ပါ။<br>၂။ အကောင့်ဝင်ပြီး Dashboard သုံးပါ။<br>၃။ Gmail/MLBB Generator သုံးပါ။<br>၄။ Recovery tab မှ အကောင့်ပြန်ယူပါ။',
-                security:'လုံခြုံမှုအာမခံချက်',
-                securityText:'သင့်ဒေတာများကို အဆင့်မြင့်ကုဒ်ဖြင့် ကာကွယ်ထားသည်။ ၅ မိနစ်အတွင်း လှုပ်ရှားမှုမရှိပါက အလိုလျောက်ထွက်မည်။',
-                admin:'Admin အခွင့်အာဏာ',
-                adminText:'စည်းမျဉ်းဖောက်ဖျက်သူများကို Admin မှ ပိတ်ဆို့/ဖျက်ခွင့်ရှိသည်။',
-                disclaimer:'ပြင်ပတာဝန်ယူမှု',
-                disclaimerText:'ပြင်ပ link များ၊ third-party ဝန်ဆောင်မှုများအတွက် တာဝန်မယူပါ။',
-                privacy:'ကိုယ်ရေးမူဝါဒ',
-                privacyText:'သင့်ဒေတာကို တတိယပုဂ္ဂိုလ်နှင့် မျှဝေမည်မဟုတ်ပါ။',
-                close:'ပိတ်မည်'
-            }
+            en:{title:'User Guide & Terms',about:'About This System',aboutText:'MLBB Security System is a secure platform for managing Mobile Legends accounts.',usage:'How to Use',usageText:'1. Register with your details.<br>2. Login to dashboard.<br>3. Use Gmail/MLBB tools.<br>4. Recovery for lost accounts.',security:'Security',securityText:'Advanced encryption. Auto-logout after 5 min.',admin:'Admin Rights',adminText:'Admin can ban/delete rule violators.',disclaimer:'Disclaimer',disclaimerText:'Not responsible for external issues.',privacy:'Privacy',privacyText:'Your data is never shared.',close:'Close'},
+            my:{title:'အသုံးပြုသူလမ်းညွှန်',about:'စနစ်အကြောင်း',aboutText:'MLBB Security System သည် လုံခြုံသော အကောင့်စီမံခန့်ခွဲမှုစနစ်ဖြစ်သည်။',usage:'အသုံးပြုပုံ',usageText:'၁။ အချက်အလက်များဖြည့်ပါ။<br>၂။ Dashboard သုံးပါ။<br>၃။ ကိရိယာများသုံးပါ။',security:'လုံခြုံမှု',securityText:'အဆင့်မြင့်ကုဒ်ဖြင့်ကာကွယ်ထားသည်။',admin:'Admin အခွင့်အာဏာ',adminText:'စည်းမျဉ်းဖောက်ဖျက်သူများကို ပိတ်ဆို့နိုင်သည်။',disclaimer:'တာဝန်ခံချက်',disclaimerText:'ပြင်ပကိစ္စများအတွက် တာဝန်မယူပါ။',privacy:'ကိုယ်ရေးမူဝါဒ',privacyText:'သင့်ဒေတာကို မျှဝေမည်မဟုတ်ပါ။',close:'ပိတ်မည်'}
         };
 
         function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
         function showReg(){document.getElementById("loginForm").style.display="none";document.getElementById("registerForm").style.display="block"}
         function showLogin(){document.getElementById("registerForm").style.display="none";document.getElementById("loginForm").style.display="block"}
+        function showGuestModal(){document.getElementById("guestModal").classList.add("active")}
+        function closeGuestModal(){document.getElementById("guestModal").classList.remove("active")}
+        function guestLogin(){localStorage.setItem("auth_token","guest");localStorage.setItem("user",JSON.stringify({id:0,username:"Guest",email:"guest@mlbb.com",login_type:"guest"}));window.location.href="/dashboard"}
 
         function openGuide(){
             const d=guideData[guideLang];
-            document.getElementById("guideContent").innerHTML=`
-                <button class="close-btn" onclick="closeGuide()">${d.close}</button>
-                <button class="lang-btn ${guideLang==='en'?'active':''}" onclick="switchGL('en')">English</button>
+            document.getElementById("guideContent").innerHTML=`<button class="close-btn" onclick="closeGuide()">${d.close}</button>
+                <button class="lang-btn ${guideLang==='en'?'active':''}" onclick="switchGL('en')">EN</button>
                 <button class="lang-btn ${guideLang==='my'?'active':''}" onclick="switchGL('my')">မြန်မာ</button>
                 <h2>${d.title}</h2><h3>${d.about}</h3><p>${d.aboutText}</p>
                 <h3>${d.usage}</h3><p>${d.usageText}</p><h3>${d.security}</h3><p>${d.securityText}</p>
                 <h3>${d.admin}</h3><p>${d.adminText}</p><h3>${d.disclaimer}</h3><p>${d.disclaimerText}</p>
-                <h3>${d.privacy}</h3><p>${d.privacyText}</p>
-            `;
-            document.getElementById("guideModal").style.display="block";
+                <h3>${d.privacy}</h3><p>${d.privacyText}</p>`;
+            document.getElementById("guideModal").classList.add("active");
         }
-        function closeGuide(){document.getElementById("guideModal").style.display="none"}
+        function closeGuide(){document.getElementById("guideModal").classList.remove("active")}
         function switchGL(l){guideLang=l;openGuide()}
 
-        function getCaptchaResponse(){
-            const responses=document.getElementsByClassName('g-recaptcha-response');
-            for(let i=0;i<responses.length;i++){
-                if(responses[i].value)return responses[i].value;
-            }
-            return grecaptcha.getResponse();
+        function getCap(){
+            const r=document.getElementsByClassName('g-recaptcha-response');
+            for(let i=0;i<r.length;i++){if(r[i].value)return r[i].value}
+            return typeof grecaptcha!=='undefined'?grecaptcha.getResponse():'';
         }
 
         async function doRegister(){
-            const name=document.getElementById("regName").value;
-            const email=document.getElementById("regEmail").value;
-            const phone=document.getElementById("regPhone").value;
-            const pass=document.getElementById("regPass").value;
-            const confirm=document.getElementById("regConfirm").value;
-            if(!name||!email||!phone||!pass||!confirm)return n("Please fill all fields","error");
-            if(pass!==confirm)return n("Passwords do not match","error");
-            if(pass.length<6)return n("Password must be at least 6 characters","error");
-            const captcha=getCaptchaResponse();
-            if(!captcha)return n("Please complete reCAPTCHA","error");
+            const na=document.getElementById("regName").value,em=document.getElementById("regEmail").value,ph=document.getElementById("regPhone").value,ps=document.getElementById("regPass").value,cf=document.getElementById("regConfirm").value;
+            if(!na||!em||!ph||!ps||!cf)return n("Fill all fields","error");
+            if(ps!==cf)return n("Passwords do not match","error");
+            if(ps.length<6)return n("Min 6 characters","error");
+            const cap=getCap();if(!cap)return n("Complete reCAPTCHA","error");
             try{
-                const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:name,email:email,phone:phone,password:pass,captcha:captcha})});
-                const d=await r.json();
-                d.success?(n("Registration successful!"),showLogin()):n(d.message,"error");
+                const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:na,email:em,phone:ph,password:ps,captcha:cap})});
+                const d=await r.json();d.success?(n("Registered!"),showLogin()):n(d.message,"error");
             }catch(e){n("Connection error","error")}
         }
 
         async function doLogin(){
-            const email=document.getElementById("loginEmail").value;
-            const pass=document.getElementById("loginPassword").value;
-            if(!email||!pass)return n("Please fill all fields","error");
-            const captcha=getCaptchaResponse();
-            if(!captcha)return n("Please complete reCAPTCHA","error");
+            const em=document.getElementById("loginEmail").value,ps=document.getElementById("loginPassword").value;
+            if(!em||!ps)return n("Fill all fields","error");
+            const cap=getCap();if(!cap)return n("Complete reCAPTCHA","error");
             try{
-                const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:pass,captcha:captcha})});
+                const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em,password:ps,captcha:cap})});
                 const d=await r.json();
-                if(d.success){localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("Login successful!");setTimeout(()=>window.location.href="/dashboard",500)}
+                if(d.success){localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("Login!");setTimeout(()=>window.location.href="/dashboard",500)}
                 else n(d.message,"error");
             }catch(e){n("Connection error","error")}
         }
 
         function handleGoogleLogin(response){
-            const payload=JSON.parse(atob(response.credential.split('.')[1]));
-            fetch("/api/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:response.credential,userInfo:{sub:payload.sub,email:payload.email,name:payload.name,picture:payload.picture}})})
-            .then(r=>r.json()).then(d=>{
-                if(d.success){localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("Login successful!");setTimeout(()=>window.location.href="/dashboard",500)}
-                else n("Login failed","error");
-            }).catch(()=>n("Connection error","error"));
+            const p=JSON.parse(atob(response.credential.split('.')[1]));
+            fetch("/api/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:response.credential,userInfo:{sub:p.sub,email:p.email,name:p.name,picture:p.picture}})})
+            .then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("Login!");setTimeout(()=>window.location.href="/dashboard",500)}else n("Failed","error")}).catch(()=>n("Error","error"));
         }
 
         window.onload=function(){
             google.accounts.id.initialize({client_id:"968523580383-2ou2ei00epntihsdgltr0e3igj2m2mq7.apps.googleusercontent.com",callback:handleGoogleLogin});
-            google.accounts.id.renderButton(document.getElementById("googleSignIn"),{theme:"filled_blue",size:"large",text:"signin_with",width:"100%"});
+            google.accounts.id.renderButton(document.getElementById("googleSignIn"),{theme:"filled_blue",size:"medium",text:"signin_with"});
         };
     </script>
 </body>
