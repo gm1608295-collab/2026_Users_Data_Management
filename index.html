@@ -13,7 +13,7 @@
         html,body{height:100%;overflow-x:hidden}
         body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;padding:10px}
         .top-link{text-align:right;padding:5px 10px;font-size:11px}
-        .top-link a{color:var(--b);text-decoration:none}
+        .top-link a{color:var(--b);text-decoration:none;cursor:pointer}
         .top-link a:hover{text-decoration:underline}
         .login-container{width:100%;max-width:380px;margin:0 auto;background:rgba(12,14,39,0.95);border-radius:15px;overflow:hidden;border:1px solid #4a1c7a;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
         .login-header{background:linear-gradient(to right,var(--a),var(--p));padding:20px;text-align:center;border-bottom:4px solid var(--w)}
@@ -36,7 +36,7 @@
         .toggle-link a{color:var(--w);text-decoration:none;cursor:pointer}
         .notif{position:fixed;top:20px;right:20px;color:var(--t);padding:12px 15px;border-radius:8px;display:none;z-index:1000;font-size:13px;max-width:280px;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
         .login-footer{text-align:center;padding:10px;color:rgba(255,255,255,0.5);font-size:10px;border-top:1px solid rgba(74,28,122,0.4)}
-        .g-recaptcha{display:flex;justify-content:center;margin:8px 0;transform:scale(0.8);transform-origin:center}
+        .g-recaptcha{margin:10px 0}
         #registerForm{display:none}
         #guideModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:3000;overflow-y:auto;padding:20px}
         #guideModal .guide-content{max-width:500px;margin:0 auto;background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;font-size:12px;line-height:1.8}
@@ -58,29 +58,33 @@
             <p><i class="fas fa-lock"></i> Secure Login</p>
         </div>
         <div class="login-body">
+            <!-- LOGIN FORM -->
             <div id="loginForm">
                 <div class="form-group"><label><i class="fas fa-envelope"></i> Email</label><input type="email" id="loginEmail" placeholder="Enter your email"></div>
                 <div class="form-group"><label><i class="fas fa-lock"></i> Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
                 <div class="g-recaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw"></div>
-                <button class="btn btn-login" onclick="localLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
+                <button class="btn btn-login" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
                 <div class="divider">or continue with</div>
                 <div id="googleSignIn" style="display:flex;justify-content:center"></div>
-                <div class="toggle-link">Don't have an account? <a onclick="showRegister()">Register</a></div>
+                <div class="toggle-link">Don't have an account? <a onclick="showReg()">Register</a></div>
             </div>
+
+            <!-- REGISTER FORM -->
             <div id="registerForm">
-                <div class="form-group"><label><i class="fas fa-user"></i> Your Name</label><input type="text" id="regName" placeholder="Enter your full name"></div>
+                <div class="form-group"><label><i class="fas fa-user"></i> Full Name</label><input type="text" id="regName" placeholder="Enter your full name"></div>
                 <div class="form-group"><label><i class="fas fa-envelope"></i> Email</label><input type="email" id="regEmail" placeholder="Enter your email"></div>
-                <div class="form-group"><label><i class="fas fa-phone"></i> Phone Number</label><input type="text" id="regPhone" placeholder="Enter phone number"></div>
-                <div class="form-group"><label><i class="fas fa-lock"></i> Create Password</label><input type="password" id="regPassword" placeholder="Create a password"></div>
-                <div class="form-group"><label><i class="fas fa-lock"></i> Confirm Password</label><input type="password" id="regConfirmPassword" placeholder="Confirm your password"></div>
+                <div class="form-group"><label><i class="fas fa-phone"></i> Phone Number</label><input type="tel" id="regPhone" placeholder="Enter phone number"></div>
+                <div class="form-group"><label><i class="fas fa-lock"></i> Create Password</label><input type="password" id="regPass" placeholder="Create password (min 6 chars)"></div>
+                <div class="form-group"><label><i class="fas fa-check-circle"></i> Confirm Password</label><input type="password" id="regConfirm" placeholder="Confirm your password"></div>
                 <div class="g-recaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw"></div>
-                <button class="btn btn-login" onclick="localRegister()"><i class="fas fa-user-plus"></i> Register</button>
+                <button class="btn btn-login" onclick="doRegister()"><i class="fas fa-user-plus"></i> Register</button>
                 <button class="btn btn-register" onclick="showLogin()"><i class="fas fa-arrow-left"></i> Back to Login</button>
             </div>
         </div>
         <div class="login-footer">© 2025 MLBB Account Management System</div>
     </div>
 
+    <!-- GUIDE MODAL -->
     <div id="guideModal">
         <div class="guide-content" id="guideContent"></div>
     </div>
@@ -107,69 +111,75 @@
             my:{
                 title:'အသုံးပြုသူလမ်းညွှန်နှင့် စည်းမျဉ်းများ',
                 about:'ဒီစနစ်အကြောင်း',
-                aboutText:'MLBB Security System သည် Mobile Legends အကောင့်များကို လုံခြုံစွာ စီမံခန့်ခွဲနိုင်သော ပလက်ဖောင်းတစ်ခုဖြစ်သည်။ အကောင့်ပြန်လည်ရယူခြင်း၊ ဒေတာစီမံခန့်ခွဲခြင်းနှင့် လုံခြုံရေးအင်္ဂါရပ်များ ပါဝင်သည်။',
+                aboutText:'MLBB Security System သည် Mobile Legends အကောင့်များကို လုံခြုံစွာ စီမံခန့်ခွဲနိုင်သော ပလက်ဖောင်းတစ်ခုဖြစ်သည်။',
                 usage:'အသုံးပြုပုံ',
-                usageText:'၁။ နာမည်၊ အီးမေးလ်၊ ဖုန်းနံပါတ်နှင့် စကားဝှက်ဖြင့် မှတ်ပုံတင်ပါ။<br>၂။ အကောင့်ဝင်ပြီး Dashboard ကိုသုံးပါ။<br>၃။ Gmail/MLBB Generator ကိရိယာများသုံးပါ။<br>၄။ Recovery tab မှ အကောင့်ပြန်လည်ရယူပါ။<br>၅။ အကူအညီလိုပါက ဆက်သွယ်ပါ။',
-                security:'အကောင့်လုံခြုံမှုအာမခံချက်',
-                securityText:'သင့်ဒေတာများကို အဆင့်မြင့် လျှို့ဝှက်ကုဒ်ဖြင့် ကာကွယ်ထားသည်။ စကားဝှက်အားလုံး လုံခြုံစွာ သိမ်းဆည်းထားသည်။ ၅ မိနစ်အတွင်း လှုပ်ရှားမှုမရှိပါက အလိုအလျောက် ထွက်မည်။',
+                usageText:'၁။ နာမည်၊ အီးမေးလ်၊ ဖုန်းနှင့် စကားဝှက်ဖြင့် မှတ်ပုံတင်ပါ။<br>၂။ အကောင့်ဝင်ပြီး Dashboard သုံးပါ။<br>၃။ Gmail/MLBB Generator သုံးပါ။<br>၄။ Recovery tab မှ အကောင့်ပြန်ယူပါ။',
+                security:'လုံခြုံမှုအာမခံချက်',
+                securityText:'သင့်ဒေတာများကို အဆင့်မြင့်ကုဒ်ဖြင့် ကာကွယ်ထားသည်။ ၅ မိနစ်အတွင်း လှုပ်ရှားမှုမရှိပါက အလိုလျောက်ထွက်မည်။',
                 admin:'Admin အခွင့်အာဏာ',
-                adminText:'စည်းမျဉ်းဖောက်ဖျက်သူများကို Admin မှ ပိတ်ဆို့/ဖျက်ဆီးခွင့်ရှိသည်။ မှားယွင်းသော အချက်အလက်များ ပေးပါက အပြီးအပိတ် ပိတ်ဆို့ခံရနိုင်သည်။',
-                disclaimer:'ပြင်ပဆိုင်ရာတာဝန်ယူမှု',
-                disclaimerText:'ပြင်ပ link များ၊ third-party ဝန်ဆောင်မှုများ သို့မဟုတ် user များ၏ လုပ်ဆောင်ချက်များအတွက် ကျွန်ုပ်တို့ တာဝန်မယူပါ။ သင့်အကောင့်လုံခြုံရေးအတွက် သင်ကိုယ်တိုင်တာဝန်ရှိပါသည်။',
-                privacy:'ကိုယ်ရေးအချက်အလက်မူဝါဒ',
-                privacyText:'သင့်ဒေတာများကို တတိယပုဂ္ဂိုလ်များနှင့် ဘယ်သောအခါမှ မျှဝေမည်မဟုတ်ပါ။ ခွင့်ပြုချက်ရှိသော Admin မှသာ မှန်ကန်သော စကားဝှက်ဖြင့် ဒေတာများကို ဝင်ရောက်ကြည့်ရှုနိုင်သည်။',
+                adminText:'စည်းမျဉ်းဖောက်ဖျက်သူများကို Admin မှ ပိတ်ဆို့/ဖျက်ခွင့်ရှိသည်။',
+                disclaimer:'ပြင်ပတာဝန်ယူမှု',
+                disclaimerText:'ပြင်ပ link များ၊ third-party ဝန်ဆောင်မှုများအတွက် တာဝန်မယူပါ။',
+                privacy:'ကိုယ်ရေးမူဝါဒ',
+                privacyText:'သင့်ဒေတာကို တတိယပုဂ္ဂိုလ်နှင့် မျှဝေမည်မဟုတ်ပါ။',
                 close:'ပိတ်မည်'
             }
         };
 
         function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-        function showRegister(){document.getElementById("loginForm").style.display="none";document.getElementById("registerForm").style.display="block"}
+        function showReg(){document.getElementById("loginForm").style.display="none";document.getElementById("registerForm").style.display="block"}
         function showLogin(){document.getElementById("registerForm").style.display="none";document.getElementById("loginForm").style.display="block"}
 
         function openGuide(){
             const d=guideData[guideLang];
             document.getElementById("guideContent").innerHTML=`
                 <button class="close-btn" onclick="closeGuide()">${d.close}</button>
-                <button class="lang-btn ${guideLang==='en'?'active':''}" onclick="switchGuideLang('en')">English</button>
-                <button class="lang-btn ${guideLang==='my'?'active':''}" onclick="switchGuideLang('my')">မြန်မာ</button>
-                <h2>${d.title}</h2>
-                <h3>${d.about}</h3><p>${d.aboutText}</p>
-                <h3>${d.usage}</h3><p>${d.usageText}</p>
-                <h3>${d.security}</h3><p>${d.securityText}</p>
-                <h3>${d.admin}</h3><p>${d.adminText}</p>
-                <h3>${d.disclaimer}</h3><p>${d.disclaimerText}</p>
+                <button class="lang-btn ${guideLang==='en'?'active':''}" onclick="switchGL('en')">English</button>
+                <button class="lang-btn ${guideLang==='my'?'active':''}" onclick="switchGL('my')">မြန်မာ</button>
+                <h2>${d.title}</h2><h3>${d.about}</h3><p>${d.aboutText}</p>
+                <h3>${d.usage}</h3><p>${d.usageText}</p><h3>${d.security}</h3><p>${d.securityText}</p>
+                <h3>${d.admin}</h3><p>${d.adminText}</p><h3>${d.disclaimer}</h3><p>${d.disclaimerText}</p>
                 <h3>${d.privacy}</h3><p>${d.privacyText}</p>
             `;
             document.getElementById("guideModal").style.display="block";
         }
         function closeGuide(){document.getElementById("guideModal").style.display="none"}
-        function switchGuideLang(l){guideLang=l;openGuide()}
+        function switchGL(l){guideLang=l;openGuide()}
 
-        async function localRegister(){
+        function getCaptchaResponse(){
+            const responses=document.getElementsByClassName('g-recaptcha-response');
+            for(let i=0;i<responses.length;i++){
+                if(responses[i].value)return responses[i].value;
+            }
+            return grecaptcha.getResponse();
+        }
+
+        async function doRegister(){
             const name=document.getElementById("regName").value;
             const email=document.getElementById("regEmail").value;
             const phone=document.getElementById("regPhone").value;
-            const password=document.getElementById("regPassword").value;
-            const confirm=document.getElementById("regConfirmPassword").value;
-            if(!name||!email||!phone||!password||!confirm)return n("Please fill all fields","error");
-            if(password!==confirm)return n("Passwords do not match","error");
-            if(password.length<6)return n("Password must be at least 6 characters","error");
-            const cap=grecaptcha.getResponse();
-            if(!cap)return n("Please complete reCAPTCHA","error");
+            const pass=document.getElementById("regPass").value;
+            const confirm=document.getElementById("regConfirm").value;
+            if(!name||!email||!phone||!pass||!confirm)return n("Please fill all fields","error");
+            if(pass!==confirm)return n("Passwords do not match","error");
+            if(pass.length<6)return n("Password must be at least 6 characters","error");
+            const captcha=getCaptchaResponse();
+            if(!captcha)return n("Please complete reCAPTCHA","error");
             try{
-                const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:name,email,phone,password,captcha:cap})});
+                const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:name,email:email,phone:phone,password:pass,captcha:captcha})});
                 const d=await r.json();
-                d.success?(n("Registration successful! Please login."),showLogin()):n(d.message,"error");
+                d.success?(n("Registration successful!"),showLogin()):n(d.message,"error");
             }catch(e){n("Connection error","error")}
         }
 
-        async function localLogin(){
-            const email=document.getElementById("loginEmail").value,pw=document.getElementById("loginPassword").value;
-            if(!email||!pw)return n("Please fill all fields","error");
-            const cap=grecaptcha.getResponse();
-            if(!cap)return n("Please complete reCAPTCHA","error");
+        async function doLogin(){
+            const email=document.getElementById("loginEmail").value;
+            const pass=document.getElementById("loginPassword").value;
+            if(!email||!pass)return n("Please fill all fields","error");
+            const captcha=getCaptchaResponse();
+            if(!captcha)return n("Please complete reCAPTCHA","error");
             try{
-                const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password:pw,captcha:cap})});
+                const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email,password:pass,captcha:captcha})});
                 const d=await r.json();
                 if(d.success){localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("Login successful!");setTimeout(()=>window.location.href="/dashboard",500)}
                 else n(d.message,"error");
@@ -191,4 +201,4 @@
         };
     </script>
 </body>
-    </html>
+</html>
