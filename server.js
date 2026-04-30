@@ -138,16 +138,19 @@ app.post('/api/admin/unban', async (req, res) => { try { await pool.query('DELET
 app.post('/api/admin/delete', async (req, res) => { try { await pool.query('DELETE FROM auth_users WHERE id = $1', [req.body.userId]); await pool.query('DELETE FROM banned_users WHERE user_id = $1', [req.body.userId]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/check_banned', async (req, res) => { try { const r = await pool.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ banned: r.rows.length > 0 }); } catch (e) { res.json({ banned: false }); } });
 
-// ==================== NOTICE (Color + Delete) ====================
+// ==================== NOTICE ====================
 app.get('/api/notice', async (req, res) => {
     try { const r = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color || '#ffffff', id: n.id, created_at: n.created_at }); } catch (e) { res.json({ success: true, message: '' }); }
 });
+app.get('/api/admin/notices', async (req, res) => {
+    try { const r = await pool.query('SELECT * FROM notices ORDER BY id DESC'); res.json({ success: true, notices: r.rows }); } catch (e) { res.json({ success: false, notices: [] }); }
+});
 app.post('/api/admin/notice', async (req, res) => {
     const { message, color } = req.body; if (!message) return res.json({ success: false, message: 'Message required' });
-    try { await pool.query('INSERT INTO notices (message, color, created_by) VALUES ($1,$2,$3)', [message, color || '#ffffff', 'admin']); res.json({ success: true, message: 'Notice posted' }); } catch (e) { res.json({ success: false }); }
+    try { await pool.query('INSERT INTO notices (message, color, created_by) VALUES ($1,$2,$3)', [message, color || '#ffffff', 'admin']); tgSend(`📢 New Notice\n${message}`); res.json({ success: true, message: 'Notice posted' }); } catch (e) { res.json({ success: false }); }
 });
-app.delete('/api/admin/notice', async (req, res) => {
-    try { await pool.query('DELETE FROM notices'); res.json({ success: true, message: 'Notice deleted' }); } catch (e) { res.json({ success: false }); }
+app.delete('/api/admin/notice/:id', async (req, res) => {
+    try { await pool.query('DELETE FROM notices WHERE id = $1', [req.params.id]); res.json({ success: true, message: 'Notice deleted' }); } catch (e) { res.json({ success: false }); }
 });
 
 // ==================== PAGES ====================
