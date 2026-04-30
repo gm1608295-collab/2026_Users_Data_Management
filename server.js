@@ -149,8 +149,8 @@ app.post('/api/admin/notice', async (req, res) => {
     const { message, color } = req.body; if (!message) return res.json({ success: false, message: 'Message required' });
     try { await pool.query('INSERT INTO notices (message, color, created_by) VALUES ($1,$2,$3)', [message, color || '#ffffff', 'admin']); tgSend(`📢 New Notice\n${message}`); res.json({ success: true, message: 'Notice posted' }); } catch (e) { res.json({ success: false }); }
 });
-app.delete('/api/admin/notice/:id', async (req, res) => {
-    try { await pool.query('DELETE FROM notices WHERE id = $1', [req.params.id]); res.json({ success: true, message: 'Notice deleted' }); } catch (e) { res.json({ success: false }); }
+app.post('/api/admin/notice/delete', async (req, res) => {
+    try { await pool.query('DELETE FROM notices WHERE id = $1', [req.body.id]); res.json({ success: true, message: 'Notice deleted' }); } catch (e) { res.json({ success: false }); }
 });
 
 // ==================== PAGES ====================
