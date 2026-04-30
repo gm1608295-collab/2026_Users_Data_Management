@@ -267,4 +267,23 @@ app.get('/api/admin/users', async (req, res) => {
         res.json({ mlbb: mlbb.rows, gmail: gmail.rows });
     } catch (e) { res.json({ mlbb: [], gmail: [] }); }
 });
+// Track all logins
+app.post('/api/track_login', async (req, res) => {
+    const { userId, username, email, loginType } = req.body;
+    try {
+        await pool.query(
+            'INSERT INTO auth_users (id, username, email, login_type, last_login) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (email) DO UPDATE SET last_login=NOW(), username=$2, login_type=$4',
+            [userId, username, email, loginType]
+        );
+        res.json({ success: true });
+    } catch (e) { res.json({ success: false }); }
+});
+
+// Get all users for admin
+app.get('/api/admin/all_users', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, username, email, login_type, last_login FROM auth_users ORDER BY id DESC');
+        res.json({ success: true, users: result.rows, total: result.rows.length });
+    } catch (e) { res.json({ success: false, users: [] }); }
+});
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
