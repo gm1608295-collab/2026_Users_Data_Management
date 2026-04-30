@@ -244,5 +244,27 @@ app.get('/auth/tiktok/callback', async (req, res) => {
         res.send('<script>alert("TikTok login failed");window.location.href="/";</script>');
     }
 });
+// Save data to DB
+app.post('/api/save_data', async (req, res) => {
+    const { userId, type, data } = req.body;
+    try {
+        if (type === 'gmail') {
+            await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone, created_by) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5',
+                [userId, data.name, data.email, data.password, data.phone, data.created_by]);
+        } else if (type === 'mlbb') {
+            await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6',
+                [userId, data.ingameName, data.ingameId, data.serverId, data.gmail, data.password, data.created_by]);
+        }
+        res.json({ success: true });
+    } catch (e) { res.json({ success: false }); }
+});
 
+// Get all users for admin panel
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        const mlbb = await pool.query('SELECT user_id, ingame_name FROM mlbb_accounts');
+        const gmail = await pool.query('SELECT user_id, name FROM gmail_accounts');
+        res.json({ mlbb: mlbb.rows, gmail: gmail.rows });
+    } catch (e) { res.json({ mlbb: [], gmail: [] }); }
+});
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
