@@ -194,4 +194,55 @@ app.post('/api/admin/notice', async (req, res) => {
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
+// TIKTOK AUTH
+const TIKTOK_CLIENT_KEY = 'awlwv9kkzin9m9pv';
+const TIKTOK_CLIENT_SECRET = '3QDthZspcNC7eHZNCA5ofYAs3CpACLX7';
+const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
+
+app.get('/auth/tiktok', (req, res) => {
+    const csrfState = Math.random().toString(36).substring(2);
+    res.cookie('csrfState', csrfState, { maxAge: 60000 });
+    res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${TIKTOK_CLIENT_KEY}&scope=user.info.basic&response_type=code&redirect_uri=${TIKTOK_REDIRECT}&state=${csrfState}`);
+});
+
+app.get('/auth/tiktok/callback', async (req, res) => {
+    const { code, state } = req.query;
+    if (!code) return res.send('<script>window.close()</script>');
+    
+    try {
+        const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_key: TIKTOK_CLIENT_KEY,
+                client_secret: TIKTOK_CLIENT_SECRET,
+                code: code,
+                grant_type: 'authorization_code',
+                redirect_uri: TIKTOK_REDIRECT
+            })
+        });
+        const tokenData = await tokenRes.json();
+        const accessToken = tokenData.access_token;
+        
+        const userRes = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,union_id,avatar_url,display_name', {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const userData = await userRes.json();
+        const user = userData.data.user;
+        
+        const dbResult = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [user.open_id]);
+        if (dbResult.rows.length > 0) {
+            const u = dbResult.rows[0];
+            await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]);
+            res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||user.display_name}",email:"${u.email||'tiktok@user.com'}",login_type:"tiktok"}));window.location.href="/dashboard";</script>`);
+        } else {
+            const newUser = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [user.display_name, 'tiktok_'+user.open_id+'@tiktok.com', user.open_id, 'tiktok']);
+            const uid = newUser.rows[0].id;
+            res.send(`<script>localStorage.setItem("auth_token","token_${uid}");localStorage.setItem("user",JSON.stringify({id:${uid},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`);
+        }
+    } catch (e) {
+        res.send('<script>alert("TikTok login failed");window.location.href="/";</script>');
+    }
+});
+
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
