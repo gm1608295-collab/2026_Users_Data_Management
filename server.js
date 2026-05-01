@@ -157,4 +157,70 @@ app.post('/api/admin/notice/delete', async (req, res) => {
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
+// Country & Region data
+const countries = [
+    {name:'Myanmar',code:'MM',regions:['Yangon','Mandalay','Naypyidaw','Bago','Sagaing','Magway','Ayeyarwady','Tanintharyi','Shan','Kachin','Kayah','Kayin','Mon','Rakhine','Chin']},
+    {name:'Thailand',code:'TH',regions:['Bangkok','Chiang Mai','Phuket','Pattaya','Krabi','Surat Thani','Udon Thani','Khon Kaen']},
+    {name:'Indonesia',code:'ID',regions:['Jakarta','Bali','Surabaya','Bandung','Medan','Yogyakarta','Semarang','Makassar']},
+    {name:'Malaysia',code:'MY',regions:['Kuala Lumpur','Penang','Johor','Sabah','Sarawak','Selangor','Perak','Kedah']},
+    {name:'Singapore',code:'SG',regions:['Central','North','East','West','North-East']},
+    {name:'Philippines',code:'PH',regions:['Manila','Cebu','Davao','Quezon City','Caloocan','Taguig','Pasig','Makati']},
+    {name:'Vietnam',code:'VN',regions:['Hanoi','Ho Chi Minh','Da Nang','Haiphong','Can Tho','Nha Trang','Hue']},
+    {name:'India',code:'IN',regions:['Mumbai','Delhi','Bangalore','Chennai','Kolkata','Hyderabad','Pune','Jaipur']},
+    {name:'China',code:'CN',regions:['Beijing','Shanghai','Guangzhou','Shenzhen','Chengdu','Wuhan','Hangzhou','Nanjing']},
+    {name:'Japan',code:'JP',regions:['Tokyo','Osaka','Kyoto','Yokohama','Nagoya','Sapporo','Fukuoka','Kobe']},
+    {name:'South Korea',code:'KR',regions:['Seoul','Busan','Incheon','Daegu','Daejeon','Gwangju','Ulsan','Jeju']},
+    {name:'USA',code:'US',regions:['New York','Los Angeles','Chicago','Houston','Phoenix','Philadelphia','San Antonio','San Diego']},
+    {name:'UK',code:'GB',regions:['London','Manchester','Birmingham','Liverpool','Edinburgh','Glasgow','Bristol','Leeds']},
+    {name:'Australia',code:'AU',regions:['Sydney','Melbourne','Brisbane','Perth','Adelaide','Gold Coast','Canberra','Hobart']},
+    {name:'Canada',code:'CA',regions:['Toronto','Vancouver','Montreal','Calgary','Ottawa','Edmonton','Winnipeg','Quebec']},
+    {name:'Brazil',code:'BR',regions:['Sao Paulo','Rio de Janeiro','Brasilia','Salvador','Fortaleza','Belo Horizonte','Manaus','Curitiba']},
+    {name:'Russia',code:'RU',regions:['Moscow','Saint Petersburg','Novosibirsk','Yekaterinburg','Kazan','Nizhny Novgorod','Chelyabinsk','Samara']},
+    {name:'Germany',code:'DE',regions:['Berlin','Munich','Frankfurt','Hamburg','Cologne','Stuttgart','Dusseldorf','Dortmund']},
+    {name:'France',code:'FR',regions:['Paris','Marseille','Lyon','Toulouse','Nice','Nantes','Strasbourg','Bordeaux']},
+    {name:'Italy',code:'IT',regions:['Rome','Milan','Naples','Turin','Florence','Venice','Bologna','Genoa']},
+    {name:'Spain',code:'ES',regions:['Madrid','Barcelona','Valencia','Seville','Bilbao','Malaga','Zaragoza','Murcia']},
+    {name:'Cambodia',code:'KH',regions:['Phnom Penh','Siem Reap','Battambang','Sihanoukville']},
+    {name:'Laos',code:'LA',regions:['Vientiane','Luang Prabang','Pakse','Savannakhet']},
+    {name:'Bangladesh',code:'BD',regions:['Dhaka','Chittagong','Khulna','Rajshahi','Sylhet']},
+    {name:'Pakistan',code:'PK',regions:['Karachi','Lahore','Islamabad','Rawalpindi','Faisalabad']},
+    {name:'Nepal',code:'NP',regions:['Kathmandu','Pokhara','Lalitpur','Biratnagar']},
+    {name:'Sri Lanka',code:'LK',regions:['Colombo','Kandy','Galle','Jaffna','Negombo']},
+    {name:'Turkey',code:'TR',regions:['Istanbul','Ankara','Izmir','Antalya','Bursa']},
+    {name:'UAE',code:'AE',regions:['Dubai','Abu Dhabi','Sharjah','Ajman','Fujairah']},
+    {name:'Saudi Arabia',code:'SA',regions:['Riyadh','Jeddah','Mecca','Medina','Dammam']},
+    {name:'Egypt',code:'EG',regions:['Cairo','Alexandria','Giza','Luxor','Aswan']},
+    {name:'Nigeria',code:'NG',regions:['Lagos','Abuja','Kano','Ibadan','Port Harcourt']},
+    {name:'South Africa',code:'ZA',regions:['Johannesburg','Cape Town','Durban','Pretoria','Port Elizabeth']}
+];
+
+app.get('/api/countries', (req, res) => res.json(countries));
+
+// Save user data to DB
+app.post('/api/save_user_data', async (req, res) => {
+    const { token, type, data } = req.body;
+    if (!token) return res.json({ success: false });
+    const userId = parseInt(token.replace('token_', ''));
+    try {
+        const jsonData = JSON.stringify(data);
+        if (type === 'gmail') {
+            await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone, created_by) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5', [userId, data.name, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones), 'user']);
+        } else if (type === 'mlbb') {
+            await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6', [userId, data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails), data.password, 'user']);
+        }
+        res.json({ success: true, message: 'Data saved!' });
+    } catch (e) { res.json({ success: false, message: e.message }); }
+});
+
+// Get user's own data for history
+app.post('/api/get_my_data', async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.json({ success: false });
+    const userId = parseInt(token.replace('token_', ''));
+    try {
+        const gmail = await pool.query('SELECT * FROM gmail_accounts WHERE user_id=$1', [userId]);
+        const mlbb = await pool.query('SELECT * FROM mlbb_accounts WHERE user_id=$1', [userId]);
+        res.json({ success: true, gmail: gmail.rows, mlbb: mlbb.rows });
+    } catch (e) { res.json({ success: false }); }
+});
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
