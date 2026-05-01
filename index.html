@@ -30,9 +30,10 @@
         .divider{display:flex;align-items:center;gap:8px;margin:10px 0;color:rgba(255,255,255,0.4);font-size:10px}
         .divider::before,.divider::after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.15)}
         .social-row{display:flex;gap:6px;justify-content:center;align-items:stretch}
-        .s-btn{flex:1;display:flex;align-items:center;justify-content:center;padding:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.2);border-radius:5px;cursor:pointer;font-size:11px;color:var(--lt);transition:all 0.3s;max-width:33%}
-        .s-btn:hover{background:rgba(255,255,255,0.15)}
-        .s-btn i{font-size:14px}
+        .social-row>div{flex:1;max-width:33%}
+        .google-wrap{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:8px;cursor:pointer}
+        .guest-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:6px;color:var(--lt);font-size:12px;cursor:pointer}
+        .tiktok-btn{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.25);border-radius:6px;color:var(--t);font-size:12px;cursor:pointer}
         .toggle-link{text-align:center;margin-top:8px;font-size:11px}
         .toggle-link a{color:var(--w);text-decoration:none;cursor:pointer}
         .notif{position:fixed;top:20px;right:20px;color:var(--t);padding:12px 15px;border-radius:8px;display:none;z-index:9999;font-size:12px;max-width:250px;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
@@ -42,6 +43,7 @@
         #registerForm{display:none}
         .top-link{text-align:right;padding:8px 12px 0}
         .top-link a{color:var(--b);text-decoration:none;font-size:10px;cursor:pointer}
+        .refresh-btn{position:absolute;top:15px;left:15px;color:var(--w);font-size:14px;cursor:pointer}
         .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:10000;justify-content:center;align-items:center;padding:20px}
         .modal-overlay.active{display:flex}
         .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:15px;max-width:400px;width:100%;max-height:75vh;overflow-y:auto;font-size:11px;line-height:1.7;color:var(--lt)}
@@ -55,13 +57,13 @@
         .guest-modal-box .warn-text{color:var(--r);font-weight:bold;font-size:12px;line-height:1.6;margin-bottom:12px;background:rgba(231,76,60,0.1);padding:10px;border-radius:5px}
         .guest-modal-box .btn-row{display:flex;gap:8px;justify-content:center}
         .guest-modal-box .btn-row button{padding:8px 14px;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600}
-        .btn-cancel{background:rgba(255,255,255,0.2);color:var(--t)}
-        .btn-confirm{background:var(--r);color:var(--t)}
+        .btn-cancel{background:rgba(255,255,255,0.2);color:var(--t)}.btn-confirm{background:var(--r);color:var(--t)}
     </style>
 </head>
 <body>
     <div class="notif" id="notif"></div>
     <div class="container">
+        <div class="refresh-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></div>
         <div class="top-link"><a onclick="openGuide()"><i class="fas fa-question-circle"></i> User Guide</a></div>
         <div class="header">
             <div class="icon"><i class="fas fa-shield-alt"></i></div>
@@ -76,9 +78,9 @@
                 <button class="btn btn-a" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
                 <div class="divider">or continue with</div>
                 <div class="social-row">
-                    <div class="s-btn google-wrap" id="googleSignIn"></div>
-                    <div class="s-btn tiktok-btn" onclick="tiktokLogin()"><i class="fab fa-tiktok"></i></div>
-                    <div class="s-btn guest-btn" onclick="showGuestModal()"><i class="fas fa-user-secret"></i></div>
+                    <div class="google-wrap" id="googleSignIn"></div>
+                    <div class="tiktok-btn" onclick="tiktokLogin()"><i class="fab fa-tiktok"></i></div>
+                    <div class="guest-btn" onclick="showGuestModal()"><i class="fas fa-user-secret"></i></div>
                 </div>
                 <div class="toggle-link">Don't have an account? <a onclick="showReg()">Register</a></div>
             </div>
@@ -100,24 +102,13 @@
     <div class="modal-overlay" id="guestModal">
         <div class="guest-modal-box">
             <h3><i class="fas fa-exclamation-triangle"></i> Guest Login</h3>
-            <div class="warn-text">
-                <i class="fas fa-exclamation-circle"></i> <strong>သတိပေးချက်</strong><br><br>
-                Guests ဖြင့်ဝင်ရောက်ပါက ချက်ချင်းဝင်ရောက်မည်ဖြစ်သော်လည်း<br>
-                ❌ ဒေတာများ သိမ်းဆည်းမည်မဟုတ်ပါ<br>
-                ❌ ယာယီဧည့်သည်အနေဖြင့်သာ ဝင်ရောက်ခွင့်ရှိသည်<br>
-                ❌ အကောင့်ပြန်လည်ရယူနိုင်မည်မဟုတ်ပါ
-            </div>
-            <div class="btn-row">
-                <button class="btn-cancel" onclick="closeGuestModal()">Cancel</button>
-                <button class="btn-confirm" onclick="guestLogin()">Confirm</button>
-            </div>
+            <div class="warn-text"><i class="fas fa-exclamation-circle"></i> <strong>သတိပေးချက်</strong><br><br>Guests ဖြင့်ဝင်ရောက်ပါက ချက်ချင်းဝင်ရောက်မည်ဖြစ်သော်လည်း<br>❌ ဒေတာများ သိမ်းဆည်းမည်မဟုတ်ပါ<br>❌ ယာယီဧည့်သည်အနေဖြင့်သာ ဝင်ရောက်ခွင့်ရှိသည်<br>❌ အကောင့်ပြန်လည်ရယူနိုင်မည်မဟုတ်ပါ</div>
+            <div class="btn-row"><button class="btn-cancel" onclick="closeGuestModal()">Cancel</button><button class="btn-confirm" onclick="guestLogin()">Confirm</button></div>
         </div>
     </div>
 
     <script>
-        if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js');
-        }
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-worker.js'); }
         let guideLang='en';
         const guideData={
             en:{title:'User Guide & Terms',about:'About',aboutText:'MLBB Security System - secure account management.',usage:'Usage',usageText:'1. Register<br>2. Login<br>3. Use tools<br>4. Recovery',security:'Security',securityText:'Encrypted. Auto-logout 5min.',admin:'Admin',adminText:'Can ban/delete violators.',disclaimer:'Disclaimer',disclaimerText:'Not responsible for external issues.',privacy:'Privacy',privacyText:'Data never shared.',close:'Close'},
@@ -159,7 +150,6 @@
         window.onload=function(){
             google.accounts.id.initialize({client_id:"968523580383-2ou2ei00epntihsdgltr0e3igj2m2mq7.apps.googleusercontent.com",callback:handleGoogleLogin});
             google.accounts.id.renderButton(document.getElementById("googleSignIn"),{type:"icon",size:"large"});
-            setTimeout(()=>{const gdiv=document.getElementById("googleSignIn").querySelector('div');if(gdiv)gdiv.style.width='100%';},500);
         };
     </script>
 </body>
