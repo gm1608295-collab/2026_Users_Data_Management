@@ -42,6 +42,7 @@ pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message T
 pool.query(`CREATE TABLE IF NOT EXISTS banned_users (user_id VARCHAR(100) PRIMARY KEY, banned_by VARCHAR(100), banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS gmail_accounts (user_id VARCHAR(50) PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), password VARCHAR(100), phone VARCHAR(20), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS mlbb_accounts (user_id VARCHAR(50) PRIMARY KEY, ingame_name VARCHAR(100), ingame_id VARCHAR(50), server_id VARCHAR(20), gmail VARCHAR(100), password VARCHAR(100), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+pool.query(`CREATE TABLE IF NOT EXISTS tiktok_accounts (user_id VARCHAR(50) PRIMARY KEY, full_name VARCHAR(100), last_name VARCHAR(100), email VARCHAR(100), password VARCHAR(100), phone VARCHAR(20), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 
 // ==================== AUTH ====================
 app.post('/api/track_login', async (req, res) => {
@@ -77,7 +78,7 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/auth/google', async (req, res) => {
     const { token, userInfo } = req.body; if (!userInfo) return res.json({ success: false });
-    const { sub: googleId, email, name, picture } = userInfo;
+    const { sub: googleId, email, name } = userInfo;
     try {
         let r = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [googleId]);
         if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); }
@@ -115,14 +116,62 @@ app.post('/api/get_passwords', async (req, res) => {
     try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008' }); res.json({ gmail_password: r.rows[0].gmail_pass, mlbb_password: r.rows[0].mlbb_pass }); } catch (e) { res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008' }); }
 });
 app.post('/api/change_password', async (req, res) => {
-    const { token, type, current_password, new_password } = req.body; if (!token) return res.json({ success: false, message: 'Session expired' });
+    const { token, type, current_password, new_password } = req.body; if (!token) return res.json({ success: false });
     try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ success: false }); const field = type === 'gmail' ? 'gmail_pass' : 'mlbb_pass'; if (current_password !== r.rows[0][field]) return res.json({ success: false, message: 'Wrong current password' }); await pool.query(`UPDATE auth_users SET ${field} = $1 WHERE id = $2`, [new_password, parseInt(token.replace('token_', ''))]); res.json({ success: true, message: 'Password changed' }); } catch (e) { res.json({ success: false }); }
 });
 
-// ==================== SAVE DATA ====================
-app.post('/api/save_data', async (req, res) => {
-    const { userId, type, data } = req.body;
-    try { if (type === 'gmail') { await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone, created_by) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5', [userId, data.name, data.email, data.password, data.phone, data.created_by || 'user']); } else if (type === 'mlbb') { await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6', [userId, data.ingameName, data.ingameId, data.serverId, data.gmail, data.password, data.created_by || 'user']); } res.json({ success: true }); } catch (e) { res.json({ success: false }); }
+// ==================== COUNTRIES ====================
+const countries = [
+    {name:'Myanmar',code:'MM',regions:['Yangon','Mandalay','Naypyidaw','Bago','Sagaing','Magway','Ayeyarwady','Tanintharyi','Shan','Kachin','Kayah','Kayin','Mon','Rakhine','Chin']},
+    {name:'Thailand',code:'TH',regions:['Bangkok','Chiang Mai','Phuket','Pattaya','Krabi','Surat Thani']},
+    {name:'Indonesia',code:'ID',regions:['Jakarta','Bali','Surabaya','Bandung','Medan']},
+    {name:'Malaysia',code:'MY',regions:['Kuala Lumpur','Penang','Johor','Sabah','Sarawak']},
+    {name:'Singapore',code:'SG',regions:['Central','North','East','West']},
+    {name:'Philippines',code:'PH',regions:['Manila','Cebu','Davao','Quezon City']},
+    {name:'Vietnam',code:'VN',regions:['Hanoi','Ho Chi Minh','Da Nang']},
+    {name:'India',code:'IN',regions:['Mumbai','Delhi','Bangalore','Chennai']},
+    {name:'China',code:'CN',regions:['Beijing','Shanghai','Guangzhou','Shenzhen']},
+    {name:'Japan',code:'JP',regions:['Tokyo','Osaka','Kyoto','Yokohama']},
+    {name:'South Korea',code:'KR',regions:['Seoul','Busan','Incheon','Daegu']},
+    {name:'USA',code:'US',regions:['New York','Los Angeles','Chicago','Houston']},
+    {name:'UK',code:'GB',regions:['London','Manchester','Birmingham','Liverpool']},
+    {name:'Australia',code:'AU',regions:['Sydney','Melbourne','Brisbane','Perth']},
+    {name:'Canada',code:'CA',regions:['Toronto','Vancouver','Montreal','Calgary']},
+    {name:'Brazil',code:'BR',regions:['Sao Paulo','Rio de Janeiro','Brasilia']},
+    {name:'Germany',code:'DE',regions:['Berlin','Munich','Frankfurt','Hamburg']},
+    {name:'France',code:'FR',regions:['Paris','Marseille','Lyon','Toulouse']},
+    {name:'Italy',code:'IT',regions:['Rome','Milan','Naples','Turin']},
+    {name:'Spain',code:'ES',regions:['Madrid','Barcelona','Valencia','Seville']}
+];
+app.get('/api/countries', (req, res) => res.json(countries));
+
+// ==================== SAVE & GET USER DATA ====================
+app.post('/api/save_user_data', async (req, res) => {
+    const { token, type, data } = req.body;
+    if (!token) return res.json({ success: false });
+    const userId = parseInt(token.replace('token_', ''));
+    try {
+        if (type === 'gmail') {
+            await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone, created_by) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5', [userId, data.name, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones), 'user']);
+        } else if (type === 'mlbb') {
+            await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6', [userId, data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails), data.password, 'user']);
+        } else if (type === 'tiktok') {
+            await pool.query('INSERT INTO tiktok_accounts (user_id, full_name, last_name, email, password, phone, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (user_id) DO UPDATE SET full_name=$2,last_name=$3,email=$4,password=$5,phone=$6', [userId, data.fullName, data.lastName, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones), 'user']);
+        }
+        res.json({ success: true, message: 'Data saved!' });
+    } catch (e) { res.json({ success: false, message: e.message }); }
+});
+
+app.post('/api/get_my_data', async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.json({ success: false });
+    const userId = parseInt(token.replace('token_', ''));
+    try {
+        const gmail = await pool.query('SELECT * FROM gmail_accounts WHERE user_id=$1', [userId]);
+        const mlbb = await pool.query('SELECT * FROM mlbb_accounts WHERE user_id=$1', [userId]);
+        const tiktok = await pool.query('SELECT * FROM tiktok_accounts WHERE user_id=$1', [userId]);
+        res.json({ success: true, gmail: gmail.rows, mlbb: mlbb.rows, tiktok: tiktok.rows });
+    } catch (e) { res.json({ success: false }); }
 });
 
 // ==================== ADMIN ====================
@@ -131,7 +180,7 @@ app.get('/api/admin/users_grouped', async (req, res) => {
 });
 app.post('/api/admin/edit_user', async (req, res) => {
     const { id, username, email, phone, password } = req.body;
-    try { if (password) { await pool.query('UPDATE auth_users SET username=$1, email=$2, phone=$3, password=$4 WHERE id=$5 AND login_type=$6', [username, email, phone, password, id, 'local']); } else { await pool.query('UPDATE auth_users SET username=$1, email=$2, phone=$3 WHERE id=$4 AND login_type=$5', [username, email, phone, id, 'local']); } res.json({ success: true }); } catch (e) { res.json({ success: false, message: e.message }); }
+    try { if (password) { await pool.query('UPDATE auth_users SET username=$1, email=$2, phone=$3, password=$4 WHERE id=$5 AND login_type=$6', [username, email, phone, password, id, 'local']); } else { await pool.query('UPDATE auth_users SET username=$1, email=$2, phone=$3 WHERE id=$4 AND login_type=$5', [username, email, phone, id, 'local']); } res.json({ success: true }); } catch (e) { res.json({ success: false }); }
 });
 app.post('/api/admin/ban', async (req, res) => { try { await pool.query('INSERT INTO banned_users (user_id, banned_by) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', [req.body.userId, 'admin']); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/admin/unban', async (req, res) => { try { await pool.query('DELETE FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
@@ -150,77 +199,11 @@ app.post('/api/admin/notice', async (req, res) => {
     try { await pool.query('INSERT INTO notices (message, color, created_by) VALUES ($1,$2,$3)', [message, color || '#ffffff', 'admin']); tgSend(`📢 New Notice\n${message}`); res.json({ success: true, message: 'Notice posted' }); } catch (e) { res.json({ success: false }); }
 });
 app.post('/api/admin/notice/delete', async (req, res) => {
-    try { await pool.query('DELETE FROM notices WHERE id = $1', [req.body.id]); res.json({ success: true, message: 'Notice deleted' }); } catch (e) { res.json({ success: false }); }
+    try { await pool.query('DELETE FROM notices WHERE id = $1', [req.body.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); }
 });
 
 // ==================== PAGES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Country & Region data
-const countries = [
-    {name:'Myanmar',code:'MM',regions:['Yangon','Mandalay','Naypyidaw','Bago','Sagaing','Magway','Ayeyarwady','Tanintharyi','Shan','Kachin','Kayah','Kayin','Mon','Rakhine','Chin']},
-    {name:'Thailand',code:'TH',regions:['Bangkok','Chiang Mai','Phuket','Pattaya','Krabi','Surat Thani','Udon Thani','Khon Kaen']},
-    {name:'Indonesia',code:'ID',regions:['Jakarta','Bali','Surabaya','Bandung','Medan','Yogyakarta','Semarang','Makassar']},
-    {name:'Malaysia',code:'MY',regions:['Kuala Lumpur','Penang','Johor','Sabah','Sarawak','Selangor','Perak','Kedah']},
-    {name:'Singapore',code:'SG',regions:['Central','North','East','West','North-East']},
-    {name:'Philippines',code:'PH',regions:['Manila','Cebu','Davao','Quezon City','Caloocan','Taguig','Pasig','Makati']},
-    {name:'Vietnam',code:'VN',regions:['Hanoi','Ho Chi Minh','Da Nang','Haiphong','Can Tho','Nha Trang','Hue']},
-    {name:'India',code:'IN',regions:['Mumbai','Delhi','Bangalore','Chennai','Kolkata','Hyderabad','Pune','Jaipur']},
-    {name:'China',code:'CN',regions:['Beijing','Shanghai','Guangzhou','Shenzhen','Chengdu','Wuhan','Hangzhou','Nanjing']},
-    {name:'Japan',code:'JP',regions:['Tokyo','Osaka','Kyoto','Yokohama','Nagoya','Sapporo','Fukuoka','Kobe']},
-    {name:'South Korea',code:'KR',regions:['Seoul','Busan','Incheon','Daegu','Daejeon','Gwangju','Ulsan','Jeju']},
-    {name:'USA',code:'US',regions:['New York','Los Angeles','Chicago','Houston','Phoenix','Philadelphia','San Antonio','San Diego']},
-    {name:'UK',code:'GB',regions:['London','Manchester','Birmingham','Liverpool','Edinburgh','Glasgow','Bristol','Leeds']},
-    {name:'Australia',code:'AU',regions:['Sydney','Melbourne','Brisbane','Perth','Adelaide','Gold Coast','Canberra','Hobart']},
-    {name:'Canada',code:'CA',regions:['Toronto','Vancouver','Montreal','Calgary','Ottawa','Edmonton','Winnipeg','Quebec']},
-    {name:'Brazil',code:'BR',regions:['Sao Paulo','Rio de Janeiro','Brasilia','Salvador','Fortaleza','Belo Horizonte','Manaus','Curitiba']},
-    {name:'Russia',code:'RU',regions:['Moscow','Saint Petersburg','Novosibirsk','Yekaterinburg','Kazan','Nizhny Novgorod','Chelyabinsk','Samara']},
-    {name:'Germany',code:'DE',regions:['Berlin','Munich','Frankfurt','Hamburg','Cologne','Stuttgart','Dusseldorf','Dortmund']},
-    {name:'France',code:'FR',regions:['Paris','Marseille','Lyon','Toulouse','Nice','Nantes','Strasbourg','Bordeaux']},
-    {name:'Italy',code:'IT',regions:['Rome','Milan','Naples','Turin','Florence','Venice','Bologna','Genoa']},
-    {name:'Spain',code:'ES',regions:['Madrid','Barcelona','Valencia','Seville','Bilbao','Malaga','Zaragoza','Murcia']},
-    {name:'Cambodia',code:'KH',regions:['Phnom Penh','Siem Reap','Battambang','Sihanoukville']},
-    {name:'Laos',code:'LA',regions:['Vientiane','Luang Prabang','Pakse','Savannakhet']},
-    {name:'Bangladesh',code:'BD',regions:['Dhaka','Chittagong','Khulna','Rajshahi','Sylhet']},
-    {name:'Pakistan',code:'PK',regions:['Karachi','Lahore','Islamabad','Rawalpindi','Faisalabad']},
-    {name:'Nepal',code:'NP',regions:['Kathmandu','Pokhara','Lalitpur','Biratnagar']},
-    {name:'Sri Lanka',code:'LK',regions:['Colombo','Kandy','Galle','Jaffna','Negombo']},
-    {name:'Turkey',code:'TR',regions:['Istanbul','Ankara','Izmir','Antalya','Bursa']},
-    {name:'UAE',code:'AE',regions:['Dubai','Abu Dhabi','Sharjah','Ajman','Fujairah']},
-    {name:'Saudi Arabia',code:'SA',regions:['Riyadh','Jeddah','Mecca','Medina','Dammam']},
-    {name:'Egypt',code:'EG',regions:['Cairo','Alexandria','Giza','Luxor','Aswan']},
-    {name:'Nigeria',code:'NG',regions:['Lagos','Abuja','Kano','Ibadan','Port Harcourt']},
-    {name:'South Africa',code:'ZA',regions:['Johannesburg','Cape Town','Durban','Pretoria','Port Elizabeth']}
-];
-
-app.get('/api/countries', (req, res) => res.json(countries));
-
-// Save user data to DB
-app.post('/api/save_user_data', async (req, res) => {
-    const { token, type, data } = req.body;
-    if (!token) return res.json({ success: false });
-    const userId = parseInt(token.replace('token_', ''));
-    try {
-        const jsonData = JSON.stringify(data);
-        if (type === 'gmail') {
-            await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone, created_by) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5', [userId, data.name, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones), 'user']);
-        } else if (type === 'mlbb') {
-            await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6', [userId, data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails), data.password, 'user']);
-        }
-        res.json({ success: true, message: 'Data saved!' });
-    } catch (e) { res.json({ success: false, message: e.message }); }
-});
-
-// Get user's own data for history
-app.post('/api/get_my_data', async (req, res) => {
-    const { token } = req.body;
-    if (!token) return res.json({ success: false });
-    const userId = parseInt(token.replace('token_', ''));
-    try {
-        const gmail = await pool.query('SELECT * FROM gmail_accounts WHERE user_id=$1', [userId]);
-        const mlbb = await pool.query('SELECT * FROM mlbb_accounts WHERE user_id=$1', [userId]);
-        res.json({ success: true, gmail: gmail.rows, mlbb: mlbb.rows });
-    } catch (e) { res.json({ success: false }); }
-});
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
