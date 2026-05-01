@@ -26,18 +26,15 @@
         .btn{display:block;width:100%;padding:9px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;text-align:center;margin-top:5px;transition:all 0.3s}
         .btn-a{background:var(--a);color:var(--t)}.btn-a:hover{background:#5d2a92}
         .btn-b{background:transparent;color:var(--w);border:1px solid var(--w);margin-top:6px}
-        .btn-b:hover{background:rgba(243,156,18,0.1)}
         .divider{display:flex;align-items:center;gap:8px;margin:10px 0;color:rgba(255,255,255,0.4);font-size:10px}
         .divider::before,.divider::after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.15)}
         .social-row{display:flex;gap:6px;justify-content:center;align-items:stretch}
-        .social-row>div{flex:1;max-width:33%}
-        .google-wrap{display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:8px;cursor:pointer}
-        .guest-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:6px;color:var(--lt);font-size:12px;cursor:pointer}
-        .tiktok-btn{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.25);border-radius:6px;color:var(--t);font-size:12px;cursor:pointer}
-        .tiktok-notice{font-size:8px;color:rgba(255,255,255,0.4);text-align:center;margin-top:4px}
+        .google-wrap{flex:1;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:6px;padding:8px;cursor:pointer;max-width:33%}
+        .tiktok-btn{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.25);border-radius:6px;color:var(--t);font-size:12px;cursor:pointer;max-width:33%}
+        .guest-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:6px;color:var(--lt);font-size:12px;cursor:pointer;max-width:33%}
         .toggle-link{text-align:center;margin-top:8px;font-size:11px}
         .toggle-link a{color:var(--w);text-decoration:none;cursor:pointer}
-        .notif{position:fixed;top:20px;right:20px;color:var(--t);padding:12px 15px;border-radius:8px;display:none;z-index:9999;font-size:12px;max-width:250px;box-shadow:0 5px 15px rgba(0,0,0,0.3)}
+        .notif{position:fixed;top:20px;right:20px;color:var(--t);padding:12px 15px;border-radius:8px;display:none;z-index:9999;font-size:12px;max-width:250px}
         .footer{text-align:center;padding:8px;color:rgba(255,255,255,0.5);font-size:9px;border-top:1px solid rgba(74,28,122,0.4)}
         .recaptcha-wrap{display:flex;justify-content:center;margin:6px 0}
         .g-recaptcha{display:inline-block;transform:scale(0.77);transform-origin:center}
@@ -83,7 +80,6 @@
                     <div class="tiktok-btn" onclick="tiktokLogin()"><i class="fab fa-tiktok"></i></div>
                     <div class="guest-btn" onclick="showGuestModal()"><i class="fas fa-user-secret"></i></div>
                 </div>
-                <div class="tiktok-notice">* TikTok Login မရရှိနိုင်သေးပါ (Coming Soon)</div>
                 <div class="toggle-link">Don't have an account? <a onclick="showReg()">Register</a></div>
             </div>
             <div id="registerForm">
@@ -111,6 +107,12 @@
 
     <script>
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-worker.js'); }
+        
+        // Auto-login check
+        if(localStorage.getItem("auth_token") && localStorage.getItem("user")){
+            window.location.href="/dashboard";
+        }
+        
         let guideLang='en';
         const guideData={
             en:{title:'User Guide & Terms',about:'About',aboutText:'MLBB Security System - secure account management.',usage:'Usage',usageText:'1. Register<br>2. Login<br>3. Use tools<br>4. Recovery',security:'Security',securityText:'Encrypted. Auto-logout 5min.',admin:'Admin',adminText:'Can ban/delete violators.',disclaimer:'Disclaimer',disclaimerText:'Not responsible for external issues.',privacy:'Privacy',privacyText:'Data never shared.',close:'Close'},
@@ -150,12 +152,11 @@
         }
         function handleGoogleLogin(response){const p=JSON.parse(atob(response.credential.split('.')[1]));fetch("/api/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:response.credential,userInfo:{sub:p.sub,email:p.email,name:p.name,picture:p.picture}})}).then(r=>r.json()).then(d=>{if(d.success){localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("Login!");setTimeout(()=>window.location.href="/dashboard",500)}else n("Failed","error")}).catch(()=>n("Error","error"))}
         window.onload=function(){
-            google.accounts.id.initialize({
-                client_id:"968523580383-2ou2ei00epntihsdgltr0e3igj2m2mq7.apps.googleusercontent.com",
-                callback:handleGoogleLogin,
-                ux_mode:"redirect",
-                redirect_uri:"https://two026-users-data-management.onrender.com/dashboard"
-            });
+            if(localStorage.getItem("auth_token") && localStorage.getItem("user")){
+                window.location.href="/dashboard";
+                return;
+            }
+            google.accounts.id.initialize({client_id:"968523580383-2ou2ei00epntihsdgltr0e3igj2m2mq7.apps.googleusercontent.com",callback:handleGoogleLogin});
             google.accounts.id.renderButton(document.getElementById("googleSignIn"),{type:"icon",size:"large"});
         };
     </script>
