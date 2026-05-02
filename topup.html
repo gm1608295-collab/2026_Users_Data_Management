@@ -14,9 +14,13 @@
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
         .sidebar-btn{color:var(--w);font-size:20px;cursor:pointer;z-index:10}
+        
         .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
-        .balance-card .amount{font-size:36px;font-weight:bold;color:var(--w)}
-        .balance-card .label{font-size:12px;color:rgba(255,255,255,0.7)}
+        .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
+        .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
+        .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px;font-weight:bold}
+        .balance-card .usd-rate{font-size:9px;color:rgba(255,255,255,0.4);margin-top:2px}
+        
         .tabs{display:flex;gap:5px;margin-bottom:15px}
         .tab{flex:1;padding:10px;text-align:center;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;cursor:pointer;color:var(--t)}
         .tab.active{background:var(--a);color:var(--w)}
@@ -63,10 +67,10 @@
         .topup-btn{width:100%;padding:12px;background:var(--a);color:var(--t);border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:15px}
         
         /* Order History */
-        .history-item{background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+        .history-item{background:rgba(0,0,0,0.3);padding:10px 12px;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
         .history-item .h-info{flex:1}
-        .history-item .h-amount{font-weight:bold;font-size:13px;color:var(--w)}
         .history-item .h-meta{font-size:10px;color:rgba(255,255,255,0.5)}
+        .history-item .h-payment{font-size:11px;color:var(--t)}
         .history-item .status-badge{font-size:9px;padding:4px 10px;border-radius:10px;font-weight:bold;text-transform:uppercase}
         .status-pending{background:rgba(243,156,18,0.2);color:var(--w)}
         .status-approved{background:rgba(46,204,113,0.2);color:var(--g)}
@@ -75,7 +79,7 @@
         .history-detail img{max-width:100%;border-radius:6px;margin-top:5px;max-height:200px;object-fit:contain}
         
         .games{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
-        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.1);position:relative}
+        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
         .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:6px;object-fit:cover}
         .game-card p{font-size:10px;color:var(--t);margin-top:3px;line-height:1.2}
         .game-card .unavailable{font-size:8px;color:var(--r);margin-top:2px}
@@ -83,7 +87,7 @@
         
         .copy-notif{position:fixed;top:20px;right:20px;background:var(--g);color:#000;padding:10px 15px;border-radius:6px;font-size:13px;font-weight:bold;z-index:9999;display:none}
         
-        #paymentSection{display:none;overflow-y:auto;max-height:70vh}
+        #paymentSection{display:none}
         
         .sidebar-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000}
         .sidebar-overlay.active{display:block}
@@ -107,7 +111,9 @@
         
         <div class="balance-card">
             <div class="amount" id="myBalance">0 Ks</div>
-            <div class="label">MMK Balance</div>
+            <div class="label">Myanmar Kyat (MMK)</div>
+            <div class="usd-amount" id="usdBalance">≈ $0.00 USD</div>
+            <div class="usd-rate" id="usdRate">$1 = 0 Ks</div>
         </div>
         
         <div class="tabs">
@@ -144,18 +150,11 @@
                     
                     <div class="form-group">
                         <label>ငွေလွှဲသည့် Payment</label>
-                        <select id="topupPayment">
-                            <option value="">ရွေးချယ်ပါ</option>
-                            <option value="Wave Pay">Wave Pay</option>
-                            <option value="A+ Pay">A+ Pay</option>
-                        </select>
+                        <select id="topupPayment"><option value="">ရွေးချယ်ပါ</option><option value="Wave Pay">Wave Pay</option><option value="A+ Pay">A+ Pay</option></select>
                     </div>
                     
                     <div class="id-row">
-                        <div class="form-group">
-                            <label>သင်၏ User ID ထည့်ပါ</label>
-                            <input type="text" id="verifyUserId" placeholder="e.g., 000003" maxlength="10">
-                        </div>
+                        <div class="form-group"><label>သင်၏ User ID ထည့်ပါ</label><input type="text" id="verifyUserId" placeholder="e.g., 000003" maxlength="10"></div>
                         <button class="check-id-btn" id="checkIdBtn" onclick="verifyUserId()"><i class="fas fa-check-circle"></i> Check</button>
                     </div>
                     <div class="id-result" id="idResult"></div>
@@ -199,7 +198,7 @@
         <div class="tab-content" id="history">
             <div class="section">
                 <h3><i class="fas fa-history"></i> Order History</h3>
-                <div id="orderHistory"><p style="text-align:center;color:rgba(255,255,255,0.5);font-size:12px">Loading...</p></div>
+                <div id="orderHistory"></div>
             </div>
         </div>
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
@@ -217,6 +216,7 @@
         let screenshotData='';
         let currentUser = null;
         let idVerified = false;
+        let exchangeRate = 2100; // Default 1 USD = 2100 Ks
         
         try { currentUser = JSON.parse(localStorage.getItem('user')||'{}'); } catch(e) { currentUser = {}; }
         
@@ -240,6 +240,38 @@
                 noti.style.display='block';
                 setTimeout(()=>noti.style.display='none', 3000);
             }).catch(()=>prompt('Copy:', text));
+        }
+        
+        // ==================== EXCHANGE RATE ====================
+        async function fetchExchangeRate(){
+            try {
+                const r = await fetch('https://api.exchangerate-api.com/v4/latest/MMK');
+                const d = await r.json();
+                if(d.rates && d.rates.USD){
+                    exchangeRate = 1 / d.rates.USD; // MMK to USD
+                }
+            } catch(e) {
+                // Fallback: try another API
+                try {
+                    const r = await fetch('https://open.er-api.com/v6/latest/MMK');
+                    const d = await r.json();
+                    if(d.rates && d.rates.USD){
+                        exchangeRate = d.rates.USD;
+                    }
+                } catch(e2) {
+                    exchangeRate = 2100; // Default fallback
+                }
+            }
+            updateBalanceDisplay();
+            localStorage.setItem('exchangeRate', exchangeRate.toString());
+            localStorage.setItem('exchangeRateTime', Date.now().toString());
+        }
+        
+        function updateBalanceDisplay(){
+            const mmkBalance = currentUser ? (document.getElementById('myBalance').textContent.replace(/[^0-9]/g,'') || 0) : 0;
+            const usdValue = (mmkBalance / exchangeRate);
+            document.getElementById('usdBalance').textContent = `≈ $${usdValue.toFixed(2)} USD`;
+            document.getElementById('usdRate').textContent = `$1 = ${formatNumber(Math.round(exchangeRate))} Ks`;
         }
         
         async function verifyUserId(){
@@ -296,47 +328,97 @@
                     const uploadBox=document.getElementById('fileUploadBox'); const uploadText=document.getElementById('uploadText'); const uploadHint=document.getElementById('uploadHint');
                     uploadBox.classList.remove('has-file'); uploadText.textContent='Payment Screenshot'; uploadHint.textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';
                     document.getElementById('paymentSection').style.display='none';
+                    // Invalidate history cache
+                    localStorage.removeItem('orderHistoryCache');
                 } else { alert(d.message||'Error'); }
             }catch(e){ alert('Connection error'); }
             btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy'; btn.disabled=false;
         }
         
+        // ==================== ORDER HISTORY (Cache-First Instant) ====================
         async function loadHistory(){
             const container = document.getElementById('orderHistory');
+            
+            // Show from cache first (instant)
+            const cached = localStorage.getItem('orderHistoryCache');
+            if(cached){
+                try {
+                    const orders = JSON.parse(cached);
+                    renderOrderHistory(orders);
+                } catch(e) { container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);font-size:12px">Loading...</p>'; }
+            } else {
+                container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);font-size:12px">Loading...</p>';
+            }
+            
+            // Fetch from server and update cache
             try{
-                const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
-                const d=await r.json();
-                if(!d.orders||d.orders.length===0){ container.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);font-size:12px">No topup history yet.</p>'; return; }
-                container.innerHTML = d.orders.map((o,i)=>{
-                    const statusClass = o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';
-                    const statusText = o.status==='approved'?'Approved':o.status==='rejected'?'Rejected':'Pending';
-                    return `
-                    <div class="history-item" onclick="toggleDetail(${i})">
-                        <div class="h-info">
-                            <div class="h-amount">💰 ${o.amount} Ks</div>
-                            <div class="h-meta">💳 ${o.payment_method} | ${new Date(o.created_at).toLocaleString()}</div>
-                        </div>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                    </div>
-                    <div class="history-detail" id="detail${i}">
-                        <p><b>Status:</b> ${statusText}</p>
-                        <p><b>Payment:</b> ${o.payment_method}</p>
-                        <p><b>Date:</b> ${new Date(o.created_at).toLocaleString()}</p>
-                        ${o.screenshot?`<img src="${o.screenshot}" alt="Screenshot">`:'<p>No screenshot</p>'}
-                    </div>`;
-                }).join('');
-            }catch(e){ container.innerHTML='<p style="text-align:center;color:var(--r);font-size:12px">Error loading history</p>'; }
+                const r = await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+                const d = await r.json();
+                if(d.orders){
+                    localStorage.setItem('orderHistoryCache', JSON.stringify(d.orders));
+                    renderOrderHistory(d.orders);
+                }
+            }catch(e){
+                if(!cached) container.innerHTML = '<p style="text-align:center;color:var(--r);font-size:12px">Error loading history</p>';
+            }
         }
+        
+        function renderOrderHistory(orders){
+            const container = document.getElementById('orderHistory');
+            if(!orders||orders.length===0){
+                container.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);font-size:12px">No topup history yet.</p>';
+                return;
+            }
+            container.innerHTML = orders.map((o,i)=>{
+                const statusClass = o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';
+                const statusText = o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';
+                return `
+                <div class="history-item" onclick="toggleDetail(${i})">
+                    <div class="h-info">
+                        <div class="h-payment">💳 ${o.payment_method}</div>
+                        <div class="h-meta">${new Date(o.created_at).toLocaleString()}</div>
+                    </div>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+                <div class="history-detail" id="detail${i}">
+                    <p><b>Status:</b> ${statusText}</p>
+                    <p><b>Payment:</b> ${o.payment_method}</p>
+                    <p><b>Date:</b> ${new Date(o.created_at).toLocaleString()}</p>
+                    ${o.screenshot?`<img src="${o.screenshot}" alt="Screenshot">`:'<p>No screenshot</p>'}
+                </div>`;
+            }).join('');
+        }
+        
         function toggleDetail(i){ const d=document.getElementById('detail'+i); if(d) d.style.display=d.style.display==='block'?'none':'block'; }
         
         function formatNumber(num){ return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+        
         async function loadBalance(){
-            try{ const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}); const d=await r.json(); document.getElementById('myBalance').textContent=formatNumber(d.balance||0)+' Ks'; }catch(e){}
+            try{
+                const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+                const d=await r.json();
+                document.getElementById('myBalance').textContent=formatNumber(d.balance||0)+' Ks';
+                updateBalanceDisplay();
+            }catch(e){}
         }
         
         function openTopSidebar(){ document.getElementById("topSidebarPanel").classList.add("active"); document.getElementById("topSidebarOverlay").classList.add("active"); }
         function closeTopSidebar(){ document.getElementById("topSidebarPanel").classList.remove("active"); document.getElementById("topSidebarOverlay").classList.remove("active"); }
+        
+        // ==================== INIT ====================
+        // Load cached exchange rate first
+        const cachedRate = localStorage.getItem('exchangeRate');
+        const cachedRateTime = localStorage.getItem('exchangeRateTime');
+        if(cachedRate && cachedRateTime && (Date.now() - parseInt(cachedRateTime)) < 3600000){
+            exchangeRate = parseFloat(cachedRate);
+        }
+        
         loadBalance();
+        fetchExchangeRate(); // Update rate in background
+        
+        // Pre-load history cache for instant display
+        fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})})
+        .then(r=>r.json()).then(d=>{ if(d.orders) localStorage.setItem('orderHistoryCache', JSON.stringify(d.orders)); }).catch(()=>{});
     </script>
 </body>
 </html>
