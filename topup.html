@@ -6,7 +6,7 @@
     <title>SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px}
         .container{max-width:500px;margin:0 auto}
@@ -24,9 +24,8 @@
         .section{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px;margin-bottom:15px}
         .section h3{color:var(--w);font-size:14px;margin-bottom:10px;text-align:center}
         
-        /* Payment Cards with Images */
         .payment-card{background:rgba(0,0,0,0.4);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-        .payment-card img{width:45px;height:45px;border-radius:8px;object-fit:cover}
+        .payment-card img{width:45px;height:45px;border-radius:8px;object-fit:cover;flex-shrink:0}
         .payment-info{flex:1}
         .payment-info .pay-name{color:var(--w);font-weight:bold;font-size:13px}
         .payment-info .pay-number{font-size:14px;margin:2px 0}
@@ -38,15 +37,16 @@
         .form-group select option{background:var(--bg);color:var(--t)}
         .form-group input[type="file"]{padding:8px}
         
-        /* Amount Quick Select */
-        .amount-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
-        .amount-opt{background:rgba(0,0,0,0.4);padding:10px;text-align:center;border-radius:6px;cursor:pointer;font-size:12px;font-weight:bold;color:var(--w);border:1px solid rgba(255,255,255,0.2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .amount-opt:hover,.amount-opt.sel{background:var(--a);border-color:var(--w)}
+        /* Payment Select with Images */
+        .payment-option{display:flex;align-items:center;gap:8px;padding:8px}
+        .payment-option img{width:28px;height:28px;border-radius:6px;object-fit:cover}
         
         .btn-row{display:flex;gap:8px;margin-top:10px}
-        .btn-row button{flex:1;padding:12px;border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer}
+        .btn-row button{flex:1;padding:12px;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
         .buy-btn{background:var(--g);color:#000}.buy-btn:disabled{opacity:0.5}
         .check-btn{background:var(--w);color:#000}
+        
+        .topup-btn{width:100%;padding:12px;background:var(--a);color:var(--t);border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:15px}
         
         .history-item{background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
         .history-item .status{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:bold}
@@ -60,17 +60,19 @@
         .game-card p{font-size:11px;color:var(--t);margin-top:5px}
         .back-btn{display:block;padding:10px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
         
-        /* Copy Notification */
         .copy-notif{position:fixed;top:20px;right:20px;background:var(--g);color:#000;padding:10px 15px;border-radius:6px;font-size:13px;font-weight:bold;z-index:9999;display:none}
         
         /* MLBB Check Modal */
         .check-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
         .check-modal.active{display:flex}
-        .check-box{background:var(--p);padding:20px;border-radius:10px;width:90%;max-width:380px;border:2px solid var(--w);max-height:80vh;overflow-y:auto}
+        .check-box{background:var(--p);padding:20px;border-radius:10px;width:90%;max-width:380px;border:2px solid var(--w);max-height:85vh;overflow-y:auto}
         .check-box h3{color:var(--w);text-align:center;margin-bottom:15px}
         .check-box input{width:100%;padding:10px;margin-bottom:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--t)}
-        .check-box .check-result{padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;margin-top:10px;text-align:center;font-weight:bold;color:var(--g)}
+        .check-box .check-result{padding:12px;background:rgba(0,0,0,0.3);border-radius:6px;margin-top:10px;text-align:center;font-size:13px;line-height:1.6}
         .check-box .close-check{float:right;color:var(--r);cursor:pointer;font-size:20px}
+        .checking-spinner{text-align:center;padding:15px;color:var(--w)}
+        .checking-spinner i{font-size:30px;animation:spin 1s linear infinite}
+        @keyframes spin{100%{transform:rotate(360deg)}}
         
         #paymentSection{display:none}
         
@@ -105,15 +107,15 @@
         </div>
         
         <div class="tab-content active" id="topup">
-            <button class="topup-btn" onclick="togglePayment()" style="width:100%;padding:12px;background:var(--a);color:var(--t);border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer"><i class="fas fa-plus-circle"></i> Top Up Now</button>
+            <button class="topup-btn" onclick="togglePayment()"><i class="fas fa-plus-circle"></i> Top Up Now</button>
             
-            <div id="paymentSection" style="margin-top:15px">
+            <div id="paymentSection">
                 <div class="section">
                     <h3><i class="fas fa-money-bill-wave"></i> ငွေလွှဲရန်</h3>
                     
                     <!-- Wave Pay -->
                     <div class="payment-card">
-                        <img src="https://i.ibb.co/ycnZ5YmQ/bf457901bf5c15ca935fa5236259c441.jpg" alt="Wave Pay" onerror="this.style.display='none'">
+                        <img src="https://i.ibb.co/ycnZ5YmQ/bf457901bf5c15ca935fa5236259c441.jpg" alt="Wave Pay" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2245%22 height=%2245%22><rect fill=%22%234a1c7a%22 width=%2245%22 height=%2245%22 rx=%228%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22white%22 font-size=%2210%22>W</text></svg>'">
                         <div class="payment-info">
                             <div class="pay-name">WAVE PAY</div>
                             <div class="pay-number">09254649306</div>
@@ -124,7 +126,7 @@
                     
                     <!-- A+ Pay -->
                     <div class="payment-card">
-                        <img src="https://i.ibb.co/Kz8Pwpc0/917cdc9887b881089b6c6a2cc1e941dc.jpg" alt="A+ Pay" onerror="this.style.display='none'">
+                        <img src="https://i.ibb.co/Kz8Pwpc0/917cdc9887b881089b6c6a2cc1e941dc.jpg" alt="A+ Pay" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2245%22 height=%2245%22><rect fill=%22%234a1c7a%22 width=%2245%22 height=%2245%22 rx=%228%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22white%22 font-size=%2210%22>A+</text></svg>'">
                         <div class="payment-info">
                             <div class="pay-name">A+ PAY</div>
                             <div class="pay-number">09672093790</div>
@@ -133,31 +135,21 @@
                         <button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i> Copy</button>
                     </div>
                     
-                    <!-- Amount Quick Select -->
-                    <div class="form-group"><label>ငွေပမာဏ (Ks)</label></div>
-                    <div class="amount-grid">
-                        <div class="amount-opt sel" onclick="setAmount('10000', this)">၁၀,၀၀၀</div>
-                        <div class="amount-opt" onclick="setAmount('50000', this)">၅၀,၀၀၀</div>
-                        <div class="amount-opt" onclick="setAmount('100000', this)">၁၀၀,၀၀၀</div>
-                        <div class="amount-opt" onclick="setAmount('500000', this)">၅၀၀,၀၀၀</div>
-                        <div class="amount-opt" onclick="setAmount('1000000', this)">၁,၀၀၀,၀၀၀</div>
-                        <div class="amount-opt" onclick="setAmount('10000000', this)">၁၀,၀၀၀,၀၀၀</div>
-                    </div>
-                    <div class="form-group"><input type="number" id="topupAmount" placeholder="သို့မဟုတ် ကိုယ်တိုင်ရိုက်ထည့်ပါ" value="10000"></div>
-                    
+                    <!-- Select Payment with Real Images -->
                     <div class="form-group">
                         <label>ငွေလွှဲသည့် Payment</label>
                         <select id="topupPayment">
                             <option value="">ရွေးချယ်ပါ</option>
-                            <option value="Wave Pay">📱 Wave Pay</option>
-                            <option value="A+ Pay">📱 A+ Pay</option>
+                            <option value="Wave Pay" data-img="https://i.ibb.co/ycnZ5YmQ/bf457901bf5c15ca935fa5236259c441.jpg">Wave Pay</option>
+                            <option value="A+ Pay" data-img="https://i.ibb.co/Kz8Pwpc0/917cdc9887b881089b6c6a2cc1e941dc.jpg">A+ Pay</option>
                         </select>
+                        <div id="paymentPreview" style="text-align:center;margin-top:8px"></div>
                     </div>
                     
                     <div class="form-group"><label>ငွေလွှဲပြေစာ Screenshot</label><input type="file" id="topupScreenshot" accept="image/*" onchange="previewScreenshot()"></div>
                     <div id="screenshotPreview" style="text-align:center;margin:5px 0"></div>
                     
-                    <!-- Buttons Row: Buy + MLBB Check -->
+                    <!-- Buttons: Buy + MLBB Check Server -->
                     <div class="btn-row">
                         <button class="buy-btn" id="buyBtn" onclick="submitTopup()"><i class="fas fa-paper-plane"></i> Buy</button>
                         <button class="check-btn" onclick="openMLBBCheck()"><i class="fas fa-search"></i> MLBB Check Server</button>
@@ -192,7 +184,7 @@
             <input type="text" id="mlbbCheckId" placeholder="Enter User ID">
             <input type="text" id="mlbbCheckServer" placeholder="Enter Server ID">
             <button onclick="checkMLBB()" style="width:100%;padding:10px;background:var(--w);color:#000;border:none;border-radius:6px;font-weight:bold;cursor:pointer;margin-top:5px"><i class="fas fa-check"></i> Check</button>
-            <div class="check-result" id="mlbbCheckResult" style="display:none"></div>
+            <div id="mlbbCheckResult" style="display:none"></div>
         </div>
     </div>
     
@@ -231,12 +223,16 @@
             }).catch(()=>prompt('Copy:', text));
         }
         
-        // Amount Quick Select
-        function setAmount(amount, el){
-            document.getElementById('topupAmount').value = amount;
-            document.querySelectorAll('.amount-opt').forEach(o=>o.classList.remove('sel'));
-            el.classList.add('sel');
-        }
+        // Payment select - show image preview
+        document.getElementById('topupPayment').addEventListener('change', function(){
+            const img = this.options[this.selectedIndex].getAttribute('data-img');
+            const preview = document.getElementById('paymentPreview');
+            if(img){
+                preview.innerHTML=`<img src="${img}" style="width:60px;height:60px;border-radius:8px;object-fit:cover;border:2px solid var(--w)">`;
+            } else {
+                preview.innerHTML='';
+            }
+        });
         
         function previewScreenshot(){
             const file=document.getElementById('topupScreenshot').files[0];
@@ -251,10 +247,11 @@
         }
         
         async function submitTopup(){
-            const amount=document.getElementById('topupAmount').value;
             const payment=document.getElementById('topupPayment').value;
-            if(!amount||!payment) return alert('အားလုံးဖြည့်ပါ');
+            if(!payment) return alert('Payment ရွေးချယ်ပါ');
             if(!screenshotData) return alert('Screenshot ထည့်ပါ');
+            const amount = prompt('ငွေပမာဏထည့်ပါ (Ks):', '');
+            if(!amount) return;
             const btn=document.getElementById('buyBtn');
             btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Submitting...';
             btn.disabled=true;
@@ -263,8 +260,8 @@
                 const d=await r.json();
                 if(d.success){
                     alert('✅ Order Submitted!');
-                    document.getElementById('topupAmount').value='10000';
                     document.getElementById('topupPayment').value='';
+                    document.getElementById('paymentPreview').innerHTML='';
                     document.getElementById('topupScreenshot').value='';
                     document.getElementById('screenshotPreview').innerHTML='';
                     screenshotData='';
@@ -290,26 +287,53 @@
             }catch(e){ document.getElementById('orderHistory').innerHTML='<p>Error</p>'; }
         }
         function toggleDetail(i){ const d=document.getElementById('detail'+i); d.style.display=d.style.display==='block'?'none':'block'; }
+        
+        // Format number with commas
+        function formatNumber(num){ return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
         async function loadBalance(){
-            try{ const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}); const d=await r.json(); document.getElementById('myBalance').textContent=(d.balance||0)+' Ks'; }catch(e){}
+            try{
+                const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+                const d=await r.json();
+                document.getElementById('myBalance').textContent=formatNumber(d.balance||0)+' Ks';
+            }catch(e){}
         }
         
-        // ==================== MLBB CHECK SERVER (Fake Logic) ====================
-        function getPlayerName(id, server){
-            const names = ["ShadowX","DarkHero","MLBBKing","NoobMaster","LegendX","FrostBlade","SkyHunter"];
-            const num = (parseInt(id)||0) + (parseInt(server)||0);
-            return names[num % names.length];
-        }
+        // ==================== MLBB CHECK SERVER ====================
         function openMLBBCheck(){ document.getElementById('mlbbCheckModal').classList.add('active'); }
-        function closeMLBBCheck(){ document.getElementById('mlbbCheckModal').classList.remove('active'); }
+        function closeMLBBCheck(){ document.getElementById('mlbbCheckModal').classList.remove('active'); document.getElementById('mlbbCheckResult').style.display='none'; }
+        
         function checkMLBB(){
             const id=document.getElementById('mlbbCheckId').value.trim();
             const server=document.getElementById('mlbbCheckServer').value.trim();
             const result=document.getElementById('mlbbCheckResult');
-            if(!id||!server){ result.style.display='block'; result.textContent='❌ Please enter ID and Server'; return; }
-            const name = getPlayerName(id, server);
+            
+            if(!id||!server){
+                result.style.display='block';
+                result.innerHTML='<p style="color:var(--r)">❌ Please enter ID and Server</p>';
+                return;
+            }
+            
+            // Show checking animation
             result.style.display='block';
-            result.innerHTML = `✅ <b>${name}</b><br><small>ID: ${id} | Server: ${server}</small><br><span style="color:var(--g)">✔ Verified</span>`;
+            result.innerHTML=`<div class="checking-spinner"><i class="fas fa-spinner"></i><p style="margin-top:8px">Checking server...</p></div>`;
+            
+            // Simulate check delay then show Smile One message
+            setTimeout(()=>{
+                result.innerHTML=`
+                    <div style="text-align:center;padding:10px">
+                        <i class="fas fa-smile" style="font-size:40px;color:var(--w)"></i>
+                        <p style="margin-top:10px;color:var(--t);line-height:1.8">
+                            Smile One ကိုတင်ပြနေပါသည်။<br>
+                            Smile One မှတစ်ဆင့် သင်၏ ID နှင့် Server ID ကို<br>
+                            မှန်မမှန် Admin မှပြန်လည် ဆုံးဖြတ်ပေးပါလိမ့်မည်။<br>
+                            ကျေးဇူးပြု၍ မိနစ်အနည်းငယ်စောင့်ဆိုင်းပါ။
+                        </p>
+                        <p style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.5)">
+                            ID: ${id} | Server: ${server}
+                        </p>
+                    </div>
+                `;
+            }, 2000);
         }
         
         function openTopSidebar(){ document.getElementById("topSidebarPanel").classList.add("active"); document.getElementById("topSidebarOverlay").classList.add("active"); }
