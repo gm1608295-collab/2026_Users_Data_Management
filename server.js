@@ -37,9 +37,10 @@ function verifyCaptcha(token) {
     });
 }
 
-// Tables
+// ==================== TABLES ====================
 pool.query(`CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200) UNIQUE, phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+pool.query(`CREATE TABLE IF NOT EXISTS banner_images (id SERIAL PRIMARY KEY, image_url TEXT, created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS banned_users (user_id VARCHAR(100) PRIMARY KEY, banned_by VARCHAR(100), banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS gmail_accounts (user_id VARCHAR(50) PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), password VARCHAR(100), phone VARCHAR(20), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -52,13 +53,7 @@ app.post('/api/track_login', async (req, res) => { const { userId, username, ema
 app.post('/api/register', async (req, res) => {
     const { username, email, phone, password, captcha } = req.body;
     if (!username || !email || !phone || !password) return res.json({ success: false, message: 'All fields required' });
-    
-    // Verify captcha but don't block registration if it fails (for testing)
-    if (captcha) {
-        const ok = await verifyCaptcha(captcha);
-        if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' });
-    }
-    
+    if (captcha) { const ok = await verifyCaptcha(captcha); if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' }); }
     try {
         const exist = await pool.query('SELECT id FROM auth_users WHERE email = $1', [email]);
         if (exist.rows.length > 0) return res.json({ success: false, message: 'Email already exists' });
@@ -71,13 +66,7 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     const { email, password, captcha } = req.body;
     if (!email || !password) return res.json({ success: false, message: 'All fields required' });
-    
-    // Verify captcha but don't block login if it fails
-    if (captcha) {
-        const ok = await verifyCaptcha(captcha);
-        if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' });
-    }
-    
+    if (captcha) { const ok = await verifyCaptcha(captcha); if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' }); }
     try {
         const r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND password = $2 AND login_type = 'local'", [email, password]);
         if (r.rows.length === 0) return res.json({ success: false, message: 'Invalid email or password' });
@@ -117,6 +106,29 @@ app.get('/api/countries', (req, res) => res.json([{name:'Myanmar',regions:['Yang
 // ==================== USER DATA ====================
 app.post('/api/save_user_data', async (req, res) => { const { token, type, data } = req.body; if (!token) return res.json({ success: false }); const uid = parseInt(token.replace('token_', '')); try { if (type === 'gmail') { await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5', [uid, data.name, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones)]); } else if (type === 'mlbb') { await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6', [uid, data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails), data.password]); } else if (type === 'tiktok') { await pool.query('INSERT INTO tiktok_accounts (user_id, full_name, last_name, email, password, phone) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET full_name=$2,last_name=$3,email=$4,password=$5,phone=$6', [uid, data.fullName, data.lastName, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones)]); } res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/get_my_data', async (req, res) => { const { token } = req.body; if (!token) return res.json({ success: false }); const uid = parseInt(token.replace('token_', '')); try { const g = await pool.query('SELECT * FROM gmail_accounts WHERE user_id=$1', [uid]); const m = await pool.query('SELECT * FROM mlbb_accounts WHERE user_id=$1', [uid]); const t = await pool.query('SELECT * FROM tiktok_accounts WHERE user_id=$1', [uid]); res.json({ success: true, gmail: g.rows, mlbb: m.rows, tiktok: t.rows }); } catch (e) { res.json({ success: false }); } });
+
+// ==================== BANNER IMAGE (အသစ်) ====================
+app.get('/api/banner_image', async (req, res) => {
+    try {
+        const r = await pool.query('SELECT image_url FROM banner_images ORDER BY id DESC LIMIT 1');
+        if (r.rows.length === 0) return res.json({ success: true, image_url: '' });
+        res.json({ success: true, image_url: r.rows[0].image_url || '' });
+    } catch (e) { res.json({ success: true, image_url: '' }); }
+});
+
+app.post('/api/admin/banner_image', async (req, res) => {
+    const { image_url } = req.body;
+    try {
+        // Remove empty string - clear all banners
+        if (!image_url || image_url.trim() === '') {
+            await pool.query('DELETE FROM banner_images');
+            return res.json({ success: true, message: 'Banner removed' });
+        }
+        // Insert new banner
+        await pool.query('INSERT INTO banner_images (image_url, created_by) VALUES ($1, $2)', [image_url, 'admin']);
+        res.json({ success: true, message: 'Banner updated' });
+    } catch (e) { res.json({ success: false, message: 'Error' }); }
+});
 
 // ==================== ADMIN ====================
 app.get('/api/admin/users_grouped', async (req, res) => { try { const lo = await pool.query("SELECT * FROM auth_users WHERE login_type='local' ORDER BY id DESC"); const go = await pool.query("SELECT * FROM auth_users WHERE login_type='google' ORDER BY id DESC"); const ti = await pool.query("SELECT * FROM auth_users WHERE login_type='tiktok' ORDER BY id DESC"); const ba = await pool.query("SELECT user_id FROM banned_users"); const bids = ba.rows.map(r => r.user_id); res.json({ success: true, local: lo.rows, google: go.rows, tiktok: ti.rows, banned: bids, total: lo.rows.length + go.rows.length + ti.rows.length }); } catch (e) { res.json({ success: false }); } });
