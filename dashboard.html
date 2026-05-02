@@ -80,10 +80,13 @@
         .contact-table .ct-gmail{color:var(--r)}.contact-table .ct-phone{color:var(--g)}.contact-table .ct-telegram{color:var(--b)}.contact-table .ct-tiktok{color:var(--pk)}
         .contact-table button{padding:4px 8px;border:none;border-radius:4px;font-size:10px;cursor:pointer;background:var(--a);color:#fff}
 
-        .data-select{display:flex;gap:5px;margin-bottom:10px}
-        .data-card{flex:1;padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:6px;text-align:center;cursor:pointer}
-        .data-card:hover,.data-card.sel{background:rgba(74,28,122,0.4);border-color:var(--w)}
-        .data-card i{font-size:16px;margin-bottom:3px;color:var(--w)}.data-card p{font-size:9px;margin:0}
+        /* Data Tab with Real Images */
+        .data-select{display:flex;gap:8px;margin-bottom:12px}
+        .data-card{flex:1;padding:10px 6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;text-align:center;cursor:pointer;transition:all 0.3s}
+        .data-card:hover,.data-card.sel{background:rgba(74,28,122,0.5);border-color:var(--w);transform:translateY(-2px)}
+        .data-card img{width:45px;height:45px;border-radius:8px;margin-bottom:5px;object-fit:cover}
+        .data-card p{font-size:10px;color:var(--t);margin:0;font-weight:bold}
+        
         .sub-tab{display:none}.sub-tab.active{display:block}
         .add-btn{background:var(--w);color:#000;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;font-weight:bold;flex-shrink:0}
         .input-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}.input-row input{flex:1}
@@ -112,6 +115,20 @@
         .confirm-btns{display:flex;gap:10px;justify-content:center}
         .confirm-btns button{padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px}
         .confirm-yes{background:var(--r);color:#fff}.confirm-no{background:rgba(255,255,255,0.2);color:#fff}
+
+        /* Banned Page */
+        .banned-container{text-align:center;padding:40px 20px;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center}
+        .banned-icon{font-size:80px;margin-bottom:20px}
+        .banned-title{color:var(--r);font-size:20px;margin-bottom:8px;font-weight:bold}
+        .banned-subtitle{color:rgba(255,255,255,0.7);font-size:13px;margin-bottom:20px}
+        .banned-contact{background:rgba(0,0,0,0.3);padding:18px;border-radius:10px;max-width:350px;width:100%;margin-bottom:20px;text-align:left}
+        .banned-contact h4{color:var(--w);font-size:13px;margin-bottom:10px;text-align:center}
+        .banned-contact p{font-size:12px;margin:6px 0;color:rgba(255,255,255,0.8)}
+        .banned-contact i{color:var(--w);margin-right:6px;width:16px}
+        .banned-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+        .banned-btns button{padding:10px 20px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px}
+        .btn-stay{background:rgba(255,255,255,0.2);color:var(--t)}
+        .btn-new{background:var(--b);color:var(--t)}
     </style>
 </head>
 <body>
@@ -165,9 +182,18 @@
                 <div class="tab-content active" id="dataTab">
                     <h2><i class="fas fa-database"></i> Data</h2>
                     <div class="data-select">
-                        <div class="data-card sel" onclick="showSub('gmailSub')"><i class="fas fa-envelope"></i><p>Gmail</p></div>
-                        <div class="data-card" onclick="showSub('mlbbSub')"><i class="fas fa-gamepad"></i><p>MLBB</p></div>
-                        <div class="data-card" onclick="showSub('tiktokSub')"><i class="fab fa-tiktok"></i><p>TikTok</p></div>
+                        <div class="data-card sel" onclick="showSub('gmailSub')">
+                            <img src="https://i.ibb.co/zWXRD2bF/88e14cc7e7fcbb0e0e09de26cec86c61.jpg" alt="Gmail">
+                            <p>Gmail</p>
+                        </div>
+                        <div class="data-card" onclick="showSub('mlbbSub')">
+                            <img src="https://i.ibb.co/NDZp85p/85cef5aaf89054952dd0c1cb350d7061.jpg" alt="MLBB">
+                            <p>MLBB</p>
+                        </div>
+                        <div class="data-card" onclick="showSub('tiktokSub')">
+                            <img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok">
+                            <p>TikTok</p>
+                        </div>
                     </div>
                     <div class="sub-tab active" id="gmailSub">
                         <div class="form-group"><label>Generator Password</label><input type="password" id="dataGmailPass" placeholder="Enter password to unlock"></div>
@@ -501,7 +527,7 @@
     async function rejectOrder(id){ await fetch('/api/admin/order_status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'rejected'})}); n('Rejected!'); loadAdminOrders(); }
     function zoomImage(src){ const modal=document.createElement('div'); modal.className='zoom-overlay'; modal.onclick=()=>modal.remove(); modal.innerHTML=`<img src="${src}">`; document.body.appendChild(modal); }
 
-    // ==================== DATA FORMS (shortened) ====================
+    // ==================== DATA FORMS (shortened - same as before) ====================
     async function loadCountries(){ try{ const r=await fetch("/api/countries"); countriesData=await r.json(); ['gCountry','mCountry','tCountry'].forEach(id=>{ const s=document.getElementById(id); if(s){ s.innerHTML='<option value="">Select</option>'; countriesData.forEach(c=>{ s.innerHTML+=`<option value="${c.name}">${c.name}</option>`; }); } }); }catch(e){} }
     function loadRegions(cid,rid){ const c=document.getElementById(cid).value; const r=document.getElementById(rid); r.innerHTML='<option value="">Select</option>'; const f=countriesData.find(x=>x.name===c); if(f){ f.regions.forEach(reg=>{ r.innerHTML+=`<option value="${reg}">${reg}</option>`; }); } }
     function addInput(listId,cls,type,ph){ const d=document.getElementById(listId); const div=document.createElement('div'); div.className='input-row'; div.innerHTML=`<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`; d.appendChild(div); }
@@ -549,7 +575,26 @@
         if(user.id){
             const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});
             const d=await r.json();
-            if(d.banned){ document.body.innerHTML='<div style="text-align:center;padding:50px;color:var(--r)"><h1><i class="fas fa-ban"></i></h1><h2>သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><p>Your account has been banned.</p></div>'; return; }
+            if(d.banned){ 
+                document.body.innerHTML = `
+                <div class="banned-container">
+                    <div class="banned-icon">🚫</div>
+                    <h2 class="banned-title">သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2>
+                    <p class="banned-subtitle">Your account has been banned.</p>
+                    <div class="banned-contact">
+                        <h4><i class="fas fa-phone"></i> ဆက်သွယ်ရန်</h4>
+                        <p><i class="fas fa-envelope"></i> gm1608295@gmail.com</p>
+                        <p><i class="fas fa-phone"></i> 09672093790</p>
+                        <p><i class="fab fa-telegram"></i> @Solo_m28</p>
+                        <p><i class="fab fa-tiktok"></i> @sologamer149</p>
+                    </div>
+                    <div class="banned-btns">
+                        <button class="btn-stay" onclick="location.reload()"><i class="fas fa-clock"></i> ဆက်နေမည်</button>
+                        <button class="btn-new" onclick="localStorage.clear();window.location.href='/'"><i class="fas fa-user-plus"></i> အကောင့်သစ်ဖွင့်မည်</button>
+                    </div>
+                </div>`;
+                return;
+            }
         }
     };
 </script>
