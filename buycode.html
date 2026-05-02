@@ -6,20 +6,236 @@
     <title>Buy Code MLBB - MLBB Security</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:#fff;font-family:sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;text-align:center}
-        .box{max-width:400px}
-        .box i{font-size:60px;color:#f39c12;margin-bottom:20px}
-        .box h1{color:#f39c12;margin-bottom:10px}
-        .box p{font-size:14px;color:#ccc;margin-bottom:20px}
-        .back-btn{padding:10px 20px;background:#4a1c7a;color:#fff;border:none;border-radius:6px;cursor:pointer;text-decoration:none;font-size:14px}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px}
+        .container{max-width:500px;margin:0 auto}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
+        .header a{color:var(--w);font-size:20px;text-decoration:none}
+        .header h1{font-size:18px;color:var(--w)}
+        
+        .category-card{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:15px;margin-bottom:12px}
+        .category-card h3{color:var(--w);font-size:14px;margin-bottom:5px;display:flex;align-items:center;gap:8px}
+        .category-card h3 i{font-size:16px}
+        .category-card .cat-desc{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:10px}
+        
+        .code-list{background:rgba(0,0,0,0.3);border-radius:6px;overflow:hidden}
+        .code-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px}
+        .code-row:last-child{border-bottom:none}
+        .code-row .code-name{flex:1;font-family:'Courier New',monospace;font-size:11px;word-break:break-all}
+        .code-row .code-name.locked{color:rgba(255,255,255,0.3);font-size:14px;letter-spacing:2px}
+        .code-row .code-price{color:var(--w);font-weight:bold;margin:0 10px;white-space:nowrap;font-size:11px}
+        .code-row .buy-code-btn{padding:5px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
+        .buy-code-btn.available{background:var(--g);color:#000}
+        .buy-code-btn.unavailable{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);cursor:not-allowed}
+        .buy-code-btn.owned{background:rgba(46,204,113,0.2);color:var(--g);cursor:default;font-size:9px}
+        
+        .balance-bar{background:rgba(0,0,0,0.4);padding:10px 15px;border-radius:8px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+        .balance-bar .bal{color:var(--w);font-weight:bold}
+        
+        .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:15px}
+        
+        .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
+        
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
+        .modal.active{display:flex}
+        .modal-box{background:var(--p);padding:25px;border-radius:10px;width:90%;max-width:380px;border:2px solid var(--w);text-align:center}
+        .modal-box h3{color:var(--w);margin-bottom:15px}
+        .modal-box .reveal-code{font-size:18px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;margin:15px 0;word-break:break-all;letter-spacing:1px}
+        .modal-box .close-btn{background:var(--a);color:var(--t);border:none;padding:10px 25px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:10px}
     </style>
 </head>
 <body>
-    <div class="box">
-        <i class="fas fa-tools"></i>
-        <h1>Buy Code MLBB</h1>
-        <p>Feature Coming Soon</p>
-        <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+    <div class="notif" id="notif"></div>
+    
+    <div class="container">
+        <div class="header">
+            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+            <h1><i class="fas fa-shopping-cart"></i> Buy Code MLBB</h1>
+        </div>
+        
+        <div class="balance-bar">
+            <span><i class="fas fa-wallet"></i> MMK Balance</span>
+            <span class="bal" id="myBalance">0 Ks</span>
+        </div>
+        
+        <div id="codeCategories"></div>
+        
+        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
+    
+    <!-- Reveal Modal -->
+    <div class="modal" id="revealModal">
+        <div class="modal-box">
+            <h3><i class="fas fa-check-circle"></i> ဝယ်ယူပြီးပါပြီ!</h3>
+            <p style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:5px">သင်၏ Code</p>
+            <div class="reveal-code" id="revealCode"></div>
+            <p style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:10px">Code ကို သိမ်းဆည်းထားပါ</p>
+            <button class="close-btn" onclick="closeModal()"><i class="fas fa-times"></i> Close</button>
+        </div>
+    </div>
+    
+<script>
+const CODES = [
+    {
+        category: "Shhh emote",
+        icon: "fa-face-smile",
+        price: 5000,
+        codes: ["2359x2s4zqzq23fb8", "29jwchdgqyvj23f5e", "29hg4rbrxt6h23f5e", "29kqjbw949z823f5e"]
+    },
+    {
+        category: "Golden Month Border",
+        icon: "fa-border-all",
+        price: 8000,
+        codes: ["2359x2s4zqzq23fb8", "29jwchdgqyvj23f5e", "29hg4rbrxt6h23f5e", "29kqjbw949z823f5e"]
+    },
+    {
+        category: "Lucky Diamond Code",
+        icon: "fa-gem",
+        price: 12000,
+        codes: ["2ja2rum6s6x923fnn", "47k9hgrpbs2v23fnn", "5npzg2zhdbwg23fnn"]
+    },
+    {
+        category: "Magic Durt",
+        icon: "fa-wand-magic-sparkles",
+        price: 3000,
+        codes: ["35smvu4a354423gzj"]
+    },
+    {
+        category: "Emblem Box",
+        icon: "fa-box",
+        price: 4000,
+        codes: ["28knzpt43hdc23gzc", "2ewf237hmtxv23gzh"]
+    }
+];
+
+let purchasedCodes = JSON.parse(localStorage.getItem('purchased_codes')||'{}');
+let currentBalance = 0;
+
+function n(m,t="success"){
+    const e=document.getElementById("notif");
+    e.textContent=m;
+    e.style.background=t==="success"?"#2ecc71":"#e74c3c";
+    e.style.display="block";
+    setTimeout(()=>e.style.display="none",2000);
+}
+
+function formatNumber(num){ return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+
+async function loadBalance(){
+    try{
+        const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+        const d=await r.json();
+        currentBalance = d.balance||0;
+        document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
+        renderCodes();
+    }catch(e){ document.getElementById('myBalance').textContent='0 Ks'; }
+}
+
+function isCodePurchased(catIndex, codeIndex){
+    const key = `${catIndex}_${codeIndex}`;
+    return purchasedCodes[key] === true;
+}
+
+function isCategoryPurchased(catIndex){
+    for(let i=0; i<CODES[catIndex].codes.length; i++){
+        if(isCodePurchased(catIndex, i)) return true;
+    }
+    return false;
+}
+
+function buyCode(catIndex, codeIndex){
+    const cat = CODES[catIndex];
+    const price = cat.price;
+    const code = cat.codes[codeIndex];
+    const key = `${catIndex}_${codeIndex}`;
+    
+    if(isCodePurchased(catIndex, codeIndex)) return n('ဒီ Code ကိုဝယ်ပြီးပါပြီ','error');
+    if(isCategoryPurchased(catIndex)) return n('ဒီအမျိုးအစားကိုဝယ်ပြီးပါပြီ','error');
+    if(currentBalance < price) return n('ငွေမလုံလောက်ပါ။ '+formatNumber(price)+' Ks လိုအပ်ပါသည်။','error');
+    
+    if(!confirm(`${cat.category} ကို ${formatNumber(price)} Ks ဖြင့်ဝယ်ယူမှာသေချာပါသလား?`)) return;
+    
+    // Deduct balance via API
+    fetch('/api/admin/update_balance',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({userId:parseInt(localStorage.getItem('auth_token').replace('token_','')),amount:-price})
+    }).then(r=>r.json()).then(d=>{
+        if(d.success){
+            currentBalance -= price;
+            document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
+            purchasedCodes[key] = true;
+            localStorage.setItem('purchased_codes', JSON.stringify(purchasedCodes));
+            renderCodes();
+            showRevealModal(code);
+            n('✅ ဝယ်ယူပြီးပါပြီ!');
+        }else{
+            n('Error','error');
+        }
+    }).catch(()=>n('Connection error','error'));
+}
+
+function showRevealModal(code){
+    document.getElementById('revealCode').textContent = code;
+    document.getElementById('revealModal').classList.add('active');
+}
+function closeModal(){
+    document.getElementById('revealModal').classList.remove('active');
+}
+
+function renderCodes(){
+    const container = document.getElementById('codeCategories');
+    let html = '';
+    
+    CODES.forEach((cat, catIndex)=>{
+        const catPurchased = isCategoryPurchased(catIndex);
+        let availableCount = 0;
+        cat.codes.forEach((code, codeIndex)=>{
+            if(!isCodePurchased(catIndex, codeIndex)) availableCount++;
+        });
+        
+        html += `
+        <div class="category-card">
+            <h3><i class="fas ${cat.icon}"></i> ${cat.category}</h3>
+            <div class="cat-desc">💰 ${formatNumber(cat.price)} Ks | 📦 ${availableCount} code(s) available</div>
+            <div class="code-list">
+        `;
+        
+        cat.codes.forEach((code, codeIndex)=>{
+            const purchased = isCodePurchased(catIndex, codeIndex);
+            const key = `${catIndex}_${codeIndex}`;
+            
+            if(purchased){
+                html += `
+                <div class="code-row">
+                    <span class="code-name" style="color:var(--g)">${code}</span>
+                    <span class="code-price">✅</span>
+                    <button class="buy-code-btn owned">Owned</button>
+                </div>`;
+            } else if(catPurchased){
+                html += `
+                <div class="code-row">
+                    <span class="code-name locked">••••••••••••••••••</span>
+                    <span class="code-price">${formatNumber(cat.price)} Ks</span>
+                    <button class="buy-code-btn unavailable">Owned</button>
+                </div>`;
+            } else {
+                html += `
+                <div class="code-row">
+                    <span class="code-name locked">••••••••••••••••••</span>
+                    <span class="code-price">${formatNumber(cat.price)} Ks</span>
+                    <button class="buy-code-btn available" onclick="buyCode(${catIndex},${codeIndex})">Buy</button>
+                </div>`;
+            }
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    container.innerHTML = html;
+}
+
+loadBalance();
+</script>
 </body>
 </html>
