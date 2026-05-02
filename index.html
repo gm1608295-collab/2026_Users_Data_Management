@@ -5,26 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MLBB Security System - Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff;--lt:#e0e0e0}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        html,body{height:100%;overflow-x:hidden;position:fixed;width:100%}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);display:flex;justify-content:center;align-items:center;padding:15px;overflow-y:auto}
-        .container{width:100%;max-width:380px;background:rgba(12,14,39,0.95);border-radius:15px;overflow:hidden;border:1px solid #4a1c7a;box-shadow:0 15px 40px rgba(0,0,0,0.6);max-height:95vh;overflow-y:auto}
-        
-        .header{background:linear-gradient(to right,var(--a),var(--p));padding:20px 15px;text-align:center;border-bottom:4px solid var(--w);position:relative}
-        .header .logo-img{width:65px;height:65px;border-radius:50%;object-fit:cover;margin:0 auto 10px;display:block;border:3px solid rgba(255,255,255,0.3);box-shadow:0 4px 15px rgba(0,0,0,0.3)}
-        .header h1{font-size:14px;margin-bottom:2px;font-weight:bold;overflow:hidden}
+        html,body{height:100%;overflow:hidden;position:fixed;width:100%}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);display:flex;justify-content:center;align-items:center;padding:15px}
+        .container{width:100%;max-width:380px;background:rgba(12,14,39,0.95);border-radius:15px;overflow:hidden;border:1px solid #4a1c7a;box-shadow:0 15px 40px rgba(0,0,0,0.6);max-height:92vh;overflow-y:auto}
+        .header{background:linear-gradient(to right,var(--a),var(--p));padding:20px 15px;text-align:center;border-bottom:4px solid var(--w);position:relative;overflow:hidden}
+        .header .logo{width:60px;height:60px;border-radius:50%;margin:0 auto 10px;display:block;object-fit:cover;border:2px solid rgba(255,255,255,0.3);box-shadow:0 4px 15px rgba(0,0,0,0.3)}
         .header .marquee-wrap{overflow:hidden;white-space:nowrap;margin:0 auto;width:90%}
         .header .marquee-text{display:inline-block;animation:marquee 12s linear infinite;font-size:12px;color:rgba(255,255,255,0.9)}
         @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
         .header p{font-size:10px;opacity:0.85;margin-top:4px}
-        .refresh-btn{position:absolute;top:12px;left:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;z-index:5}.refresh-btn:hover{color:var(--w)}
-        .top-link{text-align:right;padding:5px 15px 0}
-        .top-link a{color:var(--b);text-decoration:none;font-size:10px;cursor:pointer}.top-link a:hover{text-decoration:underline}
-        
         .body{padding:15px 18px}
         .fg{margin-bottom:10px}
         .fg label{display:block;margin-bottom:4px;font-weight:600;color:var(--lt);font-size:11px}
@@ -32,33 +25,34 @@
         .fg input{width:100%;padding:10px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:13px;color:var(--t);transition:all 0.3s}
         .fg input:focus{border-color:var(--w);outline:none;background:rgba(255,255,255,0.12)}
         .fg input::placeholder{color:rgba(255,255,255,0.3);font-size:11px}
-        
         .btn{display:block;width:100%;padding:11px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;margin-top:6px;transition:all 0.3s;letter-spacing:0.5px}
-        .btn-a{background:linear-gradient(135deg,var(--a),#5d2a92);color:var(--t);box-shadow:0 4px 15px rgba(74,28,122,0.4)}.btn-a:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(74,28,122,0.6)}
-        .btn-a:disabled{opacity:0.6;cursor:not-allowed}
+        .btn-a{background:linear-gradient(135deg,var(--a),#5d2a92);color:var(--t);box-shadow:0 4px 15px rgba(74,28,122,0.4)}.btn-a:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(74,28,122,0.6)}
+        .btn-a:disabled{opacity:0.6;cursor:not-allowed;transform:none}
         .btn-b{background:transparent;color:var(--w);border:1.5px solid var(--w);margin-top:8px}.btn-b:hover{background:rgba(255,255,255,0.05)}
-        
-        .divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:rgba(255,255,255,0.4);font-size:10px}
+        .divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:rgba(255,255,255,0.4);font-size:10px}
         .divider::before,.divider::after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.15)}
         
-        /* Social Buttons with Real Images */
-        .social-row{display:flex;gap:10px;justify-content:center;align-items:stretch}
-        .social-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:10px 5px;border-radius:10px;color:var(--t);font-size:10px;cursor:pointer;transition:all 0.3s;border:1.5px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);font-weight:600;text-align:center}
-        .social-btn:hover{background:rgba(255,255,255,0.12);transform:translateY(-2px);border-color:var(--w)}
-        .social-btn img{width:38px;height:38px;border-radius:10px;object-fit:cover;margin-bottom:2px}
-        .social-btn.google:hover{border-color:#4285f4}.social-btn.tiktok:hover{border-color:#ff0050}.social-btn.guest:hover{border-color:var(--w)}
-        #googleSignInBtn{cursor:pointer}
+        /* Social Buttons - Full Width Like Login Button */
+        .social-btns{display:flex;flex-direction:column;gap:6px}
+        .social-btn{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:6px;color:var(--t);font-size:13px;cursor:pointer;transition:all 0.3s;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);font-weight:600;width:100%}
+        .social-btn:hover{background:rgba(255,255,255,0.12);transform:translateY(-1px)}
+        .social-btn img{width:24px;height:24px;border-radius:4px;object-fit:cover;flex-shrink:0}
+        .social-btn.google:hover{border-color:#4285f4}
+        .social-btn.tiktok{opacity:0.6;cursor:not-allowed;position:relative}
+        .social-btn.tiktok:hover{background:rgba(255,255,255,0.06);transform:none}
+        .social-btn.tiktok .tiktok-badge{font-size:7px;color:var(--r);background:rgba(231,76,60,0.2);padding:2px 6px;border-radius:3px;margin-left:auto}
+        .social-btn.guest:hover{border-color:var(--w)}
         
-        .toggle-link{text-align:center;margin-top:12px;font-size:11px;color:rgba(255,255,255,0.6)}
+        .toggle-link{text-align:center;margin-top:10px;font-size:11px;color:rgba(255,255,255,0.6)}
         .toggle-link a{color:var(--w);text-decoration:none;cursor:pointer;font-weight:600}.toggle-link a:hover{text-decoration:underline}
-        
         .notif{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;display:none;z-index:9999;font-size:13px;max-width:280px;font-weight:600;box-shadow:0 5px 20px rgba(0,0,0,0.4)}
         .footer{text-align:center;padding:10px;color:rgba(255,255,255,0.5);font-size:9px;border-top:1px solid rgba(74,28,122,0.4)}
-        
-        .recaptcha-wrap{display:flex;justify-content:center;margin:8px 0;min-height:60px}
+        .recaptcha-wrap{display:flex;justify-content:center;margin:8px 0}
         .g-recaptcha{display:inline-block;transform:scale(0.75);transform-origin:center}
         #registerForm{display:none}
-        
+        .top-link{text-align:right;padding:5px 15px 0}
+        .top-link a{color:var(--b);text-decoration:none;font-size:10px;cursor:pointer}.top-link a:hover{text-decoration:underline}
+        .refresh-btn{position:absolute;top:12px;left:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;z-index:5;transition:color 0.3s}.refresh-btn:hover{color:var(--w)}
         .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;justify-content:center;align-items:center;padding:20px}
         .modal-overlay.active{display:flex}
         .modal-box{background:var(--p);border:2px solid var(--w);border-radius:12px;padding:18px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;font-size:11px;line-height:1.8;color:var(--lt)}
@@ -67,11 +61,10 @@
         .modal-box .close-btn{background:var(--r);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;float:right;font-size:11px;font-weight:bold}
         .modal-box .lang-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:10px;margin:2px;transition:all 0.3s}
         .modal-box .lang-btn.active{background:var(--w);color:#000;border-color:var(--w);font-weight:bold}
-        
         .guest-modal-box{background:var(--p);border:2px solid var(--r);border-radius:12px;padding:22px;max-width:350px;width:90%;text-align:center;color:var(--lt);font-size:12px}
         .guest-modal-box h3{color:var(--r);margin-bottom:10px;font-size:15px}
         .guest-modal-box .warn-text{color:var(--r);font-weight:bold;font-size:12px;line-height:1.8;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:12px;border-radius:8px;border-left:3px solid var(--r)}
-        .guest-modal-box .warn-text .warn-icon{display:block;font-size:30px;margin-bottom:8px}
+        .guest-modal-box .warn-text i{display:block;font-size:30px;margin-bottom:8px}
         .guest-modal-box .btn-row{display:flex;gap:10px;justify-content:center}
         .guest-modal-box .btn-row button{padding:10px 20px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;transition:all 0.3s}
         .btn-cancel{background:rgba(255,255,255,0.15);color:var(--t)}.btn-cancel:hover{background:rgba(255,255,255,0.25)}
@@ -83,15 +76,13 @@
     <div class="container">
         <div class="refresh-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></div>
         <div class="top-link"><a onclick="openGuide()"><i class="fas fa-question-circle"></i> User Guide</a></div>
-        
         <div class="header">
-            <img src="https://i.ibb.co/YBch2sHS/mlbbsecuritylogo.jpg" alt="MLBB Security Logo" class="logo-img" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+            <img class="logo" src="https://i.ibb.co/YBch2sHS/mlbbsecuritylogo.jpg" alt="MLBB Logo" onerror="this.style.display='none'">
             <div class="marquee-wrap">
                 <span class="marquee-text">MLBB Security System &amp; USER Data Management</span>
             </div>
             <p><i class="fas fa-lock"></i> Secure Login</p>
         </div>
-        
         <div class="body">
             <!-- Login Form -->
             <div id="loginForm">
@@ -100,20 +91,24 @@
                 <div class="recaptcha-wrap"><div class="g-recaptcha" id="loginRecaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw"></div></div>
                 <button class="btn btn-a" id="loginBtn" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
                 <div class="divider">or continue with</div>
-                <div class="social-row">
-                    <div class="social-btn google" id="googleSignInBtn" onclick="triggerGoogleLogin()">
-                        <img src="https://i.ibb.co/Hw9kfDz/google.jpg" alt="Google">
+                
+                <!-- Social Buttons - Full Width -->
+                <div class="social-btns">
+                    <div class="social-btn google" onclick="googleLogin()">
+                        <img src="https://i.ibb.co/Hw9kfDz/google.jpg" alt="Google" onerror="this.style.display='none'">
                         <span>Google</span>
                     </div>
-                    <div class="social-btn tiktok" onclick="tiktokLogin()">
-                        <img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok">
+                    <div class="social-btn tiktok">
+                        <img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok" onerror="this.style.display='none'">
                         <span>TikTok</span>
+                        <span class="tiktok-badge">မရနိုင်သေးပါ</span>
                     </div>
                     <div class="social-btn guest" onclick="showGuestModal()">
-                        <img src="https://i.ibb.co/sJzYxZyW/guests.jpg" alt="Guest">
+                        <img src="https://i.ibb.co/sJzYxZyW/guests.jpg" alt="Guest" onerror="this.style.display='none'">
                         <span>Guest</span>
                     </div>
                 </div>
+                
                 <div class="toggle-link">Don't have an account? <a onclick="showReg()">Register</a></div>
             </div>
             
@@ -140,7 +135,7 @@
         <div class="guest-modal-box">
             <h3><i class="fas fa-exclamation-triangle"></i> Guest Login</h3>
             <div class="warn-text">
-                <span class="warn-icon">⚠️</span>
+                <i class="fas fa-exclamation-circle"></i>
                 <strong>သတိပေးချက်</strong><br><br>
                 Guests ဖြင့်ဝင်ရောက်ပါက ချက်ချင်းဝင်ရောက်မည်ဖြစ်သော်လည်း<br>
                 ❌ ဒေတာများ သိမ်းဆည်းမည်မဟုတ်ပါ<br>
@@ -154,41 +149,19 @@
         </div>
     </div>
 
-    <!-- Hidden Google Sign-In div for credential -->
-    <div id="g_id_signin" style="display:none!important;position:absolute;opacity:0;pointer-events:none;width:0;height:0"></div>
-
     <script>
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-worker.js'); }
         
-        // Redirect if already logged in
-        const authToken = localStorage.getItem("auth_token");
-        const savedUser = localStorage.getItem("user");
-        if(authToken && savedUser && authToken !== 'guest'){
+        if(localStorage.getItem("auth_token") && localStorage.getItem("user")){
             window.location.href="/dashboard";
         }
         
         let guideLang='my';
-        let isLoggingIn = false;
-        
         const guideData={
             en:{
-                title:'User Guide & Terms',about:'About',aboutText:'MLBB Security System - secure account management platform for MLBB players.',
-                usage:'How to Use',usageText:'1. Register an account<br>2. Login with email/password or social accounts<br>3. Use Data tools to store account info<br>4. Change passwords anytime<br>5. Contact support for help',
-                security:'Security',securityText:'All data is encrypted. Auto-logout after 5 minutes of inactivity.',
-                admin:'Admin',adminText:'Admin can ban/delete users who violate rules.',
-                disclaimer:'Disclaimer',disclaimerText:'Not responsible for external issues.',
-                privacy:'Privacy Policy',privacyText:'Your data is never shared.',
-                close:'Close'
-            },
+                title:'User Guide & Terms',about:'About',aboutText:'MLBB Security System - secure account management.',usage:'How to Use',usageText:'1. Register<br>2. Login<br>3. Use tools<br>4. Recovery',security:'Security',securityText:'Encrypted. Auto-logout 5min.',admin:'Admin',adminText:'Can ban/delete violators.',banned:'Banned Users',bannedText:'Banned users cannot login.',disclaimer:'Disclaimer',disclaimerText:'Not responsible for external issues.',privacy:'Privacy',privacyText:'Data never shared.',close:'Close'},
             my:{
-                title:'လမ်းညွှန်နှင့် စည်းမျဉ်းများ',about:'စနစ်အကြောင်း',aboutText:'MLBB Security System - MLBB ကစားသူများအတွက် လုံခြုံသော အကောင့်စီမံခန့်ခွဲမှုစနစ်။',
-                usage:'အသုံးပြုပုံ',usageText:'၁။ အကောင့်ဖွင့်ပါ<br>၂။ Email/Password သို့မဟုတ် Social အကောင့်ဖြင့် ဝင်ရောက်ပါ<br>၃။ Data ကိရိယာများဖြင့် အကောင့်အချက်အလက်များ သိမ်းဆည်းပါ<br>၄။ Password များကို အချိန်မရွေးပြောင်းလဲနိုင်ပါသည်<br>၅။ အကူအညီလိုပါက Contact မှ ဆက်သွယ်ပါ',
-                security:'လုံခြုံမှု',securityText:'ဒေတာအားလုံးကို ကုဒ်ဖြင့်ကာကွယ်ထားပါသည်။ ၅ မိနစ်ကြာ အသုံးမပြုပါက အလိုအလျောက်ထွက်မည်။',
-                admin:'Admin စနစ်',adminText:'စည်းမျဉ်းဖောက်ဖျက်သူများကို Admin မှ ပိတ်နိုင်/ဖျက်နိုင်သည်။',
-                disclaimer:'တာဝန်ခံချက်',disclaimerText:'ပြင်ပကိစ္စများအတွက် တာဝန်မယူပါ။',
-                privacy:'ကိုယ်ရေးမူဝါဒ',privacyText:'သင့်ဒေတာကို မျှဝေမည်မဟုတ်ပါ။',
-                close:'ပိတ်မည်'
-            }
+                title:'လမ်းညွှန်နှင့် စည်းမျဉ်းများ',about:'စနစ်အကြောင်း',aboutText:'MLBB Security System - လုံခြုံသောစနစ်။',usage:'အသုံးပြုပုံ',usageText:'၁။ မှတ်ပုံတင်ပါ<br>၂။ ဝင်ရောက်ပါ<br>၃။ ကိရိယာများသုံးပါ',security:'လုံခြုံမှု',securityText:'ကုဒ်ဖြင့်ကာကွယ်ထားသည်။',admin:'Admin',adminText:'စည်းမျဉ်းဖောက်ဖျက်သူများကို ပိတ်နိုင်သည်။',banned:'ပိတ်ခံရသူများ',bannedText:'ပိတ်ခံရသော အကောင့်များ ဝင်မရပါ။',disclaimer:'တာဝန်ခံချက်',disclaimerText:'ပြင်ပကိစ္စများအတွက် တာဝန်မယူပါ။',privacy:'ကိုယ်ရေးမူဝါဒ',privacyText:'ဒေတာမျှဝေမည်မဟုတ်ပါ။',close:'ပိတ်မည်'}
         };
         
         function n(m,t="success"){
@@ -199,14 +172,8 @@
             setTimeout(()=>e.style.display="none",3000);
         }
         
-        function showReg(){
-            document.getElementById("loginForm").style.display="none";
-            document.getElementById("registerForm").style.display="block";
-        }
-        function showLogin(){
-            document.getElementById("registerForm").style.display="none";
-            document.getElementById("loginForm").style.display="block";
-        }
+        function showReg(){ document.getElementById("loginForm").style.display="none"; document.getElementById("registerForm").style.display="block"; }
+        function showLogin(){ document.getElementById("registerForm").style.display="none"; document.getElementById("loginForm").style.display="block"; }
         function showGuestModal(){ document.getElementById("guestModal").classList.add("active"); }
         function closeGuestModal(){ document.getElementById("guestModal").classList.remove("active"); }
         function guestLogin(){
@@ -214,17 +181,8 @@
             localStorage.setItem("user",JSON.stringify({id:0,username:"Guest",email:"guest@mlbb.com",login_type:"guest"}));
             window.location.href="/dashboard";
         }
-        function tiktokLogin(){ window.location.href="/auth/tiktok"; }
-        
-        // Trigger Google Login when custom button clicked
-        function triggerGoogleLogin(){
-            const googleBtn = document.querySelector('#g_id_signin div[role="button"]');
-            if(googleBtn){
-                googleBtn.click();
-            } else {
-                // Fallback: redirect to server-side Google OAuth
-                window.location.href="/auth/google";
-            }
+        function googleLogin(){
+            window.location.href="/auth/google";
         }
         
         function openGuide(){
@@ -233,31 +191,19 @@
                 <button class="close-btn" onclick="closeGuide()">${d.close}</button>
                 <button class="lang-btn ${guideLang==='en'?'active':''}" onclick="switchGL('en')">EN</button>
                 <button class="lang-btn ${guideLang==='my'?'active':''}" onclick="switchGL('my')">မြန်မာ</button>
-                <h2>${d.title}</h2>
-                <h3>${d.about}</h3><p>${d.aboutText}</p>
-                <h3>${d.usage}</h3><p>${d.usageText}</p>
-                <h3>${d.security}</h3><p>${d.securityText}</p>
-                <h3>${d.admin}</h3><p>${d.adminText}</p>
-                <h3>${d.disclaimer}</h3><p>${d.disclaimerText}</p>
-                <h3>${d.privacy}</h3><p>${d.privacyText}</p>
+                <h2>${d.title}</h2><h3>${d.about}</h3><p>${d.aboutText}</p>
+                <h3>${d.usage}</h3><p>${d.usageText}</p><h3>${d.security}</h3><p>${d.securityText}</p>
+                <h3>${d.admin}</h3><p>${d.adminText}</p><h3>${d.banned}</h3><p>${d.bannedText}</p>
+                <h3>${d.disclaimer}</h3><p>${d.disclaimerText}</p><h3>${d.privacy}</h3><p>${d.privacyText}</p>
             `;
             document.getElementById("guideModal").classList.add("active");
         }
         function closeGuide(){ document.getElementById("guideModal").classList.remove("active"); }
         function switchGL(l){ guideLang=l; openGuide(); }
         
-        // Reset reCAPTCHA helper
-        function resetRecaptcha(){
-            if(typeof grecaptcha !== 'undefined'){
-                try { grecaptcha.reset(); } catch(e) {}
-            }
-        }
-        
         function getCap(){
             const responses = document.getElementsByClassName('g-recaptcha-response');
-            for(let i=0;i<responses.length;i++){
-                if(responses[i].value) return responses[i].value;
-            }
+            for(let i=0;i<responses.length;i++){ if(responses[i].value) return responses[i].value; }
             return typeof grecaptcha!=='undefined'?grecaptcha.getResponse():'';
         }
         
@@ -267,113 +213,55 @@
             const ph=document.getElementById("regPhone").value.trim();
             const ps=document.getElementById("regPass").value;
             const cf=document.getElementById("regConfirm").value;
-            
             if(!na||!em||!ph||!ps||!cf) return n("အားလုံးဖြည့်ပါ","error");
             if(ps!==cf) return n("Password မတူညီပါ","error");
             if(ps.length<6) return n("Password အနည်းဆုံး ၆ လုံး","error");
-            
             const cap=getCap();
             try{
                 const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:na,email:em,phone:ph,password:ps,captcha:cap})});
                 const d=await r.json();
-                d.success?(n("✅ အကောင့်ဖွင့်ပြီးပါပြီ!"),showLogin(),resetRecaptcha()):(n(d.message,"error"),resetRecaptcha());
-            }catch(e){ n("Connection error","error"); resetRecaptcha(); }
+                d.success?(n("✅ အကောင့်ဖွင့်ပြီးပါပြီ!"),showLogin()):n(d.message,"error");
+            }catch(e){ n("Connection error","error"); }
         }
         
         async function doLogin(){
-            if(isLoggingIn) return; // Prevent double click
-            
             const em=document.getElementById("loginEmail").value.trim();
             const ps=document.getElementById("loginPassword").value;
+            const btn=document.getElementById("loginBtn");
             
             if(!em||!ps) return n("အားလုံးဖြည့်ပါ","error");
             
-            isLoggingIn = true;
-            const loginBtn = document.getElementById("loginBtn");
-            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-            loginBtn.disabled = true;
+            // Show checking state
+            btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';
+            btn.disabled=true;
             
             const cap=getCap();
             try{
                 const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em,password:ps,captcha:cap})});
                 const d=await r.json();
-                
                 if(d.success){
-                    // Check if banned
-                    const bannedCheck = await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:d.user.id.toString()})});
-                    const bannedData = await bannedCheck.json();
+                    const bannedCheck=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:d.user.id.toString()})});
+                    const bannedData=await bannedCheck.json();
                     if(bannedData.banned){
-                        isLoggingIn = false;
-                        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-                        loginBtn.disabled = false;
-                        resetRecaptcha();
+                        btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';
+                        btn.disabled=false;
                         return n("❌ ဤအကောင့်သည် ပိတ်ခံထားရပါသည်။","error");
                     }
-                    
                     localStorage.setItem("auth_token",d.token);
                     localStorage.setItem("user",JSON.stringify(d.user));
                     n("✅ Login Successful!");
                     setTimeout(()=>window.location.href="/dashboard",500);
                 } else {
-                    isLoggingIn = false;
-                    loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-                    loginBtn.disabled = false;
+                    btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';
+                    btn.disabled=false;
                     n(d.message,"error");
-                    resetRecaptcha(); // Reset so user can try again without "failed" message
                 }
-            }catch(e){ 
-                isLoggingIn = false;
-                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-                loginBtn.disabled = false;
-                n("Connection error","error"); 
-                resetRecaptcha();
+            }catch(e){
+                btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';
+                btn.disabled=false;
+                n("Connection error","error");
             }
         }
-        
-        function handleGoogleLogin(response){
-            const p=JSON.parse(atob(response.credential.split('.')[1]));
-            fetch("/api/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:response.credential,userInfo:{sub:p.sub,email:p.email,name:p.name,picture:p.picture}})})
-            .then(r=>r.json())
-            .then(async d=>{
-                if(d.success){
-                    const bannedCheck = await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:d.user.id.toString()})});
-                    const bannedData = await bannedCheck.json();
-                    if(bannedData.banned){ n("❌ ဤအကောင့်သည် ပိတ်ခံထားရပါသည်။","error"); return; }
-                    
-                    localStorage.setItem("auth_token",d.token);
-                    localStorage.setItem("user",JSON.stringify(d.user));
-                    n("✅ Login Successful!");
-                    setTimeout(()=>window.location.href="/dashboard",500);
-                } else { n("Google Login Failed","error"); }
-            })
-            .catch(()=>n("Error","error"));
-        }
-        
-        window.onload=function(){
-            if(authToken && savedUser && authToken !== 'guest'){
-                window.location.href="/dashboard";
-                return;
-            }
-            
-            // Initialize Google Identity Services
-            if(typeof google !== 'undefined' && google.accounts){
-                google.accounts.id.initialize({
-                    client_id:"968523580383-2ou2ei00epntihsdgltr0e3igj2m2mq7.apps.googleusercontent.com",
-                    callback:handleGoogleLogin,
-                    auto_select: false,
-                    cancel_on_tap_outside: false
-                });
-                
-                // Render button in hidden div (used for programmatic click)
-                google.accounts.id.renderButton(
-                    document.getElementById("g_id_signin"),
-                    {type:"standard",size:"large",text:"signin_with",shape:"pill",width:200}
-                );
-                
-                // Also prompt one-tap
-                google.accounts.id.prompt();
-            }
-        };
     </script>
 </body>
 </html>
