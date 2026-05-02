@@ -167,4 +167,58 @@ app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.ht
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 
+// Orders table
+pool.query(`CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+
+// Submit order
+app.post('/api/submit_order', async (req, res) => {
+    const { token, amount, payment_method, screenshot } = req.body;
+    if (!token) return res.json({ success: false, message: 'Not logged in' });
+    const uid = parseInt(token.replace('token_', ''));
+    try {
+        const user = await pool.query('SELECT username FROM auth_users WHERE id=$1', [uid]);
+        const un = user.rows.length > 0 ? user.rows[0].username : 'Unknown';
+        await pool.query('INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status) VALUES ($1,$2,$3,$4,$5,$6)', [uid, un, amount, payment_method, screenshot, 'pending']);
+        tgSend(`🛒 New Order\n👤 ${un}\n💰 ${amount} Ks\n💳 ${payment_method}`);
+        res.json({ success: true, message: 'Order submitted' });
+    } catch (e) { res.json({ success: false, message: e.message }); }
+});
+
+// Get user orders
+app.post('/api/get_orders', async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.json({ orders: [] });
+    const uid = parseInt(token.replace('token_', ''));
+    try { const r = await pool.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); res.json({ orders: r.rows }); } catch (e) { res.json({ orders: [] }); }
+});
+
+// Admin: Get all orders
+app.get('/api/admin/orders', async (req, res) => {
+    try { const r = await pool.query('SELECT * FROM orders ORDER BY id DESC'); res.json({ orders: r.rows }); } catch (e) { res.json({ orders: [] }); }
+});
+
+// Admin: Update order status
+app.post('/api/admin/order_status', async (req, res) => {
+    const { id, status } = req.body;
+    try {
+        await pool.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]);
+        // If approved, add balance
+        if (status === 'approved') {
+            const order = await pool.query('SELECT * FROM orders WHERE id=$1', [id]);
+            if (order.rows.length > 0) {
+                await pool.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [order.rows[0].amount, order.rows[0].user_id]);
+            }
+        }
+        res.json({ success: true });
+    } catch (e) { res.json({ success: false }); }
+});
+
+// Get balance
+app.post('/api/get_balance', async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.json({ balance: 0 });
+    const uid = parseInt(token.replace('token_', ''));
+    try { const r = await pool.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); res.json({ balance: r.rows.length > 0 ? (r.rows[0].balance || 0) : 0 }); } catch (e) { res.json({ balance: 0 }); }
+});
+
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
