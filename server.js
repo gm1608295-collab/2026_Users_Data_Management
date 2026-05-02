@@ -39,7 +39,8 @@ function verifyCaptcha(token) {
 
 // ==================== TABLES ====================
 pool.query(`CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200) UNIQUE, phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`);
-pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', image_url TEXT DEFAULT '', created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+pool.query(`ALTER TABLE notices ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''`);
 pool.query(`CREATE TABLE IF NOT EXISTS banner_images (id SERIAL PRIMARY KEY, image_url TEXT, created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS banned_users (user_id VARCHAR(100) PRIMARY KEY, banned_by VARCHAR(100), banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
@@ -107,7 +108,7 @@ app.get('/api/countries', (req, res) => res.json([{name:'Myanmar',regions:['Yang
 app.post('/api/save_user_data', async (req, res) => { const { token, type, data } = req.body; if (!token) return res.json({ success: false }); const uid = parseInt(token.replace('token_', '')); try { if (type === 'gmail') { await pool.query('INSERT INTO gmail_accounts (user_id, name, email, password, phone) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (user_id) DO UPDATE SET name=$2,email=$3,password=$4,phone=$5', [uid, data.name, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones)]); } else if (type === 'mlbb') { await pool.query('INSERT INTO mlbb_accounts (user_id, ingame_name, ingame_id, server_id, gmail, password) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET ingame_name=$2,ingame_id=$3,server_id=$4,gmail=$5,password=$6', [uid, data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails), data.password]); } else if (type === 'tiktok') { await pool.query('INSERT INTO tiktok_accounts (user_id, full_name, last_name, email, password, phone) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (user_id) DO UPDATE SET full_name=$2,last_name=$3,email=$4,password=$5,phone=$6', [uid, data.fullName, data.lastName, JSON.stringify(data.emails), data.password, JSON.stringify(data.phones)]); } res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/get_my_data', async (req, res) => { const { token } = req.body; if (!token) return res.json({ success: false }); const uid = parseInt(token.replace('token_', '')); try { const g = await pool.query('SELECT * FROM gmail_accounts WHERE user_id=$1', [uid]); const m = await pool.query('SELECT * FROM mlbb_accounts WHERE user_id=$1', [uid]); const t = await pool.query('SELECT * FROM tiktok_accounts WHERE user_id=$1', [uid]); res.json({ success: true, gmail: g.rows, mlbb: m.rows, tiktok: t.rows }); } catch (e) { res.json({ success: false }); } });
 
-// ==================== BANNER IMAGE (အသစ်) ====================
+// ==================== BANNER IMAGE ====================
 app.get('/api/banner_image', async (req, res) => {
     try {
         const r = await pool.query('SELECT image_url FROM banner_images ORDER BY id DESC LIMIT 1');
@@ -119,12 +120,10 @@ app.get('/api/banner_image', async (req, res) => {
 app.post('/api/admin/banner_image', async (req, res) => {
     const { image_url } = req.body;
     try {
-        // Remove empty string - clear all banners
         if (!image_url || image_url.trim() === '') {
             await pool.query('DELETE FROM banner_images');
             return res.json({ success: true, message: 'Banner removed' });
         }
-        // Insert new banner
         await pool.query('INSERT INTO banner_images (image_url, created_by) VALUES ($1, $2)', [image_url, 'admin']);
         res.json({ success: true, message: 'Banner updated' });
     } catch (e) { res.json({ success: false, message: 'Error' }); }
@@ -148,10 +147,39 @@ app.post('/api/admin/order_status', async (req, res) => { const { id, status } =
 app.post('/api/get_balance', async (req, res) => { const { token } = req.body; if (!token) return res.json({ balance: 0 }); const uid = parseInt(token.replace('token_', '')); try { const r = await pool.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); res.json({ balance: r.rows.length > 0 ? (r.rows[0].balance || 0) : 0 }); } catch (e) { res.json({ balance: 0 }); } });
 
 // ==================== NOTICE ====================
-app.get('/api/notice', async (req, res) => { try { const r = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color || '#ffffff', id: n.id, created_at: n.created_at }); } catch (e) { res.json({ success: true, message: '' }); } });
-app.get('/api/admin/notices', async (req, res) => { try { const r = await pool.query('SELECT * FROM notices ORDER BY id DESC'); res.json({ notices: r.rows }); } catch (e) { res.json({ notices: [] }); } });
-app.post('/api/admin/notice', async (req, res) => { const { message, color } = req.body; if (!message) return res.json({ success: false }); try { await pool.query('INSERT INTO notices (message, color, created_by) VALUES ($1,$2,$3)', [message, color || '#ffffff', 'admin']); tgSend(`📢 ${message}`); sendOnesignal(message); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
-app.post('/api/admin/notice/delete', async (req, res) => { try { await pool.query('DELETE FROM notices WHERE id = $1', [req.body.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
+app.get('/api/notice', async (req, res) => { 
+    try { 
+        const r = await pool.query('SELECT * FROM notices ORDER BY id DESC LIMIT 1'); 
+        if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff', image_url: '' }); 
+        const n = r.rows[0]; 
+        res.json({ success: true, message: n.message, color: n.color || '#ffffff', id: n.id, created_at: n.created_at, image_url: n.image_url || '' }); 
+    } catch (e) { res.json({ success: true, message: '', image_url: '' }); } 
+});
+
+app.get('/api/admin/notices', async (req, res) => { 
+    try { 
+        const r = await pool.query('SELECT * FROM notices ORDER BY id DESC'); 
+        res.json({ notices: r.rows }); 
+    } catch (e) { res.json({ notices: [] }); } 
+});
+
+app.post('/api/admin/notice', async (req, res) => { 
+    const { message, color, image_url } = req.body; 
+    if (!message) return res.json({ success: false }); 
+    try { 
+        await pool.query('INSERT INTO notices (message, color, image_url, created_by) VALUES ($1,$2,$3,$4)', [message, color || '#ffffff', image_url || '', 'admin']); 
+        tgSend(`📢 ${message}`); 
+        sendOnesignal(message); 
+        res.json({ success: true }); 
+    } catch (e) { res.json({ success: false }); } 
+});
+
+app.post('/api/admin/notice/delete', async (req, res) => { 
+    try { 
+        await pool.query('DELETE FROM notices WHERE id = $1', [req.body.id]); 
+        res.json({ success: true }); 
+    } catch (e) { res.json({ success: false }); } 
+});
 
 // ==================== PAGES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
