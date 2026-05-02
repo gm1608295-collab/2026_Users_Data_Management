@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Buy Code MLBB - MLBB Security</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
@@ -21,7 +22,7 @@
         .scroll-content::-webkit-scrollbar{width:4px}
         .scroll-content::-webkit-scrollbar-thumb{background:var(--a);border-radius:2px}
         
-        /* Game Card Style Grid */
+        /* Game Card Grid */
         .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
         .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
         .game-card:hover,.game-card:active{background:rgba(74,28,122,0.4);border-color:var(--w)}
@@ -45,22 +46,27 @@
         .modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
         .modal-box .code-item .code-val{font-family:'Courier New',monospace;font-size:12px;word-break:break-all;flex:1}
         .modal-box .code-item .code-val.locked{color:rgba(255,255,255,0.3);font-size:14px;letter-spacing:2px}
-        .modal-box .code-item .code-val.revealed{color:var(--g);font-size:12px}
         .btn-sm{padding:5px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
         .btn-buy{background:var(--g);color:#000}
         .btn-owned{background:rgba(46,204,113,0.2);color:var(--g);cursor:default;font-size:9px}
         .btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
         
-        /* Copy Reveal Modal */
-        .copy-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:6000;justify-content:center;align-items:center}
-        .copy-modal.active{display:flex}
-        .copy-box{background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid var(--g);text-align:center}
-        .copy-box h3{color:var(--g);margin-bottom:10px}
-        .copy-box .copy-code{font-size:20px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;margin:15px 0;word-break:break-all;letter-spacing:1px;user-select:all}
-        .copy-box .copy-timer{font-size:12px;color:var(--w);margin-bottom:10px}
-        .copy-box .copy-warning{font-size:9px;color:rgba(255,255,255,0.5);margin-bottom:10px;line-height:1.4}
-        .copy-box .copy-btn{background:var(--g);color:#000;border:none;padding:10px 30px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold}
-        .copy-box .copy-btn.done{background:rgba(255,255,255,0.2);color:var(--t)}
+        /* QR Reveal Modal */
+        .qr-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:6000;justify-content:center;align-items:center}
+        .qr-modal.active{display:flex}
+        .qr-box{background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid var(--w);text-align:center;max-height:90vh;overflow-y:auto}
+        .qr-box h3{color:var(--w);margin-bottom:10px;font-size:15px}
+        .qr-box .qr-container{background:#fff;padding:15px;border-radius:8px;display:inline-block;margin:10px 0}
+        .qr-box .qr-info{font-size:10px;color:rgba(255,255,255,0.6);margin:8px 0;line-height:1.5}
+        .qr-box .reveal-btn{background:var(--a);color:var(--t);border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:12px;margin:5px}
+        .qr-box .code-area{display:none;margin-top:10px}
+        .qr-box .code-area .the-code{font-size:16px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;word-break:break-all;letter-spacing:1px;user-select:all;margin:10px 0}
+        .qr-box .code-area .timer{font-size:12px;color:var(--w);margin:5px 0}
+        .qr-box .code-area .warning{font-size:9px;color:rgba(255,255,255,0.5);margin:5px 0;line-height:1.4}
+        .qr-box .copy-btn{background:var(--g);color:#000;border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
+        .qr-box .copy-btn.done{background:rgba(255,255,255,0.2);color:var(--t)}
+        .qr-box .close-qr{background:var(--r);color:var(--t);border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:10px}
+        .qr-box .qr-used{color:var(--r);font-size:12px;font-weight:bold;margin:10px 0;display:none}
     </style>
 </head>
 <body>
@@ -78,7 +84,7 @@
         </div>
         
         <div class="scroll-content">
-            <p style="font-size:12px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px">
+            <p style="font-size:11px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px">
                 ⚠️ အကောင့်တစ်ကောင့်မှာ အမျိုးအစားမတူညီတဲ့ Code တွေကို တစ်ကြိမ်စီသာ ဝယ်ယူလို့ရပါမည်။
             </p>
             <div class="game-grid" id="gameGrid"></div>
@@ -87,34 +93,23 @@
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
     
-    <!-- Category Code List Modal -->
+    <!-- Category Modal -->
     <div class="modal" id="categoryModal">
         <div class="modal-box">
             <img class="modal-img" id="modalImg" src="" alt="">
             <h3 id="modalTitle"></h3>
             <p class="warning-text">
                 ⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။<br>
-                ၁၀ စက္ကန့်အတွင်းသာ ကူးယူနိုင်ပြီး နောက်တစ်ကြိမ်ထပ်မံယူလို့ရမည်မဟုတ်ပါ။
+                QR Code ကို Scan ဖတ်ပြီးမှသာ Code အစစ်ကို ရယူနိုင်ပါမည်။
             </p>
             <div id="codeList"></div>
             <button class="btn-close" onclick="closeCategoryModal()"><i class="fas fa-times"></i> Close</button>
         </div>
     </div>
     
-    <!-- Copy Reveal Modal -->
-    <div class="copy-modal" id="copyModal">
-        <div class="copy-box">
-            <h3><i class="fas fa-check-circle"></i> ဝယ်ယူပြီးပါပြီ!</h3>
-            <p style="font-size:12px;color:rgba(255,255,255,0.7)">သင်၏ Code - ကူးယူရန် နှိပ်ပါ</p>
-            <div class="copy-code" id="copyCode" onclick="copyRevealedCode()"></div>
-            <p class="copy-timer" id="copyTimer">⏱️ 10 seconds remaining</p>
-            <p class="copy-warning">
-                ⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။<br>
-                ၁၀ စက္ကန့်အတွင်းသာ ကူးယူနိုင်ပြီး<br>
-                နောက်တစ်ကြိမ်ထပ်မံယူလို့ရမည်မဟုတ်ပါ။
-            </p>
-            <button class="copy-btn" id="copyActionBtn" onclick="copyRevealedCode()"><i class="fas fa-copy"></i> Copy Code</button>
-        </div>
+    <!-- QR Code Reveal Modal -->
+    <div class="qr-modal" id="qrModal">
+        <div class="qr-box" id="qrBoxContent"></div>
     </div>
     
 <script>
@@ -128,138 +123,165 @@ const CODES = [
 
 let purchasedCodes = JSON.parse(localStorage.getItem('purchased_codes')||'{}');
 let currentBalance = 0;
-let copyTimerInterval = null;
+let qrTimerInterval = null;
 let revealedCodeValue = '';
 
-function n(m,t="success"){
-    const e=document.getElementById("notif");
-    e.textContent=m; e.style.background=t==="success"?"#2ecc71":"#e74c3c";
-    e.style.display="block"; setTimeout(()=>e.style.display="none",2000);
-}
-
-function formatNumber(num){ return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",2000);}
+function formatNumber(num){return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');}
 
 async function loadBalance(){
     try{
         const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
         const d=await r.json();
-        currentBalance = d.balance||0;
+        currentBalance=d.balance||0;
         document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
         renderGameCards();
-    }catch(e){ document.getElementById('myBalance').textContent='0 Ks'; }
+    }catch(e){document.getElementById('myBalance').textContent='0 Ks';}
 }
 
-function isCategoryPurchased(catIndex){ return purchasedCodes[catIndex] === true; }
+function isCategoryPurchased(catIndex){return purchasedCodes[catIndex]===true;}
 
 function renderGameCards(){
-    const grid = document.getElementById('gameGrid');
-    let html = '';
-    CODES.forEach((cat, i)=>{
-        const owned = isCategoryPurchased(i);
-        html += `
-        <div class="game-card ${owned?'owned':''}" onclick="${owned?'':'openCategory('+i+')'}">
+    const grid=document.getElementById('gameGrid');
+    let html='';
+    CODES.forEach((cat,i)=>{
+        const owned=isCategoryPurchased(i);
+        html+=`<div class="game-card ${owned?'owned':''}" onclick="${owned?'':'openCategory('+i+')'}">
             <img src="${cat.icon}" alt="${cat.category}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22><rect fill=%22%234a1c7a%22 width=%2250%22 height=%2250%22 rx=%2210%22/><text x=%2225%22 y=%2230%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🎁</text></svg>'">
             <p>${cat.category}</p>
             <div class="price-tag">💰 ${formatNumber(cat.price)} Ks</div>
         </div>`;
     });
-    grid.innerHTML = html;
+    grid.innerHTML=html;
 }
 
 function openCategory(catIndex){
-    if(isCategoryPurchased(catIndex)) return;
-    const cat = CODES[catIndex];
-    document.getElementById('modalImg').src = cat.icon;
-    document.getElementById('modalTitle').textContent = cat.category;
-    
-    const listEl = document.getElementById('codeList');
-    let html = '';
-    cat.codes.forEach((code, codeIndex)=>{
-        html += `
+    if(isCategoryPurchased(catIndex))return;
+    const cat=CODES[catIndex];
+    document.getElementById('modalImg').src=cat.icon;
+    document.getElementById('modalTitle').textContent=cat.category;
+    const listEl=document.getElementById('codeList');
+    listEl.innerHTML=cat.codes.map((code,codeIndex)=>`
         <div class="code-item">
             <span class="code-val locked">••••••••••••••••••</span>
             <button class="btn-sm btn-buy" onclick="buyCodeFromModal(${catIndex},${codeIndex})">Buy (${formatNumber(cat.price)} Ks)</button>
-        </div>`;
-    });
-    listEl.innerHTML = html;
+        </div>`).join('');
     document.getElementById('categoryModal').classList.add('active');
 }
 
-function closeCategoryModal(){
-    document.getElementById('categoryModal').classList.remove('active');
-}
+function closeCategoryModal(){document.getElementById('categoryModal').classList.remove('active');}
 
-function buyCodeFromModal(catIndex, codeIndex){
-    const cat = CODES[catIndex];
-    const price = cat.price;
-    const code = cat.codes[codeIndex];
+function buyCodeFromModal(catIndex,codeIndex){
+    const cat=CODES[catIndex];
+    const price=cat.price;
+    const code=cat.codes[codeIndex];
     
-    if(isCategoryPurchased(catIndex)) return n('ဒီအမျိုးအစားကိုဝယ်ပြီးပါပြီ','error');
-    if(currentBalance < price) return n('ငွေမလုံလောက်ပါ။ '+formatNumber(price)+' Ks လိုအပ်ပါသည်။','error');
+    if(isCategoryPurchased(catIndex))return n('ဒီအမျိုးအစားကိုဝယ်ပြီးပါပြီ','error');
+    if(currentBalance<price)return n('ငွေမလုံလောက်ပါ။ '+formatNumber(price)+' Ks လိုအပ်ပါသည်။','error');
+    if(!confirm(`${cat.category}\n\nစျေးနှုန်း: ${formatNumber(price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?\n\n⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။\nQR Code Scan ဖတ်ပြီးမှသာ Code အစစ်ရမည်။`))return;
     
-    if(!confirm(`${cat.category}\n\nစျေးနှုန်း: ${formatNumber(price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?\n\n⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။\n၁၀ စက္ကန့်အတွင်းသာ ကူးယူနိုင်ပြီး\nနောက်တစ်ကြိမ်ထပ်မံယူလို့ရမည်မဟုတ်ပါ။`)) return;
-    
-    const uid = parseInt(localStorage.getItem('auth_token').replace('token_',''));
-    fetch('/api/admin/update_balance',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({userId:uid,amount:-price})
-    }).then(r=>r.json()).then(d=>{
-        if(d.success){
-            currentBalance -= price;
-            document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
-            purchasedCodes[catIndex] = true;
-            localStorage.setItem('purchased_codes', JSON.stringify(purchasedCodes));
-            closeCategoryModal();
-            renderGameCards();
-            showCopyRevealModal(code);
-        }else{ n('Error','error'); }
+    // Mark code as used on server
+    const uid=parseInt(localStorage.getItem('auth_token').replace('token_',''));
+    fetch('/api/use_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,userId:uid})})
+    .then(r=>r.json()).then(d=>{
+        if(d.already_used){
+            return n('❌ ဤ Code ကို အသုံးပြုပြီးပါပြီ။','error');
+        }
+        // Deduct balance
+        fetch('/api/admin/update_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid,amount:-price})})
+        .then(r=>r.json()).then(d2=>{
+            if(d2.success){
+                currentBalance-=price;
+                document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
+                purchasedCodes[catIndex]=true;
+                localStorage.setItem('purchased_codes',JSON.stringify(purchasedCodes));
+                closeCategoryModal();
+                renderGameCards();
+                showQRRevealModal(code);
+            }else{n('Error','error');}
+        }).catch(()=>n('Connection error','error'));
     }).catch(()=>n('Connection error','error'));
 }
 
-function showCopyRevealModal(code){
-    revealedCodeValue = code;
-    document.getElementById('copyCode').textContent = code;
-    document.getElementById('copyModal').classList.add('active');
+function showQRRevealModal(code){
+    revealedCodeValue=code;
     
-    let sec = 10;
-    document.getElementById('copyTimer').textContent = `⏱️ ${sec} seconds remaining`;
-    document.getElementById('copyActionBtn').classList.remove('done');
-    document.getElementById('copyActionBtn').innerHTML = '<i class="fas fa-copy"></i> Copy Code';
+    document.getElementById('qrBoxContent').innerHTML=`
+        <h3><i class="fas fa-qrcode"></i> Scan QR Code</h3>
+        <p style="font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:5px">Code ရယူရန် QR Code ကို Scan ဖတ်ပါ</p>
+        <div class="qr-container" id="qrcodeContainer"></div>
+        <p class="qr-info">📱 QR Scanner ဖြင့် Scan ဖတ်ပါ<br>သို့မဟုတ်</p>
+        <button class="reveal-btn" onclick="revealCodeInQR()"><i class="fas fa-eye"></i> Code အစစ် ကြည့်မည်</button>
+        <div class="qr-used" id="qrUsed">❌ ဤ Code ကို အသုံးပြုပြီးပါပြီ။</div>
+        <div class="code-area" id="qrCodeArea">
+            <div class="the-code" id="qrTheCode">${code}</div>
+            <p class="timer" id="qrTimer">⏱️ 10 seconds remaining</p>
+            <p class="warning">⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။<br>၁၀ စက္ကန့်အတွင်းသာ ကူးယူနိုင်ပါမည်။</p>
+            <button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy Code</button>
+        </div>
+        <button class="close-qr" onclick="closeQRModal()"><i class="fas fa-times"></i> Close</button>
+    `;
     
-    if(copyTimerInterval) clearInterval(copyTimerInterval);
-    copyTimerInterval = setInterval(()=>{
-        sec--;
-        document.getElementById('copyTimer').textContent = `⏱️ ${sec} seconds remaining`;
-        if(sec <= 0){
-            clearInterval(copyTimerInterval);
-            copyTimerInterval = null;
-            document.getElementById('copyModal').classList.remove('active');
-            n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ');
-            revealedCodeValue = '';
+    document.getElementById('qrModal').classList.add('active');
+    
+    // Generate QR Code
+    setTimeout(()=>{
+        const container=document.getElementById('qrcodeContainer');
+        if(container){
+            container.innerHTML='';
+            new QRCode(container,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'});
         }
-    }, 1000);
+    },100);
+    
+    // 10-second timer
+    let sec=10;
+    if(qrTimerInterval)clearInterval(qrTimerInterval);
+    qrTimerInterval=setInterval(()=>{
+        sec--;
+        const timerEl=document.getElementById('qrTimer');
+        if(timerEl)timerEl.textContent=`⏱️ ${sec} seconds remaining`;
+        if(sec<=0){
+            clearInterval(qrTimerInterval);
+            qrTimerInterval=null;
+            closeQRModal();
+            n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ');
+            revealedCodeValue='';
+        }
+    },1000);
 }
 
-function copyRevealedCode(){
-    if(!revealedCodeValue) return;
-    navigator.clipboard.writeText(revealedCodeValue).then(()=>{
-        document.getElementById('copyActionBtn').classList.add('done');
-        document.getElementById('copyActionBtn').innerHTML = '<i class="fas fa-check"></i> Copied!';
-        n('✅ Code Copied!');
-        // Don't close modal - user can still copy within 10 seconds
-    }).catch(()=>{
-        n('Failed to copy','error');
+function revealCodeInQR(){
+    document.getElementById('qrCodeArea').style.display='block';
+    document.querySelector('.reveal-btn').style.display='none';
+}
+
+function copyQRCode(){
+    if(!revealedCodeValue)return;
+    // Check if code is still valid
+    fetch('/api/check_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:revealedCodeValue})})
+    .then(r=>r.json()).then(d=>{
+        if(d.used){
+            document.getElementById('qrUsed').style.display='block';
+            document.getElementById('qrCodeArea').style.display='none';
+            return n('❌ ဤ Code ကို အသုံးပြုပြီးပါပြီ။','error');
+        }
+        navigator.clipboard.writeText(revealedCodeValue).then(()=>{
+            const btn=document.getElementById('qrCopyBtn');
+            if(btn){btn.classList.add('done');btn.innerHTML='<i class="fas fa-check"></i> Copied!';}
+            n('✅ Code Copied!');
+            // Mark as used after copy
+            const uid=parseInt(localStorage.getItem('auth_token').replace('token_',''));
+            fetch('/api/mark_code_used',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:revealedCodeValue,userId:uid})});
+            // Close after 2 seconds
+            setTimeout(()=>{closeQRModal();},2000);
+        }).catch(()=>n('Failed to copy','error'));
     });
 }
 
-// Close modals on outside click
-document.getElementById('categoryModal').addEventListener('click',function(e){ if(e.target===this) closeCategoryModal(); });
-document.getElementById('copyModal').addEventListener('click',function(e){
-    if(e.target===this && !revealedCodeValue){
-        document.getElementById('copyModal').classList.remove('active');
-        if(copyTimerInterval){ clearInterval(copyTimerInterval); copyTimerInterval=null; }
-    }
-});
+function closeQRModal(){
+    document.getElementById('qrModal').classList.remove('active');
+    if(qrTimerInterval){clearInterval(qrTimerInterval);qrTimerInterval=null;}
+}
 
 loadBalance();
 </script>
