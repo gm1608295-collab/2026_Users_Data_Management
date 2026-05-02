@@ -19,8 +19,8 @@
         .lang-select{position:absolute;top:45px;right:15px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.3);border-radius:4px;color:var(--t);padding:2px 5px;font-size:10px}
         .content{padding:15px}
         
-        /* ID Panel Redesign */
-        .id-panel{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:12px 15px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+        /* ========== ID PANEL ========== */
+        .id-panel{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center}
         .id-left{display:flex;flex-direction:column;gap:2px}
         .id-name{font-size:14px;font-weight:bold;color:var(--t);display:flex;align-items:center;gap:6px}
         .id-name i{color:var(--b);font-size:14px}
@@ -29,13 +29,16 @@
         .id-time{font-size:16px;font-weight:bold;color:var(--w)}
         .id-date{font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px}
 
-        /* Notice Banner with Image */
-        .notice-banner{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:10px;margin-bottom:15px;display:flex;align-items:center;gap:12px}
-        .notice-banner img{width:50px;height:50px;border-radius:8px;object-fit:cover;border:2px solid var(--w);flex-shrink:0}
-        .notice-banner.no-img{padding:15px;text-align:center;justify-content:center}
-        .notice-banner.no-img .notice-icon{font-size:30px;color:var(--w);margin-right:10px}
-        .notice-text{flex:1;font-size:12px;font-weight:bold;line-height:1.6}
-        .notice-text .nt{color:var(--w)}.notice-text .nd{font-size:10px;color:rgba(255,255,255,0.5);margin-top:4px}
+        /* ========== IMAGE BANNER (Admin set image URL) ========== */
+        .img-banner{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:3px;margin-top:10px;margin-bottom:10px;overflow:hidden}
+        .img-banner img{width:100%;height:auto;max-height:200px;object-fit:cover;border-radius:7px;display:block}
+
+        /* ========== NOTICE BANNER (Admin post notice) ========== */
+        .notice-banner{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:12px 15px;margin-bottom:15px;display:flex;align-items:center;gap:12px}
+        .notice-banner .notice-icon{font-size:28px;color:var(--w);flex-shrink:0}
+        .notice-banner .notice-text{flex:1;line-height:1.6}
+        .notice-banner .notice-msg{font-size:13px;font-weight:bold}
+        .notice-banner .notice-time{font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px}
 
         .panel{background:rgba(26,31,75,0.6);padding:15px;border-radius:10px;margin-bottom:15px;border:1px solid rgba(74,28,122,0.5)}
         .panel h2{color:var(--w);font-size:15px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--a)}
@@ -88,7 +91,7 @@
 <body>
     <div class="notif" id="notif"></div>
     <div class="container">
-        <!-- Header -->
+        <!-- ==================== HEADER ==================== -->
         <div class="header">
             <div class="refresh-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></div>
             <div class="sidebar-btn" onclick="openSidebar()"><i class="fas fa-bars"></i></div>
@@ -99,9 +102,10 @@
             <button onclick="logout()" style="background:var(--r);color:#fff;border:none;padding:8px 20px;border-radius:5px;cursor:pointer;margin-top:10px;font-size:14px"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </div>
         
+        <!-- ==================== CONTENT ==================== -->
         <div class="content">
-            <!-- ID Panel - Redesigned -->
-            <div class="id-panel">
+            <!-- ===== ID PANEL ===== -->
+            <div class="id-panel" id="idPanel">
                 <div class="id-left">
                     <div class="id-name"><i class="fas fa-user-circle"></i> <span id="myUserName">------</span></div>
                     <div class="id-code">ID: <span id="myUserId">------</span></div>
@@ -112,17 +116,21 @@
                 </div>
             </div>
 
-            <!-- Notice Banner with Custom Image -->
-            <div id="noticeBanner" class="notice-banner" style="display:none">
-                <img id="noticeImage" src="" alt="Notice" style="display:none">
-                <div class="notice-icon" id="noticeIcon" style="display:none"><i class="fas fa-bullhorn"></i></div>
+            <!-- ===== IMAGE BANNER (Admin က ပုံလင့်ထည့်ရင် တန်းပေါ်မယ်) ===== -->
+            <div class="img-banner" id="imgBanner" style="display:none">
+                <!-- Cache ကနေ အရင်ပြဖို့ img tag ကို ကြိုထည့်ထားမယ် -->
+            </div>
+
+            <!-- ===== NOTICE BANNER (Admin က notice တင်ရင် တန်းပေါ်မယ်) ===== -->
+            <div class="notice-banner" id="noticeBanner" style="display:none">
+                <div class="notice-icon" id="noticeIcon"><i class="fas fa-bullhorn"></i></div>
                 <div class="notice-text">
-                    <div class="nt" id="noticeMessage"></div>
-                    <div class="nd" id="noticeTime"></div>
+                    <div class="notice-msg" id="noticeMsg"></div>
+                    <div class="notice-time" id="noticeTime"></div>
                 </div>
             </div>
 
-            <!-- Main Panel -->
+            <!-- ===== MAIN PANEL ===== -->
             <div class="panel">
                 <!-- Data Tab -->
                 <div class="tab-content active" id="dataTab">
@@ -132,6 +140,7 @@
                         <div class="data-card" onclick="showSub('mlbbSub')"><i class="fas fa-gamepad"></i><p>MLBB</p></div>
                         <div class="data-card" onclick="showSub('tiktokSub')"><i class="fab fa-tiktok"></i><p>TikTok</p></div>
                     </div>
+                    <!-- Gmail Sub-tab -->
                     <div class="sub-tab active" id="gmailSub">
                         <div class="form-group"><label>Generator Password</label><input type="password" id="dataGmailPass" placeholder="Enter password to unlock"></div>
                         <button class="btn btn-w" onclick="unlockData('gmail')">Unlock Gmail</button>
@@ -147,6 +156,7 @@
                             <button class="btn btn-g" id="gSaveBtn" onclick="saveGmailData()"><i class="fas fa-save"></i> Save</button>
                         </div>
                     </div>
+                    <!-- MLBB Sub-tab -->
                     <div class="sub-tab" id="mlbbSub">
                         <div class="form-group"><label>Generator Password</label><input type="password" id="dataMlbbPass" placeholder="Enter password to unlock"></div>
                         <button class="btn btn-w" onclick="unlockData('mlbb')">Unlock MLBB</button>
@@ -163,6 +173,7 @@
                             <button class="btn btn-g" id="mSaveBtn" onclick="saveMlbbData()"><i class="fas fa-save"></i> Save</button>
                         </div>
                     </div>
+                    <!-- TikTok Sub-tab -->
                     <div class="sub-tab" id="tiktokSub">
                         <div class="form-group"><label>Generator Password</label><input type="password" id="dataTiktokPass" placeholder="Enter password to unlock"></div>
                         <button class="btn btn-w" onclick="unlockData('tiktok')">Unlock TikTok</button>
@@ -190,32 +201,16 @@
                 <!-- History Tab -->
                 <div class="tab-content" id="historyTab"><h2><i class="fas fa-history"></i> History</h2><div id="myGmailHistory" style="margin-bottom:8px"></div><div id="myMlbbHistory" style="margin-bottom:8px"></div><div id="myTiktokHistory"></div></div>
                 
-                <!-- Contact Tab - Redesigned with Colors -->
+                <!-- Contact Tab -->
                 <div class="tab-content" id="contactTab">
                     <h2><i class="fas fa-address-book"></i> Contact</h2>
                     <div style="overflow-x:auto">
                         <table class="contact-table">
                             <tr><th>Type</th><th>Info</th><th>Action</th></tr>
-                            <tr onclick="contactG('gm1608295@gmail.com')">
-                                <td><i class="fas fa-envelope"></i> Gmail</td>
-                                <td class="ct-gmail">gm1608295@gmail.com</td>
-                                <td style="text-align:center"><button>Open</button></td>
-                            </tr>
-                            <tr onclick="contactP('09672093790')">
-                                <td><i class="fas fa-phone"></i> Phone</td>
-                                <td class="ct-phone">09672093790</td>
-                                <td style="text-align:center"><button>Call</button></td>
-                            </tr>
-                            <tr onclick="contactT('@Solo_m28')">
-                                <td><i class="fab fa-telegram"></i> Telegram</td>
-                                <td class="ct-telegram">@Solo_m28</td>
-                                <td style="text-align:center"><button>Chat</button></td>
-                            </tr>
-                            <tr onclick="contactTik('sologamer149')">
-                                <td><i class="fab fa-tiktok"></i> TikTok</td>
-                                <td class="ct-tiktok">@sologamer149</td>
-                                <td style="text-align:center"><button>View</button></td>
-                            </tr>
+                            <tr onclick="contactG('gm1608295@gmail.com')"><td><i class="fas fa-envelope"></i> Gmail</td><td class="ct-gmail">gm1608295@gmail.com</td><td style="text-align:center"><button>Open</button></td></tr>
+                            <tr onclick="contactP('09672093790')"><td><i class="fas fa-phone"></i> Phone</td><td class="ct-phone">09672093790</td><td style="text-align:center"><button>Call</button></td></tr>
+                            <tr onclick="contactT('@Solo_m28')"><td><i class="fab fa-telegram"></i> Telegram</td><td class="ct-telegram">@Solo_m28</td><td style="text-align:center"><button>Chat</button></td></tr>
+                            <tr onclick="contactTik('sologamer149')"><td><i class="fab fa-tiktok"></i> TikTok</td><td class="ct-tiktok">@sologamer149</td><td style="text-align:center"><button>View</button></td></tr>
                         </table>
                     </div>
                     <div class="email-link" onclick="openEmail()"><i class="fas fa-envelope"></i> Send us a message via Email</div>
@@ -226,9 +221,11 @@
         <div class="footer">© 2026 MLBB Account Management System</div>
     </div>
 
-    <!-- Modals -->
+    <!-- ==================== MODALS ==================== -->
+    <!-- Email Modal -->
     <div class="modal" id="emailModal"><div class="modal-box"><span class="modal-close" onclick="closeEmail()">&times;</span><h3>Send Message</h3><div class="form-group"><label>Name</label><input type="text" id="emName" placeholder="Your Name"></div><div class="form-group"><label>Email</label><input type="email" id="emEmail" placeholder="Your Email"></div><div class="form-group"><label>Phone</label><input type="text" id="emPhone" placeholder="Phone Number"></div><div class="form-group"><label>Message</label><textarea id="emMsg" rows="4" placeholder="Your Message"></textarea></div><button class="btn btn-g" onclick="sendEmail()"><i class="fas fa-paper-plane"></i> Send</button></div></div>
     
+    <!-- Admin Modal -->
     <div class="modal" id="adminModal"><div class="modal-box"><span class="modal-close" onclick="closeAdminModal()">&times;</span><h3>Admin Panel</h3>
         <div class="form-group"><label>Admin Password</label><input type="password" id="adminPass"></div>
         <button class="btn btn-w" onclick="unlockAdmin()">Unlock Admin</button>
@@ -246,19 +243,26 @@
             <div style="font-weight:bold;color:var(--w);margin:8px 0;font-size:12px">🔵 Google Login</div><div id="googleList" style="max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
             <div style="font-weight:bold;color:var(--w);margin:8px 0;font-size:12px">🎵 TikTok Login</div><div id="tiktokList" style="max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
             <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
-                <div class="form-group"><label><i class="fas fa-bullhorn"></i> Post Notice</label><textarea id="noticeMsg" rows="2" placeholder="Enter notice..."></textarea></div>
+                <div class="form-group"><label><i class="fas-bullhorn"></i> Post Notice (Text Only)</label><textarea id="noticeMsg" rows="2" placeholder="Enter notice text..."></textarea></div>
                 <div class="form-group"><label><i class="fas fa-palette"></i> Text Color</label><input type="color" id="noticeColor" value="#ffffff" style="height:35px;padding:2px"></div>
-                <div class="form-group"><label><i class="fas fa-image"></i> Notice Image URL (optional)</label><input type="text" id="noticeImgUrl" placeholder="https://i.ibb.co/..."></div>
                 <button class="btn btn-w" onclick="postNotice()"><i class="fas fa-paper-plane"></i> Post Notice</button>
+                <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0">
+                <div class="form-group"><label><i class="fas fa-image"></i> Banner Image URL (Optional)</label><input type="text" id="bannerImgUrl" placeholder="https://i.ibb.co/..."></div>
+                <button class="btn btn-g" onclick="setBannerImage()"><i class="fas fa-image"></i> Set Banner Image</button>
+                <button class="btn btn-r" onclick="removeBannerImage()" style="margin-top:5px"><i class="fas fa-trash"></i> Remove Banner</button>
+                <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0">
                 <div style="font-weight:bold;color:var(--w);margin:10px 0 5px;font-size:12px">📋 Posted Notices</div><div id="noticeList" style="max-height:150px;overflow-y:auto;font-size:11px"></div>
             </div>
         </div>
     </div></div>
     
+    <!-- Edit User Modal -->
     <div class="modal" id="editModal"><div class="modal-box"><span class="modal-close" onclick="closeEditModal()">&times;</span><h3>Edit User</h3><input type="hidden" id="editUserId"><div class="form-group"><label>Name</label><input type="text" id="editName"></div><div class="form-group"><label>Email</label><input type="email" id="editEmail"></div><div class="form-group"><label>Phone</label><input type="text" id="editPhone"></div><div class="form-group"><label>New Password</label><input type="password" id="editPass"></div><button class="btn btn-g" onclick="saveEdit()">Save Changes</button></div></div>
+    
+    <!-- View/Edit Data Modal -->
     <div class="modal" id="viewDataModal"><div class="modal-box"><span class="modal-close" onclick="closeViewModal()">&times;</span><h3>View & Edit Data</h3><div id="viewDataContent"></div><button class="btn btn-g" onclick="saveViewEdit()" style="display:none" id="saveViewEditBtn">Save Changes</button></div></div>
 
-    <!-- Sidebar -->
+    <!-- ==================== SIDEBAR ==================== -->
     <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
     <div class="sidebar-panel" id="sidebarPanel"><span class="close-btn" onclick="closeSidebar()">&times;</span><h3><i class="fas fa-bars"></i> Menu</h3>
         <a href="/dashboard" class="s-item"><i class="fas fa-home"></i> Home</a>
@@ -273,251 +277,293 @@
         <a href="/aboutredeem.html" class="s-item"><i class="fas fa-info-circle"></i> About Redeem Code</a>
     </div>
 
-    <!-- ==================== JAVASCRIPT ==================== -->
+    <!-- ==================== JAVASCRIPT (သီးသန့်) ==================== -->
     <script>
-        // ==================== INITIALIZATION ====================
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-worker.js'); }
-        emailjs.init("tsKN2j9o6RYK4KeEp");
-        
-        const BOT="8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE", CID="8315928972", ADMIN="MK2008";
-        let GPASS="DoubleMK2008", MPASS="GlobalMK2008", TPASS="DoubleMK2008", countriesData=[];
-        let currentViewType=null, currentViewId=null;
-        let currentLang=localStorage.getItem('lang')||'my';
+    // ==================== INITIALIZATION (တန်းလုပ်မယ်) ====================
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-worker.js'); }
+    emailjs.init("tsKN2j9o6RYK4KeEp");
+    
+    const BOT="8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE", CID="8315928972", ADMIN="MK2008";
+    let GPASS="DoubleMK2008", MPASS="GlobalMK2008", TPASS="DoubleMK2008", countriesData=[];
+    let currentViewType=null, currentViewId=null;
+    let currentLang=localStorage.getItem('lang')||'my';
 
-        // ==================== UTILITY FUNCTIONS ====================
-        function changeLang(l){ currentLang=l; localStorage.setItem('lang',l); document.getElementById('langSelect').value=l; }
-        function n(m,t="success"){ const e=document.getElementById("notif"); e.textContent=m; e.style.background=t==="success"?"#2ecc71":"#e74c3c"; e.style.display="block"; setTimeout(()=>e.style.display="none",3000); }
-        function tg(m){ fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:CID,text:m,parse_mode:'HTML'})}).catch(()=>{}); }
-        function st(id){ document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); document.getElementById(id).classList.add('active'); if(id==='historyTab') loadMyHistory(); }
-        function showSub(id){ 
-            document.querySelectorAll('.data-card').forEach(c=>c.classList.remove('sel')); 
-            event.target.closest('.data-card').classList.add('sel');
-            document.querySelectorAll('.sub-tab').forEach(s=>s.classList.remove('active')); 
-            document.getElementById(id).classList.add('active'); 
-        }
-        function openAdminModal(){ document.getElementById("adminModal").classList.add("active"); }
-        function closeAdminModal(){ document.getElementById("adminModal").classList.remove("active"); }
-        function openSidebar(){ document.getElementById("sidebarPanel").classList.add("active"); document.getElementById("sidebarOverlay").classList.add("active"); }
-        function closeSidebar(){ document.getElementById("sidebarPanel").classList.remove("active"); document.getElementById("sidebarOverlay").classList.remove("active"); }
-        function openEditModal(uid,un,em,ph){ document.getElementById("editUserId").value=uid; document.getElementById("editName").value=un||''; document.getElementById("editEmail").value=em||''; document.getElementById("editPhone").value=ph||''; document.getElementById("editPass").value=''; document.getElementById("editModal").classList.add("active"); }
-        function closeEditModal(){ document.getElementById("editModal").classList.remove("active"); }
-        function closeViewModal(){ document.getElementById("viewDataModal").classList.remove("active"); document.getElementById("saveViewEditBtn").style.display="none"; }
+    // ==================== UTILITY ====================
+    function changeLang(l){ currentLang=l; localStorage.setItem('lang',l); document.getElementById('langSelect').value=l; }
+    function n(m,t="success"){ const e=document.getElementById("notif"); e.textContent=m; e.style.background=t==="success"?"#2ecc71":"#e74c3c"; e.style.display="block"; setTimeout(()=>e.style.display="none",3000); }
+    function tg(m){ fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:CID,text:m,parse_mode:'HTML'})}).catch(()=>{}); }
+    function st(id){ document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); document.getElementById(id).classList.add('active'); if(id==='historyTab') loadMyHistory(); }
+    function showSub(id){ 
+        document.querySelectorAll('.data-card').forEach(c=>c.classList.remove('sel')); 
+        event.target.closest('.data-card').classList.add('sel');
+        document.querySelectorAll('.sub-tab').forEach(s=>s.classList.remove('active')); 
+        document.getElementById(id).classList.add('active'); 
+    }
+    function openAdminModal(){ document.getElementById("adminModal").classList.add("active"); }
+    function closeAdminModal(){ document.getElementById("adminModal").classList.remove("active"); }
+    function openSidebar(){ document.getElementById("sidebarPanel").classList.add("active"); document.getElementById("sidebarOverlay").classList.add("active"); }
+    function closeSidebar(){ document.getElementById("sidebarPanel").classList.remove("active"); document.getElementById("sidebarOverlay").classList.remove("active"); }
+    function openEditModal(uid,un,em,ph){ document.getElementById("editUserId").value=uid; document.getElementById("editName").value=un||''; document.getElementById("editEmail").value=em||''; document.getElementById("editPhone").value=ph||''; document.getElementById("editPass").value=''; document.getElementById("editModal").classList.add("active"); }
+    function closeEditModal(){ document.getElementById("editModal").classList.remove("active"); }
+    function closeViewModal(){ document.getElementById("viewDataModal").classList.remove("active"); document.getElementById("saveViewEditBtn").style.display="none"; }
 
-        // ==================== TIME UPDATE ====================
-        function updateTime(){
-            const now=new Date();
-            document.getElementById("localTime").textContent=now.toLocaleTimeString('my-MM',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-            document.getElementById("localDate").textContent=now.toLocaleDateString('my-MM',{year:'numeric',month:'short',day:'numeric'});
-        }
-        setInterval(updateTime,1000); updateTime();
+    // ==================== TIME (တန်းပြမယ်) ====================
+    function updateTime(){
+        const now=new Date();
+        document.getElementById("localTime").textContent=now.toLocaleTimeString('my-MM',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+        document.getElementById("localDate").textContent=now.toLocaleDateString('my-MM',{year:'numeric',month:'short',day:'numeric'});
+    }
+    setInterval(updateTime,1000); updateTime();
 
-        // ==================== LOGOUT ====================
-        async function logout(){
-            try{ await fetch("/api/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})}); }catch(e){}
-            localStorage.removeItem("auth_token"); localStorage.removeItem("user"); window.location.href="/";
-        }
+    // ==================== LOGOUT ====================
+    async function logout(){
+        try{ await fetch("/api/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})}); }catch(e){}
+        localStorage.removeItem("auth_token"); localStorage.removeItem("user"); window.location.href="/";
+    }
 
-        // ==================== PASSWORD MANAGEMENT ====================
-        async function loadPw(){
-            try{ const r=await fetch("/api/get_passwords",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})}); const d=await r.json(); GPASS=d.gmail_password||'DoubleMK2008'; MPASS=d.mlbb_password||'GlobalMK2008'; TPASS=d.tiktok_password||'DoubleMK2008'; }catch(e){}
-        }
-        async function chPass(){
-            const t=document.getElementById("passType").value, cp=document.getElementById("curPass").value, np=document.getElementById("newPass").value;
-            if(!cp||!np) return n("Fill all fields","error");
-            try{ const r=await fetch("/api/change_password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:t,cp:cp,np:np})}); const d=await r.json(); d.success?(n("Password Changed!"),loadPw()):n(d.message,"error"); }catch(e){ n("Connection error","error"); }
-        }
+    // ==================== PASSWORD MANAGEMENT ====================
+    async function loadPw(){
+        try{ const r=await fetch("/api/get_passwords",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})}); const d=await r.json(); GPASS=d.gmail_password||'DoubleMK2008'; MPASS=d.mlbb_password||'GlobalMK2008'; TPASS=d.tiktok_password||'DoubleMK2008'; }catch(e){}
+    }
+    async function chPass(){
+        const t=document.getElementById("passType").value, cp=document.getElementById("curPass").value, np=document.getElementById("newPass").value;
+        if(!cp||!np) return n("Fill all fields","error");
+        try{ const r=await fetch("/api/change_password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:t,cp:cp,np:np})}); const d=await r.json(); d.success?(n("Password Changed!"),loadPw()):n(d.message,"error"); }catch(e){ n("Connection error","error"); }
+    }
 
-        // ==================== ADMIN FUNCTIONS ====================
-        async function unlockAdmin(){ if(document.getElementById("adminPass").value!==ADMIN) return n("Wrong password","error"); document.getElementById("adminBox").style.display="block"; loadAdminData(); loadAdminOrders(); }
-        async function loadAdminData(){
-            try{
-                const r=await fetch("/api/admin/users_grouped"); const d=await r.json();
-                document.getElementById("totalUsers").textContent=d.total||0;
-                document.getElementById("bannedUsers").textContent=(d.banned||[]).length;
-                const banned=d.banned||[];
-                const renderList=(list,container,canEdit)=>{
-                    container.innerHTML=list.length===0?'<p style="font-size:11px">No users</p>':list.map(u=>{
-                        const isBanned=banned.includes(u.id.toString());
-                        return `<div class="user-row${isBanned?' banned':''}"><div><b>ID:${u.id.toString().padStart(6,'0')}</b><br>${u.username||'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:3px;flex-wrap:wrap">${canEdit?`<button class="btn btn-sm btn-w" onclick="openEditModal('${u.id}','${u.username||''}','${u.email||''}','${u.phone||''}')">Edit</button>`:''}${isBanned?`<button class="btn btn-sm btn-g" onclick="unbanUser('${u.id}')">Unban</button>`:`<button class="btn btn-sm btn-r" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-sm btn-r" onclick="delUserById('${u.id}')">Del</button></div></div>`;
-                    }).join('');
-                };
-                renderList(d.local||[],document.getElementById("localList"),true);
-                renderList(d.google||[],document.getElementById("googleList"),false);
-                renderList(d.tiktok||[],document.getElementById("tiktokList"),false);
-                loadNoticeList();
-            }catch(e){}
+    // ==================== IMAGE BANNER (သီးသန့် - localStorage cache နဲ့ တန်းပြ) ====================
+    function renderBannerImage(){
+        const cache=localStorage.getItem('bannerImageCache');
+        const bannerEl=document.getElementById('imgBanner');
+        if(cache){
+            // Cache ထဲမှာ ရှိရင် တန်းပြ
+            bannerEl.innerHTML=`<img src="${cache}" alt="Banner" onerror="this.style.display='none'">`;
+            bannerEl.style.display='block';
+        } else {
+            bannerEl.style.display='none';
+            bannerEl.innerHTML='';
         }
-        async function banUserById(id){ await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); tg("🚫 Banned: "+id); loadAdminData(); n("Banned!"); }
-        async function unbanUser(id){ await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); loadAdminData(); n("Unbanned!"); }
-        async function delUserById(id){ if(!confirm("Delete user "+id+"?")) return; await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); n("Deleted!"); tg("🗑️ Deleted: "+id); loadAdminData(); }
-        async function saveEdit(){
-            const id=document.getElementById("editUserId").value, un=document.getElementById("editName").value, em=document.getElementById("editEmail").value, ph=document.getElementById("editPhone").value, pw=document.getElementById("editPass").value;
-            try{ const r=await fetch("/api/admin/edit_user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:parseInt(id),username:un,email:em,phone:ph,password:pw||''})}); const d=await r.json(); d.success?(n("Updated!"),closeEditModal(),loadAdminData()):n(d.message||"Error","error"); }catch(e){ n("Error","error"); }
-        }
-        async function searchUser(){
-            const q=document.getElementById('userSearch').value; if(q.length<2){ document.getElementById('userSearchResult').innerHTML=''; return; }
-            try{ const r=await fetch('/api/admin/search_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})}); const d=await r.json(); const c=document.getElementById('userSearchResult');
-                c.innerHTML=d.users.map(u=>`<div class="user-row" style="justify-content:space-between"><div><b>ID:${u.id}</b> ${u.username||''}<br><small>Balance: ${u.balance||0} Ks</small></div><div style="display:flex;gap:3px"><input type="number" id="bal${u.id}" placeholder="Amount" style="width:60px;padding:2px;font-size:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px"><button class="btn btn-sm btn-g" onclick="addBalance(${u.id})">+</button><button class="btn btn-sm btn-r" onclick="subBalance(${u.id})">-</button></div></div>`).join('');
-            }catch(e){}
-        }
-        async function addBalance(uid){ const amt=document.getElementById('bal'+uid).value; if(!amt) return; await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:parseFloat(amt)})}); n('Balance Added!'); searchUser(); }
-        async function subBalance(uid){ const amt=document.getElementById('bal'+uid).value; if(!amt) return; await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:-parseFloat(amt)})}); n('Balance Deducted!'); searchUser(); }
-        async function loadAdminOrders(){
-            try{ const r=await fetch('/api/admin/orders'); const d=await r.json(); const c=document.getElementById('adminOrders');
-                if(d.orders.length===0){ c.innerHTML='<p style="font-size:11px">No orders</p>'; return; }
-                c.innerHTML=d.orders.map(o=>{ return `<div class="order-row"><div><b>${o.username}</b><br>💰 ${o.amount} Ks<br><small>${o.payment_method} | ${new Date(o.created_at).toLocaleString()}</small></div><div style="display:flex;gap:3px;align-items:center"><span style="font-size:9px;color:${o.status==='approved'?'var(--g)':'var(--w)'}">${o.status}</span>${o.screenshot?`<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">`:'📷'}${o.status==='pending'?`<button class="btn btn-sm btn-g" onclick="approveOrder(${o.id},${o.user_id},${o.amount})">✓</button><button class="btn btn-sm btn-r" onclick="rejectOrder(${o.id})">✕</button>`:''}</div></div>`; }).join('');
-            }catch(e){}
-        }
-        async function approveOrder(id,userId,amount){ const manualAmount=prompt('Enter amount to add (Ks):',amount); if(!manualAmount) return; await fetch('/api/admin/order_status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'approved'})}); await fetch('/api/admin/update_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,amount:parseFloat(manualAmount)})}); n('Approved! +'+manualAmount+' Ks'); loadAdminOrders(); loadAdminData(); }
-        async function rejectOrder(id){ await fetch('/api/admin/order_status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'rejected'})}); n('Rejected!'); loadAdminOrders(); }
-        function zoomImage(src){ const modal=document.createElement('div'); modal.className='zoom-overlay'; modal.onclick=()=>modal.remove(); modal.innerHTML=`<img src="${src}">`; document.body.appendChild(modal); }
-
-        // ==================== NOTICE SYSTEM WITH IMAGE ====================
-        function renderNotice(d){
-            const banner=document.getElementById("noticeBanner");
-            const img=document.getElementById("noticeImage");
-            const icon=document.getElementById("noticeIcon");
-            const msg=document.getElementById("noticeMessage");
-            const time=document.getElementById("noticeTime");
-            
-            if(d&&d.message){
-                banner.style.display="flex";
-                msg.textContent=d.message;
-                msg.style.color=d.color||'var(--t)';
-                time.textContent=new Date(d.created_at).toLocaleString();
-                banner.style.borderColor=d.color||'var(--w)';
-                
-                // Handle image
-                if(d.image_url){
-                    img.src=d.image_url;
-                    img.style.display="block";
-                    icon.style.display="none";
-                    banner.classList.remove('no-img');
-                }else{
-                    img.style.display="none";
-                    icon.style.display="block";
-                    icon.style.color=d.color||'var(--w)';
-                    banner.classList.add('no-img');
-                }
+    }
+    async function loadBannerImage(){
+        // Cache ကို အရင်ပြ
+        renderBannerImage();
+        // Server ကနေ နောက်မှ ဆွဲပြီး cache update လုပ်
+        try{
+            const r=await fetch('/api/banner_image');
+            const d=await r.json();
+            if(d.success && d.image_url){
+                localStorage.setItem('bannerImageCache', d.image_url);
+                renderBannerImage();
             } else {
-                banner.style.display="none";
-                banner.style.borderColor='rgba(255,255,255,0.1)';
+                localStorage.removeItem('bannerImageCache');
+                document.getElementById('imgBanner').style.display='none';
             }
-        }
-        async function loadNotice(){
-            const cached=localStorage.getItem('noticeCache');
-            if(cached){
-                try{ const d=JSON.parse(cached); if(d.message){ renderNotice(d); } else { renderNotice(null); } }catch(e){ renderNotice(null); }
-            }
-            try{
-                const r=await fetch("/api/notice"); const d=await r.json();
-                if(d.success&&d.message){
-                    localStorage.setItem('noticeCache',JSON.stringify(d));
-                    renderNotice(d);
-                } else { localStorage.removeItem('noticeCache'); renderNotice(null); }
-            }catch(e){}
-        }
-        async function postNotice(){
-            const m=document.getElementById("noticeMsg").value;
-            const co=document.getElementById("noticeColor").value;
-            const imgUrl=document.getElementById("noticeImgUrl").value;
-            if(!m) return n("Enter message","error");
-            try{
-                const r=await fetch("/api/admin/notice",{
-                    method:"POST", headers:{"Content-Type":"application/json"},
-                    body:JSON.stringify({message:m, color:co, image_url:imgUrl||''})
-                });
-                const d=await r.json();
-                d.success?(n("Notice Posted!"), document.getElementById("noticeMsg").value="", document.getElementById("noticeImgUrl").value="", loadNotice(), loadNoticeList()):n(d.message,"error");
-            }catch(e){ n("Connection error","error"); }
-        }
-        async function loadNoticeList(){
-            try{
-                const r=await fetch("/api/admin/notices"); const d=await r.json(); const c=document.getElementById("noticeList");
-                if(d.notices&&d.notices.length>0){
-                    c.innerHTML=d.notices.map(n=>`<div class="user-row"><div><span style="color:${n.color||'#fff'}">${n.message}</span><br><small>${new Date(n.created_at).toLocaleString()}</small></div><button class="btn btn-sm btn-r" onclick="delNoticeById(${n.id})">Del</button></div>`).join('');
-                } else { c.innerHTML='<p>No notices</p>'; }
-            }catch(e){}
-        }
-        async function delNoticeById(id){ if(!confirm("Delete this notice?")) return; try{ await fetch("/api/admin/notice/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})}); n("Deleted!"); loadNoticeList(); loadNotice(); }catch(e){ n("Error","error"); } }
+        }catch(e){}
+    }
+    async function setBannerImage(){
+        const url=document.getElementById('bannerImgUrl').value.trim();
+        if(!url) return n("Please enter image URL","error");
+        try{
+            const r=await fetch('/api/admin/banner_image', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({image_url:url})
+            });
+            const d=await r.json();
+            if(d.success){
+                localStorage.setItem('bannerImageCache', url);
+                renderBannerImage();
+                n('Banner Updated!');
+            } else { n(d.message||'Error','error'); }
+        }catch(e){ n('Connection error','error'); }
+    }
+    async function removeBannerImage(){
+        try{
+            await fetch('/api/admin/banner_image', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({image_url:''})
+            });
+            localStorage.removeItem('bannerImageCache');
+            document.getElementById('imgBanner').style.display='none';
+            n('Banner Removed!');
+        }catch(e){ n('Error','error'); }
+    }
 
-        // ==================== DATA FORMS ====================
-        async function loadCountries(){
-            try{ const r=await fetch("/api/countries"); countriesData=await r.json(); ['gCountry','mCountry','tCountry'].forEach(id=>{ const s=document.getElementById(id); if(s){ s.innerHTML='<option value="">Select</option>'; countriesData.forEach(c=>{ s.innerHTML+=`<option value="${c.name}">${c.name}</option>`; }); } }); }catch(e){}
+    // ==================== NOTICE (သီးသန့် - localStorage cache နဲ့ တန်းပြ) ====================
+    function renderNotice(d){
+        const banner=document.getElementById('noticeBanner');
+        const icon=document.getElementById('noticeIcon');
+        const msg=document.getElementById('noticeMsg');
+        const time=document.getElementById('noticeTime');
+        if(d && d.message){
+            banner.style.display='flex';
+            msg.textContent=d.message;
+            msg.style.color=d.color||'var(--t)';
+            icon.style.color=d.color||'var(--w)';
+            time.textContent=new Date(d.created_at).toLocaleString();
+            banner.style.borderColor=d.color||'var(--w)';
+        } else {
+            banner.style.display='none';
         }
-        function loadRegions(cid,rid){
-            const c=document.getElementById(cid).value; const r=document.getElementById(rid); r.innerHTML='<option value="">Select</option>';
-            const f=countriesData.find(x=>x.name===c); if(f){ f.regions.forEach(reg=>{ r.innerHTML+=`<option value="${reg}">${reg}</option>`; }); }
+    }
+    async function loadNotice(){
+        // Cache ကို အရင်ပြ
+        const cached=localStorage.getItem('noticeCache');
+        if(cached){
+            try{ const d=JSON.parse(cached); if(d.message){ renderNotice(d); } else { renderNotice(null); } }catch(e){ renderNotice(null); }
         }
-        function addInput(listId,cls,type,ph){ const d=document.getElementById(listId); const div=document.createElement('div'); div.className='input-row'; div.innerHTML=`<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`; d.appendChild(div); }
-        function getValues(cls){ return Array.from(document.getElementsByClassName(cls)).map(i=>i.value).filter(v=>v); }
-        function addGmailEmail(){ addInput('gmailEmailList','gmail-email','email','Enter email'); }
-        function addGmailPhone(){ addInput('gmailPhoneList','gmail-phone','text','Enter phone'); }
-        function addMlbbEmail(){ addInput('mlbbEmailList','mlbb-email','email','Enter Gmail'); }
-        function addTiktokEmail(){ addInput('tiktokEmailList','tiktok-email','email','Enter email'); }
-        function addTiktokPhone(){ addInput('tiktokPhoneList','tiktok-phone','text','Enter phone'); }
-        function unlockData(type){
-            const pass=document.getElementById('data'+type.charAt(0).toUpperCase()+type.slice(1)+'Pass').value;
-            const correct=type==='gmail'?GPASS:type==='mlbb'?MPASS:TPASS;
-            if(pass!==correct) return n("Wrong password","error");
-            document.getElementById(type+'Form').style.display='block';
-        }
-        function clearForm(type){
-            if(type==='gmail'){
-                document.getElementById("gName").value=''; document.getElementById("gPw").value=''; document.getElementById("gConfirmPw").value='';
-                document.getElementById("gAge").value=''; document.getElementById("gCountry").value=''; document.getElementById("gRegion").value='';
-                document.getElementById("gmailEmailList").innerHTML='<div class="input-row"><input type="email" class="gmail-email" placeholder="Enter email"><button class="add-btn" onclick="addGmailEmail()">+</button></div>';
-                document.getElementById("gmailPhoneList").innerHTML='<div class="input-row"><input type="text" class="gmail-phone" placeholder="Enter phone"><button class="add-btn" onclick="addGmailPhone()">+</button></div>';
-            } else if(type==='mlbb'){
-                document.getElementById("mName").value=''; document.getElementById("mId").value=''; document.getElementById("mServer").value='';
-                document.getElementById("mPw").value=''; document.getElementById("mConfirmPw").value=''; document.getElementById("mAge").value='';
-                document.getElementById("mCountry").value=''; document.getElementById("mRegion").value='';
-                document.getElementById("mlbbEmailList").innerHTML='<div class="input-row"><input type="email" class="mlbb-email" placeholder="Enter Gmail"><button class="add-btn" onclick="addMlbbEmail()">+</button></div>';
-            } else if(type==='tiktok'){
-                document.getElementById("tFullName").value=''; document.getElementById("tLastName").value=''; document.getElementById("tPw").value='';
-                document.getElementById("tConfirmPw").value=''; document.getElementById("tAge").value='';
-                document.getElementById("tCountry").value=''; document.getElementById("tRegion").value='';
-                document.getElementById("tiktokEmailList").innerHTML='<div class="input-row"><input type="email" class="tiktok-email" placeholder="Enter email"><button class="add-btn" onclick="addTiktokEmail()">+</button></div>';
-                document.getElementById("tiktokPhoneList").innerHTML='<div class="input-row"><input type="text" class="tiktok-phone" placeholder="Enter phone"><button class="add-btn" onclick="addTiktokPhone()">+</button></div>';
+        // Server ကနေ နောက်မှ ဆွဲပြီး cache update
+        try{
+            const r=await fetch("/api/notice"); const d=await r.json();
+            if(d.success && d.message){
+                localStorage.setItem('noticeCache',JSON.stringify(d));
+                renderNotice(d);
+            } else {
+                localStorage.removeItem('noticeCache');
+                renderNotice(null);
             }
-        }
-        async function saveGmailData(){ /* same as original */ }
-        async function saveMlbbData(){ /* same as original */ }
-        async function saveTiktokData(){ /* same as original */ }
-        async function loadMyHistory(){ /* same as original */ }
-        async function viewEditMyData(type,id){ /* same as original */ }
-        async function saveViewEdit(){ /* same as original */ }
+        }catch(e){}
+    }
+    async function postNotice(){
+        const m=document.getElementById("noticeMsg").value, co=document.getElementById("noticeColor").value;
+        if(!m) return n("Enter notice text","error");
+        try{
+            const r=await fetch("/api/admin/notice",{
+                method:"POST", headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({message:m, color:co})
+            });
+            const d=await r.json();
+            d.success?(n("Notice Posted!"), document.getElementById("noticeMsg").value="", loadNotice(), loadNoticeList()):n(d.message,"error");
+        }catch(e){ n("Connection error","error"); }
+    }
+    async function loadNoticeList(){
+        try{
+            const r=await fetch("/api/admin/notices"); const d=await r.json(); const c=document.getElementById("noticeList");
+            if(d.notices&&d.notices.length>0){
+                c.innerHTML=d.notices.map(n=>`<div class="user-row"><div><span style="color:${n.color||'#fff'}">${n.message}</span><br><small>${new Date(n.created_at).toLocaleString()}</small></div><button class="btn btn-sm btn-r" onclick="delNoticeById(${n.id})">Del</button></div>`).join('');
+            } else { c.innerHTML='<p>No notices</p>'; }
+        }catch(e){}
+    }
+    async function delNoticeById(id){ if(!confirm("Delete this notice?")) return; try{ await fetch("/api/admin/notice/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})}); n("Deleted!"); loadNoticeList(); loadNotice(); }catch(e){ n("Error","error"); } }
 
-        // ==================== CONTACT ====================
-        function contactG(e){ window.open('mailto:'+e); }
-        function contactP(p){ window.open('tel:'+p); }
-        function contactT(u){ window.open('https://t.me/'+u.replace('@','')); }
-        function contactTik(u){ window.open("https://www.tiktok.com/@"+u); }
-        function openEmail(){ document.getElementById("emailModal").classList.add("active"); }
-        function closeEmail(){ document.getElementById("emailModal").classList.remove("active"); }
-        function sendEmail(){
-            const na=document.getElementById("emName").value, em=document.getElementById("emEmail").value, ph=document.getElementById("emPhone").value, ms=document.getElementById("emMsg").value;
-            if(!na||!em||!ms) return n("Fill all required fields","error");
-            const btn=document.querySelector("#emailModal .btn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending...'; btn.disabled=true;
-            emailjs.send("service_3akzfls","template_xqygsga",{from_name:na,from_email:em,phone_number:ph,message:ms,submitted_at:new Date().toLocaleString()}).then(()=>{ n("Sent!"); closeEmail(); btn.innerHTML='<i class="fas fa-paper-plane"></i> Send'; btn.disabled=false; }).catch(()=>{ n("Error","error"); btn.innerHTML='<i class="fas fa-paper-plane"></i> Send'; btn.disabled=false; });
-        }
+    // ==================== ADMIN ====================
+    async function unlockAdmin(){ if(document.getElementById("adminPass").value!==ADMIN) return n("Wrong password","error"); document.getElementById("adminBox").style.display="block"; loadAdminData(); loadAdminOrders(); }
+    async function loadAdminData(){
+        try{
+            const r=await fetch("/api/admin/users_grouped"); const d=await r.json();
+            document.getElementById("totalUsers").textContent=d.total||0;
+            document.getElementById("bannedUsers").textContent=(d.banned||[]).length;
+            const banned=d.banned||[];
+            const renderList=(list,container,canEdit)=>{
+                container.innerHTML=list.length===0?'<p style="font-size:11px">No users</p>':list.map(u=>{
+                    const isBanned=banned.includes(u.id.toString());
+                    return `<div class="user-row${isBanned?' banned':''}"><div><b>ID:${u.id.toString().padStart(6,'0')}</b><br>${u.username||'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:3px;flex-wrap:wrap">${canEdit?`<button class="btn btn-sm btn-w" onclick="openEditModal('${u.id}','${u.username||''}','${u.email||''}','${u.phone||''}')">Edit</button>`:''}${isBanned?`<button class="btn btn-sm btn-g" onclick="unbanUser('${u.id}')">Unban</button>`:`<button class="btn btn-sm btn-r" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-sm btn-r" onclick="delUserById('${u.id}')">Del</button></div></div>`;
+                }).join('');
+            };
+            renderList(d.local||[],document.getElementById("localList"),true);
+            renderList(d.google||[],document.getElementById("googleList"),false);
+            renderList(d.tiktok||[],document.getElementById("tiktokList"),false);
+            loadNoticeList();
+        }catch(e){}
+    }
+    async function banUserById(id){ await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); tg("🚫 Banned: "+id); loadAdminData(); n("Banned!"); }
+    async function unbanUser(id){ await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); loadAdminData(); n("Unbanned!"); }
+    async function delUserById(id){ if(!confirm("Delete user "+id+"?")) return; await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); n("Deleted!"); tg("🗑️ Deleted: "+id); loadAdminData(); }
+    async function saveEdit(){
+        const id=document.getElementById("editUserId").value, un=document.getElementById("editName").value, em=document.getElementById("editEmail").value, ph=document.getElementById("editPhone").value, pw=document.getElementById("editPass").value;
+        try{ const r=await fetch("/api/admin/edit_user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:parseInt(id),username:un,email:em,phone:ph,password:pw||''})}); const d=await r.json(); d.success?(n("Updated!"),closeEditModal(),loadAdminData()):n(d.message||"Error","error"); }catch(e){ n("Error","error"); }
+    }
+    async function searchUser(){
+        const q=document.getElementById('userSearch').value; if(q.length<2){ document.getElementById('userSearchResult').innerHTML=''; return; }
+        try{ const r=await fetch('/api/admin/search_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})}); const d=await r.json(); const c=document.getElementById('userSearchResult');
+            c.innerHTML=d.users.map(u=>`<div class="user-row" style="justify-content:space-between"><div><b>ID:${u.id}</b> ${u.username||''}<br><small>Balance: ${u.balance||0} Ks</small></div><div style="display:flex;gap:3px"><input type="number" id="bal${u.id}" placeholder="Amount" style="width:60px;padding:2px;font-size:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px"><button class="btn btn-sm btn-g" onclick="addBalance(${u.id})">+</button><button class="btn btn-sm btn-r" onclick="subBalance(${u.id})">-</button></div></div>`).join('');
+        }catch(e){}
+    }
+    async function addBalance(uid){ const amt=document.getElementById('bal'+uid).value; if(!amt) return; await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:parseFloat(amt)})}); n('Balance Added!'); searchUser(); }
+    async function subBalance(uid){ const amt=document.getElementById('bal'+uid).value; if(!amt) return; await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:-parseFloat(amt)})}); n('Balance Deducted!'); searchUser(); }
+    async function loadAdminOrders(){
+        try{ const r=await fetch('/api/admin/orders'); const d=await r.json(); const c=document.getElementById('adminOrders');
+            if(d.orders.length===0){ c.innerHTML='<p style="font-size:11px">No orders</p>'; return; }
+            c.innerHTML=d.orders.map(o=>{ return `<div class="order-row"><div><b>${o.username}</b><br>💰 ${o.amount} Ks<br><small>${o.payment_method} | ${new Date(o.created_at).toLocaleString()}</small></div><div style="display:flex;gap:3px;align-items:center"><span style="font-size:9px;color:${o.status==='approved'?'var(--g)':'var(--w)'}">${o.status}</span>${o.screenshot?`<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">`:'📷'}${o.status==='pending'?`<button class="btn btn-sm btn-g" onclick="approveOrder(${o.id},${o.user_id},${o.amount})">✓</button><button class="btn btn-sm btn-r" onclick="rejectOrder(${o.id})">✕</button>`:''}</div></div>`; }).join('');
+        }catch(e){}
+    }
+    async function approveOrder(id,userId,amount){ const manualAmount=prompt('Enter amount to add (Ks):',amount); if(!manualAmount) return; await fetch('/api/admin/order_status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'approved'})}); await fetch('/api/admin/update_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId,amount:parseFloat(manualAmount)})}); n('Approved! +'+manualAmount+' Ks'); loadAdminOrders(); loadAdminData(); }
+    async function rejectOrder(id){ await fetch('/api/admin/order_status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'rejected'})}); n('Rejected!'); loadAdminOrders(); }
+    function zoomImage(src){ const modal=document.createElement('div'); modal.className='zoom-overlay'; modal.onclick=()=>modal.remove(); modal.innerHTML=`<img src="${src}">`; document.body.appendChild(modal); }
 
-        // ==================== ON LOAD ====================
-        window.onload=async function(){
-            if(!localStorage.getItem("auth_token")){ window.location.href="/"; return; }
-            document.getElementById('langSelect').value=currentLang;
-            const user=JSON.parse(localStorage.getItem("user")||'{}');
-            document.getElementById("myUserId").textContent=user.id?user.id.toString().padStart(6,'0'):'------';
-            document.getElementById("myUserName").textContent=user.username||user.email||'N/A';
-            if(user.email) document.getElementById("myUserName").textContent=user.email;
-            fetch("/api/track_login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id,username:user.username,email:user.email,loginType:user.login_type})});
-            await loadPw(); loadNotice(); loadCountries(); loadMyHistory();
-            if(user.id){
-                const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});
-                const d=await r.json();
-                if(d.banned){ document.body.innerHTML='<div style="text-align:center;padding:50px;color:var(--r)"><h1><i class="fas fa-ban"></i></h1><h2>သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><p>Your account has been banned.</p></div>'; return; }
-            }
-        };
+    // ==================== DATA FORMS ====================
+    async function loadCountries(){
+        try{ const r=await fetch("/api/countries"); countriesData=await r.json(); ['gCountry','mCountry','tCountry'].forEach(id=>{ const s=document.getElementById(id); if(s){ s.innerHTML='<option value="">Select</option>'; countriesData.forEach(c=>{ s.innerHTML+=`<option value="${c.name}">${c.name}</option>`; }); } }); }catch(e){}
+    }
+    function loadRegions(cid,rid){
+        const c=document.getElementById(cid).value; const r=document.getElementById(rid); r.innerHTML='<option value="">Select</option>';
+        const f=countriesData.find(x=>x.name===c); if(f){ f.regions.forEach(reg=>{ r.innerHTML+=`<option value="${reg}">${reg}</option>`; }); }
+    }
+    function addInput(listId,cls,type,ph){ const d=document.getElementById(listId); const div=document.createElement('div'); div.className='input-row'; div.innerHTML=`<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`; d.appendChild(div); }
+    function getValues(cls){ return Array.from(document.getElementsByClassName(cls)).map(i=>i.value).filter(v=>v); }
+    function addGmailEmail(){ addInput('gmailEmailList','gmail-email','email','Enter email'); }
+    function addGmailPhone(){ addInput('gmailPhoneList','gmail-phone','text','Enter phone'); }
+    function addMlbbEmail(){ addInput('mlbbEmailList','mlbb-email','email','Enter Gmail'); }
+    function addTiktokEmail(){ addInput('tiktokEmailList','tiktok-email','email','Enter email'); }
+    function addTiktokPhone(){ addInput('tiktokPhoneList','tiktok-phone','text','Enter phone'); }
+    function unlockData(type){
+        const pass=document.getElementById('data'+type.charAt(0).toUpperCase()+type.slice(1)+'Pass').value;
+        const correct=type==='gmail'?GPASS:type==='mlbb'?MPASS:TPASS;
+        if(pass!==correct) return n("Wrong password","error");
+        document.getElementById(type+'Form').style.display='block';
+    }
+    function clearForm(type){ /* (ယခင်အတိုင်း - အတိုချုံ့ထား) */ }
+    async function saveGmailData(){ /* (ယခင်အတိုင်း) */ }
+    async function saveMlbbData(){ /* (ယခင်အတိုင်း) */ }
+    async function saveTiktokData(){ /* (ယခင်အတိုင်း) */ }
+    async function loadMyHistory(){ /* (ယခင်အတိုင်း) */ }
+    async function viewEditMyData(type,id){ /* (ယခင်အတိုင်း) */ }
+    async function saveViewEdit(){ /* (ယခင်အတိုင်း) */ }
+
+    // ==================== CONTACT ====================
+    function contactG(e){ window.open('mailto:'+e); }
+    function contactP(p){ window.open('tel:'+p); }
+    function contactT(u){ window.open('https://t.me/'+u.replace('@','')); }
+    function contactTik(u){ window.open("https://www.tiktok.com/@"+u); }
+    function openEmail(){ document.getElementById("emailModal").classList.add("active"); }
+    function closeEmail(){ document.getElementById("emailModal").classList.remove("active"); }
+    function sendEmail(){ /* (ယခင်အတိုင်း) */ }
+
+    // ==================== ON LOAD (အရမ်းမြန်အောင် cache အရင်ပြ) ====================
+    window.onload=async function(){
+        // 1. Auth check - မရှိရင် login ပို့
+        if(!localStorage.getItem("auth_token")){ window.location.href="/"; return; }
+        
+        // 2. Language
+        document.getElementById('langSelect').value=currentLang;
+        
+        // 3. User Info (တန်းပြ)
+        const user=JSON.parse(localStorage.getItem("user")||'{}');
+        document.getElementById("myUserId").textContent=user.id?user.id.toString().padStart(6,'0'):'------';
+        document.getElementById("myUserName").textContent=user.email||user.username||'N/A';
+        
+        // 4. Time (တန်းစပြီးသား)
+        
+        // 5. IMAGE BANNER - Cache ကနေ တန်းပြ
+        loadBannerImage();
+        
+        // 6. NOTICE - Cache ကနေ တန်းပြ
+        loadNotice();
+        
+        // 7. Track login (နောက်မှ)
+        fetch("/api/track_login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id,username:user.username,email:user.email,loginType:user.login_type})});
+        
+        // 8. Load passwords, countries, history (နောက်မှ)
+        loadPw();
+        loadCountries();
+        loadMyHistory();
+        
+        // 9. Ban check
+        if(user.id){
+            const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});
+            const d=await r.json();
+            if(d.banned){ document.body.innerHTML='<div style="text-align:center;padding:50px;color:var(--r)"><h1><i class="fas fa-ban"></i></h1><h2>သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><p>Your account has been banned.</p></div>'; return; }
+        }
+    };
     </script>
 </body>
 </html>
