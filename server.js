@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
 const https = require('https');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -24,8 +25,8 @@ const ONESIGNAL_API_KEY = 'os_v2_app_dfb2p7udcngofnbabihcwwp476agyhbcncxexnu2gu2
 const TIKTOK_CLIENT_KEY = 'awlwv9kkzin9m9pv';
 const TIKTOK_CLIENT_SECRET = '3QDthZspcNC7eHZNCA5ofYAs3CpACLX7';
 const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://two026-users-data-management.onrender.com/auth/google/callback';
 
 function tgSend(msg) { https.get(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`); }
@@ -52,6 +53,7 @@ pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS submitted_user_id VARCHA
 pool.query(`CREATE TABLE IF NOT EXISTS gmail_accounts (user_id VARCHAR(50) PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), password VARCHAR(100), phone VARCHAR(20), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS mlbb_accounts (user_id VARCHAR(50) PRIMARY KEY, ingame_name VARCHAR(100), ingame_id VARCHAR(50), server_id VARCHAR(20), gmail VARCHAR(100), password VARCHAR(100), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS tiktok_accounts (user_id VARCHAR(50) PRIMARY KEY, full_name VARCHAR(100), last_name VARCHAR(100), email VARCHAR(100), password VARCHAR(100), phone VARCHAR(20), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+pool.query(`CREATE TABLE IF NOT EXISTS used_codes (code VARCHAR(100) PRIMARY KEY, user_id INT, used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 
 // ==================== AUTH ====================
 app.post('/api/track_login', async (req, res) => { const { userId, username, email, loginType } = req.body; try { await pool.query('INSERT INTO auth_users (id, username, email, login_type, last_login) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (email) DO UPDATE SET last_login=NOW(), username=EXCLUDED.username, login_type=EXCLUDED.login_type', [userId, username, email, loginType]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
@@ -157,6 +159,32 @@ app.post('/api/verify_user_id', async (req, res) => {
             res.json({ success: true, verified: false });
         }
     } catch (e) { res.json({ success: false, verified: false }); }
+});
+
+// ==================== CODE MANAGEMENT ====================
+app.post('/api/check_code', async (req, res) => {
+    try {
+        const r = await pool.query('SELECT * FROM used_codes WHERE code = $1', [req.body.code]);
+        res.json({ used: r.rows.length > 0 });
+    } catch(e) { res.json({ used: false }); }
+});
+
+app.post('/api/use_code', async (req, res) => {
+    const { code, userId } = req.body;
+    try {
+        const exist = await pool.query('SELECT * FROM used_codes WHERE code = $1', [code]);
+        if (exist.rows.length > 0) return res.json({ already_used: true });
+        await pool.query('INSERT INTO used_codes (code, user_id) VALUES ($1, $2)', [code, userId]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/mark_code_used', async (req, res) => {
+    const { code, userId } = req.body;
+    try {
+        await pool.query('INSERT INTO used_codes (code, user_id) VALUES ($1, $2) ON CONFLICT (code) DO NOTHING', [code, userId]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
 });
 
 // ==================== BANNER / SLIDER ====================
