@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SO GAME SHOP - Top Up</title>
+    <title>SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c}
@@ -13,6 +13,7 @@
         .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
+        .sidebar-btn{color:var(--w);font-size:20px;cursor:pointer;z-index:10}
         .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
         .balance-card .amount{font-size:36px;font-weight:bold;color:var(--w)}
         .balance-card .label{font-size:12px;color:rgba(255,255,255,0.7)}
@@ -45,13 +46,22 @@
         .game-card p{font-size:11px;color:var(--t);margin-top:5px}
         .back-btn{display:block;padding:10px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
         #paymentSection{display:none}
+        .sidebar-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000}
+        .sidebar-overlay.active{display:block}
+        .sidebar-panel{position:fixed;top:0;left:0;width:250px;height:100%;background:#0c0e27;z-index:3001;transition:transform 0.2s ease;overflow-y:auto;padding:15px;border-right:2px solid var(--w);will-change:transform;transform:translateX(-250px)}
+        .sidebar-panel.active{transform:translateX(0)}
+        .sidebar-panel h3{color:var(--w);text-align:center;margin-bottom:15px;font-size:15px}
+        .sidebar-panel .close-btn{position:absolute;top:12px;right:12px;color:var(--r);font-size:20px;cursor:pointer}
+        .s-item{display:flex;align-items:center;gap:8px;padding:10px;color:var(--t);font-size:12px;cursor:pointer;border-radius:5px;margin-bottom:3px;text-decoration:none;transition:all 0.2s}
+        .s-item:hover{background:rgba(74,28,122,0.4)}.s-item i{font-size:14px;color:var(--w);width:18px;text-align:center}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
+            <div class="sidebar-btn" onclick="openTopSidebar()"><i class="fas fa-bars"></i></div>
             <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h1>SO GAME SHOP</h1>
+            <h1>SOLO M Game Shop</h1>
         </div>
         
         <div class="balance-card">
@@ -66,18 +76,10 @@
         
         <div class="tab-content active" id="topup">
             <button class="topup-btn" onclick="togglePayment()"><i class="fas fa-plus-circle"></i> Top Up Now</button>
-            
             <div id="paymentSection">
-                <div class="section" style="margin-top:15px">
-                    <h3><i class="fas fa-money-bill-wave"></i> ငွေလွှဲရန်</h3>
-                    <div class="payment-card">
-                        <div class="payment-info"><div class="pay-name">WAVE PAY</div><div class="pay-number">09254649306</div><div class="pay-owner">Kyi Khaing</div></div>
-                        <button class="copy-btn" onclick="copyText('09254649306')"><i class="fas fa-copy"></i> Copy</button>
-                    </div>
-                    <div class="payment-card">
-                        <div class="payment-info"><div class="pay-name">A+ PAY</div><div class="pay-number">09672093790</div><div class="pay-owner">Kywe Kywe Htay</div></div>
-                        <button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i> Copy</button>
-                    </div>
+                <div class="section" style="margin-top:15px"><h3><i class="fas fa-money-bill-wave"></i> ငွေလွှဲရန်</h3>
+                    <div class="payment-card"><div class="payment-info"><div class="pay-name">WAVE PAY</div><div class="pay-number">09254649306</div><div class="pay-owner">Kyi Khaing</div></div><button class="copy-btn" onclick="copyText('09254649306')"><i class="fas fa-copy"></i> Copy</button></div>
+                    <div class="payment-card"><div class="payment-info"><div class="pay-name">A+ PAY</div><div class="pay-number">09672093790</div><div class="pay-owner">Kywe Kywe Htay</div></div><button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i> Copy</button></div>
                     <div class="form-group"><label>ငွေပမာဏ (Ks)</label><input type="number" id="topupAmount" placeholder="ဥပမာ - 6500"></div>
                     <div class="form-group"><label>ငွေလွှဲသည့် Payment</label><select id="topupPayment"><option value="">ရွေးချယ်ပါ</option><option value="Wave Pay">Wave Pay</option><option value="A+ Pay">A+ Pay</option></select></div>
                     <div class="form-group"><label>ငွေလွှဲပြေစာ Screenshot</label><input type="file" id="topupScreenshot" accept="image/*" onchange="previewScreenshot()"></div>
@@ -86,7 +88,6 @@
                     <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px">ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ</p>
                 </div>
             </div>
-            
             <p style="font-size:13px;color:var(--w);margin:15px 0 10px"><i class="fas fa-gamepad"></i> Popular Games</p>
             <div class="games">
                 <div class="game-card" onclick="n('Coming Soon!')"><img src="https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg"><p>Mobile Legends</p></div>
@@ -101,16 +102,20 @@
             </div>
         </div>
         
-        <div class="tab-content" id="history">
-            <div class="section"><h3><i class="fas fa-history"></i> Order History</h3><div id="orderHistory"><p style="text-align:center;color:rgba(255,255,255,0.5)">Loading...</p></div></div>
-        </div>
-        
+        <div class="tab-content" id="history"><div class="section"><h3><i class="fas fa-history"></i> Order History</h3><div id="orderHistory"><p style="text-align:center;color:rgba(255,255,255,0.5)">Loading...</p></div></div></div>
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
     
+    <div class="sidebar-overlay" id="topSidebarOverlay" onclick="closeTopSidebar()"></div>
+    <div class="sidebar-panel" id="topSidebarPanel"><span class="close-btn" onclick="closeTopSidebar()">&times;</span><h3><i class="fas fa-bars"></i> Menu</h3>
+        <a href="/dashboard" class="s-item"><i class="fas fa-home"></i> Home</a>
+        <a href="/topup.html" class="s-item"><i class="fas fa-wallet"></i> Top Up</a>
+        <a href="/buycode.html" class="s-item"><i class="fas fa-shopping-cart"></i> Buy Code MLBB</a>
+        <a href="/aboutredeem.html" class="s-item"><i class="fas fa-info-circle"></i> About Redeem Code</a>
+    </div>
+    
     <script>
-        let screenshotData='';
-        function n(m){alert(m)}
+        let screenshotData='';function n(m){alert(m)}
         function showTab(tab){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));event.target.classList.add('active');document.getElementById(tab).classList.add('active');if(tab==='history')loadHistory()}
         function togglePayment(){const ps=document.getElementById('paymentSection');ps.style.display=ps.style.display==='block'?'none':'block'}
         function copyText(text){navigator.clipboard.writeText(text).then(()=>alert('✅ Copied: '+text)).catch(()=>prompt('Copy:',text))}
@@ -119,6 +124,8 @@
         async function loadHistory(){try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const c=document.getElementById('orderHistory');if(d.orders.length===0){c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5)">No topup history yet.</p>'}else{c.innerHTML=d.orders.map((o,i)=>{const sc=o.status==='approved'?'status-approved':'status-pending';return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>${o.amount} Ks</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><div><span class="status ${sc}">${o.status.toUpperCase()}</span></div></div><div class="history-detail" id="detail${i}"><p><b>Payment:</b> ${o.payment_method}</p>${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`}).join('')}}catch(e){document.getElementById('orderHistory').innerHTML='<p>Error</p>'}}
         function toggleDetail(i){const d=document.getElementById('detail'+i);d.style.display=d.style.display==='block'?'none':'block'}
         async function loadBalance(){try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();document.getElementById('myBalance').textContent=(d.balance||0)+' Ks'}catch(e){}}
+        function openTopSidebar(){document.getElementById("topSidebarPanel").classList.add("active");document.getElementById("topSidebarOverlay").classList.add("active")}
+        function closeTopSidebar(){document.getElementById("topSidebarPanel").classList.remove("active");document.getElementById("topSidebarOverlay").classList.remove("active")}
         loadBalance();
     </script>
 </body>
