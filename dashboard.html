@@ -19,6 +19,7 @@
         .lang-select{position:absolute;top:45px;right:15px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.3);border-radius:4px;color:var(--t);padding:2px 5px;font-size:10px}
         .content{padding:15px}
         
+        /* ID Panel */
         .id-panel{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center}
         .id-left{display:flex;flex-direction:column;gap:2px}
         .id-name{font-size:14px;font-weight:bold;color:var(--t);display:flex;align-items:center;gap:6px}
@@ -28,9 +29,16 @@
         .id-time{font-size:16px;font-weight:bold;color:var(--w)}
         .id-date{font-size:10px;color:rgba(255,255,255,0.5);margin-top:2px}
 
-        .img-banner{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:3px;margin-top:10px;margin-bottom:10px;overflow:hidden}
-        .img-banner img{width:100%;height:auto;max-height:200px;object-fit:cover;border-radius:7px;display:block}
+        /* Image Slider */
+        .slider-container{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;margin-top:10px;margin-bottom:10px;overflow:hidden;position:relative;width:100%}
+        .slider-wrapper{display:flex;transition:transform 0.5s ease-in-out;width:100%}
+        .slider-slide{min-width:100%;flex-shrink:0}
+        .slider-slide img{width:100%;height:auto;max-height:200px;object-fit:cover;display:block;border-radius:7px;padding:3px}
+        .slider-dots{display:flex;justify-content:center;gap:6px;padding:8px 0;background:rgba(0,0,0,0.3)}
+        .slider-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.3);transition:all 0.3s}
+        .slider-dot.active{background:var(--w);width:20px;border-radius:4px}
 
+        /* Notice Banner */
         .notice-banner{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:12px 15px;margin-bottom:15px;display:flex;align-items:center;gap:12px}
         .notice-banner .notice-icon{font-size:28px;color:var(--w);flex-shrink:0}
         .notice-banner .notice-text{flex:1;line-height:1.6}
@@ -98,6 +106,7 @@
             <button onclick="logout()" style="background:var(--r);color:#fff;border:none;padding:8px 20px;border-radius:5px;cursor:pointer;margin-top:10px;font-size:14px"><i class="fas fa-sign-out-alt"></i> Logout</button>
         </div>
         
+        <!-- CONTENT -->
         <div class="content">
             <!-- ID PANEL -->
             <div class="id-panel">
@@ -111,8 +120,11 @@
                 </div>
             </div>
 
-            <!-- IMAGE BANNER -->
-            <div class="img-banner" id="imgBanner" style="display:none"></div>
+            <!-- IMAGE SLIDER (Admin က လင့်တင်သလောက် ပုံပြမယ်) -->
+            <div class="slider-container" id="sliderContainer" style="display:none">
+                <div class="slider-wrapper" id="sliderWrapper"></div>
+                <div class="slider-dots" id="sliderDots"></div>
+            </div>
 
             <!-- NOTICE BANNER -->
             <div class="notice-banner" id="noticeBanner" style="display:none">
@@ -228,13 +240,20 @@
             <div style="font-weight:bold;color:var(--w);margin:8px 0;font-size:12px">🔵 Google Login</div><div id="googleList" style="max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
             <div style="font-weight:bold;color:var(--w);margin:8px 0;font-size:12px">🎵 TikTok Login</div><div id="tiktokList" style="max-height:120px;overflow-y:auto;margin-bottom:8px"></div>
             <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
+                <!-- Notice System -->
                 <div class="form-group"><label><i class="fas fa-bullhorn"></i> Post Notice (Text Only)</label><textarea id="adminNoticeMsg" rows="2" placeholder="Enter notice text..."></textarea></div>
                 <div class="form-group"><label><i class="fas fa-palette"></i> Text Color</label><input type="color" id="noticeColor" value="#ffffff" style="height:35px;padding:2px"></div>
                 <button class="btn btn-w" onclick="postNotice()"><i class="fas fa-paper-plane"></i> Post Notice</button>
                 <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0">
-                <div class="form-group"><label><i class="fas fa-image"></i> Banner Image URL (Optional)</label><input type="text" id="bannerImgUrl" placeholder="https://i.ibb.co/..."></div>
-                <button class="btn btn-g" onclick="setBannerImage()"><i class="fas fa-image"></i> Set Banner Image</button>
-                <button class="btn btn-r" onclick="removeBannerImage()" style="margin-top:5px"><i class="fas fa-trash"></i> Remove Banner</button>
+                <!-- Slider Images (1-5 URLs) -->
+                <div class="form-group"><label><i class="fas fa-images"></i> Slider Images (1-5 URLs)</label></div>
+                <div class="form-group"><input type="text" id="sliderUrl1" placeholder="Image URL 1 (e.g., https://i.ibb.co/...)"></div>
+                <div class="form-group"><input type="text" id="sliderUrl2" placeholder="Image URL 2 (optional)"></div>
+                <div class="form-group"><input type="text" id="sliderUrl3" placeholder="Image URL 3 (optional)"></div>
+                <div class="form-group"><input type="text" id="sliderUrl4" placeholder="Image URL 4 (optional)"></div>
+                <div class="form-group"><input type="text" id="sliderUrl5" placeholder="Image URL 5 (optional)"></div>
+                <button class="btn btn-g" onclick="saveSliderImages()"><i class="fas fa-save"></i> Save Slider</button>
+                <button class="btn btn-r" onclick="clearSliderImages()" style="margin-top:5px"><i class="fas fa-trash"></i> Clear Slider</button>
                 <hr style="border-color:rgba(255,255,255,0.1);margin:10px 0">
                 <div style="font-weight:bold;color:var(--w);margin:10px 0 5px;font-size:12px">📋 Posted Notices</div><div id="noticeList" style="max-height:150px;overflow-y:auto;font-size:11px"></div>
             </div>
@@ -271,6 +290,7 @@
     let currentViewType=null, currentViewId=null;
     let currentLang=localStorage.getItem('lang')||'my';
 
+    // ==================== UTILITY ====================
     function changeLang(l){ currentLang=l; localStorage.setItem('lang',l); document.getElementById('langSelect').value=l; }
     function n(m,t="success"){ const e=document.getElementById("notif"); e.textContent=m; e.style.background=t==="success"?"#2ecc71":"#e74c3c"; e.style.display="block"; setTimeout(()=>e.style.display="none",3000); }
     function tg(m){ fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:CID,text:m,parse_mode:'HTML'})}).catch(()=>{}); }
@@ -289,6 +309,7 @@
     function closeEditModal(){ document.getElementById("editModal").classList.remove("active"); }
     function closeViewModal(){ document.getElementById("viewDataModal").classList.remove("active"); document.getElementById("saveViewEditBtn").style.display="none"; }
 
+    // ==================== TIME ====================
     function updateTime(){
         const now=new Date();
         document.getElementById("localTime").textContent=now.toLocaleTimeString('my-MM',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -296,11 +317,13 @@
     }
     setInterval(updateTime,1000); updateTime();
 
+    // ==================== LOGOUT ====================
     async function logout(){
         try{ await fetch("/api/logout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})}); }catch(e){}
         localStorage.removeItem("auth_token"); localStorage.removeItem("user"); window.location.href="/";
     }
 
+    // ==================== PASSWORD MANAGEMENT ====================
     async function loadPw(){
         try{ const r=await fetch("/api/get_passwords",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})}); const d=await r.json(); GPASS=d.gmail_password||'DoubleMK2008'; MPASS=d.mlbb_password||'GlobalMK2008'; TPASS=d.tiktok_password||'DoubleMK2008'; }catch(e){}
     }
@@ -310,49 +333,135 @@
         try{ const r=await fetch("/api/change_password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:t,cp:cp,np:np})}); const d=await r.json(); d.success?(n("Password Changed!"),loadPw()):n(d.message,"error"); }catch(e){ n("Connection error","error"); }
     }
 
-    // ==================== IMAGE BANNER ====================
-    function renderBannerImage(){
-        const cache=localStorage.getItem('bannerImageCache');
-        const bannerEl=document.getElementById('imgBanner');
-        if(cache){
-            bannerEl.innerHTML=`<img src="${cache}" alt="Banner" onerror="this.style.display='none'">`;
-            bannerEl.style.display='block';
-        } else {
-            bannerEl.style.display='none';
-            bannerEl.innerHTML='';
+    // ==================== IMAGE SLIDER (5 images max, auto-slide 4s, no swipe) ====================
+    let sliderImages = [];
+    let currentSlide = 0;
+    let slideInterval = null;
+
+    function renderSlider() {
+        const container = document.getElementById('sliderContainer');
+        const wrapper = document.getElementById('sliderWrapper');
+        const dots = document.getElementById('sliderDots');
+        
+        const cached = localStorage.getItem('sliderImagesCache');
+        if (cached) {
+            try { sliderImages = JSON.parse(cached); } catch(e) { sliderImages = []; }
+        }
+        
+        if (!sliderImages || sliderImages.length === 0) {
+            container.style.display = 'none';
+            stopAutoSlide();
+            return;
+        }
+        
+        container.style.display = 'block';
+        
+        wrapper.innerHTML = sliderImages.map(url => `
+            <div class="slider-slide">
+                <img src="${url}" alt="Slider Image" onerror="this.style.display='none'">
+            </div>
+        `).join('');
+        
+        dots.innerHTML = sliderImages.map((_, i) => `
+            <div class="slider-dot ${i === currentSlide ? 'active' : ''}" id="dot${i}"></div>
+        `).join('');
+        
+        currentSlide = Math.min(currentSlide, sliderImages.length - 1);
+        goToSlide(currentSlide);
+        startAutoSlide();
+    }
+
+    function goToSlide(index) {
+        const wrapper = document.getElementById('sliderWrapper');
+        currentSlide = index;
+        wrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
+        document.querySelectorAll('.slider-dot').forEach((dot, i) => {
+            dot.classList.toggle('active', i === currentSlide);
+        });
+    }
+
+    function nextSlide() {
+        if (sliderImages.length === 0) return;
+        currentSlide = (currentSlide + 1) % sliderImages.length;
+        goToSlide(currentSlide);
+    }
+
+    function startAutoSlide() {
+        stopAutoSlide();
+        if (sliderImages.length > 1) {
+            slideInterval = setInterval(nextSlide, 4000);
         }
     }
-    async function loadBannerImage(){
-        renderBannerImage();
-        try{
-            const r=await fetch('/api/banner_image');
-            const d=await r.json();
-            if(d.success && d.image_url){
-                localStorage.setItem('bannerImageCache', d.image_url);
-                renderBannerImage();
+
+    function stopAutoSlide() {
+        if (slideInterval) {
+            clearInterval(slideInterval);
+            slideInterval = null;
+        }
+    }
+
+    async function loadSliderImages() {
+        renderSlider();
+        try {
+            const r = await fetch('/api/slider_images');
+            const d = await r.json();
+            if (d.success && d.images && d.images.length > 0) {
+                localStorage.setItem('sliderImagesCache', JSON.stringify(d.images));
+                sliderImages = d.images;
+                renderSlider();
             } else {
-                localStorage.removeItem('bannerImageCache');
-                document.getElementById('imgBanner').style.display='none';
+                localStorage.removeItem('sliderImagesCache');
+                sliderImages = [];
+                document.getElementById('sliderContainer').style.display = 'none';
+                stopAutoSlide();
             }
-        }catch(e){}
+        } catch(e) {}
     }
-    async function setBannerImage(){
-        const url=document.getElementById('bannerImgUrl').value.trim();
-        if(!url) return n("Please enter image URL","error");
-        try{
-            const r=await fetch('/api/admin/banner_image', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({image_url:url})});
-            const d=await r.json();
-            if(d.success){ localStorage.setItem('bannerImageCache', url); renderBannerImage(); n('Banner Updated!'); }
-            else { n(d.message||'Error','error'); }
-        }catch(e){ n('Connection error','error'); }
+
+    async function saveSliderImages() {
+        const urls = [];
+        for (let i = 1; i <= 5; i++) {
+            const input = document.getElementById(`sliderUrl${i}`);
+            if (input && input.value.trim()) {
+                urls.push(input.value.trim());
+            }
+        }
+        if (urls.length === 0) return n("Please enter at least one image URL", "error");
+        try {
+            const r = await fetch('/api/admin/slider_images', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ images: urls })
+            });
+            const d = await r.json();
+            if (d.success) {
+                localStorage.setItem('sliderImagesCache', JSON.stringify(urls));
+                sliderImages = urls;
+                currentSlide = 0;
+                renderSlider();
+                n(`Saved! ${urls.length} image(s) in slider`);
+                for (let i = 1; i <= 5; i++) {
+                    const input = document.getElementById(`sliderUrl${i}`);
+                    if (input) input.value = '';
+                }
+            } else { n(d.message || 'Error', 'error'); }
+        } catch(e) { n('Connection error', 'error'); }
     }
-    async function removeBannerImage(){
-        try{
-            await fetch('/api/admin/banner_image', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({image_url:''})});
-            localStorage.removeItem('bannerImageCache');
-            document.getElementById('imgBanner').style.display='none';
-            n('Banner Removed!');
-        }catch(e){ n('Error','error'); }
+
+    async function clearSliderImages() {
+        try {
+            await fetch('/api/admin/slider_images', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ images: [] })
+            });
+            localStorage.removeItem('sliderImagesCache');
+            sliderImages = [];
+            currentSlide = 0;
+            document.getElementById('sliderContainer').style.display = 'none';
+            stopAutoSlide();
+            n('Slider cleared!');
+        } catch(e) { n('Error', 'error'); }
     }
 
     // ==================== NOTICE SYSTEM ====================
@@ -466,11 +575,9 @@
     function addTiktokPhone(){ addInput('tiktokPhoneList','tiktok-phone','text','Enter phone'); }
     function unlockData(type){ const pass=document.getElementById('data'+type.charAt(0).toUpperCase()+type.slice(1)+'Pass').value; const correct=type==='gmail'?GPASS:type==='mlbb'?MPASS:TPASS; if(pass!==correct) return n("Wrong password","error"); document.getElementById(type+'Form').style.display='block'; }
     function clearForm(t){ if(t==='gmail'){ document.getElementById("gName").value=''; document.getElementById("gPw").value=''; document.getElementById("gConfirmPw").value=''; document.getElementById("gAge").value=''; document.getElementById("gCountry").value=''; document.getElementById("gRegion").value=''; document.getElementById("gmailEmailList").innerHTML='<div class="input-row"><input type="email" class="gmail-email" placeholder="Enter email"><button class="add-btn" onclick="addGmailEmail()">+</button></div>'; document.getElementById("gmailPhoneList").innerHTML='<div class="input-row"><input type="text" class="gmail-phone" placeholder="Enter phone"><button class="add-btn" onclick="addGmailPhone()">+</button></div>'; } else if(t==='mlbb'){ document.getElementById("mName").value=''; document.getElementById("mId").value=''; document.getElementById("mServer").value=''; document.getElementById("mPw").value=''; document.getElementById("mConfirmPw").value=''; document.getElementById("mAge").value=''; document.getElementById("mCountry").value=''; document.getElementById("mRegion").value=''; document.getElementById("mlbbEmailList").innerHTML='<div class="input-row"><input type="email" class="mlbb-email" placeholder="Enter Gmail"><button class="add-btn" onclick="addMlbbEmail()">+</button></div>'; } else if(t==='tiktok'){ document.getElementById("tFullName").value=''; document.getElementById("tLastName").value=''; document.getElementById("tPw").value=''; document.getElementById("tConfirmPw").value=''; document.getElementById("tAge").value=''; document.getElementById("tCountry").value=''; document.getElementById("tRegion").value=''; document.getElementById("tiktokEmailList").innerHTML='<div class="input-row"><input type="email" class="tiktok-email" placeholder="Enter email"><button class="add-btn" onclick="addTiktokEmail()">+</button></div>'; document.getElementById("tiktokPhoneList").innerHTML='<div class="input-row"><input type="text" class="tiktok-phone" placeholder="Enter phone"><button class="add-btn" onclick="addTiktokPhone()">+</button></div>'; } }
-    
     async function saveGmailData(){ const na=document.getElementById("gName").value,pw=document.getElementById("gPw").value,cpw=document.getElementById("gConfirmPw").value; if(!na||!pw) return n("Fill required","error"); if(pw!==cpw) return n("Passwords do not match","error"); const data={name:na,emails:getValues('gmail-email'),phones:getValues('gmail-phone'),password:pw,age:document.getElementById("gAge").value,country:document.getElementById("gCountry").value,region:document.getElementById("gRegion").value}; const btn=document.getElementById("gSaveBtn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...'; btn.disabled=true; try{ const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'gmail',data})}); const d=await r.json(); d.success?(n("Saved!"),clearForm('gmail')):n(d.message,"error"); }catch(e){ n("Error","error"); } btn.innerHTML='<i class="fas fa-save"></i> Save'; btn.disabled=false; }
     async function saveMlbbData(){ const na=document.getElementById("mName").value,id=document.getElementById("mId").value,sv=document.getElementById("mServer").value,pw=document.getElementById("mPw").value,cpw=document.getElementById("mConfirmPw").value; if(!na||!id||!pw) return n("Fill required","error"); if(pw!==cpw) return n("Passwords do not match","error"); const data={ingameName:na,ingameId:id,serverId:sv,emails:getValues('mlbb-email'),password:pw,age:document.getElementById("mAge").value,country:document.getElementById("mCountry").value,region:document.getElementById("mRegion").value}; const btn=document.getElementById("mSaveBtn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...'; btn.disabled=true; try{ const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'mlbb',data})}); const d=await r.json(); d.success?(n("Saved!"),clearForm('mlbb')):n(d.message,"error"); }catch(e){ n("Error","error"); } btn.innerHTML='<i class="fas fa-save"></i> Save'; btn.disabled=false; }
     async function saveTiktokData(){ const fn=document.getElementById("tFullName").value,ln=document.getElementById("tLastName").value,pw=document.getElementById("tPw").value,cpw=document.getElementById("tConfirmPw").value; if(!fn||!pw) return n("Fill required","error"); if(pw!==cpw) return n("Passwords do not match","error"); const data={fullName:fn,lastName:ln,emails:getValues('tiktok-email'),phones:getValues('tiktok-phone'),password:pw,age:document.getElementById("tAge").value,country:document.getElementById("tCountry").value,region:document.getElementById("tRegion").value}; const btn=document.getElementById("tSaveBtn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...'; btn.disabled=true; try{ const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'tiktok',data})}); const d=await r.json(); d.success?(n("Saved!"),clearForm('tiktok')):n(d.message,"error"); }catch(e){ n("Error","error"); } btn.innerHTML='<i class="fas fa-save"></i> Save'; btn.disabled=false; }
-    
     async function loadMyHistory(){
         const renderH=(list,title,icon,type)=>{ if(!list||list.length===0) return`<p style="font-size:11px">No data</p>`; return list.map(item=>{ const name=item.name||item.ingame_name||item.full_name||'N/A'; const email=(item.email||item.gmail||'').replace(/[\[\]"]/g,'').replace(/,/g,', '); return`<div class="user-row"><div><b>${name}</b><br><small>${email}</small></div><div style="display:flex;gap:3px"><button class="btn btn-sm btn-w" onclick="viewEditMyData('${type}','${item.user_id}')">View/Edit</button></div></div>`; }).join(''); };
         try{ const r=await fetch("/api/get_my_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})}); const d=await r.json();
@@ -500,7 +607,7 @@
         document.getElementById("myUserName").textContent=user.email||user.username||'N/A';
         
         // Cache-First Instant Load
-        loadBannerImage();
+        loadSliderImages();
         loadNotice();
         
         fetch("/api/track_login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id,username:user.username,email:user.email,loginType:user.login_type})});
