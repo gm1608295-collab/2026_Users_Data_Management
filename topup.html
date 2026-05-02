@@ -3,106 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Top Up - MLBB Security</title>
+    <title>SO GAME SHOP - Top Up</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--t:#fff}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px}
+        body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px}
         .container{max-width:500px;margin:0 auto}
-        .header{text-align:center;margin-bottom:20px}
-        .header h1{font-size:20px;color:var(--w)}
-        .header p{font-size:12px;color:rgba(255,255,255,0.6)}
-        .wallet{background:rgba(26,31,75,0.8);padding:15px;border-radius:10px;text-align:center;margin-bottom:15px;border:1px solid var(--w)}
-        .wallet span{font-size:24px;font-weight:bold;color:var(--w)}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
+        .header a{color:var(--w);font-size:20px;text-decoration:none}
+        .header h1{font-size:18px;color:var(--w)}
+        .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
+        .balance-card .amount{font-size:36px;font-weight:bold;color:var(--w)}
+        .balance-card .label{font-size:12px;color:rgba(255,255,255,0.7);margin-top:5px}
         .tabs{display:flex;gap:5px;margin-bottom:15px}
-        .tab{flex:1;padding:10px;text-align:center;background:rgba(0,0,0,0.3);border-radius:6px;font-size:12px;cursor:pointer;color:var(--t)}
+        .tab{flex:1;padding:10px;text-align:center;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;cursor:pointer;color:var(--t)}
         .tab.active{background:var(--a);color:var(--w)}
+        .tab-content{display:none}
+        .tab-content.active{display:block}
+        .section{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px;margin-bottom:15px}
+        .section h3{color:var(--w);font-size:14px;margin-bottom:10px;text-align:center}
+        .payment-card{background:rgba(0,0,0,0.4);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+        .payment-info .pay-name{color:var(--w);font-weight:bold;font-size:14px}
+        .payment-info .pay-number{font-size:16px;margin:3px 0}
+        .payment-info .pay-owner{font-size:11px;color:rgba(255,255,255,0.5)}
+        .copy-btn{background:var(--a);color:var(--t);border:none;padding:8px 12px;border-radius:5px;font-size:11px;cursor:pointer}
+        .form-group{margin-bottom:10px}
+        .form-group label{display:block;font-size:12px;margin-bottom:3px;color:#ccc}
+        .form-group input,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:var(--t);font-size:13px}
+        .form-group input[type="file"]{padding:8px}
+        .buy-btn{width:100%;padding:12px;background:var(--g);color:#000;border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer;margin-top:10px}
+        .buy-btn:disabled{opacity:0.5}
+        .history-item{background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+        .history-item .status{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:bold}
+        .status-pending{background:rgba(243,156,18,0.2);color:var(--w)}
+        .status-approved{background:rgba(46,204,113,0.2);color:var(--g)}
+        .status-rejected{background:rgba(231,76,60,0.2);color:var(--r)}
+        .history-detail{display:none;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px;margin-bottom:5px}
+        .history-detail img{max-width:100%;border-radius:6px;margin-top:5px}
+        .back-btn{display:block;padding:10px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
         .games{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
-        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
+        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1)}
         .game-card:hover{background:rgba(74,28,122,0.4);border-color:var(--w)}
-        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,0.1);object-fit:cover}
+        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover}
         .game-card p{font-size:11px;color:var(--t);margin-top:5px}
-        .back-btn{display:block;padding:10px;background:var(--a);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1><i class="fas fa-wallet"></i> Top Up</h1>
-            <p>Game Top-Up Center</p>
+            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+            <h1>SO GAME SHOP</h1>
         </div>
         
-        <div class="wallet">
-            <span>389 ks</span>
-            <p style="font-size:11px;color:rgba(255,255,255,0.6)">Your Wallet</p>
+        <!-- Balance -->
+        <div class="balance-card">
+            <div class="amount" id="myBalance">0 Ks</div>
+            <div class="label">MMK Balance</div>
         </div>
         
+        <!-- Tabs -->
         <div class="tabs">
-            <div class="tab active">Top-up</div>
-            <div class="tab">Order History</div>
-            <div class="tab">Top-up History</div>
+            <div class="tab active" onclick="showTab('topup')">TopUp</div>
+            <div class="tab" onclick="showTab('history')">Order History</div>
         </div>
         
-        <p style="font-size:13px;color:var(--w);margin-bottom:10px"><i class="fas fa-gamepad"></i> Popular Games</p>
-        
-        <div class="games">
-            <!-- 1. Mobile Legends -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg" alt="MLBB">
-                <p>Mobile Legends</p>
+        <!-- TopUp Tab -->
+        <div class="tab-content active" id="topup">
+            <div class="section">
+                <h3><i class="fas fa-money-bill-wave"></i> ငွေလွှဲရန်</h3>
+                
+                <div class="payment-card">
+                    <div class="payment-info">
+                        <div class="pay-name">WAVE PAY</div>
+                        <div class="pay-number">09254649306</div>
+                        <div class="pay-owner">Kyi Khaing</div>
+                    </div>
+                    <button class="copy-btn" onclick="copyText('09254649306')"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                
+                <div class="payment-card">
+                    <div class="payment-info">
+                        <div class="pay-name">A+ PAY</div>
+                        <div class="pay-number">09672093790</div>
+                        <div class="pay-owner">Kywe Kywe Htay</div>
+                    </div>
+                    <button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                
+                <div class="form-group">
+                    <label>ငွေပမာဏ (Ks)</label>
+                    <input type="number" id="topupAmount" placeholder="ဥပမာ - 6500">
+                </div>
+                <div class="form-group">
+                    <label>ငွေလွှဲသည့် Payment</label>
+                    <select id="topupPayment">
+                        <option value="">ရွေးချယ်ပါ</option>
+                        <option value="Wave Pay">Wave Pay</option>
+                        <option value="A+ Pay">A+ Pay</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ငွေလွှဲပြေစာ Screenshot</label>
+                    <input type="file" id="topupScreenshot" accept="image/*" onchange="previewScreenshot()">
+                </div>
+                <div id="screenshotPreview" style="text-align:center;margin:5px 0"></div>
+                
+                <button class="buy-btn" id="buyBtn" onclick="submitTopup()"><i class="fas fa-paper-plane"></i> Buy</button>
+                <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px">ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ</p>
             </div>
             
-            <!-- 2. Free Fire -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg" alt="Free Fire">
-                <p>Free Fire</p>
-            </div>
-            
-            <!-- 3. PUBG Mobile -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg" alt="PUBG">
-                <p>PUBG Mobile</p>
-            </div>
-            
-            <!-- 4. Telegram Premium -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg" alt="Telegram">
-                <p>Telegram Premium</p>
-            </div>
-            
-            <!-- 5. Facebook -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg" alt="Facebook">
-                <p>Facebook</p>
-            </div>
-            
-            <!-- 6. TikTok -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg" alt="TikTok">
-                <p>TikTok</p>
-            </div>
-            
-            <!-- 7. Honor Of Kings -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg" alt="Honor Of Kings">
-                <p>Honor Of Kings</p>
-            </div>
-            
-            <!-- 8. eFootball -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/qLPrhJcV/9ee84ac645044402290fdb4945de89bd.jpg" alt="eFootball">
-                <p>eFootball</p>
-            </div>
-            
-            <!-- 9. Clash Of Clans -->
-            <div class="game-card">
-                <img src="https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg" alt="Clash Of Clans">
-                <p>Clash Of Clans</p>
+            <!-- Games -->
+            <p style="font-size:13px;color:var(--w);margin-bottom:10px"><i class="fas fa-gamepad"></i> Popular Games</p>
+            <div class="games">
+                <div class="game-card" onclick="goShop('MLBB')">
+                    <img src="https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg" alt="MLBB"><p>Mobile Legends</p>
+                </div>
+                <div class="game-card" onclick="goShop('Free Fire')">
+                    <img src="https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg" alt="Free Fire"><p>Free Fire</p>
+                </div>
+                <div class="game-card" onclick="goShop('PUBG')">
+                    <img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg" alt="PUBG"><p>PUBG Mobile</p>
+                </div>
+                <div class="game-card" onclick="goShop('Telegram')">
+                    <img src="https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg" alt="Telegram"><p>Telegram Premium</p>
+                </div>
+                <div class="game-card" onclick="goShop('Facebook')">
+                    <img src="https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg" alt="Facebook"><p>Facebook</p>
+                </div>
+                <div class="game-card" onclick="goShop('TikTok')">
+                    <img src="https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg" alt="TikTok"><p>TikTok</p>
+                </div>
+                <div class="game-card" onclick="goShop('HOK')">
+                    <img src="https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg" alt="HOK"><p>Honor Of Kings</p>
+                </div>
+                <div class="game-card" onclick="goShop('eFootball')">
+                    <img src="https://i.ibb.co/qLPrhJcV/9ee84ac645044402290fdb4945de89bd.jpg" alt="eFootball"><p>eFootball</p>
+                </div>
+                <div class="game-card" onclick="goShop('COC')">
+                    <img src="https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg" alt="COC"><p>Clash Of Clans</p>
+                </div>
             </div>
         </div>
         
-        <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        <!-- History Tab -->
+        <div class="tab-content" id="history">
+            <div class="section">
+                <h3><i class="fas fa-history"></i> Order History</h3>
+                <div id="orderHistory"><p style="text-align:center;color:rgba(255,255,255,0.5)">Loading...</p></div>
+            </div>
+        </div>
+        
+        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
+    
+    <script>
+        let screenshotData = '';
+        
+        function showTab(tab){
+            document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(tab).classList.add('active');
+            if(tab==='history') loadHistory();
+        }
+        
+        function copyText(text){
+            navigator.clipboard.writeText(text).then(()=>alert('✅ Copied: '+text)).catch(()=>prompt('Copy:',text));
+        }
+        
+        function goShop(game){alert(game+' - Coming Soon! Visit our shop page.');}
+        
+        function previewScreenshot(){
+            const file=document.getElementById('topupScreenshot').files[0];
+            if(file){
+                const reader=new FileReader();
+                reader.onload=function(e){
+                    screenshotData=e.target.result;
+                    document.getElementById('screenshotPreview').innerHTML=`<img src="${screenshotData}" style="max-width:100%;max-height:150px;border-radius:6px">`;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        async function submitTopup(){
+            const amount=document.getElementById('topupAmount').value;
+            const payment=document.getElementById('topupPayment').value;
+            if(!amount||!payment)return alert('အားလုံးဖြည့်ပါ');
+            if(!screenshotData)return alert('Screenshot ထည့်ပါ');
+            
+            const btn=document.getElementById('buyBtn');
+            btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            btn.disabled=true;
+            
+            try{
+                const r=await fetch('/api/submit_order',{
+                    method:'POST',headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:parseFloat(amount),payment_method:payment,screenshot:screenshotData})
+                });
+                const d=await r.json();
+                if(d.success){alert('✅ Order Submitted! Admin will review.');document.getElementById('topupAmount').value='';document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';screenshotData='';}
+                else{alert('Error: '+d.message);}
+            }catch(e){alert('Connection error');}
+            btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';
+            btn.disabled=false;
+        }
+        
+        async function loadHistory(){
+            try{
+                const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+                const d=await r.json();
+                const c=document.getElementById('orderHistory');
+                if(d.orders.length===0){c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5)">No topup history yet.</p>';}
+                else{
+                    c.innerHTML=d.orders.map((o,i)=>{
+                        const statusClass=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';
+                        return`
+                        <div class="history-item" onclick="toggleDetail(${i})">
+                            <div><b>${o.amount} Ks</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div>
+                            <div><span class="status ${statusClass}">${o.status.toUpperCase()}</span></div>
+                        </div>
+                        <div class="history-detail" id="detail${i}">
+                            <p><b>Payment:</b> ${o.payment_method}</p>
+                            <p><b>Date:</b> ${new Date(o.created_at).toLocaleString()}</p>
+                            ${o.screenshot?`<img src="${o.screenshot}" alt="Screenshot">`:'<p>No screenshot</p>'}
+                        </div>`;
+                    }).join('');
+                }
+            }catch(e){document.getElementById('orderHistory').innerHTML='<p>Error loading</p>';}
+        }
+        
+        function toggleDetail(i){
+            const d=document.getElementById('detail'+i);
+            d.style.display=d.style.display==='block'?'none':'block';
+        }
+        
+        async function loadBalance(){
+            try{
+                const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+                const d=await r.json();
+                document.getElementById('myBalance').textContent=(d.balance||0)+' Ks';
+            }catch(e){}
+        }
+        
+        loadBalance();
+    </script>
 </body>
 </html>
