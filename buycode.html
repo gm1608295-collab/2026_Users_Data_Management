@@ -9,40 +9,58 @@
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px}
-        .container{max-width:500px;margin:0 auto}
+        .container{max-width:500px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
         .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
         
-        .category-card{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:15px;margin-bottom:12px}
-        .category-card h3{color:var(--w);font-size:14px;margin-bottom:5px;display:flex;align-items:center;gap:8px}
-        .category-card h3 i{font-size:16px}
-        .category-card .cat-desc{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:10px}
-        
-        .code-list{background:rgba(0,0,0,0.3);border-radius:6px;overflow:hidden}
-        .code-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px}
-        .code-row:last-child{border-bottom:none}
-        .code-row .code-name{flex:1;font-family:'Courier New',monospace;font-size:11px;word-break:break-all}
-        .code-row .code-name.locked{color:rgba(255,255,255,0.3);font-size:14px;letter-spacing:2px}
-        .code-row .code-price{color:var(--w);font-weight:bold;margin:0 10px;white-space:nowrap;font-size:11px}
-        .code-row .buy-code-btn{padding:5px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
-        .buy-code-btn.available{background:var(--g);color:#000}
-        .buy-code-btn.unavailable{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);cursor:not-allowed}
-        .buy-code-btn.owned{background:rgba(46,204,113,0.2);color:var(--g);cursor:default;font-size:9px}
-        
         .balance-bar{background:rgba(0,0,0,0.4);padding:10px 15px;border-radius:8px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
         .balance-bar .bal{color:var(--w);font-weight:bold}
         
-        .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:15px}
+        .scroll-content{flex:1;overflow-y:auto;padding-bottom:10px}
+        .scroll-content::-webkit-scrollbar{width:4px}
+        .scroll-content::-webkit-scrollbar-thumb{background:var(--a);border-radius:2px}
+        
+        /* Game Card Style Grid */
+        .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
+        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
+        .game-card:hover,.game-card:active{background:rgba(74,28,122,0.4);border-color:var(--w)}
+        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover}
+        .game-card p{font-size:10px;color:var(--t);margin-top:5px;line-height:1.3}
+        .game-card .price-tag{font-size:9px;color:var(--w);margin-top:3px}
+        .game-card.owned{opacity:0.5;cursor:default;border-color:rgba(46,204,113,0.3)}
+        .game-card.owned:after{content:'✓ Owned';display:block;font-size:8px;color:var(--g);margin-top:3px}
+        
+        .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
         
         .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
         
+        /* Code Detail Modal */
         .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
         .modal.active{display:flex}
-        .modal-box{background:var(--p);padding:25px;border-radius:10px;width:90%;max-width:380px;border:2px solid var(--w);text-align:center}
-        .modal-box h3{color:var(--w);margin-bottom:15px}
-        .modal-box .reveal-code{font-size:18px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;margin:15px 0;word-break:break-all;letter-spacing:1px}
-        .modal-box .close-btn{background:var(--a);color:var(--t);border:none;padding:10px 25px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:10px}
+        .modal-box{background:var(--p);padding:20px;border-radius:12px;width:90%;max-width:400px;border:2px solid var(--w);max-height:85vh;overflow-y:auto}
+        .modal-box h3{color:var(--w);text-align:center;margin-bottom:5px;font-size:16px}
+        .modal-box .modal-img{width:60px;height:60px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 10px}
+        .modal-box .warning-text{font-size:10px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px;line-height:1.5}
+        .modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+        .modal-box .code-item .code-val{font-family:'Courier New',monospace;font-size:12px;word-break:break-all;flex:1}
+        .modal-box .code-item .code-val.locked{color:rgba(255,255,255,0.3);font-size:14px;letter-spacing:2px}
+        .modal-box .code-item .code-val.revealed{color:var(--g);font-size:12px}
+        .btn-sm{padding:5px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
+        .btn-buy{background:var(--g);color:#000}
+        .btn-owned{background:rgba(46,204,113,0.2);color:var(--g);cursor:default;font-size:9px}
+        .btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
+        
+        /* Copy Reveal Modal */
+        .copy-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:6000;justify-content:center;align-items:center}
+        .copy-modal.active{display:flex}
+        .copy-box{background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid var(--g);text-align:center}
+        .copy-box h3{color:var(--g);margin-bottom:10px}
+        .copy-box .copy-code{font-size:20px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;margin:15px 0;word-break:break-all;letter-spacing:1px;user-select:all}
+        .copy-box .copy-timer{font-size:12px;color:var(--w);margin-bottom:10px}
+        .copy-box .copy-warning{font-size:9px;color:rgba(255,255,255,0.5);margin-bottom:10px;line-height:1.4}
+        .copy-box .copy-btn{background:var(--g);color:#000;border:none;padding:10px 30px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold}
+        .copy-box .copy-btn.done{background:rgba(255,255,255,0.2);color:var(--t)}
     </style>
 </head>
 <body>
@@ -59,65 +77,64 @@
             <span class="bal" id="myBalance">0 Ks</span>
         </div>
         
-        <div id="codeCategories"></div>
+        <div class="scroll-content">
+            <p style="font-size:12px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px">
+                ⚠️ အကောင့်တစ်ကောင့်မှာ အမျိုးအစားမတူညီတဲ့ Code တွေကို တစ်ကြိမ်စီသာ ဝယ်ယူလို့ရပါမည်။
+            </p>
+            <div class="game-grid" id="gameGrid"></div>
+        </div>
         
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
     
-    <!-- Reveal Modal -->
-    <div class="modal" id="revealModal">
+    <!-- Category Code List Modal -->
+    <div class="modal" id="categoryModal">
         <div class="modal-box">
+            <img class="modal-img" id="modalImg" src="" alt="">
+            <h3 id="modalTitle"></h3>
+            <p class="warning-text">
+                ⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။<br>
+                ၁၀ စက္ကန့်အတွင်းသာ ကူးယူနိုင်ပြီး နောက်တစ်ကြိမ်ထပ်မံယူလို့ရမည်မဟုတ်ပါ။
+            </p>
+            <div id="codeList"></div>
+            <button class="btn-close" onclick="closeCategoryModal()"><i class="fas fa-times"></i> Close</button>
+        </div>
+    </div>
+    
+    <!-- Copy Reveal Modal -->
+    <div class="copy-modal" id="copyModal">
+        <div class="copy-box">
             <h3><i class="fas fa-check-circle"></i> ဝယ်ယူပြီးပါပြီ!</h3>
-            <p style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:5px">သင်၏ Code</p>
-            <div class="reveal-code" id="revealCode"></div>
-            <p style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:10px">Code ကို သိမ်းဆည်းထားပါ</p>
-            <button class="close-btn" onclick="closeModal()"><i class="fas fa-times"></i> Close</button>
+            <p style="font-size:12px;color:rgba(255,255,255,0.7)">သင်၏ Code - ကူးယူရန် နှိပ်ပါ</p>
+            <div class="copy-code" id="copyCode" onclick="copyRevealedCode()"></div>
+            <p class="copy-timer" id="copyTimer">⏱️ 10 seconds remaining</p>
+            <p class="copy-warning">
+                ⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။<br>
+                ၁၀ စက္ကန့်အတွင်းသာ ကူးယူနိုင်ပြီး<br>
+                နောက်တစ်ကြိမ်ထပ်မံယူလို့ရမည်မဟုတ်ပါ။
+            </p>
+            <button class="copy-btn" id="copyActionBtn" onclick="copyRevealedCode()"><i class="fas fa-copy"></i> Copy Code</button>
         </div>
     </div>
     
 <script>
 const CODES = [
-    {
-        category: "Shhh emote",
-        icon: "fa-face-smile",
-        price: 5000,
-        codes: ["2359x2s4zqzq23fb8", "29jwchdgqyvj23f5e", "29hg4rbrxt6h23f5e", "29kqjbw949z823f5e"]
-    },
-    {
-        category: "Golden Month Border",
-        icon: "fa-border-all",
-        price: 8000,
-        codes: ["2359x2s4zqzq23fb8", "29jwchdgqyvj23f5e", "29hg4rbrxt6h23f5e", "29kqjbw949z823f5e"]
-    },
-    {
-        category: "Lucky Diamond Code",
-        icon: "fa-gem",
-        price: 12000,
-        codes: ["2ja2rum6s6x923fnn", "47k9hgrpbs2v23fnn", "5npzg2zhdbwg23fnn"]
-    },
-    {
-        category: "Magic Durt",
-        icon: "fa-wand-magic-sparkles",
-        price: 3000,
-        codes: ["35smvu4a354423gzj"]
-    },
-    {
-        category: "Emblem Box",
-        icon: "fa-box",
-        price: 4000,
-        codes: ["28knzpt43hdc23gzc", "2ewf237hmtxv23gzh"]
-    }
+    { category: "Shhh emote", icon: "https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png", price: 5000, codes: ["2359x2s4zqzq23fb8"] },
+    { category: "Golden Month Border", icon: "https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png", price: 8000, codes: ["29jwchdgqyvj23f5e"] },
+    { category: "Lucky Diamond Code", icon: "https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png", price: 12000, codes: ["2ja2rum6s6x923fnn"] },
+    { category: "Magic Durt", icon: "https://i.ibb.co/NdpDZ0P7/8.png", price: 3000, codes: ["35smvu4a354423gzj"] },
+    { category: "Emblem Box", icon: "https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png", price: 4000, codes: ["28knzpt43hdc23gzc"] }
 ];
 
 let purchasedCodes = JSON.parse(localStorage.getItem('purchased_codes')||'{}');
 let currentBalance = 0;
+let copyTimerInterval = null;
+let revealedCodeValue = '';
 
 function n(m,t="success"){
     const e=document.getElementById("notif");
-    e.textContent=m;
-    e.style.background=t==="success"?"#2ecc71":"#e74c3c";
-    e.style.display="block";
-    setTimeout(()=>e.style.display="none",2000);
+    e.textContent=m; e.style.background=t==="success"?"#2ecc71":"#e74c3c";
+    e.style.display="block"; setTimeout(()=>e.style.display="none",2000);
 }
 
 function formatNumber(num){ return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g,','); }
@@ -128,112 +145,121 @@ async function loadBalance(){
         const d=await r.json();
         currentBalance = d.balance||0;
         document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
-        renderCodes();
+        renderGameCards();
     }catch(e){ document.getElementById('myBalance').textContent='0 Ks'; }
 }
 
-function isCodePurchased(catIndex, codeIndex){
-    const key = `${catIndex}_${codeIndex}`;
-    return purchasedCodes[key] === true;
+function isCategoryPurchased(catIndex){ return purchasedCodes[catIndex] === true; }
+
+function renderGameCards(){
+    const grid = document.getElementById('gameGrid');
+    let html = '';
+    CODES.forEach((cat, i)=>{
+        const owned = isCategoryPurchased(i);
+        html += `
+        <div class="game-card ${owned?'owned':''}" onclick="${owned?'':'openCategory('+i+')'}">
+            <img src="${cat.icon}" alt="${cat.category}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22><rect fill=%22%234a1c7a%22 width=%2250%22 height=%2250%22 rx=%2210%22/><text x=%2225%22 y=%2230%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2212%22>🎁</text></svg>'">
+            <p>${cat.category}</p>
+            <div class="price-tag">💰 ${formatNumber(cat.price)} Ks</div>
+        </div>`;
+    });
+    grid.innerHTML = html;
 }
 
-function isCategoryPurchased(catIndex){
-    for(let i=0; i<CODES[catIndex].codes.length; i++){
-        if(isCodePurchased(catIndex, i)) return true;
-    }
-    return false;
+function openCategory(catIndex){
+    if(isCategoryPurchased(catIndex)) return;
+    const cat = CODES[catIndex];
+    document.getElementById('modalImg').src = cat.icon;
+    document.getElementById('modalTitle').textContent = cat.category;
+    
+    const listEl = document.getElementById('codeList');
+    let html = '';
+    cat.codes.forEach((code, codeIndex)=>{
+        html += `
+        <div class="code-item">
+            <span class="code-val locked">••••••••••••••••••</span>
+            <button class="btn-sm btn-buy" onclick="buyCodeFromModal(${catIndex},${codeIndex})">Buy (${formatNumber(cat.price)} Ks)</button>
+        </div>`;
+    });
+    listEl.innerHTML = html;
+    document.getElementById('categoryModal').classList.add('active');
 }
 
-function buyCode(catIndex, codeIndex){
+function closeCategoryModal(){
+    document.getElementById('categoryModal').classList.remove('active');
+}
+
+function buyCodeFromModal(catIndex, codeIndex){
     const cat = CODES[catIndex];
     const price = cat.price;
     const code = cat.codes[codeIndex];
-    const key = `${catIndex}_${codeIndex}`;
     
-    if(isCodePurchased(catIndex, codeIndex)) return n('ဒီ Code ကိုဝယ်ပြီးပါပြီ','error');
     if(isCategoryPurchased(catIndex)) return n('ဒီအမျိုးအစားကိုဝယ်ပြီးပါပြီ','error');
     if(currentBalance < price) return n('ငွေမလုံလောက်ပါ။ '+formatNumber(price)+' Ks လိုအပ်ပါသည်။','error');
     
-    if(!confirm(`${cat.category} ကို ${formatNumber(price)} Ks ဖြင့်ဝယ်ယူမှာသေချာပါသလား?`)) return;
+    if(!confirm(`${cat.category}\n\nစျေးနှုန်း: ${formatNumber(price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?\n\n⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။\n၁၀ စက္ကန့်အတွင်းသာ ကူးယူနိုင်ပြီး\nနောက်တစ်ကြိမ်ထပ်မံယူလို့ရမည်မဟုတ်ပါ။`)) return;
     
-    // Deduct balance via API
+    const uid = parseInt(localStorage.getItem('auth_token').replace('token_',''));
     fetch('/api/admin/update_balance',{
         method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({userId:parseInt(localStorage.getItem('auth_token').replace('token_','')),amount:-price})
+        body:JSON.stringify({userId:uid,amount:-price})
     }).then(r=>r.json()).then(d=>{
         if(d.success){
             currentBalance -= price;
             document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
-            purchasedCodes[key] = true;
+            purchasedCodes[catIndex] = true;
             localStorage.setItem('purchased_codes', JSON.stringify(purchasedCodes));
-            renderCodes();
-            showRevealModal(code);
-            n('✅ ဝယ်ယူပြီးပါပြီ!');
-        }else{
-            n('Error','error');
-        }
+            closeCategoryModal();
+            renderGameCards();
+            showCopyRevealModal(code);
+        }else{ n('Error','error'); }
     }).catch(()=>n('Connection error','error'));
 }
 
-function showRevealModal(code){
-    document.getElementById('revealCode').textContent = code;
-    document.getElementById('revealModal').classList.add('active');
-}
-function closeModal(){
-    document.getElementById('revealModal').classList.remove('active');
+function showCopyRevealModal(code){
+    revealedCodeValue = code;
+    document.getElementById('copyCode').textContent = code;
+    document.getElementById('copyModal').classList.add('active');
+    
+    let sec = 10;
+    document.getElementById('copyTimer').textContent = `⏱️ ${sec} seconds remaining`;
+    document.getElementById('copyActionBtn').classList.remove('done');
+    document.getElementById('copyActionBtn').innerHTML = '<i class="fas fa-copy"></i> Copy Code';
+    
+    if(copyTimerInterval) clearInterval(copyTimerInterval);
+    copyTimerInterval = setInterval(()=>{
+        sec--;
+        document.getElementById('copyTimer').textContent = `⏱️ ${sec} seconds remaining`;
+        if(sec <= 0){
+            clearInterval(copyTimerInterval);
+            copyTimerInterval = null;
+            document.getElementById('copyModal').classList.remove('active');
+            n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ');
+            revealedCodeValue = '';
+        }
+    }, 1000);
 }
 
-function renderCodes(){
-    const container = document.getElementById('codeCategories');
-    let html = '';
-    
-    CODES.forEach((cat, catIndex)=>{
-        const catPurchased = isCategoryPurchased(catIndex);
-        let availableCount = 0;
-        cat.codes.forEach((code, codeIndex)=>{
-            if(!isCodePurchased(catIndex, codeIndex)) availableCount++;
-        });
-        
-        html += `
-        <div class="category-card">
-            <h3><i class="fas ${cat.icon}"></i> ${cat.category}</h3>
-            <div class="cat-desc">💰 ${formatNumber(cat.price)} Ks | 📦 ${availableCount} code(s) available</div>
-            <div class="code-list">
-        `;
-        
-        cat.codes.forEach((code, codeIndex)=>{
-            const purchased = isCodePurchased(catIndex, codeIndex);
-            const key = `${catIndex}_${codeIndex}`;
-            
-            if(purchased){
-                html += `
-                <div class="code-row">
-                    <span class="code-name" style="color:var(--g)">${code}</span>
-                    <span class="code-price">✅</span>
-                    <button class="buy-code-btn owned">Owned</button>
-                </div>`;
-            } else if(catPurchased){
-                html += `
-                <div class="code-row">
-                    <span class="code-name locked">••••••••••••••••••</span>
-                    <span class="code-price">${formatNumber(cat.price)} Ks</span>
-                    <button class="buy-code-btn unavailable">Owned</button>
-                </div>`;
-            } else {
-                html += `
-                <div class="code-row">
-                    <span class="code-name locked">••••••••••••••••••</span>
-                    <span class="code-price">${formatNumber(cat.price)} Ks</span>
-                    <button class="buy-code-btn available" onclick="buyCode(${catIndex},${codeIndex})">Buy</button>
-                </div>`;
-            }
-        });
-        
-        html += `</div></div>`;
+function copyRevealedCode(){
+    if(!revealedCodeValue) return;
+    navigator.clipboard.writeText(revealedCodeValue).then(()=>{
+        document.getElementById('copyActionBtn').classList.add('done');
+        document.getElementById('copyActionBtn').innerHTML = '<i class="fas fa-check"></i> Copied!';
+        n('✅ Code Copied!');
+        // Don't close modal - user can still copy within 10 seconds
+    }).catch(()=>{
+        n('Failed to copy','error');
     });
-    
-    container.innerHTML = html;
 }
+
+// Close modals on outside click
+document.getElementById('categoryModal').addEventListener('click',function(e){ if(e.target===this) closeCategoryModal(); });
+document.getElementById('copyModal').addEventListener('click',function(e){
+    if(e.target===this && !revealedCodeValue){
+        document.getElementById('copyModal').classList.remove('active');
+        if(copyTimerInterval){ clearInterval(copyTimerInterval); copyTimerInterval=null; }
+    }
+});
 
 loadBalance();
 </script>
