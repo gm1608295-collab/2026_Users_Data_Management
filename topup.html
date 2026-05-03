@@ -411,9 +411,75 @@
     
     loadBalance();
     fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).then(r=>r.json()).then(d=>{if(d.orders)localStorage.setItem('orderHistoryCache',JSON.stringify(d.orders))}).catch(()=>{});
-
-    // ==================== BG MUSIC ====================
-    (function(){const a=document.getElementById('bgAudio');const su=localStorage.getItem('bgMusicUrl');const st=localStorage.getItem('bgMusicTime');if(su){a.src=su;a.volume=0.3;if(st)a.currentTime=parseFloat(st);a.play().catch(()=>{})}setInterval(()=>{if(!a.paused)localStorage.setItem('bgMusicTime',a.currentTime)},1000);setInterval(async()=>{try{const r=await fetch('/api/bg_music');const d=await r.json();if(d.success&&d.music_url){const cu=localStorage.getItem('bgMusicUrl');if(d.music_url!==cu){localStorage.setItem('bgMusicUrl',d.music_url);localStorage.setItem('bgMusicTime','0');a.src=d.music_url;a.currentTime=0;a.play().catch(()=>{})}}else{localStorage.removeItem('bgMusicUrl');localStorage.removeItem('bgMusicTime');a.pause();a.src=''}}catch(e){}},3000)})();
+// ==================== BG MUSIC (URL + Base64 Support) ====================
+(function(){
+    const a = document.getElementById('bgAudio');
+    a.volume = 0.3;
+    
+    async function checkAndUpdateMusic(){
+        try{
+            const r = await fetch('/api/bg_music');
+            const d = await r.json();
+            
+            if(d.success && d.music_url){
+                const currentUrl = a.getAttribute('data-current-url') || '';
+                const newUrl = d.music_url;
+                
+                // Music အသစ်တင်ထားရင်
+                if(currentUrl !== newUrl){
+                    // Remove old source
+                    a.removeAttribute('src');
+                    
+                    // Set new source (URL or Base64)
+                    a.src = newUrl;
+                    a.setAttribute('data-current-url', newUrl);
+                    
+                    // Generate unique key for this music
+                    const key = 'bgMusicTime_' + (newUrl.length > 50 ? btoa(newUrl.substring(0,40)) : newUrl.substring(0,50));
+                    const savedTime = localStorage.getItem(key);
+                    
+                    a.addEventListener('loadedmetadata', function(){
+                        if(savedTime) a.currentTime = parseFloat(savedTime);
+                        a.play().catch(()=>{});
+                    }, {once: true});
+                }
+                // Same music but paused
+                else if(a.paused){
+                    const key = 'bgMusicTime_' + (newUrl.length > 50 ? btoa(newUrl.substring(0,40)) : newUrl.substring(0,50));
+                    const savedTime = localStorage.getItem(key);
+                    a.addEventListener('loadedmetadata', function(){
+                        if(savedTime) a.currentTime = parseFloat(savedTime);
+                        a.play().catch(()=>{});
+                    }, {once: true});
+                    a.load();
+                }
+            } else {
+                // Music removed
+                a.pause();
+                a.removeAttribute('src');
+                a.removeAttribute('data-current-url');
+            }
+        }catch(e){}
+    }
+    
+    // Check immediately
+    checkAndUpdateMusic();
+    
+    // Save time every second
+    setInterval(() => {
+        if(!a.paused){
+            const url = a.getAttribute('data-current-url') || '';
+            if(url){
+                const key = 'bgMusicTime_' + (url.length > 50 ? btoa(url.substring(0,40)) : url.substring(0,50));
+                localStorage.setItem(key, a.currentTime);
+            }
+        }
+    }, 1000);
+    
+    // Check for updates every 3 seconds
+    setInterval(checkAndUpdateMusic, 3000);
+})();
+    
 </script>
 </body>
 </html>
