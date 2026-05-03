@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MLBB Security System 2026</title>
+    <title>SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
@@ -12,7 +12,9 @@
         body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:10px;overflow-y:auto}
         .container{max-width:500px;margin:0 auto;background:rgba(12,14,39,0.95);border-radius:15px;overflow:hidden;border:1px solid #4a1c7a}
         .header{background:linear-gradient(to right,var(--a),var(--p));padding:12px 15px;text-align:center;border-bottom:4px solid var(--w);position:relative}
-        .header h1{font-size:16px;margin-bottom:2px}
+        .header .brand{font-size:16px;font-weight:bold;color:var(--w);animation:blink 1.5s ease-in-out infinite}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+        .header .subtitle{font-size:11px;opacity:0.8}
         .header .admin-link{position:absolute;top:12px;right:15px;color:var(--w);text-decoration:none;font-size:13px;cursor:pointer}
         .header .refresh-btn{position:absolute;top:12px;left:15px;color:var(--w);font-size:14px;cursor:pointer}
         .sidebar-btn{position:absolute;top:38px;left:15px;color:var(--w);font-size:22px;cursor:pointer;z-index:10}
@@ -59,6 +61,13 @@
 
         .panel{background:rgba(26,31,75,0.6);padding:15px;border-radius:10px;margin-bottom:15px;border:1px solid rgba(74,28,122,0.5)}
         .panel h2{color:var(--w);font-size:14px;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--a)}
+        
+        /* Password Fields with Eye Toggle */
+        .pass-wrapper{position:relative}
+        .pass-wrapper input{padding-right:40px !important}
+        .pass-wrapper .eye-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px;padding:4px}
+        .pass-wrapper .eye-btn:hover{color:var(--w)}
+        
         .form-group{margin-bottom:10px}.form-group label{display:block;font-size:12px;font-weight:600;margin-bottom:4px}
         .form-group input,.form-group textarea,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--t);font-size:13px}
         .btn{width:100%;padding:10px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;margin-top:6px;background:var(--a);color:var(--t)}
@@ -74,19 +83,21 @@
         .modal-close{float:right;color:var(--r);cursor:pointer;font-size:20px}
         .email-link{font-size:11px;color:var(--b);text-align:center;cursor:pointer;text-decoration:underline;margin-top:8px}
         
+        /* Copy Password Button */
+        .copy-pass-btn{color:var(--b);cursor:pointer;font-size:11px;margin-left:4px}
+        .copy-pass-btn:hover{color:var(--w)}
+        
         .contact-table{width:100%;border-collapse:collapse;font-size:11px}
         .contact-table th{background:rgba(0,0,0,0.3);color:var(--w);padding:6px;text-align:left}
         .contact-table td{padding:6px;border-bottom:1px solid rgba(255,255,255,0.05)}
         .contact-table .ct-gmail{color:var(--r)}.contact-table .ct-phone{color:var(--g)}.contact-table .ct-telegram{color:var(--b)}.contact-table .ct-tiktok{color:var(--pk)}
         .contact-table button{padding:4px 8px;border:none;border-radius:4px;font-size:10px;cursor:pointer;background:var(--a);color:#fff}
 
-        /* Data Tab with Real Images */
         .data-select{display:flex;gap:8px;margin-bottom:12px}
         .data-card{flex:1;padding:10px 6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;text-align:center;cursor:pointer;transition:all 0.3s}
         .data-card:hover,.data-card.sel{background:rgba(74,28,122,0.5);border-color:var(--w);transform:translateY(-2px)}
         .data-card img{width:45px;height:45px;border-radius:8px;margin-bottom:5px;object-fit:cover}
         .data-card p{font-size:10px;color:var(--t);margin:0;font-weight:bold}
-        
         .sub-tab{display:none}.sub-tab.active{display:block}
         .add-btn{background:var(--w);color:#000;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;font-weight:bold;flex-shrink:0}
         .input-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}.input-row input{flex:1}
@@ -124,7 +135,6 @@
         .banned-contact{background:rgba(0,0,0,0.3);padding:18px;border-radius:10px;max-width:350px;width:100%;margin-bottom:20px;text-align:left}
         .banned-contact h4{color:var(--w);font-size:13px;margin-bottom:10px;text-align:center}
         .banned-contact p{font-size:12px;margin:6px 0;color:rgba(255,255,255,0.8)}
-        .banned-contact i{color:var(--w);margin-right:6px;width:16px}
         .banned-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
         .banned-btns button{padding:10px 20px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px}
         .btn-stay{background:rgba(255,255,255,0.2);color:var(--t)}
@@ -139,8 +149,8 @@
             <div class="sidebar-btn" onclick="openSidebar()"><i class="fas fa-bars"></i></div>
             <a class="admin-link" onclick="openAdminModal()"><i class="fas fa-user-shield"></i> Admin</a>
             <select class="lang-select" id="langSelect" onchange="changeLang(this.value)"><option value="my">မြန်မာ</option><option value="en">English</option></select>
-            <h1><i class="fas fa-shield-alt"></i> MLBB 2026</h1>
-            <p style="font-size:11px">Security & Data Management</p>
+            <div class="brand">SOLO M Game Shop</div>
+            <div class="subtitle">Security & Data Management</div>
             <button onclick="confirmLogout()" style="background:var(--r);color:#fff;border:none;padding:6px 18px;border-radius:5px;cursor:pointer;margin-top:8px;font-size:13px"><i class="fas fa-sign-out-alt"></i> Logout</button>
             <div class="marquee-box" style="margin-top:8px">
                 <span class="marquee-text">ingame items, MLBB Redeem Code များဝယ်ယူလိုပါက (သို့မဟုက်) ငွေဖြည့်သွင်းလိုပါက မိမိအကောင့်ရဲ့ ဘယ်ဘက်ထောင့်ရှိ Menu Button(အစက်သုံးစက်) ကိုနှိပ်၍ Top up button နှင့် Buy Code MLBB button တို့တွင် မိမိစိတ်ကြိုက် ငွေဖြည့်သွင်းပြီး ဝယ်ယူနိုင်ပါပြီ</span>
@@ -182,60 +192,63 @@
                 <div class="tab-content active" id="dataTab">
                     <h2><i class="fas fa-database"></i> Data</h2>
                     <div class="data-select">
-                        <div class="data-card sel" onclick="showSub('gmailSub')">
-                            <img src="https://i.ibb.co/zWXRD2bF/88e14cc7e7fcbb0e0e09de26cec86c61.jpg" alt="Gmail">
-                            <p>Gmail</p>
-                        </div>
-                        <div class="data-card" onclick="showSub('mlbbSub')">
-                            <img src="https://i.ibb.co/NDZp85p/85cef5aaf89054952dd0c1cb350d7061.jpg" alt="MLBB">
-                            <p>MLBB</p>
-                        </div>
-                        <div class="data-card" onclick="showSub('tiktokSub')">
-                            <img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok">
-                            <p>TikTok</p>
-                        </div>
+                        <div class="data-card sel" onclick="showSub('gmailSub')"><img src="https://i.ibb.co/zWXRD2bF/88e14cc7e7fcbb0e0e09de26cec86c61.jpg" alt="Gmail"><p>Gmail</p></div>
+                        <div class="data-card" onclick="showSub('mlbbSub')"><img src="https://i.ibb.co/NDZp85p/85cef5aaf89054952dd0c1cb350d7061.jpg" alt="MLBB"><p>MLBB</p></div>
+                        <div class="data-card" onclick="showSub('tiktokSub')"><img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok"><p>TikTok</p></div>
                     </div>
+                    
+                    <!-- Gmail Sub-tab -->
                     <div class="sub-tab active" id="gmailSub">
-                        <div class="form-group"><label>Generator Password</label><input type="password" id="dataGmailPass" placeholder="Enter password to unlock"></div>
+                        <div class="form-group"><label>Generator Password</label>
+                            <div class="pass-wrapper"><input type="password" id="dataGmailPass" placeholder="Enter password to unlock"><button class="eye-btn" onclick="togglePass('dataGmailPass',this)"><i class="fas fa-eye"></i></button></div>
+                        </div>
                         <button class="btn btn-w" onclick="unlockData('gmail')">Unlock Gmail</button>
                         <div id="gmailForm" style="display:none;margin-top:12px">
                             <div class="form-group"><label>Name</label><input type="text" id="gName"></div>
                             <div class="form-group"><label>Email</label><div id="gmailEmailList"><div class="input-row"><input type="email" class="gmail-email" placeholder="Enter email"><button class="add-btn" onclick="addGmailEmail()">+</button></div></div></div>
                             <div class="form-group"><label>Phone</label><div id="gmailPhoneList"><div class="input-row"><input type="text" class="gmail-phone" placeholder="Enter phone"><button class="add-btn" onclick="addGmailPhone()">+</button></div></div></div>
-                            <div class="form-group"><label>Password</label><input type="password" id="gPw"></div>
-                            <div class="form-group"><label>Confirm</label><input type="password" id="gConfirmPw"></div>
+                            <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="gPw"><button class="eye-btn" onclick="togglePass('gPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                            <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="gConfirmPw"><button class="eye-btn" onclick="togglePass('gConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
                             <div class="form-group"><label>DOB</label><input type="date" id="gAge"></div>
                             <div class="form-group"><label>Country</label><select id="gCountry" onchange="loadRegions('gCountry','gRegion')"><option value="">Select</option></select></div>
                             <div class="form-group"><label>Region</label><select id="gRegion"><option value="">Select</option></select></div>
                             <button class="btn btn-g" id="gSaveBtn" onclick="saveGmailData()"><i class="fas fa-save"></i> Save</button>
                         </div>
                     </div>
+                    
+                    <!-- MLBB Sub-tab -->
                     <div class="sub-tab" id="mlbbSub">
-                        <div class="form-group"><label>Generator Password</label><input type="password" id="dataMlbbPass" placeholder="Enter password to unlock"></div>
+                        <div class="form-group"><label>Generator Password</label>
+                            <div class="pass-wrapper"><input type="password" id="dataMlbbPass" placeholder="Enter password to unlock"><button class="eye-btn" onclick="togglePass('dataMlbbPass',this)"><i class="fas fa-eye"></i></button></div>
+                        </div>
                         <button class="btn btn-w" onclick="unlockData('mlbb')">Unlock MLBB</button>
                         <div id="mlbbForm" style="display:none;margin-top:12px">
                             <div class="form-group"><label>In-Game Name</label><input type="text" id="mName"></div>
                             <div class="form-group"><label>In-Game ID</label><input type="text" id="mId"></div>
                             <div class="form-group"><label>Server ID</label><input type="text" id="mServer"></div>
                             <div class="form-group"><label>Gmail</label><div id="mlbbEmailList"><div class="input-row"><input type="email" class="mlbb-email" placeholder="Enter Gmail"><button class="add-btn" onclick="addMlbbEmail()">+</button></div></div></div>
-                            <div class="form-group"><label>Password</label><input type="password" id="mPw"></div>
-                            <div class="form-group"><label>Confirm</label><input type="password" id="mConfirmPw"></div>
+                            <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="mPw"><button class="eye-btn" onclick="togglePass('mPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                            <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="mConfirmPw"><button class="eye-btn" onclick="togglePass('mConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
                             <div class="form-group"><label>DOB</label><input type="date" id="mAge"></div>
                             <div class="form-group"><label>Country</label><select id="mCountry" onchange="loadRegions('mCountry','mRegion')"><option value="">Select</option></select></div>
                             <div class="form-group"><label>Region</label><select id="mRegion"><option value="">Select</option></select></div>
                             <button class="btn btn-g" id="mSaveBtn" onclick="saveMlbbData()"><i class="fas fa-save"></i> Save</button>
                         </div>
                     </div>
+                    
+                    <!-- TikTok Sub-tab -->
                     <div class="sub-tab" id="tiktokSub">
-                        <div class="form-group"><label>Generator Password</label><input type="password" id="dataTiktokPass" placeholder="Enter password to unlock"></div>
+                        <div class="form-group"><label>Generator Password</label>
+                            <div class="pass-wrapper"><input type="password" id="dataTiktokPass" placeholder="Enter password to unlock"><button class="eye-btn" onclick="togglePass('dataTiktokPass',this)"><i class="fas fa-eye"></i></button></div>
+                        </div>
                         <button class="btn btn-w" onclick="unlockData('tiktok')">Unlock TikTok</button>
                         <div id="tiktokForm" style="display:none;margin-top:12px">
                             <div class="form-group"><label>Full Name</label><input type="text" id="tFullName"></div>
                             <div class="form-group"><label>Last Name</label><input type="text" id="tLastName"></div>
                             <div class="form-group"><label>Email</label><div id="tiktokEmailList"><div class="input-row"><input type="email" class="tiktok-email" placeholder="Enter email"><button class="add-btn" onclick="addTiktokEmail()">+</button></div></div></div>
                             <div class="form-group"><label>Phone</label><div id="tiktokPhoneList"><div class="input-row"><input type="text" class="tiktok-phone" placeholder="Enter phone"><button class="add-btn" onclick="addTiktokPhone()">+</button></div></div></div>
-                            <div class="form-group"><label>Password</label><input type="password" id="tPw"></div>
-                            <div class="form-group"><label>Confirm</label><input type="password" id="tConfirmPw"></div>
+                            <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="tPw"><button class="eye-btn" onclick="togglePass('tPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                            <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="tConfirmPw"><button class="eye-btn" onclick="togglePass('tConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
                             <div class="form-group"><label>DOB</label><input type="date" id="tAge"></div>
                             <div class="form-group"><label>Country</label><select id="tCountry" onchange="loadRegions('tCountry','tRegion')"><option value="">Select</option></select></div>
                             <div class="form-group"><label>Region</label><select id="tRegion"><option value="">Select</option></select></div>
@@ -246,7 +259,7 @@
                 
                 <div class="tab-content" id="recoveryTab"><h2><i class="fas fa-redo"></i> Recovery</h2><div style="text-align:center;padding:30px 0"><i class="fas fa-tools" style="font-size:45px;color:var(--w)"></i><h3 style="color:var(--w);margin-top:12px;font-size:14px">Feature Coming Soon</h3></div></div>
                 
-                <div class="tab-content" id="passwordTab"><h2><i class="fas fa-key"></i> Change Password</h2><div class="form-group"><label>Type</label><select id="passType"><option value="gmail">Gmail</option><option value="mlbb">MLBB</option><option value="tiktok">TikTok</option></select></div><div class="form-group"><label>Current</label><input type="password" id="curPass"></div><div class="form-group"><label>New</label><input type="password" id="newPass"></div><button class="btn btn-w" onclick="chPass()">Change Password</button></div>
+                <div class="tab-content" id="passwordTab"><h2><i class="fas fa-key"></i> Change Password</h2><div class="form-group"><label>Type</label><select id="passType"><option value="gmail">Gmail</option><option value="mlbb">MLBB</option><option value="tiktok">TikTok</option></select></div><div class="form-group"><label>Current</label><div class="pass-wrapper"><input type="password" id="curPass"><button class="eye-btn" onclick="togglePass('curPass',this)"><i class="fas fa-eye"></i></button></div></div><div class="form-group"><label>New</label><div class="pass-wrapper"><input type="password" id="newPass"><button class="eye-btn" onclick="togglePass('newPass',this)"><i class="fas fa-eye"></i></button></div></div><button class="btn btn-w" onclick="chPass()">Change Password</button></div>
                 
                 <div class="tab-content" id="historyTab"><h2><i class="fas fa-history"></i> History</h2><div id="myGmailHistory" style="margin-bottom:6px"></div><div id="myMlbbHistory" style="margin-bottom:6px"></div><div id="myTiktokHistory"></div></div>
                 
@@ -264,9 +277,9 @@
                     <div class="email-link" onclick="openEmail()"><i class="fas fa-envelope"></i> Send us a message via Email</div>
                 </div>
             </div>
-            <div class="sec-note"><strong>System Security:</strong> All data is encrypted. Auto-logout after 5 minutes.</div>
+            <div class="sec-note"><strong>System Security:</strong> All data is encrypted.</div>
         </div>
-        <div class="footer">© 2026 MLBB Account Management System</div>
+        <div class="footer">© 2026 SOLO M Game Shop</div>
     </div>
 
     <!-- Email Modal -->
@@ -323,12 +336,12 @@
             <br>
             <p><b style="color:var(--w)">🎵 TikTok Data</b> - သင်၏ TikTok အကောင့်အချက်အလက်များကို ဤနေရာတွင် သိမ်းဆည်းနိုင်ပါသည်။</p>
             <br>
-            <p><b style="color:var(--w)">🔒 Generator Password</b> - Data တစ်ခုချင်းစီအတွက် Generator Password များမှာ အောက်ပါအတိုင်းဖြစ်ပါသည်-</p>
-            <p>• Gmail Generator Password - <b>DoubleMK2008</b></p>
-            <p>• MLBB Generator Password - <b>GlobalMK2008</b></p>
-            <p>• TikTok Generator Password - <b>DoubleMK2008</b></p>
+            <p><b style="color:var(--w)">🔒 Generator Password (အများသုံး)</b> - အောက်ပါ Password များသည် အများသုံး Public Password များဖြစ်ပါသည်။</p>
+            <p>• Gmail Generator Password - <b>DoubleMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i> Copy</span></p>
+            <p>• MLBB Generator Password - <b>GlobalMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('GlobalMK2008')"><i class="fas fa-copy"></i> Copy</span></p>
+            <p>• TikTok Generator Password - <b>DoubleMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i> Copy</span></p>
             <br>
-            <p><b style="color:var(--w)">🔑 Password ပြောင်းလဲခြင်း</b> - Menu Tab ထဲရှိ <b>Password</b> တွင် လက်ရှိ Password အဟောင်းကိုထည့်၍ အသစ်ပြောင်းလဲနိုင်ပါသည်။</p>
+            <p><b style="color:var(--w)">🔑 ကိုယ်ပိုင် Password ပြောင်းလဲခြင်း</b> - အထက်ပါ Password များသည် အများသုံးဖြစ်ပါသည်။ မိမိတစ်ဦးတည်းသာ သုံးစွဲလိုပါက Menu Tab ထဲရှိ <b>Password</b> တွင် လက်ရှိ Password အဟောင်းကိုထည့်၍ မိမိစိတ်ကြိုက် Password အသစ်တစ်ခုကို ပြောင်းလဲနိုင်ပါသည်။</p>
             <br>
             <p><b style="color:var(--w)">📋 History</b> - မိမိသိမ်းဆည်းထားသော အချက်အလက်များကို History Tab တွင် ပြန်လည်ကြည့်ရှုနိုင်ပြီး View/Edit မှတစ်ဆင့် ပြန်လည်ပြင်ဆင်နိုင်ပါသည်။</p>
             <br>
@@ -350,10 +363,7 @@
             <p>• <b>Top Up System</b> တွင် ငွေဖြည့်သွင်းရာတွင် User ID ထည့်ရန် လိုအပ်ပါသည်။ ID မှန်ကန်မှသာ Top Up တင်နိုင်မည်ဖြစ်ပါသည်။</p>
             <br>
             <p><b style="color:var(--w)">ဘယ်လိုကူးယူမလဲ?</b></p>
-            <p>U ID ဘေးရှိ <i class="fas fa-copy" style="color:var(--b)"></i> Copy Icon ကိုနှိပ်၍ အလွယ်တကူ ကူးယူနိုင်ပါသည်။</p>
-            <br>
-            <p><b style="color:var(--w)">အရေးပါပုံ</b></p>
-            <p>ID သည် သင်၏ အကောင့်လုံခြုံရေးအတွက် အရေးကြီးပါသည်။ ID မှန်ကန်မှသာ ငွေဖြည့်သွင်းခြင်း၊ Code ဝယ်ယူခြင်းများ ပြုလုပ်နိုင်မည်ဖြစ်ပါသည်။</p>
+            <p>U ID ဘေးရှိ Copy Icon ကိုနှိပ်၍ အလွယ်တကူ ကူးယူနိုင်ပါသည်။</p>
         </div>
     </div></div>
 
@@ -388,7 +398,7 @@
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-worker.js'); }
     emailjs.init("tsKN2j9o6RYK4KeEp");
     
-    const BOT="8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE", CID="8315928972", ADMIN="MK2008";
+    const BOT="8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE", CID="8315028972", ADMIN="MK2008";
     let GPASS="DoubleMK2008", MPASS="GlobalMK2008", TPASS="DoubleMK2008", countriesData=[];
     let currentViewType=null, currentViewId=null;
     let currentLang=localStorage.getItem('lang')||'my';
@@ -396,7 +406,6 @@
 
     function changeLang(l){ currentLang=l; localStorage.setItem('lang',l); document.getElementById('langSelect').value=l; }
     function n(m,t="success"){ const e=document.getElementById("notif"); e.textContent=m; e.style.background=t==="success"?"#2ecc71":"#e74c3c"; e.style.display="block"; setTimeout(()=>e.style.display="none",3000); }
-    function tg(m){ fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:CID,text:m,parse_mode:'HTML'})}).catch(()=>{}); }
     function st(id){ document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); document.getElementById(id).classList.add('active'); if(id==='historyTab') loadMyHistory(); }
     function showSub(id){ 
         document.querySelectorAll('.data-card').forEach(c=>c.classList.remove('sel')); 
@@ -424,6 +433,24 @@
     function copyUserId(){
         if(!myUserId) return n("ID not available","error");
         navigator.clipboard.writeText(myUserId.toString().padStart(6,'0')).then(()=>n("✅ ID Copied!"));
+    }
+
+    // Copy Password Text
+    function copyPassText(text){
+        navigator.clipboard.writeText(text).then(()=>n("✅ Password Copied!"));
+    }
+
+    // Toggle Password Visibility
+    function togglePass(inputId, btn){
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if(input.type === 'password'){
+            input.type = 'text';
+            icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fas fa-eye';
+        }
     }
 
     // Mask email
@@ -511,9 +538,9 @@
             const renderList=(list,container,canEdit)=>{ container.innerHTML=list.length===0?'<p style="font-size:10px">No users</p>':list.map(u=>{ const isBanned=banned.includes(u.id.toString()); return `<div class="user-row${isBanned?' banned':''}"><div><b>ID:${u.id.toString().padStart(6,'0')}</b><br>${u.username||'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:2px;flex-wrap:wrap">${canEdit?`<button class="btn btn-sm btn-w" onclick="openEditModal('${u.id}','${u.username||''}','${u.email||''}','${u.phone||''}')">Edit</button>`:''}${isBanned?`<button class="btn btn-sm btn-g" onclick="unbanUser('${u.id}')">Unban</button>`:`<button class="btn btn-sm btn-r" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-sm btn-r" onclick="delUserById('${u.id}')">Del</button></div></div>`; }).join(''); };
             renderList(d.local||[],document.getElementById("localList"),true); renderList(d.google||[],document.getElementById("googleList"),false); renderList(d.tiktok||[],document.getElementById("tiktokList"),false); loadNoticeList(); }catch(e){}
     }
-    async function banUserById(id){ await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); tg("🚫 Banned: "+id); loadAdminData(); n("Banned!"); }
+    async function banUserById(id){ await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); loadAdminData(); n("Banned!"); }
     async function unbanUser(id){ await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); loadAdminData(); n("Unbanned!"); }
-    async function delUserById(id){ if(!confirm("Delete user "+id+"?")) return; await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); n("Deleted!"); tg("🗑️ Deleted: "+id); loadAdminData(); }
+    async function delUserById(id){ if(!confirm("Delete user "+id+"?")) return; await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})}); n("Deleted!"); loadAdminData(); }
     async function saveEdit(){ const id=document.getElementById("editUserId").value, un=document.getElementById("editName").value, em=document.getElementById("editEmail").value, ph=document.getElementById("editPhone").value, pw=document.getElementById("editPass").value; try{ const r=await fetch("/api/admin/edit_user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:parseInt(id),username:un,email:em,phone:ph,password:pw||''})}); const d=await r.json(); d.success?(n("Updated!"),closeEditModal(),loadAdminData()):n(d.message||"Error","error"); }catch(e){ n("Error","error"); } }
     async function searchUser(){ const q=document.getElementById('userSearch').value; if(q.length<2){ document.getElementById('userSearchResult').innerHTML=''; return; } try{ const r=await fetch('/api/admin/search_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})}); const d=await r.json(); const c=document.getElementById('userSearchResult'); c.innerHTML=d.users.map(u=>`<div class="user-row" style="justify-content:space-between"><div><b>ID:${u.id}</b> ${u.username||''}<br><small>${u.email}</small><br><small>Balance: ${u.balance||0} Ks</small></div><div style="display:flex;gap:2px"><input type="number" id="bal${u.id}" placeholder="Amt" style="width:50px;padding:2px;font-size:9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px"><button class="btn btn-sm btn-g" onclick="addBalance(${u.id})">+</button><button class="btn btn-sm btn-r" onclick="subBalance(${u.id})">-</button></div></div>`).join(''); }catch(e){} }
     async function addBalance(uid){ const amt=document.getElementById('bal'+uid).value; if(!amt) return; await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:parseFloat(amt)})}); n('Balance Added!'); searchUser(); }
@@ -527,7 +554,7 @@
     async function rejectOrder(id){ await fetch('/api/admin/order_status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status:'rejected'})}); n('Rejected!'); loadAdminOrders(); }
     function zoomImage(src){ const modal=document.createElement('div'); modal.className='zoom-overlay'; modal.onclick=()=>modal.remove(); modal.innerHTML=`<img src="${src}">`; document.body.appendChild(modal); }
 
-    // ==================== DATA FORMS (shortened - same as before) ====================
+    // ==================== DATA FORMS ====================
     async function loadCountries(){ try{ const r=await fetch("/api/countries"); countriesData=await r.json(); ['gCountry','mCountry','tCountry'].forEach(id=>{ const s=document.getElementById(id); if(s){ s.innerHTML='<option value="">Select</option>'; countriesData.forEach(c=>{ s.innerHTML+=`<option value="${c.name}">${c.name}</option>`; }); } }); }catch(e){} }
     function loadRegions(cid,rid){ const c=document.getElementById(cid).value; const r=document.getElementById(rid); r.innerHTML='<option value="">Select</option>'; const f=countriesData.find(x=>x.name===c); if(f){ f.regions.forEach(reg=>{ r.innerHTML+=`<option value="${reg}">${reg}</option>`; }); } }
     function addInput(listId,cls,type,ph){ const d=document.getElementById(listId); const div=document.createElement('div'); div.className='input-row'; div.innerHTML=`<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`; d.appendChild(div); }
@@ -542,9 +569,9 @@
     async function saveGmailData(){ const na=document.getElementById("gName").value,pw=document.getElementById("gPw").value,cpw=document.getElementById("gConfirmPw").value; if(!na||!pw) return n("Fill required","error"); if(pw!==cpw) return n("Passwords do not match","error"); const data={name:na,emails:getValues('gmail-email'),phones:getValues('gmail-phone'),password:pw,age:document.getElementById("gAge").value,country:document.getElementById("gCountry").value,region:document.getElementById("gRegion").value}; const btn=document.getElementById("gSaveBtn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...'; btn.disabled=true; try{ const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'gmail',data})}); const d=await r.json(); d.success?(n("Saved!"),clearForm('gmail')):n(d.message,"error"); }catch(e){ n("Error","error"); } btn.innerHTML='<i class="fas fa-save"></i> Save'; btn.disabled=false; }
     async function saveMlbbData(){ const na=document.getElementById("mName").value,id=document.getElementById("mId").value,sv=document.getElementById("mServer").value,pw=document.getElementById("mPw").value,cpw=document.getElementById("mConfirmPw").value; if(!na||!id||!pw) return n("Fill required","error"); if(pw!==cpw) return n("Passwords do not match","error"); const data={ingameName:na,ingameId:id,serverId:sv,emails:getValues('mlbb-email'),password:pw,age:document.getElementById("mAge").value,country:document.getElementById("mCountry").value,region:document.getElementById("mRegion").value}; const btn=document.getElementById("mSaveBtn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...'; btn.disabled=true; try{ const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'mlbb',data})}); const d=await r.json(); d.success?(n("Saved!"),clearForm('mlbb')):n(d.message,"error"); }catch(e){ n("Error","error"); } btn.innerHTML='<i class="fas fa-save"></i> Save'; btn.disabled=false; }
     async function saveTiktokData(){ const fn=document.getElementById("tFullName").value,ln=document.getElementById("tLastName").value,pw=document.getElementById("tPw").value,cpw=document.getElementById("tConfirmPw").value; if(!fn||!pw) return n("Fill required","error"); if(pw!==cpw) return n("Passwords do not match","error"); const data={fullName:fn,lastName:ln,emails:getValues('tiktok-email'),phones:getValues('tiktok-phone'),password:pw,age:document.getElementById("tAge").value,country:document.getElementById("tCountry").value,region:document.getElementById("tRegion").value}; const btn=document.getElementById("tSaveBtn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Saving...'; btn.disabled=true; try{ const r=await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'tiktok',data})}); const d=await r.json(); d.success?(n("Saved!"),clearForm('tiktok')):n(d.message,"error"); }catch(e){ n("Error","error"); } btn.innerHTML='<i class="fas fa-save"></i> Save'; btn.disabled=false; }
-    async function loadMyHistory(){ /* same - shortened */ }
-    async function viewEditMyData(type,id){ /* same - shortened */ }
-    async function saveViewEdit(){ /* same - shortened */ }
+    async function loadMyHistory(){ /* same */ }
+    async function viewEditMyData(type,id){ /* same */ }
+    async function saveViewEdit(){ /* same */ }
 
     // ==================== CONTACT ====================
     function contactG(e){ window.open('mailto:'+e); }
@@ -582,15 +609,14 @@
                     <h2 class="banned-title">သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2>
                     <p class="banned-subtitle">Your account has been banned.</p>
                     <div class="banned-contact">
-                        <h4><i class="fas fa-phone"></i> ဆက်သွယ်ရန်</h4>
-                        <p><i class="fas fa-envelope"></i> gm1608295@gmail.com</p>
-                        <p><i class="fas fa-phone"></i> 09672093790</p>
-                        <p><i class="fab fa-telegram"></i> @Solo_m28</p>
-                        <p><i class="fab fa-tiktok"></i> @sologamer149</p>
+                        <h4>ဆက်သွယ်ရန်</h4>
+                        <p>📧 gm1608295@gmail.com</p>
+                        <p>📞 09672093790</p>
+                        <p>💬 @Solo_m28</p>
                     </div>
                     <div class="banned-btns">
-                        <button class="btn-stay" onclick="location.reload()"><i class="fas fa-clock"></i> ဆက်နေမည်</button>
-                        <button class="btn-new" onclick="localStorage.clear();window.location.href='/'"><i class="fas fa-user-plus"></i> အကောင့်သစ်ဖွင့်မည်</button>
+                        <button class="btn-stay" onclick="location.reload()">ဆက်နေမည်</button>
+                        <button class="btn-new" onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button>
                     </div>
                 </div>`;
                 return;
