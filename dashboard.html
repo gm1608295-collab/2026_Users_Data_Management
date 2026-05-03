@@ -409,20 +409,30 @@
         try{ const r=await fetch("/api/change_password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:t,cp:cp,np:np})}); const d=await r.json(); d.success?(n("Password Changed!"),loadPw()):n(d.message,"error"); }catch(e){ n("Connection error","error"); }
     }
 
-    // ==================== BG MUSIC (Auto-Play, No User Control) ====================
-    async function loadBgMusic() {
-        try {
-            const r = await fetch('/api/bg_music');
-            const d = await r.json();
-            if (d.success && d.music_url) {
-                const audio = new Audio(d.music_url);
-                audio.loop = true;
-                audio.volume = 0.3;
-                audio.play().catch(() => {});
-            }
-        } catch(e) {}
-    }
+    // ==================== BG MUSIC (Auto-Play, Survive Refresh) ====================
+let bgAudio = null;
 
+async function loadBgMusic() {
+    try {
+        const r = await fetch('/api/bg_music');
+        const d = await r.json();
+        if (d.success && d.music_url) {
+            // Check if music already playing
+            if (bgAudio && !bgAudio.paused) return;
+            
+            bgAudio = new Audio(d.music_url);
+            bgAudio.loop = true;
+            bgAudio.volume = 0.3;
+            
+            // Save state to localStorage
+            localStorage.setItem('bgMusicUrl', d.music_url);
+            localStorage.setItem('bgMusicPlaying', 'true');
+            
+            bgAudio.play().catch(() => {});
+        }
+    } catch(e) {}
+        }
+    
     // ==================== IMAGE SLIDER ====================
     let sliderImages=[], currentSlide=0, slideInterval=null;
     function renderSlider(){
