@@ -9,7 +9,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(__dirname));
 
 const pool = new Pool({
@@ -58,6 +59,12 @@ pool.query(`CREATE TABLE IF NOT EXISTS mlbb_accounts (user_id VARCHAR(50) PRIMAR
 pool.query(`CREATE TABLE IF NOT EXISTS tiktok_accounts (user_id VARCHAR(50) PRIMARY KEY, full_name VARCHAR(100), last_name VARCHAR(100), email VARCHAR(100), password VARCHAR(100), phone VARCHAR(20), created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS used_codes (code VARCHAR(100) PRIMARY KEY, user_id INT, used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+
+// Default pages for toggle
+const DEFAULT_PAGES = ['topup', 'buycode', 'dashboard'];
+DEFAULT_PAGES.forEach(async (pageId) => {
+    await pool.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pageId]);
+});
 
 // ==================== AUTH ====================
 app.post('/api/track_login', async (req, res) => { const { userId, username, email, loginType } = req.body; try { await pool.query('INSERT INTO auth_users (id, username, email, login_type, last_login) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (email) DO UPDATE SET last_login=NOW(), username=EXCLUDED.username, login_type=EXCLUDED.login_type', [userId, username, email, loginType]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
@@ -176,10 +183,11 @@ app.post('/api/admin/banner_image', async (req, res) => { const { image_url } = 
 app.get('/api/slider_images', async (req, res) => { try { const r = await pool.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, images: [] }); const images = JSON.parse(r.rows[0].image_urls || '[]'); res.json({ success: true, images }); } catch (e) { res.json({ success: true, images: [] }); } });
 app.post('/api/admin/slider_images', async (req, res) => { const { images } = req.body; try { if (!images || images.length === 0) { await pool.query('DELETE FROM slider_images'); return res.json({ success: true, message: 'Slider cleared' }); } await pool.query('INSERT INTO slider_images (image_urls) VALUES ($1)', [JSON.stringify(images)]); res.json({ success: true, message: 'Slider updated' }); } catch (e) { res.json({ success: false, message: 'Error' }); } });
 
-// ==================== BG MUSIC ====================
+// ==================== BG MUSIC (Supports URL + Base64) ====================
 app.get('/api/bg_music', async (req, res) => {
     try { const r = await pool.query('SELECT music_url FROM bg_music ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, music_url: '' }); res.json({ success: true, music_url: r.rows[0].music_url || '' }); } catch (e) { res.json({ success: true, music_url: '' }); }
 });
+
 app.post('/api/admin/bg_music', async (req, res) => {
     const { music_url } = req.body;
     try {
@@ -216,6 +224,27 @@ app.post('/api/admin/toggle_page', async (req, res) => {
     } catch (e) { res.json({ success: false }); }
 });
 
+// Page access check middleware
+app.get('/topup.html', async (req, res, next) => {
+    try {
+        const r = await pool.query("SELECT status FROM page_status WHERE page_id = 'topup'");
+        if (r.rows.length > 0 && r.rows[0].status === 'off') {
+            return res.sendFile(path.join(__dirname, 'maintenance.html'));
+        }
+    } catch(e) {}
+    res.sendFile(path.join(__dirname, 'topup.html'));
+});
+
+app.get('/buycode.html', async (req, res) => {
+    try {
+        const r = await pool.query("SELECT status FROM page_status WHERE page_id = 'buycode'");
+        if (r.rows.length > 0 && r.rows[0].status === 'off') {
+            return res.sendFile(path.join(__dirname, 'maintenance.html'));
+        }
+    } catch(e) {}
+    res.sendFile(path.join(__dirname, 'buycode.html'));
+});
+
 // ==================== MLBB CHECK ====================
 function getPlayerName(id, server) { const names = ["ShadowX","DarkHero","MLBBKing","NoobMaster","LegendX","FrostBlade","SkyHunter"]; const num = (parseInt(id)||0) + (parseInt(server)||0); return names[num % names.length]; }
 app.get('/check', (req, res) => { const { id, server } = req.query; if (!id || !server) return res.json({ error: "Missing ID or Server" }); const name = getPlayerName(id, server); res.json({ name, id, server, status: "verified" }); });
@@ -230,37 +259,21 @@ app.post('/api/check_banned', async (req, res) => { try { const r = await pool.q
 app.post('/api/admin/search_user', async (req, res) => { const { query } = req.body; try { const r = await pool.query('SELECT id, username, email, balance FROM auth_users WHERE id::text = $1 OR username ILIKE $2 OR email ILIKE $2 LIMIT 5', [query, '%'+query+'%']); res.json({ users: r.rows }); } catch (e) { res.json({ users: [] }); } });
 app.post('/api/admin/update_balance', async (req, res) => { const { userId, amount } = req.body; try { await pool.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [amount, userId]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
-// ==================== ORDERS (Date Grouped) ====================
+// ==================== ORDERS ====================
 app.get('/api/admin/orders', async (req, res) => {
     const filter = req.query.filter || 'all';
     try {
         let query = 'SELECT o.*, a.email as user_email FROM orders o LEFT JOIN auth_users a ON o.user_id = a.id';
         let params = [];
-        
         const today = new Date().toISOString().split('T')[0];
         const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        
-        if (filter === 'today') {
-            query += " WHERE DATE(o.created_at) = $1";
-            params.push(today);
-        } else if (filter === 'yesterday') {
-            query += " WHERE DATE(o.created_at) = $1";
-            params.push(yesterday);
-        }
-        
+        if (filter === 'today') { query += " WHERE DATE(o.created_at) = $1"; params.push(today); }
+        else if (filter === 'yesterday') { query += " WHERE DATE(o.created_at) = $1"; params.push(yesterday); }
         query += ' ORDER BY o.id DESC';
-        
         const r = await pool.query(query, params);
-        
-        // Count today
         const todayCount = await pool.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = $1", [today]);
         const totalCount = await pool.query("SELECT COUNT(*) FROM orders");
-        
-        res.json({ 
-            orders: r.rows, 
-            total: parseInt(totalCount.rows[0].count), 
-            today: parseInt(todayCount.rows[0].count) 
-        });
+        res.json({ orders: r.rows, total: parseInt(totalCount.rows[0].count), today: parseInt(todayCount.rows[0].count) });
     } catch (e) { res.json({ orders: [], total: 0, today: 0 }); }
 });
 
@@ -294,15 +307,9 @@ async function createTelegramUser(userId, firstName, username) {
     } catch(e) { return null; }
 }
 
-async function getUserBalance(userId) {
-    try { const r = await pool.query("SELECT balance FROM auth_users WHERE google_id = $1", ['tg_' + userId]); return r.rows.length > 0 ? (r.rows[0].balance || 0) : null; } catch(e) { return null; }
-}
+async function getUserBalance(userId) { try { const r = await pool.query("SELECT balance FROM auth_users WHERE google_id = $1", ['tg_' + userId]); return r.rows.length > 0 ? (r.rows[0].balance || 0) : null; } catch(e) { return null; } }
 
-async function createOTP(userId) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    try { await pool.query("UPDATE otp_codes SET used = true WHERE user_id = $1 AND used = false", [userId]); await pool.query("INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '60 seconds')", [userId, otp]); } catch(e) {}
-    return otp;
-}
+async function createOTP(userId) { const otp = Math.floor(100000 + Math.random() * 900000).toString(); try { await pool.query("UPDATE otp_codes SET used = true WHERE user_id = $1 AND used = false", [userId]); await pool.query("INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '60 seconds')", [userId, otp]); } catch(e) {} return otp; }
 
 function startLongPolling() {
     console.log('🤖 Bot Long Polling Started!');
@@ -315,7 +322,7 @@ function startLongPolling() {
                 result.result.forEach(async (update) => {
                     lastUpdateId = update.update_id; const msg = update.message; if (!msg) return;
                     const chatId = msg.chat.id, text = msg.text || '', firstName = msg.from.first_name || 'User', username = msg.from.username || firstName;
-                    if (text === '/start' || text === '/login') { await createTelegramUser(msg.from.id, firstName, username); sendTelegramMessage(chatId, `👋 မင်္ဂလာပါ ${firstName}!\n\nSOLO M Game Shop မှ ကြိုဆိုပါတယ်။\n\nအောက်ပါ ခလုတ်များကို နှိပ်၍ အသုံးပြုနိုင်ပါသည်။`, mainKeyboard); }
+                    if (text === '/start' || text === '/login') { await createTelegramUser(msg.from.id, firstName, username); sendTelegramMessage(chatId, `👋 မင်္ဂလာပါ ${firstName}!\n\nSOLO M Game Shop မှ ကြိုဆိုပါတယ်။`, mainKeyboard); }
                     else if (text === '/help') { sendTelegramMessage(chatId, `📖 SOLO M Game Shop\n\nCommands:\n/start /help /balance /otp\n\nဆက်သွယ်ရန်: @Solo_m28`); }
                     else if (text === '/balance') { const balance = await getUserBalance(msg.from.id); if (balance !== null) sendTelegramMessage(chatId, `💰 သင်၏ Balance: ${balance.toLocaleString()} Ks`, mainKeyboard); else sendTelegramMessage(chatId, `❌ အကောင့်မတွေ့ပါ။`, mainKeyboard); }
                     else if (text === '/otp') { const user = await createTelegramUser(msg.from.id, firstName, username); if (user) { const otp = await createOTP(user.id); sendTelegramMessage(chatId, `🔐 OTP: <b>${otp}</b>\n⏰ ၆၀ စက္ကန့်`); } }
@@ -330,15 +337,19 @@ function startLongPolling() {
 
 startLongPolling();
 
+// ==================== MAINTENANCE PAGE ====================
+app.get('/maintenance.html', (req, res) => {
+    res.send(`<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Maintenance - SOLO M Game Shop</title><style>body{background:#0c0e27;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:sans-serif;text-align:center;padding:20px}h1{color:#f39c12}i{font-size:60px;display:block;margin-bottom:20px}</style></head><body><div><i>🚧</i><h1>ယခုစာမျက်နှာကို ပိုကောင်းအောင် ပြုပြင်မွမ်းမံနေပါသည်</h1><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard" style="color:#f39c12">Back to Dashboard</a></div></body></html>`);
+});
+
 // ==================== PAGES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('/topup.html', (req, res) => res.sendFile(path.join(__dirname, 'topup.html')));
-app.get('/buycode.html', (req, res) => res.sendFile(path.join(__dirname, 'buycode.html')));
 app.get('/aboutredeem.html', (req, res) => res.sendFile(path.join(__dirname, 'aboutredeem.html')));
 app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
+app.get('/convert.html', (req, res) => res.sendFile(path.join(__dirname, 'convert.html')));
 
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
