@@ -20,10 +20,12 @@
         .form-group{margin-bottom:8px}
         .form-group label{display:block;font-size:11px;margin-bottom:3px;color:#ccc}
         .form-group input,.form-group textarea,.form-group select{width:100%;padding:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:5px;color:var(--t);font-size:11px}
+        .form-group input[type="file"]{padding:6px}
         .form-group select option{background:var(--bg);color:var(--t)}
         
         .btn{padding:6px 12px;border:none;border-radius:5px;font-size:10px;font-weight:bold;cursor:pointer;margin:2px}
         .btn-w{background:var(--w);color:#000}.btn-g{background:var(--g);color:#000}.btn-r{background:var(--r);color:#fff}.btn-b{background:var(--b);color:#fff}
+        .btn-upload{background:var(--b);color:#fff;padding:6px 12px;border:none;border-radius:5px;font-size:10px;font-weight:bold;cursor:pointer}
         
         .user-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:3px solid var(--g)}
         .user-row.banned{border-left-color:var(--r);opacity:0.7}
@@ -35,11 +37,9 @@
         .stat-card .num{font-size:18px;font-weight:bold;color:var(--w)}
         .stat-card .lbl{font-size:8px;color:rgba(255,255,255,0.5)}
         
-        /* Table Design */
         .admin-table{width:100%;border-collapse:collapse;font-size:10px;margin:8px 0;word-break:break-all}
-        .admin-table th{background:rgba(0,0,0,0.4);color:var(--w);padding:8px 6px;text-align:left;font-size:10px;position:sticky;top:0}
+        .admin-table th{background:rgba(0,0,0,0.4);color:var(--w);padding:8px 6px;text-align:left;font-size:10px}
         .admin-table td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:top}
-        .admin-table tr:hover{background:rgba(255,255,255,0.03)}
         .admin-table .msg-cell{max-width:200px;word-break:break-word}
         
         .screenshot-preview{max-width:35px;max-height:35px;border-radius:4px;cursor:pointer;margin:0 2px}
@@ -68,7 +68,10 @@
         input:checked+.toggle-slider:before{transform:translateX(22px)}
         
         .preview-box{background:rgba(0,0,0,0.3);padding:8px;border-radius:5px;margin:4px 0;font-size:10px;word-break:break-all}
-        .preview-box audio{width:100%;margin-top:5px}
+        .preview-box audio{width:100%;margin-top:5px;height:28px}
+        
+        .divider-text{display:flex;align-items:center;gap:8px;margin:8px 0;color:rgba(255,255,255,0.3);font-size:9px}
+        .divider-text span{flex:1;height:1px;background:rgba(255,255,255,0.1)}
     </style>
 </head>
 <body>
@@ -105,7 +108,7 @@
                 </div>
                 <div id="userSearchResult" style="max-height:120px;overflow-y:auto;margin-bottom:8px;font-size:10px"></div>
                 
-                <!-- Orders (Date Grouped) -->
+                <!-- Orders -->
                 <h3 style="margin-top:10px">🛒 Top-Up Orders</h3>
                 <div style="display:flex;gap:4px;margin-bottom:5px">
                     <button class="btn btn-b" onclick="loadAdminOrders('all')">All</button>
@@ -136,7 +139,7 @@
                     </div>
                 </div>
                 
-                <!-- Slider -->
+                <!-- Image Slider -->
                 <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
                     <h3><i class="fas fa-images"></i> Image Slider System</h3>
                     <div class="form-group"><input type="text" id="sliderUrl1" placeholder="Image URL 1"></div>
@@ -150,12 +153,31 @@
                     <div id="sliderPreviewList" style="max-height:100px;overflow-y:auto;font-size:10px"></div>
                 </div>
                 
-                <!-- BG Music -->
+                <!-- BG Music with File Upload -->
                 <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
                     <h3><i class="fas fa-music"></i> Background Music</h3>
-                    <div class="form-group"><label>Music URL (MP3 Direct Link)</label><input type="text" id="bgMusicUrl" placeholder="https://files.catbox.moe/xxxxx.mp3"></div>
+                    
+                    <!-- File Upload -->
+                    <div class="form-group">
+                        <label>📁 Upload MP3 File (Phone ထဲမှ တိုက်ရိုက်တင်ရန်)</label>
+                        <input type="file" id="bgMusicFile" accept="audio/mp3,audio/mpeg" style="padding:6px;font-size:10px">
+                        <button class="btn-upload" onclick="uploadMusicFile()" style="margin-top:4px"><i class="fas fa-upload"></i> Upload File</button>
+                        <div id="uploadProgress" style="font-size:9px;color:var(--w);margin-top:3px"></div>
+                    </div>
+                    
+                    <div class="divider-text">
+                        <span></span> or paste URL <span></span>
+                    </div>
+                    
+                    <!-- URL Input -->
+                    <div class="form-group">
+                        <label>Music URL (MP3 Direct Link)</label>
+                        <input type="text" id="bgMusicUrl" placeholder="https://files.catbox.moe/xxxxx.mp3">
+                    </div>
+                    
                     <button class="btn btn-g" onclick="saveBgMusic()"><i class="fas fa-save"></i> Save Music</button>
                     <button class="btn btn-r" onclick="removeBgMusic()"><i class="fas fa-trash"></i> Remove Music</button>
+                    
                     <div style="margin-top:8px"><b style="font-size:11px;color:var(--w)">🎵 Now Playing</b></div>
                     <div class="preview-box" id="currentMusicDisplay">
                         <span style="color:rgba(255,255,255,0.4)">No music set</span>
@@ -270,7 +292,7 @@
     async function addBalance(uid){ const amt=document.getElementById('bal'+uid).value; if(!amt) return; await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:parseFloat(amt)})}); n('Balance Added!'); searchUser(); }
     async function subBalance(uid){ const amt=document.getElementById('bal'+uid).value; if(!amt) return; await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:-parseFloat(amt)})}); n('Balance Deducted!'); searchUser(); }
     
-    // ==================== ORDERS (Date Grouped) ====================
+    // ==================== ORDERS ====================
     async function loadAdminOrders(filter){
         currentOrderFilter=filter;
         try{ 
@@ -322,31 +344,84 @@
     async function loadSliderPreview(){ try{ const r=await fetch('/api/slider_images'); const d=await r.json(); const c=document.getElementById('sliderPreviewList'); if(d.images&&d.images.length>0){ c.innerHTML=d.images.map((url,i)=>`<div class="preview-box">${i+1}. <a href="${url}" target="_blank" style="color:var(--g)">${url.substring(0,50)}...</a></div>`).join(''); }else{ c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No images</span>'; } }catch(e){} }
     
     // ==================== BG MUSIC ====================
-    async function saveBgMusic(){ 
-        const url=document.getElementById('bgMusicUrl').value.trim(); 
-        if(!url) return n("Enter music URL","error"); 
-        try{ 
-            const r=await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({music_url:url})}); 
-            const d=await r.json(); 
-            d.success?(n('Music Saved!'),document.getElementById('bgMusicUrl').value='',loadCurrentMusic()):n(d.message||'error','error'); 
-        }catch(e){ n('Connection error','error'); } 
+    async function uploadMusicFile() {
+        const fileInput = document.getElementById('bgMusicFile');
+        const file = fileInput.files[0];
+        
+        if (!file) return n('Please select an MP3 file', 'error');
+        
+        const progress = document.getElementById('uploadProgress');
+        progress.textContent = '⏳ Converting...';
+        
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const base64Data = e.target.result;
+            progress.textContent = '⏳ Uploading...';
+            
+            try {
+                const r = await fetch('/api/admin/bg_music', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ music_url: base64Data })
+                });
+                const d = await r.json();
+                
+                if (d.success) {
+                    n('✅ Music Uploaded!');
+                    fileInput.value = '';
+                    progress.textContent = '';
+                    document.getElementById('bgMusicUrl').value = '';
+                    loadCurrentMusic();
+                } else {
+                    n(d.message || 'Error', 'error');
+                    progress.textContent = '';
+                }
+            } catch(e) {
+                n('Connection error', 'error');
+                progress.textContent = '';
+            }
+        };
+        reader.readAsDataURL(file);
     }
-    async function removeBgMusic(){ 
-        try{ 
-            await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({music_url:''})}); 
-            n('Music Removed!'); loadCurrentMusic(); 
-        }catch(e){ n('Error','error'); } 
+    
+    async function saveBgMusic() { 
+        const url = document.getElementById('bgMusicUrl').value.trim();
+        if (!url) return n("Enter music URL or upload a file", "error"); 
+        try { 
+            const r = await fetch('/api/admin/bg_music', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ music_url: url })
+            }); 
+            const d = await r.json(); 
+            d.success ? (n('Music Saved!'), document.getElementById('bgMusicUrl').value = '', loadCurrentMusic()) : n(d.message || 'error', 'error'); 
+        } catch(e) { n('Connection error', 'error'); } 
     }
-    async function loadCurrentMusic(){ 
-        try{ 
-            const r=await fetch('/api/bg_music'); const d=await r.json(); 
-            const c=document.getElementById('currentMusicDisplay'); 
-            if(d.music_url){ 
-                c.innerHTML=`<div style="word-break:break-all;margin-bottom:5px">🎵 <a href="${d.music_url}" target="_blank" style="color:var(--g)">${d.music_url}</a></div><audio controls style="width:100%;height:30px"><source src="${d.music_url}" type="audio/mpeg"></audio>`;
-            }else{ 
-                c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No music set</span>'; 
+    
+    async function removeBgMusic() { 
+        try { 
+            await fetch('/api/admin/bg_music', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ music_url: '' })
+            }); 
+            n('Music Removed!'); 
+            document.getElementById('bgMusicFile').value = '';
+            loadCurrentMusic(); 
+        } catch(e) { n('Error', 'error'); } 
+    }
+    
+    async function loadCurrentMusic() { 
+        try { 
+            const r = await fetch('/api/bg_music'); 
+            const d = await r.json(); 
+            const c = document.getElementById('currentMusicDisplay'); 
+            if (d.music_url) { 
+                c.innerHTML = `<div style="word-break:break-all;margin-bottom:5px;font-size:9px">🎵 Music Loaded</div><audio controls style="width:100%;height:30px"><source src="${d.music_url}" type="audio/mpeg"></audio>`; 
+            } else { 
+                c.innerHTML = '<span style="color:rgba(255,255,255,0.4)">No music set</span>'; 
             } 
-        }catch(e){} 
+        } catch(e) {} 
     }
 </script>
 </body>
