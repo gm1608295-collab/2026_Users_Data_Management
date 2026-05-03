@@ -277,8 +277,20 @@ app.get('/api/set_menu_button', async (req, res) => {
     });
 });
 
+// Webhook Handler (၁ ခါပဲ)
 app.post('/telegram-webhook', async (req, res) => {
     const msg = req.body.message;
+    const callback = req.body.callback_query;
+    
+    // Handle callback queries
+    if (callback) {
+        const chatId = callback.message.chat.id;
+        if (callback.data === 'guide') {
+            sendTelegramMessage(chatId, `📖 MLBB Security System\n\nလမ်းညွှန်:\n\n၁။ Register လုပ်ပါ\n၂။ Login ဝင်ပါ\n၃။ Data Tab တွင် အကောင့်များ သိမ်းပါ\n၄။ Top Up / Buy Code ပြုလုပ်ပါ\n\nအကူအညီ: @Solo_m28`);
+        }
+        return res.send('OK');
+    }
+    
     if (!msg) return res.send('OK');
     
     const chatId = msg.chat.id;
@@ -321,18 +333,6 @@ app.post('/telegram-webhook', async (req, res) => {
         sendTelegramMessage(chatId, `ကျေးဇူးပြု၍ အောက်ပါ Commands များကို အသုံးပြုပါ:\n\n/start - Login Page\n/login - Login Page\n/help - Help\n/balance - Check Balance\n/otp - Get OTP Code\n\nဆက်သွယ်ရန်: @Solo_m28`);
     }
     
-    res.send('OK');
-});
-
-// Handle callback queries from inline keyboards
-app.post('/telegram-webhook', async (req, res) => {
-    const callback = req.body.callback_query;
-    if (callback) {
-        const chatId = callback.message.chat.id;
-        if (callback.data === 'guide') {
-            sendTelegramMessage(chatId, `📖 MLBB Security System\n\nလမ်းညွှန်:\n\n၁။ Register လုပ်ပါ\n၂။ Login ဝင်ပါ\n၃။ Data Tab တွင် အကောင့်များ သိမ်းပါ\n၄။ Top Up / Buy Code ပြုလုပ်ပါ\n\nအကူအညီ: @Solo_m28`);
-        }
-    }
     res.send('OK');
 });
 
