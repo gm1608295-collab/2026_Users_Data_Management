@@ -353,18 +353,11 @@ app.get('/api/set_menu_button', async (req, res) => {
 });
 
 // Webhook Handler
-app.all('/telegram-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-    let body;
-    try {
-        body = JSON.parse(req.body.toString());
-    } catch(e) {
-        body = req.body;
-    }
-    
+app.all('/telegram-webhook', async (req, res) => {
     console.log('🔔 Webhook received!');
     
-    const msg = body.message;
-    const callback = body.callback_query;
+    const msg = req.body.message;
+    const callback = req.body.callback_query;
     
     if (callback) {
         const chatId = callback.message.chat.id;
@@ -418,7 +411,6 @@ app.all('/telegram-webhook', express.raw({ type: 'application/json' }), async (r
     
     res.send('OK');
 });
-
 // ==================== PAGES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
