@@ -484,8 +484,77 @@
     function closeEmail(){ document.getElementById("emailModal").classList.remove("active"); }
     function sendEmail(){ const na=document.getElementById("emName").value,em=document.getElementById("emEmail").value,ph=document.getElementById("emPhone").value,ms=document.getElementById("emMsg").value; if(!na||!em||!ms)return n("Fill required","error"); const btn=document.querySelector("#emailModal .btn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending...'; btn.disabled=true; emailjs.send("service_3akzfls","template_xqygsga",{from_name:na,from_email:em,phone_number:ph,message:ms,submitted_at:new Date().toLocaleString()}).then(()=>{ n("Sent!"); closeEmail(); btn.innerHTML='<i class="fas fa-paper-plane"></i> Send'; btn.disabled=false; }).catch(()=>{ n("Error","error"); btn.innerHTML='<i class="fas fa-paper-plane"></i> Send'; btn.disabled=false; }); }
 
-    // ==================== BG MUSIC ====================
-    (function(){const a=document.getElementById('bgAudio');const su=localStorage.getItem('bgMusicUrl');const st=localStorage.getItem('bgMusicTime');if(su){a.src=su;a.volume=0.3;if(st)a.currentTime=parseFloat(st);a.play().catch(()=>{})}setInterval(()=>{if(!a.paused)localStorage.setItem('bgMusicTime',a.currentTime)},1000);setInterval(async()=>{try{const r=await fetch('/api/bg_music');const d=await r.json();if(d.success&&d.music_url){const cu=localStorage.getItem('bgMusicUrl');if(d.music_url!==cu){localStorage.setItem('bgMusicUrl',d.music_url);localStorage.setItem('bgMusicTime','0');a.src=d.music_url;a.currentTime=0;a.play().catch(()=>{})}}else{localStorage.removeItem('bgMusicUrl');localStorage.removeItem('bgMusicTime');a.pause();a.src=''}}catch(e){}},3000)})();
+    // ==================== BG MUSIC (Auto-Play + Refresh Survival + Instant Update) ====================
+    (function(){
+        const audio = document.getElementById('bgAudio');
+        
+        function tryPlay() {
+            if (audio && audio.src && audio.src !== window.location.href) {
+                audio.play().catch(() => {
+                    document.addEventListener('click', function playOnClick() {
+                        audio.play().catch(()=>{});
+                    }, { once: true });
+                });
+            }
+        }
+        
+        // Load from localStorage on page load
+        const savedUrl = localStorage.getItem('bgMusicUrl');
+        const savedTime = localStorage.getItem('bgMusicTime');
+        
+        if (savedUrl) {
+            audio.src = savedUrl;
+            audio.volume = 0.3;
+            audio.loop = true;
+            if (savedTime && parseFloat(savedTime) > 0) {
+                audio.currentTime = parseFloat(savedTime);
+            }
+            tryPlay();
+        }
+        
+        // Save current time every second
+        setInterval(() => {
+            if (audio && !audio.paused && audio.src) {
+                localStorage.setItem('bgMusicTime', audio.currentTime.toString());
+            }
+        }, 1000);
+        
+        // Check for admin updates every 3 seconds
+        async function checkForUpdates() {
+            try {
+                const r = await fetch('/api/bg_music');
+                const d = await r.json();
+                
+                if (d.success && d.music_url) {
+                    const currentStored = localStorage.getItem('bgMusicUrl');
+                    
+                    // Admin posted new music OR first time loading
+                    if (d.music_url !== currentStored) {
+                        localStorage.setItem('bgMusicUrl', d.music_url);
+                        localStorage.setItem('bgMusicTime', '0');
+                        audio.src = d.music_url;
+                        audio.currentTime = 0;
+                        audio.loop = true;
+                        audio.volume = 0.3;
+                        tryPlay();
+                    } else if (audio.paused || !audio.src) {
+                        // Same URL but not playing
+                        tryPlay();
+                    }
+                } else if (d.success && !d.music_url) {
+                    // Admin removed music
+                    localStorage.removeItem('bgMusicUrl');
+                    localStorage.removeItem('bgMusicTime');
+                    audio.pause();
+                    audio.src = '';
+                }
+            } catch(e) {}
+        }
+        
+        // Run check immediately and then every 3 seconds
+        checkForUpdates();
+        setInterval(checkForUpdates, 3000);
+    })();
 
     // ==================== ON LOAD ====================
     window.onload=async function(){
