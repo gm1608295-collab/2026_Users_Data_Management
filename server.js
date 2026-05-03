@@ -13,7 +13,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(__dirname));
 
 const pool = new Pool({
-    connectionString: 'postgresql://neondb_owner:npg_XQ1o9KdkvZWa@ep-holy-credit-am3o64na-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require',
+    connectionString: 'postgresql://neondb_owner:npg_Ov8UdylHq1At@ep-wispy-morning-an1dg3go-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require',
     ssl: { rejectUnauthorized: false }
 });
 
