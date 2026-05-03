@@ -221,6 +221,76 @@ function startLongPolling() {
 }
 startLongPolling();
 
+// ==================== BACKUP & RESTORE ====================
+app.get('/api/admin/backup', async (req, res) => {
+    try {
+        const users = await pool.query('SELECT * FROM auth_users');
+        const orders = await pool.query('SELECT * FROM orders');
+        const notices = await pool.query('SELECT * FROM notices');
+        const slider = await pool.query('SELECT * FROM slider_images');
+        const bgMusic = await pool.query('SELECT * FROM bg_music');
+        const pageStatus = await pool.query('SELECT * FROM page_status');
+        const banned = await pool.query('SELECT * FROM banned_users');
+        const usedCodes = await pool.query('SELECT * FROM used_codes');
+        
+        const backup = {
+            version: '1.0',
+            date: new Date().toISOString(),
+            tables: {
+                auth_users: users.rows,
+                orders: orders.rows,
+                notices: notices.rows,
+                slider_images: slider.rows,
+                bg_music: bgMusic.rows,
+                page_status: pageStatus.rows,
+                banned_users: banned.rows,
+                used_codes: usedCodes.rows
+            }
+        };
+        
+        res.json({ success: true, data: backup });
+    } catch (e) {
+        res.json({ success: false, message: 'Backup failed' });
+    }
+});
+
+app.post('/api/admin/restore', async (req, res) => {
+    const { data } = req.body;
+    if (!data || !data.tables) return res.json({ success: false, message: 'Invalid backup file' });
+    
+    try {
+        const tables = data.tables;
+        
+        // Restore auth_users
+        if (tables.auth_users) {
+            await pool.query('DELETE FROM auth_users');
+            for (const row of tables.auth_users) {
+                await pool.query('INSERT INTO auth_users (id, username, email, phone, password, google_id, login_type, avatar, gmail_pass, mlbb_pass, tiktok_pass, balance, created_at, last_login) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)', 
+                [row.id, row.username, row.email, row.phone, row.password, row.google_id, row.login_type, row.avatar, row.gmail_pass, row.mlbb_pass, row.tiktok_pass, row.balance, row.created_at, row.last_login]);
+            }
+        }
+        
+        // Restore orders
+        if (tables.orders) {
+            await pool.query('DELETE FROM orders');
+            for (const row of tables.orders) {
+                await pool.query('INSERT INTO orders (id, user_id, username, amount, payment_method, screenshot, status, submitted_user_id, created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+                [row.id, row.user_id, row.username, row.amount, row.payment_method, row.screenshot, row.status, row.submitted_user_id, row.created_at]);
+            }
+        }
+        
+        // Restore other tables
+        if (tables.banned_users) { await pool.query('DELETE FROM banned_users'); for (const row of tables.banned_users) { await pool.query('INSERT INTO banned_users (user_id, banned_by, banned_at) VALUES ($1,$2,$3)', [row.user_id, row.banned_by, row.banned_at]); } }
+        if (tables.notices) { await pool.query('DELETE FROM notices'); for (const row of tables.notices) { await pool.query('INSERT INTO notices (id, message, color, created_by, created_at) VALUES ($1,$2,$3,$4,$5)', [row.id, row.message, row.color, row.created_by, row.created_at]); } }
+        if (tables.slider_images) { await pool.query('DELETE FROM slider_images'); for (const row of tables.slider_images) { await pool.query('INSERT INTO slider_images (id, image_urls, updated_at) VALUES ($1,$2,$3)', [row.id, row.image_urls, row.updated_at]); } }
+        if (tables.bg_music) { await pool.query('DELETE FROM bg_music'); for (const row of tables.bg_music) { await pool.query('INSERT INTO bg_music (id, music_url, updated_at) VALUES ($1,$2,$3)', [row.id, row.music_url, row.updated_at]); } }
+        if (tables.page_status) { await pool.query('DELETE FROM page_status'); for (const row of tables.page_status) { await pool.query('INSERT INTO page_status (page_id, status, updated_at) VALUES ($1,$2,$3)', [row.page_id, row.status, row.updated_at]); } }
+        
+        res.json({ success: true, message: 'Database restored successfully' });
+    } catch (e) {
+        res.json({ success: false, message: 'Restore failed: ' + e.message });
+    }
+});
 // ==================== PAGES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
