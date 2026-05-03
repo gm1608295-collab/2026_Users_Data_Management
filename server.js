@@ -311,6 +311,10 @@ startLongPolling();
 // ==================== PAGES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html'))); // ← ဒါထည့်
+app.get('/topup.html', (req, res) => res.sendFile(path.join(__dirname, 'topup.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/topup.html', (req, res) => res.sendFile(path.join(__dirname, 'topup.html')));
 app.get('/buycode.html', (req, res) => res.sendFile(path.join(__dirname, 'buycode.html')));
 app.get('/aboutredeem.html', (req, res) => res.sendFile(path.join(__dirname, 'aboutredeem.html')));
