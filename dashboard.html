@@ -339,7 +339,6 @@
     if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-worker.js'); }
     emailjs.init("tsKN2j9o6RYK4KeEp");
     
-    const ADMIN="MK2008";
     let GPASS="DoubleMK2008", MPASS="GlobalMK2008", TPASS="DoubleMK2008", countriesData=[];
     let currentViewType=null, currentViewId=null;
     let currentLang=localStorage.getItem('lang')||'my';
@@ -408,6 +407,20 @@
         const t=document.getElementById("passType").value, cp=document.getElementById("curPass").value, np=document.getElementById("newPass").value;
         if(!cp||!np) return n("Fill all fields","error");
         try{ const r=await fetch("/api/change_password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:t,cp:cp,np:np})}); const d=await r.json(); d.success?(n("Password Changed!"),loadPw()):n(d.message,"error"); }catch(e){ n("Connection error","error"); }
+    }
+
+    // ==================== BG MUSIC (Auto-Play, No User Control) ====================
+    async function loadBgMusic() {
+        try {
+            const r = await fetch('/api/bg_music');
+            const d = await r.json();
+            if (d.success && d.music_url) {
+                const audio = new Audio(d.music_url);
+                audio.loop = true;
+                audio.volume = 0.3;
+                audio.play().catch(() => {});
+            }
+        } catch(e) {}
     }
 
     // ==================== IMAGE SLIDER ====================
@@ -485,12 +498,16 @@
         myUserId=user.id;
         document.getElementById("myUserIdDisp").textContent=user.id?user.id.toString().padStart(6,'0'):'------';
         document.getElementById("myEmail").textContent=maskEmail(user.email||'');
+        
+        loadBgMusic(); // ← BG Music Auto-Play
         loadSliderImages();
         loadNotice();
+        
         fetch("/api/track_login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id,username:user.username,email:user.email,loginType:user.login_type})});
         loadPw();
         loadCountries();
         loadMyHistory();
+        
         if(user.id){
             const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});
             const d=await r.json();
