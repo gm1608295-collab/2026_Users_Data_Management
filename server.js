@@ -321,6 +321,89 @@ app.all('/telegram-webhook', async (req, res) => {
         } else {
             sendTelegramMessage(chatId, `❌ အကောင့်မတွေ့ပါ။ Login Now ကိုနှိပ်၍ ဝင်ရောက်ပါ။`, loginKeyboard);
         }
+// ==================== TELEGRAM BOT WEBHOOK ====================
+app.get('/api/set_webhook', async (req, res) => {
+    const webhookUrl = 'https://two026-users-data-management.onrender.com/telegram-webhook';
+    https.get(`${TELEGRAM_API}/setWebhook?url=${encodeURIComponent(webhookUrl)}`, (resp) => {
+        let data = ''; resp.on('data', chunk => data += chunk);
+        resp.on('end', () => res.json(JSON.parse(data)));
+    });
+});
+
+app.get('/api/set_commands', async (req, res) => {
+    const commands = [
+        { command: 'start', description: 'Login Page' },
+        { command: 'login', description: 'Login Page' },
+        { command: 'help', description: 'Help' },
+        { command: 'balance', description: 'Check Balance' },
+        { command: 'otp', description: 'Get OTP Code' }
+    ];
+    https.get(`${TELEGRAM_API}/setMyCommands?commands=${encodeURIComponent(JSON.stringify(commands))}`, (resp) => {
+        let data = ''; resp.on('data', chunk => data += chunk);
+        resp.on('end', () => res.json(JSON.parse(data)));
+    });
+});
+
+app.get('/api/set_menu_button', async (req, res) => {
+    const menuButton = { type: 'web_app', text: 'MLBB Security', web_app: { url: 'https://two026-users-data-management.onrender.com' } };
+    https.get(`${TELEGRAM_API}/setChatMenuButton?menu_button=${encodeURIComponent(JSON.stringify(menuButton))}`, (resp) => {
+        let data = ''; resp.on('data', chunk => data += chunk);
+        resp.on('end', () => res.json(JSON.parse(data)));
+    });
+});
+
+// Webhook Handler
+app.all('/telegram-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    let body;
+    try {
+        body = JSON.parse(req.body.toString());
+    } catch(e) {
+        body = req.body;
+    }
+    
+    console.log('🔔 Webhook received!');
+    
+    const msg = body.message;
+    const callback = body.callback_query;
+    
+    if (callback) {
+        const chatId = callback.message.chat.id;
+        if (callback.data === 'guide') {
+            sendTelegramMessage(chatId, `📖 MLBB Security System\n\nလမ်းညွှန်:\n\n၁။ Register လုပ်ပါ\n၂။ Login ဝင်ပါ\n၃။ Data Tab တွင် အကောင့်များ သိမ်းပါ\n၄။ Top Up / Buy Code ပြုလုပ်ပါ\n\nအကူအညီ: @Solo_m28`);
+        }
+        return res.send('OK');
+    }
+    
+    if (!msg) return res.send('OK');
+    
+    const chatId = msg.chat.id;
+    const text = msg.text || '';
+    const userId = msg.from.id;
+    const firstName = msg.from.first_name || 'User';
+    const username = msg.from.username || firstName;
+    
+    const loginKeyboard = {
+        inline_keyboard: [
+            [{ text: '🔓 Login Now', web_app: { url: 'https://two026-users-data-management.onrender.com' } }],
+            [{ text: '📖 User Guide', callback_data: 'guide' }],
+            [{ text: '📞 Contact Support', url: 'https://t.me/Solo_m28' }]
+        ]
+    };
+    
+    if (text === '/start' || text === '/login') {
+        await createTelegramUser(userId, firstName, username);
+        sendTelegramMessage(chatId, `👋 မင်္ဂလာပါ ${firstName}!\n\nMLBB Security System မှ ကြိုဆိုပါတယ်။\n\nအောက်ပါ Login Now ခလုတ်ကိုနှိပ်၍ သင်၏အကောင့်သို့ ဝင်ရောက်နိုင်ပါသည်။`, loginKeyboard);
+    }
+    else if (text === '/help') {
+        sendTelegramMessage(chatId, `📖 MLBB Security System\n\nCommands:\n/start - Login Page\n/login - Login Page\n/help - Help\n/balance - Check Balance\n/otp - Get OTP Code\n\nဆက်သွယ်ရန်: @Solo_m28`);
+    }
+    else if (text === '/balance') {
+        const balance = await getUserBalance(userId);
+        if (balance !== null) {
+            sendTelegramMessage(chatId, `💰 သင်၏ Balance: ${balance.toLocaleString()} Ks`);
+        } else {
+            sendTelegramMessage(chatId, `❌ အကောင့်မတွေ့ပါ။ Login Now ကိုနှိပ်၍ ဝင်ရောက်ပါ။`, loginKeyboard);
+        }
     }
     else if (text === '/otp') {
         const user = await createTelegramUser(userId, firstName, username);
