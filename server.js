@@ -278,7 +278,7 @@ app.get('/api/set_menu_button', async (req, res) => {
 });
 
 // Webhook Handler (၁ ခါပဲ)
-app.post('/telegram-webhook', async (req, res) => {
+app.all('/telegram-webhook', async (req, res) => {
     const msg = req.body.message;
     const callback = req.body.callback_query;
     
