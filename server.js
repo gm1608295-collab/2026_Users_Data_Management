@@ -48,6 +48,8 @@ pool.query(`CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message T
 pool.query(`ALTER TABLE notices ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT ''`);
 pool.query(`CREATE TABLE IF NOT EXISTS banner_images (id SERIAL PRIMARY KEY, image_url TEXT, created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+pool.query(`CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_url TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+pool.query(`CREATE TABLE IF NOT EXISTS page_status (page_id VARCHAR(50) PRIMARY KEY, status VARCHAR(5) DEFAULT 'on', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS banned_users (user_id VARCHAR(100) PRIMARY KEY, banned_by VARCHAR(100), banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
 pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS submitted_user_id VARCHAR(20)`);
@@ -104,11 +106,12 @@ app.get('/auth/google/callback', async (req, res) => {
         const userInfo = await userRes.json();
         const googleId = userInfo.id, email = userInfo.email, name = userInfo.name || 'Google User';
         let user = await pool.query('SELECT * FROM auth_users WHERE google_id = $1', [googleId]);
-        if (user.rows.length > 0) { const u = user.rows[0]; await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]); res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||name}",email:"${u.email||email}",login_type:"google"}));window.location.href="/dashboard";</script>`); return; }
+        if (user.rows.length > 0) { const u = user.rows[0]; await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]); tgSend(`🔑 Google Login\n👤 ${u.username}\n📧 ${email}`); res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||name}",email:"${u.email||email}",login_type:"google"}));window.location.href="/dashboard";</script>`); return; }
         user = await pool.query("SELECT * FROM auth_users WHERE email = $1 AND login_type = 'local'", [email]);
-        if (user.rows.length > 0) { const u = user.rows[0]; await pool.query('UPDATE auth_users SET google_id = $1, last_login = NOW() WHERE id = $2', [googleId, u.id]); res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||name}",email:"${email}",login_type:"google"}));window.location.href="/dashboard";</script>`); return; }
+        if (user.rows.length > 0) { const u = user.rows[0]; await pool.query('UPDATE auth_users SET google_id = $1, last_login = NOW() WHERE id = $2', [googleId, u.id]); tgSend(`🔑 Google Login\n👤 ${u.username}\n📧 ${email}`); res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||name}",email:"${email}",login_type:"google"}));window.location.href="/dashboard";</script>`); return; }
         const newUser = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type) VALUES ($1,$2,$3,$4) RETURNING id', [name, email, googleId, 'google']);
         const uid = newUser.rows[0].id;
+        tgSend(`🆕 Google Registration\n👤 ${name}\n📧 ${email}`);
         res.send(`<script>localStorage.setItem("auth_token","token_${uid}");localStorage.setItem("user",JSON.stringify({id:${uid},username:"${name}",email:"${email}",login_type:"google"}));window.location.href="/dashboard";</script>`);
     } catch (e) { res.send('<script>alert("Google login failed");window.location.href="/";</script>'); }
 });
@@ -173,6 +176,46 @@ app.post('/api/admin/banner_image', async (req, res) => { const { image_url } = 
 app.get('/api/slider_images', async (req, res) => { try { const r = await pool.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, images: [] }); const images = JSON.parse(r.rows[0].image_urls || '[]'); res.json({ success: true, images }); } catch (e) { res.json({ success: true, images: [] }); } });
 app.post('/api/admin/slider_images', async (req, res) => { const { images } = req.body; try { if (!images || images.length === 0) { await pool.query('DELETE FROM slider_images'); return res.json({ success: true, message: 'Slider cleared' }); } await pool.query('INSERT INTO slider_images (image_urls) VALUES ($1)', [JSON.stringify(images)]); res.json({ success: true, message: 'Slider updated' }); } catch (e) { res.json({ success: false, message: 'Error' }); } });
 
+// ==================== BG MUSIC ====================
+app.get('/api/bg_music', async (req, res) => {
+    try { const r = await pool.query('SELECT music_url FROM bg_music ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, music_url: '' }); res.json({ success: true, music_url: r.rows[0].music_url || '' }); } catch (e) { res.json({ success: true, music_url: '' }); }
+});
+app.post('/api/admin/bg_music', async (req, res) => {
+    const { music_url } = req.body;
+    try {
+        if (!music_url || music_url.trim() === '') { await pool.query('DELETE FROM bg_music'); return res.json({ success: true, message: 'Music removed' }); }
+        await pool.query('DELETE FROM bg_music');
+        await pool.query('INSERT INTO bg_music (music_url) VALUES ($1)', [music_url]);
+        res.json({ success: true, message: 'Music updated' });
+    } catch (e) { res.json({ success: false, message: 'Error' }); }
+});
+
+// ==================== PAGE TOGGLE ====================
+app.get('/api/admin/page_status', async (req, res) => {
+    try {
+        const pages = [
+            { id: 'topup', name: 'Top Up' },
+            { id: 'buycode', name: 'Buy Code MLBB' },
+            { id: 'dashboard', name: 'Dashboard' }
+        ];
+        const result = [];
+        for (const p of pages) {
+            const r = await pool.query("SELECT status FROM page_status WHERE page_id = $1", [p.id]);
+            const status = r.rows.length > 0 ? r.rows[0].status : 'on';
+            result.push({ id: p.id, name: p.name, status: status });
+        }
+        res.json({ pages: result });
+    } catch (e) { res.json({ pages: [] }); }
+});
+
+app.post('/api/admin/toggle_page', async (req, res) => {
+    const { page_id, status } = req.body;
+    try {
+        await pool.query("INSERT INTO page_status (page_id, status) VALUES ($1, $2) ON CONFLICT (page_id) DO UPDATE SET status=$2, updated_at=NOW()", [page_id, status]);
+        res.json({ success: true });
+    } catch (e) { res.json({ success: false }); }
+});
+
 // ==================== MLBB CHECK ====================
 function getPlayerName(id, server) { const names = ["ShadowX","DarkHero","MLBBKing","NoobMaster","LegendX","FrostBlade","SkyHunter"]; const num = (parseInt(id)||0) + (parseInt(server)||0); return names[num % names.length]; }
 app.get('/check', (req, res) => { const { id, server } = req.query; if (!id || !server) return res.json({ error: "Missing ID or Server" }); const name = getPlayerName(id, server); res.json({ name, id, server, status: "verified" }); });
@@ -187,10 +230,42 @@ app.post('/api/check_banned', async (req, res) => { try { const r = await pool.q
 app.post('/api/admin/search_user', async (req, res) => { const { query } = req.body; try { const r = await pool.query('SELECT id, username, email, balance FROM auth_users WHERE id::text = $1 OR username ILIKE $2 OR email ILIKE $2 LIMIT 5', [query, '%'+query+'%']); res.json({ users: r.rows }); } catch (e) { res.json({ users: [] }); } });
 app.post('/api/admin/update_balance', async (req, res) => { const { userId, amount } = req.body; try { await pool.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [amount, userId]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
-// ==================== ORDERS ====================
+// ==================== ORDERS (Date Grouped) ====================
+app.get('/api/admin/orders', async (req, res) => {
+    const filter = req.query.filter || 'all';
+    try {
+        let query = 'SELECT o.*, a.email as user_email FROM orders o LEFT JOIN auth_users a ON o.user_id = a.id';
+        let params = [];
+        
+        const today = new Date().toISOString().split('T')[0];
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        
+        if (filter === 'today') {
+            query += " WHERE DATE(o.created_at) = $1";
+            params.push(today);
+        } else if (filter === 'yesterday') {
+            query += " WHERE DATE(o.created_at) = $1";
+            params.push(yesterday);
+        }
+        
+        query += ' ORDER BY o.id DESC';
+        
+        const r = await pool.query(query, params);
+        
+        // Count today
+        const todayCount = await pool.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at) = $1", [today]);
+        const totalCount = await pool.query("SELECT COUNT(*) FROM orders");
+        
+        res.json({ 
+            orders: r.rows, 
+            total: parseInt(totalCount.rows[0].count), 
+            today: parseInt(todayCount.rows[0].count) 
+        });
+    } catch (e) { res.json({ orders: [], total: 0, today: 0 }); }
+});
+
 app.post('/api/submit_order', async (req, res) => { const { token, amount, payment_method, screenshot, user_id } = req.body; if (!token) return res.json({ success: false, message: 'Not logged in' }); const uid = parseInt(token.replace('token_', '')); try { const user = await pool.query('SELECT username, email FROM auth_users WHERE id=$1', [uid]); const un = user.rows.length > 0 ? user.rows[0].username : 'Unknown'; await pool.query('INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)', [uid, un, amount, payment_method, screenshot, 'pending', user_id || uid.toString()]); tgSend(`🛒 New Order\n👤 ${un}\n💰 ${amount} Ks\n💳 ${payment_method}`); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/get_orders', async (req, res) => { const { token } = req.body; if (!token) return res.json({ orders: [] }); const uid = parseInt(token.replace('token_', '')); try { const r = await pool.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); res.json({ orders: r.rows }); } catch (e) { res.json({ orders: [] }); } });
-app.get('/api/admin/orders', async (req, res) => { try { const r = await pool.query('SELECT o.*, a.email as user_email FROM orders o LEFT JOIN auth_users a ON o.user_id = a.id ORDER BY o.id DESC'); res.json({ orders: r.rows }); } catch (e) { res.json({ orders: [] }); } });
 app.post('/api/admin/order_status', async (req, res) => { const { id, status } = req.body; try { const order = await pool.query('SELECT * FROM orders WHERE id = $1', [id]); const o = order.rows[0]; await pool.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]); if (status === 'approved') tgSend(`✅ Approved\n👤 ${o.username}\n💰 ${o.amount} Ks`); else if (status === 'rejected') tgSend(`❌ Rejected\n👤 ${o.username}`); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/get_balance', async (req, res) => { const { token } = req.body; if (!token) return res.json({ balance: 0 }); const uid = parseInt(token.replace('token_', '')); try { const r = await pool.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); res.json({ balance: r.rows.length > 0 ? (r.rows[0].balance || 0) : 0 }); } catch (e) { res.json({ balance: 0 }); } });
 
@@ -213,108 +288,52 @@ function sendTelegramMessage(chatId, text, replyMarkup = null) {
 async function createTelegramUser(userId, firstName, username) {
     try {
         const exist = await pool.query("SELECT * FROM auth_users WHERE google_id = $1", ['tg_' + userId]);
-        if (exist.rows.length > 0) {
-            await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [exist.rows[0].id]);
-            return { id: exist.rows[0].id, username: exist.rows[0].username, balance: exist.rows[0].balance || 0 };
-        }
+        if (exist.rows.length > 0) { await pool.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [exist.rows[0].id]); return { id: exist.rows[0].id, username: exist.rows[0].username, balance: exist.rows[0].balance || 0 }; }
         const newUser = await pool.query('INSERT INTO auth_users (username, email, google_id, login_type, balance) VALUES ($1,$2,$3,$4,$5) RETURNING id', [firstName || username, 'tg_' + userId + '@telegram.com', 'tg_' + userId, 'telegram', 0]);
         return { id: newUser.rows[0].id, username: firstName || username, balance: 0 };
     } catch(e) { return null; }
 }
 
 async function getUserBalance(userId) {
-    try {
-        const r = await pool.query("SELECT balance FROM auth_users WHERE google_id = $1", ['tg_' + userId]);
-        return r.rows.length > 0 ? (r.rows[0].balance || 0) : null;
-    } catch(e) { return null; }
+    try { const r = await pool.query("SELECT balance FROM auth_users WHERE google_id = $1", ['tg_' + userId]); return r.rows.length > 0 ? (r.rows[0].balance || 0) : null; } catch(e) { return null; }
 }
 
 async function createOTP(userId) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    try {
-        await pool.query("UPDATE otp_codes SET used = true WHERE user_id = $1 AND used = false", [userId]);
-        await pool.query("INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '60 seconds')", [userId, otp]);
-    } catch(e) {}
+    try { await pool.query("UPDATE otp_codes SET used = true WHERE user_id = $1 AND used = false", [userId]); await pool.query("INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '60 seconds')", [userId, otp]); } catch(e) {}
     return otp;
 }
 
 function startLongPolling() {
     console.log('🤖 Bot Long Polling Started!');
-    
-    const mainKeyboard = {
-        inline_keyboard: [
-            [{ text: '🔓 Login Now', url: 'https://two026-users-data-management.onrender.com' }],
-            [{ text: '💰 Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
-            [{ text: '🛒 Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
-            [{ text: '📞 Contact', url: 'https://t.me/Solo_m28' }]
-        ]
-    };
-    
+    const mainKeyboard = { inline_keyboard: [[{ text: '🔓 Login Now', url: 'https://two026-users-data-management.onrender.com' }],[{ text: '💰 Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }],[{ text: '🛒 Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],[{ text: '📞 Contact', url: 'https://t.me/Solo_m28' }]] };
     async function getUpdates() {
         try {
             const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId + 1}&timeout=10`;
-            const response = await fetch(url);
-            const result = await response.json();
-            
+            const response = await fetch(url); const result = await response.json();
             if (result.ok && result.result.length > 0) {
                 result.result.forEach(async (update) => {
-                    lastUpdateId = update.update_id;
-                    const msg = update.message;
-                    if (!msg) return;
-                    
-                    const chatId = msg.chat.id;
-                    const text = msg.text || '';
-                    const firstName = msg.from.first_name || 'User';
-                    const username = msg.from.username || firstName;
-                    
-                    console.log(`📩 ${firstName}: ${text}`);
-                    
-                    if (text === '/start' || text === '/login') {
-                        await createTelegramUser(msg.from.id, firstName, username);
-                        sendTelegramMessage(chatId, `👋 မင်္ဂလာပါ ${firstName}!\n\nSOLO M Game Shop မှ ကြိုဆိုပါတယ်။\n\nအောက်ပါ ခလုတ်များကို နှိပ်၍ အသုံးပြုနိုင်ပါသည်。`, mainKeyboard);
-                    }
-                    else if (text === '/help') {
-                        sendTelegramMessage(chatId, `📖 SOLO M Game Shop\n\nCommands:\n/start - Login Page & Menu\n/help - Help\n/balance - Check Balance\n/otp - Get OTP Code (60s)\n\nဆက်သွယ်ရန်: @Solo_m28`);
-                    }
-                    else if (text === '/balance') {
-                        const balance = await getUserBalance(msg.from.id);
-                        if (balance !== null) {
-                            sendTelegramMessage(chatId, `💰 သင်၏ Balance: ${balance.toLocaleString()} Ks\n\nငွေဖြည့်လိုပါက Top Up ကိုနှိပ်ပါ။`, mainKeyboard);
-                        } else {
-                            sendTelegramMessage(chatId, `❌ အကောင့်မတွေ့ပါ။ Login Now ကိုနှိပ်၍ ဝင်ရောက်ပါ。`, mainKeyboard);
-                        }
-                    }
-                    else if (text === '/otp') {
-                        const user = await createTelegramUser(msg.from.id, firstName, username);
-                        if (user) {
-                            const otp = await createOTP(user.id);
-                            sendTelegramMessage(chatId, `🔐 သင်၏ OTP Code\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ。\n\nဤ OTP ကို မည်သူ့ကိုမျှ မပေးပါနှင့်。`);
-                        }
-                    }
-                    else {
-                        sendTelegramMessage(chatId, `အောက်ပါ ခလုတ်များကို အသုံးပြုပါ。\n\nCommands: /start /help /balance /otp`, mainKeyboard);
-                    }
+                    lastUpdateId = update.update_id; const msg = update.message; if (!msg) return;
+                    const chatId = msg.chat.id, text = msg.text || '', firstName = msg.from.first_name || 'User', username = msg.from.username || firstName;
+                    if (text === '/start' || text === '/login') { await createTelegramUser(msg.from.id, firstName, username); sendTelegramMessage(chatId, `👋 မင်္ဂလာပါ ${firstName}!\n\nSOLO M Game Shop မှ ကြိုဆိုပါတယ်။\n\nအောက်ပါ ခလုတ်များကို နှိပ်၍ အသုံးပြုနိုင်ပါသည်။`, mainKeyboard); }
+                    else if (text === '/help') { sendTelegramMessage(chatId, `📖 SOLO M Game Shop\n\nCommands:\n/start /help /balance /otp\n\nဆက်သွယ်ရန်: @Solo_m28`); }
+                    else if (text === '/balance') { const balance = await getUserBalance(msg.from.id); if (balance !== null) sendTelegramMessage(chatId, `💰 သင်၏ Balance: ${balance.toLocaleString()} Ks`, mainKeyboard); else sendTelegramMessage(chatId, `❌ အကောင့်မတွေ့ပါ။`, mainKeyboard); }
+                    else if (text === '/otp') { const user = await createTelegramUser(msg.from.id, firstName, username); if (user) { const otp = await createOTP(user.id); sendTelegramMessage(chatId, `🔐 OTP: <b>${otp}</b>\n⏰ ၆၀ စက္ကန့်`); } }
+                    else { sendTelegramMessage(chatId, `အောက်ပါ ခလုတ်များကို အသုံးပြုပါ။\n/start /help /balance /otp`, mainKeyboard); }
                 });
             }
-        } catch(e) {
-            console.log('❌ Polling Error:', e.message);
-        }
+        } catch(e) { console.log('❌ Polling Error:', e.message); }
         setTimeout(getUpdates, 500);
     }
-    
     getUpdates();
 }
 
-// Start Bot Long Polling
 startLongPolling();
 
 // ==================== PAGES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html'))); // ← ဒါထည့်
-app.get('/topup.html', (req, res) => res.sendFile(path.join(__dirname, 'topup.html')));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 app.get('/topup.html', (req, res) => res.sendFile(path.join(__dirname, 'topup.html')));
 app.get('/buycode.html', (req, res) => res.sendFile(path.join(__dirname, 'buycode.html')));
 app.get('/aboutredeem.html', (req, res) => res.sendFile(path.join(__dirname, 'aboutredeem.html')));
