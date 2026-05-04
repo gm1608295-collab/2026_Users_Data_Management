@@ -484,92 +484,111 @@
     function closeEmail(){ document.getElementById("emailModal").classList.remove("active"); }
     function sendEmail(){ const na=document.getElementById("emName").value,em=document.getElementById("emEmail").value,ph=document.getElementById("emPhone").value,ms=document.getElementById("emMsg").value; if(!na||!em||!ms)return n("Fill required","error"); const btn=document.querySelector("#emailModal .btn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending...'; btn.disabled=true; emailjs.send("service_3akzfls","template_xqygsga",{from_name:na,from_email:em,phone_number:ph,message:ms,submitted_at:new Date().toLocaleString()}).then(()=>{ n("Sent!"); closeEmail(); btn.innerHTML='<i class="fas fa-paper-plane"></i> Send'; btn.disabled=false; }).catch(()=>{ n("Error","error"); btn.innerHTML='<i class="fas fa-paper-plane"></i> Send'; btn.disabled=false; }); }
 
-    // ==================== BG MUSIC PLAYLIST (Resume After Refresh) ====================
+    // ==================== BG MUSIC PLAYLIST (Instant + Resume + 2X Volume) ====================
 (function(){
     const a = document.getElementById('bgAudio');
     let playlist = [];
     let currentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
     
-    a.volume = 0.3;
+    a.volume = 0.6; // ✅ 2X volume (0.3 → 0.6)
     
-    async function loadPlaylist() {
+    // ✅ Preload next track for instant switch
+    const nextAudio = new Audio();
+    nextAudio.volume = 0.6;
+    
+    async function checkPlaylist() {
         try {
-            const r = await fetch('/api/bg_music');
+            const r = await fetch('/api/bg_music?t=' + Date.now());
             const d = await r.json();
+            
             if (d.success && d.playlist && d.playlist.length > 0) {
-                playlist = d.playlist;
-                // Resume from saved index
-                if (currentIndex >= playlist.length) currentIndex = 0;
-                playCurrent();
+                const newList = JSON.stringify(d.playlist);
+                const oldList = JSON.stringify(playlist);
+                
+                // New playlist detected
+                if (newList !== oldList) {
+                    playlist = d.playlist;
+                    currentIndex = 0;
+                    playCurrent(true); // Force play
+                }
+                // Same playlist but not playing
+                else if (a.paused && a.src) {
+                    const savedTime = localStorage.getItem('bgMusicTime_' + currentIndex);
+                    a.currentTime = savedTime ? parseFloat(savedTime) : 0;
+                    a.play().catch(()=>{});
+                }
+            } else {
+                // Music removed
+                a.pause();
+                a.removeAttribute('src');
+                a.load();
+                playlist = [];
+                nextAudio.removeAttribute('src');
             }
         } catch(e) {}
     }
     
-    function playCurrent() {
+    function playCurrent(force = false) {
         if (playlist.length === 0) return;
+        if (currentIndex >= playlist.length) currentIndex = 0;
         
         const url = playlist[currentIndex];
         const savedTime = localStorage.getItem('bgMusicTime_' + currentIndex);
         
-        // Only change source if different
-        if (a.src !== url) {
+        // ✅ Only change if different or forced
+        if (a.src !== url || force) {
             a.src = url;
-        }
-        
-        // Wait for metadata then resume time
-        if (a.readyState >= 1) {
-            // Already loaded
-            if (savedTime && a.currentTime < 1) {
-                a.currentTime = parseFloat(savedTime);
-            }
-            a.play().catch(()=>{});
-        } else {
-            a.addEventListener('loadedmetadata', function() {
-                if (savedTime) a.currentTime = parseFloat(savedTime);
+            a.load(); // Force reload
+            
+            // Resume time after load
+            a.addEventListener('canplay', function() {
+                if (savedTime && a.currentTime < 1) {
+                    a.currentTime = parseFloat(savedTime);
+                }
                 a.play().catch(()=>{});
             }, {once: true});
+        } else {
+            a.play().catch(()=>{});
+        }
+        
+        // ✅ Preload next track
+        const nextIndex = (currentIndex + 1) % playlist.length;
+        if (playlist[nextIndex] && nextAudio.src !== playlist[nextIndex]) {
+            nextAudio.src = playlist[nextIndex];
+            nextAudio.load();
         }
     }
     
-    // Save time & index every second
+    // ✅ Save time every 500ms
     setInterval(() => {
         if (!a.paused && playlist.length > 0) {
             localStorage.setItem('bgMusicIndex', currentIndex);
             localStorage.setItem('bgMusicTime_' + currentIndex, a.currentTime);
         }
-    }, 1000);
+    }, 500);
     
-    // When current music ends, play next
+    // ✅ When ends, play next instantly (preloaded)
     a.addEventListener('ended', function() {
+        // Save time for current
+        localStorage.setItem('bgMusicTime_' + currentIndex, a.currentTime);
+        
+        // Move to next
         currentIndex = (currentIndex + 1) % playlist.length;
         localStorage.setItem('bgMusicIndex', currentIndex);
         localStorage.setItem('bgMusicTime_' + currentIndex, '0');
-        playCurrent();
+        
+        // ✅ Use preloaded audio for instant switch
+        if (nextAudio.src) {
+            a.src = nextAudio.src;
+            a.currentTime = 0;
+            a.play().catch(()=>{});
+        }
+        playCurrent(true);
     });
     
-    // Check for playlist updates every 5 seconds
-    setInterval(async () => {
-        try {
-            const r = await fetch('/api/bg_music');
-            const d = await r.json();
-            if (d.playlist) {
-                const newList = JSON.stringify(d.playlist);
-                const oldList = JSON.stringify(playlist);
-                if (newList !== oldList) {
-                    playlist = d.playlist;
-                    currentIndex = 0;
-                    playCurrent();
-                }
-            } else {
-                a.pause();
-                a.src = '';
-                playlist = [];
-                localStorage.removeItem('bgMusicIndex');
-            }
-        } catch(e) {}
-    }, 5000);
-    
-    loadPlaylist();
+    // ✅ Check every 2 seconds
+    checkPlaylist();
+    setInterval(checkPlaylist, 2000);
 })();
     // ==================== ON LOAD ====================
     window.onload=async function(){
