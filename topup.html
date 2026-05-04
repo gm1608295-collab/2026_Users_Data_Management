@@ -411,7 +411,8 @@
     
     loadBalance();
     fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).then(r=>r.json()).then(d=>{if(d.orders)localStorage.setItem('orderHistoryCache',JSON.stringify(d.orders))}).catch(()=>{});
-// ==================== BG MUSIC PLAYLIST PLAYER ====================
+
+    // ==================== BG MUSIC PLAYLIST PLAYER ====================
 (function(){
     const a = document.getElementById('bgAudio');
     let playlist = [];
@@ -425,38 +426,23 @@
             const d = await r.json();
             if (d.success && d.playlist && d.playlist.length > 0) {
                 playlist = d.playlist;
-                playNext();
+                playCurrent();
             }
         } catch(e) {}
     }
     
-    function playNext() {
+    function playCurrent() {
         if (playlist.length === 0) return;
-        
         const url = playlist[currentIndex];
-        const savedTime = localStorage.getItem('bgMusicTime_' + currentIndex);
-        
         a.src = url;
-        a.addEventListener('loadedmetadata', function() {
-            if (savedTime) a.currentTime = parseFloat(savedTime);
-            a.play().catch(() => {});
-        }, { once: true });
+        a.play().catch(() => {});
     }
     
     // When current music ends, play next
     a.addEventListener('ended', function() {
-        // Save time as 0 for next track
         currentIndex = (currentIndex + 1) % playlist.length;
-        localStorage.setItem('bgMusicTime_' + currentIndex, '0');
-        playNext();
+        playCurrent();
     });
-    
-    // Save time every second
-    setInterval(() => {
-        if (!a.paused) {
-            localStorage.setItem('bgMusicTime_' + currentIndex, a.currentTime);
-        }
-    }, 1000);
     
     // Check for playlist updates every 5 seconds
     setInterval(async () => {
@@ -464,12 +450,12 @@
             const r = await fetch('/api/bg_music');
             const d = await r.json();
             if (d.playlist) {
-                const newPlaylist = JSON.stringify(d.playlist);
-                const oldPlaylist = JSON.stringify(playlist);
-                if (newPlaylist !== oldPlaylist) {
+                const newList = JSON.stringify(d.playlist);
+                const oldList = JSON.stringify(playlist);
+                if (newList !== oldList || playlist.length === 0) {
                     playlist = d.playlist;
                     currentIndex = 0;
-                    playNext();
+                    playCurrent();
                 }
             } else {
                 a.pause();
