@@ -484,11 +484,11 @@
     function closeEmail(){ document.getElementById("emailModal").classList.remove("active"); }
     function sendEmail(){ const na=document.getElementById("emName").value,em=document.getElementById("emEmail").value,ph=document.getElementById("emPhone").value,ms=document.getElementById("emMsg").value; if(!na||!em||!ms)return n("Fill required","error"); const btn=document.querySelector("#emailModal .btn"); btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Sending...'; btn.disabled=true; emailjs.send("service_3akzfls","template_xqygsga",{from_name:na,from_email:em,phone_number:ph,message:ms,submitted_at:new Date().toLocaleString()}).then(()=>{ n("Sent!"); closeEmail(); btn.innerHTML='<i class="fas fa-paper-plane"></i> Send'; btn.disabled=false; }).catch(()=>{ n("Error","error"); btn.innerHTML='<i class="fas fa-paper-plane"></i> Send'; btn.disabled=false; }); }
 
-    // ==================== BG MUSIC PLAYLIST PLAYER ====================
+    // ==================== BG MUSIC PLAYLIST (Resume After Refresh) ====================
 (function(){
     const a = document.getElementById('bgAudio');
     let playlist = [];
-    let currentIndex = 0;
+    let currentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
     
     a.volume = 0.3;
     
@@ -498,6 +498,8 @@
             const d = await r.json();
             if (d.success && d.playlist && d.playlist.length > 0) {
                 playlist = d.playlist;
+                // Resume from saved index
+                if (currentIndex >= playlist.length) currentIndex = 0;
                 playCurrent();
             }
         } catch(e) {}
@@ -505,14 +507,43 @@
     
     function playCurrent() {
         if (playlist.length === 0) return;
+        
         const url = playlist[currentIndex];
-        a.src = url;
-        a.play().catch(() => {});
+        const savedTime = localStorage.getItem('bgMusicTime_' + currentIndex);
+        
+        // Only change source if different
+        if (a.src !== url) {
+            a.src = url;
+        }
+        
+        // Wait for metadata then resume time
+        if (a.readyState >= 1) {
+            // Already loaded
+            if (savedTime && a.currentTime < 1) {
+                a.currentTime = parseFloat(savedTime);
+            }
+            a.play().catch(()=>{});
+        } else {
+            a.addEventListener('loadedmetadata', function() {
+                if (savedTime) a.currentTime = parseFloat(savedTime);
+                a.play().catch(()=>{});
+            }, {once: true});
+        }
     }
+    
+    // Save time & index every second
+    setInterval(() => {
+        if (!a.paused && playlist.length > 0) {
+            localStorage.setItem('bgMusicIndex', currentIndex);
+            localStorage.setItem('bgMusicTime_' + currentIndex, a.currentTime);
+        }
+    }, 1000);
     
     // When current music ends, play next
     a.addEventListener('ended', function() {
         currentIndex = (currentIndex + 1) % playlist.length;
+        localStorage.setItem('bgMusicIndex', currentIndex);
+        localStorage.setItem('bgMusicTime_' + currentIndex, '0');
         playCurrent();
     });
     
@@ -524,7 +555,7 @@
             if (d.playlist) {
                 const newList = JSON.stringify(d.playlist);
                 const oldList = JSON.stringify(playlist);
-                if (newList !== oldList || playlist.length === 0) {
+                if (newList !== oldList) {
                     playlist = d.playlist;
                     currentIndex = 0;
                     playCurrent();
@@ -533,6 +564,7 @@
                 a.pause();
                 a.src = '';
                 playlist = [];
+                localStorage.removeItem('bgMusicIndex');
             }
         } catch(e) {}
     }, 5000);
