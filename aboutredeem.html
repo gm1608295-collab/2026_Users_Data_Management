@@ -6,20 +6,59 @@
     <title>About MLBB Redeem Code - MLBB Security</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:#fff;font-family:sans-serif;min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;text-align:center}
+        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--t:#fff}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;text-align:center}
         .box{max-width:400px}
-        .box i{font-size:60px;color:#f39c12;margin-bottom:20px}
-        .box h1{color:#f39c12;margin-bottom:10px}
+        .box i{font-size:60px;color:var(--w);margin-bottom:20px}
+        .box h1{color:var(--w);margin-bottom:10px}
         .box p{font-size:14px;color:#ccc;margin-bottom:20px}
-        .back-btn{padding:10px 20px;background:#4a1c7a;color:#fff;border:none;border-radius:6px;cursor:pointer;text-decoration:none;font-size:14px}
+        .back-btn{padding:10px 20px;background:var(--a);color:var(--t);border:none;border-radius:6px;cursor:pointer;text-decoration:none;font-size:14px}
     </style>
 </head>
 <body>
+    <audio id="bgAudio" loop style="display:none"></audio>
     <div class="box">
         <i class="fas fa-tools"></i>
         <h1>About MLBB Redeem Code</h1>
         <p>Feature Coming Soon</p>
         <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
     </div>
+<script>
+    // ==================== GLOBAL: BG Music Player ====================
+    const bgAudio = document.getElementById('bgAudio');
+    let musicPlaylist = [], musicCurrentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
+    bgAudio.volume = 0.6;
+    async function checkMusic() {
+        try {
+            const r = await fetch('/api/bg_music?t=' + Date.now());
+            const d = await r.json();
+            if (d.playlist && d.playlist.length > 0) {
+                const newList = JSON.stringify(d.playlist), oldList = JSON.stringify(musicPlaylist);
+                if (newList !== oldList) { musicPlaylist = d.playlist; musicCurrentIndex = 0; playMusic(); }
+                else if (bgAudio.paused && bgAudio.src) { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }
+            } else { bgAudio.pause(); bgAudio.src = ''; musicPlaylist = []; }
+        } catch(e) {}
+    }
+    function playMusic() {
+        if (!musicPlaylist.length) return;
+        if (musicCurrentIndex >= musicPlaylist.length) musicCurrentIndex = 0;
+        const url = musicPlaylist[musicCurrentIndex];
+        if (bgAudio.src !== url) {
+            bgAudio.src = url;
+            bgAudio.addEventListener('canplay', function() { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }, { once: true });
+        } else { bgAudio.play().catch(() => {}); }
+    }
+    bgAudio.addEventListener('ended', function() {
+        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime);
+        musicCurrentIndex = (musicCurrentIndex + 1) % musicPlaylist.length;
+        localStorage.setItem('bgMusicIndex', musicCurrentIndex);
+        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, '0');
+        playMusic();
+    });
+    setInterval(() => { if (!bgAudio.paused && musicPlaylist.length > 0) { localStorage.setItem('bgMusicIndex', musicCurrentIndex); localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime); } }, 500);
+    checkMusic();
+    setInterval(checkMusic, 2000);
+</script>
 </body>
 </html>
