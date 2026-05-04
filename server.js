@@ -821,19 +821,23 @@ function maintenancePage() {
 </html>`;
 }
 
-// Generic page route with maintenance check
 async function servePageWithCheck(req, res, pageId, filePath) {
     try {
         const p = await getPool();
         const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]);
+        console.log(`[PAGE CHECK] ${pageId} -> ${r.rows.length > 0 ? r.rows[0].status : 'NOT FOUND (default on)'}`);
+        
         if (r.rows.length > 0 && r.rows[0].status === 'off') {
+            console.log(`[PAGE BLOCKED] ${pageId} is OFF - Showing maintenance page`);
             return res.send(maintenancePage());
         }
-    } catch(e) {}
+    } catch(e) {
+        console.log(`[PAGE CHECK ERROR] ${pageId}:`, e.message);
+    }
     res.sendFile(path.join(__dirname, filePath));
 }
 
-// ==================== PAGE ROUTES ====================
+// ==================== PAGE ROUTES (WITH MAINTENANCE CHECK) ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
