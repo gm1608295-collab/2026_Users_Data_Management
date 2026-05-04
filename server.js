@@ -7,7 +7,7 @@ const https = require('https');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ==================== CORS (Browser + Mobile App) ====================
+// ==================== CORS ====================
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
@@ -18,10 +18,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(__dirname));
 
-// ==================== AUTO WAKE-UP (Prevent Render Sleep) ====================
+// ==================== AUTO WAKE-UP ====================
 setInterval(() => {
     https.get(`https://two026-users-data-management.onrender.com/api/ping`, (res) => {});
-}, 600000); // Every 10 minutes
+}, 600000);
 
 app.get('/api/ping', (req, res) => {
     res.json({ success: true, time: new Date().toISOString() });
@@ -726,14 +726,14 @@ async function createOTP(userId) {
 }
 
 function startLongPolling() {
-    console.log('🤖 Bot Long Polling Started (No Webhook)');
+    console.log('Bot Long Polling Started');
     
     const mainKeyboard = {
         inline_keyboard: [
-            [{ text: '🔓 Login Now', url: 'https://two026-users-data-management.onrender.com' }],
-            [{ text: '💰 Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
-            [{ text: '🛒 Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
-            [{ text: '📞 Contact', url: 'https://t.me/Solo_m28' }]
+            [{ text: 'Login Now', url: 'https://two026-users-data-management.onrender.com' }],
+            [{ text: 'Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
+            [{ text: 'Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
+            [{ text: 'Contact', url: 'https://t.me/Solo_m28' }]
         ]
     };
     
@@ -755,28 +755,28 @@ function startLongPolling() {
                     
                     if (text === '/start' || text === '/login') {
                         await createTelegramUser(msg.from.id, firstName);
-                        sendTelegramMessage(chatId, `👋 မင်္ဂလာပါ ${firstName}!\n\nSOLO M Game Shop မှ ကြိုဆိုပါတယ်။\n\nအောက်ပါ ခလုတ်များကို နှိပ်၍ အသုံးပြုနိုင်ပါသည်။`, mainKeyboard);
+                        sendTelegramMessage(chatId, `${firstName}!\n\nSOLO M Game Shop\n\nWelcome`, mainKeyboard);
                     }
                     else if (text === '/help') {
-                        sendTelegramMessage(chatId, `📖 SOLO M Game Shop\n\nCommands:\n/start - Login Page\n/help - Help\n/balance - Check Balance\n/otp - Get OTP Code (60s)\n\nဆက်သွယ်ရန်: @Solo_m28`);
+                        sendTelegramMessage(chatId, `SOLO M Game Shop\n\nCommands:\n/start - Login\n/help - Help\n/balance - Balance\n/otp - Get OTP\n\nContact: @Solo_m28`);
                     }
                     else if (text === '/balance') {
                         const balance = await getUserBalance(msg.from.id);
                         if (balance !== null) {
-                            sendTelegramMessage(chatId, `💰 သင်၏ Balance: ${balance.toLocaleString()} Ks\n\nငွေဖြည့်လိုပါက Top Up ကိုနှိပ်ပါ။`, mainKeyboard);
+                            sendTelegramMessage(chatId, `Balance: ${balance.toLocaleString()} Ks`, mainKeyboard);
                         } else {
-                            sendTelegramMessage(chatId, `❌ အကောင့်မတွေ့ပါ။ Login Now ကိုနှိပ်၍ ဝင်ရောက်ပါ။`, mainKeyboard);
+                            sendTelegramMessage(chatId, `Account not found. Login first.`, mainKeyboard);
                         }
                     }
                     else if (text === '/otp') {
                         const user = await createTelegramUser(msg.from.id, firstName);
                         if (user) {
                             const otp = await createOTP(user.id);
-                            sendTelegramMessage(chatId, `🔐 သင်၏ OTP Code\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n\nဤ OTP ကို မည်သူ့ကိုမျှ မပေးပါနှင့်။`);
+                            sendTelegramMessage(chatId, `OTP Code\n\n<b>${otp}</b>\n\n60 seconds only.`);
                         }
                     }
                     else {
-                        sendTelegramMessage(chatId, `ကျေးဇူးပြု၍ အောက်ပါ ခလုတ်များကို အသုံးပြုပါ။\n\n/start - Login Page\n/help - Help\n/balance - Check Balance\n/otp - Get OTP Code`, mainKeyboard);
+                        sendTelegramMessage(chatId, `Use buttons below:\n\n/start - Login\n/help - Help\n/balance - Balance\n/otp - OTP`, mainKeyboard);
                     }
                 });
             }
@@ -791,11 +791,34 @@ function startLongPolling() {
 
 startLongPolling();
 
-// ==================== PAGE ROUTES (WITH MAINTENANCE CHECK) ====================
-
-// Maintenance HTML Template
+// ==================== MAINTENANCE PAGE ====================
 function maintenancePage() {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Maintenance</title><style>body{background:#0c0e27;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:sans-serif;text-align:center}i{font-size:60px;margin-bottom:20px;display:block}h2{color:#f39c12}a{color:#f39c12;text-decoration:none;margin-top:20px;display:inline-block}</style></head><body><div><i>🚧</i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard">Back to Dashboard</a></div></body></html>`;
+    return `<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ပြုပြင်မွမ်းမံနေပါသည်</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;text-align:center}
+        .box i{font-size:70px;color:#f39c12;display:block;margin-bottom:20px;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        .box h2{color:#f39c12;font-size:20px;margin-bottom:10px}
+        .box p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:20px}
+        .box a{display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <i class="fas fa-tools"></i>
+        <h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2>
+        <p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p>
+        <a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
+    </div>
+</body>
+</html>`;
 }
 
 // Generic page route with maintenance check
@@ -810,12 +833,11 @@ async function servePageWithCheck(req, res, pageId, filePath) {
     res.sendFile(path.join(__dirname, filePath));
 }
 
-// Main Pages
+// ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
-// All Pages with Maintenance Check
 app.get('/topup.html', (req, res) => servePageWithCheck(req, res, 'topup', 'topup.html'));
 app.get('/buycode.html', (req, res) => servePageWithCheck(req, res, 'buycode', 'buycode.html'));
 app.get('/data.html', (req, res) => servePageWithCheck(req, res, 'data', 'data.html'));
@@ -832,9 +854,7 @@ app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offlin
 
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ Server running on port ${PORT}`);
-    console.log(`🤖 Bot: Long Polling (No Webhook)`);
-    console.log(`🗄️ DB: DB1 + DB2 Auto-Switch`);
-    console.log(`⏰ Auto Wake-up: Every 10 minutes`);
-    console.log(`📄 Page Control: 9 pages (topup, buycode, dashboard, data, history, password, recovery, contact, aboutredeem)`);
+    console.log(`Server running on port ${PORT}`);
+    console.log(`DB: DB1 + DB2 Auto-Switch`);
+    console.log(`Page Control: 9 pages with maintenance check`);
 });
