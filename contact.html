@@ -30,9 +30,11 @@
         .form-group input,.form-group textarea{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--t);font-size:13px}
         .btn{padding:10px 20px;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer;background:var(--g);color:#000}
         .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:5px;display:none;z-index:1000;font-size:12px}
+        .back-btn{display:block;padding:10px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:15px}
     </style>
 </head>
 <body>
+    <audio id="bgAudio" loop style="display:none"></audio>
     <div class="notif" id="notif"></div>
     <div class="container">
         <div class="header">
@@ -47,20 +49,56 @@
             <tr onclick="contactTik('sologamer149')"><td><i class="fab fa-tiktok"></i> TikTok</td><td class="ct-tiktok">@sologamer149</td><td style="text-align:center"><button>View</button></td></tr>
         </table>
         <div class="email-link" onclick="openEmail()"><i class="fas fa-envelope"></i> Send us a message via Email</div>
+        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
     
     <div class="modal" id="emailModal"><div class="modal-box"><span class="modal-close" onclick="closeEmail()">&times;</span><h3>Send Message</h3><div class="form-group"><label>Name</label><input type="text" id="emName"></div><div class="form-group"><label>Email</label><input type="email" id="emEmail"></div><div class="form-group"><label>Message</label><textarea id="emMsg" rows="3"></textarea></div><button class="btn" onclick="sendEmail()"><i class="fas fa-paper-plane"></i> Send</button></div></div>
 
 <script>
+    // ==================== GLOBAL: BG Music Player ====================
+    const bgAudio = document.getElementById('bgAudio');
+    let musicPlaylist = [], musicCurrentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
+    bgAudio.volume = 0.6;
+    async function checkMusic() {
+        try {
+            const r = await fetch('/api/bg_music?t=' + Date.now());
+            const d = await r.json();
+            if (d.playlist && d.playlist.length > 0) {
+                const newList = JSON.stringify(d.playlist), oldList = JSON.stringify(musicPlaylist);
+                if (newList !== oldList) { musicPlaylist = d.playlist; musicCurrentIndex = 0; playMusic(); }
+                else if (bgAudio.paused && bgAudio.src) { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }
+            } else { bgAudio.pause(); bgAudio.src = ''; musicPlaylist = []; }
+        } catch(e) {}
+    }
+    function playMusic() {
+        if (!musicPlaylist.length) return;
+        if (musicCurrentIndex >= musicPlaylist.length) musicCurrentIndex = 0;
+        const url = musicPlaylist[musicCurrentIndex];
+        if (bgAudio.src !== url) {
+            bgAudio.src = url;
+            bgAudio.addEventListener('canplay', function() { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }, { once: true });
+        } else { bgAudio.play().catch(() => {}); }
+    }
+    bgAudio.addEventListener('ended', function() {
+        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime);
+        musicCurrentIndex = (musicCurrentIndex + 1) % musicPlaylist.length;
+        localStorage.setItem('bgMusicIndex', musicCurrentIndex);
+        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, '0');
+        playMusic();
+    });
+    setInterval(() => { if (!bgAudio.paused && musicPlaylist.length > 0) { localStorage.setItem('bgMusicIndex', musicCurrentIndex); localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime); } }, 500);
+    checkMusic();
+    setInterval(checkMusic, 2000);
+
     emailjs.init("tsKN2j9o6RYK4KeEp");
-    function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-    function contactG(e){window.open('mailto:'+e)}
-    function contactP(p){window.open('tel:'+p)}
-    function contactT(u){window.open('https://t.me/'+u.replace('@',''))}
-    function contactTik(u){window.open("https://www.tiktok.com/@"+u)}
-    function openEmail(){document.getElementById("emailModal").classList.add("active")}
-    function closeEmail(){document.getElementById("emailModal").classList.remove("active")}
-    function sendEmail(){const na=document.getElementById("emName").value,em=document.getElementById("emEmail").value,ms=document.getElementById("emMsg").value;if(!na||!em||!ms)return n("Fill required","error");emailjs.send("service_3akzfls","template_xqygsga",{from_name:na,from_email:em,message:ms}).then(()=>{n("Sent!");closeEmail()}).catch(()=>n("Error","error"))}
+    function n(m, t = "success") { const e = document.getElementById("notif"); e.textContent = m; e.style.background = t === "success" ? "#2ecc71" : "#e74c3c"; e.style.display = "block"; setTimeout(() => e.style.display = "none", 3000); }
+    function contactG(e) { window.open('mailto:' + e); }
+    function contactP(p) { window.open('tel:' + p); }
+    function contactT(u) { window.open('https://t.me/' + u.replace('@', '')); }
+    function contactTik(u) { window.open("https://www.tiktok.com/@" + u); }
+    function openEmail() { document.getElementById("emailModal").classList.add("active"); }
+    function closeEmail() { document.getElementById("emailModal").classList.remove("active"); }
+    function sendEmail() { const na = document.getElementById("emName").value, em = document.getElementById("emEmail").value, ms = document.getElementById("emMsg").value; if (!na || !em || !ms) return n("Fill required", "error"); emailjs.send("service_3akzfls", "template_xqygsga", { from_name: na, from_email: em, message: ms }).then(() => { n("Sent!"); closeEmail(); }).catch(() => n("Error", "error")); }
 </script>
 </body>
 </html>
