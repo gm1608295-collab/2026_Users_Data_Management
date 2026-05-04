@@ -85,8 +85,8 @@
                 <!-- Backup & Restore -->
                 <h3><i class="fas fa-database"></i> Backup & Restore</h3>
                 <div class="btn-row">
-                    <button class="btn btn-g" onclick="backupDatabase()"><i class="fas fa-download"></i> Backup Database</button>
-                    <button class="btn btn-o" onclick="document.getElementById('restoreFile').click()"><i class="fas fa-upload"></i> Restore Database</button>
+                    <button class="btn btn-g" onclick="backupDatabase()"><i class="fas fa-download"></i> Backup</button>
+                    <button class="btn btn-o" onclick="document.getElementById('restoreFile').click()"><i class="fas fa-upload"></i> Restore</button>
                     <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreDatabase(this)">
                 </div>
                 <div class="backup-info" id="backupInfo">📅 Last Backup: No backup yet</div>
@@ -97,9 +97,7 @@
                 
                 <!-- User Search -->
                 <h3 style="margin-top:10px">🔍 User Search & Balance</h3>
-                <div style="display:flex;gap:4px;margin-bottom:8px">
-                    <input type="text" id="userSearch" placeholder="Enter ID or Email..." style="flex:1;padding:8px;font-size:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff" onkeyup="searchUser()">
-                </div>
+                <div style="display:flex;gap:4px;margin-bottom:8px"><input type="text" id="userSearch" placeholder="Enter ID or Email..." style="flex:1;padding:8px;font-size:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff" onkeyup="searchUser()"></div>
                 <div id="userSearchResult" style="max-height:120px;overflow-y:auto;margin-bottom:8px;font-size:10px"></div>
                 
                 <!-- Orders -->
@@ -125,6 +123,14 @@
                     <table class="admin-table" id="noticeTable" style="margin-top:8px"><tr><th>Message</th><th>Color</th><th>Date</th><th>Action</th></tr></table>
                 </div>
                 
+                <!-- Bot Message System -->
+                <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
+                    <h3><i class="fab fa-telegram"></i> Bot Message System</h3>
+                    <div class="form-group"><label>Custom Message</label><textarea id="botCustomMsg" rows="2" placeholder="Type message to send to all bot users..."></textarea></div>
+                    <button class="btn btn-b" onclick="sendBotMessage()"><i class="fas fa-paper-plane"></i> Send to Bot Users</button>
+                    <p style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:4px">This will send message to all users who have interacted with the bot</p>
+                </div>
+                
                 <!-- Slider -->
                 <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
                     <h3><i class="fas fa-images"></i> Image Slider</h3>
@@ -144,15 +150,18 @@
                     
                     <div class="music-box">
                         <b style="font-size:10px;color:var(--w)">🎵 Music 1</b>
-                        <div class="form-group"><input type="text" id="bgMusicUrl1" placeholder="Enter Music URL (https://...)" style="font-size:10px;padding:6px"></div>
+                        <div class="form-group"><label>📁 Upload MP3</label><input type="file" id="bgMusicFile1" accept="audio/mp3,audio/mpeg" style="padding:4px;font-size:9px"><button class="btn btn-b" onclick="uploadMusicFile(1)" style="font-size:9px;padding:4px 8px;margin-top:3px">Upload</button></div>
+                        <div class="form-group"><input type="text" id="bgMusicUrl1" placeholder="Or paste URL (https://...)" style="font-size:10px;padding:6px"></div>
                     </div>
                     <div class="music-box">
                         <b style="font-size:10px;color:var(--w)">🎵 Music 2</b>
-                        <div class="form-group"><input type="text" id="bgMusicUrl2" placeholder="Enter Music URL (https://...)" style="font-size:10px;padding:6px"></div>
+                        <div class="form-group"><label>📁 Upload MP3</label><input type="file" id="bgMusicFile2" accept="audio/mp3,audio/mpeg" style="padding:4px;font-size:9px"><button class="btn btn-b" onclick="uploadMusicFile(2)" style="font-size:9px;padding:4px 8px;margin-top:3px">Upload</button></div>
+                        <div class="form-group"><input type="text" id="bgMusicUrl2" placeholder="Or paste URL (https://...)" style="font-size:10px;padding:6px"></div>
                     </div>
                     <div class="music-box">
                         <b style="font-size:10px;color:var(--w)">🎵 Music 3 (Optional)</b>
-                        <div class="form-group"><input type="text" id="bgMusicUrl3" placeholder="Enter Music URL (https://...)" style="font-size:10px;padding:6px"></div>
+                        <div class="form-group"><label>📁 Upload MP3</label><input type="file" id="bgMusicFile3" accept="audio/mp3,audio/mpeg" style="padding:4px;font-size:9px"><button class="btn btn-b" onclick="uploadMusicFile(3)" style="font-size:9px;padding:4px 8px;margin-top:3px">Upload</button></div>
+                        <div class="form-group"><input type="text" id="bgMusicUrl3" placeholder="Or paste URL (https://...)" style="font-size:10px;padding:6px"></div>
                     </div>
                     
                     <div class="btn-row">
@@ -161,7 +170,7 @@
                     </div>
                     
                     <div style="margin-top:8px"><b style="font-size:11px;color:var(--w)">🎵 Now Playing</b></div>
-                    <div class="preview-box" id="currentMusicDisplay"><span style="color:rgba(255,255,255,0.4)">No music set - Add URLs and click Save Playlist</span></div>
+                    <div class="preview-box" id="currentMusicDisplay"><span style="color:rgba(255,255,255,0.4)">No music set - Add URLs/Upload and click Save Playlist</span></div>
                 </div>
             </div>
         </div>
@@ -187,55 +196,10 @@
     async function unlockAdmin(){if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");document.getElementById("adminBox").style.display="block";loadAdminData();loadAdminOrders('all');loadPageToggles();loadCurrentMusic();loadSliderPreview();updateBackupInfo()}
     
     // ==================== BACKUP & RESTORE ====================
-    async function backupDatabase(){
-        n('⏳ Backing up...','success');
-        try{
-            const r=await fetch('/api/admin/backup');
-            const d=await r.json();
-            if(d.success&&d.data){
-                const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});
-                const url=URL.createObjectURL(blob);
-                const a=document.createElement('a');
-                a.href=url;
-                a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                n('✅ Backup Downloaded!');
-                localStorage.setItem('lastBackup',new Date().toLocaleString());
-                updateBackupInfo();
-            }else{n('Backup failed: '+(d.message||'Unknown error'),'error')}
-        }catch(e){n('Connection error','error')}
-    }
-    
-    function restoreDatabase(input){
-        const file=input.files[0];
-        if(!file)return;
-        n('⏳ Reading file...','success');
-        const reader=new FileReader();
-        reader.onload=function(e){
-            try{
-                pendingRestoreData=JSON.parse(e.target.result);
-                if(!pendingRestoreData.tables){n('Invalid backup file','error');return}
-                document.getElementById('restoreConfirmModal').classList.add('active');
-            }catch(e){n('Invalid JSON file','error')}
-        };
-        reader.readAsText(file);
-        input.value='';
-    }
-    
-    async function confirmRestore(){
-        if(!pendingRestoreData)return;
-        n('⏳ Restoring...','success');
-        try{
-            const r=await fetch('/api/admin/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:pendingRestoreData})});
-            const d=await r.json();
-            d.success?(n('✅ Database Restored!'),closeRestoreConfirm(),loadAdminData(),loadAdminOrders('all'),updateBackupInfo()):n(d.message||'Error','error');
-        }catch(e){n('Connection error','error')}
-    }
-    
-    function updateBackupInfo(){const lb=localStorage.getItem('lastBackup');document.getElementById('backupInfo').innerHTML=lb?`📅 Last Backup: ${lb}`:`📅 Last Backup: No backup yet - Click Backup Database to create one`}
+    async function backupDatabase(){n('⏳ Backing up...','success');try{const r=await fetch('/api/admin/backup');const d=await r.json();if(d.success&&d.data){const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);n('✅ Backup Downloaded!');localStorage.setItem('lastBackup',new Date().toLocaleString());updateBackupInfo()}else{n('Backup failed','error')}}catch(e){n('Connection error','error')}}
+    function restoreDatabase(input){const file=input.files[0];if(!file)return;n('⏳ Reading file...','success');const reader=new FileReader();reader.onload=function(e){try{pendingRestoreData=JSON.parse(e.target.result);if(!pendingRestoreData.tables){n('Invalid backup file','error');return}document.getElementById('restoreConfirmModal').classList.add('active')}catch(e){n('Invalid JSON file','error')}};reader.readAsText(file);input.value=''}
+    async function confirmRestore(){if(!pendingRestoreData)return;n('⏳ Restoring...','success');try{const r=await fetch('/api/admin/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:pendingRestoreData})});const d=await r.json();d.success?(n('✅ Database Restored!'),closeRestoreConfirm(),loadAdminData(),loadAdminOrders('all'),updateBackupInfo()):n(d.message||'Error','error')}catch(e){n('Connection error','error')}}
+    function updateBackupInfo(){const lb=localStorage.getItem('lastBackup');document.getElementById('backupInfo').innerHTML=lb?`📅 Last Backup: ${lb}`:`📅 Last Backup: No backup yet`}
     
     // Page Toggle
     async function loadPageToggles(){try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){document.getElementById('pageToggleList').innerHTML=d.pages.map(p=>`<div class="page-toggle"><span class="page-name">📄 ${p.name}</span><span class="page-status ${p.status==='on'?'on':'off'}">${p.status==='on'?'ON':'OFF'}</span><label class="toggle-switch"><input type="checkbox" ${p.status==='on'?'checked':''} onchange="togglePage('${p.id}',this.checked)"><span class="toggle-slider"></span></label></div>`).join('')}}catch(e){}}
@@ -261,19 +225,40 @@
     async function postNotice(){const m=document.getElementById("adminNoticeMsg").value,co=document.getElementById("noticeColor").value;if(!m)return n("Enter text","error");try{await fetch("/api/admin/notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m,color:co})});n("Posted!");document.getElementById("adminNoticeMsg").value="";loadNoticeList()}catch(e){n("Error","error")}}
     async function delNoticeById(id){if(!confirm("Delete?"))return;await fetch("/api/admin/notice/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})});n("Deleted!");loadNoticeList()}
     
+    // ==================== BOT MESSAGE SYSTEM ====================
+    async function sendBotMessage(){
+        const msg=document.getElementById('botCustomMsg').value.trim();
+        if(!msg)return n('Enter message','error');
+        n('⏳ Sending...','success');
+        try{
+            const r=await fetch('/api/admin/bot_message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
+            const d=await r.json();
+            d.success?(n('✅ Message sent to '+d.count+' users!'),document.getElementById('botCustomMsg').value=''):n(d.message||'Error','error');
+        }catch(e){n('Connection error','error')}
+    }
+    
     // Slider
     async function saveSliderImages(){const urls=[];for(let i=1;i<=5;i++){const inp=document.getElementById('sliderUrl'+i);if(inp&&inp.value.trim())urls.push(inp.value.trim())}if(!urls.length)return n("Enter at least one URL","error");try{await fetch('/api/admin/slider_images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:urls})});n('Saved!');urls.forEach((_,i)=>{document.getElementById('sliderUrl'+(i+1)).value=''});loadSliderPreview()}catch(e){n('Error','error')}}
     async function clearSliderImages(){try{await fetch('/api/admin/slider_images',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({images:[]})});n('Cleared!');loadSliderPreview()}catch(e){n('Error','error')}}
     async function loadSliderPreview(){try{const r=await fetch('/api/slider_images');const d=await r.json();const c=document.getElementById('sliderPreviewList');if(d.images&&d.images.length>0){c.innerHTML=d.images.map((u,i)=>`<div class="preview-box">${i+1}. ${u.substring(0,50)}...</div>`).join('')}else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No images</span>'}}catch(e){}}
     
-    // ==================== MUSIC (Simple + Working) ====================
+    // ==================== MUSIC (File Upload + URL) ====================
+    async function uploadMusicFile(num){
+        const file=document.getElementById('bgMusicFile'+num).files[0];
+        if(!file)return n('Select file','error');
+        n('⏳ Converting...','success');
+        const reader=new FileReader();
+        reader.onload=function(e){
+            document.getElementById('bgMusicUrl'+num).value=e.target.result;
+            n('✅ Music '+num+' Ready! Click Save Playlist');
+        };
+        reader.readAsDataURL(file);
+    }
+    
     async function savePlaylist(){
         const playlist=[];
-        for(let i=1;i<=3;i++){
-            const url=document.getElementById('bgMusicUrl'+i).value.trim();
-            if(url)playlist.push(url);
-        }
-        if(playlist.length===0)return n('Add at least one URL','error');
+        for(let i=1;i<=3;i++){const url=document.getElementById('bgMusicUrl'+i).value.trim();if(url)playlist.push(url)}
+        if(playlist.length===0)return n('Add at least one URL or Upload','error');
         n('⏳ Saving...','success');
         try{
             const r=await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist})});
@@ -283,22 +268,15 @@
     }
     
     async function removeAllMusic(){
-        try{
-            await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist:[]})});
-            n('✅ Music Removed!');
-            for(let i=1;i<=3;i++)document.getElementById('bgMusicUrl'+i).value='';
-            loadCurrentMusic();
-        }catch(e){n('Error','error')}
+        try{await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist:[]})});n('✅ Music Removed!');for(let i=1;i<=3;i++){document.getElementById('bgMusicUrl'+i).value='';document.getElementById('bgMusicFile'+i).value=''}loadCurrentMusic()}catch(e){n('Error','error')}
     }
     
     async function loadCurrentMusic(){
         try{
-            const r=await fetch('/api/bg_music?t='+Date.now());
-            const d=await r.json();
-            const c=document.getElementById('currentMusicDisplay');
+            const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();const c=document.getElementById('currentMusicDisplay');
             if(d.playlist&&d.playlist.length>0){
                 c.innerHTML='<table class="admin-table" style="margin-top:5px"><tr><th>#</th><th>Music</th><th>Preview</th></tr>'+d.playlist.map((url,i)=>`<tr><td>${i+1}</td><td style="font-size:9px;word-break:break-all">${url.substring(0,50)}...</td><td><audio controls style="width:120px;height:20px"><source src="${url}" type="audio/mpeg"></audio></td></tr>`).join('')+'</table>';
-            }else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No music set - Add URLs and click Save Playlist</span>'}
+            }else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No music set</span>'}
         }catch(e){}
     }
 </script>
