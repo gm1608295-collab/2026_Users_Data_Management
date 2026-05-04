@@ -99,9 +99,22 @@ async function initTables(p) {
 initTables(pool1);
 initTables(pool2);
 
-['topup', 'buycode', 'dashboard'].forEach(async (id) => {
-    await pool1.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [id]).catch(()=>{});
-    await pool2.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [id]).catch(()=>{});
+// ==================== DEFAULT PAGE STATUS (ALL 9 PAGES) ====================
+const ALL_PAGES = [
+    { id: 'topup', name: 'Top Up' },
+    { id: 'buycode', name: 'Buy Code MLBB' },
+    { id: 'dashboard', name: 'Dashboard' },
+    { id: 'data', name: 'Data' },
+    { id: 'history', name: 'History' },
+    { id: 'password', name: 'Password' },
+    { id: 'recovery', name: 'Recovery' },
+    { id: 'contact', name: 'Contact' },
+    { id: 'aboutredeem', name: 'About Redeem' }
+];
+
+ALL_PAGES.forEach(async (pg) => {
+    await pool1.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(()=>{});
+    await pool2.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(()=>{});
 });
 
 // ==================== IMAGE UPLOAD (ImgBB) ====================
@@ -159,12 +172,17 @@ app.post('/api/upload_music', async (req, res) => {
 });
 
 // ==================== AUTH ====================
-app.post('/api/track_login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) return res.json({ success: false, message: 'All fields required' });
     try {
         const p = await getPool();
-        await p.query('INSERT INTO auth_users (id, username, email, login_type, last_login) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (email) DO UPDATE SET last_login=NOW()', [req.body.userId, req.body.username, req.body.email, req.body.loginType]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+        const r = await p.query("SELECT * FROM auth_users WHERE email = $1 AND password = $2 AND login_type = 'local'", [email, password]);
+        if (r.rows.length === 0) return res.json({ success: false, message: 'Invalid email or password' });
+        const u = r.rows[0];
+        await p.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]);
+        res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } });
+    } catch(e) { res.json({ success: false, message: 'Error' }); }
 });
 
 app.post('/api/register', async (req, res) => {
@@ -180,17 +198,14 @@ app.post('/api/register', async (req, res) => {
     } catch(e) { res.json({ success: false, message: 'Error' }); }
 });
 
-app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) return res.json({ success: false, message: 'All fields required' });
+app.post('/api/logout', (req, res) => res.json({ success: true }));
+
+app.post('/api/check_banned', async (req, res) => {
     try {
         const p = await getPool();
-        const r = await p.query("SELECT * FROM auth_users WHERE email = $1 AND password = $2 AND login_type = 'local'", [email, password]);
-        if (r.rows.length === 0) return res.json({ success: false, message: 'Invalid email or password' });
-        const u = r.rows[0];
-        await p.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [u.id]);
-        res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } });
-    } catch(e) { res.json({ success: false, message: 'Error' }); }
+        const r = await p.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]);
+        res.json({ banned: r.rows.length > 0 });
+    } catch(e) { res.json({ banned: false }); }
 });
 
 // ==================== GOOGLE OAUTH ====================
@@ -279,16 +294,6 @@ app.get('/auth/tiktok/callback', async (req, res) => {
     } catch(e) {
         res.send('<script>alert("Failed");window.location.href="/";</script>');
     }
-});
-
-app.post('/api/logout', (req, res) => res.json({ success: true }));
-
-app.post('/api/check_banned', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]);
-        res.json({ banned: r.rows.length > 0 });
-    } catch(e) { res.json({ banned: false }); }
 });
 
 // ==================== PASSWORDS ====================
@@ -384,13 +389,12 @@ app.post('/api/admin/bg_music', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// ==================== PAGE TOGGLE ====================
+// ==================== PAGE TOGGLE (ALL 9 PAGES) ====================
 app.get('/api/admin/page_status', async (req, res) => {
     try {
         const p = await getPool();
-        const pages = [{ id: 'topup', name: 'Top Up' }, { id: 'buycode', name: 'Buy Code MLBB' }, { id: 'dashboard', name: 'Dashboard' }];
         const result = [];
-        for (const pg of pages) {
+        for (const pg of ALL_PAGES) {
             const q = await p.query("SELECT status FROM page_status WHERE page_id = $1", [pg.id]);
             result.push({ id: pg.id, name: pg.name, status: q.rows.length > 0 ? q.rows[0].status : 'on' });
         }
@@ -547,7 +551,7 @@ app.post('/api/admin/update_balance', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// ==================== ORDERS (Date Filter) ====================
+// ==================== ORDERS ====================
 app.get('/api/admin/orders', async (req, res) => {
     try {
         const p = await getPool();
@@ -679,7 +683,7 @@ app.post('/api/admin/bot_message', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// ==================== TELEGRAM BOT (Long Polling Only - No Webhook) ====================
+// ==================== TELEGRAM BOT (Long Polling) ====================
 let lastUpdateId = 0;
 
 function sendTelegramMessage(chatId, text, replyMarkup = null) {
@@ -787,43 +791,44 @@ function startLongPolling() {
 
 startLongPolling();
 
-// ==================== PAGES ====================
+// ==================== PAGE ROUTES (WITH MAINTENANCE CHECK) ====================
+
+// Maintenance HTML Template
+function maintenancePage() {
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Maintenance</title><style>body{background:#0c0e27;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:sans-serif;text-align:center}i{font-size:60px;margin-bottom:20px;display:block}h2{color:#f39c12}a{color:#f39c12;text-decoration:none;margin-top:20px;display:inline-block}</style></head><body><div><i>🚧</i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard">Back to Dashboard</a></div></body></html>`;
+}
+
+// Generic page route with maintenance check
+async function servePageWithCheck(req, res, pageId, filePath) {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]);
+        if (r.rows.length > 0 && r.rows[0].status === 'off') {
+            return res.send(maintenancePage());
+        }
+    } catch(e) {}
+    res.sendFile(path.join(__dirname, filePath));
+}
+
+// Main Pages
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-// Tab Pages
-app.get('/data.html', (req, res) => res.sendFile(path.join(__dirname, 'data.html')));
-app.get('/recovery.html', (req, res) => res.sendFile(path.join(__dirname, 'recovery.html')));
-app.get('/password.html', (req, res) => res.sendFile(path.join(__dirname, 'password.html')));
-app.get('/history.html', (req, res) => res.sendFile(path.join(__dirname, 'history.html')));
-app.get('/contact.html', (req, res) => res.sendFile(path.join(__dirname, 'contact.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
-// Top Up Page (with maintenance check)
-app.get('/topup.html', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query("SELECT status FROM page_status WHERE page_id='topup'");
-        if (r.rows.length > 0 && r.rows[0].status === 'off') {
-            return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Maintenance</title><style>body{background:#0c0e27;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:sans-serif;text-align:center}i{font-size:60px;margin-bottom:20px;display:block}h2{color:#f39c12}a{color:#f39c12;text-decoration:none;margin-top:20px;display:inline-block}</style></head><body><div><i>🚧</i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard">Back to Dashboard</a></div></body></html>`);
-        }
-    } catch(e) {}
-    res.sendFile(path.join(__dirname, 'topup.html'));
-});
+// All Pages with Maintenance Check
+app.get('/topup.html', (req, res) => servePageWithCheck(req, res, 'topup', 'topup.html'));
+app.get('/buycode.html', (req, res) => servePageWithCheck(req, res, 'buycode', 'buycode.html'));
+app.get('/data.html', (req, res) => servePageWithCheck(req, res, 'data', 'data.html'));
+app.get('/history.html', (req, res) => servePageWithCheck(req, res, 'history', 'history.html'));
+app.get('/password.html', (req, res) => servePageWithCheck(req, res, 'password', 'password.html'));
+app.get('/recovery.html', (req, res) => servePageWithCheck(req, res, 'recovery', 'recovery.html'));
+app.get('/contact.html', (req, res) => servePageWithCheck(req, res, 'contact', 'contact.html'));
+app.get('/aboutredeem.html', (req, res) => servePageWithCheck(req, res, 'aboutredeem', 'aboutredeem.html'));
 
-// Buy Code Page (with maintenance check)
-app.get('/buycode.html', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query("SELECT status FROM page_status WHERE page_id='buycode'");
-        if (r.rows.length > 0 && r.rows[0].status === 'off') {
-            return res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Maintenance</title><style>body{background:#0c0e27;color:#fff;display:flex;justify-content:center;align-items:center;min-height:100vh;font-family:sans-serif;text-align:center}i{font-size:60px;margin-bottom:20px;display:block}h2{color:#f39c12}a{color:#f39c12;text-decoration:none;margin-top:20px;display:inline-block}</style></head><body><div><i>🚧</i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard">Back to Dashboard</a></div></body></html>`);
-        }
-    } catch(e) {}
-    res.sendFile(path.join(__dirname, 'buycode.html'));
-});
-
-app.get('/aboutredeem.html', (req, res) => res.sendFile(path.join(__dirname, 'aboutredeem.html')));
+// Static Pages (No Maintenance Check)
 app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
@@ -831,4 +836,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🤖 Bot: Long Polling (No Webhook)`);
     console.log(`🗄️ DB: DB1 + DB2 Auto-Switch`);
     console.log(`⏰ Auto Wake-up: Every 10 minutes`);
+    console.log(`📄 Page Control: 9 pages (topup, buycode, dashboard, data, history, password, recovery, contact, aboutredeem)`);
 });
