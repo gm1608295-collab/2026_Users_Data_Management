@@ -7,20 +7,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff;--lt:#e0e0e0}
+        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         html,body{height:100%;overflow:hidden;position:fixed;width:100%}
         body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);display:flex;justify-content:center;align-items:center;padding:15px}
         .container{width:100%;max-width:380px;background:rgba(12,14,39,0.95);border-radius:15px;overflow:hidden;border:1px solid #4a1c7a;box-shadow:0 15px 40px rgba(0,0,0,0.6);max-height:92vh;overflow-y:auto}
-        .header{background:linear-gradient(to right,var(--a),var(--p));padding:20px 15px;text-align:center;border-bottom:4px solid var(--w);position:relative;overflow:hidden}
+        .header{background:linear-gradient(to right,var(--a),var(--p));padding:20px 15px;text-align:center;border-bottom:4px solid var(--w);position:relative}
         .header .logo{width:60px;height:60px;border-radius:50%;margin:0 auto 10px;display:block;object-fit:cover;border:2px solid rgba(255,255,255,0.3)}
         .header .marquee-wrap{overflow:hidden;white-space:nowrap;margin:0 auto;width:90%}
         .header .marquee-text{display:inline-block;animation:marquee 12s linear infinite;font-size:12px;color:rgba(255,255,255,0.9)}
         @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
         .header p{font-size:10px;opacity:0.85;margin-top:4px}
+        .header .refresh-btn{position:absolute;top:12px;left:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer}
+        .header .top-link{position:absolute;top:12px;right:12px;color:var(--b);font-size:10px;cursor:pointer}
         .body{padding:15px 18px}
         .fg{margin-bottom:10px}
-        .fg label{display:block;margin-bottom:4px;font-weight:600;color:var(--lt);font-size:11px}
+        .fg label{display:block;margin-bottom:4px;font-weight:600;color:#e0e0e0;font-size:11px}
         .fg input{width:100%;padding:10px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:13px;color:var(--t)}
         .fg input:focus{border-color:var(--w);outline:none}
         .btn{display:block;width:100%;padding:11px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;margin-top:6px}
@@ -34,37 +36,31 @@
         .social-btn.tiktok .badge{font-size:6px;color:var(--r)}
         .toggle-link{text-align:center;margin-top:10px;font-size:11px}
         .toggle-link a{color:var(--w);cursor:pointer;font-weight:600}
-        .notif{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;display:none;z-index:9999;font-size:13px;max-width:280px}
+        .notif{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;display:none;z-index:9999;font-size:13px;max-width:280px;font-weight:bold}
         .footer{text-align:center;padding:10px;color:rgba(255,255,255,0.5);font-size:9px;border-top:1px solid rgba(74,28,122,0.4)}
         .recaptcha-wrap{display:flex;justify-content:center;margin:8px 0}
         .g-recaptcha{display:inline-block;transform:scale(0.75);transform-origin:center}
         #registerForm{display:none}
-        .top-link{text-align:right;padding:5px 15px 0}
-        .top-link a{color:var(--b);font-size:10px;cursor:pointer}
-        .refresh-btn{position:absolute;top:12px;left:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer}
         .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;justify-content:center;align-items:center}
         .modal-overlay.active{display:flex}
-        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:12px;padding:18px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;font-size:11px;line-height:1.8;color:var(--lt)}
+        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:12px;padding:18px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;font-size:11px;line-height:1.8;color:#e0e0e0}
         .modal-box h2{color:var(--w);text-align:center;margin-bottom:12px;font-size:15px}
         .modal-box .close-btn{background:var(--r);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;float:right;font-size:11px}
-        .modal-box .lang-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.3);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:10px;margin:2px}
-        .modal-box .lang-btn.active{background:var(--w);color:#000}
-        .guest-modal-box{background:var(--p);border:2px solid var(--r);border-radius:12px;padding:22px;max-width:350px;width:90%;text-align:center;color:var(--lt);font-size:12px}
+        .guest-modal-box{background:var(--p);border:2px solid var(--r);border-radius:12px;padding:22px;max-width:350px;width:90%;text-align:center;color:#e0e0e0;font-size:12px}
         .guest-modal-box h3{color:var(--r);margin-bottom:10px;font-size:15px}
-        .guest-modal-box .warn-text{color:var(--r);font-weight:bold;font-size:12px;line-height:1.8;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:12px;border-radius:8px;border-left:3px solid var(--r)}
+        .guest-modal-box .warn-text{color:var(--r);font-weight:bold;font-size:12px;line-height:1.8;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:12px;border-radius:8px}
         .guest-modal-box .btn-row{display:flex;gap:10px;justify-content:center}
         .guest-modal-box .btn-row button{padding:10px 20px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
         .btn-cancel{background:rgba(255,255,255,0.15);color:var(--t)}.btn-confirm{background:var(--r);color:var(--t)}
     </style>
 </head>
 <body>
-    <audio id="bgAudio" loop style="display:none"></audio>
     <div class="notif" id="notif"></div>
     <div class="container">
         <div class="header">
             <div class="refresh-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></div>
-            <div class="top-link"><a onclick="openGuide()"><i class="fas fa-question-circle"></i> User Guide</a></div>
-            <img class="logo" src="https://i.ibb.co/YBch2sHS/mlbbsecuritylogo.jpg" alt="MLBB Logo" onerror="this.style.display='none'">
+            <div class="top-link" onclick="openGuide()"><i class="fas fa-question-circle"></i> User Guide</div>
+            <img class="logo" src="https://i.ibb.co/YBch2sHS/mlbbsecuritylogo.jpg" alt="Logo" onerror="this.style.display='none'">
             <div class="marquee-wrap"><span class="marquee-text">MLBB Security System &amp; USER Data Management</span></div>
             <p><i class="fas fa-lock"></i> Secure Login</p>
         </div>
@@ -97,21 +93,36 @@
         <div class="footer">© 2026 SOLO M Game Shop</div>
     </div>
 
-    <div class="modal-overlay" id="guideModal"><div class="modal-box" id="guideContent"></div></div>
+    <!-- Guest Modal -->
     <div class="modal-overlay" id="guestModal">
         <div class="guest-modal-box">
-            <h3>Guest Login</h3>
-            <div class="warn-text"><strong>သတိပေးချက်</strong><br><br>❌ ဒေတာများ သိမ်းဆည်းမည်မဟုတ်ပါ<br>❌ ယာယီဧည့်သည်အနေဖြင့်သာ<br>❌ အကောင့်ပြန်လည်ရယူနိုင်မည်မဟုတ်ပါ</div>
+            <h3><i class="fas fa-exclamation-triangle"></i> Guest Login</h3>
+            <div class="warn-text"><strong>သတိပေးချက်</strong><br><br>Guests ဖြင့်ဝင်ရောက်ပါက ချက်ချင်းဝင်ရောက်မည်ဖြစ်သော်လည်း<br>❌ ဒေတာများ သိမ်းဆည်းမည်မဟုတ်ပါ<br>❌ ယာယီဧည့်သည်အနေဖြင့်သာ<br>❌ အကောင့်ပြန်လည်ရယူနိုင်မည်မဟုတ်ပါ</div>
             <div class="btn-row"><button class="btn-cancel" onclick="closeGuestModal()">Cancel</button><button class="btn-confirm" onclick="guestLogin()">Confirm</button></div>
         </div>
     </div>
 
+    <!-- User Guide Modal -->
+    <div class="modal-overlay" id="guideModal">
+        <div class="modal-box">
+            <span class="close-btn" onclick="closeGuide()">Close</span>
+            <h2>User Guide</h2>
+            <p><b>About:</b> SOLO M Game Shop - လုံခြုံသော MLBB အကောင့်စီမံခန့်ခွဲမှုစနစ်။</p>
+            <br>
+            <p><b>How to Use:</b></p>
+            <p>၁။ Register လုပ်ပါ</p>
+            <p>၂။ Login ဝင်ပါ</p>
+            <p>၃။ Data Tab တွင် အကောင့်များ သိမ်းပါ</p>
+            <p>၄။ Top Up / Buy Code ပြုလုပ်ပါ</p>
+            <br>
+            <p><b>Security:</b> Data အားလုံး Encryption ဖြင့် ကာကွယ်ထားပါသည်။</p>
+            <br>
+            <p><b>Contact:</b> @Solo_m28 | gm1608295@gmail.com</p>
+        </div>
+    </div>
+
     <script>
-        if('serviceWorker' in navigator){navigator.serviceWorker.register('/service-worker.js')}
         if(localStorage.getItem("auth_token")&&localStorage.getItem("user")){window.location.href="/dashboard"}
-        
-        let guideLang='my';
-        const guideData={my:{title:'လမ်းညွှန်',about:'စနစ်အကြောင်း',aboutText:'SOLO M Game Shop - လုံခြုံသောစနစ်။',usage:'အသုံးပြုပုံ',usageText:'၁။ မှတ်ပုံတင်ပါ<br>၂။ ဝင်ရောက်ပါ<br>၃။ ကိရိယာများသုံးပါ',security:'လုံခြုံမှု',securityText:'ကုဒ်ဖြင့်ကာကွယ်ထားသည်။',admin:'Admin',adminText:'စည်းမျဉ်းဖောက်ဖျက်သူများကို ပိတ်နိုင်သည်။',close:'ပိတ်မည်'}};
         
         function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
         function showReg(){document.getElementById("loginForm").style.display="none";document.getElementById("registerForm").style.display="block"}
@@ -121,15 +132,13 @@
         function guestLogin(){localStorage.setItem("auth_token","guest");localStorage.setItem("user",JSON.stringify({id:0,username:"Guest",email:"guest@mlbb.com",login_type:"guest"}));window.location.href="/dashboard"}
         function googleLogin(){window.location.href="/auth/google"}
         function telegramLogin(){window.open('https://t.me/Mobile_Legendss_Bang_Bang_bot/mlbbsecurity','_blank')}
-        
-        function openGuide(){const d=guideData[guideLang];document.getElementById("guideContent").innerHTML=`<button class="close-btn" onclick="closeGuide()">${d.close}</button><h2>${d.title}</h2><h3>${d.about}</h3><p>${d.aboutText}</p><h3>${d.usage}</h3><p>${d.usageText}</p><h3>${d.security}</h3><p>${d.securityText}</p><h3>${d.admin}</h3><p>${d.adminText}</p>`;document.getElementById("guideModal").classList.add("active")}
+        function openGuide(){document.getElementById("guideModal").classList.add("active")}
         function closeGuide(){document.getElementById("guideModal").classList.remove("active")}
         function getCap(){const r=document.getElementsByClassName('g-recaptcha-response');for(let i=0;i<r.length;i++){if(r[i].value)return r[i].value}return typeof grecaptcha!=='undefined'?grecaptcha.getResponse():''}
         
         async function doRegister(){const na=document.getElementById("regName").value.trim(),em=document.getElementById("regEmail").value.trim(),ph=document.getElementById("regPhone").value.trim(),ps=document.getElementById("regPass").value,cf=document.getElementById("regConfirm").value;if(!na||!em||!ph||!ps||!cf)return n("အားလုံးဖြည့်ပါ","error");if(ps!==cf)return n("Password မတူညီပါ","error");if(ps.length<6)return n("Password အနည်းဆုံး ၆ လုံး","error");try{const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:na,email:em,phone:ph,password:ps,captcha:getCap()})});const d=await r.json();d.success?(n("✅ အကောင့်ဖွင့်ပြီးပါပြီ!"),showLogin()):n(d.message,"error")}catch(e){n("Connection error","error")}}
         
-        async function doLogin(){const em=document.getElementById("loginEmail").value.trim(),ps=document.getElementById("loginPassword").value,btn=document.getElementById("loginBtn");if(!em||!ps)return n("အားလုံးဖြည့်ပါ","error");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';btn.disabled=true;try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em,password:ps,captcha:getCap()})});const d=await r.json();if(d.success){const bc=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:d.user.id.toString()})});const bd=await bc.json();if(bd.banned){btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;return n("❌ ဤအကောင့်သည် ပိတ်ခံထားရပါသည်။","error")}localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("✅ Login Successful!");setTimeout(()=>window.location.href="/dashboard",500)}else{btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;n(d.message,"error")}}catch(e){btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;n("Connection error","error")}}
-    
+        async function doLogin(){const em=document.getElementById("loginEmail").value.trim(),ps=document.getElementById("loginPassword").value,btn=document.getElementById("loginBtn");if(!em||!ps)return n("အားလုံးဖြည့်ပါ","error");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';btn.disabled=true;try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em,password:ps,captcha:getCap()})});const d=await r.json();if(d.success){const bc=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:d.user.id.toString()})});const bd=await bc.json();if(bd.banned){btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;return n("❌ ဤအကောင့်သည် ပိတ်ခံထားရပါသည်","error")}localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("✅ Login Successful!");setTimeout(()=>window.location.href="/dashboard",500)}else{btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;n(d.message,"error")}}catch(e){btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;n("Connection error","error")}}
     </script>
 </body>
 </html>
