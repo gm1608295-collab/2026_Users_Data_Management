@@ -3,157 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Data - SOLO M Game Shop</title>
+    <title>SOLO M Game Shop - Buy Code</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
-        .container{max-width:500px;margin:0 auto}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,var(--a),var(--p));padding:12px 15px;border-radius:10px;border-bottom:3px solid var(--w)}
+        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
-        .header h2{color:var(--w);font-size:16px}
-        .panel{background:rgba(26,31,75,0.6);padding:15px;border-radius:10px;margin-bottom:15px;border:1px solid rgba(74,28,122,0.5)}
-        .panel h3{color:var(--w);font-size:14px;margin-bottom:10px;border-bottom:2px solid var(--a);padding-bottom:6px}
-        .pass-wrapper{position:relative}
-        .pass-wrapper input{padding-right:40px!important}
-        .pass-wrapper .eye-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px}
-        .form-group{margin-bottom:10px}
-        .form-group label{display:block;font-size:12px;margin-bottom:4px;color:#ccc}
-        .form-group input,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--t);font-size:13px}
-        .form-group select option{background:var(--bg);color:var(--t)}
-        .btn{width:100%;padding:10px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;margin-top:6px}
-        .btn-w{background:var(--w);color:#000}.btn-g{background:var(--g)}
-        .data-select{display:flex;gap:8px;margin-bottom:12px}
-        .data-card{flex:1;padding:10px 6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;text-align:center;cursor:pointer;transition:all 0.3s}
-        .data-card:hover,.data-card.sel{background:rgba(74,28,122,0.5);border-color:var(--w)}
-        .data-card img{width:45px;height:45px;border-radius:8px;margin-bottom:5px;object-fit:cover}
-        .data-card p{font-size:10px;color:var(--t);margin:0;font-weight:bold}
-        .sub-tab{display:none}.sub-tab.active{display:block}
-        .add-btn{background:var(--w);color:#000;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;font-weight:bold;flex-shrink:0}
-        .input-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}.input-row input{flex:1}
-        .remove-btn{background:var(--r);color:#fff;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;flex-shrink:0}
-        .data-info-link{text-align:right;margin-bottom:5px}
-        .data-info-link a{color:var(--b);font-size:10px;text-decoration:underline;cursor:pointer}
-        .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:5px;display:none;z-index:1000;font-size:12px}
-        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;justify-content:center;align-items:center}
+        .header h1{font-size:18px;color:var(--w)}
+        .balance-bar{background:rgba(0,0,0,0.4);padding:10px 15px;border-radius:8px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
+        .balance-bar .bal{color:var(--w);font-weight:bold}
+        .scroll-content{flex:1;overflow-y:auto;padding-bottom:10px}
+        
+        .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
+        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
+        .game-card:hover{background:rgba(74,28,122,0.4);border-color:var(--w)}
+        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover}
+        .game-card p{font-size:10px;color:var(--t);margin-top:5px}
+        .game-card .price-tag{font-size:9px;color:var(--w);margin-top:3px}
+        .game-card.owned{opacity:0.5;cursor:default;border-color:rgba(46,204,113,0.3)}
+        .game-card.owned:after{content:'✓ Owned';display:block;font-size:8px;color:var(--g);margin-top:3px}
+        
+        .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
+        .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
+        
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
         .modal.active{display:flex}
-        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto}
-        .modal-box h3{color:var(--w);margin-bottom:12px;text-align:center;font-size:15px}
-        .modal-close{float:right;color:var(--r);cursor:pointer;font-size:20px}
-        .copy-pass-btn{color:var(--b);cursor:pointer;font-size:11px;margin-left:4px}
+        .modal-box{background:var(--p);padding:20px;border-radius:12px;width:90%;max-width:400px;border:2px solid var(--w);max-height:85vh;overflow-y:auto}
+        .modal-box h3{color:var(--w);text-align:center;margin-bottom:5px;font-size:16px}
+        .modal-box .modal-img{width:60px;height:60px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 10px}
+        .modal-box .warning-text{font-size:10px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px;line-height:1.5}
+        .modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+        .modal-box .code-item .code-val{font-family:'Courier New',monospace;font-size:12px;word-break:break-all;flex:1}
+        .modal-box .code-item .code-val.locked{color:rgba(255,255,255,0.3);font-size:14px;letter-spacing:2px}
+        .btn-sm{padding:5px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
+        .btn-buy{background:var(--g);color:#000}.btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
+        
+        .qr-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:6000;justify-content:center;align-items:center}
+        .qr-modal.active{display:flex}
+        .qr-box{background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid var(--w);text-align:center;max-height:90vh;overflow-y:auto}
+        .qr-box h3{color:var(--w);margin-bottom:10px;font-size:15px}
+        .qr-box .qr-container{background:#fff;padding:15px;border-radius:8px;display:inline-block;margin:10px 0}
+        .qr-box .reveal-btn{background:var(--a);color:var(--t);border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:12px;margin:5px}
+        .qr-box .code-area{display:none;margin-top:10px}
+        .qr-box .code-area .the-code{font-size:16px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;word-break:break-all;letter-spacing:1px;user-select:all;margin:10px 0}
+        .qr-box .code-area .timer{font-size:12px;color:var(--w);margin:5px 0}
+        .qr-box .copy-btn{background:var(--g);color:#000;border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
+        .qr-box .close-qr{background:var(--r);color:var(--t);border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:10px}
     </style>
 </head>
 <body>
+    <audio id="bgAudio" loop style="display:none"></audio>
     <div class="notif" id="notif"></div>
-    <div class="container">
+    
+    <div class="container" id="mainContainer">
         <div class="header">
             <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h2><i class="fas fa-database"></i> Data</h2>
+            <h1><i class="fas fa-shopping-cart"></i> Buy Code MLBB</h1>
         </div>
         
-        <div class="data-info-link"><a onclick="openDataInfo()">အသေးစိတ်သိရှိရန် ဤနေရာကိုနှိပ်ပါ <i class="fas fa-info-circle"></i></a></div>
+        <div class="balance-bar">
+            <span><i class="fas fa-wallet"></i> MMK Balance</span>
+            <span class="bal" id="myBalance">0 Ks</span>
+        </div>
         
-        <div class="panel">
-            <div class="data-select">
-                <div class="data-card sel" onclick="showSub('gmailSub')"><img src="https://i.ibb.co/zWXRD2bF/88e14cc7e7fcbb0e0e09de26cec86c61.jpg" alt="Gmail"><p>Gmail</p></div>
-                <div class="data-card" onclick="showSub('mlbbSub')"><img src="https://i.ibb.co/NDZp85p/85cef5aaf89054952dd0c1cb350d7061.jpg" alt="MLBB"><p>MLBB</p></div>
-                <div class="data-card" onclick="showSub('tiktokSub')"><img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok"><p>TikTok</p></div>
-            </div>
-            
-            <!-- Gmail Sub-tab -->
-            <div class="sub-tab active" id="gmailSub">
-                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataGmailPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataGmailPass',this)"><i class="fas fa-eye"></i></button></div></div>
-                <button class="btn btn-w" onclick="unlockData('gmail')">Unlock Gmail</button>
-                <div id="gmailForm" style="display:none;margin-top:12px">
-                    <div class="form-group"><label>Name</label><input type="text" id="gName"></div>
-                    <div class="form-group"><label>Email</label><div id="gmailEmailList"><div class="input-row"><input type="email" class="gmail-email" placeholder="Enter email"><button class="add-btn" onclick="addGmailEmail()">+</button></div></div></div>
-                    <div class="form-group"><label>Phone</label><div id="gmailPhoneList"><div class="input-row"><input type="text" class="gmail-phone" placeholder="Enter phone"><button class="add-btn" onclick="addGmailPhone()">+</button></div></div></div>
-                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="gPw"><button class="eye-btn" onclick="togglePass('gPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="gConfirmPw"><button class="eye-btn" onclick="togglePass('gConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>DOB</label><input type="date" id="gAge"></div>
-                    <div class="form-group"><label>Country</label><select id="gCountry" onchange="loadRegions('gCountry','gRegion')"><option value="">Select</option></select></div>
-                    <div class="form-group"><label>Region</label><select id="gRegion"><option value="">Select</option></select></div>
-                    <button class="btn btn-g" onclick="saveGmailData()"><i class="fas fa-save"></i> Save</button>
-                </div>
-            </div>
-            
-            <!-- MLBB Sub-tab -->
-            <div class="sub-tab" id="mlbbSub">
-                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataMlbbPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataMlbbPass',this)"><i class="fas fa-eye"></i></button></div></div>
-                <button class="btn btn-w" onclick="unlockData('mlbb')">Unlock MLBB</button>
-                <div id="mlbbForm" style="display:none;margin-top:12px">
-                    <div class="form-group"><label>In-Game Name</label><input type="text" id="mName"></div>
-                    <div class="form-group"><label>In-Game ID</label><input type="text" id="mId"></div>
-                    <div class="form-group"><label>Server ID</label><input type="text" id="mServer"></div>
-                    <div class="form-group"><label>Gmail</label><div id="mlbbEmailList"><div class="input-row"><input type="email" class="mlbb-email" placeholder="Enter Gmail"><button class="add-btn" onclick="addMlbbEmail()">+</button></div></div></div>
-                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="mPw"><button class="eye-btn" onclick="togglePass('mPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="mConfirmPw"><button class="eye-btn" onclick="togglePass('mConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>DOB</label><input type="date" id="mAge"></div>
-                    <div class="form-group"><label>Country</label><select id="mCountry" onchange="loadRegions('mCountry','mRegion')"><option value="">Select</option></select></div>
-                    <div class="form-group"><label>Region</label><select id="mRegion"><option value="">Select</option></select></div>
-                    <button class="btn btn-g" onclick="saveMlbbData()"><i class="fas fa-save"></i> Save</button>
-                </div>
-            </div>
-            
-            <!-- TikTok Sub-tab -->
-            <div class="sub-tab" id="tiktokSub">
-                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataTiktokPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataTiktokPass',this)"><i class="fas fa-eye"></i></button></div></div>
-                <button class="btn btn-w" onclick="unlockData('tiktok')">Unlock TikTok</button>
-                <div id="tiktokForm" style="display:none;margin-top:12px">
-                    <div class="form-group"><label>Full Name</label><input type="text" id="tFullName"></div>
-                    <div class="form-group"><label>Last Name</label><input type="text" id="tLastName"></div>
-                    <div class="form-group"><label>Email</label><div id="tiktokEmailList"><div class="input-row"><input type="email" class="tiktok-email" placeholder="Enter email"><button class="add-btn" onclick="addTiktokEmail()">+</button></div></div></div>
-                    <div class="form-group"><label>Phone</label><div id="tiktokPhoneList"><div class="input-row"><input type="text" class="tiktok-phone" placeholder="Enter phone"><button class="add-btn" onclick="addTiktokPhone()">+</button></div></div></div>
-                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="tPw"><button class="eye-btn" onclick="togglePass('tPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="tConfirmPw"><button class="eye-btn" onclick="togglePass('tConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>DOB</label><input type="date" id="tAge"></div>
-                    <div class="form-group"><label>Country</label><select id="tCountry" onchange="loadRegions('tCountry','tRegion')"><option value="">Select</option></select></div>
-                    <div class="form-group"><label>Region</label><select id="tRegion"><option value="">Select</option></select></div>
-                    <button class="btn btn-g" onclick="saveTiktokData()"><i class="fas fa-save"></i> Save</button>
-                </div>
-            </div>
+        <div class="scroll-content">
+            <p style="font-size:11px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px">
+                ⚠️ အကောင့်တစ်ကောင့်မှာ အမျိုးအစားတစ်ခုစီကို တစ်ကြိမ်စီသာ ဝယ်ယူလို့ရပါမည်။
+            </p>
+            <div class="game-grid" id="gameGrid"></div>
+        </div>
+        
+        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
+    </div>
+    
+    <div class="modal" id="categoryModal">
+        <div class="modal-box">
+            <img class="modal-img" id="modalImg" src="" alt="">
+            <h3 id="modalTitle"></h3>
+            <p class="warning-text">⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။ QR Code Scan ဖတ်ပြီးမှသာ Code အစစ်ရမည်။</p>
+            <div id="codeList"></div>
+            <button class="btn-close" onclick="closeCategoryModal()">Close</button>
         </div>
     </div>
     
-    <!-- Data Info Modal -->
-    <div class="modal" id="dataInfoModal"><div class="modal-box"><span class="modal-close" onclick="closeDataInfo()">&times;</span><h3><i class="fas fa-info-circle"></i> Data များအကြောင်း</h3>
-        <div style="font-size:11px;line-height:1.8;color:rgba(255,255,255,0.85)">
-            <p><b style="color:var(--w)">📧 Gmail Data</b> - သင်၏ Gmail အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
-            <br><p><b style="color:var(--w)">🎮 MLBB Data</b> - သင်၏ Mobile Legends အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
-            <br><p><b style="color:var(--w)">🎵 TikTok Data</b> - သင်၏ TikTok အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
-            <br><p><b style="color:var(--w)">🔒 Generator Password (အများသုံး)</b></p>
-            <p>• Gmail: <b>DoubleMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i></span></p>
-            <p>• MLBB: <b>GlobalMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('GlobalMK2008')"><i class="fas fa-copy"></i></span></p>
-            <p>• TikTok: <b>DoubleMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i></span></p>
-            <br><p><b style="color:var(--w)">🔑 ကိုယ်ပိုင် Password</b> - Password Tab တွင် ပြောင်းလဲနိုင်ပါသည်။</p>
-            <br><p><b style="color:var(--w)">🛡️ လုံခြုံရေး</b> - Data များကို Encryption ဖြင့် ကာကွယ်ထားပါသည်။</p>
-        </div>
-    </div></div>
+    <div class="qr-modal" id="qrModal">
+        <div class="qr-box" id="qrBoxContent"></div>
+    </div>
 
 <script>
-    let GPASS="DoubleMK2008",MPASS="GlobalMK2008",TPASS="DoubleMK2008",countriesData=[];
-    function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-    function showSub(id){document.querySelectorAll('.data-card').forEach(c=>c.classList.remove('sel'));event.target.closest('.data-card').classList.add('sel');document.querySelectorAll('.sub-tab').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
-    function togglePass(i,b){const inp=document.getElementById(i),ic=b.querySelector('i');if(inp.type==='password'){inp.type='text';ic.className='fas fa-eye-slash'}else{inp.type='password';ic.className='fas fa-eye'}}
-    function openDataInfo(){document.getElementById("dataInfoModal").classList.add("active")}
-    function closeDataInfo(){document.getElementById("dataInfoModal").classList.remove("active")}
-    function copyPassText(t){navigator.clipboard.writeText(t).then(()=>n("✅ Password Copied!"))}
-    function unlockData(type){const pass=document.getElementById('data'+type.charAt(0).toUpperCase()+type.slice(1)+'Pass').value;const correct=type==='gmail'?GPASS:type==='mlbb'?MPASS:TPASS;if(pass!==correct)return n("Wrong password","error");document.getElementById(type+'Form').style.display='block'}
-    function addInput(listId,cls,type,ph){const d=document.getElementById(listId);const div=document.createElement('div');div.className='input-row';div.innerHTML=`<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`;d.appendChild(div)}
-    function getValues(cls){return Array.from(document.getElementsByClassName(cls)).map(i=>i.value).filter(v=>v)}
-    function addGmailEmail(){addInput('gmailEmailList','gmail-email','email','Enter email')}
-    function addGmailPhone(){addInput('gmailPhoneList','gmail-phone','text','Enter phone')}
-    function addMlbbEmail(){addInput('mlbbEmailList','mlbb-email','email','Enter Gmail')}
-    function addTiktokEmail(){addInput('tiktokEmailList','tiktok-email','email','Enter email')}
-    function addTiktokPhone(){addInput('tiktokPhoneList','tiktok-phone','text','Enter phone')}
-    async function loadPw(){try{const r=await fetch("/api/get_passwords",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})});const d=await r.json();GPASS=d.gmail_password||'DoubleMK2008';MPASS=d.mlbb_password||'GlobalMK2008';TPASS=d.tiktok_password||'DoubleMK2008'}catch(e){}}
-    async function loadCountries(){try{const r=await fetch("/api/countries");countriesData=await r.json();['gCountry','mCountry','tCountry'].forEach(id=>{const s=document.getElementById(id);if(s){s.innerHTML='<option value="">Select</option>';countriesData.forEach(c=>{s.innerHTML+=`<option value="${c.name}">${c.name}</option>`})}})}catch(e){}}
-    function loadRegions(cid,rid){const c=document.getElementById(cid).value;const r=document.getElementById(rid);r.innerHTML='<option value="">Select</option>';const f=countriesData.find(x=>x.name===c);if(f)f.regions.forEach(reg=>{r.innerHTML+=`<option value="${reg}">${reg}</option>`})}
-    async function saveGmailData(){const n=document.getElementById("gName").value;if(!n)return n("Fill required","error");try{await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'gmail',data:{name:n,emails:getValues('gmail-email'),phones:getValues('gmail-phone'),password:document.getElementById("gPw").value}})});n("Saved!");document.getElementById("gmailForm").style.display='none'}catch(e){n("Error","error")}}
-    async function saveMlbbData(){const n=document.getElementById("mName").value;if(!n)return n("Fill required","error");try{await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'mlbb',data:{ingameName:n,ingameId:document.getElementById("mId").value,serverId:document.getElementById("mServer").value,emails:getValues('mlbb-email'),password:document.getElementById("mPw").value}})});n("Saved!");document.getElementById("mlbbForm").style.display='none'}catch(e){n("Error","error")}}
-    async function saveTiktokData(){const n=document.getElementById("tFullName").value;if(!n)return n("Fill required","error");try{await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'tiktok',data:{fullName:n,lastName:document.getElementById("tLastName").value,emails:getValues('tiktok-email'),phones:getValues('tiktok-phone'),password:document.getElementById("tPw").value}})});n("Saved!");document.getElementById("tiktokForm").style.display='none'}catch(e){n("Error","error")}}
-    loadPw();loadCountries();
+    // ==================== GLOBAL: BG Music Player ====================
+    const bgAudio = document.getElementById('bgAudio');
+    let musicPlaylist = [], musicCurrentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
+    bgAudio.volume = 0.6;
+
+    async function checkMusic() {
+        try {
+            const r = await fetch('/api/bg_music?t=' + Date.now());
+            const d = await r.json();
+            if (d.playlist && d.playlist.length > 0) {
+                const newList = JSON.stringify(d.playlist), oldList = JSON.stringify(musicPlaylist);
+                if (newList !== oldList) { musicPlaylist = d.playlist; musicCurrentIndex = 0; playMusic(); }
+                else if (bgAudio.paused && bgAudio.src) { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }
+            } else { bgAudio.pause(); bgAudio.src = ''; musicPlaylist = []; }
+        } catch(e) {}
+    }
+    function playMusic() {
+        if (!musicPlaylist.length) return;
+        if (musicCurrentIndex >= musicPlaylist.length) musicCurrentIndex = 0;
+        const url = musicPlaylist[musicCurrentIndex];
+        if (bgAudio.src !== url) {
+            bgAudio.src = url;
+            bgAudio.addEventListener('canplay', function() { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }, { once: true });
+        } else { bgAudio.play().catch(() => {}); }
+    }
+    bgAudio.addEventListener('ended', function() {
+        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime);
+        musicCurrentIndex = (musicCurrentIndex + 1) % musicPlaylist.length;
+        localStorage.setItem('bgMusicIndex', musicCurrentIndex);
+        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, '0');
+        playMusic();
+    });
+    setInterval(() => { if (!bgAudio.paused && musicPlaylist.length > 0) { localStorage.setItem('bgMusicIndex', musicCurrentIndex); localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime); } }, 500);
+    checkMusic();
+    setInterval(checkMusic, 2000);
+
+    const CODES = [
+        { category: "Shhh emote", icon: "https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png", price: 5000, codes: ["2359x2s4zqzq23fb8"] },
+        { category: "Golden Month Border", icon: "https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png", price: 8000, codes: ["29jwchdgqyvj23f5e"] },
+        { category: "Lucky Diamond Code", icon: "https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png", price: 12000, codes: ["2ja2rum6s6x923fnn"] },
+        { category: "Magic Durt", icon: "https://i.ibb.co/NdpDZ0P7/8.png", price: 3000, codes: ["35smvu4a354423gzj"] },
+        { category: "Emblem Box", icon: "https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png", price: 4000, codes: ["28knzpt43hdc23gzc"] }
+    ];
+
+    let purchasedCodes = JSON.parse(localStorage.getItem('purchased_codes') || '{}');
+    let currentBalance = 0;
+    let qrTimerInterval = null;
+    let revealedCodeValue = '';
+
+    function n(m, t = "success") { const e = document.getElementById("notif"); e.textContent = m; e.style.background = t === "success" ? "#2ecc71" : "#e74c3c"; e.style.display = "block"; setTimeout(() => e.style.display = "none", 2000); }
+    function formatNumber(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+    async function loadBalance() {
+        try { const r = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) }); const d = await r.json(); currentBalance = d.balance || 0; document.getElementById('myBalance').textContent = formatNumber(currentBalance) + ' Ks'; renderGameCards(); } catch(e) {}
+    }
+
+    function isCategoryPurchased(i) { return purchasedCodes[i] === true; }
+
+    function renderGameCards() {
+        document.getElementById('gameGrid').innerHTML = CODES.map((cat, i) => `<div class="game-card ${isCategoryPurchased(i) ? 'owned' : ''}" onclick="${isCategoryPurchased(i) ? '' : 'openCategory(' + i + ')'}"><img src="${cat.icon}"><p>${cat.category}</p><div class="price-tag">💰 ${formatNumber(cat.price)} Ks</div></div>`).join('');
+    }
+
+    function openCategory(i) {
+        if (isCategoryPurchased(i)) return;
+        const cat = CODES[i];
+        document.getElementById('modalImg').src = cat.icon;
+        document.getElementById('modalTitle').textContent = cat.category;
+        document.getElementById('codeList').innerHTML = cat.codes.map(c => `<div class="code-item"><span class="code-val locked">••••••••••••••••••</span><button class="btn-sm btn-buy" onclick="buyCode(${i})">Buy (${formatNumber(cat.price)} Ks)</button></div>`).join('');
+        document.getElementById('categoryModal').classList.add('active');
+    }
+
+    function closeCategoryModal() { document.getElementById('categoryModal').classList.remove('active'); }
+
+    function buyCode(i) {
+        const cat = CODES[i], price = cat.price, code = cat.codes[0];
+        if (isCategoryPurchased(i)) return n('ဒီအမျိုးအစားကိုဝယ်ပြီးပါပြီ', 'error');
+        if (currentBalance < price) return n('ငွေမလုံလောက်ပါ', 'error');
+        if (!confirm(`${cat.category}\n\nစျေးနှုန်း: ${formatNumber(price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?`)) return;
+        
+        const uid = parseInt(localStorage.getItem('auth_token').replace('token_', ''));
+        fetch('/api/use_code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, userId: uid }) })
+            .then(r => r.json()).then(d => {
+                if (d.already_used) return n('❌ ဤ Code ကို အသုံးပြုပြီးပါပြီ။', 'error');
+                fetch('/api/admin/update_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: uid, amount: -price }) })
+                    .then(r => r.json()).then(d2 => {
+                        if (d2.success) {
+                            currentBalance -= price;
+                            document.getElementById('myBalance').textContent = formatNumber(currentBalance) + ' Ks';
+                            purchasedCodes[i] = true;
+                            localStorage.setItem('purchased_codes', JSON.stringify(purchasedCodes));
+                            closeCategoryModal();
+                            renderGameCards();
+                            showQRModal(code);
+                        }
+                    });
+            });
+    }
+
+    function showQRModal(code) {
+        revealedCodeValue = code;
+        document.getElementById('qrBoxContent').innerHTML = `
+            <h3><i class="fas fa-qrcode"></i> Scan QR Code</h3>
+            <p style="font-size:11px;color:rgba(255,255,255,0.7)">Code ရယူရန် QR Code ကို Scan ဖတ်ပါ</p>
+            <div class="qr-container" id="qrcodeContainer"></div>
+            <p style="font-size:10px;color:rgba(255,255,255,0.5);margin:8px 0">သို့မဟုတ်</p>
+            <button class="reveal-btn" onclick="revealCode()"><i class="fas fa-eye"></i> Code အစစ် ကြည့်မည်</button>
+            <div class="code-area" id="qrCodeArea">
+                <div class="the-code">${code}</div>
+                <p class="timer" id="qrTimer">⏱️ 10 seconds remaining</p>
+                <button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy Code</button>
+            </div>
+            <button class="close-qr" onclick="closeQRModal()">Close</button>`;
+        
+        document.getElementById('qrModal').classList.add('active');
+        
+        setTimeout(() => {
+            const c = document.getElementById('qrcodeContainer');
+            if (c) { c.innerHTML = ''; new QRCode(c, { text: code, width: 150, height: 150, colorDark: '#000000', colorLight: '#ffffff' }); }
+        }, 100);
+        
+        let sec = 10;
+        if (qrTimerInterval) clearInterval(qrTimerInterval);
+        qrTimerInterval = setInterval(() => {
+            sec--;
+            const t = document.getElementById('qrTimer');
+            if (t) t.textContent = `⏱️ ${sec} seconds remaining`;
+            if (sec <= 0) { clearInterval(qrTimerInterval); closeQRModal(); n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ'); }
+        }, 1000);
+    }
+
+    function revealCode() { document.getElementById('qrCodeArea').style.display = 'block'; document.querySelector('.reveal-btn').style.display = 'none'; }
+    function copyQRCode() { if (!revealedCodeValue) return; navigator.clipboard.writeText(revealedCodeValue).then(() => { const b = document.getElementById('qrCopyBtn'); if (b) { b.innerHTML = '<i class="fas fa-check"></i> Copied!'; b.style.background = 'rgba(255,255,255,0.2)'; } n('✅ Code Copied!'); }); }
+    function closeQRModal() { document.getElementById('qrModal').classList.remove('active'); if (qrTimerInterval) { clearInterval(qrTimerInterval); qrTimerInterval = null; } }
+    
+    loadBalance();
 </script>
 </body>
 </html>
