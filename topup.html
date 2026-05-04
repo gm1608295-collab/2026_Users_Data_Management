@@ -411,75 +411,76 @@
     
     loadBalance();
     fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).then(r=>r.json()).then(d=>{if(d.orders)localStorage.setItem('orderHistoryCache',JSON.stringify(d.orders))}).catch(()=>{});
-// ==================== BG MUSIC (URL + Base64 Support) ====================
+// ==================== BG MUSIC PLAYLIST PLAYER ====================
 (function(){
     const a = document.getElementById('bgAudio');
+    let playlist = [];
+    let currentIndex = 0;
+    
     a.volume = 0.3;
     
-    async function checkAndUpdateMusic(){
-        try{
+    async function loadPlaylist() {
+        try {
             const r = await fetch('/api/bg_music');
             const d = await r.json();
-            
-            if(d.success && d.music_url){
-                const currentUrl = a.getAttribute('data-current-url') || '';
-                const newUrl = d.music_url;
-                
-                // Music အသစ်တင်ထားရင်
-                if(currentUrl !== newUrl){
-                    // Remove old source
-                    a.removeAttribute('src');
-                    
-                    // Set new source (URL or Base64)
-                    a.src = newUrl;
-                    a.setAttribute('data-current-url', newUrl);
-                    
-                    // Generate unique key for this music
-                    const key = 'bgMusicTime_' + (newUrl.length > 50 ? btoa(newUrl.substring(0,40)) : newUrl.substring(0,50));
-                    const savedTime = localStorage.getItem(key);
-                    
-                    a.addEventListener('loadedmetadata', function(){
-                        if(savedTime) a.currentTime = parseFloat(savedTime);
-                        a.play().catch(()=>{});
-                    }, {once: true});
-                }
-                // Same music but paused
-                else if(a.paused){
-                    const key = 'bgMusicTime_' + (newUrl.length > 50 ? btoa(newUrl.substring(0,40)) : newUrl.substring(0,50));
-                    const savedTime = localStorage.getItem(key);
-                    a.addEventListener('loadedmetadata', function(){
-                        if(savedTime) a.currentTime = parseFloat(savedTime);
-                        a.play().catch(()=>{});
-                    }, {once: true});
-                    a.load();
-                }
-            } else {
-                // Music removed
-                a.pause();
-                a.removeAttribute('src');
-                a.removeAttribute('data-current-url');
+            if (d.success && d.playlist && d.playlist.length > 0) {
+                playlist = d.playlist;
+                playNext();
             }
-        }catch(e){}
+        } catch(e) {}
     }
     
-    // Check immediately
-    checkAndUpdateMusic();
+    function playNext() {
+        if (playlist.length === 0) return;
+        
+        const url = playlist[currentIndex];
+        const savedTime = localStorage.getItem('bgMusicTime_' + currentIndex);
+        
+        a.src = url;
+        a.addEventListener('loadedmetadata', function() {
+            if (savedTime) a.currentTime = parseFloat(savedTime);
+            a.play().catch(() => {});
+        }, { once: true });
+    }
+    
+    // When current music ends, play next
+    a.addEventListener('ended', function() {
+        // Save time as 0 for next track
+        currentIndex = (currentIndex + 1) % playlist.length;
+        localStorage.setItem('bgMusicTime_' + currentIndex, '0');
+        playNext();
+    });
     
     // Save time every second
     setInterval(() => {
-        if(!a.paused){
-            const url = a.getAttribute('data-current-url') || '';
-            if(url){
-                const key = 'bgMusicTime_' + (url.length > 50 ? btoa(url.substring(0,40)) : url.substring(0,50));
-                localStorage.setItem(key, a.currentTime);
-            }
+        if (!a.paused) {
+            localStorage.setItem('bgMusicTime_' + currentIndex, a.currentTime);
         }
     }, 1000);
     
-    // Check for updates every 3 seconds
-    setInterval(checkAndUpdateMusic, 3000);
-})();
+    // Check for playlist updates every 5 seconds
+    setInterval(async () => {
+        try {
+            const r = await fetch('/api/bg_music');
+            const d = await r.json();
+            if (d.playlist) {
+                const newPlaylist = JSON.stringify(d.playlist);
+                const oldPlaylist = JSON.stringify(playlist);
+                if (newPlaylist !== oldPlaylist) {
+                    playlist = d.playlist;
+                    currentIndex = 0;
+                    playNext();
+                }
+            } else {
+                a.pause();
+                a.src = '';
+                playlist = [];
+            }
+        } catch(e) {}
+    }, 5000);
     
+    loadPlaylist();
+})();
 </script>
 </body>
 </html>
