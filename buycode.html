@@ -9,15 +9,13 @@
     <style>
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px}
-        .container{max-width:500px;margin:0 auto;height:100vh;display:flex;flex-direction:column}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
+        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
         .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
-        
         .balance-bar{background:rgba(0,0,0,0.4);padding:10px 15px;border-radius:8px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
         .balance-bar .bal{color:var(--w);font-weight:bold}
-        
         .scroll-content{flex:1;overflow-y:auto;padding-bottom:10px}
         
         .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
@@ -30,7 +28,6 @@
         .game-card.owned:after{content:'✓ Owned';display:block;font-size:8px;color:var(--g);margin-top:3px}
         
         .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
-        
         .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
         
         .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
@@ -43,9 +40,7 @@
         .modal-box .code-item .code-val{font-family:'Courier New',monospace;font-size:12px;word-break:break-all;flex:1}
         .modal-box .code-item .code-val.locked{color:rgba(255,255,255,0.3);font-size:14px;letter-spacing:2px}
         .btn-sm{padding:5px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
-        .btn-buy{background:var(--g);color:#000}
-        .btn-owned{background:rgba(46,204,113,0.2);color:var(--g);cursor:default;font-size:9px}
-        .btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
+        .btn-buy{background:var(--g);color:#000}.btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
         
         .qr-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:6000;justify-content:center;align-items:center}
         .qr-modal.active{display:flex}
@@ -64,7 +59,7 @@
     <audio id="bgAudio" loop style="display:none"></audio>
     <div class="notif" id="notif"></div>
     
-    <div class="container">
+    <div class="container" id="mainContainer">
         <div class="header">
             <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
             <h1><i class="fas fa-shopping-cart"></i> Buy Code MLBB</h1>
@@ -85,7 +80,6 @@
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
     
-    <!-- Category Modal -->
     <div class="modal" id="categoryModal">
         <div class="modal-box">
             <img class="modal-img" id="modalImg" src="" alt="">
@@ -96,7 +90,6 @@
         </div>
     </div>
     
-    <!-- QR Reveal Modal -->
     <div class="qr-modal" id="qrModal">
         <div class="qr-box" id="qrBoxContent"></div>
     </div>
@@ -108,9 +101,9 @@
             const r=await fetch('/api/admin/page_status');
             const d=await r.json();
             if(d.pages){
-                const bcPage=d.pages.find(p=>p.id==='buycode');
-                if(bcPage&&bcPage.status==='off'){
-                    document.body.innerHTML=`<div style="text-align:center;padding:50px;color:#fff;min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#0c0e27"><i class="fas fa-tools" style="font-size:60px;color:#f39c12;margin-bottom:20px"></i><h2 style="color:#f39c12">ယခုစာမျက်နှာကို ပိုကောင်းအောင် ပြုပြင်မွမ်းမံနေပါသည်</h2><p style="color:rgba(255,255,255,0.7)">ခဏစောင့်ဆိုင်းပေးပါ</p><a href="/dashboard" style="color:#f39c12;margin-top:20px">Back to Dashboard</a></div>`;
+                const bc=d.pages.find(p=>p.id==='buycode');
+                if(bc&&bc.status==='off'){
+                    document.getElementById('mainContainer').innerHTML=`<div style="text-align:center;padding:50px"><i class="fas fa-tools" style="font-size:60px;color:#f39c12;margin-bottom:20px"></i><h2 style="color:#f39c12">ယခုစာမျက်နှာကို ပြုပြင်နေပါသည်</h2><p>ခဏစောင့်ပါ</p><a href="/dashboard" style="color:#f39c12">Back to Dashboard</a></div>`;
                     return;
                 }
             }
@@ -137,37 +130,31 @@
         try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();currentBalance=d.balance||0;document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';renderGameCards()}catch(e){}
     }
 
-    function isCategoryPurchased(catIndex){return purchasedCodes[catIndex]===true}
+    function isCategoryPurchased(i){return purchasedCodes[i]===true}
 
     function renderGameCards(){
-        const grid=document.getElementById('gameGrid');
-        grid.innerHTML=CODES.map((cat,i)=>{const owned=isCategoryPurchased(i);return`<div class="game-card ${owned?'owned':''}" onclick="${owned?'':'openCategory('+i+')'}"><img src="${cat.icon}" alt="${cat.category}"><p>${cat.category}</p><div class="price-tag">💰 ${formatNumber(cat.price)} Ks</div></div>`}).join('')
+        document.getElementById('gameGrid').innerHTML=CODES.map((cat,i)=>`<div class="game-card ${isCategoryPurchased(i)?'owned':''}" onclick="${isCategoryPurchased(i)?'':'openCategory('+i+')'}"><img src="${cat.icon}"><p>${cat.category}</p><div class="price-tag">💰 ${formatNumber(cat.price)} Ks</div></div>`).join('')
     }
 
-    function openCategory(catIndex){
-        if(isCategoryPurchased(catIndex))return;
-        const cat=CODES[catIndex];
+    function openCategory(i){
+        if(isCategoryPurchased(i))return;
+        const cat=CODES[i];
         document.getElementById('modalImg').src=cat.icon;
         document.getElementById('modalTitle').textContent=cat.category;
-        document.getElementById('codeList').innerHTML=cat.codes.map((code)=>
-            `<div class="code-item"><span class="code-val locked">••••••••••••••••••</span><button class="btn-sm btn-buy" onclick="buyCodeFromModal(${catIndex})">Buy (${formatNumber(cat.price)} Ks)</button></div>`
-        ).join('');
+        document.getElementById('codeList').innerHTML=cat.codes.map(c=>`<div class="code-item"><span class="code-val locked">••••••••••••••••••</span><button class="btn-sm btn-buy" onclick="buyCode(${i})">Buy (${formatNumber(cat.price)} Ks)</button></div>`).join('');
         document.getElementById('categoryModal').classList.add('active');
     }
 
     function closeCategoryModal(){document.getElementById('categoryModal').classList.remove('active')}
 
-    function buyCodeFromModal(catIndex){
-        const cat=CODES[catIndex];
-        const price=cat.price;
-        const code=cat.codes[0];
-        
-        if(isCategoryPurchased(catIndex))return n('ဒီအမျိုးအစားကိုဝယ်ပြီးပါပြီ','error');
+    function buyCode(i){
+        const cat=CODES[i],price=cat.price,code=cat.codes[0];
+        if(isCategoryPurchased(i))return n('ဒီအမျိုးအစားကိုဝယ်ပြီးပါပြီ','error');
         if(currentBalance<price)return n('ငွေမလုံလောက်ပါ','error');
-        if(!confirm(`${cat.category}\n\nစျေးနှုန်း: ${formatNumber(price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?\n\n⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။`))return;
+        if(!confirm(`${cat.category}\n\nစျေးနှုန်း: ${formatNumber(price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?`))return;
         
         const uid=parseInt(localStorage.getItem('auth_token').replace('token_',''));
-        fetch('/api/use_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,userId:uid})})
+        fetch('/api/use_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,userId:uid})})
         .then(r=>r.json()).then(d=>{
             if(d.already_used)return n('❌ ဤ Code ကို အသုံးပြုပြီးပါပြီ။','error');
             fetch('/api/admin/update_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid,amount:-price})})
@@ -175,28 +162,27 @@
                 if(d2.success){
                     currentBalance-=price;
                     document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
-                    purchasedCodes[catIndex]=true;
+                    purchasedCodes[i]=true;
                     localStorage.setItem('purchased_codes',JSON.stringify(purchasedCodes));
                     closeCategoryModal();
                     renderGameCards();
-                    showQRRevealModal(code);
+                    showQRModal(code);
                 }
             });
         });
     }
 
-    function showQRRevealModal(code){
+    function showQRModal(code){
         revealedCodeValue=code;
         document.getElementById('qrBoxContent').innerHTML=`
             <h3><i class="fas fa-qrcode"></i> Scan QR Code</h3>
             <p style="font-size:11px;color:rgba(255,255,255,0.7)">Code ရယူရန် QR Code ကို Scan ဖတ်ပါ</p>
             <div class="qr-container" id="qrcodeContainer"></div>
             <p style="font-size:10px;color:rgba(255,255,255,0.5);margin:8px 0">သို့မဟုတ်</p>
-            <button class="reveal-btn" onclick="revealCodeInQR()"><i class="fas fa-eye"></i> Code အစစ် ကြည့်မည်</button>
+            <button class="reveal-btn" onclick="revealCode()"><i class="fas fa-eye"></i> Code အစစ် ကြည့်မည်</button>
             <div class="code-area" id="qrCodeArea">
                 <div class="the-code">${code}</div>
                 <p class="timer" id="qrTimer">⏱️ 10 seconds remaining</p>
-                <p style="font-size:9px;color:rgba(255,255,255,0.5)">⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။</p>
                 <button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy Code</button>
             </div>
             <button class="close-qr" onclick="closeQRModal()">Close</button>`;
@@ -204,131 +190,33 @@
         document.getElementById('qrModal').classList.add('active');
         
         setTimeout(()=>{
-            const container=document.getElementById('qrcodeContainer');
-            if(container){container.innerHTML='';new QRCode(container,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'})}
+            const c=document.getElementById('qrcodeContainer');
+            if(c){c.innerHTML='';new QRCode(c,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'})}
         },100);
         
         let sec=10;
         if(qrTimerInterval)clearInterval(qrTimerInterval);
         qrTimerInterval=setInterval(()=>{
             sec--;
-            const timerEl=document.getElementById('qrTimer');
-            if(timerEl)timerEl.textContent=`⏱️ ${sec} seconds remaining`;
-            if(sec<=0){clearInterval(qrTimerInterval);qrTimerInterval=null;closeQRModal();n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ');revealedCodeValue=''}
+            const t=document.getElementById('qrTimer');
+            if(t)t.textContent=`⏱️ ${sec} seconds remaining`;
+            if(sec<=0){clearInterval(qrTimerInterval);closeQRModal();n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ')}
         },1000);
     }
 
-    function revealCodeInQR(){document.getElementById('qrCodeArea').style.display='block';document.querySelector('.reveal-btn').style.display='none'}
-    function copyQRCode(){if(!revealedCodeValue)return;navigator.clipboard.writeText(revealedCodeValue).then(()=>{const btn=document.getElementById('qrCopyBtn');if(btn){btn.innerHTML='<i class="fas fa-check"></i> Copied!';btn.style.background='rgba(255,255,255,0.2)'}n('✅ Code Copied!')})}
+    function revealCode(){document.getElementById('qrCodeArea').style.display='block';document.querySelector('.reveal-btn').style.display='none'}
+    function copyQRCode(){if(!revealedCodeValue)return;navigator.clipboard.writeText(revealedCodeValue).then(()=>{const b=document.getElementById('qrCopyBtn');if(b){b.innerHTML='<i class="fas fa-check"></i> Copied!';b.style.background='rgba(255,255,255,0.2)'}n('✅ Code Copied!')})}
     function closeQRModal(){document.getElementById('qrModal').classList.remove('active');if(qrTimerInterval){clearInterval(qrTimerInterval);qrTimerInterval=null}}
     
     loadBalance();
-// ==================== BG MUSIC PLAYLIST (Instant + Resume + 2X Volume) ====================
-(function(){
-    const a = document.getElementById('bgAudio');
-    let playlist = [];
-    let currentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
-    
-    a.volume = 0.6; // ✅ 2X volume (0.3 → 0.6)
-    
-    // ✅ Preload next track for instant switch
-    const nextAudio = new Audio();
-    nextAudio.volume = 0.6;
-    
-    async function checkPlaylist() {
-        try {
-            const r = await fetch('/api/bg_music?t=' + Date.now());
-            const d = await r.json();
-            
-            if (d.success && d.playlist && d.playlist.length > 0) {
-                const newList = JSON.stringify(d.playlist);
-                const oldList = JSON.stringify(playlist);
-                
-                // New playlist detected
-                if (newList !== oldList) {
-                    playlist = d.playlist;
-                    currentIndex = 0;
-                    playCurrent(true); // Force play
-                }
-                // Same playlist but not playing
-                else if (a.paused && a.src) {
-                    const savedTime = localStorage.getItem('bgMusicTime_' + currentIndex);
-                    a.currentTime = savedTime ? parseFloat(savedTime) : 0;
-                    a.play().catch(()=>{});
-                }
-            } else {
-                // Music removed
-                a.pause();
-                a.removeAttribute('src');
-                a.load();
-                playlist = [];
-                nextAudio.removeAttribute('src');
-            }
-        } catch(e) {}
-    }
-    
-    function playCurrent(force = false) {
-        if (playlist.length === 0) return;
-        if (currentIndex >= playlist.length) currentIndex = 0;
-        
-        const url = playlist[currentIndex];
-        const savedTime = localStorage.getItem('bgMusicTime_' + currentIndex);
-        
-        // ✅ Only change if different or forced
-        if (a.src !== url || force) {
-            a.src = url;
-            a.load(); // Force reload
-            
-            // Resume time after load
-            a.addEventListener('canplay', function() {
-                if (savedTime && a.currentTime < 1) {
-                    a.currentTime = parseFloat(savedTime);
-                }
-                a.play().catch(()=>{});
-            }, {once: true});
-        } else {
-            a.play().catch(()=>{});
-        }
-        
-        // ✅ Preload next track
-        const nextIndex = (currentIndex + 1) % playlist.length;
-        if (playlist[nextIndex] && nextAudio.src !== playlist[nextIndex]) {
-            nextAudio.src = playlist[nextIndex];
-            nextAudio.load();
-        }
-    }
-    
-    // ✅ Save time every 500ms
-    setInterval(() => {
-        if (!a.paused && playlist.length > 0) {
-            localStorage.setItem('bgMusicIndex', currentIndex);
-            localStorage.setItem('bgMusicTime_' + currentIndex, a.currentTime);
-        }
-    }, 500);
-    
-    // ✅ When ends, play next instantly (preloaded)
-    a.addEventListener('ended', function() {
-        // Save time for current
-        localStorage.setItem('bgMusicTime_' + currentIndex, a.currentTime);
-        
-        // Move to next
-        currentIndex = (currentIndex + 1) % playlist.length;
-        localStorage.setItem('bgMusicIndex', currentIndex);
-        localStorage.setItem('bgMusicTime_' + currentIndex, '0');
-        
-        // ✅ Use preloaded audio for instant switch
-        if (nextAudio.src) {
-            a.src = nextAudio.src;
-            a.currentTime = 0;
-            a.play().catch(()=>{});
-        }
-        playCurrent(true);
-    });
-    
-    // ✅ Check every 2 seconds
-    checkPlaylist();
-    setInterval(checkPlaylist, 2000);
-})();
+
+    // ==================== BG MUSIC PLAYLIST PLAYER ====================
+    (function(){const a=document.getElementById('bgAudio');let playlist=[],currentIndex=parseInt(localStorage.getItem('bgMusicIndex')||'0');a.volume=0.6;
+    async function check(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){const nl=JSON.stringify(d.playlist),ol=JSON.stringify(playlist);if(nl!==ol){playlist=d.playlist;currentIndex=0;play()}else if(a.paused&&a.src){const t=localStorage.getItem('bgMusicTime_'+currentIndex);if(t)a.currentTime=parseFloat(t);a.play().catch(()=>{})}}else{a.pause();a.src='';playlist=[]}}catch(e){}}
+    function play(){if(!playlist.length)return;if(currentIndex>=playlist.length)currentIndex=0;const url=playlist[currentIndex];if(a.src!==url){a.src=url;a.addEventListener('canplay',function(){const t=localStorage.getItem('bgMusicTime_'+currentIndex);if(t)a.currentTime=parseFloat(t);a.play().catch(()=>{})},{once:true})}else{a.play().catch(()=>{})}}
+    a.addEventListener('ended',function(){localStorage.setItem('bgMusicTime_'+currentIndex,a.currentTime);currentIndex=(currentIndex+1)%playlist.length;localStorage.setItem('bgMusicIndex',currentIndex);localStorage.setItem('bgMusicTime_'+currentIndex,'0');play()});
+    setInterval(()=>{if(!a.paused&&playlist.length>0){localStorage.setItem('bgMusicIndex',currentIndex);localStorage.setItem('bgMusicTime_'+currentIndex,a.currentTime)}},500);
+    check();setInterval(check,5000)})();
 </script>
 </body>
 </html>
