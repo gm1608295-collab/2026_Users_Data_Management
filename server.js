@@ -148,6 +148,38 @@ app.get('/api/admin/notices', async (req, res) => { try { const p = await getPoo
 app.post('/api/admin/notice', async (req, res) => { try { const p = await getPool(); await p.query('INSERT INTO notices (message, color, created_by) VALUES ($1,$2,$3)', [req.body.message, req.body.color||'#ffffff', 'admin']); tgSend(`📢 ${req.body.message}`); sendOnesignal(req.body.message); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 app.post('/api/admin/notice/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM notices WHERE id=$1', [req.body.id]); res.json({ success: true }); } catch (e) { res.json({ success: false }); } });
 
+// ==================== BOT MESSAGE SYSTEM ====================
+app.post('/api/admin/bot_message', async (req, res) => {
+    const { message } = req.body;
+    if (!message) return res.json({ success: false, message: 'Enter message' });
+    
+    try {
+        const p = await getPool();
+        // Get all unique telegram users
+        const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'");
+        
+        let count = 0;
+        for (const user of users.rows) {
+            const telegramId = user.google_id.replace('tg_', '');
+            try {
+                await fetch(`${TELEGRAM_API}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: telegramId,
+                        text: `📢 Admin Message\n\n${message}`,
+                        parse_mode: 'HTML'
+                    })
+                });
+                count++;
+            } catch(e) {}
+        }
+        
+        res.json({ success: true, count, message: `Sent to ${count} users` });
+    } catch(e) {
+        res.json({ success: false, message: 'Error' });
+    }
+});
 // ==================== TELEGRAM BOT ====================
 let lastUpdateId = 0;
 function sendTelegramMessage(chatId, text, replyMarkup = null) { const body = { chat_id: chatId, text: text, parse_mode: 'HTML' }; if (replyMarkup) body.reply_markup = JSON.stringify(replyMarkup); https.get(`${TELEGRAM_API}/sendMessage?${new URLSearchParams(body).toString()}`, (res) => {}); }
