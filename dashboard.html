@@ -10,11 +10,14 @@
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:10px;overflow-y:auto}
         .container{max-width:500px;margin:0 auto}
-        .header{background:linear-gradient(to right,var(--a),var(--p));padding:15px;text-align:center;border-radius:12px;border-bottom:4px solid var(--w);margin-bottom:12px}
+        
+        .header{background:linear-gradient(to right,var(--a),var(--p));padding:15px;text-align:center;border-radius:12px;border-bottom:4px solid var(--w);margin-bottom:12px;position:relative}
         .header .brand{font-size:18px;font-weight:bold;color:var(--w);animation:blink 1.5s ease-in-out infinite}
         @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
         .header .subtitle{font-size:11px;opacity:0.8}
-        .header .refresh-btn{position:absolute;top:15px;left:15px;color:var(--w);font-size:14px;cursor:pointer}
+        
+        .menu-btn{position:absolute;top:15px;left:15px;color:var(--w);font-size:20px;cursor:pointer;z-index:10}
+        
         .content{padding:5px 15px}
         
         .id-panel{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:12px 15px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
@@ -46,12 +49,6 @@
         .notice-banner .notice-msg{font-size:12px;font-weight:bold}
         .notice-banner .notice-time{font-size:9px;color:rgba(255,255,255,0.5)}
 
-        .nav-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
-        .nav-card{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:15px 10px;text-align:center;cursor:pointer;text-decoration:none;color:var(--t);transition:all 0.3s}
-        .nav-card:hover{background:rgba(74,28,122,0.4);border-color:var(--w)}
-        .nav-card i{font-size:24px;color:var(--w);margin-bottom:6px;display:block}
-        .nav-card span{font-size:10px;display:block}
-
         .sec-note{background:rgba(255,193,7,0.1);border-left:4px solid var(--w);padding:8px;border-radius:6px;margin-top:10px;font-size:11px}
         .footer{text-align:center;padding:10px;color:rgba(255,255,255,0.7);font-size:10px;border-top:1px solid rgba(74,28,122,0.5)}
         
@@ -76,18 +73,23 @@
 </head>
 <body>
     <audio id="bgAudio" loop style="display:none"></audio>
+    
     <div class="container">
+        <!-- Header with Menu Button -->
         <div class="header">
-            <div class="refresh-btn" onclick="refreshPage()"><i class="fas fa-sync-alt"></i></div>
+            <span class="menu-btn" onclick="openGlobalSidebar()">
+                <i class="fas fa-bars"></i>
+            </span>
             <div class="brand">SOLO M Game Shop</div>
             <div class="subtitle">Security & Data Management</div>
             <button onclick="confirmLogout()" style="background:var(--r);color:#fff;border:none;padding:6px 18px;border-radius:5px;cursor:pointer;margin-top:8px;font-size:13px"><i class="fas fa-sign-out-alt"></i> Logout</button>
             <div class="marquee-box" style="margin-top:8px">
-                <span class="marquee-text">ingame items, MLBB Redeem Code များဝယ်ယူလိုပါက Menu မှတစ်ဆင့် Top Up နှင့် Buy Code တို့ကို အသုံးပြုနိုင်ပါသည်</span>
+                <span class="marquee-text">ingame items, MLBB Redeem Code များဝယ်ယူလိုပါက ☰ Menu မှတစ်ဆင့် Top Up နှင့် Buy Code တို့ကို အသုံးပြုနိုင်ပါသည်</span>
             </div>
         </div>
         
         <div class="content">
+            <!-- ID Panel -->
             <div class="id-panel">
                 <div class="id-left">
                     <div class="id-email" id="myEmail">---</div>
@@ -104,11 +106,13 @@
                 </div>
             </div>
 
+            <!-- Slider -->
             <div class="slider-container" id="sliderContainer" style="display:none">
                 <div class="slider-wrapper" id="sliderWrapper"></div>
                 <div class="slider-dots" id="sliderDots"></div>
             </div>
 
+            <!-- Notice -->
             <div class="notice-banner" id="noticeBanner" style="display:none">
                 <div class="notice-icon" id="noticeIcon"><i class="fas fa-bullhorn"></i></div>
                 <div class="notice-text">
@@ -116,21 +120,14 @@
                     <div class="notice-time" id="noticeTime"></div>
                 </div>
             </div>
-
-            <div class="nav-grid">
-                <a href="/topup.html" class="nav-card"><i class="fas fa-wallet"></i><span>Top Up</span></a>
-                <a href="/buycode.html" class="nav-card"><i class="fas fa-shopping-cart"></i><span>Buy Code</span></a>
-                <a href="/data.html" class="nav-card"><i class="fas fa-database"></i><span>Data</span></a>
-                <a href="/history.html" class="nav-card"><i class="fas fa-history"></i><span>History</span></a>
-                <a href="/password.html" class="nav-card"><i class="fas fa-key"></i><span>Password</span></a>
-                <a href="/contact.html" class="nav-card"><i class="fas fa-address-book"></i><span>Contact</span></a>
-            </div>
             
-            <div class="sec-note"><strong>System Security:</strong> All data is encrypted.</div>
+            <div class="sec-note"><strong>System Security:</strong> All data is encrypted. Use ☰ Menu to navigate.</div>
         </div>
+        
         <div class="footer">© 2026 SOLO M Game Shop</div>
     </div>
 
+    <!-- Logout Confirm Modal -->
     <div class="confirm-modal" id="logoutConfirmModal">
         <div class="confirm-box">
             <h3><i class="fas fa-sign-out-alt"></i> Logout</h3>
@@ -143,7 +140,7 @@
     </div>
 
 <script>
-    // ==================== GLOBAL: BG Music Player (Shared Across All Pages) ====================
+    // ==================== GLOBAL: BG Music Player ====================
     const bgAudio = document.getElementById('bgAudio');
     let musicPlaylist = [], musicCurrentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
     bgAudio.volume = 0.6;
@@ -153,8 +150,7 @@
             const r = await fetch('/api/bg_music?t=' + Date.now());
             const d = await r.json();
             if (d.playlist && d.playlist.length > 0) {
-                const newList = JSON.stringify(d.playlist);
-                const oldList = JSON.stringify(musicPlaylist);
+                const newList = JSON.stringify(d.playlist), oldList = JSON.stringify(musicPlaylist);
                 if (newList !== oldList) {
                     musicPlaylist = d.playlist;
                     musicCurrentIndex = 0;
@@ -204,7 +200,7 @@
     }, 500);
 
     checkMusic();
-    setInterval(checkMusic, 2000); // 2 seconds check
+    setInterval(checkMusic, 2000);
 
     // ==================== LOCAL TIME ====================
     function updateTime() {
@@ -322,16 +318,20 @@
         } catch(e) {}
     }
 
+    // ==================== INIT ====================
     window.onload = async function() {
         if (!localStorage.getItem("auth_token")) { window.location.href = "/"; return; }
+        
         const user = JSON.parse(localStorage.getItem("user") || '{}');
         document.getElementById("myUserIdDisp").textContent = user.id ? user.id.toString().padStart(6, '0') : '------';
         document.getElementById("myEmail").textContent = maskEmail(user.email || '');
+        
         loadSliderImages();
         loadNotice();
         setInterval(loadSliderImages, 2000);
         setInterval(loadNotice, 2000);
         
+        // Check banned
         if (user.id) {
             const r = await fetch("/api/check_banned", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id.toString() }) });
             const d = await r.json();
@@ -340,6 +340,9 @@
                 return;
             }
         }
+        
+        // Initialize Sidebar (Dashboard Only)
+        setupSidebar();
     };
 </script>
 </body>
