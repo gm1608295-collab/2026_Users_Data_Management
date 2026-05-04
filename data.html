@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Data - SOLO M Game Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
+        .container{max-width:500px;margin:0 auto}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,var(--a),var(--p));padding:12px 15px;border-radius:10px;border-bottom:3px solid var(--w)}
+        .header a{color:var(--w);font-size:20px;text-decoration:none}
+        .header h2{color:var(--w);font-size:16px}
+        .panel{background:rgba(26,31,75,0.6);padding:15px;border-radius:10px;margin-bottom:15px;border:1px solid rgba(74,28,122,0.5)}
+        .panel h3{color:var(--w);font-size:14px;margin-bottom:10px;border-bottom:2px solid var(--a);padding-bottom:6px}
+        .pass-wrapper{position:relative}
+        .pass-wrapper input{padding-right:40px!important}
+        .pass-wrapper .eye-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px}
+        .form-group{margin-bottom:10px}
+        .form-group label{display:block;font-size:12px;margin-bottom:4px;color:#ccc}
+        .form-group input,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--t);font-size:13px}
+        .form-group select option{background:var(--bg);color:var(--t)}
+        .btn{width:100%;padding:10px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;margin-top:6px}
+        .btn-w{background:var(--w);color:#000}.btn-g{background:var(--g)}
+        .data-select{display:flex;gap:8px;margin-bottom:12px}
+        .data-card{flex:1;padding:10px 6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;text-align:center;cursor:pointer;transition:all 0.3s}
+        .data-card:hover,.data-card.sel{background:rgba(74,28,122,0.5);border-color:var(--w)}
+        .data-card img{width:45px;height:45px;border-radius:8px;margin-bottom:5px;object-fit:cover}
+        .data-card p{font-size:10px;color:var(--t);margin:0;font-weight:bold}
+        .sub-tab{display:none}.sub-tab.active{display:block}
+        .add-btn{background:var(--w);color:#000;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;font-weight:bold;flex-shrink:0}
+        .input-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}.input-row input{flex:1}
+        .remove-btn{background:var(--r);color:#fff;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;flex-shrink:0}
+        .data-info-link{text-align:right;margin-bottom:5px}
+        .data-info-link a{color:var(--b);font-size:10px;text-decoration:underline;cursor:pointer}
+        .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:5px;display:none;z-index:1000;font-size:12px}
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;justify-content:center;align-items:center}
+        .modal.active{display:flex}
+        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto}
+        .modal-box h3{color:var(--w);margin-bottom:12px;text-align:center;font-size:15px}
+        .modal-close{float:right;color:var(--r);cursor:pointer;font-size:20px}
+        .copy-pass-btn{color:var(--b);cursor:pointer;font-size:11px;margin-left:4px}
+    </style>
+</head>
+<body>
+    <div class="notif" id="notif"></div>
+    <div class="container">
+        <div class="header">
+            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+            <h2><i class="fas fa-database"></i> Data</h2>
+        </div>
+        
+        <div class="data-info-link"><a onclick="openDataInfo()">အသေးစိတ်သိရှိရန် ဤနေရာကိုနှိပ်ပါ <i class="fas fa-info-circle"></i></a></div>
+        
+        <div class="panel">
+            <div class="data-select">
+                <div class="data-card sel" onclick="showSub('gmailSub')"><img src="https://i.ibb.co/zWXRD2bF/88e14cc7e7fcbb0e0e09de26cec86c61.jpg" alt="Gmail"><p>Gmail</p></div>
+                <div class="data-card" onclick="showSub('mlbbSub')"><img src="https://i.ibb.co/NDZp85p/85cef5aaf89054952dd0c1cb350d7061.jpg" alt="MLBB"><p>MLBB</p></div>
+                <div class="data-card" onclick="showSub('tiktokSub')"><img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok"><p>TikTok</p></div>
+            </div>
+            
+            <!-- Gmail Sub-tab -->
+            <div class="sub-tab active" id="gmailSub">
+                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataGmailPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataGmailPass',this)"><i class="fas fa-eye"></i></button></div></div>
+                <button class="btn btn-w" onclick="unlockData('gmail')">Unlock Gmail</button>
+                <div id="gmailForm" style="display:none;margin-top:12px">
+                    <div class="form-group"><label>Name</label><input type="text" id="gName"></div>
+                    <div class="form-group"><label>Email</label><div id="gmailEmailList"><div class="input-row"><input type="email" class="gmail-email" placeholder="Enter email"><button class="add-btn" onclick="addGmailEmail()">+</button></div></div></div>
+                    <div class="form-group"><label>Phone</label><div id="gmailPhoneList"><div class="input-row"><input type="text" class="gmail-phone" placeholder="Enter phone"><button class="add-btn" onclick="addGmailPhone()">+</button></div></div></div>
+                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="gPw"><button class="eye-btn" onclick="togglePass('gPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="gConfirmPw"><button class="eye-btn" onclick="togglePass('gConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                    <div class="form-group"><label>DOB</label><input type="date" id="gAge"></div>
+                    <div class="form-group"><label>Country</label><select id="gCountry" onchange="loadRegions('gCountry','gRegion')"><option value="">Select</option></select></div>
+                    <div class="form-group"><label>Region</label><select id="gRegion"><option value="">Select</option></select></div>
+                    <button class="btn btn-g" onclick="saveGmailData()"><i class="fas fa-save"></i> Save</button>
+                </div>
+            </div>
+            
+            <!-- MLBB Sub-tab -->
+            <div class="sub-tab" id="mlbbSub">
+                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataMlbbPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataMlbbPass',this)"><i class="fas fa-eye"></i></button></div></div>
+                <button class="btn btn-w" onclick="unlockData('mlbb')">Unlock MLBB</button>
+                <div id="mlbbForm" style="display:none;margin-top:12px">
+                    <div class="form-group"><label>In-Game Name</label><input type="text" id="mName"></div>
+                    <div class="form-group"><label>In-Game ID</label><input type="text" id="mId"></div>
+                    <div class="form-group"><label>Server ID</label><input type="text" id="mServer"></div>
+                    <div class="form-group"><label>Gmail</label><div id="mlbbEmailList"><div class="input-row"><input type="email" class="mlbb-email" placeholder="Enter Gmail"><button class="add-btn" onclick="addMlbbEmail()">+</button></div></div></div>
+                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="mPw"><button class="eye-btn" onclick="togglePass('mPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="mConfirmPw"><button class="eye-btn" onclick="togglePass('mConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                    <div class="form-group"><label>DOB</label><input type="date" id="mAge"></div>
+                    <div class="form-group"><label>Country</label><select id="mCountry" onchange="loadRegions('mCountry','mRegion')"><option value="">Select</option></select></div>
+                    <div class="form-group"><label>Region</label><select id="mRegion"><option value="">Select</option></select></div>
+                    <button class="btn btn-g" onclick="saveMlbbData()"><i class="fas fa-save"></i> Save</button>
+                </div>
+            </div>
+            
+            <!-- TikTok Sub-tab -->
+            <div class="sub-tab" id="tiktokSub">
+                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataTiktokPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataTiktokPass',this)"><i class="fas fa-eye"></i></button></div></div>
+                <button class="btn btn-w" onclick="unlockData('tiktok')">Unlock TikTok</button>
+                <div id="tiktokForm" style="display:none;margin-top:12px">
+                    <div class="form-group"><label>Full Name</label><input type="text" id="tFullName"></div>
+                    <div class="form-group"><label>Last Name</label><input type="text" id="tLastName"></div>
+                    <div class="form-group"><label>Email</label><div id="tiktokEmailList"><div class="input-row"><input type="email" class="tiktok-email" placeholder="Enter email"><button class="add-btn" onclick="addTiktokEmail()">+</button></div></div></div>
+                    <div class="form-group"><label>Phone</label><div id="tiktokPhoneList"><div class="input-row"><input type="text" class="tiktok-phone" placeholder="Enter phone"><button class="add-btn" onclick="addTiktokPhone()">+</button></div></div></div>
+                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="tPw"><button class="eye-btn" onclick="togglePass('tPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="tConfirmPw"><button class="eye-btn" onclick="togglePass('tConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
+                    <div class="form-group"><label>DOB</label><input type="date" id="tAge"></div>
+                    <div class="form-group"><label>Country</label><select id="tCountry" onchange="loadRegions('tCountry','tRegion')"><option value="">Select</option></select></div>
+                    <div class="form-group"><label>Region</label><select id="tRegion"><option value="">Select</option></select></div>
+                    <button class="btn btn-g" onclick="saveTiktokData()"><i class="fas fa-save"></i> Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Info Modal -->
+    <div class="modal" id="dataInfoModal"><div class="modal-box"><span class="modal-close" onclick="closeDataInfo()">&times;</span><h3><i class="fas fa-info-circle"></i> Data များအကြောင်း</h3>
+        <div style="font-size:11px;line-height:1.8;color:rgba(255,255,255,0.85)">
+            <p><b style="color:var(--w)">📧 Gmail Data</b> - သင်၏ Gmail အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
+            <br><p><b style="color:var(--w)">🎮 MLBB Data</b> - သင်၏ Mobile Legends အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
+            <br><p><b style="color:var(--w)">🎵 TikTok Data</b> - သင်၏ TikTok အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
+            <br><p><b style="color:var(--w)">🔒 Generator Password (အများသုံး)</b></p>
+            <p>• Gmail: <b>DoubleMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i></span></p>
+            <p>• MLBB: <b>GlobalMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('GlobalMK2008')"><i class="fas fa-copy"></i></span></p>
+            <p>• TikTok: <b>DoubleMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i></span></p>
+            <br><p><b style="color:var(--w)">🔑 ကိုယ်ပိုင် Password</b> - Password Tab တွင် ပြောင်းလဲနိုင်ပါသည်။</p>
+            <br><p><b style="color:var(--w)">🛡️ လုံခြုံရေး</b> - Data များကို Encryption ဖြင့် ကာကွယ်ထားပါသည်။</p>
+        </div>
+    </div></div>
+
+<script>
+    let GPASS="DoubleMK2008",MPASS="GlobalMK2008",TPASS="DoubleMK2008",countriesData=[];
+    function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
+    function showSub(id){document.querySelectorAll('.data-card').forEach(c=>c.classList.remove('sel'));event.target.closest('.data-card').classList.add('sel');document.querySelectorAll('.sub-tab').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+    function togglePass(i,b){const inp=document.getElementById(i),ic=b.querySelector('i');if(inp.type==='password'){inp.type='text';ic.className='fas fa-eye-slash'}else{inp.type='password';ic.className='fas fa-eye'}}
+    function openDataInfo(){document.getElementById("dataInfoModal").classList.add("active")}
+    function closeDataInfo(){document.getElementById("dataInfoModal").classList.remove("active")}
+    function copyPassText(t){navigator.clipboard.writeText(t).then(()=>n("✅ Password Copied!"))}
+    function unlockData(type){const pass=document.getElementById('data'+type.charAt(0).toUpperCase()+type.slice(1)+'Pass').value;const correct=type==='gmail'?GPASS:type==='mlbb'?MPASS:TPASS;if(pass!==correct)return n("Wrong password","error");document.getElementById(type+'Form').style.display='block'}
+    function addInput(listId,cls,type,ph){const d=document.getElementById(listId);const div=document.createElement('div');div.className='input-row';div.innerHTML=`<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`;d.appendChild(div)}
+    function getValues(cls){return Array.from(document.getElementsByClassName(cls)).map(i=>i.value).filter(v=>v)}
+    function addGmailEmail(){addInput('gmailEmailList','gmail-email','email','Enter email')}
+    function addGmailPhone(){addInput('gmailPhoneList','gmail-phone','text','Enter phone')}
+    function addMlbbEmail(){addInput('mlbbEmailList','mlbb-email','email','Enter Gmail')}
+    function addTiktokEmail(){addInput('tiktokEmailList','tiktok-email','email','Enter email')}
+    function addTiktokPhone(){addInput('tiktokPhoneList','tiktok-phone','text','Enter phone')}
+    async function loadPw(){try{const r=await fetch("/api/get_passwords",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})});const d=await r.json();GPASS=d.gmail_password||'DoubleMK2008';MPASS=d.mlbb_password||'GlobalMK2008';TPASS=d.tiktok_password||'DoubleMK2008'}catch(e){}}
+    async function loadCountries(){try{const r=await fetch("/api/countries");countriesData=await r.json();['gCountry','mCountry','tCountry'].forEach(id=>{const s=document.getElementById(id);if(s){s.innerHTML='<option value="">Select</option>';countriesData.forEach(c=>{s.innerHTML+=`<option value="${c.name}">${c.name}</option>`})}})}catch(e){}}
+    function loadRegions(cid,rid){const c=document.getElementById(cid).value;const r=document.getElementById(rid);r.innerHTML='<option value="">Select</option>';const f=countriesData.find(x=>x.name===c);if(f)f.regions.forEach(reg=>{r.innerHTML+=`<option value="${reg}">${reg}</option>`})}
+    async function saveGmailData(){const n=document.getElementById("gName").value;if(!n)return n("Fill required","error");try{await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'gmail',data:{name:n,emails:getValues('gmail-email'),phones:getValues('gmail-phone'),password:document.getElementById("gPw").value}})});n("Saved!");document.getElementById("gmailForm").style.display='none'}catch(e){n("Error","error")}}
+    async function saveMlbbData(){const n=document.getElementById("mName").value;if(!n)return n("Fill required","error");try{await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'mlbb',data:{ingameName:n,ingameId:document.getElementById("mId").value,serverId:document.getElementById("mServer").value,emails:getValues('mlbb-email'),password:document.getElementById("mPw").value}})});n("Saved!");document.getElementById("mlbbForm").style.display='none'}catch(e){n("Error","error")}}
+    async function saveTiktokData(){const n=document.getElementById("tFullName").value;if(!n)return n("Fill required","error");try{await fetch("/api/save_user_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token"),type:'tiktok',data:{fullName:n,lastName:document.getElementById("tLastName").value,emails:getValues('tiktok-email'),phones:getValues('tiktok-phone'),password:document.getElementById("tPw").value}})});n("Saved!");document.getElementById("tiktokForm").style.display='none'}catch(e){n("Error","error")}}
+    loadPw();loadCountries();
+</script>
+</body>
+</html>
