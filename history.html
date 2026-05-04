@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>History - SOLO M Game Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
+        .container{max-width:500px;margin:0 auto}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,var(--a),var(--p));padding:12px 15px;border-radius:10px;border-bottom:3px solid var(--w)}
+        .header a{color:var(--w);font-size:20px;text-decoration:none}
+        .header h2{color:var(--w);font-size:16px}
+        .user-row{display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(26,31,75,0.6);border-radius:6px;margin-bottom:5px;font-size:11px;border-left:3px solid var(--g)}
+        .user-row b{color:var(--w)}
+        .btn-sm{padding:4px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;background:var(--a);color:var(--t)}
+        .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:5px;display:none;z-index:1000;font-size:12px}
+    </style>
+</head>
+<body>
+    <div class="notif" id="notif"></div>
+    <div class="container">
+        <div class="header">
+            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+            <h2><i class="fas fa-history"></i> History</h2>
+        </div>
+        <div id="myGmailHistory" style="margin-bottom:8px"></div>
+        <div id="myMlbbHistory" style="margin-bottom:8px"></div>
+        <div id="myTiktokHistory"></div>
+    </div>
+<script>
+    function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
+    async function loadMyHistory(){
+        const renderH=(list,type)=>{if(!list||list.length===0)return'<p style="font-size:11px">No data</p>';return list.map(item=>{const name=item.name||item.ingame_name||item.full_name||'N/A';const email=(item.email||item.gmail||'').replace(/[\[\]"]/g,'').replace(/,/g,', ');return`<div class="user-row"><div><b>${name}</b><br><small>${email}</small></div><div style="display:flex;gap:3px"><button class="btn-sm" onclick="viewEditMyData('${type}','${item.user_id}')">View/Edit</button></div></div>`}).join('')};
+        try{const r=await fetch("/api/get_my_data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:localStorage.getItem("auth_token")})});const d=await r.json();
+            document.getElementById("myGmailHistory").innerHTML='<b style="color:var(--w);font-size:12px">📧 Gmail</b><br>'+renderH(d.gmail,'gmail');
+            document.getElementById("myMlbbHistory").innerHTML='<b style="color:var(--w);font-size:12px">🎮 MLBB</b><br>'+renderH(d.mlbb,'mlbb');
+            document.getElementById("myTiktokHistory").innerHTML='<b style="color:var(--w);font-size:12px">🎵 TikTok</b><br>'+renderH(d.tiktok,'tiktok');
+        }catch(e){}
+    }
+    loadMyHistory();
+</script>
+</body>
+</html>
