@@ -190,7 +190,16 @@
     function closeRestoreConfirm(){document.getElementById("restoreConfirmModal").classList.remove("active");pendingRestoreData=null}
     function zoomImage(src){const m=document.createElement('div');m.className='zoom-overlay';m.onclick=()=>m.remove();m.innerHTML=`<img src="${src}">`;document.body.appendChild(m)}
     
-    async function unlockAdmin(){if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");document.getElementById("adminBox").style.display="block";loadAdminData();loadAdminOrders('all');loadPageToggles();loadCurrentMusic();loadSliderPreview();updateBackupInfo()}
+    async function unlockAdmin(){
+        if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");
+        document.getElementById("adminBox").style.display="block";
+        loadAdminData();
+        loadAdminOrders('all');
+        loadPageToggles();
+        loadCurrentMusic();  // ✅ Unlock တာနဲ့ Music Load
+        loadSliderPreview();
+        updateBackupInfo();
+    }
     
     // ==================== BACKUP & RESTORE ====================
     async function backupDatabase(){try{const r=await fetch('/api/admin/backup');const d=await r.json();if(d.success){const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;a.click();URL.revokeObjectURL(url);n('✅ Backup Downloaded!');localStorage.setItem('lastBackup',new Date().toLocaleString());updateBackupInfo()}else{n(d.message||'Error','error')}}catch(e){n('Connection error','error')}}
@@ -227,11 +236,42 @@
     async function clearSliderImages(){try{await fetch('/api/admin/slider_images',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({images:[]})});n('Cleared!');loadSliderPreview()}catch(e){n('Error','error')}}
     async function loadSliderPreview(){try{const r=await fetch('/api/slider_images');const d=await r.json();const c=document.getElementById('sliderPreviewList');if(d.images&&d.images.length>0){c.innerHTML=d.images.map((u,i)=>`<div class="preview-box">${i+1}. <a href="${u}" target="_blank" style="color:var(--g)">${u.substring(0,50)}...</a></div>`).join('')}else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No images</span>'}}catch(e){}}
     
-    // ==================== MUSIC PLAYLIST ====================
+    // ==================== MUSIC PLAYLIST (Fixed) ====================
     async function uploadMusicFile(num){const file=document.getElementById('bgMusicFile'+num).files[0];if(!file)return n('Select file','error');const reader=new FileReader();reader.onload=function(e){document.getElementById('bgMusicUrl'+num).value=e.target.result;n('✅ Music '+num+' Ready!')};reader.readAsDataURL(file)}
-    async function savePlaylist(){const playlist=[];for(let i=1;i<=3;i++){const url=document.getElementById('bgMusicUrl'+i).value.trim();if(url)playlist.push(url)}if(playlist.length===0)return n('Add at least one music','error');try{await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist})});n('✅ Playlist Saved!');for(let i=1;i<=3;i++){document.getElementById('bgMusicUrl'+i).value='';document.getElementById('bgMusicFile'+i).value=''}loadCurrentMusic()}catch(e){n('Error','error')}}
-    async function removeAllMusic(){try{await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist:[]})});n('✅ Removed!');loadCurrentMusic()}catch(e){n('Error','error')}}
-    async function loadCurrentMusic(){try{const r=await fetch('/api/bg_music');const d=await r.json();const c=document.getElementById('currentMusicDisplay');if(d.playlist&&d.playlist.length>0){c.innerHTML=d.playlist.map((url,i)=>`<div style="font-size:9px;margin:3px 0">${i+1}. 🎵 <audio controls style="width:100%;height:20px;margin-top:3px"><source src="${url}" type="audio/mpeg"></audio></div>`).join('')}else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No music set</span>'}}catch(e){}}
+    
+    async function savePlaylist(){
+        const playlist=[];
+        for(let i=1;i<=3;i++){const url=document.getElementById('bgMusicUrl'+i).value.trim();if(url)playlist.push(url)}
+        if(playlist.length===0)return n('Add at least one music','error');
+        try{
+            await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist})});
+            n('✅ Playlist Saved!');
+            // ✅ Clear inputs
+            for(let i=1;i<=3;i++){document.getElementById('bgMusicUrl'+i).value='';document.getElementById('bgMusicFile'+i).value=''}
+            loadCurrentMusic(); // ✅ Reload preview
+        }catch(e){n('Error','error')}
+    }
+    
+    async function removeAllMusic(){
+        try{
+            await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist:[]})});
+            n('✅ Removed!');
+            // ✅ Clear all inputs
+            for(let i=1;i<=3;i++){document.getElementById('bgMusicUrl'+i).value='';document.getElementById('bgMusicFile'+i).value=''}
+            loadCurrentMusic();
+        }catch(e){n('Error','error')}
+    }
+    
+    async function loadCurrentMusic(){
+        try{
+            const r=await fetch('/api/bg_music');
+            const d=await r.json();
+            const c=document.getElementById('currentMusicDisplay');
+            if(d.playlist&&d.playlist.length>0){
+                c.innerHTML=d.playlist.map((url,i)=>`<div style="font-size:9px;margin:3px 0">${i+1}. 🎵 <audio controls style="width:100%;height:20px;margin-top:3px"><source src="${url}" type="audio/mpeg"></audio></div>`).join('');
+            }else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No music set</span>'}
+        }catch(e){}
+    }
 </script>
 </body>
 </html>
