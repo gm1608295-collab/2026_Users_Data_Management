@@ -40,7 +40,7 @@
         .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto}
         .modal-box h3{color:var(--w);margin-bottom:12px;text-align:center;font-size:15px}.modal-close{float:right;color:var(--r);cursor:pointer;font-size:20px}
         
-        /* Page Control Styles */
+        /* Page Control Table */
         .page-toggle-table{width:100%;border-collapse:collapse;font-size:11px}
         .page-toggle-table th{background:rgba(0,0,0,0.4);color:var(--w);padding:8px;text-align:left;font-size:10px}
         .page-toggle-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:middle}
@@ -99,7 +99,7 @@
                 <!-- Page Toggle (Table Style) -->
                 <h3 style="margin-top:10px"><i class="fas fa-toggle-on"></i> Page Control</h3>
                 <table class="page-toggle-table">
-                    <thead><tr><th class="page-icon">📄</th><th>Page Name</th><th class="page-status-cell">Status</th><th class="page-toggle-cell">Toggle</th></tr></thead>
+                    <thead><tr><th class="page-icon"></th><th>Page Name</th><th class="page-status-cell">Status</th><th class="page-toggle-cell">Toggle</th></tr></thead>
                     <tbody id="pageToggleList"></tbody>
                 </table>
                 
@@ -208,77 +208,433 @@
         'aboutredeem': 'ℹ️'
     };
     
-    function n(m, t = "success") { const e = document.getElementById("notif"); e.textContent = m; e.style.background = t === "success" ? "#2ecc71" : "#e74c3c"; e.style.display = "block"; setTimeout(() => e.style.display = "none", 3000); }
-    function openEditModal(uid, un, em, ph) { document.getElementById("editUserId").value = uid; document.getElementById("editName").value = un || ''; document.getElementById("editEmail").value = em || ''; document.getElementById("editPhone").value = ph || ''; document.getElementById("editPass").value = ''; document.getElementById("editModal").classList.add("active"); }
+    function n(m, t = "success") { 
+        const e = document.getElementById("notif"); 
+        e.textContent = m; 
+        e.style.background = t === "success" ? "#2ecc71" : "#e74c3c"; 
+        e.style.display = "block"; 
+        setTimeout(() => e.style.display = "none", 3000); 
+    }
+    
+    function openEditModal(uid, un, em, ph) { 
+        document.getElementById("editUserId").value = uid; 
+        document.getElementById("editName").value = un || ''; 
+        document.getElementById("editEmail").value = em || ''; 
+        document.getElementById("editPhone").value = ph || ''; 
+        document.getElementById("editPass").value = ''; 
+        document.getElementById("editModal").classList.add("active"); 
+    }
+    
     function closeEditModal() { document.getElementById("editModal").classList.remove("active"); }
     function closeRestoreConfirm() { document.getElementById("restoreConfirmModal").classList.remove("active"); pendingRestoreData = null; }
-    function zoomImage(src) { const m = document.createElement('div'); m.className = 'zoom-overlay'; m.onclick = () => m.remove(); m.innerHTML = `<img src="${src}">`; document.body.appendChild(m); }
     
-    async function unlockAdmin() { if (document.getElementById("adminPass").value !== ADMIN) return n("Wrong password", "error"); document.getElementById("adminBox").style.display = "block"; loadAdminData(); loadAdminOrders('all'); loadPageToggles(); loadCurrentMusic(); loadSliderPreview(); updateBackupInfo(); }
+    function zoomImage(src) { 
+        const m = document.createElement('div'); 
+        m.className = 'zoom-overlay'; 
+        m.onclick = () => m.remove(); 
+        m.innerHTML = `<img src="${src}">`; 
+        document.body.appendChild(m); 
+    }
+    
+    async function unlockAdmin() { 
+        if (document.getElementById("adminPass").value !== ADMIN) return n("Wrong password", "error"); 
+        document.getElementById("adminBox").style.display = "block"; 
+        loadAdminData(); 
+        loadAdminOrders('all'); 
+        loadPageToggles(); 
+        loadCurrentMusic(); 
+        loadSliderPreview(); 
+        updateBackupInfo(); 
+    }
     
     // ==================== BACKUP & RESTORE ====================
-    async function backupDatabase() { n('⏳ Backing up...', 'success'); try { const r = await fetch('/api/admin/backup'); const d = await r.json(); if (d.success && d.data) { const blob = new Blob([JSON.stringify(d.data, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `backup_${new Date().toISOString().split('T')[0]}.json`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url); n('✅ Backup Downloaded!'); localStorage.setItem('lastBackup', new Date().toLocaleString()); updateBackupInfo(); } else { n('Backup failed', 'error'); } } catch(e) { n('Connection error', 'error'); } }
-    function restoreDatabase(input) { const file = input.files[0]; if (!file) return; n('⏳ Reading...', 'success'); const reader = new FileReader(); reader.onload = function(e) { try { pendingRestoreData = JSON.parse(e.target.result); if (!pendingRestoreData.tables) { n('Invalid file', 'error'); return; } document.getElementById('restoreConfirmModal').classList.add('active'); } catch(e) { n('Invalid JSON', 'error'); } }; reader.readAsText(file); input.value = ''; }
-    async function confirmRestore() { if (!pendingRestoreData) return; n('⏳ Restoring...', 'success'); try { const r = await fetch('/api/admin/restore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: pendingRestoreData }) }); const d = await r.json(); d.success ? (n('✅ Database Restored!'), closeRestoreConfirm(), loadAdminData(), loadAdminOrders('all'), updateBackupInfo()) : n(d.message || 'Error', 'error'); } catch(e) { n('Connection error', 'error'); } }
-    function updateBackupInfo() { const lb = localStorage.getItem('lastBackup'); document.getElementById('backupInfo').innerHTML = lb ? `📅 Last Backup: ${lb}` : `📅 Last Backup: No backup yet`; }
+    async function backupDatabase() { 
+        n('⏳ Backing up...', 'success'); 
+        try { 
+            const r = await fetch('/api/admin/backup'); 
+            const d = await r.json(); 
+            if (d.success && d.data) { 
+                const blob = new Blob([JSON.stringify(d.data, null, 2)], { type: 'application/json' }); 
+                const url = URL.createObjectURL(blob); 
+                const a = document.createElement('a'); 
+                a.href = url; 
+                a.download = `backup_${new Date().toISOString().split('T')[0]}.json`; 
+                document.body.appendChild(a); 
+                a.click(); 
+                document.body.removeChild(a); 
+                URL.revokeObjectURL(url); 
+                n('✅ Backup Downloaded!'); 
+                localStorage.setItem('lastBackup', new Date().toLocaleString()); 
+                updateBackupInfo(); 
+            } else { 
+                n('Backup failed', 'error'); 
+            } 
+        } catch(e) { n('Connection error', 'error'); } 
+    }
     
-    // ==================== PAGE TOGGLE (Table Style) ====================
+    function restoreDatabase(input) { 
+        const file = input.files[0]; 
+        if (!file) return; 
+        n('⏳ Reading...', 'success'); 
+        const reader = new FileReader(); 
+        reader.onload = function(e) { 
+            try { 
+                pendingRestoreData = JSON.parse(e.target.result); 
+                if (!pendingRestoreData.tables) { n('Invalid file', 'error'); return; } 
+                document.getElementById('restoreConfirmModal').classList.add('active'); 
+            } catch(e) { n('Invalid JSON', 'error'); } 
+        }; 
+        reader.readAsText(file); 
+        input.value = ''; 
+    }
+    
+    async function confirmRestore() { 
+        if (!pendingRestoreData) return; 
+        n('⏳ Restoring...', 'success'); 
+        try { 
+            const r = await fetch('/api/admin/restore', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ data: pendingRestoreData }) 
+            }); 
+            const d = await r.json(); 
+            d.success ? (n('✅ Database Restored!'), closeRestoreConfirm(), loadAdminData(), loadAdminOrders('all'), updateBackupInfo()) : n(d.message || 'Error', 'error'); 
+        } catch(e) { n('Connection error', 'error'); } 
+    }
+    
+    function updateBackupInfo() { 
+        const lb = localStorage.getItem('lastBackup'); 
+        document.getElementById('backupInfo').innerHTML = lb ? `📅 Last Backup: ${lb}` : `📅 Last Backup: No backup yet`; 
+    }
+    
+    // ==================== PAGE TOGGLE (Table Style - FIXED) ====================
     async function loadPageToggles() {
         try {
             const r = await fetch('/api/admin/page_status');
             const d = await r.json();
-            if (d.pages) {
-                document.getElementById('pageToggleList').innerHTML = d.pages.map(p => `
-                    <tr>
-                        <td class="page-icon">${pageIcons[p.id] || '📄'}</td>
-                        <td class="page-name-cell">${p.name}</td>
-                        <td class="page-status-cell"><span class="status-badge ${p.status}">${p.status === 'on' ? 'ACTIVE' : 'OFF'}</span></td>
-                        <td class="page-toggle-cell">
-                            <label class="toggle-switch">
-                                <input type="checkbox" ${p.status === 'on' ? 'checked' : ''} onchange="togglePage('${p.id}', this.checked)">
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </td>
-                    </tr>
-                `).join('');
+            console.log('Page Status Response:', d); // Debug
+            
+            if (d.pages && d.pages.length > 0) {
+                let html = '';
+                d.pages.forEach(p => {
+                    const icon = pageIcons[p.id] || '📄';
+                    const checked = p.status === 'on' ? 'checked' : '';
+                    const statusText = p.status === 'on' ? 'ACTIVE' : 'OFF';
+                    const statusClass = p.status === 'on' ? 'on' : 'off';
+                    
+                    html += `
+                        <tr>
+                            <td class="page-icon">${icon}</td>
+                            <td class="page-name-cell">${p.name}</td>
+                            <td class="page-status-cell"><span class="status-badge ${statusClass}">${statusText}</span></td>
+                            <td class="page-toggle-cell">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" ${checked} onchange="togglePage('${p.id}', this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('pageToggleList').innerHTML = html;
+                n('✅ Page Control Loaded (' + d.pages.length + ' pages)', 'success');
+            } else {
+                document.getElementById('pageToggleList').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:15px;color:rgba(255,255,255,0.5)">No pages found</td></tr>';
+                n('⚠️ No pages returned from API', 'error');
             }
-        } catch(e) {}
+        } catch(e) {
+            console.error('Page Toggle Error:', e);
+            document.getElementById('pageToggleList').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:15px;color:#e74c3c">Error loading pages</td></tr>';
+            n('❌ Error loading page controls', 'error');
+        }
     }
-    async function togglePage(id, on) { try { await fetch('/api/admin/toggle_page', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ page_id: id, status: on ? 'on' : 'off' }) }); n(`${id}: ${on ? 'ON' : 'OFF'}`); } catch(e) {} }
+    
+    async function togglePage(id, on) {
+        const status = on ? 'on' : 'off';
+        console.log('Toggling page:', id, 'to', status); // Debug
+        
+        try {
+            const r = await fetch('/api/admin/toggle_page', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_id: id, status: status })
+            });
+            const d = await r.json();
+            
+            if (d.success) {
+                n(`✅ ${id}: ${on ? 'ON' : 'OFF'}`, 'success');
+                // Reload page toggles to reflect changes
+                setTimeout(() => loadPageToggles(), 300);
+            } else {
+                n(`❌ Failed to toggle ${id}`, 'error');
+                // Revert the toggle if failed
+                loadPageToggles();
+            }
+        } catch(e) {
+            console.error('Toggle Error:', e);
+            n('❌ Connection error', 'error');
+            loadPageToggles();
+        }
+    }
     
     // ==================== ADMIN DATA ====================
-    async function loadAdminData() { try { const r = await fetch("/api/admin/users_grouped"); const d = await r.json(); document.getElementById("totalUsers").textContent = d.total || 0; document.getElementById("bannedUsers").textContent = (d.banned || []).length; const banned = d.banned || []; const rl = (l, c, e) => { c.innerHTML = l.length === 0 ? '<p style="font-size:10px">No users</p>' : l.map(u => { const b = banned.includes(u.id.toString()); return `<div class="user-row${b ? ' banned' : ''}"><div><b>ID:${u.id.toString().padStart(6, '0')}</b><br>${u.username || 'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:2px">${e ? `<button class="btn btn-w" style="font-size:9px;padding:3px 6px" onclick="openEditModal('${u.id}','${u.username || ''}','${u.email || ''}','${u.phone || ''}')">Edit</button>` : ''}${b ? `<button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="unbanUser('${u.id}')">Unban</button>` : `<button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delUserById('${u.id}')">Del</button></div></div>`; }).join(''); }; rl(d.local || [], document.getElementById("localList"), true); rl(d.google || [], document.getElementById("googleList"), false); rl(d.tiktok || [], document.getElementById("tiktokList"), false); loadNoticeList(); } catch(e) {} }
+    async function loadAdminData() { 
+        try { 
+            const r = await fetch("/api/admin/users_grouped"); 
+            const d = await r.json(); 
+            document.getElementById("totalUsers").textContent = d.total || 0; 
+            document.getElementById("bannedUsers").textContent = (d.banned || []).length; 
+            const banned = d.banned || []; 
+            
+            const rl = (l, c, e) => { 
+                c.innerHTML = l.length === 0 ? '<p style="font-size:10px">No users</p>' : l.map(u => { 
+                    const b = banned.includes(u.id.toString()); 
+                    return `<div class="user-row${b ? ' banned' : ''}"><div><b>ID:${u.id.toString().padStart(6, '0')}</b><br>${u.username || 'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:2px">${e ? `<button class="btn btn-w" style="font-size:9px;padding:3px 6px" onclick="openEditModal('${u.id}','${u.username || ''}','${u.email || ''}','${u.phone || ''}')">Edit</button>` : ''}${b ? `<button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="unbanUser('${u.id}')">Unban</button>` : `<button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delUserById('${u.id}')">Del</button></div></div>`; 
+                }).join(''); 
+            }; 
+            
+            rl(d.local || [], document.getElementById("localList"), true); 
+            rl(d.google || [], document.getElementById("googleList"), false); 
+            rl(d.tiktok || [], document.getElementById("tiktokList"), false); 
+            loadNoticeList(); 
+        } catch(e) { console.error('Admin Data Error:', e); } 
+    }
+    
     async function banUserById(id) { await fetch("/api/admin/ban", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: id }) }); n("Banned!"); loadAdminData(); }
     async function unbanUser(id) { await fetch("/api/admin/unban", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: id }) }); n("Unbanned!"); loadAdminData(); }
     async function delUserById(id) { if (!confirm("Delete?")) return; await fetch("/api/admin/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: id }) }); n("Deleted!"); loadAdminData(); }
-    async function saveEdit() { const id = document.getElementById("editUserId").value, un = document.getElementById("editName").value, em = document.getElementById("editEmail").value, ph = document.getElementById("editPhone").value, pw = document.getElementById("editPass").value; try { await fetch("/api/admin/edit_user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: parseInt(id), username: un, email: em, phone: ph, password: pw || '' }) }); n("Updated!"); closeEditModal(); loadAdminData(); } catch(e) { n("Error", "error"); } }
-    async function searchUser() { const q = document.getElementById('userSearch').value; if (q.length < 2) { document.getElementById('userSearchResult').innerHTML = ''; return; } try { const r = await fetch('/api/admin/search_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q }) }); const d = await r.json(); document.getElementById('userSearchResult').innerHTML = d.users.map(u => `<div class="user-row"><div><b>ID:${u.id}</b> ${u.username || ''}<br><small>${u.email}</small><br>Balance: ${u.balance || 0} Ks</div><div style="display:flex;gap:2px"><input type="number" id="bal${u.id}" placeholder="Amt" style="width:50px;padding:2px;font-size:9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px"><button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="addBalance(${u.id})">+</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="subBalance(${u.id})">-</button></div></div>`).join(''); } catch(e) {} }
-    async function addBalance(uid) { const a = document.getElementById('bal' + uid).value; if (!a) return; await fetch('/api/admin/update_balance', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, amount: parseFloat(a) }) }); n('Balance Added!'); searchUser(); loadAdminData(); }
-    async function subBalance(uid) { const a = document.getElementById('bal' + uid).value; if (!a) return; await fetch('/api/admin/update_balance', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, amount: -parseFloat(a) }) }); n('Balance Deducted!'); searchUser(); loadAdminData(); }
+    
+    async function saveEdit() { 
+        const id = document.getElementById("editUserId").value,
+              un = document.getElementById("editName").value,
+              em = document.getElementById("editEmail").value,
+              ph = document.getElementById("editPhone").value,
+              pw = document.getElementById("editPass").value; 
+        try { 
+            await fetch("/api/admin/edit_user", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: parseInt(id), username: un, email: em, phone: ph, password: pw || '' }) }); 
+            n("Updated!"); closeEditModal(); loadAdminData(); 
+        } catch(e) { n("Error", "error"); } 
+    }
+    
+    async function searchUser() { 
+        const q = document.getElementById('userSearch').value; 
+        if (q.length < 2) { document.getElementById('userSearchResult').innerHTML = ''; return; } 
+        try { 
+            const r = await fetch('/api/admin/search_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query: q }) }); 
+            const d = await r.json(); 
+            document.getElementById('userSearchResult').innerHTML = d.users.map(u => `<div class="user-row"><div><b>ID:${u.id}</b> ${u.username || ''}<br><small>${u.email}</small><br>Balance: ${u.balance || 0} Ks</div><div style="display:flex;gap:2px"><input type="number" id="bal${u.id}" placeholder="Amt" style="width:50px;padding:2px;font-size:9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px"><button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="addBalance(${u.id})">+</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="subBalance(${u.id})">-</button></div></div>`).join(''); 
+        } catch(e) {} 
+    }
+    
+    async function addBalance(uid) { 
+        const a = document.getElementById('bal' + uid).value; 
+        if (!a) return; 
+        await fetch('/api/admin/update_balance', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, amount: parseFloat(a) }) }); 
+        n('Balance Added!'); searchUser(); loadAdminData(); 
+    }
+    
+    async function subBalance(uid) { 
+        const a = document.getElementById('bal' + uid).value; 
+        if (!a) return; 
+        await fetch('/api/admin/update_balance', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, amount: -parseFloat(a) }) }); 
+        n('Balance Deducted!'); searchUser(); loadAdminData(); 
+    }
     
     // ==================== ORDERS ====================
-    async function loadAdminOrders(f) { currentOrderFilter = f; try { const r = await fetch(`/api/admin/orders?filter=${f}`); const d = await r.json(); const c = document.getElementById('adminOrders'); document.getElementById("totalOrders").textContent = d.total || 0; document.getElementById("todayOrders").textContent = d.today || 0; if (!d.orders || d.orders.length === 0) { c.innerHTML = '<p style="font-size:10px">No orders</p>'; return; } let cd = '', h = ''; d.orders.forEach(o => { const ds = new Date(o.created_at).toLocaleDateString('my-MM', { year: 'numeric', month: 'short', day: 'numeric' }); if (ds !== cd) { cd = ds; h += `<div class="order-date-header">📅 ${ds}</div>`; } h += `<div class="order-row"><div><b>${o.username || 'N/A'}</b><br>💰 ${o.amount} Ks | 💳 ${o.payment_method}<br><small>🆔 ${o.submitted_user_id || o.user_id} | ${new Date(o.created_at).toLocaleTimeString()}</small></div><div style="display:flex;gap:2px;align-items:center"><span style="font-size:8px;color:${o.status === 'approved' ? 'var(--g)' : o.status === 'rejected' ? 'var(--r)' : 'var(--w)'}">${o.status}</span>${o.screenshot ? `<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">` : '📷'}${o.status === 'pending' ? `<button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="approveOrder(${o.id},${o.user_id},${o.amount})">✓</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="rejectOrder(${o.id})">✕</button>` : ''}</div></div>`; }); c.innerHTML = h; } catch(e) {} }
-    async function approveOrder(id, userId, amount) { try { await fetch('/api/admin/order_status', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: 'approved' }) }); await fetch('/api/admin/update_balance', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: userId, amount: parseFloat(amount || 0) }) }); n('✅ Approved!'); loadAdminOrders(currentOrderFilter); loadAdminData(); } catch(e) { n('Error', 'error'); } }
-    async function rejectOrder(id) { try { await fetch('/api/admin/order_status', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: 'rejected' }) }); n('❌ Rejected!'); loadAdminOrders(currentOrderFilter); } catch(e) { n('Error', 'error'); } }
+    async function loadAdminOrders(f) { 
+        currentOrderFilter = f; 
+        try { 
+            const r = await fetch(`/api/admin/orders?filter=${f}`); 
+            const d = await r.json(); 
+            const c = document.getElementById('adminOrders'); 
+            document.getElementById("totalOrders").textContent = d.total || 0; 
+            document.getElementById("todayOrders").textContent = d.today || 0; 
+            if (!d.orders || d.orders.length === 0) { c.innerHTML = '<p style="font-size:10px">No orders</p>'; return; } 
+            let cd = '', h = ''; 
+            d.orders.forEach(o => { 
+                const ds = new Date(o.created_at).toLocaleDateString('my-MM', { year: 'numeric', month: 'short', day: 'numeric' }); 
+                if (ds !== cd) { cd = ds; h += `<div class="order-date-header">📅 ${ds}</div>`; } 
+                h += `<div class="order-row"><div><b>${o.username || 'N/A'}</b><br>💰 ${o.amount} Ks | 💳 ${o.payment_method}<br><small>🆔 ${o.submitted_user_id || o.user_id} | ${new Date(o.created_at).toLocaleTimeString()}</small></div><div style="display:flex;gap:2px;align-items:center"><span style="font-size:8px;color:${o.status === 'approved' ? 'var(--g)' : o.status === 'rejected' ? 'var(--r)' : 'var(--w)'}">${o.status}</span>${o.screenshot ? `<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">` : '📷'}${o.status === 'pending' ? `<button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="approveOrder(${o.id},${o.user_id},${o.amount})">✓</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="rejectOrder(${o.id})">✕</button>` : ''}</div></div>`; 
+            }); 
+            c.innerHTML = h; 
+        } catch(e) { console.error('Orders Error:', e); } 
+    }
+    
+    async function approveOrder(id, userId, amount) { 
+        try { 
+            await fetch('/api/admin/order_status', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: 'approved' }) }); 
+            await fetch('/api/admin/update_balance', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: userId, amount: parseFloat(amount || 0) }) }); 
+            n('✅ Approved!'); loadAdminOrders(currentOrderFilter); loadAdminData(); 
+        } catch(e) { n('Error', 'error'); } 
+    }
+    
+    async function rejectOrder(id) { 
+        try { 
+            await fetch('/api/admin/order_status', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, status: 'rejected' }) }); 
+            n('❌ Rejected!'); loadAdminOrders(currentOrderFilter); 
+        } catch(e) { n('Error', 'error'); } 
+    }
     
     // ==================== NOTICE ====================
-    async function loadNoticeList() { try { const r = await fetch("/api/admin/notices"); const d = await r.json(); const t = document.getElementById("noticeTable"); if (d.notices && d.notices.length > 0) { let h = '<tr><th>Message</th><th>Color</th><th>Date</th><th>Action</th></tr>'; d.notices.forEach(n => { h += `<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color || '#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delNoticeById(${n.id})">Del</button></td></tr>`; }); t.innerHTML = h; } else { t.innerHTML = '<tr><td colspan="4">No notices</td></tr>'; } } catch(e) {} }
-    async function postNotice() { const m = document.getElementById("adminNoticeMsg").value, co = document.getElementById("noticeColor").value; if (!m) return n("Enter text", "error"); try { await fetch("/api/admin/notice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: m, color: co }) }); n("Posted!"); document.getElementById("adminNoticeMsg").value = ""; loadNoticeList(); } catch(e) { n("Error", "error"); } }
-    async function delNoticeById(id) { if (!confirm("Delete?")) return; await fetch("/api/admin/notice/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id }) }); n("Deleted!"); loadNoticeList(); }
+    async function loadNoticeList() { 
+        try { 
+            const r = await fetch("/api/admin/notices"); 
+            const d = await r.json(); 
+            const t = document.getElementById("noticeTable"); 
+            if (d.notices && d.notices.length > 0) { 
+                let h = '<tr><th>Message</th><th>Color</th><th>Date</th><th>Action</th></tr>'; 
+                d.notices.forEach(n => { 
+                    h += `<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color || '#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delNoticeById(${n.id})">Del</button></td></tr>`; 
+                }); 
+                t.innerHTML = h; 
+            } else { t.innerHTML = '<tr><td colspan="4">No notices</td></tr>'; } 
+        } catch(e) { console.error('Notice Error:', e); } 
+    }
+    
+    async function postNotice() { 
+        const m = document.getElementById("adminNoticeMsg").value,
+              co = document.getElementById("noticeColor").value; 
+        if (!m) return n("Enter text", "error"); 
+        try { 
+            await fetch("/api/admin/notice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: m, color: co }) }); 
+            n("Posted!"); document.getElementById("adminNoticeMsg").value = ""; loadNoticeList(); 
+        } catch(e) { n("Error", "error"); } 
+    }
+    
+    async function delNoticeById(id) { 
+        if (!confirm("Delete?")) return; 
+        await fetch("/api/admin/notice/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: id }) }); 
+        n("Deleted!"); loadNoticeList(); 
+    }
     
     // ==================== BOT MESSAGE ====================
-    async function sendBotMessage() { const msg = document.getElementById('botCustomMsg').value.trim(); if (!msg) return n('Enter message', 'error'); n('⏳ Sending...', 'success'); try { const r = await fetch('/api/admin/bot_message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) }); const d = await r.json(); d.success ? (n('✅ Sent to ' + d.count + ' users!'), document.getElementById('botCustomMsg').value = '') : n(d.message || 'Error', 'error'); } catch(e) { n('Connection error', 'error'); } }
+    async function sendBotMessage() { 
+        const msg = document.getElementById('botCustomMsg').value.trim(); 
+        if (!msg) return n('Enter message', 'error'); 
+        n('⏳ Sending...', 'success'); 
+        try { 
+            const r = await fetch('/api/admin/bot_message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) }); 
+            const d = await r.json(); 
+            d.success ? (n('✅ Sent to ' + d.count + ' users!'), document.getElementById('botCustomMsg').value = '') : n(d.message || 'Error', 'error'); 
+        } catch(e) { n('Connection error', 'error'); } 
+    }
     
     // ==================== SLIDER ====================
-    async function saveSliderImages() { const urls = []; for (let i = 1; i <= 5; i++) { const inp = document.getElementById('sliderUrl' + i); if (inp && inp.value.trim()) urls.push(inp.value.trim()); } if (!urls.length) return n("Enter at least one URL", "error"); try { await fetch('/api/admin/slider_images', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images: urls }) }); n('Saved!'); urls.forEach((_, i) => { document.getElementById('sliderUrl' + (i + 1)).value = ''; }); loadSliderPreview(); } catch(e) { n('Error', 'error'); } }
-    async function clearSliderImages() { try { await fetch('/api/admin/slider_images', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ images: [] }) }); n('Cleared!'); loadSliderPreview(); } catch(e) { n('Error', 'error'); } }
-    async function loadSliderPreview() { try { const r = await fetch('/api/slider_images'); const d = await r.json(); const c = document.getElementById('sliderPreviewList'); if (d.images && d.images.length > 0) { c.innerHTML = d.images.map((u, i) => `<div class="preview-box">${i + 1}. ${u.substring(0, 50)}...</div>`).join(''); } else { c.innerHTML = '<span style="color:rgba(255,255,255,0.4)">No images</span>'; } } catch(e) {} }
+    async function saveSliderImages() { 
+        const urls = []; 
+        for (let i = 1; i <= 5; i++) { 
+            const inp = document.getElementById('sliderUrl' + i); 
+            if (inp && inp.value.trim()) urls.push(inp.value.trim()); 
+        } 
+        if (!urls.length) return n("Enter at least one URL", "error"); 
+        try { 
+            await fetch('/api/admin/slider_images', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ images: urls }) }); 
+            n('✅ Saved!'); 
+            for (let i = 1; i <= 5; i++) { document.getElementById('sliderUrl' + i).value = ''; } 
+            loadSliderPreview(); 
+        } catch(e) { n('Error', 'error'); } 
+    }
     
-    // ==================== MUSIC ====================
-    async function uploadMusicFile(num) { const file = document.getElementById('bgMusicFile' + num).files[0]; if (!file) return n('Select file', 'error'); n('⏳ Uploading to Catbox...', 'success'); const reader = new FileReader(); reader.onload = async function(e) { try { const r = await fetch('/api/upload_music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64: e.target.result, filename: file.name }) }); const d = await r.json(); d.success ? (document.getElementById('bgMusicUrl' + num).value = d.url, n('✅ Uploaded!')) : n('Upload failed', 'error'); } catch(e) { n('Error', 'error'); } }; reader.readAsDataURL(file); }
-    async function savePlaylist() { const playlist = []; for (let i = 1; i <= 3; i++) { const url = document.getElementById('bgMusicUrl' + i).value.trim(); if (url) playlist.push(url); } if (playlist.length === 0) return n('Add at least one URL or Upload', 'error'); n('⏳ Saving...', 'success'); try { const r = await fetch('/api/admin/bg_music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playlist }) }); const d = await r.json(); d.success ? (n('✅ Playlist Saved! (' + playlist.length + ' songs)'), loadCurrentMusic()) : n(d.message || 'Error', 'error'); } catch(e) { n('Connection error', 'error'); } }
-    async function removeAllMusic() { try { await fetch('/api/admin/bg_music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playlist: [] }) }); n('✅ Music Removed!'); for (let i = 1; i <= 3; i++) { document.getElementById('bgMusicUrl' + i).value = ''; document.getElementById('bgMusicFile' + i).value = ''; } loadCurrentMusic(); } catch(e) { n('Error', 'error'); } }
-    async function loadCurrentMusic() { try { const r = await fetch('/api/bg_music?t=' + Date.now()); const d = await r.json(); const c = document.getElementById('currentMusicDisplay'); if (d.playlist && d.playlist.length > 0) { c.innerHTML = '<table class="admin-table" style="margin-top:5px"><tr><th>#</th><th>Music</th><th>Preview</th></tr>' + d.playlist.map((url, i) => `<tr><td>${i + 1}</td><td style="font-size:9px;word-break:break-all">${url.substring(0, 50)}...</td><td><audio controls style="width:120px;height:20px"><source src="${url}" type="audio/mpeg"></audio></td></tr>`).join('') + '</table>'; } else { c.innerHTML = '<span style="color:rgba(255,255,255,0.4)">No music set</span>'; } } catch(e) {} }
+    async function clearSliderImages() { 
+        try { 
+            await fetch('/api/admin/slider_images', { method: 'POST', headers: { "Content-Type": "application/json" }, body: JSON.stringify({ images: [] }) }); 
+            n('Cleared!'); loadSliderPreview(); 
+        } catch(e) { n('Error', 'error'); } 
+    }
+    
+    async function loadSliderPreview() { 
+        try { 
+            const r = await fetch('/api/slider_images'); 
+            const d = await r.json(); 
+            const c = document.getElementById('sliderPreviewList'); 
+            if (d.images && d.images.length > 0) { 
+                c.innerHTML = d.images.map((u, i) => `<div class="preview-box">${i + 1}. ${u.substring(0, 50)}...</div>`).join(''); 
+            } else { c.innerHTML = '<span style="color:rgba(255,255,255,0.4)">No images</span>'; } 
+        } catch(e) {} 
+    }
+    
+    // ==================== MUSIC (FIXED) ====================
+    async function uploadMusicFile(num) { 
+        const file = document.getElementById('bgMusicFile' + num).files[0]; 
+        if (!file) return n('Select file', 'error'); 
+        n('⏳ Uploading to Catbox...', 'success'); 
+        const reader = new FileReader(); 
+        reader.onload = async function(e) { 
+            try { 
+                const r = await fetch('/api/upload_music', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ base64: e.target.result, filename: file.name }) 
+                }); 
+                const d = await r.json(); 
+                if (d.success) {
+                    document.getElementById('bgMusicUrl' + num).value = d.url;
+                    n('✅ Uploaded! URL: ' + d.url.substring(0, 40) + '...', 'success');
+                } else {
+                    n('Upload failed: ' + (d.message || 'Unknown error'), 'error');
+                }
+            } catch(e) { n('Error uploading', 'error'); } 
+        }; 
+        reader.readAsDataURL(file); 
+    }
+    
+    async function savePlaylist() { 
+        const playlist = []; 
+        for (let i = 1; i <= 3; i++) { 
+            const url = document.getElementById('bgMusicUrl' + i).value.trim(); 
+            if (url) playlist.push(url); 
+        } 
+        if (playlist.length === 0) return n('Add at least one URL or Upload', 'error'); 
+        n('⏳ Saving playlist...', 'success'); 
+        console.log('Saving playlist:', playlist); // Debug
+        
+        try { 
+            const r = await fetch('/api/admin/bg_music', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ playlist }) 
+            }); 
+            const d = await r.json(); 
+            if (d.success) {
+                n('✅ Playlist Saved! (' + playlist.length + ' songs)', 'success');
+                loadCurrentMusic();
+            } else {
+                n(d.message || 'Error saving playlist', 'error');
+            }
+        } catch(e) { n('Connection error', 'error'); } 
+    }
+    
+    async function removeAllMusic() { 
+        try { 
+            await fetch('/api/admin/bg_music', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ playlist: [] }) }); 
+            n('✅ Music Removed!'); 
+            for (let i = 1; i <= 3; i++) { 
+                document.getElementById('bgMusicUrl' + i).value = ''; 
+                document.getElementById('bgMusicFile' + i).value = ''; 
+            } 
+            loadCurrentMusic(); 
+        } catch(e) { n('Error', 'error'); } 
+    }
+    
+    async function loadCurrentMusic() { 
+        try { 
+            const r = await fetch('/api/bg_music?t=' + Date.now()); 
+            const d = await r.json(); 
+            const c = document.getElementById('currentMusicDisplay'); 
+            console.log('Current Music:', d); // Debug
+            
+            if (d.playlist && d.playlist.length > 0) { 
+                let html = '<table class="admin-table" style="margin-top:5px"><tr><th>#</th><th>Music URL</th><th>Preview</th></tr>';
+                d.playlist.forEach((url, i) => {
+                    html += `<tr><td>${i + 1}</td><td style="font-size:9px;word-break:break-all">${url.substring(0, 50)}...</td><td><audio controls style="width:120px;height:20px"><source src="${url}" type="audio/mpeg"></audio></td></tr>`;
+                });
+                html += '</table>';
+                c.innerHTML = html;
+            } else { 
+                c.innerHTML = '<span style="color:rgba(255,255,255,0.4)">No music set - Add URLs/Upload and click Save Playlist</span>'; 
+            } 
+        } catch(e) { console.error('Load Music Error:', e); } 
+    }
 </script>
 </body>
 </html>
