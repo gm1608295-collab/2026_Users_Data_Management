@@ -789,7 +789,12 @@ startLongPolling();
 
 // ==================== PAGES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+// Tab Pages
+app.get('/data.html', (req, res) => res.sendFile(path.join(__dirname, 'data.html')));
+app.get('/recovery.html', (req, res) => res.sendFile(path.join(__dirname, 'recovery.html')));
+app.get('/password.html', (req, res) => res.sendFile(path.join(__dirname, 'password.html')));
+app.get('/history.html', (req, res) => res.sendFile(path.join(__dirname, 'history.html')));
+app.get('/contact.html', (req, res) => res.sendFile(path.join(__dirname, 'contact.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
 // Top Up Page (with maintenance check)
