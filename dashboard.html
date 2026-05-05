@@ -50,6 +50,7 @@
 
         .video-wrapper{position:relative;margin-bottom:10px;border-radius:10px;overflow:hidden;border:2px solid rgba(74,28,122,0.5);background:#000}
         .video-wrapper video{width:100%;max-height:200px;display:block}
+        .video-wrapper iframe{width:100%;height:200px;border:none}
         .video-wrapper .video-controls{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);padding:5px 8px;display:flex;align-items:center;gap:8px;opacity:0;transition:opacity 0.3s}
         .video-wrapper:hover .video-controls{opacity:1}
         .video-controls button{background:none;border:none;color:#fff;font-size:12px;cursor:pointer;padding:3px 6px}
@@ -73,6 +74,18 @@
         .banned-btns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
         .banned-btns button{padding:10px 20px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:12px}
         .btn-stay{background:rgba(255,255,255,0.2);color:var(--t)}.btn-new{background:var(--b);color:var(--t)}
+
+        /* Maintenance with Timer */
+        .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
+        .maintenance-icon{font-size:80px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
+        .maintenance-title{font-size:22px;font-weight:bold;color:var(--w);margin-bottom:10px}
+        .maintenance-subtitle{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:20px;line-height:1.6}
+        .maintenance-timer-box{background:rgba(0,0,0,0.4);border:2px solid var(--w);border-radius:12px;padding:20px 30px;margin:15px 0}
+        .maintenance-timer-label{font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:5px}
+        .maintenance-timer{font-size:36px;font-weight:bold;color:var(--w);font-family:'Courier New',monospace;letter-spacing:2px}
+        .maintenance-info{font-size:10px;color:rgba(255,255,255,0.5);margin-top:15px}
+        .maintenance-btn{display:inline-block;padding:12px 25px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px}
 
         /* Sidebar */
         .sidebar-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);z-index:3000}
@@ -98,7 +111,22 @@
 <body>
     <audio id="bgAudio" loop style="display:none"></audio>
     
-    <div class="container">
+    <!-- Maintenance Mode -->
+    <div id="maintenanceMode" style="display:none">
+        <div class="maintenance-container">
+            <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+            <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+            <div class="maintenance-subtitle">ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</div>
+            <div class="maintenance-timer-box" id="timerBox" style="display:none">
+                <div class="maintenance-timer-label">⏱️ ပြန်ဖွင့်ရန် အချိန်ကျန်</div>
+                <div class="maintenance-timer" id="maintenanceTimer">00:00:00</div>
+            </div>
+            <div class="maintenance-info">သတ်မှတ်ချိန်ပြည့်ပါက အလိုအလျောက် ပြန်ဖွင့်ပါမည်။</div>
+            <a href="/" class="maintenance-btn">ပင်မစာမျက်နှာသို့</a>
+        </div>
+    </div>
+    
+    <div class="container" id="mainContainer">
         <div class="header">
             <span class="menu-btn" onclick="openSidebar()"><i class="fas fa-bars"></i></span>
             <div class="brand">SOLO M Game Shop</div>
@@ -138,20 +166,19 @@
                 </div>
             </div>
 
-            <!-- Video Player -->
             <div class="video-wrapper" id="videoContainer" style="display:none">
-                <video id="dashboardVideo" playsinline controls preload="none">
+                <video id="dashboardVideo" playsinline controls preload="none" style="width:100%;max-height:200px">
                     <source src="" type="video/mp4">
                 </video>
+                <iframe id="youtubeFrame" style="display:none;width:100%;height:200px;border:none" allow="autoplay; encrypted-media" allowfullscreen></iframe>
                 <div class="video-controls">
-                    <button onclick="document.getElementById('dashboardVideo').play()"><i class="fas fa-play"></i></button>
-                    <button onclick="document.getElementById('dashboardVideo').pause()"><i class="fas fa-pause"></i></button>
-                    <button onclick="document.getElementById('dashboardVideo').muted=!document.getElementById('dashboardVideo').muted"><i class="fas fa-volume-up" id="muteIcon"></i></button>
-                    <button class="fullscreen-btn" onclick="document.getElementById('dashboardVideo').requestFullscreen()"><i class="fas fa-expand"></i></button>
+                    <button onclick="toggleVideoPlay()"><i class="fas fa-play" id="playPauseIcon"></i></button>
+                    <button onclick="toggleVideoMute()"><i class="fas fa-volume-up" id="muteIcon"></i></button>
+                    <button class="fullscreen-btn" onclick="toggleFullscreen()"><i class="fas fa-expand"></i></button>
                 </div>
             </div>
             
-            <div class="sec-note"><i class="fas fa-shield-alt"></i> <strong>System Security:</strong> All data is encrypted. Use <strong>☰ Menu</strong> to navigate.</div>
+            <div class="sec-note"><i class="fas fa-shield-alt"></i> System Security: All data is encrypted. Use Menu to navigate.</div>
         </div>
         
         <div class="footer">© 2026 SOLO M Game Shop | Contact: @Solo_m28</div>
@@ -160,7 +187,7 @@
     <!-- Logout Modal -->
     <div class="confirm-modal" id="logoutConfirmModal">
         <div class="confirm-box">
-            <h3><i class="fas fa-sign-out-alt"></i> Logout</h3>
+            <h3>Logout</h3>
             <p style="color:rgba(255,255,255,0.7);margin-bottom:15px">အကောင့်မှထွက်မှာသေချာပါသလား?</p>
             <div class="confirm-btns">
                 <button class="confirm-yes" onclick="logout()">Yes, Logout</button>
@@ -194,43 +221,70 @@
             <a href="/aboutredeem.html" class="s-item"><i class="fas fa-info-circle"></i> About Redeem</a>
         </div>
         <div class="sidebar-logout-area">
-            <button class="logout-btn" onclick="closeSidebar();confirmLogout();"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            <button class="logout-btn" onclick="closeSidebar();confirmLogout();">Logout</button>
         </div>
     </div>
 
 <script>
-    // ==================== SIDEBAR ====================
-    function openSidebar(){
-        document.getElementById("sidebarPanel").classList.add("active");
-        document.getElementById("sidebarOverlay").classList.add("active");
-        document.body.style.overflow='hidden';
-        const user=JSON.parse(localStorage.getItem('user')||'{}');
-        document.getElementById("sidebarName").textContent=user.username||'User';
-        document.getElementById("sidebarEmail").textContent=user.email||'user@mlbb.com';
-        document.getElementById("sidebarAvatar").textContent=(user.username||'U').charAt(0).toUpperCase();
-    }
-    function closeSidebar(){
-        document.getElementById("sidebarPanel").classList.remove("active");
-        document.getElementById("sidebarOverlay").classList.remove("active");
-        document.body.style.overflow='';
+    // ==================== PAGE CONTROL + TIMER CHECK ====================
+    async function checkPageAccess() {
+        try {
+            const r = await fetch('/api/admin/page_status');
+            const d = await r.json();
+            if (d.pages) {
+                const dp = d.pages.find(p => p.id === 'dashboard');
+                if (dp && dp.status === 'off') {
+                    document.getElementById('maintenanceMode').style.display = 'block';
+                    document.getElementById('mainContainer').style.display = 'none';
+                    
+                    // Check for timer
+                    const timers = JSON.parse(localStorage.getItem('pageTimers') || '{}');
+                    const timerEnd = timers['dashboard'];
+                    if (timerEnd && timerEnd > Date.now()) {
+                        document.getElementById('timerBox').style.display = 'block';
+                        startCountdown(timerEnd);
+                    }
+                    return false;
+                }
+            }
+            document.getElementById('maintenanceMode').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+            return true;
+        } catch(e) {
+            document.getElementById('maintenanceMode').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+            return true;
+        }
     }
 
-    // ==================== BG MUSIC (Auto Next) ====================
-    (function(){
-        const a=document.getElementById('bgAudio');if(!a)return;
-        let p=[],i=0;a.volume=0.5;a.loop=false;
-        const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}
-        sessionStorage.setItem('mp','1');
-        async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}
-        function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)});}
-        a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});
-        a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});
-        setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);
-        fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000);
-    })();
+    function startCountdown(endTime) {
+        const timerEl = document.getElementById('maintenanceTimer');
+        function update() {
+            const now = Date.now();
+            const diff = endTime - now;
+            if (diff <= 0) {
+                timerEl.textContent = '00:00:00';
+                location.reload();
+                return;
+            }
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            timerEl.textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            requestAnimationFrame(() => setTimeout(update, 1000));
+        }
+        update();
+    }
+
+    // ==================== SIDEBAR ====================
+    function openSidebar(){document.getElementById("sidebarPanel").classList.add("active");document.getElementById("sidebarOverlay").classList.add("active");document.body.style.overflow='hidden';const user=JSON.parse(localStorage.getItem('user')||'{}');document.getElementById("sidebarName").textContent=user.username||'User';document.getElementById("sidebarEmail").textContent=user.email||'user@mlbb.com';document.getElementById("sidebarAvatar").textContent=(user.username||'U').charAt(0).toUpperCase()}
+    function closeSidebar(){document.getElementById("sidebarPanel").classList.remove("active");document.getElementById("sidebarOverlay").classList.remove("active");document.body.style.overflow=''}
+
+    // ==================== BG MUSIC ====================
+    (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)});}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})();
 
     // ==================== LOCAL TIME ====================
-    function updateTime(){const now=new Date();document.getElementById("localTime").textContent=now.toLocaleTimeString('my-MM',{hour:'2-digit',minute:'2-digit',second:'2-digit'});document.getElementById("localDate").textContent=now.toLocaleDateString('my-MM',{year:'numeric',month:'short',day:'numeric'})}
+    function updateTime(){const now=new Date();document.getElementById("localTime").textContent=now.toLocaleTimeString('my-MM',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});document.getElementById("localDate").textContent=now.toLocaleDateString('my-MM',{year:'numeric',month:'short',day:'numeric'})}
     setInterval(updateTime,1000);updateTime();
 
     // ==================== LOGOUT ====================
@@ -250,11 +304,19 @@
     function renderNotice(d){const b=document.getElementById('noticeBanner'),i=document.getElementById('noticeIcon'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='flex';m.textContent=d.message;m.style.color=d.color||'var(--t)';i.style.color=d.color||'var(--w)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
     async function loadNotice(){const ca=localStorage.getItem('noticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderNotice(d)}catch(e){}}try{const r=await fetch("/api/notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('noticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('noticeCache',JSON.stringify(cn));renderNotice(cn)}}else{localStorage.removeItem('noticeCache')}}catch(e){}}
 
-    // ==================== VIDEO ====================
-    async function loadVideo(){try{const r=await fetch('/api/video');const d=await r.json();const container=document.getElementById('videoContainer');const video=document.getElementById('dashboardVideo');if(d.success&&d.url){container.style.display='block';if(video.src!==d.url){video.src=d.url;video.load()}}else{container.style.display='none'}}catch(e){}}
+    // ==================== VIDEO + MUSIC CONTROL ====================
+    async function loadVideo(){try{const r=await fetch('/api/video');const d=await r.json();const container=document.getElementById('videoContainer');const video=document.getElementById('dashboardVideo');const iframe=document.getElementById('youtubeFrame');if(d.success&&d.url){container.style.display='block';if(d.url.includes('youtube.com/embed')){video.style.display='none';iframe.style.display='block';if(iframe.src!==d.url)iframe.src=d.url}else{iframe.style.display='none';video.style.display='block';if(video.src!==d.url){video.src=d.url;video.load()}}}else{container.style.display='none'}}catch(e){}}
+    function toggleVideoPlay(){const v=document.getElementById('dashboardVideo');if(v.paused){v.play()}else{v.pause()}}
+    function toggleVideoMute(){const v=document.getElementById('dashboardVideo');v.muted=!v.muted;document.getElementById('muteIcon').className=v.muted?'fas fa-volume-mute':'fas fa-volume-up'}
+    function toggleFullscreen(){const v=document.getElementById('dashboardVideo');if(v.requestFullscreen)v.requestFullscreen();else if(v.webkitRequestFullscreen)v.webkitRequestFullscreen()}
+
+    document.addEventListener('DOMContentLoaded',function(){const video=document.getElementById('dashboardVideo');const bgAudio=document.getElementById('bgAudio');if(video&&bgAudio){video.addEventListener('play',function(){if(!bgAudio.paused){bgAudio.pause();localStorage.setItem('bgMusicPaused','true')}});video.addEventListener('pause',function(){if(localStorage.getItem('bgMusicPaused')==='true'&&bgAudio.paused&&bgAudio.src){bgAudio.play().catch(()=>{});localStorage.removeItem('bgMusicPaused')}});video.addEventListener('ended',function(){if(bgAudio.paused&&bgAudio.src){bgAudio.play().catch(()=>{});localStorage.removeItem('bgMusicPaused')}})}});
 
     // ==================== INIT ====================
     window.onload=async function(){
+        const hasAccess = await checkPageAccess();
+        if (!hasAccess) return;
+        
         if(!localStorage.getItem("auth_token")){window.location.href="/";return}
         const user=JSON.parse(localStorage.getItem("user")||'{}');
         document.getElementById("myUserIdDisp").textContent=user.id?user.id.toString().padStart(6,'0'):'------';
@@ -264,6 +326,8 @@
         document.getElementById("sidebarAvatar").textContent=(user.username||'U').charAt(0).toUpperCase();
         loadSliderImages();loadNotice();loadVideo();
         setInterval(loadSliderImages,2000);setInterval(loadNotice,2000);setInterval(loadVideo,5000);
+        // Check page access every 3 seconds
+        setInterval(checkPageAccess, 3000);
         if(user.id){const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});const d=await r.json();if(d.banned){document.body.innerHTML=`<div class="banned-container"><div class="banned-icon">🚫</div><h2 class="banned-title">သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><div class="banned-contact"><h4>ဆက်သွယ်ရန်</h4><p>📧 gm1608295@gmail.com</p><p>📞 09672093790</p><p>💬 @Solo_m28</p></div><div class="banned-btns"><button class="btn-stay" onclick="location.reload()">ဆက်နေမည်</button><button class="btn-new" onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button></div></div>`}}
     };
 </script>
