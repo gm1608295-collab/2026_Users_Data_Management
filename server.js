@@ -48,23 +48,22 @@ const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 function sendOnesignal(msg) { try { const data = JSON.stringify({ app_id: ONESIGNAL_APP_ID, included_segments: ["All"], contents: { en: msg }, headings: { en: "SOLO M Game Shop" } }); const req = https.request({ hostname: 'onesignal.com', path: '/api/v1/notifications', method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${ONESIGNAL_API_KEY}` } }); req.write(data); req.end(); } catch(e) {} }
 
-// ==================== INIT TABLES ====================
 async function initTables(p) {
     const queries = [
-        `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS page_status (page_id VARCHAR(50) PRIMARY KEY, status VARCHAR(5) DEFAULT 'on', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS banned_users (user_id VARCHAR(100) PRIMARY KEY, banned_by VARCHAR(100), banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', submitted_user_id VARCHAR(20), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS used_codes (code VARCHAR(100) PRIMARY KEY, user_id INT, used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+        `CREATE TABLE IF NOT EXISTS auth_users (...)`,
+        `CREATE TABLE IF NOT EXISTS notices (...)`,
+        `CREATE TABLE IF NOT EXISTS slider_images (...)`,
+        `CREATE TABLE IF NOT EXISTS bg_music (...)`,
+        `CREATE TABLE IF NOT EXISTS page_status (...)`,
+        `CREATE TABLE IF NOT EXISTS banned_users (...)`,
+        `CREATE TABLE IF NOT EXISTS orders (...)`,
+        `CREATE TABLE IF NOT EXISTS used_codes (...)`,
+        `CREATE TABLE IF NOT EXISTS otp_codes (...)`,
+        // ====== ဒါအသစ်ထည့်ပါ ======
+        `CREATE TABLE IF NOT EXISTS system_video (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
     ];
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
-initTables(pool1); initTables(pool2);
-
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
     { id: 'topup', name: 'Top Up' }, { id: 'buycode', name: 'Buy Code MLBB' }, { id: 'dashboard', name: 'Dashboard' },
@@ -363,28 +362,40 @@ app.post('/api/admin/toggle_page', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// ==================== BACKUP & RESTORE ====================
 app.get('/api/admin/backup', async (req, res) => {
     try {
         const p = await getPool();
-        const users = await p.query('SELECT * FROM auth_users'); const orders = await p.query('SELECT * FROM orders');
-        const notices = await p.query('SELECT * FROM notices'); const slider = await p.query('SELECT * FROM slider_images');
-        const bgM = await p.query('SELECT * FROM bg_music'); const ps = await p.query('SELECT * FROM page_status');
-        const banned = await p.query('SELECT * FROM banned_users'); const codes = await p.query('SELECT * FROM used_codes');
-        res.json({ success: true, data: { version: '1.0', date: new Date().toISOString(), tables: { auth_users: users.rows, orders: orders.rows, notices: notices.rows, slider_images: slider.rows, bg_music: bgM.rows, page_status: ps.rows, banned_users: banned.rows, used_codes: codes.rows } } });
+        const users = await p.query('SELECT * FROM auth_users');
+        const orders = await p.query('SELECT * FROM orders');
+        const notices = await p.query('SELECT * FROM notices');
+        const slider = await p.query('SELECT * FROM slider_images');
+        const bgM = await p.query('SELECT * FROM bg_music');
+        const ps = await p.query('SELECT * FROM page_status');
+        const banned = await p.query('SELECT * FROM banned_users');
+        const codes = await p.query('SELECT * FROM used_codes');
+        // ====== ဒါအသစ်ထည့်ပါ ======
+        const video = await p.query('SELECT * FROM system_video');
+        
+        res.json({
+            success: true,
+            data: {
+                version: '1.0',
+                date: new Date().toISOString(),
+                tables: {
+                    auth_users: users.rows,
+                    orders: orders.rows,
+                    notices: notices.rows,
+                    slider_images: slider.rows,
+                    bg_music: bgM.rows,
+                    page_status: ps.rows,
+                    banned_users: banned.rows,
+                    used_codes: codes.rows,
+                    // ====== ဒါအသစ်ထည့်ပါ ======
+                    system_video: video.rows
+                }
+            }
+        });
     } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/restore', async (req, res) => {
-    const { data } = req.body; if (!data || !data.tables) return res.json({ success: false });
-    try {
-        const p = await getPool(); const t = data.tables;
-        if (t.auth_users) { await p.query('DELETE FROM auth_users'); for (const r of t.auth_users) { await p.query('INSERT INTO auth_users VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)', [r.id, r.username, r.email, r.phone, r.password, r.google_id, r.login_type, r.avatar, r.gmail_pass, r.mlbb_pass, r.tiktok_pass, r.balance, r.created_at, r.last_login]).catch(() => {}); } }
-        if (t.orders) { await p.query('DELETE FROM orders'); for (const r of t.orders) { await p.query('INSERT INTO orders VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)', [r.id, r.user_id, r.username, r.amount, r.payment_method, r.screenshot, r.status, r.submitted_user_id, r.created_at]).catch(() => {}); } }
-        if (t.banned_users) { await p.query('DELETE FROM banned_users'); for (const r of t.banned_users) { await p.query('INSERT INTO banned_users VALUES ($1,$2,$3)', [r.user_id, r.banned_by, r.banned_at]).catch(() => {}); } }
-        if (t.notices) { await p.query('DELETE FROM notices'); for (const r of t.notices) { await p.query('INSERT INTO notices VALUES ($1,$2,$3,$4,$5)', [r.id, r.message, r.color, r.created_by, r.created_at]).catch(() => {}); } }
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false, message: e.message }); }
 });
 
 // ==================== ADMIN ====================
@@ -712,6 +723,91 @@ async function servePageWithCheck(req, res, pageId, filePath) {
     res.sendFile(path.join(__dirname, filePath));
 }
 
+// ==================== VIDEO UPLOAD ====================
+app.post('/api/upload_video', async (req, res) => {
+    const { base64, filename } = req.body;
+    if (!base64) return res.json({ success: false, message: 'No video data' });
+    
+    try {
+        // Extract base64 data
+        const matches = base64.match(/^data:video\/\w+;base64,(.+)/);
+        if (!matches) {
+            // Try generic match
+            const genericMatch = base64.match(/^data:[^;]+;base64,(.+)/);
+            if (!genericMatch) return res.json({ success: false, message: 'Invalid video data' });
+            const buffer = Buffer.from(genericMatch[1], 'base64');
+            const blob = new Blob([buffer], { type: 'video/mp4' });
+            const formData = new FormData();
+            formData.append('reqtype', 'fileupload');
+            formData.append('fileToUpload', blob, filename || 'video.mp4');
+            
+            const response = await fetch('https://catbox.moe/user/api.php', {
+                method: 'POST',
+                body: formData,
+                signal: AbortSignal.timeout(120000)
+            });
+            
+            const url = await response.text();
+            if (url && url.startsWith('https://')) {
+                console.log('[VIDEO UPLOAD] Success:', url.trim());
+                return res.json({ success: true, url: url.trim() });
+            }
+            return res.json({ success: false, message: 'Upload failed' });
+        }
+        
+        const base64Data = matches[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const blob = new Blob([buffer], { type: 'video/mp4' });
+        const formData = new FormData();
+        formData.append('reqtype', 'fileupload');
+        formData.append('fileToUpload', blob, filename || 'video.mp4');
+        
+        const response = await fetch('https://catbox.moe/user/api.php', {
+            method: 'POST',
+            body: formData,
+            signal: AbortSignal.timeout(120000)
+        });
+        
+        const url = await response.text();
+        if (url && url.startsWith('https://')) {
+            console.log('[VIDEO UPLOAD] Success:', url.trim());
+            res.json({ success: true, url: url.trim() });
+        } else {
+            res.json({ success: false, message: 'Upload failed' });
+        }
+    } catch(e) {
+        console.error('[VIDEO UPLOAD ERROR]', e.message);
+        res.json({ success: false, message: 'Upload error: ' + e.message });
+    }
+});
+// ==================== VIDEO SYSTEM ====================
+app.get('/api/video', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT video_url FROM system_video ORDER BY id DESC LIMIT 1");
+        if (r.rows.length === 0) return res.json({ success: false, url: '' });
+        res.json({ success: true, url: r.rows[0].video_url });
+    } catch(e) {
+        res.json({ success: false, url: '' });
+    }
+});
+
+app.post('/api/admin/video', async (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.json({ success: false, message: 'No video URL' });
+    try {
+        const p = await getPool();
+        // Create table if not exists
+        await p.query(`CREATE TABLE IF NOT EXISTS system_video (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`).catch(() => {});
+        await p.query('DELETE FROM system_video');
+        await p.query('INSERT INTO system_video (video_url) VALUES ($1)', [url]);
+        console.log('[VIDEO SAVE] Saved:', url);
+        res.json({ success: true });
+    } catch(e) {
+        console.error('[VIDEO SAVE ERROR]', e.message);
+        res.json({ success: false, message: 'Save error' });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
