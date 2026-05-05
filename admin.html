@@ -285,26 +285,164 @@
     async function saveSliderImages(){const urls=[];for(let i=1;i<=5;i++){const inp=document.getElementById('sliderUrl'+i);if(inp&&inp.value.trim())urls.push(inp.value.trim())}if(!urls.length)return n("Enter at least one URL","error");try{await fetch('/api/admin/slider_images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:urls})});n('Saved!');for(let i=1;i<=5;i++)document.getElementById('sliderUrl'+i).value='';loadSliderPreview()}catch(e){n('Error','error')}}
     async function clearSliderImages(){try{await fetch('/api/admin/slider_images',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({images:[]})});n('Cleared!');loadSliderPreview()}catch(e){n('Error','error')}}
     async function loadSliderPreview(){try{const r=await fetch('/api/slider_images');const d=await r.json();const c=document.getElementById('sliderPreviewList');if(d.images&&d.images.length>0){c.innerHTML=d.images.map((u,i)=>`<div class="preview-box">${i+1}. ${u.substring(0,50)}...</div>`).join('')}else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No images</span>'}}catch(e){}}
+    // ==================== BG MUSIC (3 SLOTS - AUDIO ONLY - FIXED) ====================
+    function handleFileSelect(slot){
+        const file=document.getElementById('musicFile'+slot).files[0];
+        const preview=document.getElementById('preview'+slot);
+        if(file){
+            const url=URL.createObjectURL(file);
+            preview.src=url;
+            preview.style.display='block';
+            document.getElementById('musicUrl'+slot).placeholder='File: '+file.name;
+        } else {
+            preview.style.display='none';
+        }
+    }
     
-    // ==================== BG MUSIC (3 SLOTS - AUDIO ONLY) ====================
-    function handleFileSelect(slot){const file=document.getElementById('musicFile'+slot).files[0],preview=document.getElementById('preview'+slot);if(file){const url=URL.createObjectURL(file);preview.src=url;preview.style.display='block';document.getElementById('musicUrl'+slot).placeholder='File: '+file.name}else{preview.style.display='none'}}
+    async function uploadMusic(slot){
+        const fileInput=document.getElementById('musicFile'+slot);
+        const urlInput=document.getElementById('musicUrl'+slot);
+        const progressDiv=document.getElementById('progress'+slot);
+        const progressText=document.getElementById('progressText'+slot);
+        const uploadBtn=document.getElementById('uploadBtn'+slot);
+        const statusDiv=document.getElementById('musicStatus'+slot);
+        const preview=document.getElementById('preview'+slot);
+        
+        const file=fileInput.files[0];
+        const directUrl=urlInput.value.trim();
+        
+        // If direct URL is pasted, use that instead
+        if(!file&&directUrl){
+            urlInput.value=directUrl;
+            statusDiv.textContent='URL Set';
+            statusDiv.className='card-status filled';
+            preview.src=directUrl;
+            preview.style.display='block';
+            n('✅ URL added for Music '+slot);
+            updatePlaylistCount();
+            return;
+        }
+        
+        if(!file)return n('Select a file for Music '+slot,'error');
+        
+        // ONLY block actual video files, not M4A/AAC audio files
+        const videoMimeTypes=['video/mp4','video/quicktime','video/webm','video/x-msvideo','video/x-matroska'];
+        const isAudioFile=file.name.toLowerCase().endsWith('.m4a')||file.name.toLowerCase().endsWith('.aac');
+        
+        if(videoMimeTypes.includes(file.type)&&!isAudioFile){
+            return n('❌ Video files not allowed! Select Audio only (MP3, M4A, OGG, WAV, AAC).','error');
+        }
+        
+        // Show progress
+        progressDiv.classList.add('show');
+        progressText.textContent='Reading...';
+        uploadBtn.disabled=true;
+        
+        try{
+            const base64=await new Promise((resolve,reject)=>{
+                const reader=new FileReader();
+                reader.onload=(e)=>resolve(e.target.result);
+                reader.onerror=reject;
+                reader.readAsDataURL(file);
+            });
+            
+            progressText.textContent='Uploading...';
+            
+            const response=await fetch('/api/upload_music',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({base64,filename:file.name})
+            });
+            
+            const data=await response.json();
+            
+            if(data.success&&data.url){
+                urlInput.value=data.url;
+                statusDiv.textContent='Uploaded ✅';
+                statusDiv.className='card-status filled';
+                preview.src=data.url;
+                preview.style.display='block';
+                preview.load();
+                fileInput.value='';
+                n('✅ Music '+slot+' uploaded!');
+                updatePlaylistCount();
+            } else {
+                n('❌ '+(data.message||'Upload failed'),'error');
+            }
+        } catch(e) {
+            n('❌ Error: '+e.message,'error');
+        } finally {
+            progressDiv.classList.remove('show');
+            uploadBtn.disabled=false;
+        }
+    }
     
-    async function uploadMusic(slot){const fileInput=document.getElementById('musicFile'+slot),urlInput=document.getElementById('musicUrl'+slot),progressDiv=document.getElementById('progress'+slot),progressText=document.getElementById('progressText'+slot),uploadBtn=document.getElementById('uploadBtn'+slot),statusDiv=document.getElementById('musicStatus'+slot),preview=document.getElementById('preview'+slot);const file=fileInput.files[0],directUrl=urlInput.value.trim();if(!file&&directUrl){urlInput.value=directUrl;statusDiv.textContent='URL Set';statusDiv.className='card-status filled';preview.src=directUrl;preview.style.display='block';n('✅ URL added for Music '+slot);updatePlaylistCount();return}if(!file)return n('Select a file for Music '+slot,'error');
-        if(file.type.startsWith('video/'))return n('❌ Video files not allowed! Select Audio only.','error');
-        progressDiv.classList.add('show');progressText.textContent='Reading...';uploadBtn.disabled=true;
-        try{const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=(e)=>resolve(e.target.result);reader.onerror=reject;reader.readAsDataURL(file)});
-        progressText.textContent='Uploading...';
-        const response=await fetch('/api/upload_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64,filename:file.name})});
-        const data=await response.json();
-        if(data.success&&data.url){urlInput.value=data.url;statusDiv.textContent='Uploaded ✅';statusDiv.className='card-status filled';preview.src=data.url;preview.style.display='block';fileInput.value='';n('✅ Music '+slot+' uploaded!');updatePlaylistCount()}else{n(data.message||'Upload failed','error')}}catch(e){n('Error: '+e.message,'error')}finally{progressDiv.classList.remove('show');uploadBtn.disabled=false}}
+    function clearMusicSlot(slot){
+        document.getElementById('musicFile'+slot).value='';
+        document.getElementById('musicUrl'+slot).value='';
+        document.getElementById('preview'+slot).style.display='none';
+        document.getElementById('musicStatus'+slot).textContent='Empty';
+        document.getElementById('musicStatus'+slot).className='card-status empty';
+        updatePlaylistCount();
+    }
     
-    function clearMusicSlot(slot){document.getElementById('musicFile'+slot).value='';document.getElementById('musicUrl'+slot).value='';document.getElementById('preview'+slot).style.display='none';document.getElementById('musicStatus'+slot).textContent='Empty';document.getElementById('musicStatus'+slot).className='card-status empty';updatePlaylistCount()}
-    function clearAllSlots(){if(!confirm('Clear all music slots?'))return;for(let i=1;i<=3;i++)clearMusicSlot(i);n('All slots cleared')}
-    function updatePlaylistCount(){let count=0;for(let i=1;i<=3;i++){if(document.getElementById('musicUrl'+i).value.trim())count++}document.getElementById('playlistCount').textContent=count}
+    function clearAllSlots(){
+        if(!confirm('Clear all music slots?'))return;
+        for(let i=1;i<=3;i++)clearMusicSlot(i);
+        n('All slots cleared');
+    }
     
-    async function savePlaylist(){const playlist=[];for(let i=1;i<=3;i++){const url=document.getElementById('musicUrl'+i).value.trim();if(url)playlist.push(url)}if(!playlist.length)return n('Add at least one music first','error');showLoading('Saving Playlist...',`${playlist.length} songs...`);try{const r=await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist})});const d=await r.json();d.success?n(`✅ Playlist Saved! (${playlist.length} songs)`):n('Save failed','error')}catch(e){n('Connection error','error')}hideLoading()}
+    function updatePlaylistCount(){
+        let count=0;
+        for(let i=1;i<=3;i++){
+            if(document.getElementById('musicUrl'+i).value.trim())count++;
+        }
+        document.getElementById('playlistCount').textContent=count;
+    }
     
-    async function loadCurrentPlaylist(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){d.playlist.forEach((url,i)=>{if(i<3){const slot=i+1;document.getElementById('musicUrl'+slot).value=url;document.getElementById('musicStatus'+slot).textContent='Loaded ✅';document.getElementById('musicStatus'+slot).className='card-status filled';const preview=document.getElementById('preview'+slot);preview.src=url;preview.style.display='block'}});updatePlaylistCount()}}catch(e){}}
-</script>
+    async function savePlaylist(){
+        const playlist=[];
+        for(let i=1;i<=3;i++){
+            const url=document.getElementById('musicUrl'+i).value.trim();
+            if(url)playlist.push(url);
+        }
+        if(!playlist.length)return n('Add at least one music first','error');
+        showLoading('Saving Playlist...',`${playlist.length} songs...`);
+        try{
+            const r=await fetch('/api/admin/bg_music',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({playlist})
+            });
+            const d=await r.json();
+            d.success?n(`✅ Playlist Saved! (${playlist.length} songs)`):n('Save failed','error');
+        } catch(e) {
+            n('Connection error','error');
+        }
+        hideLoading();
+    }
+    
+    async function loadCurrentPlaylist(){
+        try{
+            const r=await fetch('/api/bg_music?t='+Date.now());
+            const d=await r.json();
+            if(d.playlist&&d.playlist.length>0){
+                d.playlist.forEach((url,i)=>{
+                    if(i<3){
+                        const slot=i+1;
+                        document.getElementById('musicUrl'+slot).value=url;
+                        document.getElementById('musicStatus'+slot).textContent='Loaded ✅';
+                        document.getElementById('musicStatus'+slot).className='card-status filled';
+                        const preview=document.getElementById('preview'+slot);
+                        preview.src=url;
+                        preview.style.display='block';
+                        preview.load();
+                    }
+                });
+                updatePlaylistCount();
+            }
+        } catch(e) {}
+    }
+    </script>
 </body>
 </html>
