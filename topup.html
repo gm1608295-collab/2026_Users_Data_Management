@@ -6,103 +6,141 @@
     <title>SOLO M Game Shop - Top Up</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db;--pk:#e91e63}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        
-        html{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
-        body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
-        
-        .container{max-width:500px;margin:0 auto;padding-bottom:20px}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
+        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;touch-action:pan-y!important}
+        body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
+        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;flex-shrink:0}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
         
-        .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
-        .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
-        .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
-        .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
+        /* Balance Card */
+        .balance-card{background:linear-gradient(135deg,#4a1c7a,#1a1f4b,#0a0a1a);border-radius:16px;padding:25px;text-align:center;margin-bottom:15px;border:2px solid rgba(255,255,255,0.1);box-shadow:0 8px 32px rgba(0,0,0,0.3);flex-shrink:0}
+        .balance-card .amount{font-size:38px;font-weight:bold;color:var(--w);text-shadow:0 0 20px rgba(243,156,18,0.3)}
+        .balance-card .label{font-size:11px;color:rgba(255,255,255,0.6);margin-top:4px}
+        .balance-card .usd-amount{font-size:14px;color:var(--g);margin-top:6px;font-weight:bold}
         
-        .tabs{display:flex;gap:5px;margin-bottom:15px}
-        .tab{flex:1;padding:10px;text-align:center;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;cursor:pointer;color:var(--t)}
-        .tab.active{background:var(--a);color:var(--w)}
+        /* Tabs */
+        .tabs{display:flex;gap:8px;margin-bottom:15px;flex-shrink:0}
+        .tab{flex:1;padding:12px;text-align:center;background:rgba(255,255,255,0.03);border-radius:10px;font-size:13px;cursor:pointer;color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.05);transition:all 0.3s}
+        .tab.active{background:linear-gradient(135deg,var(--a),#5d2a92);color:var(--w);border-color:var(--a);font-weight:bold}
         .tab-content{display:none}.tab-content.active{display:block}
+        .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
         
-        .section{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px;margin-bottom:15px}
-        .section h3{color:var(--w);font-size:14px;margin-bottom:10px;text-align:center}
+        /* Section */
+        .section{background:rgba(26,31,75,0.4);border-radius:12px;padding:15px;margin-bottom:15px;border:1px solid rgba(255,255,255,0.06)}
+        .section h3{color:var(--w);font-size:14px;margin-bottom:12px;text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
         
-        .guide-box{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:10px}
-        .guide-box .guide-title{color:var(--w);font-size:12px;font-weight:bold;margin-bottom:8px;text-align:center}
-        .guide-box .step-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:10px;color:rgba(255,255,255,0.85);border-bottom:1px solid rgba(255,255,255,0.05)}
+        /* Guide Box */
+        .guide-box{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:15px;margin-bottom:12px}
+        .guide-box .guide-title{color:var(--w);font-size:13px;font-weight:bold;margin-bottom:12px;text-align:center}
+        .guide-box .step-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;font-size:11px;color:rgba(255,255,255,0.8);border-bottom:1px solid rgba(255,255,255,0.04)}
         .guide-box .step-item:last-child{border-bottom:none}
-        .guide-box .step-num{background:var(--w);color:#000;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;flex-shrink:0}
-        .guide-box .step-text{flex:1;line-height:1.6}
-        .guide-box .contact-note{text-align:center;font-size:10px;color:var(--b);margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
+        .guide-box .step-num{background:linear-gradient(135deg,var(--w),#e67e22);color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;flex-shrink:0}
+        .guide-box .step-text{flex:1;line-height:1.7}
+        .warning-box{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:8px;padding:10px;margin-top:10px;font-size:10px;color:var(--r);text-align:center;line-height:1.6}
+        .warning-box i{color:var(--r);margin-right:4px}
         
-        .payment-card{background:rgba(0,0,0,0.4);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-        .payment-card img{width:45px;height:45px;border-radius:8px;object-fit:cover;flex-shrink:0}
+        /* Payment Cards */
+        .payment-card{background:rgba(0,0,0,0.4);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;border:1px solid rgba(255,255,255,0.06);transition:all 0.3s}
+        .payment-card:hover{border-color:rgba(255,255,255,0.2)}
+        .payment-card img{width:48px;height:48px;border-radius:10px;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,0.1)}
         .payment-info{flex:1}
-        .payment-info .pay-name{color:var(--w);font-weight:bold;font-size:13px}
-        .payment-info .pay-number{font-size:14px;margin:2px 0}
-        .payment-info .pay-owner{font-size:10px;color:rgba(255,255,255,0.5)}
-        .copy-btn{background:var(--a);color:var(--t);border:none;padding:8px 12px;border-radius:5px;font-size:11px;cursor:pointer}
-        .copy-btn:disabled{opacity:0.4;cursor:not-allowed;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3)}
+        .payment-info .pay-name{color:var(--w);font-weight:bold;font-size:13px;margin-bottom:2px}
+        .payment-info .pay-number{font-size:15px;color:var(--t);font-family:'Courier New',monospace;letter-spacing:1px}
+        .payment-info .pay-owner{font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px}
+        .copy-btn{background:rgba(74,28,122,0.5);color:var(--t);border:1px solid rgba(255,255,255,0.15);padding:8px 14px;border-radius:8px;font-size:11px;cursor:pointer;transition:all 0.3s}
+        .copy-btn:hover{background:var(--a)}
+        .copy-btn:disabled{opacity:0.3;cursor:not-allowed}
         
-        .payment-card.unavailable{opacity:0.6;border:1px solid rgba(231,76,60,0.3)}
+        .payment-card.unavailable{opacity:0.5;border-color:rgba(231,76,60,0.2)}
         .payment-card.unavailable .pay-name{color:var(--r)}
-        .payment-card.unavailable .pay-number{color:rgba(231,76,60,0.7);font-size:11px;font-style:italic}
-        .payment-card.unavailable .pay-owner{color:rgba(255,255,255,0.3)}
-        .payment-card.unavailable img{opacity:0.5}
+        .payment-card.unavailable .pay-number{color:rgba(231,76,60,0.6);font-size:11px;font-style:italic}
+        .payment-card.unavailable img{opacity:0.4;filter:grayscale(50%)}
         
-        .form-group{margin-bottom:10px}.form-group label{display:block;font-size:12px;margin-bottom:3px;color:#ccc}
-        .form-group input,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:var(--t);font-size:13px}
+        /* Form */
+        .form-group{margin-bottom:12px}
+        .form-group label{display:block;font-size:11px;margin-bottom:4px;color:rgba(255,255,255,0.7);font-weight:bold}
+        .form-group input,.form-group select{width:100%;padding:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:var(--t);font-size:13px;transition:all 0.3s}
+        .form-group input:focus,.form-group select:focus{border-color:var(--w);outline:none;background:rgba(255,255,255,0.08)}
         .form-group select option{background:var(--bg);color:var(--t)}
         
         .id-row{display:flex;gap:8px;align-items:flex-end}
         .id-row .form-group{flex:1;margin-bottom:0}
-        .check-id-btn{padding:10px 15px;background:var(--b);color:var(--t);border:none;border-radius:6px;font-size:12px;cursor:pointer;height:42px}
-        .id-result{font-size:11px;margin-top:5px;padding:6px 10px;border-radius:4px;display:none}
-        .id-result.verified{display:block;background:rgba(46,204,113,0.15);color:var(--g)}
-        .id-result.invalid{display:block;background:rgba(231,76,60,0.15);color:var(--r)}
-        .id-result.checking{display:block;background:rgba(52,152,219,0.15);color:var(--b)}
+        .check-id-btn{padding:12px 18px;background:var(--b);color:var(--t);border:none;border-radius:8px;font-size:12px;cursor:pointer;height:44px;font-weight:bold}
         
+        .id-result{font-size:11px;margin-top:6px;padding:8px 12px;border-radius:6px;display:none}
+        .id-result.verified{display:block;background:rgba(46,204,113,0.1);color:var(--g);border:1px solid rgba(46,204,113,0.2)}
+        .id-result.invalid{display:block;background:rgba(231,76,60,0.1);color:var(--r);border:1px solid rgba(231,76,60,0.2)}
+        .id-result.checking{display:block;background:rgba(52,152,219,0.1);color:var(--b);border:1px solid rgba(52,152,219,0.2)}
+        
+        /* File Upload */
         .file-upload-wrapper{position:relative;width:100%}
         .file-upload-wrapper input[type="file"]{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2}
-        .file-upload-box{background:rgba(255,255,255,0.08);border:2px dashed rgba(255,255,255,0.3);border-radius:8px;padding:20px;text-align:center;cursor:pointer}
-        .file-upload-box.has-file{border-color:var(--g);border-style:solid;background:rgba(46,204,113,0.1)}
-        .file-upload-box i{font-size:30px;color:var(--w);margin-bottom:8px;display:block}
+        .file-upload-box{background:rgba(255,255,255,0.04);border:2px dashed rgba(255,255,255,0.2);border-radius:10px;padding:25px;text-align:center;cursor:pointer;transition:all 0.3s}
+        .file-upload-box:hover{border-color:rgba(255,255,255,0.4)}
+        .file-upload-box.has-file{border-color:var(--g);border-style:solid;background:rgba(46,204,113,0.05)}
+        .file-upload-box i{font-size:35px;color:var(--w);margin-bottom:10px;display:block}
         .file-upload-box .upload-text{font-size:13px;color:var(--t)}
-        .file-upload-box .upload-hint{font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px}
+        .file-upload-box .upload-hint{font-size:10px;color:rgba(255,255,255,0.3);margin-top:5px}
         
-        .btn-row{display:flex;gap:8px;margin-top:10px}
-        .btn-row button{flex:1;padding:12px;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
-        .buy-btn{background:var(--g);color:#000}.buy-btn:disabled{opacity:0.5;cursor:not-allowed}
+        .btn-row{display:flex;gap:8px;margin-top:12px}
+        .btn-row button{flex:1;padding:14px;border:none;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;transition:all 0.3s}
+        .buy-btn{background:linear-gradient(135deg,var(--g),#27ae60);color:#000}.buy-btn:disabled{opacity:0.4;cursor:not-allowed}
         
-        .topup-btn{width:100%;padding:12px;background:var(--a);color:var(--t);border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:15px}
+        .topup-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--a),#5d2a92);color:var(--t);border:none;border-radius:10px;font-size:15px;font-weight:bold;cursor:pointer;margin-bottom:15px;transition:all 0.3s}
+        .topup-btn:hover{background:linear-gradient(135deg,#5d2a92,var(--a))}
         
-        .history-item{background:rgba(0,0,0,0.3);padding:10px 12px;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
-        .history-item .status-badge{font-size:9px;padding:4px 10px;border-radius:10px;font-weight:bold}
-        .status-pending{background:rgba(243,156,18,0.2);color:var(--w)}
-        .status-approved{background:rgba(46,204,113,0.2);color:var(--g)}
-        .status-rejected{background:rgba(231,76,60,0.2);color:var(--r)}
-        .history-detail{display:none;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px;margin-bottom:5px;font-size:11px}
-        .history-detail img{max-width:100%;border-radius:6px;max-height:200px;object-fit:contain}
+        /* Order History Cards */
+        .order-card{background:rgba(0,0,0,0.3);border-radius:12px;padding:15px;margin-bottom:10px;border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:all 0.3s}
+        .order-card:hover{border-color:rgba(255,255,255,0.15)}
+        .order-card .order-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+        .order-card .order-method{color:var(--w);font-weight:bold;font-size:13px}
+        .order-card .order-date{font-size:10px;color:rgba(255,255,255,0.4)}
+        .order-card .order-status-badge{font-size:10px;padding:5px 12px;border-radius:20px;font-weight:bold}
+        .badge-pending{background:rgba(243,156,18,0.2);color:var(--w);border:1px solid rgba(243,156,18,0.3)}
+        .badge-approved{background:rgba(46,204,113,0.2);color:var(--g);border:1px solid rgba(46,204,113,0.3)}
+        .badge-rejected{background:rgba(231,76,60,0.2);color:var(--r);border:1px solid rgba(231,76,60,0.3)}
+        
+        .order-detail{display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05)}
+        .order-detail.show{display:block}
+        .order-detail .detail-row{display:flex;gap:8px;font-size:10px;color:rgba(255,255,255,0.6);padding:3px 0}
+        .order-detail .detail-row i{color:var(--w);width:16px}
+        .order-detail img{max-width:100%;border-radius:8px;max-height:180px;object-fit:contain;margin-top:8px}
+        
+        /* Pending Message */
+        .pending-note{background:rgba(52,152,219,0.1);border:1px solid rgba(52,152,219,0.2);border-radius:8px;padding:8px 12px;margin-top:8px;font-size:10px;color:var(--b);text-align:center}
+        .pending-note i{margin-right:4px}
+        
+        /* Rejected Alert */
+        .rejected-alert{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:10px;padding:12px;margin-bottom:5px}
+        .rejected-alert .alert-title{color:var(--r);font-weight:bold;font-size:12px;margin-bottom:5px}
+        .rejected-alert .alert-text{font-size:10px;color:rgba(255,255,255,0.7);line-height:1.6}
+        .rejected-alert .alert-warning{font-size:9px;color:var(--r);margin-top:6px;padding-top:6px;border-top:1px solid rgba(231,76,60,0.2)}
+        
+        /* Notification */
+        .notification{position:fixed;top:20px;right:20px;background:rgba(0,0,0,0.9);color:var(--t);padding:15px 20px;border-radius:10px;z-index:9999;display:none;max-width:280px;border:1px solid rgba(255,255,255,0.1);box-shadow:0 8px 32px rgba(0,0,0,0.5);animation:slideIn 0.3s ease}
+        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+        .notification.success{border-color:var(--g)}.notification.error{border-color:var(--r)}
+        .notification .notif-title{font-weight:bold;font-size:13px;margin-bottom:4px}
+        .notification .notif-text{font-size:11px;color:rgba(255,255,255,0.7)}
         
         .games{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
-        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
-        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:6px;object-fit:cover}
-        .game-card p{font-size:10px;color:var(--t);margin-top:3px}
-        .game-card .unavailable{font-size:8px;color:var(--r);margin-top:2px}
-        .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px;margin-bottom:20px}
-        
-        .copy-notif{position:fixed;top:20px;right:20px;background:var(--g);color:#000;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none}
+        .game-card{background:rgba(26,31,75,0.4);border-radius:12px;padding:15px 10px;text-align:center;border:1px solid rgba(255,255,255,0.06);transition:all 0.3s}
+        .game-card:hover{border-color:rgba(255,255,255,0.15)}
+        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover}
+        .game-card p{font-size:10px;color:var(--t);margin-top:4px}
+        .game-card .unavailable{font-size:8px;color:var(--r);margin-top:3px;background:rgba(231,76,60,0.1);padding:2px 6px;border-radius:4px;display:inline-block}
+        .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.05);color:var(--t);text-align:center;border-radius:8px;text-decoration:none;font-size:13px;margin-top:10px;flex-shrink:0;border:1px solid rgba(255,255,255,0.06)}
         
         #paymentSection{display:none}
         #guideBox{display:none}
         
         .login-required{text-align:center;padding:40px 20px}
-        .login-required i{font-size:50px;color:var(--w);margin-bottom:15px}
+        .login-required i{font-size:50px;color:var(--w);margin-bottom:15px;display:block}
         .login-required h3{color:var(--w);margin-bottom:10px}
-        .login-required p{color:rgba(255,255,255,0.7);font-size:12px;margin-bottom:15px}
+        .login-required p{color:rgba(255,255,255,0.6);font-size:12px;margin-bottom:15px}
         .login-required a{color:var(--w);text-decoration:underline}
         
         .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
@@ -119,7 +157,12 @@
 </head>
 <body>
     <audio id="bgAudio" loop style="display:none"></audio>
-    <div class="copy-notif" id="copyNotif"></div>
+    
+    <!-- Notification -->
+    <div class="notification" id="notification">
+        <div class="notif-title" id="notifTitle"></div>
+        <div class="notif-text" id="notifText"></div>
+    </div>
     
     <div class="container" id="mainContainer">
         <div class="header">
@@ -161,48 +204,55 @@
                 <div class="tab" onclick="showTab('history')">Order History</div>
             </div>
             
-            <div id="topupTab" class="tab-content active">
-                <button class="topup-btn" onclick="togglePayment()"><i class="fas fa-plus-circle"></i> Top Up Now</button>
-                
-                <div class="guide-box" id="guideBox">
-                    <div class="guide-title">📋 ငွေဖြည့်နည်း အဆင့်ဆင့်</div>
-                    <div class="step-item"><span class="step-num">1</span><span class="step-text"><b style="color:var(--w)">ငွေလွှဲပါ</b><br>Wave Pay သို့မဟုတ် A+ Pay သို့ ငွေလွှဲပါ။</span></div>
-                    <div class="step-item"><span class="step-num">2</span><span class="step-text"><b style="color:var(--w)">Screenshot ရိုက်ပါ</b><br>ငွေလွှဲပြေစာ Screenshot ကို ရိုက်ယူပါ။</span></div>
-                    <div class="step-item"><span class="step-num">3</span><span class="step-text"><b style="color:var(--w)">Form ဖြည့်ပါ</b><br>Payment ရွေး၊ User ID ထည့်၊ Screenshot တင်ပါ။</span></div>
-                    <div class="step-item"><span class="step-num">4</span><span class="step-text"><b style="color:var(--w)">Buy နှိပ်ပါ</b><br>၁၀ မိနစ်အတွင်း Admin မှ အတည်ပြုပေးပါမည်။</span></div>
-                    <div class="contact-note">⚠️ ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ။ ဆက်သွယ်ရန်: @Solo_m28</div>
-                </div>
-                
-                <div id="paymentSection">
-                    <div class="section">
-                        <h3>ငွေလွှဲရန်</h3>
-                        <div class="payment-card"><img src="https://i.ibb.co/ycnZ5YmQ/bf457901bf5c15ca935fa5236259c441.jpg" alt="Wave Pay"><div class="payment-info"><div class="pay-name">WAVE PAY</div><div class="pay-number">09254649306</div><div class="pay-owner">Kyi Khaing</div></div><button class="copy-btn" onclick="copyText('09254649306')"><i class="fas fa-copy"></i></button></div>
-                        <div class="payment-card"><img src="https://i.ibb.co/Kz8Pwpc0/917cdc9887b881089b6c6a2cc1e941dc.jpg" alt="A+ Pay"><div class="payment-info"><div class="pay-name">A+ PAY</div><div class="pay-number">09672093790</div><div class="pay-owner">Kywe Kywe Htay</div></div><button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i></button></div>
-                        <div class="payment-card unavailable"><img src="https://i.ibb.co/Wvj43jMQ/2bfa5f4d02100b7b2c1d87ff55ce16dc.jpg" alt="KPay"><div class="payment-info"><div class="pay-name">KPay</div><div class="pay-number">Not available at this time</div><div class="pay-owner">KPay</div></div><button class="copy-btn" disabled><i class="fas fa-copy"></i></button></div>
-                        <div class="payment-card unavailable"><img src="https://i.ibb.co/9kFpNPhf/b349dc4f29181bec2045c678d1923083.jpg" alt="AYA Pay"><div class="payment-info"><div class="pay-name">AYA Pay</div><div class="pay-number">Not available at this time</div><div class="pay-owner">AYA Pay</div></div><button class="copy-btn" disabled><i class="fas fa-copy"></i></button></div>
-                        
-                        <div class="form-group"><label>ငွေလွှဲသည့် Payment</label><select id="topupPayment"><option value="">ရွေးချယ်ပါ</option><option value="Wave Pay">Wave Pay</option><option value="A+ Pay">A+ Pay</option></select></div>
-                        <div class="id-row"><div class="form-group"><label>သင်၏ User ID</label><input type="text" id="verifyUserId" maxlength="10"></div><button class="check-id-btn" id="checkIdBtn" onclick="verifyUserId()">Check</button></div>
-                        <div class="id-result" id="idResult"></div>
-                        <div class="form-group" style="margin-top:10px"><label>ငွေလွှဲပြေစာ Screenshot</label><div class="file-upload-wrapper"><input type="file" id="topupScreenshot" accept="image/*" onchange="handleFileSelect()"><div class="file-upload-box" id="fileUploadBox"><i class="fas fa-cloud-upload-alt"></i><span class="upload-text" id="uploadText">Payment Screenshot</span><span class="upload-hint" id="uploadHint">ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ</span></div></div><div id="screenshotPreview" style="text-align:center;margin-top:8px"></div></div>
-                        <div class="btn-row"><button class="buy-btn" id="buyBtn" onclick="submitTopup()" disabled><i class="fas fa-paper-plane"></i> Buy</button></div>
-                        <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px">ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ</p>
+            <div class="scroll-content">
+                <div class="tab-content active" id="topup">
+                    <button class="topup-btn" onclick="togglePayment()"><i class="fas fa-plus-circle"></i> Top Up Now</button>
+                    
+                    <div class="guide-box" id="guideBox">
+                        <div class="guide-title">📋 ငွေဖြည့်နည်း အဆင့်ဆင့်</div>
+                        <div class="step-item"><span class="step-num">1</span><span class="step-text"><b style="color:var(--w)">ငွေလွှဲပါ</b><br>Wave Pay သို့မဟုတ် A+ Pay သို့ ငွေလွှဲပါ။ ငွေလွှဲပြေစာ Screenshot ရိုက်ထားပါ။</span></div>
+                        <div class="step-item"><span class="step-num">2</span><span class="step-text"><b style="color:var(--w)">Form ဖြည့်ပါ</b><br>Payment ရွေး၊ User ID ထည့်၊ Screenshot တင်ပါ။</span></div>
+                        <div class="step-item"><span class="step-num">3</span><span class="step-text"><b style="color:var(--w)">Buy နှိပ်ပါ</b><br>၁၀-၁၅ မိနစ်အတွင်း Admin မှ အတည်ပြုပေးပါမည်။</span></div>
+                        <div class="warning-box">
+                            <i class="fas fa-exclamation-triangle"></i> <b>သတိပေးချက်</b><br>
+                            ⛔ ပြေစာတစ်ခုကို ၂ ခါတင်ပါက <b>Ban</b> ခံရပါမည်။<br>
+                            ⛔ ပြေစာအတု/ဟောင်း တင်ပါက <b>ငြင်းပယ်</b> ခံရပါမည်။<br>
+                            ⛔ ထပ်ခါထပ်ခါ မှားယွင်းတင်ပါက <b>အကောင့်ပိတ်</b> ခံရပါမည်။
+                        </div>
+                    </div>
+                    
+                    <div id="paymentSection">
+                        <div class="section">
+                            <h3>💳 ငွေလွှဲရန် အကောင့်များ</h3>
+                            
+                            <div class="payment-card"><img src="https://i.ibb.co/ycnZ5YmQ/bf457901bf5c15ca935fa5236259c441.jpg" alt="Wave Pay"><div class="payment-info"><div class="pay-name">WAVE PAY</div><div class="pay-number">09254649306</div><div class="pay-owner">Kyi Khaing</div></div><button class="copy-btn" onclick="copyText('09254649306')"><i class="fas fa-copy"></i> Copy</button></div>
+                            <div class="payment-card"><img src="https://i.ibb.co/Kz8Pwpc0/917cdc9887b881089b6c6a2cc1e941dc.jpg" alt="A+ Pay"><div class="payment-info"><div class="pay-name">A+ PAY</div><div class="pay-number">09672093790</div><div class="pay-owner">Kywe Kywe Htay</div></div><button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i> Copy</button></div>
+                            <div class="payment-card unavailable"><img src="https://i.ibb.co/Wvj43jMQ/2bfa5f4d02100b7b2c1d87ff55ce16dc.jpg" alt="KPay"><div class="payment-info"><div class="pay-name">KPay</div><div class="pay-number">Not available at this time</div><div class="pay-owner">KPay</div></div><button class="copy-btn" disabled><i class="fas fa-copy"></i></button></div>
+                            <div class="payment-card unavailable"><img src="https://i.ibb.co/9kFpNPhf/b349dc4f29181bec2045c678d1923083.jpg" alt="AYA Pay"><div class="payment-info"><div class="pay-name">AYA Pay</div><div class="pay-number">Not available at this time</div><div class="pay-owner">AYA Pay</div></div><button class="copy-btn" disabled><i class="fas fa-copy"></i></button></div>
+                            
+                            <div class="form-group"><label>ငွေလွှဲသည့် Payment</label><select id="topupPayment"><option value="">ရွေးချယ်ပါ</option><option value="Wave Pay">Wave Pay</option><option value="A+ Pay">A+ Pay</option></select></div>
+                            <div class="id-row"><div class="form-group"><label>သင်၏ User ID</label><input type="text" id="verifyUserId" maxlength="10"></div><button class="check-id-btn" id="checkIdBtn" onclick="verifyUserId()"><i class="fas fa-check-circle"></i> Check</button></div>
+                            <div class="id-result" id="idResult"></div>
+                            <div class="form-group" style="margin-top:10px"><label>ငွေလွှဲပြေစာ Screenshot</label><div class="file-upload-wrapper"><input type="file" id="topupScreenshot" accept="image/*" onchange="handleFileSelect()"><div class="file-upload-box" id="fileUploadBox"><i class="fas fa-cloud-upload-alt"></i><span class="upload-text" id="uploadText">ဤနေရာကိုနှိပ်၍ Screenshot ထည့်ပါ</span><span class="upload-hint" id="uploadHint">ငွေလွှဲပြေစာ ပုံရှင်းရှင်းကိုသာ တင်ပါ</span></div></div><div id="screenshotPreview" style="text-align:center;margin-top:8px"></div></div>
+                            <div class="btn-row"><button class="buy-btn" id="buyBtn" onclick="submitTopup()" disabled><i class="fas fa-paper-plane"></i> Buy</button></div>
+                            <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px">ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ</p>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size:13px;color:var(--w);margin:15px 0 10px">Popular Games</p>
+                    <div class="games">
+                        <div class="game-card"><img src="https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg"><p>Mobile Legends</p><div class="unavailable">မရသေး</div></div>
+                        <div class="game-card"><img src="https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg"><p>Free Fire</p><div class="unavailable">မရသေး</div></div>
+                        <div class="game-card"><img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg"><p>PUBG Mobile</p><div class="unavailable">မရသေး</div></div>
+                        <div class="game-card"><img src="https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg"><p>Telegram Premium</p><div class="unavailable">မရသေး</div></div>
+                        <div class="game-card"><img src="https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg"><p>Facebook</p><div class="unavailable">မရသေး</div></div>
+                        <div class="game-card"><img src="https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg"><p>TikTok</p><div class="unavailable">မရသေး</div></div>
                     </div>
                 </div>
                 
-                <p style="font-size:13px;color:var(--w);margin:15px 0 10px">Popular Games</p>
-                <div class="games">
-                    <div class="game-card"><img src="https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg"><p>Mobile Legends</p><div class="unavailable">မရသေး</div></div>
-                    <div class="game-card"><img src="https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg"><p>Free Fire</p><div class="unavailable">မရသေး</div></div>
-                    <div class="game-card"><img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg"><p>PUBG Mobile</p><div class="unavailable">မရသေး</div></div>
-                    <div class="game-card"><img src="https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg"><p>Telegram Premium</p><div class="unavailable">မရသေး</div></div>
-                    <div class="game-card"><img src="https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg"><p>Facebook</p><div class="unavailable">မရသေး</div></div>
-                    <div class="game-card"><img src="https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg"><p>TikTok</p><div class="unavailable">မရသေး</div></div>
+                <div class="tab-content" id="history">
+                    <div class="section"><h3>📋 Order History</h3><div id="orderHistory"></div></div>
                 </div>
-            </div>
-            
-            <div id="historyTab" class="tab-content">
-                <div class="section"><h3>Order History</h3><div id="orderHistory"></div></div>
             </div>
         </div>
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
@@ -210,64 +260,58 @@
 
 <script>
     // ==================== PAGE ACCESS CHECK ====================
-    (async function(){
-        try{
-            const r=await fetch('/api/admin/page_status');
-            const d=await r.json();
-            if(d.pages){
-                const tp=d.pages.find(p=>p.id==='topup');
-                if(tp&&tp.status==='off'){
-                    document.getElementById('maintenanceMessage').style.display='block';
-                    document.getElementById('topupContent').style.display='none';
-                    document.querySelector('.back-btn').style.display='none';
-                    document.getElementById('loginCheckMessage').style.display='none';
-                    return;
-                }
-            }
-        }catch(e){}
-    })();
+    (async function(){try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const tp=d.pages.find(p=>p.id==='topup');if(tp&&tp.status==='off'){document.getElementById('maintenanceMessage').style.display='block';document.getElementById('topupContent').style.display='none';document.querySelector('.back-btn').style.display='none';document.getElementById('loginCheckMessage').style.display='none'}}}catch(e){}})();
 
-    // ==================== BG MUSIC PLAYER ====================
+    // ==================== NOTIFICATION SYSTEM ====================
+    function showNotification(title,text,type='success'){
+        const n=document.getElementById('notification');
+        document.getElementById('notifTitle').textContent=title;
+        document.getElementById('notifText').textContent=text;
+        n.className='notification '+type;
+        n.style.display='block';
+        setTimeout(()=>{n.style.display='none'},5000);
+    }
+
+    // ==================== BG MUSIC PLAYER (App Session) ====================
     (function(){
         const a=document.getElementById('bgAudio');if(!a)return;
-        let p=[],i=0;a.volume=0.4;a.loop=false;
-        const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');}else{i=parseInt(localStorage.getItem('bgi')||'0')}
+        let p=[],i=0;a.volume=0.5;a.loop=false;
+        const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}
         sessionStorage.setItem('mp','1');
         async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}
-        function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();}
-        a.addEventListener('canplay',function(){a.play().catch(()=>{})});
-        a.addEventListener('ended',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);pl()});
-        a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);pl()});
-        fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,5000);
+        function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)});}
+        a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});
+        a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});
+        setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);
+        fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000);
     })();
 
     // ==================== LOGIN CHECK ====================
-    (function(){
-        const t=localStorage.getItem('auth_token'),u=localStorage.getItem('user');
-        if(!t||!u||t==='guest'){document.getElementById('loginCheckMessage').style.display='block';document.getElementById('topupContent').style.display='none';document.querySelector('.back-btn').style.display='none';return}
-        document.getElementById('loginCheckMessage').style.display='none';document.getElementById('topupContent').style.display='block';
-    })();
+    (function(){const t=localStorage.getItem('auth_token'),u=localStorage.getItem('user');if(!t||!u||t==='guest'){document.getElementById('loginCheckMessage').style.display='block';document.getElementById('topupContent').style.display='none';document.querySelector('.back-btn').style.display='none'}else{document.getElementById('loginCheckMessage').style.display='none';document.getElementById('topupContent').style.display='block'}})();
+
+    // ==================== LONG PASTE BLOCK ====================
+    document.addEventListener('paste',function(e){e.preventDefault();showNotification('⚠️ ခွင့်မပြုပါ','ဤစာမျက်နှာတွင် Paste လုပ်၍မရပါ။','error')});
 
     let sd='',iv=false,cu=null;try{cu=JSON.parse(localStorage.getItem('user')||'{}')}catch(e){cu={}}
-    function n(m,t="success"){const e=document.getElementById("copyNotif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-    function showTab(tab){
-        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
-        if(tab==='topup'){document.querySelector('.tab:first-child').classList.add('active');document.getElementById('topupTab').classList.add('active')}
-        else{document.querySelector('.tab:last-child').classList.add('active');document.getElementById('historyTab').classList.add('active');loadHistory()}
-    }
+    function showTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));event.target.classList.add('active');document.getElementById(t).classList.add('active');if(t==='history')loadHistory()}
     function togglePayment(){const ps=document.getElementById('paymentSection'),gb=document.getElementById('guideBox');if(ps.style.display==='block'){ps.style.display='none';gb.style.display='none'}else{ps.style.display='block';gb.style.display='block'}}
-    function copyText(t){navigator.clipboard.writeText(t).then(()=>n('✅ Copied!')).catch(()=>prompt('Copy:',t))}
+    function copyText(t){navigator.clipboard.writeText(t).then(()=>showNotification('✅ Copied!','နံပါတ်ကို Copy ကူးပြီးပါပြီ။')).catch(()=>prompt('Copy:',t))}
     if(cu&&cu.id)document.getElementById('verifyUserId').value=cu.id.toString().padStart(6,'0');
     
-    function handleFileSelect(){const f=document.getElementById('topupScreenshot').files[0],ub=document.getElementById('fileUploadBox'),ut=document.getElementById('uploadText'),uh=document.getElementById('uploadHint');if(f){ub.classList.add('has-file');ut.textContent='📎 '+f.name;uh.textContent=(f.size/1024).toFixed(1)+' KB';const r=new FileReader();r.onload=function(e){sd=e.target.result;document.getElementById('screenshotPreview').innerHTML=`<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:6px;border:2px solid var(--g)">`};r.readAsDataURL(f)}else{ub.classList.remove('has-file');ut.textContent='Payment Screenshot';uh.textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';sd='';document.getElementById('screenshotPreview').innerHTML=''}}
+    function handleFileSelect(){const f=document.getElementById('topupScreenshot').files[0],ub=document.getElementById('fileUploadBox'),ut=document.getElementById('uploadText'),uh=document.getElementById('uploadHint');if(f){ub.classList.add('has-file');ut.textContent='📎 '+f.name;uh.textContent=(f.size/1024).toFixed(1)+' KB';const r=new FileReader();r.onload=function(e){sd=e.target.result;document.getElementById('screenshotPreview').innerHTML=`<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:8px;border:2px solid var(--g);margin-top:5px">`};r.readAsDataURL(f)}else{ub.classList.remove('has-file');ut.textContent='ဤနေရာကိုနှိပ်၍ Screenshot ထည့်ပါ';uh.textContent='ငွေလွှဲပြေစာ ပုံရှင်းရှင်းကိုသာ တင်ပါ';sd='';document.getElementById('screenshotPreview').innerHTML=''}}
     
     async function verifyUserId(){const ii=document.getElementById('verifyUserId').value.trim(),re=document.getElementById('idResult'),bb=document.getElementById('buyBtn'),cb=document.getElementById('checkIdBtn');if(!ii){re.className='id-result invalid';re.textContent='❌ User ID ထည့်ပါ';re.style.display='block';iv=false;bb.disabled=true;return}re.className='id-result checking';re.textContent='⏳ Checking...';re.style.display='block';cb.disabled=true;try{const r=await fetch('/api/verify_user_id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),userId:ii})});const d=await r.json();if(d.success&&d.verified){re.className='id-result verified';re.innerHTML=`✅ ID မှန်ကန်ပါသည်<br><small>👤 ${d.username||'N/A'} | 📧 ${d.email||'N/A'}</small>`;iv=true;bb.disabled=false}else{re.className='id-result invalid';re.textContent='❌ ID မှားယွင်းနေပါသည်';iv=false;bb.disabled=true}}catch(e){re.className='id-result invalid';re.textContent='❌ Error';iv=false;bb.disabled=true}cb.disabled=false}
     
-    async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return alert('Payment ရွေးချယ်ပါ');if(!iv)return alert('User ID စစ်ဆေးပါ');if(!sd)return alert('Screenshot ထည့်ပါ');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){alert('✅ Order Submitted!');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory()}else alert(d.message||'Error')}catch(e){alert('Connection error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
+    async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return showNotification('⚠️ Error','Payment ရွေးချယ်ပါ။','error');if(!iv)return showNotification('⚠️ Error','User ID စစ်ဆေးပါ။','error');if(!sd)return showNotification('⚠️ Error','Screenshot ထည့်ပါ။','error');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){showNotification('✅ Order Submitted!','၁၀-၁၅ မိနစ်အတွင်း Admin မှ အတည်ပြုပေးပါမည်။');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='ဤနေရာကိုနှိပ်၍ Screenshot ထည့်ပါ';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ ပုံရှင်းရှင်းကိုသာ တင်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory()}else showNotification('❌ Error',d.message||'Error','error')}catch(e){showNotification('❌ Error','Connection error','error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
     
-    async function loadHistory(){const c=document.getElementById('orderHistory');try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();if(d.orders&&d.orders.length>0){c.innerHTML=d.orders.map((o,i)=>{const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`}).join('')}else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'}}catch(e){c.innerHTML='<p style="text-align:center;padding:20px">No history</p>'}}
-    function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
+    async function loadHistory(){const c=document.getElementById('orderHistory');try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();if(d.orders&&d.orders.length>0){c.innerHTML=d.orders.map((o,i)=>{
+        let sc,badge,st,extra='';
+        if(o.status==='approved'){sc='badge-approved';badge='APPROVED';st='✅ အတည်ပြုပြီး'}
+        else if(o.status==='rejected'){sc='badge-rejected';badge='REJECTED';st='❌ ငြင်းပယ်ထား';extra=`<div class="rejected-alert"><div class="alert-title">⚠️ Admin မှ ငြင်းပယ်ထားပါသည်</div><div class="alert-text">အကြောင်းရင်း: ပြေစာအတု (သို့) ထပ်ခါထပ်ခါတင်ခြင်း (သို့) ပြေစာရက်လွန်နေခြင်း</div><div class="alert-warning">⚠️ ထပ်မံဖြစ်ပွားပါက အကောင့် Ban ခံရပါမည်။</div></div>`}
+        else{sc='badge-pending';badge='PENDING';st='⏳ စောင့်ဆိုင်းဆဲ';extra=`<div class="pending-note"><i class="fas fa-sync-alt fa-spin"></i> Admin မှ အတည်ပြုနေပါသည်... ၁၀-၁၅ မိနစ်ခန့် စောင့်ပါ။</div>`}
+        return `<div class="order-card" onclick="toggleOrderDetail(${i})"><div class="order-header"><span class="order-method">💳 ${o.payment_method}</span><span class="order-date">${new Date(o.created_at).toLocaleString()}</span></div><span class="order-status-badge ${sc}">${badge}</span>${extra}<div class="order-detail" id="odetail${i}"><div class="detail-row"><i class="fas fa-info-circle"></i> Status: ${st}</div><div class="detail-row"><i class="fas fa-credit-card"></i> Payment: ${o.payment_method}</div>${o.screenshot?`<img src="${o.screenshot}" onclick="event.stopPropagation()">`:'<div class="detail-row"><i class="fas fa-image"></i> No screenshot</div>'}</div></div>`}).join('')}else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.4);padding:30px"><i class="fas fa-inbox" style="font-size:40px;display:block;margin-bottom:10px"></i>No topup history yet.</p>'}}catch(e){c.innerHTML='<p style="text-align:center;padding:30px">No history</p>'}}
+    
+    function toggleOrderDetail(i){const d=document.getElementById('odetail'+i);if(d)d.classList.toggle('show')}
     function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
     async function loadBalance(){try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const b=d.balance||0;document.getElementById('myBalance').textContent=fm(b)+' Ks';document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`}catch(e){}}
     loadBalance();
