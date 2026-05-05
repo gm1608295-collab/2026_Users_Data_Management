@@ -8,12 +8,12 @@
     <style>
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
+        html,body{height:100%;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+        body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
         .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
         .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
-        .sidebar-btn{color:var(--w);font-size:20px;cursor:pointer;z-index:10}
         .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
         .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
         .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
@@ -22,12 +22,17 @@
         .tab{flex:1;padding:10px;text-align:center;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;cursor:pointer;color:var(--t)}
         .tab.active{background:var(--a);color:var(--w)}
         .tab-content{display:none}.tab-content.active{display:block}
-        .scroll-content{flex:1;overflow-y:auto}
+        .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
         .section{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px;margin-bottom:15px}
         .section h3{color:var(--w);font-size:14px;margin-bottom:10px;text-align:center}
         
-        .guide-link{text-align:right;margin-bottom:5px}
-        .guide-link a{color:var(--g);font-size:10px;text-decoration:underline;cursor:pointer}
+        .guide-box{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:10px}
+        .guide-box .guide-title{color:var(--w);font-size:12px;font-weight:bold;margin-bottom:8px;text-align:center}
+        .guide-box .step-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:10px;color:rgba(255,255,255,0.85);border-bottom:1px solid rgba(255,255,255,0.05)}
+        .guide-box .step-item:last-child{border-bottom:none}
+        .guide-box .step-num{background:var(--w);color:#000;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;flex-shrink:0}
+        .guide-box .step-text{flex:1;line-height:1.6}
+        .guide-box .contact-note{text-align:center;font-size:10px;color:var(--b);margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
         
         .payment-card{background:rgba(0,0,0,0.4);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
         .payment-card img{width:45px;height:45px;border-radius:8px;object-fit:cover;flex-shrink:0}
@@ -36,6 +41,12 @@
         .payment-info .pay-number{font-size:14px;margin:2px 0}
         .payment-info .pay-owner{font-size:10px;color:rgba(255,255,255,0.5)}
         .copy-btn{background:var(--a);color:var(--t);border:none;padding:8px 12px;border-radius:5px;font-size:11px;cursor:pointer}
+        .copy-btn:disabled{opacity:0.4;cursor:not-allowed;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3)}
+        
+        .payment-card.unavailable{opacity:0.6;border:1px solid rgba(231,76,60,0.3)}
+        .payment-card.unavailable .pay-name{color:var(--r)}
+        .payment-card.unavailable .pay-number{color:rgba(231,76,60,0.7);font-size:11px;font-style:italic}
+        .payment-card.unavailable .pay-owner{color:rgba(255,255,255,0.3)}
         
         .form-group{margin-bottom:10px}.form-group label{display:block;font-size:12px;margin-bottom:3px;color:#ccc}
         .form-group input,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:var(--t);font-size:13px}
@@ -60,8 +71,6 @@
         .btn-row{display:flex;gap:8px;margin-top:10px}
         .btn-row button{flex:1;padding:12px;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
         .buy-btn{background:var(--g);color:#000}.buy-btn:disabled{opacity:0.5;cursor:not-allowed}
-        .check-btn{background:var(--w);color:#000;opacity:0.5;cursor:not-allowed}
-        .check-note{font-size:6px;color:rgba(255,255,255,0.4);text-align:center;margin-top:5px}
         
         .topup-btn{width:100%;padding:12px;background:var(--a);color:var(--t);border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:15px}
         
@@ -84,21 +93,6 @@
         
         #paymentSection{display:none}
         
-        .sidebar-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:3000}
-        .sidebar-overlay.active{display:block}
-        .sidebar-panel{position:fixed;top:0;left:0;width:250px;height:100%;background:#0c0e27;z-index:3001;transition:transform 0.2s ease;overflow-y:auto;padding:15px;border-right:2px solid var(--w);will-change:transform;transform:translateX(-250px)}
-        .sidebar-panel.active{transform:translateX(0)}
-        .sidebar-panel h3{color:var(--w);text-align:center;margin-bottom:15px;font-size:15px}
-        .sidebar-panel .close-btn{position:absolute;top:12px;right:12px;color:var(--r);font-size:20px;cursor:pointer}
-        .s-item{display:flex;align-items:center;gap:8px;padding:10px;color:var(--t);font-size:12px;cursor:pointer;border-radius:5px;margin-bottom:3px;text-decoration:none;transition:all 0.2s}
-        .s-item:hover{background:rgba(74,28,122,0.4)}.s-item i{font-size:14px;color:var(--w);width:18px;text-align:center}
-        
-        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
-        .modal.active{display:flex}
-        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto}
-        .modal-box h3{color:var(--w);margin-bottom:12px;text-align:center;font-size:15px}
-        .modal-close{float:right;color:var(--r);cursor:pointer;font-size:20px}
-        
         .login-required{text-align:center;padding:40px 20px}
         .login-required i{font-size:50px;color:var(--w);margin-bottom:15px}
         .login-required h3{color:var(--w);margin-bottom:10px}
@@ -112,7 +106,6 @@
     
     <div class="container" id="mainContainer">
         <div class="header">
-            <div class="sidebar-btn" onclick="openTopSidebar()"><i class="fas fa-bars"></i></div>
             <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
             <h1>SOLO M Game Shop</h1>
         </div>
@@ -142,23 +135,69 @@
                 <div class="tab-content active" id="topup">
                     <button class="topup-btn" onclick="togglePayment()"><i class="fas fa-plus-circle"></i> Top Up Now</button>
                     
+                    <!-- ====== ငွေဖြည့်နည်း ====== -->
+                    <div class="guide-box" id="guideBox" style="display:none">
+                        <div class="guide-title">📋 ငွေဖြည့်နည်း အဆင့်ဆင့်</div>
+                        <div class="step-item">
+                            <span class="step-num">1</span>
+                            <span class="step-text"><b style="color:var(--w)">ငွေလွှဲပါ</b><br>Wave Pay သို့မဟုတ် A+ Pay သို့ ငွေလွှဲပါ။</span>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-num">2</span>
+                            <span class="step-text"><b style="color:var(--w)">Screenshot ရိုက်ပါ</b><br>ငွေလွှဲပြေစာ Screenshot ကို ရိုက်ယူပါ။</span>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-num">3</span>
+                            <span class="step-text"><b style="color:var(--w)">Form ဖြည့်ပါ</b><br>Payment ရွေး၊ User ID ထည့်၊ Screenshot တင်ပါ။</span>
+                        </div>
+                        <div class="step-item">
+                            <span class="step-num">4</span>
+                            <span class="step-text"><b style="color:var(--w)">Buy နှိပ်ပါ</b><br>၁၀ မိနစ်အတွင်း Admin မှ အတည်ပြုပေးပါမည်။</span>
+                        </div>
+                        <div class="contact-note">⚠️ ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ။ ဆက်သွယ်ရန်: @Solo_m28</div>
+                    </div>
+                    
                     <div id="paymentSection">
                         <div class="section">
                             <h3>ငွေလွှဲရန်</h3>
-                            <div class="guide-link"><a onclick="openTopupGuide()">ငွေဖြည့်နည်း <i class="fas fa-question-circle"></i></a></div>
                             
+                            <!-- Wave Pay (Active) -->
                             <div class="payment-card">
                                 <img src="https://i.ibb.co/ycnZ5YmQ/bf457901bf5c15ca935fa5236259c441.jpg" alt="Wave Pay">
                                 <div class="payment-info"><div class="pay-name">WAVE PAY</div><div class="pay-number">09254649306</div><div class="pay-owner">Kyi Khaing</div></div>
                                 <button class="copy-btn" onclick="copyText('09254649306')"><i class="fas fa-copy"></i></button>
                             </div>
+                            
+                            <!-- A+ Pay (Active) -->
                             <div class="payment-card">
                                 <img src="https://i.ibb.co/Kz8Pwpc0/917cdc9887b881089b6c6a2cc1e941dc.jpg" alt="A+ Pay">
                                 <div class="payment-info"><div class="pay-name">A+ PAY</div><div class="pay-number">09672093790</div><div class="pay-owner">Kywe Kywe Htay</div></div>
                                 <button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i></button>
                             </div>
                             
-                            <div class="form-group"><label>ငွေလွှဲသည့် Payment</label><select id="topupPayment"><option value="">ရွေးချယ်ပါ</option><option value="Wave Pay">Wave Pay</option><option value="A+ Pay">A+ Pay</option></select></div>
+                            <!-- KPay (Unavailable) -->
+                            <div class="payment-card unavailable">
+                                <img src="https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg" alt="KPay" style="opacity:0.5">
+                                <div class="payment-info">
+                                    <div class="pay-name" style="color:var(--r)">KPay</div>
+                                    <div class="pay-number" style="color:rgba(231,76,60,0.7);font-size:11px;font-style:italic">Not available at this time</div>
+                                    <div class="pay-owner">KPay</div>
+                                </div>
+                                <button class="copy-btn" disabled><i class="fas fa-copy"></i></button>
+                            </div>
+                            
+                            <!-- AYA Pay (Unavailable) -->
+                            <div class="payment-card unavailable">
+                                <img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg" alt="AYA Pay" style="opacity:0.5">
+                                <div class="payment-info">
+                                    <div class="pay-name" style="color:var(--r)">AYA Pay</div>
+                                    <div class="pay-number" style="color:rgba(231,76,60,0.7);font-size:11px;font-style:italic">Not available at this time</div>
+                                    <div class="pay-owner">AYA Pay</div>
+                                </div>
+                                <button class="copy-btn" disabled><i class="fas fa-copy"></i></button>
+                            </div>
+                            
+                            <div class="form-group"><label>ငွေလွှဲသည့် Payment</label><select id="topupPayment"><option value="">ရွေးချယ်ပါ</option><option value="Wave Pay">Wave Pay</option><option value="A+ Pay">A+ Pay</option></select></div>
                             
                             <div class="id-row">
                                 <div class="form-group"><label>သင်၏ User ID</label><input type="text" id="verifyUserId" maxlength="10"></div>
@@ -181,9 +220,7 @@
                             
                             <div class="btn-row">
                                 <button class="buy-btn" id="buyBtn" onclick="submitTopup()" disabled><i class="fas fa-paper-plane"></i> Buy</button>
-                                <button class="check-btn" disabled><i class="fas fa-search"></i> MLBB Check Server</button>
                             </div>
-                            <p class="check-note">Moonton နှင့် SOLO M Game Shop တို့ Collab နေသည့်အတွက် လောလောဆယ်မရသေးပါ</p>
                             <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px">ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ</p>
                         </div>
                     </div>
@@ -199,6 +236,7 @@
                     </div>
                 </div>
                 
+                <!-- Order History Tab -->
                 <div class="tab-content" id="history">
                     <div class="section"><h3>Order History</h3><div id="orderHistory"></div></div>
                 </div>
@@ -206,64 +244,26 @@
         </div>
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
-    
-    <div class="modal" id="topupGuideModal">
-        <div class="modal-box">
-            <span class="modal-close" onclick="closeTopupGuide()">&times;</span>
-            <h3>ငွေဖြည့်နည်း</h3>
-            <div style="font-size:11px;line-height:1.8;color:rgba(255,255,255,0.85)">
-                <p><b style="color:var(--w)">အဆင့် ၁</b> - Wave Pay/A+ Pay သို့ ငွေလွှဲပါ</p>
-                <p><b style="color:var(--w)">အဆင့် ၂</b> - Screenshot ရိုက်ပါ</p>
-                <p><b style="color:var(--w)">အဆင့် ၃</b> - Form ဖြည့်ပြီး Buy နှိပ်ပါ</p>
-                <p><b style="color:var(--w)">အဆင့် ၄</b> - ၁၀ မိနစ်အတွင်း Admin အတည်ပြု</p>
-                <br><p>ဆက်သွယ်ရန်: @Solo_m28</p>
-            </div>
-        </div>
-    </div>
-    
-    <div class="sidebar-overlay" id="topSidebarOverlay" onclick="closeTopSidebar()"></div>
-    <div class="sidebar-panel" id="topSidebarPanel"><span class="close-btn" onclick="closeTopSidebar()">&times;</span><h3>Menu</h3>
-        <a href="/dashboard" class="s-item"><i class="fas fa-home"></i> Home</a>
-        <a href="/topup.html" class="s-item"><i class="fas fa-wallet"></i> Top Up</a>
-        <a href="/buycode.html" class="s-item"><i class="fas fa-shopping-cart"></i> Buy Code MLBB</a>
-    </div>
 
 <script>
-    // ==================== GLOBAL: BG Music Player ====================
-    const bgAudio = document.getElementById('bgAudio');
-    let musicPlaylist = [], musicCurrentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
-    bgAudio.volume = 0.6;
-
-    async function checkMusic() {
-        try {
-            const r = await fetch('/api/bg_music?t=' + Date.now());
-            const d = await r.json();
-            if (d.playlist && d.playlist.length > 0) {
-                const newList = JSON.stringify(d.playlist), oldList = JSON.stringify(musicPlaylist);
-                if (newList !== oldList) { musicPlaylist = d.playlist; musicCurrentIndex = 0; playMusic(); }
-                else if (bgAudio.paused && bgAudio.src) { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }
-            } else { bgAudio.pause(); bgAudio.src = ''; musicPlaylist = []; }
-        } catch(e) {}
-    }
-    function playMusic() {
-        if (!musicPlaylist.length) return;
-        if (musicCurrentIndex >= musicPlaylist.length) musicCurrentIndex = 0;
-        const url = musicPlaylist[musicCurrentIndex];
-        if (bgAudio.src !== url) {
-            bgAudio.src = url;
-            bgAudio.addEventListener('canplay', function() { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }, { once: true });
-        } else { bgAudio.play().catch(() => {}); }
-    }
-    bgAudio.addEventListener('ended', function() {
-        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime);
-        musicCurrentIndex = (musicCurrentIndex + 1) % musicPlaylist.length;
-        localStorage.setItem('bgMusicIndex', musicCurrentIndex);
-        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, '0');
-        playMusic();
-    });
-    setInterval(() => { if (!bgAudio.paused && musicPlaylist.length > 0) { localStorage.setItem('bgMusicIndex', musicCurrentIndex); localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime); } }, 500);
-    checkMusic();
-    setInterval(checkMusic, 2000);
+    // ==================== BG MUSIC PLAYER (MLBB Style) ====================
+    (function() {
+        const bgAudio = document.getElementById('bgAudio');
+        if (!bgAudio) return;
+        let playlist = [], currentIndex = 0;
+        bgAudio.volume = 0.5;
+        const appJustLaunched = !sessionStorage.getItem('musicPlaying');
+        if (appJustLaunched) { currentIndex = 0; localStorage.setItem('bgMusicIndex', '0'); localStorage.setItem('bgMusicTime_0', '0'); }
+        else { currentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0'); }
+        sessionStorage.setItem('musicPlaying', 'true');
+        async function fetchPlaylist() { try { const r = await fetch('/api/bg_music?t=' + Date.now()); const d = await r.json(); if (d.playlist && d.playlist.length > 0) { playlist = d.playlist; return true; } return false; } catch(e) { return false; } }
+        function playCurrentSong() { if (!playlist.length) return; if (currentIndex >= playlist.length) currentIndex = 0; const url = playlist[currentIndex]; bgAudio.src = url; bgAudio.load(); bgAudio.addEventListener('canplay', function h() { bgAudio.play().catch(() => {}); bgAudio.removeEventListener('canplay', h); }); }
+        bgAudio.addEventListener('ended', function() { localStorage.setItem('bgMusicTime_' + currentIndex, '0'); currentIndex = (currentIndex + 1) % playlist.length; localStorage.setItem('bgMusicIndex', currentIndex); localStorage.setItem('bgMusicTime_' + currentIndex, '0'); playCurrentSong(); });
+        bgAudio.addEventListener('error', function() { currentIndex = (currentIndex + 1) % playlist.length; localStorage.setItem('bgMusicIndex', currentIndex); localStorage.setItem('bgMusicTime_' + currentIndex, '0'); playCurrentSong(); });
+        setInterval(() => { if (!bgAudio.paused && playlist.length > 0 && bgAudio.currentTime > 0) { localStorage.setItem('bgMusicIndex', currentIndex); localStorage.setItem('bgMusicTime_' + currentIndex, bgAudio.currentTime); } }, 1000);
+        fetchPlaylist().then(hasMusic => { if (hasMusic) { if (appJustLaunched) { currentIndex = 0; } playCurrentSong(); } });
+        setInterval(fetchPlaylist, 3000);
+    })();
 
     // ==================== LOGIN CHECK ====================
     (function checkLogin(){
@@ -283,10 +283,8 @@
     
     function n(m, t = "success") { const e = document.getElementById("copyNotif"); e.textContent = m; e.style.background = t === "success" ? "#2ecc71" : "#e74c3c"; e.style.display = "block"; setTimeout(() => e.style.display = "none", 3000); }
     function showTab(tab) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); event.target.classList.add('active'); document.getElementById(tab).classList.add('active'); if (tab === 'history') loadHistory(); }
-    function togglePayment() { const ps = document.getElementById('paymentSection'); ps.style.display = ps.style.display === 'block' ? 'none' : 'block'; }
+    function togglePayment() { const ps = document.getElementById('paymentSection'); const gb = document.getElementById('guideBox'); if (ps.style.display === 'block') { ps.style.display = 'none'; gb.style.display = 'none'; } else { ps.style.display = 'block'; gb.style.display = 'block'; } }
     function copyText(text) { navigator.clipboard.writeText(text).then(() => n('✅ Copied!')).catch(() => prompt('Copy:', text)); }
-    function openTopupGuide() { document.getElementById('topupGuideModal').classList.add('active'); }
-    function closeTopupGuide() { document.getElementById('topupGuideModal').classList.remove('active'); }
     if (currentUser && currentUser.id) document.getElementById('verifyUserId').value = currentUser.id.toString().padStart(6, '0');
     
     function handleFileSelect() {
@@ -318,21 +316,19 @@
             const screenshotUrl = uploadD.success ? uploadD.url : screenshotData;
             const r = await fetch('/api/submit_order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token'), amount: 0, payment_method: payment, screenshot: screenshotUrl, user_id: inputId }) });
             const d = await r.json();
-            if (d.success) { alert('✅ Order Submitted!'); document.getElementById('topupPayment').value = ''; document.getElementById('topupScreenshot').value = ''; document.getElementById('screenshotPreview').innerHTML = ''; screenshotData = ''; idVerified = false; document.getElementById('buyBtn').disabled = true; document.getElementById('idResult').style.display = 'none'; document.getElementById('fileUploadBox').classList.remove('has-file'); document.getElementById('uploadText').textContent = 'Payment Screenshot'; document.getElementById('uploadHint').textContent = 'ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ'; document.getElementById('paymentSection').style.display = 'none'; localStorage.removeItem('orderHistoryCache'); }
+            if (d.success) { alert('✅ Order Submitted!'); document.getElementById('topupPayment').value = ''; document.getElementById('topupScreenshot').value = ''; document.getElementById('screenshotPreview').innerHTML = ''; screenshotData = ''; idVerified = false; document.getElementById('buyBtn').disabled = true; document.getElementById('idResult').style.display = 'none'; document.getElementById('fileUploadBox').classList.remove('has-file'); document.getElementById('uploadText').textContent = 'Payment Screenshot'; document.getElementById('uploadHint').textContent = 'ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ'; document.getElementById('paymentSection').style.display = 'none'; document.getElementById('guideBox').style.display = 'none'; loadHistory(); }
             else alert(d.message || 'Error');
         } catch(e) { alert('Connection error'); }
         btn.innerHTML = '<i class="fas fa-paper-plane"></i> Buy'; btn.disabled = false;
     }
     
     async function loadHistory() {
-        const c = document.getElementById('orderHistory'), cached = localStorage.getItem('orderHistoryCache');
-        if (cached) { try { renderOrderHistory(JSON.parse(cached)); return; } catch(e) {} }
-        try { const r = await fetch('/api/get_orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) }); const d = await r.json(); if (d.orders) { localStorage.setItem('orderHistoryCache', JSON.stringify(d.orders)); renderOrderHistory(d.orders); } else { c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5)">No history</p>'; } } catch(e) { c.innerHTML = '<p>No history</p>'; }
+        const c = document.getElementById('orderHistory');
+        try { const r = await fetch('/api/get_orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) }); const d = await r.json(); if (d.orders && d.orders.length > 0) { renderOrderHistory(d.orders); } else { c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'; } } catch(e) { c.innerHTML = '<p style="text-align:center;padding:20px">No history</p>'; }
     }
     
     function renderOrderHistory(orders) {
         const c = document.getElementById('orderHistory');
-        if (!orders || orders.length === 0) { c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5)">No topup history yet.</p>'; return; }
         c.innerHTML = orders.map((o, i) => {
             const sc = o.status === 'approved' ? 'status-approved' : o.status === 'rejected' ? 'status-rejected' : 'status-pending';
             const st = o.status === 'approved' ? 'APPROVED' : o.status === 'rejected' ? 'REJECTED' : 'PENDING';
@@ -344,11 +340,7 @@
     function formatNumber(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
     async function loadBalance() { try { const r = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) }); const d = await r.json(); const bal = d.balance || 0; document.getElementById('myBalance').textContent = formatNumber(bal) + ' Ks'; document.getElementById('usdBalance').textContent = `≈ $${(bal / 2100).toFixed(2)} USD`; } catch(e) {} }
     
-    function openTopSidebar() { document.getElementById("topSidebarPanel").classList.add("active"); document.getElementById("topSidebarOverlay").classList.add("active"); }
-    function closeTopSidebar() { document.getElementById("topSidebarPanel").classList.remove("active"); document.getElementById("topSidebarOverlay").classList.remove("active"); }
-    
     loadBalance();
-    fetch('/api/get_orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) }).then(r => r.json()).then(d => { if (d.orders) localStorage.setItem('orderHistoryCache', JSON.stringify(d.orders)); }).catch(() => {});
 </script>
 </body>
 </html>
