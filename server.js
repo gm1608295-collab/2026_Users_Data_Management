@@ -795,13 +795,29 @@ app.get('/api/video', async (req, res) => {
 app.post('/api/admin/video', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.json({ success: false, message: 'No video URL' });
+    
     try {
         const p = await getPool();
-        // Create table if not exists
         await p.query(`CREATE TABLE IF NOT EXISTS system_video (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`).catch(() => {});
+        
+        // Convert YouTube URL to embed format
+        let finalUrl = url;
+        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            let videoId = '';
+            if (url.includes('youtube.com/watch')) {
+                const urlObj = new URL(url);
+                videoId = urlObj.searchParams.get('v') || '';
+            } else if (url.includes('youtu.be/')) {
+                videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+            }
+            if (videoId) {
+                finalUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`;
+            }
+        }
+        
         await p.query('DELETE FROM system_video');
-        await p.query('INSERT INTO system_video (video_url) VALUES ($1)', [url]);
-        console.log('[VIDEO SAVE] Saved:', url);
+        await p.query('INSERT INTO system_video (video_url) VALUES ($1)', [finalUrl]);
+        console.log('[VIDEO SAVE] Saved:', finalUrl);
         res.json({ success: true });
     } catch(e) {
         console.error('[VIDEO SAVE ERROR]', e.message);
