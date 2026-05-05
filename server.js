@@ -105,34 +105,74 @@ app.post('/api/upload_image', async (req, res) => {
     }
 });
 
-// ==================== MUSIC UPLOAD (Catbox - AUDIO ONLY) ====================
+// ==================== MUSIC UPLOAD (Catbox - AUDIO ONLY - FIXED) ====================
 app.post('/api/upload_music', async (req, res) => {
     const { base64, filename } = req.body;
     if (!base64) return res.json({ success: false, message: 'No music data' });
     
     try {
-        // ====== STRICT CHECK: Audio Only ======
-        // Check if it's a video file
-        if (base64.startsWith('data:video/')) {
-            return res.json({ success: false, message: '❌ Video files not allowed! Please select an Audio file (MP3, M4A, WAV, OGG, AAC).' });
+        // ====== Check file type ======
+        // M4A files sometimes come as "audio/mp4" or "audio/x-m4a"
+        // Apple devices use "audio/mp4" for M4A files
+        
+        const isVideo = base64.startsWith('data:video/');
+        const isAudio = base64.startsWith('data:audio/');
+        
+        // Check for common audio MIME types
+        const audioMimeMatch = base64.match(/^data:(audio\/[^;]+);base64,/);
+        const videoMimeMatch = base64.match(/^data:(video\/[^;]+);base64,/);
+        
+        console.log('[MUSIC UPLOAD] File:', filename, '| Starts with:', base64.substring(0, 50));
+        
+        // Allow audio files (including audio/mp4 which is M4A)
+        if (isVideo) {
+            // Check if it's actually an M4A disguised as video
+            // Some browsers/devices send .m4a as video/mp4
+            if (filename && (filename.toLowerCase().endsWith('.m4a') || filename.toLowerCase().endsWith('.aac'))) {
+                console.log('[MUSIC UPLOAD] M4A file detected (sent as video) - Allowing');
+                // Continue processing
+            } else {
+                return res.json({ 
+                    success: false, 
+                    message: '❌ Video files not allowed!\n\nPlease select an Audio file:\n• MP3\n• M4A\n• OGG\n• WAV\n• AAC\n• FLAC' 
+                });
+            }
         }
         
-        // Check if it's an audio file
-        const audioMatch = base64.match(/^data:(audio\/\w+);base64,(.+)/);
-        if (!audioMatch) {
-            return res.json({ success: false, message: '❌ Invalid file type! Please select an Audio file only.' });
+        if (!isAudio && !isVideo) {
+            return res.json({ 
+                success: false, 
+                message: '❌ Invalid file type!\n\nPlease select an Audio file only.' 
+            });
         }
         
-        const mimeType = audioMatch[1]; // audio/mpeg, audio/mp4, audio/x-m4a, etc.
-        const base64Data = audioMatch[2];
+        // Extract base64 data
+        let base64Data, mimeType;
+        if (audioMimeMatch) {
+            mimeType = audioMimeMatch[1];
+            base64Data = audioMimeMatch[2];
+        } else if (videoMimeMatch && filename && filename.toLowerCase().endsWith('.m4a')) {
+            // M4A sent as video/mp4 - treat as audio
+            mimeType = 'audio/mp4';
+            base64Data = videoMimeMatch[2];
+        } else {
+            return res.json({ success: false, message: '❌ Cannot process this file type.' });
+        }
+        
         const buffer = Buffer.from(base64Data, 'base64');
         
         // Determine file extension
         let ext = '.mp3';
-        if (mimeType.includes('m4a') || mimeType.includes('mp4')) ext = '.m4a';
-        else if (mimeType.includes('ogg')) ext = '.ogg';
-        else if (mimeType.includes('wav')) ext = '.wav';
-        else if (mimeType.includes('aac')) ext = '.aac';
+        if (filename) {
+            const fn = filename.toLowerCase();
+            if (fn.endsWith('.m4a')) ext = '.m4a';
+            else if (fn.endsWith('.ogg')) ext = '.ogg';
+            else if (fn.endsWith('.wav')) ext = '.wav';
+            else if (fn.endsWith('.aac')) ext = '.aac';
+            else if (fn.endsWith('.flac')) ext = '.flac';
+            else if (fn.endsWith('.mp3')) ext = '.mp3';
+            else if (mimeType.includes('m4a') || mimeType.includes('mp4')) ext = '.m4a';
+        }
         
         const finalFilename = (filename || 'music') + ext;
         
@@ -156,7 +196,7 @@ app.post('/api/upload_music', async (req, res) => {
             res.json({ success: true, url: url.trim() });
         } else {
             console.error('[MUSIC UPLOAD] Failed:', url);
-            res.json({ success: false, message: 'Upload failed: ' + url });
+            res.json({ success: false, message: 'Upload failed. Response: ' + url });
         }
     } catch(e) {
         console.error('[MUSIC UPLOAD ERROR]', e.message);
