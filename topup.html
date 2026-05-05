@@ -8,9 +8,9 @@
     <style>
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        html,body{height:100%;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+        html,body{height:100%!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
         body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
-        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;overflow-y:visible!important}
         .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
@@ -22,7 +22,7 @@
         .tab{flex:1;padding:10px;text-align:center;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;cursor:pointer;color:var(--t)}
         .tab.active{background:var(--a);color:var(--w)}
         .tab-content{display:none}.tab-content.active{display:block}
-        .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+        .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
         .section{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px;margin-bottom:15px}
         .section h3{color:var(--w);font-size:14px;margin-bottom:10px;text-align:center}
         
@@ -47,6 +47,7 @@
         .payment-card.unavailable .pay-name{color:var(--r)}
         .payment-card.unavailable .pay-number{color:rgba(231,76,60,0.7);font-size:11px;font-style:italic}
         .payment-card.unavailable .pay-owner{color:rgba(255,255,255,0.3)}
+        .payment-card.unavailable img{opacity:0.5}
         
         .form-group{margin-bottom:10px}.form-group label{display:block;font-size:12px;margin-bottom:3px;color:#ccc}
         .form-group input,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:var(--t);font-size:13px}
@@ -92,6 +93,7 @@
         .copy-notif{position:fixed;top:20px;right:20px;background:var(--g);color:#000;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none}
         
         #paymentSection{display:none}
+        #guideBox{display:none}
         
         .login-required{text-align:center;padding:40px 20px}
         .login-required i{font-size:50px;color:var(--w);margin-bottom:15px}
@@ -135,8 +137,7 @@
                 <div class="tab-content active" id="topup">
                     <button class="topup-btn" onclick="togglePayment()"><i class="fas fa-plus-circle"></i> Top Up Now</button>
                     
-                    <!-- ====== ငွေဖြည့်နည်း ====== -->
-                    <div class="guide-box" id="guideBox" style="display:none">
+                    <div class="guide-box" id="guideBox">
                         <div class="guide-title">📋 ငွေဖြည့်နည်း အဆင့်ဆင့်</div>
                         <div class="step-item">
                             <span class="step-num">1</span>
@@ -177,10 +178,10 @@
                             
                             <!-- KPay (Unavailable) -->
                             <div class="payment-card unavailable">
-                                <img src="https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg" alt="KPay" style="opacity:0.5">
+                                <img src="https://i.ibb.co/Wvj43jMQ/2bfa5f4d02100b7b2c1d87ff55ce16dc.jpg" alt="KPay">
                                 <div class="payment-info">
-                                    <div class="pay-name" style="color:var(--r)">KPay</div>
-                                    <div class="pay-number" style="color:rgba(231,76,60,0.7);font-size:11px;font-style:italic">Not available at this time</div>
+                                    <div class="pay-name">KPay</div>
+                                    <div class="pay-number">Not available at this time</div>
                                     <div class="pay-owner">KPay</div>
                                 </div>
                                 <button class="copy-btn" disabled><i class="fas fa-copy"></i></button>
@@ -188,10 +189,10 @@
                             
                             <!-- AYA Pay (Unavailable) -->
                             <div class="payment-card unavailable">
-                                <img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg" alt="AYA Pay" style="opacity:0.5">
+                                <img src="https://i.ibb.co/9kFpNPhf/b349dc4f29181bec2045c678d1923083.jpg" alt="AYA Pay">
                                 <div class="payment-info">
-                                    <div class="pay-name" style="color:var(--r)">AYA Pay</div>
-                                    <div class="pay-number" style="color:rgba(231,76,60,0.7);font-size:11px;font-style:italic">Not available at this time</div>
+                                    <div class="pay-name">AYA Pay</div>
+                                    <div class="pay-number">Not available at this time</div>
                                     <div class="pay-owner">AYA Pay</div>
                                 </div>
                                 <button class="copy-btn" disabled><i class="fas fa-copy"></i></button>
@@ -236,7 +237,6 @@
                     </div>
                 </div>
                 
-                <!-- Order History Tab -->
                 <div class="tab-content" id="history">
                     <div class="section"><h3>Order History</h3><div id="orderHistory"></div></div>
                 </div>
@@ -246,22 +246,71 @@
     </div>
 
 <script>
-    // ==================== BG MUSIC PLAYER (MLBB Style) ====================
+    // ==================== BG MUSIC PLAYER (Auto Next - Fixed) ====================
     (function() {
         const bgAudio = document.getElementById('bgAudio');
         if (!bgAudio) return;
         let playlist = [], currentIndex = 0;
         bgAudio.volume = 0.5;
+        bgAudio.loop = false; // MUST be false for sequential play
+        
         const appJustLaunched = !sessionStorage.getItem('musicPlaying');
         if (appJustLaunched) { currentIndex = 0; localStorage.setItem('bgMusicIndex', '0'); localStorage.setItem('bgMusicTime_0', '0'); }
         else { currentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0'); }
         sessionStorage.setItem('musicPlaying', 'true');
-        async function fetchPlaylist() { try { const r = await fetch('/api/bg_music?t=' + Date.now()); const d = await r.json(); if (d.playlist && d.playlist.length > 0) { playlist = d.playlist; return true; } return false; } catch(e) { return false; } }
-        function playCurrentSong() { if (!playlist.length) return; if (currentIndex >= playlist.length) currentIndex = 0; const url = playlist[currentIndex]; bgAudio.src = url; bgAudio.load(); bgAudio.addEventListener('canplay', function h() { bgAudio.play().catch(() => {}); bgAudio.removeEventListener('canplay', h); }); }
-        bgAudio.addEventListener('ended', function() { localStorage.setItem('bgMusicTime_' + currentIndex, '0'); currentIndex = (currentIndex + 1) % playlist.length; localStorage.setItem('bgMusicIndex', currentIndex); localStorage.setItem('bgMusicTime_' + currentIndex, '0'); playCurrentSong(); });
-        bgAudio.addEventListener('error', function() { currentIndex = (currentIndex + 1) % playlist.length; localStorage.setItem('bgMusicIndex', currentIndex); localStorage.setItem('bgMusicTime_' + currentIndex, '0'); playCurrentSong(); });
-        setInterval(() => { if (!bgAudio.paused && playlist.length > 0 && bgAudio.currentTime > 0) { localStorage.setItem('bgMusicIndex', currentIndex); localStorage.setItem('bgMusicTime_' + currentIndex, bgAudio.currentTime); } }, 1000);
-        fetchPlaylist().then(hasMusic => { if (hasMusic) { if (appJustLaunched) { currentIndex = 0; } playCurrentSong(); } });
+        
+        async function fetchPlaylist() { 
+            try { 
+                const r = await fetch('/api/bg_music?t=' + Date.now()); 
+                const d = await r.json(); 
+                if (d.playlist && d.playlist.length > 0) { 
+                    playlist = d.playlist; 
+                    return true; 
+                } 
+                return false; 
+            } catch(e) { return false; } 
+        }
+        
+        function playCurrentSong() { 
+            if (!playlist.length) return; 
+            if (currentIndex >= playlist.length) currentIndex = 0; 
+            const url = playlist[currentIndex]; 
+            console.log('🎵 Playing:', currentIndex + 1, '/', playlist.length); 
+            bgAudio.src = url; 
+            bgAudio.load(); 
+            bgAudio.addEventListener('canplay', function h() { 
+                bgAudio.play().catch(() => {}); 
+                bgAudio.removeEventListener('canplay', h); 
+            }); 
+        }
+        
+        // ====== KEY FIX: Play NEXT song when current ends ======
+        bgAudio.addEventListener('ended', function() {
+            console.log('🎵 Song ended:', currentIndex + 1);
+            localStorage.setItem('bgMusicTime_' + currentIndex, '0');
+            currentIndex = (currentIndex + 1) % playlist.length;
+            localStorage.setItem('bgMusicIndex', currentIndex);
+            localStorage.setItem('bgMusicTime_' + currentIndex, '0');
+            console.log('🎵 Next:', currentIndex + 1, '/', playlist.length);
+            playCurrentSong();
+        });
+        
+        bgAudio.addEventListener('error', function() {
+            console.log('🎵 Error, skipping to next');
+            currentIndex = (currentIndex + 1) % playlist.length;
+            localStorage.setItem('bgMusicIndex', currentIndex);
+            localStorage.setItem('bgMusicTime_' + currentIndex, '0');
+            playCurrentSong();
+        });
+        
+        setInterval(() => { 
+            if (!bgAudio.paused && playlist.length > 0 && bgAudio.currentTime > 0) { 
+                localStorage.setItem('bgMusicIndex', currentIndex); 
+                localStorage.setItem('bgMusicTime_' + currentIndex, bgAudio.currentTime); 
+            } 
+        }, 1000);
+        
+        fetchPlaylist().then(hasMusic => { if (hasMusic) { if (appJustLaunched) currentIndex = 0; playCurrentSong(); } });
         setInterval(fetchPlaylist, 3000);
     })();
 
