@@ -105,61 +105,67 @@ app.post('/api/upload_image', async (req, res) => {
     }
 });
 
-// ==================== MUSIC UPLOAD (Catbox - AUDIO ONLY - FIXED) ====================
+// ==================== MUSIC UPLOAD (Catbox - AUDIO ONLY - FIXED v2) ====================
 app.post('/api/upload_music', async (req, res) => {
     const { base64, filename } = req.body;
-    if (!base64) return res.json({ success: false, message: 'No music data' });
+    
+    if (!base64) {
+        return res.json({ success: false, message: 'No music data' });
+    }
     
     try {
-        // ====== Check file type ======
-        // M4A files sometimes come as "audio/mp4" or "audio/x-m4a"
-        // Apple devices use "audio/mp4" for M4A files
+        console.log('[MUSIC UPLOAD] Received:', filename, '| Size:', base64.length);
         
+        // Check what type of file this is
         const isVideo = base64.startsWith('data:video/');
         const isAudio = base64.startsWith('data:audio/');
         
-        // Check for common audio MIME types
-        const audioMimeMatch = base64.match(/^data:(audio\/[^;]+);base64,/);
-        const videoMimeMatch = base64.match(/^data:(video\/[^;]+);base64,/);
+        // Allow M4A files even if sent as video/mp4
+        const isM4A = filename && (
+            filename.toLowerCase().endsWith('.m4a') || 
+            filename.toLowerCase().endsWith('.aac')
+        );
         
-        console.log('[MUSIC UPLOAD] File:', filename, '| Starts with:', base64.substring(0, 50));
-        
-        // Allow audio files (including audio/mp4 which is M4A)
-        if (isVideo) {
-            // Check if it's actually an M4A disguised as video
-            // Some browsers/devices send .m4a as video/mp4
-            if (filename && (filename.toLowerCase().endsWith('.m4a') || filename.toLowerCase().endsWith('.aac'))) {
-                console.log('[MUSIC UPLOAD] M4A file detected (sent as video) - Allowing');
-                // Continue processing
-            } else {
-                return res.json({ 
-                    success: false, 
-                    message: '❌ Video files not allowed!\n\nPlease select an Audio file:\n• MP3\n• M4A\n• OGG\n• WAV\n• AAC\n• FLAC' 
-                });
-            }
+        if (isVideo && !isM4A) {
+            return res.json({ 
+                success: false, 
+                message: '❌ Video files not allowed! Please select Audio only (MP3, M4A, OGG, WAV, AAC).' 
+            });
         }
         
         if (!isAudio && !isVideo) {
             return res.json({ 
                 success: false, 
-                message: '❌ Invalid file type!\n\nPlease select an Audio file only.' 
+                message: '❌ Invalid file type! Please select an Audio file.' 
             });
         }
         
-        // Extract base64 data
-        let base64Data, mimeType;
-        if (audioMimeMatch) {
-            mimeType = audioMimeMatch[1];
-            base64Data = audioMimeMatch[2];
-        } else if (videoMimeMatch && filename && filename.toLowerCase().endsWith('.m4a')) {
-            // M4A sent as video/mp4 - treat as audio
-            mimeType = 'audio/mp4';
-            base64Data = videoMimeMatch[2];
+        // Extract the base64 data (remove the prefix)
+        let base64Data;
+        const matches = base64.match(/^data:[^;]+;base64,(.+)$/);
+        
+        if (matches && matches[1]) {
+            base64Data = matches[1];
         } else {
-            return res.json({ success: false, message: '❌ Cannot process this file type.' });
+            // Try to find comma and take everything after
+            const commaIndex = base64.indexOf(',');
+            if (commaIndex > -1) {
+                base64Data = base64.substring(commaIndex + 1);
+            } else {
+                base64Data = base64;
+            }
         }
         
+        if (!base64Data || base64Data.length === 0) {
+            return res.json({ success: false, message: '❌ Invalid file data.' });
+        }
+        
+        // Convert base64 to Buffer
         const buffer = Buffer.from(base64Data, 'base64');
+        
+        if (!buffer || buffer.length === 0) {
+            return res.json({ success: false, message: '❌ Could not process file.' });
+        }
         
         // Determine file extension
         let ext = '.mp3';
@@ -171,14 +177,14 @@ app.post('/api/upload_music', async (req, res) => {
             else if (fn.endsWith('.aac')) ext = '.aac';
             else if (fn.endsWith('.flac')) ext = '.flac';
             else if (fn.endsWith('.mp3')) ext = '.mp3';
-            else if (mimeType.includes('m4a') || mimeType.includes('mp4')) ext = '.m4a';
         }
         
         const finalFilename = (filename || 'music') + ext;
         
-        console.log('[MUSIC UPLOAD] Uploading:', finalFilename, 'Type:', mimeType);
+        console.log('[MUSIC UPLOAD] Processing:', finalFilename, '| Buffer size:', buffer.length);
         
-        const blob = new Blob([buffer], { type: mimeType });
+        // Upload to Catbox
+        const blob = new Blob([buffer], { type: 'application/octet-stream' });
         const formData = new FormData();
         formData.append('reqtype', 'fileupload');
         formData.append('fileToUpload', blob, finalFilename);
@@ -195,15 +201,15 @@ app.post('/api/upload_music', async (req, res) => {
             console.log('[MUSIC UPLOAD] Success:', url.trim());
             res.json({ success: true, url: url.trim() });
         } else {
-            console.error('[MUSIC UPLOAD] Failed:', url);
-            res.json({ success: false, message: 'Upload failed. Response: ' + url });
+            console.error('[MUSIC UPLOAD] Catbox Error:', url);
+            res.json({ success: false, message: 'Upload failed. Please try again.' });
         }
     } catch(e) {
         console.error('[MUSIC UPLOAD ERROR]', e.message);
         res.json({ success: false, message: 'Upload error: ' + e.message });
     }
 });
-
+            
 // ==================== AUTH ====================
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
