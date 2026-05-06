@@ -205,50 +205,50 @@
     function renderNotice(d){const b=document.getElementById('noticeBanner'),i=document.getElementById('noticeIcon'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='flex';m.textContent=d.message;m.style.color=d.color||'var(--t)';i.style.color=d.color||'var(--w)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
     async function loadNotice(){const ca=localStorage.getItem('noticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderNotice(d)}catch(e){}}try{const r=await fetch("/api/notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('noticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('noticeCache',JSON.stringify(cn));renderNotice(cn)}}else{localStorage.removeItem('noticeCache')}}catch(e){}}
 
-    // ==================== VIDEO PLAYER ====================
-    async function loadDashboardVideo(){
-        const c=document.getElementById('videoContainer');
-        const v=document.getElementById('dashboardVideo');
-        const yt=document.getElementById('dashboardYoutube');
+    // ==================== VIDEO PLAYER (FIXED - No Auto Refresh) ====================
+async function loadDashboardVideo(){
+    const c=document.getElementById('videoContainer');
+    const v=document.getElementById('dashboardVideo');
+    const yt=document.getElementById('dashboardYoutube');
+    
+    // Don't reload if already playing
+    if(v.src && !v.paused && v.currentTime > 0) return;
+    if(yt.src && yt.style.display !== 'none') return;
+    
+    try{
+        const r=await fetch('/api/video');
+        const d=await r.json();
         
-        try{
-            const r=await fetch('/api/video');
-            const d=await r.json();
-            console.log('[VIDEO] API Response:', d);
+        if(d.success && d.url){
+            c.style.display='block';
             
-            if(d.success && d.url){
-                c.style.display='block';
-                
-                if(d.isYouTube){
-                    console.log('[VIDEO] YouTube detected');
-                    v.style.display='none';
-                    yt.style.display='block';
-                    yt.src=d.url;
-                } else {
-                    console.log('[VIDEO] Direct video detected');
-                    yt.style.display='none';
-                    v.style.display='block';
-                    v.src=d.url;
-                    v.muted=true;
-                    v.autoplay=true;
-                    v.playsInline=true;
-                    v.setAttribute('playsinline','');
-                    v.setAttribute('webkit-playsinline','');
-                    v.load();
-                    v.play().catch(e=>{console.log('[VIDEO] Autoplay blocked:', e.message);v.controls=true});
-                }
+            if(d.isYouTube){
+                v.style.display='none';
+                yt.style.display='block';
+                // Only set src if different
+                if(yt.src !== d.url) yt.src = d.url;
             } else {
-                console.log('[VIDEO] No video found');
-                c.style.display='none';
-                v.src='';
-                yt.src='';
+                yt.style.display='none';
+                v.style.display='block';
+                // Only set src if different
+                if(v.src !== d.url) {
+                    v.src = d.url;
+                    v.muted = true;
+                    v.autoplay = true;
+                    v.playsInline = true;
+                    v.setAttribute('playsinline', '');
+                    v.setAttribute('webkit-playsinline', '');
+                    v.load();
+                    v.play().catch(e => { v.controls = true; });
+                }
             }
-        } catch(e){
-            console.log('[VIDEO] Error:', e.message);
+        } else {
             c.style.display='none';
         }
+    } catch(e){
+        console.log('[VIDEO] Error:', e.message);
     }
-
+}
     // ==================== INIT ====================
     window.onload=async function(){
         if(!localStorage.getItem("auth_token")){window.location.href="/";return}
@@ -259,7 +259,27 @@
         document.getElementById("sidebarEmail").textContent=user.email||'user@mlbb.com';
         document.getElementById("sidebarAvatar").textContent=(user.username||'U').charAt(0).toUpperCase();
         loadSliderImages();loadNotice();loadDashboardVideo();
-        setInterval(loadSliderImages,2000);setInterval(loadNotice,2000);setInterval(loadDashboardVideo,10000);
+        setInterval(loadSliderImages,2000);setInterval(loadNotice,2000);// Load video once
+loadDashboardVideo();
+
+// Check for new videos every 30 seconds (don't reload if same)
+setInterval(async () => {
+    try {
+        const r = await fetch('/api/video');
+        const d = await r.json();
+        const v = document.getElementById('dashboardVideo');
+        const yt = document.getElementById('dashboardYoutube');
+        
+        if (d.success && d.url) {
+            const currentUrl = v.style.display !== 'none' ? v.src : yt.src;
+            if (d.url !== currentUrl && d.originalUrl !== currentUrl) {
+                v.src = '';
+                yt.src = '';
+                loadDashboardVideo();
+            }
+        }
+    } catch(e) {}
+}, 30000);
         if(user.id){const r=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})});const d=await r.json();if(d.banned){document.body.innerHTML=`<div class="banned-container"><div class="banned-icon">🚫</div><h2 class="banned-title">သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><div class="banned-contact"><h4>ဆက်သွယ်ရန်</h4><p>📧 gm1608295@gmail.com</p><p>📞 09672093790</p><p>💬 @Solo_m28</p></div><div class="banned-btns"><button class="btn-stay" onclick="location.reload()">ဆက်နေမည်</button><button class="btn-new" onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button></div></div>`;return}}
     };
 </script>
