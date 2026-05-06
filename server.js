@@ -67,23 +67,18 @@ async function initTables(p) {
 }
 initTables(pool1); initTables(pool2);
 
-// Add reject_reason column
+// Add columns
 async function addColumns() {
     try {
         await pool1.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT ''").catch(() => {});
         await pool2.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT ''").catch(() => {});
+        await pool1.query("ALTER TABLE notices ADD COLUMN IF NOT EXISTS notice_type VARCHAR(20) DEFAULT 'dashboard'").catch(() => {});
+        await pool2.query("ALTER TABLE notices ADD COLUMN IF NOT EXISTS notice_type VARCHAR(20) DEFAULT 'dashboard'").catch(() => {});
+        console.log('✅ Columns ready');
     } catch(e) {}
 }
 addColumns();
 
-// Add notice_type column
-async function addNoticeType() {
-    try {
-        await pool1.query("ALTER TABLE notices ADD COLUMN IF NOT EXISTS notice_type VARCHAR(20) DEFAULT 'dashboard'").catch(() => {});
-        await pool2.query("ALTER TABLE notices ADD COLUMN IF NOT EXISTS notice_type VARCHAR(20) DEFAULT 'dashboard'").catch(() => {});
-    } catch(e) {}
-}
-addNoticeType();
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
     { id: 'topup', name: 'Top Up' }, { id: 'buycode', name: 'Buy Code MLBB' }, { id: 'dashboard', name: 'Dashboard' },
@@ -196,37 +191,10 @@ app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: []
 // ==================== VERIFY USER ID ====================
 app.post('/api/verify_user_id', async (req, res) => {
     const { token, userId } = req.body;
-    console.log('[VERIFY ID] Request:', { token: token?.substring(0,10)+'...', userId });
-    
-    if (!token || !userId) return res.json({ success: false, verified: false, message: 'Missing data' });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ verified: false, message: 'Invalid token' });
-        
-        const r = await p.query('SELECT id, username, email FROM auth_users WHERE id=$1', [uid]);
-        if (r.rows.length === 0) return res.json({ verified: false, message: 'User not found' });
-        
-        const u = r.rows[0];
-        const paddedId = u.id.toString().padStart(6, '0');
-        const paddedInput = userId.toString().padStart(6, '0');
-        
-        console.log('[VERIFY ID] Compare:', paddedId, 'vs', paddedInput);
-        
-        if (paddedId === paddedInput) {
-            res.json({ success: true, verified: true, username: u.username, email: u.email, id: u.id });
-        } else {
-            res.json({ verified: false, message: 'ID mismatch' });
-        }
-    } catch(e) { 
-        console.error('[VERIFY ID ERROR]', e);
-        res.json({ verified: false, message: e.message }); 
-    }
+    if (!token || !userId) return res.json({ success: false, verified: false });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); const r = await p.query('SELECT id,username,email FROM auth_users WHERE id=$1', [uid]); if (r.rows.length === 0) return res.json({ verified: false }); const u = r.rows[0]; u.id.toString().padStart(6,'0') === userId.toString().padStart(6,'0') ? res.json({ success: true, verified: true, username: u.username, email: u.email, id: u.id }) : res.json({ verified: false }); }
+    catch(e) { res.json({ verified: false }); }
 });
-
-// ==================== CODE MANAGEMENT ====================
-app.post('/api/use_code', async (req, res) => { try { const p = await getPool(); const exist = await p.query('SELECT * FROM used_codes WHERE code=$1', [req.body.code]); if (exist.rows.length > 0) return res.json({ already_used: true }); await p.query('INSERT INTO used_codes (code,user_id) VALUES ($1,$2)', [req.body.code, req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== SLIDER ====================
 app.get('/api/slider_images', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); r.rows.length === 0 ? res.json({ success: true, images: [] }) : res.json({ success: true, images: JSON.parse(r.rows[0].image_urls || '[]') }); } catch(e) { res.json({ images: [] }); } });
@@ -237,42 +205,11 @@ app.get('/api/bg_music', async (req, res) => { try { const p = await getPool(); 
 app.post('/api/admin/bg_music', async (req, res) => { try { const p = await getPool(); const { playlist } = req.body; if (!playlist || playlist.length === 0) { await p.query('DELETE FROM bg_music'); return res.json({ success: true }); } await p.query('DELETE FROM bg_music'); await p.query('INSERT INTO bg_music (music_urls) VALUES ($1)', [JSON.stringify(playlist)]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== PAGE TOGGLE ====================
-app.get('/api/admin/page_status', async (req, res) => {
-    try {
-        const p = await getPool();
-        const result = [];
-        for (const pg of ALL_PAGES) {
-            const q = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pg.id]);
-            result.push({ id: pg.id, name: pg.name, status: q.rows.length > 0 ? q.rows[0].status : 'on' });
-        }
-        res.json({ pages: result });
-    } catch(e) { res.json({ pages: [] }); }
-});
-
-app.post('/api/admin/toggle_page', async (req, res) => {
-    try {
-        const p = await getPool();
-        const { page_id, status } = req.body;
-        console.log(`[TOGGLE API] ${page_id} -> ${status}`);
-        
-        await p.query(
-            "INSERT INTO page_status (page_id, status) VALUES ($1, $2) ON CONFLICT (page_id) DO UPDATE SET status=$2",
-            [page_id, status]
-        );
-        
-        // Verify
-        const check = await p.query("SELECT status FROM page_status WHERE page_id=$1", [page_id]);
-        console.log(`[TOGGLE VERIFY] ${page_id} = ${check.rows[0]?.status}`);
-        
-        res.json({ success: true });
-    } catch(e) { 
-        console.error('[TOGGLE ERROR]', e);
-        res.json({ success: false }); 
-    }
-});
+app.get('/api/admin/page_status', async (req, res) => { try { const p = await getPool(); const result = []; for (const pg of ALL_PAGES) { const q = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pg.id]); result.push({ id: pg.id, name: pg.name, status: q.rows.length > 0 ? q.rows[0].status : 'on' }); } res.json({ pages: result }); } catch(e) { res.json({ pages: [] }); } });
+app.post('/api/admin/toggle_page', async (req, res) => { try { const p = await getPool(); await p.query("INSERT INTO page_status (page_id, status) VALUES ($1,$2) ON CONFLICT (page_id) DO UPDATE SET status=$2", [req.body.page_id, req.body.status]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== BACKUP & RESTORE ====================
-app.get('/api/admin/backup', async (req, res) => { try { const p = await getPool(); const users = await p.query('SELECT * FROM auth_users'); const orders = await p.query('SELECT * FROM orders'); const notices = await p.query('SELECT * FROM notices'); const slider = await p.query('SELECT * FROM slider_images'); const bgM = await p.query('SELECT * FROM bg_music'); const ps = await p.query('SELECT * FROM page_status'); const banned = await p.query('SELECT * FROM banned_users'); const codes = await p.query('SELECT * FROM used_codes'); const videos = await p.query('SELECT * FROM videos'); res.json({ success: true, data: { version: '1.0', date: new Date().toISOString(), tables: { auth_users: users.rows, orders: orders.rows, notices: notices.rows, slider_images: slider.rows, bg_music: bgM.rows, page_status: ps.rows, banned_users: banned.rows, used_codes: codes.rows, videos: videos.rows } } }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/admin/backup', async (req, res) => { try { const p = await getPool(); const users = await p.query('SELECT * FROM auth_users'); const orders = await p.query('SELECT * FROM orders'); const notices = await p.query('SELECT * FROM notices'); const slider = await p.query('SELECT * FROM slider_images'); const bgM = await p.query('SELECT * FROM bg_music'); const ps = await p.query('SELECT * FROM page_status'); const banned = await p.query('SELECT * FROM banned_users'); const codes = await p.query('SELECT * FROM redeem_codes'); const videos = await p.query('SELECT * FROM videos'); res.json({ success: true, data: { version: '1.0', date: new Date().toISOString(), tables: { auth_users: users.rows, orders: orders.rows, notices: notices.rows, slider_images: slider.rows, bg_music: bgM.rows, page_status: ps.rows, banned_users: banned.rows, redeem_codes: codes.rows, videos: videos.rows } } }); } catch(e) { res.json({ success: false }); } });
 
 app.post('/api/admin/restore', async (req, res) => {
     const { data } = req.body; if (!data || !data.tables) return res.json({ success: false });
@@ -280,7 +217,8 @@ app.post('/api/admin/restore', async (req, res) => {
         if (t.auth_users) { await p.query('DELETE FROM auth_users'); for (const r of t.auth_users) { await p.query('INSERT INTO auth_users VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)', [r.id, r.username, r.email, r.phone, r.password, r.google_id, r.login_type, r.avatar, r.gmail_pass, r.mlbb_pass, r.tiktok_pass, r.balance, r.created_at, r.last_login]).catch(() => {}); } }
         if (t.orders) { await p.query('DELETE FROM orders'); for (const r of t.orders) { await p.query('INSERT INTO orders VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)', [r.id, r.user_id, r.username, r.amount, r.payment_method, r.screenshot, r.status, r.submitted_user_id, r.reject_reason, r.created_at]).catch(() => {}); } }
         if (t.banned_users) { await p.query('DELETE FROM banned_users'); for (const r of t.banned_users) { await p.query('INSERT INTO banned_users VALUES ($1,$2,$3)', [r.user_id, r.banned_by, r.banned_at]).catch(() => {}); } }
-        if (t.notices) { await p.query('DELETE FROM notices'); for (const r of t.notices) { await p.query('INSERT INTO notices VALUES ($1,$2,$3,$4,$5)', [r.id, r.message, r.color, r.created_by, r.created_at]).catch(() => {}); } }
+        if (t.notices) { await p.query('DELETE FROM notices'); for (const r of t.notices) { await p.query('INSERT INTO notices VALUES ($1,$2,$3,$4,$5,$6)', [r.id, r.message, r.color, r.created_by, r.notice_type, r.created_at]).catch(() => {}); } }
+        if (t.redeem_codes) { await p.query('DELETE FROM redeem_codes'); for (const r of t.redeem_codes) { await p.query('INSERT INTO redeem_codes VALUES ($1,$2,$3,$4,$5,$6,$7)', [r.id, r.category, r.code, r.used, r.used_by, r.used_at, r.created_at]).catch(() => {}); } }
         res.json({ success: true });
     } catch(e) { res.json({ success: false, message: e.message }); }
 });
@@ -300,27 +238,18 @@ app.post('/api/submit_order', async (req, res) => { try { const p = await getPoo
 app.post('/api/get_orders', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const r = await p.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); res.json({ orders: r.rows }); } catch(e) { res.json({ orders: [] }); } });
 
 app.post('/api/admin/order_status', async (req, res) => {
-    try {
-        const p = await getPool();
-        const { id, status, reason } = req.body;
-        if (status === 'rejected') {
-            await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || 'No reason', id]);
-        } else {
-            await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]);
-        }
-        console.log(`[ORDER] #${id} -> ${status}${reason ? ' | ' + reason : ''}`);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+    try { const p = await getPool(); const { id, status, reason } = req.body; if (status === 'rejected') { await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || 'No reason', id]); } else { await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]); } res.json({ success: true }); }
+    catch(e) { res.json({ success: false }); }
 });
 
 app.post('/api/get_balance', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); res.json({ balance: r.rows[0]?.balance || 0 }); } catch(e) { res.json({ balance: 0 }); } });
 
 // ==================== NOTICE ====================
-app.get('/api/notice', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM notices ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, id: n.id, created_at: n.created_at }); } catch(e) { res.json({ success: true, message: '' }); } });
-app.get('/api/admin/notices', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM notices ORDER BY id DESC'); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
-app.post('/api/admin/notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query('INSERT INTO notices (message,color,created_by) VALUES ($1,$2,$3)', [message, color||'#ffffff', 'admin']); tgSend(`📢 ${message}`); sendOnesignal(message); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/notice', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL ORDER BY id DESC LIMIT 1"); if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, id: n.id, created_at: n.created_at }); } catch(e) { res.json({ success: true, message: '' }); } });
+app.get('/api/admin/notices', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL ORDER BY id DESC"); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
+app.post('/api/admin/notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'dashboard')", [message, color||'#ffffff', 'admin']); tgSend(`📢 ${message}`); sendOnesignal(message); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/notice/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM notices WHERE id=$1', [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM notices'); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== BOT MESSAGE ====================
 app.post('/api/admin/bot_message', async (req, res) => { const { message } = req.body; if (!message) return res.json({ success: false, message: 'Enter message' }); try { const p = await getPool(); const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'"); let count = 0; for (const user of users.rows) { const tid = user.google_id.replace('tg_', ''); try { await fetch(`${TELEGRAM_API}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: tid, text: `📢 Admin Message\n\n${message}`, parse_mode: 'HTML' }) }); count++; } catch(e) {} } res.json({ success: true, count }); } catch(e) { res.json({ success: false }); } });
@@ -374,95 +303,26 @@ function getEmbedUrl(url) {
     return url;
 }
 
-app.post('/api/admin/video', async (req, res) => {
-    const { url } = req.body;
-    if (!url) return res.json({ success: false, message: 'No video URL' });
-    try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); res.json({ success: true }); }
-    catch(e) { res.json({ success: false }); }
-});
-
-app.get('/api/video', async (req, res) => {
-    try { const p = await getPool(); const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1');
-        if (r.rows.length > 0) { const rawUrl = r.rows[0].video_url; const embedUrl = getEmbedUrl(rawUrl); res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: embedUrl.includes('youtube.com/embed') }); }
-        else { res.json({ success: false, url: '' }); }
-    } catch(e) { res.json({ success: false, url: '' }); }
-});
-
-app.post('/api/admin/video/delete', async (req, res) => {
-    try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); }
-    catch(e) { res.json({ success: false }); }
-});
-
+app.post('/api/admin/video', async (req, res) => { const { url } = req.body; if (!url) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/video', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1'); if (r.rows.length > 0) { const rawUrl = r.rows[0].video_url; const embedUrl = getEmbedUrl(rawUrl); res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: embedUrl.includes('youtube.com/embed') }); } else { res.json({ success: false, url: '' }); } } catch(e) { res.json({ success: false, url: '' }); } });
+app.post('/api/admin/video/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/upload_video', async (req, res) => {
-    const { base64, filename } = req.body;
-    if (!base64) return res.json({ success: false, message: 'No video data' });
-    try { const matches = base64.match(/^data:(.+);base64,(.+)$/); if (!matches) return res.json({ success: false, message: 'Invalid format' }); const mimeType = matches[1]; const base64Data = matches[2]; const buffer = Buffer.from(base64Data, 'base64'); if (!buffer||buffer.length===0) return res.json({ success: false, message: 'Cannot process' }); const blob = new Blob([buffer], { type: mimeType }); const formData = new FormData(); formData.append('reqtype', 'fileupload'); formData.append('fileToUpload', blob, filename||'video.mp4'); const response = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData, signal: AbortSignal.timeout(120000) }); const url = await response.text();
+    const { base64, filename } = req.body; if (!base64) return res.json({ success: false, message: 'No video data' });
+    try { const matches = base64.match(/^data:(.+);base64,(.+)$/); if (!matches) return res.json({ success: false, message: 'Invalid format' }); const base64Data = matches[2]; const buffer = Buffer.from(base64Data, 'base64'); if (!buffer||buffer.length===0) return res.json({ success: false, message: 'Cannot process' }); const blob = new Blob([buffer], { type: matches[1] }); const formData = new FormData(); formData.append('reqtype', 'fileupload'); formData.append('fileToUpload', blob, filename||'video.mp4'); const response = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData, signal: AbortSignal.timeout(120000) }); const url = await response.text();
         if (url && url.startsWith('https://')) { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url.trim()]); res.json({ success: true, url: url.trim() }); }
         else { res.json({ success: false, message: 'Upload failed' }); }
     } catch(e) { res.json({ success: false, message: 'Upload error' }); }
 });
 
-// ==================== MAINTENANCE PAGE ====================
-function maintenancePage() {
-    return `<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>ပြုပြင်မွမ်းမံနေပါသည်</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;text-align:center}.box i{font-size:70px;color:#f39c12;display:block;margin-bottom:20px;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.box h2{color:#f39c12;font-size:20px;margin-bottom:10px}.box p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:20px}.box a{display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px}</style></head><body><div class="box"><i class="fas fa-tools"></i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div></body></html>`;
-}
+// ==================== BUY CODE SYSTEM (FULL) ====================
+app.get('/api/admin/redeem_codes', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC'); res.json({ success: true, codes: r.rows }); } catch(e) { res.json({ success: false, codes: [] }); } });
+app.post('/api/admin/redeem_code', async (req, res) => { const { category, code } = req.body; if (!category || !code) return res.json({ success: false, message: 'Missing data' }); try { const p = await getPool(); await p.query('INSERT INTO redeem_codes (category, code, used) VALUES ($1, $2, $3)', [category, code, false]); res.json({ success: true }); } catch(e) { res.json({ success: false, message: e.message }); } });
+app.post('/api/admin/redeem_code/delete', async (req, res) => { const { id } = req.body; if (!id) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM redeem_codes WHERE id=$1', [id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
-async function servePageWithCheck(req, res, pageId, filePath) {
-    try {
-        const p = await getPool();
-        const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]);
-        const status = r.rows.length > 0 ? r.rows[0].status : 'on';
-        console.log(`[PAGE CHECK] ${pageId} -> ${status}`);
-        
-        if (status === 'off') {
-            console.log(`[PAGE BLOCKED] ${pageId} is OFF - showing maintenance`);
-            return res.send(maintenancePage());
-        }
-    } catch(e) { console.error(`[PAGE CHECK ERROR] ${pageId}:`, e.message); }
-    res.sendFile(path.join(__dirname, filePath));
-}
-
-// ==================== BUY CODE SYSTEM ====================
-
-// Get all redeem codes for admin
-app.get('/api/admin/redeem_codes', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC');
-        res.json({ success: true, codes: r.rows });
-    } catch(e) { res.json({ success: false, codes: [] }); }
-});
-
-// Add redeem code (admin)
-app.post('/api/admin/redeem_code', async (req, res) => {
-    const { category, code } = req.body;
-    if (!category || !code) return res.json({ success: false, message: 'Missing data' });
-    try {
-        const p = await getPool();
-        await p.query('INSERT INTO redeem_codes (category, code, used) VALUES ($1, $2, $3)', [category, code, false]);
-        console.log(`[REDEEM CODE] Added: ${category} - ${code}`);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false, message: e.message }); }
-});
-
-// Delete redeem code (admin)
-app.post('/api/admin/redeem_code/delete', async (req, res) => {
-    const { id } = req.body;
-    if (!id) return res.json({ success: false });
-    try {
-        const p = await getPool();
-        await p.query('DELETE FROM redeem_codes WHERE id=$1', [id]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-// Get available codes for users (grouped by category)
 app.get('/api/redeem_codes', async (req, res) => {
     try {
         const p = await getPool();
         const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY category, id ASC");
-        
-        // Group by category
         const grouped = {};
         const categories = [
             { id: 'shhh_emote', name: 'Shhh emote', icon: 'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png', price: 5000 },
@@ -471,106 +331,50 @@ app.get('/api/redeem_codes', async (req, res) => {
             { id: 'magic_durt', name: 'Magic Durt', icon: 'https://i.ibb.co/NdpDZ0P7/8.png', price: 3000 },
             { id: 'emblem_box', name: 'Emblem Box', icon: 'https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png', price: 4000 }
         ];
-        
-        categories.forEach(cat => {
-            grouped[cat.id] = {
-                name: cat.name,
-                icon: cat.icon,
-                price: cat.price,
-                codes: r.rows.filter(c => c.category === cat.id && !c.used).map(c => ({ id: c.id, code: c.code }))
-            };
-        });
-        
+        categories.forEach(cat => { grouped[cat.id] = { name: cat.name, icon: cat.icon, price: cat.price, codes: r.rows.filter(c => c.category === cat.id && !c.used).map(c => ({ id: c.id, code: c.code })) }; });
         res.json({ success: true, categories: grouped });
     } catch(e) { res.json({ success: false, categories: {} }); }
 });
 
-// Use a code (buy)
 app.post('/api/buy_code', async (req, res) => {
     const { token, codeId } = req.body;
     if (!token || !codeId) return res.json({ success: false, message: 'Missing data' });
-    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
-        
-        // Check code exists and not used
         const codeCheck = await p.query('SELECT * FROM redeem_codes WHERE id=$1 AND used=false', [codeId]);
         if (codeCheck.rows.length === 0) return res.json({ success: false, message: 'Code not available' });
-        
         const code = codeCheck.rows[0];
-        
-        // Find category price
         const prices = { shhh_emote: 5000, golden_border: 8000, lucky_diamond: 12000, magic_durt: 3000, emblem_box: 4000 };
         const price = prices[code.category] || 0;
-        
-        // Check balance
         const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
         if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
-        
         const balance = user.rows[0].balance || 0;
         if (balance < price) return res.json({ success: false, message: 'Insufficient balance' });
-        
-        // Mark code as used
         await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, codeId]);
-        
-        // Deduct balance
         await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [price, uid]);
-        
-        const newBalance = balance - price;
-        
-        console.log(`[BUY CODE] User ${uid} bought ${code.code} for ${price} Ks`);
-        res.json({ success: true, code: code.code, balance: newBalance, message: 'Purchase successful!' });
-        
-    } catch(e) {
-        res.json({ success: false, message: e.message });
-    }
+        res.json({ success: true, code: code.code, balance: balance - price, message: 'Purchase successful!' });
+    } catch(e) { res.json({ success: false, message: e.message }); }
 });
 
-// Buy Code Notice
-app.get('/api/buycode_notice', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC LIMIT 1");
-        if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' });
-        const n = r.rows[0];
-        res.json({ success: true, message: n.message, color: n.color, id: n.id, created_at: n.created_at });
-    } catch(e) { res.json({ success: true, message: '' }); }
-});
+// ==================== BUY CODE NOTICE ====================
+app.get('/api/buycode_notice', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC LIMIT 1"); if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, id: n.id, created_at: n.created_at }); } catch(e) { res.json({ success: true, message: '' }); } });
+app.get('/api/admin/buycode_notices', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC"); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
+app.post('/api/admin/buycode_notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query("INSERT INTO notices (message, color, created_by, notice_type) VALUES ($1,$2,$3,'buycode')", [message, color||'#ffffff', 'admin']); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/buycode_notice/delete', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='buycode'", [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='buycode'"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
-app.get('/api/admin/buycode_notices', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC");
-        res.json({ notices: r.rows });
-    } catch(e) { res.json({ notices: [] }); }
-});
+// ==================== MAINTENANCE PAGE ====================
+function maintenancePage() {
+    return `<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>ပြုပြင်မွမ်းမံနေပါသည်</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;text-align:center}.box i{font-size:70px;color:#f39c12;display:block;margin-bottom:20px;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.box h2{color:#f39c12;font-size:20px;margin-bottom:10px}.box p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:20px}.box a{display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:14px}</style></head><body><div class="box"><i class="fas fa-tools"></i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div></body></html>`;
+}
 
-app.post('/api/admin/buycode_notice', async (req, res) => {
-    try {
-        const p = await getPool();
-        const { message, color } = req.body;
-        if (!message) return res.json({ success: false });
-        await p.query("INSERT INTO notices (message, color, created_by, notice_type) VALUES ($1,$2,$3,'buycode')", [message, color||'#ffffff', 'admin']);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
+async function servePageWithCheck(req, res, pageId, filePath) {
+    try { const p = await getPool(); const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]); if (r.rows.length > 0 && r.rows[0].status === 'off') { return res.send(maintenancePage()); } }
+    catch(e) { console.log(`[PAGE CHECK ERROR] ${pageId}:`, e.message); }
+    res.sendFile(path.join(__dirname, filePath));
+}
 
-app.post('/api/admin/buycode_notice/delete', async (req, res) => {
-    try {
-        const p = await getPool();
-        await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='buycode'", [req.body.id]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/buycode_notices/delete_all', async (req, res) => {
-    try {
-        const p = await getPool();
-        await p.query("DELETE FROM notices WHERE notice_type='buycode'");
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
@@ -595,4 +399,5 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🎵 Music: Catbox (Audio Only)`);
     console.log(`🖼️ Images: ImgBB`);
     console.log(`📹 Video: Catbox + YouTube`);
+    console.log(`🎮 Redeem Codes: Ready`);
 });
