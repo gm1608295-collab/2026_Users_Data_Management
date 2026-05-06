@@ -52,7 +52,7 @@ function sendOnesignal(msg) { try { const data = JSON.stringify({ app_id: ONESIG
 async function initTables(p) {
     const queries = [
         `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), notice_type VARCHAR(20) DEFAULT 'dashboard', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS page_status (page_id VARCHAR(50) PRIMARY KEY, status VARCHAR(5) DEFAULT 'on', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
@@ -101,7 +101,7 @@ app.post('/api/upload_image', async (req, res) => {
         const response = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData.toString(), signal: AbortSignal.timeout(15000) });
         const data = await response.json();
         data.success ? res.json({ success: true, url: data.data.url }) : res.json({ success: false, message: 'Upload failed' });
-    } catch(e) { res.json({ success: false, message: 'Upload error' }); }
+    } catch(e) { res.json({ success: false }); }
 });
 
 // ==================== MUSIC UPLOAD ====================
@@ -125,7 +125,7 @@ app.post('/api/upload_music', async (req, res) => {
         const url = await response.text();
         if (url && url.startsWith('https://')) res.json({ success: true, url: url.trim() });
         else res.json({ success: false, message: 'Upload failed' });
-    } catch(e) { res.json({ success: false, message: 'Upload error' }); }
+    } catch(e) { res.json({ success: false }); }
 });
 
 // ==================== AUTH ====================
@@ -172,7 +172,7 @@ app.get('/auth/tiktok/callback', async (req, res) => {
         const td = await tr.json(); const ur = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name', { headers: { 'Authorization': `Bearer ${td.access_token}` } });
         const ud = await ur.json(); const user = ud.data.user;
         const p = await getPool(); const dr = await p.query('SELECT * FROM auth_users WHERE google_id=$1', [user.open_id]);
-        if (dr.rows.length > 0) { await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [dr.rows[0].id]); res.send(`<script>localStorage.setItem("auth_token","token_${dr.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${dr.rows[0].id},username:"${dr.rows[0].username||user.display_name}",email:"${dr.rows[0].email||'tiktok@user.com'}",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); }
+        if (dr.rows.length > 0) { await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [dr.rows[0].id]); res.send(`<script>localStorage.setItem("auth_token","token_${dr.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${dr.rows[0].id},username:"${dr.rows[0].username||user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); }
         else { const nu = await p.query('INSERT INTO auth_users (username,email,google_id,login_type) VALUES ($1,$2,$3,$4) RETURNING id', [user.display_name, 'tiktok_'+user.open_id+'@tiktok.com', user.open_id, 'tiktok']); res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); }
     } catch(e) { res.send('<script>alert("Failed");window.location.href="/";</script>'); }
 });
@@ -205,6 +205,18 @@ app.post('/api/admin/toggle_page', async (req, res) => { try { const p = await g
 // ==================== BACKUP & RESTORE ====================
 app.get('/api/admin/backup', async (req, res) => { try { const p = await getPool(); const users = await p.query('SELECT * FROM auth_users'); const orders = await p.query('SELECT * FROM orders'); const notices = await p.query('SELECT * FROM notices'); const slider = await p.query('SELECT * FROM slider_images'); const bgM = await p.query('SELECT * FROM bg_music'); const ps = await p.query('SELECT * FROM page_status'); const banned = await p.query('SELECT * FROM banned_users'); const codes = await p.query('SELECT * FROM redeem_codes'); const videos = await p.query('SELECT * FROM videos'); res.json({ success: true, data: { version: '1.0', date: new Date().toISOString(), tables: { auth_users: users.rows, orders: orders.rows, notices: notices.rows, slider_images: slider.rows, bg_music: bgM.rows, page_status: ps.rows, banned_users: banned.rows, redeem_codes: codes.rows, videos: videos.rows } } }); } catch(e) { res.json({ success: false }); } });
 
+app.post('/api/admin/restore', async (req, res) => {
+    const { data } = req.body; if (!data || !data.tables) return res.json({ success: false });
+    try { const p = await getPool(); const t = data.tables;
+        if (t.auth_users) { await p.query('DELETE FROM auth_users'); for (const r of t.auth_users) { await p.query('INSERT INTO auth_users VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)', [r.id, r.username, r.email, r.phone, r.password, r.google_id, r.login_type, r.avatar, r.gmail_pass, r.mlbb_pass, r.tiktok_pass, r.balance, r.created_at, r.last_login]).catch(() => {}); } }
+        if (t.orders) { await p.query('DELETE FROM orders'); for (const r of t.orders) { await p.query('INSERT INTO orders VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)', [r.id, r.user_id, r.username, r.amount, r.payment_method, r.screenshot, r.status, r.submitted_user_id, r.reject_reason, r.created_at]).catch(() => {}); } }
+        if (t.banned_users) { await p.query('DELETE FROM banned_users'); for (const r of t.banned_users) { await p.query('INSERT INTO banned_users VALUES ($1,$2,$3)', [r.user_id, r.banned_by, r.banned_at]).catch(() => {}); } }
+        if (t.notices) { await p.query('DELETE FROM notices'); for (const r of t.notices) { await p.query('INSERT INTO notices VALUES ($1,$2,$3,$4,$5,$6)', [r.id, r.message, r.color, r.created_by, r.notice_type, r.created_at]).catch(() => {}); } }
+        if (t.redeem_codes) { await p.query('DELETE FROM redeem_codes'); for (const r of t.redeem_codes) { await p.query('INSERT INTO redeem_codes VALUES ($1,$2,$3,$4,$5,$6,$7)', [r.id, r.category, r.code, r.used, r.used_by, r.used_at, r.created_at]).catch(() => {}); } }
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false, message: e.message }); }
+});
+
 // ==================== ADMIN ====================
 app.get('/api/admin/users_grouped', async (req, res) => { try { const p = await getPool(); const lo = await p.query("SELECT * FROM auth_users WHERE login_type='local' ORDER BY id DESC"); const go = await p.query("SELECT * FROM auth_users WHERE login_type='google' ORDER BY id DESC"); const ti = await p.query("SELECT * FROM auth_users WHERE login_type='tiktok' ORDER BY id DESC"); const tg = await p.query("SELECT * FROM auth_users WHERE login_type='telegram' ORDER BY id DESC"); const ba = await p.query("SELECT user_id FROM banned_users"); res.json({ success: true, local: lo.rows, google: go.rows, tiktok: ti.rows, telegram: tg.rows, banned: ba.rows.map(r=>r.user_id), total: lo.rows.length + go.rows.length + ti.rows.length + tg.rows.length }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/edit_user', async (req, res) => { try { const p = await getPool(); req.body.password ? await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3,password=$4 WHERE id=$5", [req.body.username, req.body.email, req.body.phone, req.body.password, req.body.id]) : await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3 WHERE id=$4", [req.body.username, req.body.email, req.body.phone, req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
@@ -235,24 +247,17 @@ app.post('/api/admin/bot_message', async (req, res) => { const { message } = req
 let lastUpdateId = 0;
 function sendTelegramMessage(chatId, text, replyMarkup = null) { const body = { chat_id: chatId, text, parse_mode: 'HTML' }; if (replyMarkup) body.reply_markup = JSON.stringify(replyMarkup); https.get(`${TELEGRAM_API}/sendMessage?${new URLSearchParams(body).toString()}`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 async function createTelegramUser(userId, firstName) { try { const p = await getPool(); const exist = await p.query("SELECT * FROM auth_users WHERE google_id=$1", ['tg_'+userId]); if (exist.rows.length > 0) { await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [exist.rows[0].id]); return { id: exist.rows[0].id, balance: exist.rows[0].balance || 0 }; } const nu = await p.query('INSERT INTO auth_users (username,email,google_id,login_type,balance) VALUES ($1,$2,$3,$4,$5) RETURNING id', [firstName||'User', 'tg_'+userId+'@telegram.com', 'tg_'+userId, 'telegram', 0]); return { id: nu.rows[0].id, balance: 0 }; } catch(e) { return null; } }
-async function getUserBalance(userId) { try { const p = await getPool(); const r = await p.query("SELECT balance FROM auth_users WHERE google_id=$1", ['tg_'+userId]); return r.rows.length > 0 ? (r.rows[0].balance||0) : null; } catch(e) { return null; } }
 
 function startLongPolling() {
     console.log('🤖 Bot Started');
-    const quickKeyboard = { inline_keyboard: [[{ text: '💳 Check Balance', callback_data: 'balance' }], [{ text: '🔐 Get OTP', callback_data: 'otp' }], [{ text: '📋 Order Status', callback_data: 'status' }]] };
+    const quickKeyboard = { inline_keyboard: [[{ text: '💳 Check Balance', callback_data: 'balance' }]] };
     async function getUpdates() {
         try { const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId+1}&timeout=15`; const response = await fetch(url, { signal: AbortSignal.timeout(20000) }); const result = await response.json();
             if (result.ok && result.result.length > 0) { for (const update of result.result) { lastUpdateId = update.update_id;
-                if (update.callback_query) { const cq = update.callback_query; const chatId = cq.message.chat.id; const data = cq.data; const user = await createTelegramUser(cq.from.id, cq.from.first_name); if (!user) continue;
-                    if (data === 'balance') { sendTelegramMessage(chatId, `💳 Balance: <b>${(user.balance||0).toLocaleString()} Ks</b>`); }
-                    try { await fetch(`${TELEGRAM_API}/answerCallbackQuery`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ callback_query_id:cq.id }) }); } catch(e) {}
-                    continue;
-                }
                 const msg = update.message; if (!msg) continue;
                 const chatId = msg.chat.id; const text = (msg.text||'').trim(); const firstName = msg.from.first_name||'User';
                 if (text==='/start') { const user=await createTelegramUser(msg.from.id, firstName); sendTelegramMessage(chatId, `👋 ${firstName}!\n💳 Balance: <b>${(user?.balance||0).toLocaleString()} Ks</b>`, quickKeyboard); }
-                else if (text==='/balance') { const user=await createTelegramUser(msg.from.id, firstName); sendTelegramMessage(chatId, `💳 Balance: <b>${(user?.balance||0).toLocaleString()} Ks</b>`); }
-                else { sendTelegramMessage(chatId, '/start /balance /help'); }
+                else { sendTelegramMessage(chatId, '/start'); }
             } }
         } catch(e) { console.log('Polling:', e.message); } setTimeout(getUpdates, 500);
     } getUpdates();
@@ -286,7 +291,10 @@ app.get('/api/redeem_codes', async (req, res) => {
         });
         
         res.json({ success: true, categories: grouped });
-    } catch(e) { res.json({ success: false, categories: {} }); }
+    } catch(e) { 
+        console.error('[REDEEM CODES ERROR]', e.message);
+        res.json({ success: false, categories: {} }); 
+    }
 });
 
 app.post('/api/buy_code', async (req, res) => {
@@ -325,7 +333,7 @@ app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { co
 
 // ==================== MAINTENANCE PAGE ====================
 function maintenancePage() {
-    return `<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>ပြုပြင်မွမ်းမံနေပါသည်</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0}body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;text-align:center;font-family:sans-serif}.box i{font-size:70px;color:#f39c12;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.box h2{color:#f39c12;margin:15px 0}.box p{color:#ccc;margin-bottom:20px}.box a{color:#000;background:#f39c12;padding:10px 25px;border-radius:6px;text-decoration:none;font-weight:bold}</style></head><body><div class="box"><i class="fas fa-tools"></i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div></body></html>`;
+    return `<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>ပြုပြင်မွမ်းမံနေပါသည်</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0}body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;text-align:center;font-family:sans-serif;color:#fff}.box i{font-size:70px;color:#f39c12;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.box h2{color:#f39c12;margin:15px 0}.box p{color:#ccc;margin-bottom:20px}.box a{color:#000;background:#f39c12;padding:10px 25px;border-radius:6px;text-decoration:none;font-weight:bold}</style></head><body><div class="box"><i class="fas fa-tools"></i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div></body></html>`;
 }
 
 async function servePageWithCheck(req, res, pageId, filePath) {
@@ -356,4 +364,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🗄️ DB: DB1 + DB2 Auto-Switch`);
     console.log(`📄 Page Control: 9 pages`);
     console.log(`🎮 Redeem Codes: ${REDEEM_CATEGORIES.length} categories`);
+    console.log(`📹 Video: YouTube + Catbox`);
+    console.log(`🎵 Music: Catbox (Audio Only)`);
+    console.log(`🖼️ Images: ImgBB`);
 });
