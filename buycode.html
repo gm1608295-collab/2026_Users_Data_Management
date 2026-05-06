@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SOLO M Game Shop - Buy Code</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
@@ -45,7 +46,6 @@
         .modal-box .warning-text{font-size:10px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px;line-height:1.5}
         .modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
         .modal-box .code-val{font-family:'Courier New',monospace;font-size:12px;word-break:break-all;flex:1;color:rgba(255,255,255,0.3);letter-spacing:2px}
-        .modal-box .code-val.available{color:var(--g);letter-spacing:1px}
         .btn-sm{padding:6px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
         .btn-buy{background:var(--g);color:#000}.btn-buy:disabled{opacity:0.5;cursor:not-allowed}
         .btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
@@ -76,7 +76,6 @@
     <div class="container" id="mainContainer">
         <div class="header"><a href="/dashboard"><i class="fas fa-arrow-left"></i></a><h1><i class="fas fa-shopping-cart"></i> Buy Code MLBB</h1></div>
         
-        <!-- Maintenance -->
         <div id="maintenanceMessage" style="display:none">
             <div class="maintenance-container">
                 <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
@@ -86,14 +85,12 @@
         </div>
         
         <div id="buycodeContent">
-            <!-- Balance -->
             <div class="balance-card">
                 <div class="amount" id="myBalance">0 Ks</div>
                 <div class="label">Myanmar Kyat (MMK)</div>
                 <div class="usd-amount" id="usdBalance">≈ $0.00 USD</div>
             </div>
             
-            <!-- Notice -->
             <div class="notice-banner" id="noticeBanner" style="display:none">
                 <div class="notice-icon" id="noticeIcon"><i class="fas fa-bullhorn"></i></div>
                 <div class="notice-text">
@@ -110,7 +107,6 @@
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
     
-    <!-- Category Modal -->
     <div class="modal" id="categoryModal">
         <div class="modal-box">
             <img class="modal-img" id="modalImg" src="" alt="">
@@ -121,22 +117,30 @@
         </div>
     </div>
     
-    <!-- QR Modal -->
     <div class="qr-modal" id="qrModal">
         <div class="qr-box" id="qrBoxContent"></div>
     </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
     // ==================== PAGE ACCESS CHECK ====================
-    async function checkPageAccess(){try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const bc=d.pages.find(p=>p.id==='buycode');if(bc&&bc.status==='off'){document.getElementById('maintenanceMessage').style.display='block';document.getElementById('buycodeContent').style.display='none';document.querySelector('.back-btn').style.display='none';return false}}return true}catch(e){return true}}
+    async function checkPageAccess(){
+        try{
+            const r=await fetch('/api/admin/page_status');
+            const d=await r.json();
+            if(d.pages){
+                const bc=d.pages.find(p=>p.id==='buycode');
+                if(bc&&bc.status==='off'){
+                    document.getElementById('maintenanceMessage').style.display='block';
+                    document.getElementById('buycodeContent').style.display='none';
+                    document.querySelector('.back-btn').style.display='none';
+                    return false;
+                }
+            }
+            return true;
+        }catch(e){return true;}
+    }
 
-    // ==================== GLOBAL VARIABLES ====================
-    let categoriesData = {};
-    let currentBalance = 0;
-    let qrTimerInterval = null;
-    let revealedCodeValue = '';
-    let currentCategoryKey = '';
+    let categoriesData={},currentBalance=0,qrTimerInterval=null,revealedCodeValue='',currentCategoryKey='';
 
     function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",2000)}
     function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
@@ -144,24 +148,16 @@
     // ==================== LOAD DATA ====================
     async function loadAllData(){
         try{
-            // Load categories from server
-            const r=await fetch('/api/redeem_codes');
-            const d=await r.json();
+            const r=await fetch('/api/redeem_codes');const d=await r.json();
             if(d.success){categoriesData=d.categories;renderGameCards();}
-            
-            // Load balance
-            await loadBalance();
-            
-            // Load notice
-            loadBuyCodeNotice();
+            await loadBalance();loadBuyCodeNotice();
         }catch(e){console.log('Load error:',e)}
     }
 
     async function loadBalance(){
         try{
             const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
-            const d=await r.json();
-            currentBalance=d.balance||0;
+            const d=await r.json();currentBalance=d.balance||0;
             document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
             document.getElementById('usdBalance').textContent=`≈ $${(currentBalance/2100).toFixed(2)} USD`;
         }catch(e){}
@@ -189,15 +185,13 @@
             document.getElementById('gameGrid').innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);grid-column:1/-1;padding:30px">No codes available yet.</p>';
             return;
         }
-        
         document.getElementById('gameGrid').innerHTML=cats.map(key=>{
             const cat=categoriesData[key];
-            const availableCount=cat.codes?cat.codes.length:0;
             return`<div class="game-card" onclick="openCategory('${key}')">
                 <img src="${cat.icon}" alt="${cat.name}">
                 <p>${cat.name}</p>
                 <div class="price-tag">💰 ${fm(cat.price)} Ks</div>
-                <div class="code-count">📦 ${availableCount} codes</div>
+                <div class="code-count">📦 ${cat.codes?.length||0} codes</div>
             </div>`;
         }).join('');
     }
@@ -205,24 +199,20 @@
     // ==================== CATEGORY MODAL ====================
     function openCategory(key){
         currentCategoryKey=key;
-        const cat=categoriesData[key];
-        if(!cat)return;
-        
+        const cat=categoriesData[key];if(!cat)return;
         document.getElementById('modalImg').src=cat.icon;
         document.getElementById('modalTitle').textContent=cat.name;
-        
         const codes=cat.codes||[];
         if(codes.length===0){
             document.getElementById('codeList').innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No codes available.</p>';
         }else{
             document.getElementById('codeList').innerHTML=codes.map(c=>`
                 <div class="code-item">
-                    <span class="code-val">ဝယ်ယူပြီးပါက ဤနေရာတွင် Code ပေါ်လာပါမည်</span>
+                    <span class="code-val">ဝယ်ယူပြီးပါက Code ပေါ်လာမည်</span>
                     <button class="btn-sm btn-buy" onclick="buyCode(${c.id})">Buy (${fm(cat.price)} Ks)</button>
                 </div>
             `).join('');
         }
-        
         document.getElementById('categoryModal').classList.add('active');
     }
 
@@ -230,26 +220,18 @@
 
     // ==================== BUY CODE ====================
     async function buyCode(codeId){
-        const cat=categoriesData[currentCategoryKey];
-        if(!cat)return;
-        
+        const cat=categoriesData[currentCategoryKey];if(!cat)return;
         if(currentBalance<cat.price)return n('ငွေမလုံလောက်ပါ','error');
         if(!confirm(`${cat.name}\n\nစျေးနှုန်း: ${fm(cat.price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?`))return;
-        
         try{
             const r=await fetch('/api/buy_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),codeId:codeId})});
             const d=await r.json();
-            
             if(d.success){
                 currentBalance=d.balance;
                 document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
                 document.getElementById('usdBalance').textContent=`≈ $${(currentBalance/2100).toFixed(2)} USD`;
-                closeCategoryModal();
-                loadAllData(); // Refresh data
-                showQRModal(d.code);
-            }else{
-                n(d.message||'Error','error');
-            }
+                closeCategoryModal();loadAllData();showQRModal(d.code);
+            }else{n(d.message||'Error','error')}
         }catch(e){n('Connection error','error')}
     }
 
@@ -268,13 +250,9 @@
                 <button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy Code</button>
             </div>
             <button class="close-qr" onclick="closeQRModal()">Close</button>`;
-        
         document.getElementById('qrModal').classList.add('active');
-        
         setTimeout(()=>{const c=document.getElementById('qrcodeContainer');if(c){c.innerHTML='';new QRCode(c,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'})}},100);
-        
-        let sec=10;
-        if(qrTimerInterval)clearInterval(qrTimerInterval);
+        let sec=10;if(qrTimerInterval)clearInterval(qrTimerInterval);
         qrTimerInterval=setInterval(()=>{sec--;const t=document.getElementById('qrTimer');if(t)t.textContent=`⏱️ ${sec} seconds remaining`;if(sec<=0){clearInterval(qrTimerInterval);closeQRModal();n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ')}},1000);
     }
 
@@ -289,8 +267,7 @@
     (async function init(){
         const pageOn=await checkPageAccess();if(!pageOn)return;
         document.getElementById('buycodeContent').style.display='block';
-        loadAllData();
-        setInterval(loadBuyCodeNotice,3000);
+        loadAllData();setInterval(loadBuyCodeNotice,3000);
     })();
 </script>
 </body>
