@@ -185,13 +185,54 @@ app.post('/api/change_password', (req, res) => { res.json({ success: true }); })
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
 app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
 
-// ==================== VERIFY USER ID ====================
 app.post('/api/verify_user_id', async (req, res) => {
-    const { token, userId } = req.body; if (!token || !userId) return res.json({ success: false, verified: false });
-    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); const r = await p.query('SELECT id,username,email FROM auth_users WHERE id=$1', [uid]); if (r.rows.length === 0) return res.json({ verified: false }); const u = r.rows[0]; u.id.toString().padStart(6,'0') === userId.toString().padStart(6,'0') ? res.json({ success: true, verified: true, username: u.username, email: u.email, id: u.id }) : res.json({ verified: false }); }
-    catch(e) { res.json({ verified: false }); }
+    const { token, userId } = req.body;
+    
+    console.log('[VERIFY ID] Request:', { token, userId });
+    
+    if (!token || !userId) {
+        console.log('[VERIFY ID] Missing token or userId');
+        return res.json({ success: false, verified: false, message: 'Missing data' });
+    }
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        if (isNaN(uid)) {
+            console.log('[VERIFY ID] Invalid token format');
+            return res.json({ verified: false, message: 'Invalid token' });
+        }
+        
+        const r = await p.query('SELECT id, username, email FROM auth_users WHERE id=$1', [uid]);
+        
+        if (r.rows.length === 0) {
+            console.log('[VERIFY ID] User not found');
+            return res.json({ verified: false, message: 'User not found' });
+        }
+        
+        const u = r.rows[0];
+        const paddedId = u.id.toString().padStart(6, '0');
+        const paddedInput = userId.toString().padStart(6, '0');
+        
+        console.log('[VERIFY ID] Compare:', paddedId, 'vs', paddedInput);
+        
+        if (paddedId === paddedInput) {
+            res.json({ 
+                success: true, 
+                verified: true, 
+                username: u.username, 
+                email: u.email, 
+                id: u.id 
+            });
+        } else {
+            res.json({ verified: false, message: 'ID mismatch' });
+        }
+    } catch(e) {
+        console.error('[VERIFY ID] Error:', e);
+        res.json({ verified: false, message: e.message }); 
+    }
 });
-
 // ==================== CODE MANAGEMENT ====================
 app.post('/api/use_code', async (req, res) => { try { const p = await getPool(); const exist = await p.query('SELECT * FROM used_codes WHERE code=$1', [req.body.code]); if (exist.rows.length > 0) return res.json({ already_used: true }); await p.query('INSERT INTO used_codes (code,user_id) VALUES ($1,$2)', [req.body.code, req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
