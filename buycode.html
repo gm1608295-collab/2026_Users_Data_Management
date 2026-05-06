@@ -255,6 +255,36 @@ function openCategory(key) {
 
 function closeCategoryModal() { document.getElementById('categoryModal').classList.remove('active'); }
 
+// ==================== BUY CODE NOTICE ====================
+function renderBuyCodeNotice(d) {
+    const b = document.getElementById('noticeBanner');
+    const m = document.getElementById('noticeMsgDisplay');
+    const t = document.getElementById('noticeTime');
+    
+    if (d && d.message) {
+        b.style.display = 'flex';
+        m.textContent = d.message;
+        m.style.color = d.color || 'var(--t)';
+        document.getElementById('noticeIcon').style.color = d.color || 'var(--w)';
+        t.textContent = new Date(d.created_at).toLocaleString();
+    } else {
+        b.style.display = 'none';
+    }
+}
+
+async function loadBuyCodeNotice() {
+    try {
+        const r = await fetch("/api/buycode_notice");
+        const d = await r.json();
+        console.log('[BUYCODE NOTICE]', d);  // Debug
+        
+        if (d.success && d.message) {
+            renderBuyCodeNotice(d);
+        }
+    } catch(e) {
+        console.log('Notice error:', e);
+    }
+}    
 // ==================== BUY CODE ====================
 async function buyCode(codeId) {
     const cat = categoriesData[currentCategoryKey];
@@ -334,8 +364,12 @@ function closeQRModal() { document.getElementById('qrModal').classList.remove('a
         document.getElementById('myBalance').textContent = fm(currentBalance) + ' Ks';
         document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
     } catch(e) {}
+    
+    // 👇 ဒါကိုထည့်ပါ
+    loadBuyCodeNotice();
+    setInterval(loadBuyCodeNotice, 5000);  // Check every 5 seconds
+    
 })();
-
 </script>
 </body>
 </html>
