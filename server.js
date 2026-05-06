@@ -66,15 +66,14 @@ async function initTables(p) {
 }
 initTables(pool1); initTables(pool2);
 
-// Add reject_reason column if not exists
-async function addRejectReasonColumn() {
+// Add reject_reason column
+async function addColumns() {
     try {
         await pool1.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT ''").catch(() => {});
         await pool2.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT ''").catch(() => {});
-        console.log('✅ reject_reason column ready');
-    } catch(e) { console.log('Column check:', e.message); }
+    } catch(e) {}
 }
-addRejectReasonColumn();
+addColumns();
 
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
@@ -109,17 +108,17 @@ app.post('/api/upload_music', async (req, res) => {
         const isVideo = base64.startsWith('data:video/');
         const isAudio = base64.startsWith('data:audio/');
         const isM4A = filename && (filename.toLowerCase().endsWith('.m4a') || filename.toLowerCase().endsWith('.aac'));
-        if (isVideo && !isM4A) return res.json({ success: false, message: '❌ Video files not allowed! Please select Audio only.' });
-        if (!isAudio && !isVideo) return res.json({ success: false, message: '❌ Invalid file type!' });
+        if (isVideo && !isM4A) return res.json({ success: false, message: '❌ Video not allowed! Audio only.' });
+        if (!isAudio && !isVideo) return res.json({ success: false, message: '❌ Invalid file!' });
         let base64Data;
         const matches = base64.match(/^data:[^;]+;base64,(.+)$/);
         if (matches && matches[1]) base64Data = matches[1];
         else { const ci = base64.indexOf(','); base64Data = ci > -1 ? base64.substring(ci + 1) : base64; }
-        if (!base64Data || base64Data.length === 0) return res.json({ success: false, message: '❌ Invalid file data.' });
+        if (!base64Data || base64Data.length === 0) return res.json({ success: false, message: '❌ Invalid data.' });
         const buffer = Buffer.from(base64Data, 'base64');
-        if (!buffer || buffer.length === 0) return res.json({ success: false, message: '❌ Could not process file.' });
+        if (!buffer || buffer.length === 0) return res.json({ success: false, message: '❌ Cannot process.' });
         let ext = '.mp3';
-        if (filename) { const fn = filename.toLowerCase(); if (fn.endsWith('.m4a')) ext = '.m4a'; else if (fn.endsWith('.ogg')) ext = '.ogg'; else if (fn.endsWith('.wav')) ext = '.wav'; else if (fn.endsWith('.aac')) ext = '.aac'; else if (fn.endsWith('.flac')) ext = '.flac'; else if (fn.endsWith('.mp3')) ext = '.mp3'; }
+        if (filename) { const fn = filename.toLowerCase(); if (fn.endsWith('.m4a')) ext = '.m4a'; else if (fn.endsWith('.ogg')) ext = '.ogg'; else if (fn.endsWith('.wav')) ext = '.wav'; else if (fn.endsWith('.aac')) ext = '.aac'; }
         const finalFilename = (filename || 'music') + ext;
         const blob = new Blob([buffer], { type: 'application/octet-stream' });
         const formData = new FormData(); formData.append('reqtype', 'fileupload'); formData.append('fileToUpload', blob, finalFilename);
@@ -185,31 +184,20 @@ app.post('/api/change_password', (req, res) => { res.json({ success: true }); })
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
 app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
 
+// ==================== VERIFY USER ID ====================
 app.post('/api/verify_user_id', async (req, res) => {
     const { token, userId } = req.body;
+    console.log('[VERIFY ID] Request:', { token: token?.substring(0,10)+'...', userId });
     
-    console.log('[VERIFY ID] Request:', { token, userId });
-    
-    if (!token || !userId) {
-        console.log('[VERIFY ID] Missing token or userId');
-        return res.json({ success: false, verified: false, message: 'Missing data' });
-    }
+    if (!token || !userId) return res.json({ success: false, verified: false, message: 'Missing data' });
     
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
-        
-        if (isNaN(uid)) {
-            console.log('[VERIFY ID] Invalid token format');
-            return res.json({ verified: false, message: 'Invalid token' });
-        }
+        if (isNaN(uid)) return res.json({ verified: false, message: 'Invalid token' });
         
         const r = await p.query('SELECT id, username, email FROM auth_users WHERE id=$1', [uid]);
-        
-        if (r.rows.length === 0) {
-            console.log('[VERIFY ID] User not found');
-            return res.json({ verified: false, message: 'User not found' });
-        }
+        if (r.rows.length === 0) return res.json({ verified: false, message: 'User not found' });
         
         const u = r.rows[0];
         const paddedId = u.id.toString().padStart(6, '0');
@@ -218,21 +206,16 @@ app.post('/api/verify_user_id', async (req, res) => {
         console.log('[VERIFY ID] Compare:', paddedId, 'vs', paddedInput);
         
         if (paddedId === paddedInput) {
-            res.json({ 
-                success: true, 
-                verified: true, 
-                username: u.username, 
-                email: u.email, 
-                id: u.id 
-            });
+            res.json({ success: true, verified: true, username: u.username, email: u.email, id: u.id });
         } else {
             res.json({ verified: false, message: 'ID mismatch' });
         }
-    } catch(e) {
-        console.error('[VERIFY ID] Error:', e);
+    } catch(e) { 
+        console.error('[VERIFY ID ERROR]', e);
         res.json({ verified: false, message: e.message }); 
     }
 });
+
 // ==================== CODE MANAGEMENT ====================
 app.post('/api/use_code', async (req, res) => { try { const p = await getPool(); const exist = await p.query('SELECT * FROM used_codes WHERE code=$1', [req.body.code]); if (exist.rows.length > 0) return res.json({ already_used: true }); await p.query('INSERT INTO used_codes (code,user_id) VALUES ($1,$2)', [req.body.code, req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
@@ -245,8 +228,39 @@ app.get('/api/bg_music', async (req, res) => { try { const p = await getPool(); 
 app.post('/api/admin/bg_music', async (req, res) => { try { const p = await getPool(); const { playlist } = req.body; if (!playlist || playlist.length === 0) { await p.query('DELETE FROM bg_music'); return res.json({ success: true }); } await p.query('DELETE FROM bg_music'); await p.query('INSERT INTO bg_music (music_urls) VALUES ($1)', [JSON.stringify(playlist)]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== PAGE TOGGLE ====================
-app.get('/api/admin/page_status', async (req, res) => { try { const p = await getPool(); const result = []; for (const pg of ALL_PAGES) { const q = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pg.id]); result.push({ id: pg.id, name: pg.name, status: q.rows.length > 0 ? q.rows[0].status : 'on' }); } res.json({ pages: result }); } catch(e) { res.json({ pages: [] }); } });
-app.post('/api/admin/toggle_page', async (req, res) => { try { const p = await getPool(); await p.query("INSERT INTO page_status (page_id, status) VALUES ($1,$2) ON CONFLICT (page_id) DO UPDATE SET status=$2", [req.body.page_id, req.body.status]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/admin/page_status', async (req, res) => {
+    try {
+        const p = await getPool();
+        const result = [];
+        for (const pg of ALL_PAGES) {
+            const q = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pg.id]);
+            result.push({ id: pg.id, name: pg.name, status: q.rows.length > 0 ? q.rows[0].status : 'on' });
+        }
+        res.json({ pages: result });
+    } catch(e) { res.json({ pages: [] }); }
+});
+
+app.post('/api/admin/toggle_page', async (req, res) => {
+    try {
+        const p = await getPool();
+        const { page_id, status } = req.body;
+        console.log(`[TOGGLE API] ${page_id} -> ${status}`);
+        
+        await p.query(
+            "INSERT INTO page_status (page_id, status) VALUES ($1, $2) ON CONFLICT (page_id) DO UPDATE SET status=$2",
+            [page_id, status]
+        );
+        
+        // Verify
+        const check = await p.query("SELECT status FROM page_status WHERE page_id=$1", [page_id]);
+        console.log(`[TOGGLE VERIFY] ${page_id} = ${check.rows[0]?.status}`);
+        
+        res.json({ success: true });
+    } catch(e) { 
+        console.error('[TOGGLE ERROR]', e);
+        res.json({ success: false }); 
+    }
+});
 
 // ==================== BACKUP & RESTORE ====================
 app.get('/api/admin/backup', async (req, res) => { try { const p = await getPool(); const users = await p.query('SELECT * FROM auth_users'); const orders = await p.query('SELECT * FROM orders'); const notices = await p.query('SELECT * FROM notices'); const slider = await p.query('SELECT * FROM slider_images'); const bgM = await p.query('SELECT * FROM bg_music'); const ps = await p.query('SELECT * FROM page_status'); const banned = await p.query('SELECT * FROM banned_users'); const codes = await p.query('SELECT * FROM used_codes'); const videos = await p.query('SELECT * FROM videos'); res.json({ success: true, data: { version: '1.0', date: new Date().toISOString(), tables: { auth_users: users.rows, orders: orders.rows, notices: notices.rows, slider_images: slider.rows, bg_music: bgM.rows, page_status: ps.rows, banned_users: banned.rows, used_codes: codes.rows, videos: videos.rows } } }); } catch(e) { res.json({ success: false }); } });
@@ -281,10 +295,11 @@ app.post('/api/admin/order_status', async (req, res) => {
         const p = await getPool();
         const { id, status, reason } = req.body;
         if (status === 'rejected') {
-            await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || 'No reason provided', id]);
+            await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || 'No reason', id]);
         } else {
             await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]);
         }
+        console.log(`[ORDER] #${id} -> ${status}${reason ? ' | ' + reason : ''}`);
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
@@ -296,6 +311,7 @@ app.get('/api/notice', async (req, res) => { try { const p = await getPool(); co
 app.get('/api/admin/notices', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM notices ORDER BY id DESC'); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
 app.post('/api/admin/notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query('INSERT INTO notices (message,color,created_by) VALUES ($1,$2,$3)', [message, color||'#ffffff', 'admin']); tgSend(`📢 ${message}`); sendOnesignal(message); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/notice/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM notices WHERE id=$1', [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM notices'); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== BOT MESSAGE ====================
 app.post('/api/admin/bot_message', async (req, res) => { const { message } = req.body; if (!message) return res.json({ success: false, message: 'Enter message' }); try { const p = await getPool(); const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'"); let count = 0; for (const user of users.rows) { const tid = user.google_id.replace('tg_', ''); try { await fetch(`${TELEGRAM_API}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: tid, text: `📢 Admin Message\n\n${message}`, parse_mode: 'HTML' }) }); count++; } catch(e) {} } res.json({ success: true, count }); } catch(e) { res.json({ success: false }); } });
@@ -316,24 +332,24 @@ function startLongPolling() {
         try { const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId+1}&timeout=15`; const response = await fetch(url, { signal: AbortSignal.timeout(20000) }); const result = await response.json();
             if (result.ok && result.result.length > 0) { for (const update of result.result) { lastUpdateId = update.update_id;
                 if (update.callback_query) { const cq = update.callback_query; const chatId = cq.message.chat.id; const data = cq.data; const firstName = cq.from.first_name||'User'; const user = await createTelegramUser(cq.from.id, firstName); if (!user) { sendTelegramMessage(chatId, '❌ Error. Try /start'); continue; }
-                    if (data === 'balance') { const balance = user.balance||0; sendTelegramMessage(chatId, `💳 <b>Your Balance</b>\n\n💰 <b>${balance.toLocaleString()} Ks</b>\n💵 ≈ $${(balance/2100).toFixed(2)} USD\n\nငွေဖြည့်လိုပါက Top Up ခလုတ်ကိုနှိပ်ပါ။`, quickKeyboard); }
-                    else if (data === 'otp') { const otp = await createOTP(user.id); sendTelegramMessage(chatId, `🔐 <b>Your OTP Code</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်။`, quickKeyboard); }
-                    else if (data === 'status') { const orders = await getUserOrders(cq.from.id); if (orders.length===0) { sendTelegramMessage(chatId, '📋 မှတ်တမ်းမရှိသေးပါ။', quickKeyboard); } else { let msg='📋 <b>နောက်ဆုံး Order များ</b>\n\n'; orders.forEach((o,i)=>{ const status=o.status==='approved'?'✅':o.status==='rejected'?'❌':'⏳'; msg+=`${status} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n   📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`; }); sendTelegramMessage(chatId, msg, quickKeyboard); } }
-                    else if (data === 'buycode') { sendTelegramMessage(chatId, '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard); }
+                    if (data === 'balance') { sendTelegramMessage(chatId, `💳 Balance: <b>${(user.balance||0).toLocaleString()} Ks</b>`, quickKeyboard); }
+                    else if (data === 'otp') { const otp = await createOTP(user.id); sendTelegramMessage(chatId, `🔐 OTP: <b>${otp}</b>\n⏰ 60 seconds`, quickKeyboard); }
+                    else if (data === 'status') { const orders = await getUserOrders(cq.from.id); if (orders.length===0) { sendTelegramMessage(chatId, '📋 No orders', quickKeyboard); } else { let msg='📋 <b>Recent Orders</b>\n\n'; orders.forEach(o=>{ msg+=`${o.status==='approved'?'✅':o.status==='rejected'?'❌':'⏳'} #${o.id} | ${o.amount} Ks\n`; }); sendTelegramMessage(chatId, msg, quickKeyboard); } }
+                    else if (data === 'buycode') { sendTelegramMessage(chatId, '🛒 Buy Code:\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard); }
                     try { await fetch(`${TELEGRAM_API}/answerCallbackQuery`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ callback_query_id:cq.id }) }); } catch(e) {}
                     continue;
                 }
                 const msg = update.message; if (!msg) continue;
                 const chatId = msg.chat.id; const text = (msg.text||'').trim(); const firstName = msg.from.first_name||'User';
-                if (text==='/start'||text==='/login') { const user=await createTelegramUser(msg.from.id, firstName); const wm=user.isNew?`🎉 <b>Welcome!</b>\n\nမင်္ဂလာပါ ${firstName}!\n\nသင်၏အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ။`:`👋 ပြန်လည်ကြိုဆိုပါတယ် ${firstName}!`; sendTelegramMessage(chatId, wm+'\n\n💳 Balance: <b>'+(user.balance||0).toLocaleString()+' Ks</b>\n\nအောက်ပါ ခလုတ်များကို နှိပ်၍ အသုံးပြုနိုင်ပါသည်။', quickKeyboard); }
-                else if (text==='/help') { sendTelegramMessage(chatId, `📖 <b>SOLO M Game Shop</b>\n\n<b>Commands:</b>\n/start - Login/Register\n/help - အကူအညီ\n/balance - လက်ကျန်ငွေ\n/otp - OTP Code\n/status - Order Status\n/buy - Code ဝယ်ယူ\n\n<b>ဆက်သွယ်ရန်:</b> @Solo_m28`, quickKeyboard); }
-                else if (text==='/balance') { const user=await createTelegramUser(msg.from.id, firstName); const balance=user?(user.balance||0):0; sendTelegramMessage(chatId, `💳 <b>Your Balance</b>\n\n💰 <b>${balance.toLocaleString()} Ks</b>\n💵 ≈ $${(balance/2100).toFixed(2)} USD`, quickKeyboard); }
-                else if (text==='/otp') { const user=await createTelegramUser(msg.from.id, firstName); if (user) { const otp=await createOTP(user.id); sendTelegramMessage(chatId, `🔐 <b>Your OTP Code</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်။`); } }
-                else if (text==='/status') { const orders=await getUserOrders(msg.from.id); if (orders.length===0) { sendTelegramMessage(chatId, '📋 မှတ်တမ်းမရှိသေးပါ။'); } else { let msg='📋 <b>နောက်ဆုံး Orders</b>\n\n'; orders.forEach(o=>{ const st=o.status==='approved'?'✅ Approved':o.status==='rejected'?'❌ Rejected':'⏳ Pending'; msg+=`🆔 #${o.id} | ${st}\n💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`; }); sendTelegramMessage(chatId, msg); } }
-                else if (text==='/buy') { sendTelegramMessage(chatId, '🛒 <b>Code ဝယ်ယူရန်</b>\n\nအောက်ပါ Link မှတစ်ဆင့် ဝယ်ယူနိုင်ပါသည်။', mainKeyboard); }
-                else { sendTelegramMessage(chatId, `အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n/start - စတင်ရန်\n/help - အကူအညီ\n/balance - လက်ကျန်ငွေ\n/otp - OTP Code\n/status - Order မှတ်တမ်း\n/buy - Code ဝယ်ယူရန်`, quickKeyboard); }
+                if (text==='/start'||text==='/login') { const user=await createTelegramUser(msg.from.id, firstName); sendTelegramMessage(chatId, (user.isNew?'🎉 Welcome!\n\n':'👋 Welcome back ') + firstName + '!\n\n💳 Balance: <b>'+(user.balance||0).toLocaleString()+' Ks</b>', quickKeyboard); }
+                else if (text==='/help') { sendTelegramMessage(chatId, '📖 <b>SOLO M Game Shop</b>\n\n/start /help /balance /otp /status /buy\n\n@Solo_m28', quickKeyboard); }
+                else if (text==='/balance') { const user=await createTelegramUser(msg.from.id, firstName); sendTelegramMessage(chatId, `💳 Balance: <b>${(user?.balance||0).toLocaleString()} Ks</b>`, quickKeyboard); }
+                else if (text==='/otp') { const user=await createTelegramUser(msg.from.id, firstName); if (user) { const otp=await createOTP(user.id); sendTelegramMessage(chatId, `🔐 OTP: <b>${otp}</b>\n⏰ 60 seconds`); } }
+                else if (text==='/status') { const orders=await getUserOrders(msg.from.id); if (orders.length===0) sendTelegramMessage(chatId, '📋 No orders'); else { let msg='📋 <b>Recent Orders</b>\n\n'; orders.forEach(o=>{ msg+=`${o.status==='approved'?'✅':o.status==='rejected'?'❌':'⏳'} #${o.id} | ${o.amount} Ks | ${o.payment_method}\n`; }); sendTelegramMessage(chatId, msg); } }
+                else if (text==='/buy') { sendTelegramMessage(chatId, '🛒 Buy Code:\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard); }
+                else { sendTelegramMessage(chatId, 'Commands: /start /help /balance /otp /status /buy', quickKeyboard); }
             } }
-        } catch(e) { console.log('Bot Polling:', e.message); } setTimeout(getUpdates, 500);
+        } catch(e) { console.log('Polling:', e.message); } setTimeout(getUpdates, 500);
     } getUpdates();
 } startLongPolling();
 
@@ -353,23 +369,28 @@ app.post('/api/admin/video', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.json({ success: false, message: 'No video URL' });
     try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); res.json({ success: true }); }
-    catch(e) { res.json({ success: false, message: 'Save failed' }); }
+    catch(e) { res.json({ success: false }); }
 });
 
 app.get('/api/video', async (req, res) => {
     try { const p = await getPool(); const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1');
-        if (r.rows.length > 0) { const rawUrl = r.rows[0].video_url; const embedUrl = getEmbedUrl(rawUrl); const isYouTube = embedUrl.includes('youtube.com/embed'); res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: isYouTube }); }
+        if (r.rows.length > 0) { const rawUrl = r.rows[0].video_url; const embedUrl = getEmbedUrl(rawUrl); res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: embedUrl.includes('youtube.com/embed') }); }
         else { res.json({ success: false, url: '' }); }
     } catch(e) { res.json({ success: false, url: '' }); }
+});
+
+app.post('/api/admin/video/delete', async (req, res) => {
+    try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); }
+    catch(e) { res.json({ success: false }); }
 });
 
 app.post('/api/upload_video', async (req, res) => {
     const { base64, filename } = req.body;
     if (!base64) return res.json({ success: false, message: 'No video data' });
-    try { const matches = base64.match(/^data:(.+);base64,(.+)$/); if (!matches) return res.json({ success: false, message: 'Invalid format' }); const mimeType = matches[1]; const base64Data = matches[2]; const buffer = Buffer.from(base64Data, 'base64'); if (!buffer||buffer.length===0) return res.json({ success: false, message: 'Could not process file' }); const blob = new Blob([buffer], { type: mimeType }); const formData = new FormData(); formData.append('reqtype', 'fileupload'); formData.append('fileToUpload', blob, filename||'video.mp4'); const response = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData, signal: AbortSignal.timeout(120000) }); const url = await response.text();
+    try { const matches = base64.match(/^data:(.+);base64,(.+)$/); if (!matches) return res.json({ success: false, message: 'Invalid format' }); const mimeType = matches[1]; const base64Data = matches[2]; const buffer = Buffer.from(base64Data, 'base64'); if (!buffer||buffer.length===0) return res.json({ success: false, message: 'Cannot process' }); const blob = new Blob([buffer], { type: mimeType }); const formData = new FormData(); formData.append('reqtype', 'fileupload'); formData.append('fileToUpload', blob, filename||'video.mp4'); const response = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData, signal: AbortSignal.timeout(120000) }); const url = await response.text();
         if (url && url.startsWith('https://')) { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url.trim()]); res.json({ success: true, url: url.trim() }); }
         else { res.json({ success: false, message: 'Upload failed' }); }
-    } catch(e) { res.json({ success: false, message: 'Upload error: ' + e.message }); }
+    } catch(e) { res.json({ success: false, message: 'Upload error' }); }
 });
 
 // ==================== MAINTENANCE PAGE ====================
@@ -383,11 +404,12 @@ async function servePageWithCheck(req, res, pageId, filePath) {
         const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]);
         const status = r.rows.length > 0 ? r.rows[0].status : 'on';
         console.log(`[PAGE CHECK] ${pageId} -> ${status}`);
+        
         if (status === 'off') {
             console.log(`[PAGE BLOCKED] ${pageId} is OFF - showing maintenance`);
             return res.send(maintenancePage());
         }
-    } catch(e) { console.log(`[PAGE CHECK ERROR] ${pageId}:`, e.message); }
+    } catch(e) { console.error(`[PAGE CHECK ERROR] ${pageId}:`, e.message); }
     res.sendFile(path.join(__dirname, filePath));
 }
 
@@ -407,24 +429,12 @@ app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.ht
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 
-// START SERVER မတိုင်ခင် ဒီနေရာမှာ ထည့်ပါ
-
-// ==================== DELETE APIs ====================
-app.post('/api/admin/video/delete', async (req, res) => {
-    try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); }
-    catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/notices/delete_all', async (req, res) => {
-    try { const p = await getPool(); await p.query('DELETE FROM notices'); res.json({ success: true }); }
-    catch(e) { res.json({ success: false }); }
-});
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`🗄️ DB: DB1 + DB2 Auto-Switch`);
     console.log(`📄 Page Control: 9 pages with maintenance check`);
-    console.log(`🎵 Music Upload: Catbox (Audio Only)`);
-    console.log(`🖼️ Image Upload: ImgBB`);
-    console.log(`📹 Video System: Catbox + YouTube`);
+    console.log(`🎵 Music: Catbox (Audio Only)`);
+    console.log(`🖼️ Images: ImgBB`);
+    console.log(`📹 Video: Catbox + YouTube`);
 });
