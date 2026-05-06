@@ -311,11 +311,49 @@ function closeQRModal(){document.getElementById('qrModal').classList.remove('act
 
 // ==================== INIT ====================
 (async function init(){
-    const pageOn=await checkPageAccess();
-    if(!pageOn)return;
+    // Check page access
+    try{
+        const r=await fetch('/api/admin/page_status');
+        const d=await r.json();
+        if(d.pages){
+            const bc=d.pages.find(p=>p.id==='buycode');
+            if(bc&&bc.status==='off'){
+                document.getElementById('maintenanceMessage').style.display='block';
+                document.getElementById('buycodeContent').style.display='none';
+                document.querySelector('.back-btn').style.display='none';
+                return;
+            }
+        }
+    }catch(e){}
+    
     document.getElementById('buycodeContent').style.display='block';
-    loadAllData();
-    setInterval(loadBuyCodeNotice,3000);
+    
+    // Load data directly
+    try{
+        const r=await fetch('/api/redeem_codes');
+        const d=await r.json();
+        
+        if(d.success && d.categories){
+            categoriesData = d.categories;
+            renderGameCards();
+        } else {
+            document.getElementById('gameGrid').innerHTML = '<p style="text-align:center;color:var(--r);grid-column:1/-1;padding:30px">❌ No codes available</p>';
+        }
+    } catch(e) {
+        document.getElementById('gameGrid').innerHTML = '<p style="text-align:center;color:var(--r);grid-column:1/-1;padding:30px">❌ Error: ' + e.message + '</p>';
+    }
+    
+    // Load balance
+    try{
+        const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+        const d=await r.json();
+        currentBalance = d.balance || 0;
+        document.getElementById('myBalance').textContent = fm(currentBalance) + ' Ks';
+        document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance/2100).toFixed(2) + ' USD';
+    } catch(e){}
+    
+    loadBuyCodeNotice();
+    setInterval(loadBuyCodeNotice, 3000);
 })();
 </script>
 </body>
