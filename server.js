@@ -61,6 +61,15 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS used_codes (code VARCHAR(100) PRIMARY KEY, user_id INT, used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+        `CREATE TABLE IF NOT EXISTS redeem_codes (
+    id SERIAL PRIMARY KEY, 
+    category VARCHAR(50), 
+    code VARCHAR(100), 
+    used BOOLEAN DEFAULT false, 
+    used_by INT, 
+    used_at TIMESTAMP, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`
     ];
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
@@ -75,6 +84,14 @@ async function addColumns() {
 }
 addColumns();
 
+// Add notice_type column
+async function addNoticeType() {
+    try {
+        await pool1.query("ALTER TABLE notices ADD COLUMN IF NOT EXISTS notice_type VARCHAR(20) DEFAULT 'dashboard'").catch(() => {});
+        await pool2.query("ALTER TABLE notices ADD COLUMN IF NOT EXISTS notice_type VARCHAR(20) DEFAULT 'dashboard'").catch(() => {});
+    } catch(e) {}
+}
+addNoticeType();
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
     { id: 'topup', name: 'Top Up' }, { id: 'buycode', name: 'Buy Code MLBB' }, { id: 'dashboard', name: 'Dashboard' },
@@ -413,6 +430,155 @@ async function servePageWithCheck(req, res, pageId, filePath) {
     res.sendFile(path.join(__dirname, filePath));
 }
 
+// ==================== BUY CODE SYSTEM ====================
+
+// Get all redeem codes for admin
+app.get('/api/admin/redeem_codes', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC');
+        res.json({ success: true, codes: r.rows });
+    } catch(e) { res.json({ success: false, codes: [] }); }
+});
+
+// Add redeem code (admin)
+app.post('/api/admin/redeem_code', async (req, res) => {
+    const { category, code } = req.body;
+    if (!category || !code) return res.json({ success: false, message: 'Missing data' });
+    try {
+        const p = await getPool();
+        await p.query('INSERT INTO redeem_codes (category, code, used) VALUES ($1, $2, $3)', [category, code, false]);
+        console.log(`[REDEEM CODE] Added: ${category} - ${code}`);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false, message: e.message }); }
+});
+
+// Delete redeem code (admin)
+app.post('/api/admin/redeem_code/delete', async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM redeem_codes WHERE id=$1', [id]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Get available codes for users (grouped by category)
+app.get('/api/redeem_codes', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY category, id ASC");
+        
+        // Group by category
+        const grouped = {};
+        const categories = [
+            { id: 'shhh_emote', name: 'Shhh emote', icon: 'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png', price: 5000 },
+            { id: 'golden_border', name: 'Golden Month Border', icon: 'https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png', price: 8000 },
+            { id: 'lucky_diamond', name: 'Lucky Diamond Code', icon: 'https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png', price: 12000 },
+            { id: 'magic_durt', name: 'Magic Durt', icon: 'https://i.ibb.co/NdpDZ0P7/8.png', price: 3000 },
+            { id: 'emblem_box', name: 'Emblem Box', icon: 'https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png', price: 4000 }
+        ];
+        
+        categories.forEach(cat => {
+            grouped[cat.id] = {
+                name: cat.name,
+                icon: cat.icon,
+                price: cat.price,
+                codes: r.rows.filter(c => c.category === cat.id && !c.used).map(c => ({ id: c.id, code: c.code }))
+            };
+        });
+        
+        res.json({ success: true, categories: grouped });
+    } catch(e) { res.json({ success: false, categories: {} }); }
+});
+
+// Use a code (buy)
+app.post('/api/buy_code', async (req, res) => {
+    const { token, codeId } = req.body;
+    if (!token || !codeId) return res.json({ success: false, message: 'Missing data' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        // Check code exists and not used
+        const codeCheck = await p.query('SELECT * FROM redeem_codes WHERE id=$1 AND used=false', [codeId]);
+        if (codeCheck.rows.length === 0) return res.json({ success: false, message: 'Code not available' });
+        
+        const code = codeCheck.rows[0];
+        
+        // Find category price
+        const prices = { shhh_emote: 5000, golden_border: 8000, lucky_diamond: 12000, magic_durt: 3000, emblem_box: 4000 };
+        const price = prices[code.category] || 0;
+        
+        // Check balance
+        const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
+        
+        const balance = user.rows[0].balance || 0;
+        if (balance < price) return res.json({ success: false, message: 'Insufficient balance' });
+        
+        // Mark code as used
+        await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, codeId]);
+        
+        // Deduct balance
+        await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [price, uid]);
+        
+        const newBalance = balance - price;
+        
+        console.log(`[BUY CODE] User ${uid} bought ${code.code} for ${price} Ks`);
+        res.json({ success: true, code: code.code, balance: newBalance, message: 'Purchase successful!' });
+        
+    } catch(e) {
+        res.json({ success: false, message: e.message });
+    }
+});
+
+// Buy Code Notice
+app.get('/api/buycode_notice', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC LIMIT 1");
+        if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' });
+        const n = r.rows[0];
+        res.json({ success: true, message: n.message, color: n.color, id: n.id, created_at: n.created_at });
+    } catch(e) { res.json({ success: true, message: '' }); }
+});
+
+app.get('/api/admin/buycode_notices', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC");
+        res.json({ notices: r.rows });
+    } catch(e) { res.json({ notices: [] }); }
+});
+
+app.post('/api/admin/buycode_notice', async (req, res) => {
+    try {
+        const p = await getPool();
+        const { message, color } = req.body;
+        if (!message) return res.json({ success: false });
+        await p.query("INSERT INTO notices (message, color, created_by, notice_type) VALUES ($1,$2,$3,'buycode')", [message, color||'#ffffff', 'admin']);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/buycode_notice/delete', async (req, res) => {
+    try {
+        const p = await getPool();
+        await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='buycode'", [req.body.id]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/buycode_notices/delete_all', async (req, res) => {
+    try {
+        const p = await getPool();
+        await p.query("DELETE FROM notices WHERE notice_type='buycode'");
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
