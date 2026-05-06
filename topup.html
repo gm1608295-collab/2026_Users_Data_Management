@@ -326,21 +326,80 @@
     
     function handleFileSelect(){const f=document.getElementById('topupScreenshot').files[0],ub=document.getElementById('fileUploadBox'),ut=document.getElementById('uploadText'),uh=document.getElementById('uploadHint');if(f){ub.classList.add('has-file');ut.textContent='📎 '+f.name;uh.textContent=(f.size/1024).toFixed(1)+' KB';const r=new FileReader();r.onload=function(e){sd=e.target.result;document.getElementById('screenshotPreview').innerHTML=`<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:6px;border:2px solid var(--g)">`};r.readAsDataURL(f)}else{ub.classList.remove('has-file');ut.textContent='Payment Screenshot';uh.textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';sd='';document.getElementById('screenshotPreview').innerHTML=''}}
     
-    async function verifyUserId(){
-        const ii=document.getElementById('verifyUserId').value.trim(),
-              re=document.getElementById('idResult'),
-              bb=document.getElementById('buyBtn'),
-              cb=document.getElementById('checkIdBtn');
-        if(!ii){re.className='id-result invalid';re.textContent='❌ User ID ထည့်ပါ';re.style.display='block';iv=false;bb.disabled=true;return}
-        re.className='id-result checking';re.textContent='⏳ Checking...';re.style.display='block';cb.disabled=true;
-        try{
-            const r=await fetch('/api/verify_user_id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),userId:ii})});
-            const d=await r.json();
-            if(d.success&&d.verified){re.className='id-result verified';re.innerHTML=`✅ ID မှန်ကန်ပါသည်<br><small>👤 ${d.username||'N/A'} | 📧 ${d.email||'N/A'}</small>`;iv=true;bb.disabled=false}
-            else{re.className='id-result invalid';re.textContent='❌ ID မှားယွင်းနေပါသည်';iv=false;bb.disabled=true}
-        }catch(e){re.className='id-result invalid';re.textContent='❌ Error';iv=false;bb.disabled=true}
-        cb.disabled=false;
+    async function verifyUserId() {
+    const inputId = document.getElementById('verifyUserId').value.trim();
+    const resultEl = document.getElementById('idResult');
+    const buyBtn = document.getElementById('buyBtn');
+    const checkBtn = document.getElementById('checkIdBtn');
+    
+    // No ID entered
+    if (!inputId) {
+        resultEl.className = 'id-result invalid';
+        resultEl.textContent = '❌ User ID ထည့်ပါ';
+        resultEl.style.display = 'block';
+        idVerified = false;
+        buyBtn.disabled = true;
+        return;
     }
+    
+    // Show checking
+    resultEl.className = 'id-result checking';
+    resultEl.textContent = '⏳ Checking...';
+    resultEl.style.display = 'block';
+    checkBtn.disabled = true;
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        
+        // Check if token exists
+        if (!token) {
+            resultEl.className = 'id-result invalid';
+            resultEl.textContent = '❌ Please login first';
+            resultEl.style.display = 'block';
+            idVerified = false;
+            buyBtn.disabled = true;
+            checkBtn.disabled = false;
+            return;
+        }
+        
+        const response = await fetch('/api/verify_user_id', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                token: token, 
+                userId: inputId 
+            })
+        });
+        
+        const data = await response.json();
+        console.log('[ID CHECK] Response:', data);
+        
+        if (data.success && data.verified) {
+            // ID Verified
+            resultEl.className = 'id-result verified';
+            resultEl.innerHTML = `✅ ID မှန်ကန်ပါသည်<br><small>👤 ${data.username || 'N/A'} | 📧 ${data.email || 'N/A'}</small>`;
+            resultEl.style.display = 'block';
+            idVerified = true;
+            buyBtn.disabled = false;
+        } else {
+            // ID Invalid
+            resultEl.className = 'id-result invalid';
+            resultEl.textContent = '❌ ID မှားယွင်းနေပါသည်';
+            resultEl.style.display = 'block';
+            idVerified = false;
+            buyBtn.disabled = true;
+        }
+    } catch(e) {
+        console.error('[ID CHECK] Error:', e);
+        resultEl.className = 'id-result invalid';
+        resultEl.textContent = '❌ Connection Error: ' + e.message;
+        resultEl.style.display = 'block';
+        idVerified = false;
+        buyBtn.disabled = true;
+    }
+    
+    checkBtn.disabled = false;
+}
     
     async function submitTopup(){
         const pm=document.getElementById('topupPayment').value,
