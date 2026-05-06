@@ -249,26 +249,33 @@
 
 <script>
     // ==================== PAGE ACCESS CHECK ====================
-    async function checkPageAccess(){
-        try{
-            const r=await fetch('/api/admin/page_status');
-            const d=await r.json();
-            if(d.pages){
-                const tp=d.pages.find(p=>p.id==='topup');
-                if(tp&&tp.status==='off'){
-                    document.getElementById('maintenanceMessage').style.display='block';
-                    document.getElementById('topupContent').style.display='none';
-                    document.querySelector('.back-btn').style.display='none';
-                    document.getElementById('loginCheckMessage').style.display='none';
+    async function checkPageAccess() {
+        try {
+            const r = await fetch('/api/admin/page_status');
+            const d = await r.json();
+            console.log('[TOPUP PAGE CHECK]', d);
+            
+            if (d.pages) {
+                const tp = d.pages.find(p => p.id === 'topup');
+                if (tp && tp.status === 'off') {
+                    console.log('[TOPUP] Page is OFF - showing maintenance');
+                    document.getElementById('maintenanceMessage').style.display = 'block';
+                    document.getElementById('topupContent').style.display = 'none';
+                    document.querySelector('.back-btn').style.display = 'none';
+                    document.getElementById('loginCheckMessage').style.display = 'none';
                     return false;
                 }
             }
+            console.log('[TOPUP] Page is ON');
             return true;
-        }catch(e){return true;}
+        } catch(e) {
+            console.error('[TOPUP PAGE CHECK ERROR]', e);
+            return true;
+        }
     }
 
     // ==================== GAME CARDS ====================
-    const GAMES=[
+    const GAMES = [
         {name:'Mobile Legends',icon:'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'},
         {name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},
         {name:'PUBG Mobile',icon:'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg'},
@@ -293,169 +300,309 @@
         {name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},
         {name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}
     ];
-    function renderGameCards(){document.getElementById('gameGrid').innerHTML=GAMES.map(g=>`<div class="game-card"><img src="${g.icon}" alt="${g.name}" onerror="this.src='https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'"><p>${g.name}</p><div class="unavailable">မရသေး</div></div>`).join('')}
+    
+    function renderGameCards() {
+        document.getElementById('gameGrid').innerHTML = GAMES.map(g => 
+            `<div class="game-card">
+                <img src="${g.icon}" alt="${g.name}" onerror="this.src='https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'">
+                <p>${g.name}</p>
+                <div class="unavailable">မရသေး</div>
+            </div>`
+        ).join('');
+    }
     renderGameCards();
 
     // ==================== BG MUSIC PLAYER ====================
-    (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
-
-    // ==================== INIT ====================
-    (async function init(){
-        const pageOn=await checkPageAccess();
-        if(!pageOn)return;
+    (function() {
+        const a = document.getElementById('bgAudio');
+        if (!a) return;
+        let p = [], i = 0;
+        a.volume = 0.5;
+        a.loop = false;
+        const fl = !sessionStorage.getItem('mp');
+        if (fl) { i = 0; localStorage.setItem('bgi', '0'); localStorage.setItem('bgt0', '0'); }
+        else { i = parseInt(localStorage.getItem('bgi') || '0'); }
+        sessionStorage.setItem('mp', '1');
         
-        const token=localStorage.getItem('auth_token'),user=localStorage.getItem('user');
-        if(!token||!user||token==='guest'){
-            document.getElementById('loginCheckMessage').style.display='block';
-            document.getElementById('topupContent').style.display='none';
-            document.querySelector('.back-btn').style.display='none';
-            return;
-        }
-        document.getElementById('loginCheckMessage').style.display='none';
-        document.getElementById('topupContent').style.display='block';
-    })();
-
-    let sd='',iv=false,cu=null;
-    try{cu=JSON.parse(localStorage.getItem('user')||'{}')}catch(e){cu={}}
-    
-    function n(m,t="success"){const e=document.getElementById("copyNotif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-    function showTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));event.target.classList.add('active');document.getElementById(t).classList.add('active');if(t==='history')loadHistory()}
-    function togglePayment(){const ps=document.getElementById('paymentSection'),gb=document.getElementById('guideBox');if(ps.style.display==='block'){ps.style.display='none';gb.style.display='none'}else{ps.style.display='block';gb.style.display='block'}}
-    function copyText(t){navigator.clipboard.writeText(t).then(()=>n('✅ Copied!')).catch(()=>prompt('Copy:',t))}
-    if(cu&&cu.id)document.getElementById('verifyUserId').value=cu.id.toString().padStart(6,'0')
-    
-    function handleFileSelect(){const f=document.getElementById('topupScreenshot').files[0],ub=document.getElementById('fileUploadBox'),ut=document.getElementById('uploadText'),uh=document.getElementById('uploadHint');if(f){ub.classList.add('has-file');ut.textContent='📎 '+f.name;uh.textContent=(f.size/1024).toFixed(1)+' KB';const r=new FileReader();r.onload=function(e){sd=e.target.result;document.getElementById('screenshotPreview').innerHTML=`<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:6px;border:2px solid var(--g)">`};r.readAsDataURL(f)}else{ub.classList.remove('has-file');ut.textContent='Payment Screenshot';uh.textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';sd='';document.getElementById('screenshotPreview').innerHTML=''}}
-    
-    async function verifyUserId() {
-    const inputId = document.getElementById('verifyUserId').value.trim();
-    const resultEl = document.getElementById('idResult');
-    const buyBtn = document.getElementById('buyBtn');
-    const checkBtn = document.getElementById('checkIdBtn');
-    
-    // No ID entered
-    if (!inputId) {
-        resultEl.className = 'id-result invalid';
-        resultEl.textContent = '❌ User ID ထည့်ပါ';
-        resultEl.style.display = 'block';
-        idVerified = false;
-        buyBtn.disabled = true;
-        return;
-    }
-    
-    // Show checking
-    resultEl.className = 'id-result checking';
-    resultEl.textContent = '⏳ Checking...';
-    resultEl.style.display = 'block';
-    checkBtn.disabled = true;
-    
-    try {
-        const token = localStorage.getItem('auth_token');
-        
-        // Check if token exists
-        if (!token) {
-            resultEl.className = 'id-result invalid';
-            resultEl.textContent = '❌ Please login first';
-            resultEl.style.display = 'block';
-            idVerified = false;
-            buyBtn.disabled = true;
-            checkBtn.disabled = false;
-            return;
+        async function fp() {
+            try {
+                const r = await fetch('/api/bg_music?t=' + Date.now());
+                const d = await r.json();
+                if (d.playlist && d.playlist.length > 0) { p = d.playlist; return true; }
+                return false;
+            } catch(e) { return false; }
         }
         
-        const response = await fetch('/api/verify_user_id', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                token: token, 
-                userId: inputId 
-            })
+        function pl() {
+            if (!p.length) return;
+            if (i >= p.length) i = 0;
+            const u = p[i];
+            a.src = u;
+            a.load();
+            a.addEventListener('canplay', function h() { a.play().catch(() => {}); a.removeEventListener('canplay', h); });
+        }
+        
+        a.addEventListener('ended', function() {
+            localStorage.setItem('bgt' + i, '0');
+            i = (i + 1) % p.length;
+            localStorage.setItem('bgi', i);
+            localStorage.setItem('bgt' + i, '0');
+            pl();
         });
         
-        const data = await response.json();
-        console.log('[ID CHECK] Response:', data);
+        a.addEventListener('error', function() {
+            i = (i + 1) % p.length;
+            localStorage.setItem('bgi', i);
+            localStorage.setItem('bgt' + i, '0');
+            pl();
+        });
         
-        if (data.success && data.verified) {
-            // ID Verified
-            resultEl.className = 'id-result verified';
-            resultEl.innerHTML = `✅ ID မှန်ကန်ပါသည်<br><small>👤 ${data.username || 'N/A'} | 📧 ${data.email || 'N/A'}</small>`;
-            resultEl.style.display = 'block';
-            idVerified = true;
-            buyBtn.disabled = false;
+        setInterval(() => {
+            if (!a.paused && p.length > 0 && a.currentTime > 0) {
+                localStorage.setItem('bgi', i);
+                localStorage.setItem('bgt' + i, a.currentTime);
+            }
+        }, 1000);
+        
+        fp().then(h => { if (h) { if (fl) i = 0; pl(); } });
+        setInterval(fp, 3000);
+    })();
+
+    // ==================== INIT ====================
+    (async function init() {
+        const pageOn = await checkPageAccess();
+        if (!pageOn) return;
+        
+        const token = localStorage.getItem('auth_token');
+        const user = localStorage.getItem('user');
+        if (!token || !user || token === 'guest') {
+            document.getElementById('loginCheckMessage').style.display = 'block';
+            document.getElementById('topupContent').style.display = 'none';
+            document.querySelector('.back-btn').style.display = 'none';
+            return;
+        }
+        document.getElementById('loginCheckMessage').style.display = 'none';
+        document.getElementById('topupContent').style.display = 'block';
+    })();
+
+    // ==================== VARIABLES ====================
+    let sd = '', iv = false, cu = null;
+    try { cu = JSON.parse(localStorage.getItem('user') || '{}'); } catch(e) { cu = {}; }
+    
+    // ==================== FUNCTIONS ====================
+    function n(m, t = "success") {
+        const e = document.getElementById("copyNotif");
+        e.textContent = m;
+        e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
+        e.style.display = "block";
+        setTimeout(() => e.style.display = "none", 3000);
+    }
+    
+    function showTab(t) {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(t).classList.add('active');
+        if (t === 'history') loadHistory();
+    }
+    
+    function togglePayment() {
+        const ps = document.getElementById('paymentSection');
+        const gb = document.getElementById('guideBox');
+        if (ps.style.display === 'block') { ps.style.display = 'none'; gb.style.display = 'none'; }
+        else { ps.style.display = 'block'; gb.style.display = 'block'; }
+    }
+    
+    function copyText(t) {
+        navigator.clipboard.writeText(t).then(() => n('✅ Copied!')).catch(() => prompt('Copy:', t));
+    }
+    
+    if (cu && cu.id) document.getElementById('verifyUserId').value = cu.id.toString().padStart(6, '0');
+    
+    function handleFileSelect() {
+        const f = document.getElementById('topupScreenshot').files[0];
+        const ub = document.getElementById('fileUploadBox');
+        const ut = document.getElementById('uploadText');
+        const uh = document.getElementById('uploadHint');
+        if (f) {
+            ub.classList.add('has-file');
+            ut.textContent = '📎 ' + f.name;
+            uh.textContent = (f.size / 1024).toFixed(1) + ' KB';
+            const r = new FileReader();
+            r.onload = function(e) { 
+                sd = e.target.result; 
+                document.getElementById('screenshotPreview').innerHTML = `<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:6px;border:2px solid var(--g)">`; 
+            };
+            r.readAsDataURL(f);
         } else {
-            // ID Invalid
+            ub.classList.remove('has-file');
+            ut.textContent = 'Payment Screenshot';
+            uh.textContent = 'ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';
+            sd = '';
+            document.getElementById('screenshotPreview').innerHTML = '';
+        }
+    }
+    
+    async function verifyUserId() {
+        const inputId = document.getElementById('verifyUserId').value.trim();
+        const resultEl = document.getElementById('idResult');
+        const buyBtn = document.getElementById('buyBtn');
+        const checkBtn = document.getElementById('checkIdBtn');
+        
+        if (!inputId) {
             resultEl.className = 'id-result invalid';
-            resultEl.textContent = '❌ ID မှားယွင်းနေပါသည်';
+            resultEl.textContent = '❌ User ID ထည့်ပါ';
             resultEl.style.display = 'block';
-            idVerified = false;
+            iv = false;
+            buyBtn.disabled = true;
+            return;
+        }
+        
+        resultEl.className = 'id-result checking';
+        resultEl.textContent = '⏳ Checking...';
+        resultEl.style.display = 'block';
+        checkBtn.disabled = true;
+        
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                resultEl.className = 'id-result invalid';
+                resultEl.textContent = '❌ Please login first';
+                resultEl.style.display = 'block';
+                iv = false;
+                buyBtn.disabled = true;
+                checkBtn.disabled = false;
+                return;
+            }
+            
+            const response = await fetch('/api/verify_user_id', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token, userId: inputId })
+            });
+            
+            const data = await response.json();
+            console.log('[ID CHECK] Response:', data);
+            
+            if (data.success && data.verified) {
+                resultEl.className = 'id-result verified';
+                resultEl.innerHTML = `✅ ID မှန်ကန်ပါသည်<br><small>👤 ${data.username || 'N/A'} | 📧 ${data.email || 'N/A'}</small>`;
+                resultEl.style.display = 'block';
+                iv = true;
+                buyBtn.disabled = false;
+            } else {
+                resultEl.className = 'id-result invalid';
+                resultEl.textContent = '❌ ID မှားယွင်းနေပါသည်';
+                resultEl.style.display = 'block';
+                iv = false;
+                buyBtn.disabled = true;
+            }
+        } catch(e) {
+            console.error('[ID CHECK] Error:', e);
+            resultEl.className = 'id-result invalid';
+            resultEl.textContent = '❌ Connection Error';
+            resultEl.style.display = 'block';
+            iv = false;
             buyBtn.disabled = true;
         }
-    } catch(e) {
-        console.error('[ID CHECK] Error:', e);
-        resultEl.className = 'id-result invalid';
-        resultEl.textContent = '❌ Connection Error: ' + e.message;
-        resultEl.style.display = 'block';
-        idVerified = false;
-        buyBtn.disabled = true;
+        
+        checkBtn.disabled = false;
     }
     
-    checkBtn.disabled = false;
-}
-    
-    async function submitTopup(){
-        const pm=document.getElementById('topupPayment').value,
-              ii=document.getElementById('verifyUserId').value.trim(),
-              btn=document.getElementById('buyBtn');
-        if(!pm)return alert('Payment ရွေးချယ်ပါ');
-        if(!iv)return alert('User ID စစ်ဆေးပါ');
-        if(!sd)return alert('Screenshot ထည့်ပါ');
-        btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;
-        try{
-            const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});
-            const ud=await ur.json();
-            const su=ud.success?ud.url:sd;
-            const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});
-            const d=await r.json();
-            if(d.success){
+    async function submitTopup() {
+        const payment = document.getElementById('topupPayment').value;
+        const inputId = document.getElementById('verifyUserId').value.trim();
+        const btn = document.getElementById('buyBtn');
+        
+        if (!payment) return alert('Payment ရွေးချယ်ပါ');
+        if (!iv) return alert('User ID စစ်ဆေးပါ');
+        if (!sd) return alert('Screenshot ထည့်ပါ');
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buying...';
+        btn.disabled = true;
+        
+        try {
+            const uploadR = await fetch('/api/upload_image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64: sd }) });
+            const uploadD = await uploadR.json();
+            const screenshotUrl = uploadD.success ? uploadD.url : sd;
+            
+            const r = await fetch('/api/submit_order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token'), amount: 0, payment_method: payment, screenshot: screenshotUrl, user_id: inputId }) });
+            const d = await r.json();
+            
+            if (d.success) {
                 alert('✅ Order Submitted!');
-                document.getElementById('topupPayment').value='';
-                document.getElementById('topupScreenshot').value='';
-                document.getElementById('screenshotPreview').innerHTML='';
-                sd='';iv=false;document.getElementById('buyBtn').disabled=true;
-                document.getElementById('idResult').style.display='none';
+                document.getElementById('topupPayment').value = '';
+                document.getElementById('topupScreenshot').value = '';
+                document.getElementById('screenshotPreview').innerHTML = '';
+                sd = '';
+                iv = false;
+                document.getElementById('buyBtn').disabled = true;
+                document.getElementById('idResult').style.display = 'none';
                 document.getElementById('fileUploadBox').classList.remove('has-file');
-                document.getElementById('uploadText').textContent='Payment Screenshot';
-                document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';
-                document.getElementById('paymentSection').style.display='none';
-                document.getElementById('guideBox').style.display='none';
+                document.getElementById('uploadText').textContent = 'Payment Screenshot';
+                document.getElementById('uploadHint').textContent = 'ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';
+                document.getElementById('paymentSection').style.display = 'none';
+                document.getElementById('guideBox').style.display = 'none';
                 loadHistory();
-            }else alert(d.message||'Error');
-        }catch(e){alert('Connection error')}
-        btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false;
+            } else {
+                alert(d.message || 'Error');
+            }
+        } catch(e) { alert('Connection error'); }
+        
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Buy';
+        btn.disabled = false;
     }
     
-    async function loadHistory(){
-        const c=document.getElementById('orderHistory');
-        try{
-            const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
-            const d=await r.json();
-            if(d.orders&&d.orders.length>0){renderOrderHistory(d.orders)}
-            else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'}
-        }catch(e){c.innerHTML='<p style="text-align:center;padding:20px">No history</p>'}
+    async function loadHistory() {
+        const c = document.getElementById('orderHistory');
+        try {
+            const r = await fetch('/api/get_orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) });
+            const d = await r.json();
+            if (d.orders && d.orders.length > 0) { renderOrderHistory(d.orders); }
+            else { c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'; }
+        } catch(e) { c.innerHTML = '<p style="text-align:center;padding:20px">No history</p>'; }
     }
     
-    function renderOrderHistory(orders){
-        const c=document.getElementById('orderHistory');
-        c.innerHTML=orders.map((o,i)=>{
-            const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';
-            const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';
-            const rejectBox=o.status==='rejected'&&o.reject_reason?`<div class="reject-reason-box"><div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div><div class="reject-msg">${o.reject_reason}</div></div>`:'';
-            return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${rejectBox}${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`;
+    function renderOrderHistory(orders) {
+        const c = document.getElementById('orderHistory');
+        c.innerHTML = orders.map((o, i) => {
+            const sc = o.status === 'approved' ? 'status-approved' : o.status === 'rejected' ? 'status-rejected' : 'status-pending';
+            const st = o.status === 'approved' ? 'APPROVED' : o.status === 'rejected' ? 'REJECTED' : 'PENDING';
+            const rejectBox = o.status === 'rejected' && o.reject_reason ? 
+                `<div class="reject-reason-box">
+                    <div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div>
+                    <div class="reject-msg">${o.reject_reason}</div>
+                </div>` : '';
+            return `<div class="history-item" onclick="toggleDetail(${i})">
+                <div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div>
+                <span class="status-badge ${sc}">${st}</span>
+            </div>
+            <div class="history-detail" id="detail${i}">
+                <p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>
+                ${rejectBox}
+                ${o.screenshot ? `<img src="${o.screenshot}">` : '<p>No screenshot</p>'}
+            </div>`;
         }).join('');
     }
-    function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
-    function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
-    async function loadBalance(){try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const b=d.balance||0;document.getElementById('myBalance').textContent=fm(b)+' Ks';document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`}catch(e){}}
+    
+    function toggleDetail(i) {
+        const d = document.getElementById('detail' + i);
+        if (d) d.style.display = d.style.display === 'block' ? 'none' : 'block';
+    }
+    
+    function fm(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+    
+    async function loadBalance() {
+        try {
+            const r = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) });
+            const d = await r.json();
+            const b = d.balance || 0;
+            document.getElementById('myBalance').textContent = fm(b) + ' Ks';
+            document.getElementById('usdBalance').textContent = `≈ $${(b / 2100).toFixed(2)} USD`;
+        } catch(e) {}
+    }
+    
     loadBalance();
-</script>
+</script>    
 </body>
 </html>
