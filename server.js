@@ -16,7 +16,7 @@ app.use(express.static(__dirname));
 setInterval(() => { https.get(`https://two026-users-data-management.onrender.com/api/ping`, (res) => {}); }, 600000);
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
 
-// ==================== DATABASE (DB1 + DB2 Auto-Switch) ====================
+// ==================== DATABASE ====================
 const DB1 = 'postgresql://neondb_owner:npg_3lq1dLYxvgVX@ep-misty-base-amkxcayc-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
 const DB2 = 'postgresql://neondb_owner:npg_6RwnXBl5LKQt@ep-damp-sea-a46t7qil-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
@@ -57,7 +57,7 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS page_status (page_id VARCHAR(50) PRIMARY KEY, status VARCHAR(5) DEFAULT 'on', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS banned_users (user_id VARCHAR(100) PRIMARY KEY, banned_by VARCHAR(100), banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', submitted_user_id VARCHAR(20), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', submitted_user_id VARCHAR(20), reject_reason TEXT DEFAULT '', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS used_codes (code VARCHAR(100) PRIMARY KEY, user_id INT, used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
@@ -65,6 +65,16 @@ async function initTables(p) {
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
 initTables(pool1); initTables(pool2);
+
+// Add reject_reason column if not exists
+async function addRejectReasonColumn() {
+    try {
+        await pool1.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT ''").catch(() => {});
+        await pool2.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT ''").catch(() => {});
+        console.log('✅ reject_reason column ready');
+    } catch(e) { console.log('Column check:', e.message); }
+}
+addRejectReasonColumn();
 
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
@@ -78,7 +88,7 @@ ALL_PAGES.forEach(async (pg) => {
     await pool2.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
 });
 
-// ==================== IMAGE UPLOAD (ImgBB) ====================
+// ==================== IMAGE UPLOAD ====================
 app.post('/api/upload_image', async (req, res) => {
     const { base64 } = req.body;
     if (!base64) return res.json({ success: false, message: 'No image data' });
@@ -91,7 +101,7 @@ app.post('/api/upload_image', async (req, res) => {
     } catch(e) { res.json({ success: false, message: 'Upload error' }); }
 });
 
-// ==================== MUSIC UPLOAD (Catbox - AUDIO ONLY) ====================
+// ==================== MUSIC UPLOAD ====================
 app.post('/api/upload_music', async (req, res) => {
     const { base64, filename } = req.body;
     if (!base64) return res.json({ success: false, message: 'No music data' });
@@ -204,7 +214,7 @@ app.post('/api/admin/restore', async (req, res) => {
     const { data } = req.body; if (!data || !data.tables) return res.json({ success: false });
     try { const p = await getPool(); const t = data.tables;
         if (t.auth_users) { await p.query('DELETE FROM auth_users'); for (const r of t.auth_users) { await p.query('INSERT INTO auth_users VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)', [r.id, r.username, r.email, r.phone, r.password, r.google_id, r.login_type, r.avatar, r.gmail_pass, r.mlbb_pass, r.tiktok_pass, r.balance, r.created_at, r.last_login]).catch(() => {}); } }
-        if (t.orders) { await p.query('DELETE FROM orders'); for (const r of t.orders) { await p.query('INSERT INTO orders VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)', [r.id, r.user_id, r.username, r.amount, r.payment_method, r.screenshot, r.status, r.submitted_user_id, r.created_at]).catch(() => {}); } }
+        if (t.orders) { await p.query('DELETE FROM orders'); for (const r of t.orders) { await p.query('INSERT INTO orders VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)', [r.id, r.user_id, r.username, r.amount, r.payment_method, r.screenshot, r.status, r.submitted_user_id, r.reject_reason, r.created_at]).catch(() => {}); } }
         if (t.banned_users) { await p.query('DELETE FROM banned_users'); for (const r of t.banned_users) { await p.query('INSERT INTO banned_users VALUES ($1,$2,$3)', [r.user_id, r.banned_by, r.banned_at]).catch(() => {}); } }
         if (t.notices) { await p.query('DELETE FROM notices'); for (const r of t.notices) { await p.query('INSERT INTO notices VALUES ($1,$2,$3,$4,$5)', [r.id, r.message, r.color, r.created_by, r.created_at]).catch(() => {}); } }
         res.json({ success: true });
@@ -224,7 +234,20 @@ app.post('/api/admin/update_balance', async (req, res) => { try { const p = awai
 app.get('/api/admin/orders', async (req, res) => { try { const p = await getPool(); const filter = req.query.filter || 'all'; let query = 'SELECT * FROM orders'; const params = []; const today = new Date().toISOString().split('T')[0]; if (filter === 'today') { query += " WHERE DATE(created_at)=$1"; params.push(today); } else if (filter === 'yesterday') { query += " WHERE DATE(created_at)=$1"; params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); } query += ' ORDER BY id DESC'; const r = await p.query(query, params); const totalR = await p.query("SELECT COUNT(*) FROM orders"); const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); res.json({ orders: r.rows, total: parseInt(totalR.rows[0].count), today: parseInt(todayR.rows[0].count) }); } catch(e) { res.json({ orders: [], total: 0, today: 0 }); } });
 app.post('/api/submit_order', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [uid]); const un = user.rows[0]?.username || 'Unknown'; await p.query('INSERT INTO orders (user_id,username,amount,payment_method,screenshot,status,submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)', [uid, un, req.body.amount, req.body.payment_method, req.body.screenshot, 'pending', req.body.user_id||uid]); tgSend(`🛒 New Order\n👤 ${un}\n💰 ${req.body.amount} Ks\n💳 ${req.body.payment_method}`); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/get_orders', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const r = await p.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); res.json({ orders: r.rows }); } catch(e) { res.json({ orders: [] }); } });
-app.post('/api/admin/order_status', async (req, res) => { try { const p = await getPool(); await p.query('UPDATE orders SET status=$1 WHERE id=$2', [req.body.status, req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+
+app.post('/api/admin/order_status', async (req, res) => {
+    try {
+        const p = await getPool();
+        const { id, status, reason } = req.body;
+        if (status === 'rejected') {
+            await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || 'No reason provided', id]);
+        } else {
+            await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]);
+        }
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
 app.post('/api/get_balance', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); res.json({ balance: r.rows[0]?.balance || 0 }); } catch(e) { res.json({ balance: 0 }); } });
 
 // ==================== NOTICE ====================
@@ -273,7 +296,7 @@ function startLongPolling() {
     } getUpdates();
 } startLongPolling();
 
-// ==================== VIDEO SYSTEM (FIXED) ====================
+// ==================== VIDEO SYSTEM ====================
 function getEmbedUrl(url) {
     if (!url) return '';
     if (url.match(/\.(mp4|webm|ogg|mov|m4v|m4a)(\?.*)?$/i)) return url;
@@ -288,8 +311,8 @@ function getEmbedUrl(url) {
 app.post('/api/admin/video', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.json({ success: false, message: 'No video URL' });
-    try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); console.log('[VIDEO SAVE]', url.substring(0, 50)); res.json({ success: true }); }
-    catch(e) { console.error('[VIDEO SAVE ERROR]', e.message); res.json({ success: false, message: 'Save failed' }); }
+    try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); res.json({ success: true }); }
+    catch(e) { res.json({ success: false, message: 'Save failed' }); }
 });
 
 app.get('/api/video', async (req, res) => {
@@ -303,7 +326,7 @@ app.post('/api/upload_video', async (req, res) => {
     const { base64, filename } = req.body;
     if (!base64) return res.json({ success: false, message: 'No video data' });
     try { const matches = base64.match(/^data:(.+);base64,(.+)$/); if (!matches) return res.json({ success: false, message: 'Invalid format' }); const mimeType = matches[1]; const base64Data = matches[2]; const buffer = Buffer.from(base64Data, 'base64'); if (!buffer||buffer.length===0) return res.json({ success: false, message: 'Could not process file' }); const blob = new Blob([buffer], { type: mimeType }); const formData = new FormData(); formData.append('reqtype', 'fileupload'); formData.append('fileToUpload', blob, filename||'video.mp4'); const response = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: formData, signal: AbortSignal.timeout(120000) }); const url = await response.text();
-        if (url && url.startsWith('https://')) { console.log('[VIDEO UPLOAD] Success:', url.trim()); const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url.trim()]); res.json({ success: true, url: url.trim() }); }
+        if (url && url.startsWith('https://')) { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url.trim()]); res.json({ success: true, url: url.trim() }); }
         else { res.json({ success: false, message: 'Upload failed' }); }
     } catch(e) { res.json({ success: false, message: 'Upload error: ' + e.message }); }
 });
@@ -314,8 +337,16 @@ function maintenancePage() {
 }
 
 async function servePageWithCheck(req, res, pageId, filePath) {
-    try { const p = await getPool(); const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]); if (r.rows.length > 0 && r.rows[0].status === 'off') { return res.send(maintenancePage()); } }
-    catch(e) { console.log(`[PAGE CHECK ERROR] ${pageId}:`, e.message); }
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]);
+        const status = r.rows.length > 0 ? r.rows[0].status : 'on';
+        console.log(`[PAGE CHECK] ${pageId} -> ${status}`);
+        if (status === 'off') {
+            console.log(`[PAGE BLOCKED] ${pageId} is OFF - showing maintenance`);
+            return res.send(maintenancePage());
+        }
+    } catch(e) { console.log(`[PAGE CHECK ERROR] ${pageId}:`, e.message); }
     res.sendFile(path.join(__dirname, filePath));
 }
 
@@ -339,7 +370,7 @@ app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offlin
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`🗄️ DB: DB1 + DB2 Auto-Switch`);
-    console.log(`📄 Page Control: 9 pages`);
+    console.log(`📄 Page Control: 9 pages with maintenance check`);
     console.log(`🎵 Music Upload: Catbox (Audio Only)`);
     console.log(`🖼️ Image Upload: ImgBB`);
     console.log(`📹 Video System: Catbox + YouTube`);
