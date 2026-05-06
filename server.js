@@ -191,9 +191,40 @@ app.post('/api/verify_user_id', async (req, res) => {
 });
 
 // ==================== SLIDER ====================
-app.get('/api/slider_images', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); r.rows.length === 0 ? res.json({ images: [] }) : res.json({ images: JSON.parse(r.rows[0].image_urls || '[]') }); } catch(e) { res.json({ images: [] }); } });
-app.post('/api/admin/slider_images', async (req, res) => { try { const p = await getPool(); if (!req.body.images || req.body.images.length === 0) { await p.query('DELETE FROM slider_images'); return res.json({ success: true }); } await p.query('INSERT INTO slider_images (image_urls) VALUES ($1)', [JSON.stringify(req.body.images)]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/slider_images', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const r = await p.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); 
+        if (r.rows.length === 0) {
+            return res.json({ success: true, images: [] });
+        }
+        const images = JSON.parse(r.rows[0].image_urls || '[]');
+        console.log('[SLIDER] Sending', images.length, 'images');
+        res.json({ success: true, images: images }); 
+    } catch(e) { 
+        console.error('[SLIDER ERROR]', e.message);
+        res.json({ success: true, images: [] }); 
+    } 
+});
 
+app.post('/api/admin/slider_images', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const { images } = req.body;
+        if (!images || images.length === 0) { 
+            await p.query('DELETE FROM slider_images'); 
+            console.log('[SLIDER] Cleared');
+            return res.json({ success: true }); 
+        } 
+        await p.query('DELETE FROM slider_images');
+        await p.query('INSERT INTO slider_images (image_urls) VALUES ($1)', [JSON.stringify(images)]); 
+        console.log('[SLIDER] Saved', images.length, 'images');
+        res.json({ success: true }); 
+    } catch(e) { 
+        console.error('[SLIDER SAVE ERROR]', e.message);
+        res.json({ success: false }); 
+    } 
+});
 // ==================== BG MUSIC ====================
 app.get('/api/bg_music', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT music_urls FROM bg_music ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ playlist: [] }); res.json({ playlist: JSON.parse(r.rows[0].music_urls || '[]') }); } catch(e) { res.json({ playlist: [] }); } });
 app.post('/api/admin/bg_music', async (req, res) => { try { const p = await getPool(); const { playlist } = req.body; if (!playlist || playlist.length === 0) { await p.query('DELETE FROM bg_music'); return res.json({ success: true }); } await p.query('DELETE FROM bg_music'); await p.query('INSERT INTO bg_music (music_urls) VALUES ($1)', [JSON.stringify(playlist)]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
