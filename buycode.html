@@ -5,27 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SOLO M Game Shop - Buy Code</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
+        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
         .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
         .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
-        .balance-bar{background:rgba(0,0,0,0.4);padding:10px 15px;border-radius:8px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;font-size:13px}
-        .balance-bar .bal{color:var(--w);font-weight:bold}
-        .scroll-content{flex:1;overflow-y:auto;padding-bottom:10px}
         
+        .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
+        .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
+        .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
+        .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
+        
+        .notice-banner{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+        .notice-banner .notice-icon{font-size:24px;color:var(--w)}
+        .notice-banner .notice-msg{font-size:12px;font-weight:bold}
+        .notice-banner .notice-time{font-size:9px;color:rgba(255,255,255,0.5)}
+        
+        .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
         .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
         .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
         .game-card:hover{background:rgba(74,28,122,0.4);border-color:var(--w)}
         .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover}
         .game-card p{font-size:10px;color:var(--t);margin-top:5px}
         .game-card .price-tag{font-size:9px;color:var(--w);margin-top:3px}
-        .game-card.owned{opacity:0.5;cursor:default;border-color:rgba(46,204,113,0.3)}
-        .game-card.owned:after{content:'✓ Owned';display:block;font-size:8px;color:var(--g);margin-top:3px}
+        .game-card .code-count{font-size:8px;color:var(--g);margin-top:2px}
         
         .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
         .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
@@ -37,10 +44,11 @@
         .modal-box .modal-img{width:60px;height:60px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 10px}
         .modal-box .warning-text{font-size:10px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px;line-height:1.5}
         .modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-        .modal-box .code-item .code-val{font-family:'Courier New',monospace;font-size:12px;word-break:break-all;flex:1}
-        .modal-box .code-item .code-val.locked{color:rgba(255,255,255,0.3);font-size:14px;letter-spacing:2px}
-        .btn-sm{padding:5px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
-        .btn-buy{background:var(--g);color:#000}.btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
+        .modal-box .code-val{font-family:'Courier New',monospace;font-size:12px;word-break:break-all;flex:1;color:rgba(255,255,255,0.3);letter-spacing:2px}
+        .modal-box .code-val.available{color:var(--g);letter-spacing:1px}
+        .btn-sm{padding:6px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
+        .btn-buy{background:var(--g);color:#000}.btn-buy:disabled{opacity:0.5;cursor:not-allowed}
+        .btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
         
         .qr-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:6000;justify-content:center;align-items:center}
         .qr-modal.active{display:flex}
@@ -53,6 +61,12 @@
         .qr-box .code-area .timer{font-size:12px;color:var(--w);margin:5px 0}
         .qr-box .copy-btn{background:var(--g);color:#000;border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
         .qr-box .close-qr{background:var(--r);color:var(--t);border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:10px}
+        
+        .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
+        .maintenance-icon{font-size:80px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
+        .maintenance-title{font-size:22px;font-weight:bold;color:var(--w);margin-bottom:10px}
+        .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:15px}
     </style>
 </head>
 <body>
@@ -60,118 +74,186 @@
     <div class="notif" id="notif"></div>
     
     <div class="container" id="mainContainer">
-        <div class="header">
-            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h1><i class="fas fa-shopping-cart"></i> Buy Code MLBB</h1>
+        <div class="header"><a href="/dashboard"><i class="fas fa-arrow-left"></i></a><h1><i class="fas fa-shopping-cart"></i> Buy Code MLBB</h1></div>
+        
+        <!-- Maintenance -->
+        <div id="maintenanceMessage" style="display:none">
+            <div class="maintenance-container">
+                <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+                <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+                <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
+            </div>
         </div>
         
-        <div class="balance-bar">
-            <span><i class="fas fa-wallet"></i> MMK Balance</span>
-            <span class="bal" id="myBalance">0 Ks</span>
-        </div>
-        
-        <div class="scroll-content">
-            <p style="font-size:11px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px">
-                ⚠️ အကောင့်တစ်ကောင့်မှာ အမျိုးအစားတစ်ခုစီကို တစ်ကြိမ်စီသာ ဝယ်ယူလို့ရပါမည်။
-            </p>
-            <div class="game-grid" id="gameGrid"></div>
+        <div id="buycodeContent">
+            <!-- Balance -->
+            <div class="balance-card">
+                <div class="amount" id="myBalance">0 Ks</div>
+                <div class="label">Myanmar Kyat (MMK)</div>
+                <div class="usd-amount" id="usdBalance">≈ $0.00 USD</div>
+            </div>
+            
+            <!-- Notice -->
+            <div class="notice-banner" id="noticeBanner" style="display:none">
+                <div class="notice-icon" id="noticeIcon"><i class="fas fa-bullhorn"></i></div>
+                <div class="notice-text">
+                    <div class="notice-msg" id="noticeMsgDisplay"></div>
+                    <div class="notice-time" id="noticeTime"></div>
+                </div>
+            </div>
+            
+            <div class="scroll-content">
+                <div class="game-grid" id="gameGrid"></div>
+            </div>
         </div>
         
         <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
     
+    <!-- Category Modal -->
     <div class="modal" id="categoryModal">
         <div class="modal-box">
             <img class="modal-img" id="modalImg" src="" alt="">
             <h3 id="modalTitle"></h3>
-            <p class="warning-text">⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။ QR Code Scan ဖတ်ပြီးမှသာ Code အစစ်ရမည်။</p>
+            <p class="warning-text">⚠️ Code ကိုတစ်ကြိမ်ပဲကူးယူလို့ရပါမည်။</p>
             <div id="codeList"></div>
             <button class="btn-close" onclick="closeCategoryModal()">Close</button>
         </div>
     </div>
     
+    <!-- QR Modal -->
     <div class="qr-modal" id="qrModal">
         <div class="qr-box" id="qrBoxContent"></div>
     </div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
     // ==================== PAGE ACCESS CHECK ====================
-    (async function checkPageAccess(){
-        try{
-            const r=await fetch('/api/admin/page_status');
-            const d=await r.json();
-            if(d.pages){
-                const bc=d.pages.find(p=>p.id==='buycode');
-                if(bc&&bc.status==='off'){
-                    document.getElementById('mainContainer').innerHTML=`<div style="text-align:center;padding:50px"><i class="fas fa-tools" style="font-size:60px;color:#f39c12;margin-bottom:20px"></i><h2 style="color:#f39c12">ယခုစာမျက်နှာကို ပြုပြင်နေပါသည်</h2><p>ခဏစောင့်ပါ</p><a href="/dashboard" style="color:#f39c12">Back to Dashboard</a></div>`;
-                    return;
-                }
-            }
-        }catch(e){}
-    })();
+    async function checkPageAccess(){try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const bc=d.pages.find(p=>p.id==='buycode');if(bc&&bc.status==='off'){document.getElementById('maintenanceMessage').style.display='block';document.getElementById('buycodeContent').style.display='none';document.querySelector('.back-btn').style.display='none';return false}}return true}catch(e){return true}}
 
-    const CODES=[
-        {category:"Shhh emote",icon:"https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png",price:5000,codes:["2359x2s4zqzq23fb8"]},
-        {category:"Golden Month Border",icon:"https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png",price:8000,codes:["29jwchdgqyvj23f5e"]},
-        {category:"Lucky Diamond Code",icon:"https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png",price:12000,codes:["2ja2rum6s6x923fnn"]},
-        {category:"Magic Durt",icon:"https://i.ibb.co/NdpDZ0P7/8.png",price:3000,codes:["35smvu4a354423gzj"]},
-        {category:"Emblem Box",icon:"https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png",price:4000,codes:["28knzpt43hdc23gzc"]}
-    ];
-
-    let purchasedCodes=JSON.parse(localStorage.getItem('purchased_codes')||'{}');
-    let currentBalance=0;
-    let qrTimerInterval=null;
-    let revealedCodeValue='';
+    // ==================== GLOBAL VARIABLES ====================
+    let categoriesData = {};
+    let currentBalance = 0;
+    let qrTimerInterval = null;
+    let revealedCodeValue = '';
+    let currentCategoryKey = '';
 
     function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",2000)}
-    function formatNumber(num){return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+    function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+
+    // ==================== LOAD DATA ====================
+    async function loadAllData(){
+        try{
+            // Load categories from server
+            const r=await fetch('/api/redeem_codes');
+            const d=await r.json();
+            if(d.success){categoriesData=d.categories;renderGameCards();}
+            
+            // Load balance
+            await loadBalance();
+            
+            // Load notice
+            loadBuyCodeNotice();
+        }catch(e){console.log('Load error:',e)}
+    }
 
     async function loadBalance(){
-        try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();currentBalance=d.balance||0;document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';renderGameCards()}catch(e){}
+        try{
+            const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+            const d=await r.json();
+            currentBalance=d.balance||0;
+            document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
+            document.getElementById('usdBalance').textContent=`≈ $${(currentBalance/2100).toFixed(2)} USD`;
+        }catch(e){}
     }
 
-    function isCategoryPurchased(i){return purchasedCodes[i]===true}
+    // ==================== BUY CODE NOTICE ====================
+    function renderBuyCodeNotice(d){
+        const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');
+        if(d&&d.message){b.style.display='flex';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}
+    }
+    
+    async function loadBuyCodeNotice(){
+        const ca=localStorage.getItem('buycodeNoticeCache');
+        if(ca){try{const d=JSON.parse(ca);if(d.message)renderBuyCodeNotice(d)}catch(e){}}
+        try{
+            const r=await fetch("/api/buycode_notice");const d=await r.json();
+            if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('buycodeNoticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('buycodeNoticeCache',JSON.stringify(cn));renderBuyCodeNotice(cn)}}
+        }catch(e){}
+    }
 
+    // ==================== RENDER GAME CARDS ====================
     function renderGameCards(){
-        document.getElementById('gameGrid').innerHTML=CODES.map((cat,i)=>`<div class="game-card ${isCategoryPurchased(i)?'owned':''}" onclick="${isCategoryPurchased(i)?'':'openCategory('+i+')'}"><img src="${cat.icon}"><p>${cat.category}</p><div class="price-tag">💰 ${formatNumber(cat.price)} Ks</div></div>`).join('')
+        const cats=Object.keys(categoriesData);
+        if(cats.length===0){
+            document.getElementById('gameGrid').innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);grid-column:1/-1;padding:30px">No codes available yet.</p>';
+            return;
+        }
+        
+        document.getElementById('gameGrid').innerHTML=cats.map(key=>{
+            const cat=categoriesData[key];
+            const availableCount=cat.codes?cat.codes.length:0;
+            return`<div class="game-card" onclick="openCategory('${key}')">
+                <img src="${cat.icon}" alt="${cat.name}">
+                <p>${cat.name}</p>
+                <div class="price-tag">💰 ${fm(cat.price)} Ks</div>
+                <div class="code-count">📦 ${availableCount} codes</div>
+            </div>`;
+        }).join('');
     }
 
-    function openCategory(i){
-        if(isCategoryPurchased(i))return;
-        const cat=CODES[i];
+    // ==================== CATEGORY MODAL ====================
+    function openCategory(key){
+        currentCategoryKey=key;
+        const cat=categoriesData[key];
+        if(!cat)return;
+        
         document.getElementById('modalImg').src=cat.icon;
-        document.getElementById('modalTitle').textContent=cat.category;
-        document.getElementById('codeList').innerHTML=cat.codes.map(c=>`<div class="code-item"><span class="code-val locked">••••••••••••••••••</span><button class="btn-sm btn-buy" onclick="buyCode(${i})">Buy (${formatNumber(cat.price)} Ks)</button></div>`).join('');
+        document.getElementById('modalTitle').textContent=cat.name;
+        
+        const codes=cat.codes||[];
+        if(codes.length===0){
+            document.getElementById('codeList').innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No codes available.</p>';
+        }else{
+            document.getElementById('codeList').innerHTML=codes.map(c=>`
+                <div class="code-item">
+                    <span class="code-val">ဝယ်ယူပြီးပါက ဤနေရာတွင် Code ပေါ်လာပါမည်</span>
+                    <button class="btn-sm btn-buy" onclick="buyCode(${c.id})">Buy (${fm(cat.price)} Ks)</button>
+                </div>
+            `).join('');
+        }
+        
         document.getElementById('categoryModal').classList.add('active');
     }
 
     function closeCategoryModal(){document.getElementById('categoryModal').classList.remove('active')}
 
-    function buyCode(i){
-        const cat=CODES[i],price=cat.price,code=cat.codes[0];
-        if(isCategoryPurchased(i))return n('ဒီအမျိုးအစားကိုဝယ်ပြီးပါပြီ','error');
-        if(currentBalance<price)return n('ငွေမလုံလောက်ပါ','error');
-        if(!confirm(`${cat.category}\n\nစျေးနှုန်း: ${formatNumber(price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?`))return;
+    // ==================== BUY CODE ====================
+    async function buyCode(codeId){
+        const cat=categoriesData[currentCategoryKey];
+        if(!cat)return;
         
-        const uid=parseInt(localStorage.getItem('auth_token').replace('token_',''));
-        fetch('/api/use_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,userId:uid})})
-        .then(r=>r.json()).then(d=>{
-            if(d.already_used)return n('❌ ဤ Code ကို အသုံးပြုပြီးပါပြီ။','error');
-            fetch('/api/admin/update_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid,amount:-price})})
-            .then(r=>r.json()).then(d2=>{
-                if(d2.success){
-                    currentBalance-=price;
-                    document.getElementById('myBalance').textContent=formatNumber(currentBalance)+' Ks';
-                    purchasedCodes[i]=true;
-                    localStorage.setItem('purchased_codes',JSON.stringify(purchasedCodes));
-                    closeCategoryModal();
-                    renderGameCards();
-                    showQRModal(code);
-                }
-            });
-        });
+        if(currentBalance<cat.price)return n('ငွေမလုံလောက်ပါ','error');
+        if(!confirm(`${cat.name}\n\nစျေးနှုန်း: ${fm(cat.price)} Ks\n\nဝယ်ယူမှာသေချာပါသလား?`))return;
+        
+        try{
+            const r=await fetch('/api/buy_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),codeId:codeId})});
+            const d=await r.json();
+            
+            if(d.success){
+                currentBalance=d.balance;
+                document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
+                document.getElementById('usdBalance').textContent=`≈ $${(currentBalance/2100).toFixed(2)} USD`;
+                closeCategoryModal();
+                loadAllData(); // Refresh data
+                showQRModal(d.code);
+            }else{
+                n(d.message||'Error','error');
+            }
+        }catch(e){n('Connection error','error')}
     }
 
+    // ==================== QR CODE MODAL ====================
     function showQRModal(code){
         revealedCodeValue=code;
         document.getElementById('qrBoxContent').innerHTML=`
@@ -189,34 +271,27 @@
         
         document.getElementById('qrModal').classList.add('active');
         
-        setTimeout(()=>{
-            const c=document.getElementById('qrcodeContainer');
-            if(c){c.innerHTML='';new QRCode(c,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'})}
-        },100);
+        setTimeout(()=>{const c=document.getElementById('qrcodeContainer');if(c){c.innerHTML='';new QRCode(c,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'})}},100);
         
         let sec=10;
         if(qrTimerInterval)clearInterval(qrTimerInterval);
-        qrTimerInterval=setInterval(()=>{
-            sec--;
-            const t=document.getElementById('qrTimer');
-            if(t)t.textContent=`⏱️ ${sec} seconds remaining`;
-            if(sec<=0){clearInterval(qrTimerInterval);closeQRModal();n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ')}
-        },1000);
+        qrTimerInterval=setInterval(()=>{sec--;const t=document.getElementById('qrTimer');if(t)t.textContent=`⏱️ ${sec} seconds remaining`;if(sec<=0){clearInterval(qrTimerInterval);closeQRModal();n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ')}},1000);
     }
 
     function revealCode(){document.getElementById('qrCodeArea').style.display='block';document.querySelector('.reveal-btn').style.display='none'}
     function copyQRCode(){if(!revealedCodeValue)return;navigator.clipboard.writeText(revealedCodeValue).then(()=>{const b=document.getElementById('qrCopyBtn');if(b){b.innerHTML='<i class="fas fa-check"></i> Copied!';b.style.background='rgba(255,255,255,0.2)'}n('✅ Code Copied!')})}
     function closeQRModal(){document.getElementById('qrModal').classList.remove('active');if(qrTimerInterval){clearInterval(qrTimerInterval);qrTimerInterval=null}}
-    
-    loadBalance();
 
-    // ==================== BG MUSIC PLAYLIST PLAYER ====================
-    (function(){const a=document.getElementById('bgAudio');let playlist=[],currentIndex=parseInt(localStorage.getItem('bgMusicIndex')||'0');a.volume=0.6;
-    async function check(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){const nl=JSON.stringify(d.playlist),ol=JSON.stringify(playlist);if(nl!==ol){playlist=d.playlist;currentIndex=0;play()}else if(a.paused&&a.src){const t=localStorage.getItem('bgMusicTime_'+currentIndex);if(t)a.currentTime=parseFloat(t);a.play().catch(()=>{})}}else{a.pause();a.src='';playlist=[]}}catch(e){}}
-    function play(){if(!playlist.length)return;if(currentIndex>=playlist.length)currentIndex=0;const url=playlist[currentIndex];if(a.src!==url){a.src=url;a.addEventListener('canplay',function(){const t=localStorage.getItem('bgMusicTime_'+currentIndex);if(t)a.currentTime=parseFloat(t);a.play().catch(()=>{})},{once:true})}else{a.play().catch(()=>{})}}
-    a.addEventListener('ended',function(){localStorage.setItem('bgMusicTime_'+currentIndex,a.currentTime);currentIndex=(currentIndex+1)%playlist.length;localStorage.setItem('bgMusicIndex',currentIndex);localStorage.setItem('bgMusicTime_'+currentIndex,'0');play()});
-    setInterval(()=>{if(!a.paused&&playlist.length>0){localStorage.setItem('bgMusicIndex',currentIndex);localStorage.setItem('bgMusicTime_'+currentIndex,a.currentTime)}},500);
-    check();setInterval(check,5000)})();
+    // ==================== BG MUSIC ====================
+    (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
+
+    // ==================== INIT ====================
+    (async function init(){
+        const pageOn=await checkPageAccess();if(!pageOn)return;
+        document.getElementById('buycodeContent').style.display='block';
+        loadAllData();
+        setInterval(loadBuyCodeNotice,3000);
+    })();
 </script>
 </body>
 </html>
