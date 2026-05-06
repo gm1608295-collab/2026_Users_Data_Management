@@ -125,6 +125,25 @@
                     <button class="btn btn-r" onclick="deleteAllNotices()" style="margin-top:5px;width:100%"><i class="fas fa-trash"></i> Delete All Notices</button>
                     <table class="admin-table" id="noticeTable" style="margin-top:8px"><tr><th>Msg</th><th>Color</th><th>Date</th><th>Act</th></tr></table>
                 </div>
+
+                <!-- Buy Code Notice -->
+<div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
+    <h3><i class="fas fa-ticket-alt"></i> Buy Code Notice System</h3>
+    <div class="form-group"><label>Notice Text</label><textarea id="buycodeNoticeMsg" rows="2" placeholder="Enter buy code notice..."></textarea></div>
+    <div class="form-group"><label>Text Color</label><input type="color" id="buycodeNoticeColor" value="#ffffff" style="height:30px;padding:2px"></div>
+    <button class="btn btn-w" onclick="postBuyCodeNotice()">Post Notice</button>
+    <button class="btn btn-r" onclick="deleteAllBuyCodeNotices()" style="margin-top:5px;width:100%"><i class="fas fa-trash"></i> Delete All Notices</button>
+    <table class="admin-table" id="buycodeNoticeTable" style="margin-top:8px"><tr><th>Msg</th><th>Clr</th><th>Date</th><th>Act</th></tr></table>
+</div>
+
+<!-- Redeem Code Management -->
+<div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
+    <h3><i class="fas fa-gift"></i> Redeem Code Management</h3>
+    <div class="form-group"><label>Category</label><select id="redeemCategory"><option value="shhh_emote">Shhh emote</option><option value="golden_border">Golden Month Border</option><option value="lucky_diamond">Lucky Diamond Code</option><option value="magic_durt">Magic Durt</option><option value="emblem_box">Emblem Box</option></select></div>
+    <div class="form-group"><label>Code</label><input type="text" id="redeemCode" placeholder="Enter redeem code..."></div>
+    <button class="btn btn-g" onclick="addRedeemCode()"><i class="fas fa-plus"></i> Add Code</button>
+    <div id="redeemCodeList" style="max-height:200px;overflow-y:auto;margin-top:8px"></div>
+</div>
                 
                 <!-- Bot Message -->
                 <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
@@ -586,6 +605,17 @@ async function deleteAllNotices() {
         loadNoticeList();
     } catch(e) { n('Error', 'error'); }
 }
+
+// ==================== BUY CODE NOTICE ====================
+async function loadBuyCodeNoticeList(){try{const r=await fetch("/api/admin/buycode_notices");const d=await r.json();const t=document.getElementById("buycodeNoticeTable");if(d.notices&&d.notices.length>0){let h='<tr><th>Msg</th><th>Clr</th><th>Date</th><th>Act</th></tr>';d.notices.forEach(n=>{h+=`<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color||'#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delBuyCodeNoticeById(${n.id})">Del</button></td></tr>`});t.innerHTML=h}else{t.innerHTML='<tr><td colspan="4">No notices</td></tr>'}}catch(e){}}
+async function postBuyCodeNotice(){const m=document.getElementById("buycodeNoticeMsg").value,co=document.getElementById("buycodeNoticeColor").value;if(!m)return n("Enter text","error");try{await fetch("/api/admin/buycode_notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m,color:co})});n("Posted!");document.getElementById("buycodeNoticeMsg").value="";loadBuyCodeNoticeList()}catch(e){n("Error","error")}}
+async function delBuyCodeNoticeById(id){if(!confirm("Delete?"))return;await fetch("/api/admin/buycode_notice/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})});n("Deleted!");loadBuyCodeNoticeList()}
+async function deleteAllBuyCodeNotices(){if(!confirm('Delete ALL buy code notices?'))return;try{await fetch('/api/admin/buycode_notices/delete_all',{method:'POST'});n('✅ All Deleted!');loadBuyCodeNoticeList()}catch(e){n('Error','error')}}
+
+// ==================== REDEEM CODE MANAGEMENT ====================
+async function loadRedeemCodes(){try{const r=await fetch('/api/admin/redeem_codes');const d=await r.json();if(d.codes){const cats={shhh_emote:'🎭 Shhh emote',golden_border:'🏆 Golden Border',lucky_diamond:'💎 Lucky Diamond',magic_durt:'✨ Magic Durt',emblem_box:'📦 Emblem Box'};let html='';d.codes.forEach(c=>{html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:4px;margin-bottom:3px;font-size:9px;border-left:3px solid ${c.used?'var(--r)':'var(--g)'}"><div><b>${cats[c.category]||c.category}</b><br>${c.code}<br><small>${c.used?'❌ Used':'✅ Available'}</small></div><button class="btn btn-r" style="font-size:8px;padding:2px 6px" onclick="delRedeemCode(${c.id})">Del</button></div>`});document.getElementById('redeemCodeList').innerHTML=html||'<p style="font-size:10px;color:rgba(255,255,255,0.5)">No codes</p>'}}catch(e){}}
+async function addRedeemCode(){const cat=document.getElementById('redeemCategory').value;const code=document.getElementById('redeemCode').value.trim();if(!cat||!code)return n('Fill all fields','error');try{await fetch('/api/admin/redeem_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:cat,code})});n('✅ Code Added!');document.getElementById('redeemCode').value='';loadRedeemCodes()}catch(e){n('Error','error')}}
+async function delRedeemCode(id){if(!confirm('Delete this code?'))return;await fetch('/api/admin/redeem_code/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});n('Deleted!');loadRedeemCodes()}
 </script>
 </body>
 </html>
