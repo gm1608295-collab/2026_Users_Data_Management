@@ -366,6 +366,18 @@ app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.ht
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 
+// START SERVER မတိုင်ခင် ဒီနေရာမှာ ထည့်ပါ
+
+// ==================== DELETE APIs ====================
+app.post('/api/admin/video/delete', async (req, res) => {
+    try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); }
+    catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/notices/delete_all', async (req, res) => {
+    try { const p = await getPool(); await p.query('DELETE FROM notices'); res.json({ success: true }); }
+    catch(e) { res.json({ success: false }); }
+});
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
