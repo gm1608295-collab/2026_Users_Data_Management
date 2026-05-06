@@ -781,47 +781,100 @@ app.post('/api/upload_video', async (req, res) => {
     }
 });
 // ==================== VIDEO SYSTEM ====================
-app.get('/api/video', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query("SELECT video_url FROM system_video ORDER BY id DESC LIMIT 1");
-        if (r.rows.length === 0) return res.json({ success: false, url: '' });
-        res.json({ success: true, url: r.rows[0].video_url });
-    } catch(e) {
-        res.json({ success: false, url: '' });
-    }
-});
 
+// Video table init (add to initTables function)
+// `CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+
+// Save video URL
 app.post('/api/admin/video', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.json({ success: false, message: 'No video URL' });
     
     try {
         const p = await getPool();
-        await p.query(`CREATE TABLE IF NOT EXISTS system_video (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`).catch(() => {});
         
-        // Convert YouTube URL to embed format
-        let finalUrl = url;
-        if (url.includes('youtube.com') || url.includes('youtu.be')) {
-            let videoId = '';
-            if (url.includes('youtube.com/watch')) {
-                const urlObj = new URL(url);
-                videoId = urlObj.searchParams.get('v') || '';
-            } else if (url.includes('youtu.be/')) {
-                videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
-            }
-            if (videoId) {
-                finalUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`;
-            }
-        }
+        // Create videos table if not exists
+        await p.query(`CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`).catch(() => {});
         
-        await p.query('DELETE FROM system_video');
-        await p.query('INSERT INTO system_video (video_url) VALUES ($1)', [finalUrl]);
-        console.log('[VIDEO SAVE] Saved:', finalUrl);
+        // Delete old videos
+        await p.query('DELETE FROM videos');
+        
+        // Insert new video
+        await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]);
+        
+        console.log('[VIDEO SAVE]', url.substring(0, 50));
         res.json({ success: true });
     } catch(e) {
         console.error('[VIDEO SAVE ERROR]', e.message);
-        res.json({ success: false, message: 'Save error' });
+        res.json({ success: false, message: 'Save failed' });
+    }
+});
+
+// Get current video
+app.get('/api/video', async (req, res) => {
+    try {
+        const p = await getPool();
+        
+        // Create videos table if not exists
+        await p.query(`CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`).catch(() => {});
+        
+        const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1');
+        
+        if (r.rows.length > 0) {
+            res.json({ success: true, url: r.rows[0].video_url });
+        } else {
+            res.json({ success: false, url: '' });
+        }
+    } catch(e) {
+        console.error('[VIDEO GET ERROR]', e.message);
+        res.json({ success: false, url: '' });
+    }
+});
+
+// Upload video file (for phone upload)
+app.post('/api/upload_video', async (req, res) => {
+    const { base64, filename } = req.body;
+    if (!base64) return res.json({ success: false, message: 'No video data' });
+    
+    try {
+        // Extract base64 data - handle both video and other formats
+        const matches = base64.match(/^data:(.+);base64,(.+)$/);
+        if (!matches) return res.json({ success: false, message: 'Invalid format' });
+        
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Upload to Catbox
+        const blob = new Blob([buffer], { type: mimeType });
+        const formData = new FormData();
+        formData.append('reqtype', 'fileupload');
+        formData.append('fileToUpload', blob, filename || 'video.mp4');
+        
+        const response = await fetch('https://catbox.moe/user/api.php', {
+            method: 'POST',
+            body: formData,
+            signal: AbortSignal.timeout(120000) // 2 minutes for video
+        });
+        
+        const url = await response.text();
+        
+        if (url && url.startsWith('https://')) {
+            console.log('[VIDEO UPLOAD] Success:', url.trim());
+            
+            // Save to database
+            const p = await getPool();
+            await p.query(`CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`).catch(() => {});
+            await p.query('DELETE FROM videos');
+            await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url.trim()]);
+            
+            res.json({ success: true, url: url.trim() });
+        } else {
+            res.json({ success: false, message: 'Upload failed: ' + url });
+        }
+    } catch(e) {
+        console.error('[VIDEO UPLOAD ERROR]', e.message);
+        res.json({ success: false, message: 'Upload error: ' + e.message });
     }
 });
 // ==================== PAGE ROUTES ====================
