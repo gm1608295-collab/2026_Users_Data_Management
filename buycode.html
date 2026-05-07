@@ -220,42 +220,50 @@ let currentBalance = 0;
 
 async function loadCategories() {
     try {
-        // Load prices
-        const priceRes = await fetch('/api/prices');
-        const priceData = await priceRes.json();
-        const prices = priceData.prices || {};
-        
-        // Load codes (use hardcoded for now, or from API)
+        // Load codes from server
         const codeRes = await fetch('/api/redeem_codes');
         const codeData = await codeRes.json();
+        console.log('[LOAD] Server categories:', codeData);
         
         if (codeData.success && codeData.categories) {
-            categoriesData = codeData.categories;
+            // Check if any categories have codes
+            const hasCodes = Object.values(codeData.categories).some(cat => cat.codes && cat.codes.length > 0);
             
-            // Update prices from admin settings
-            Object.keys(categoriesData).forEach(key => {
-                if (prices[key]) {
-                    categoriesData[key].price = prices[key];
-                }
-            });
+            if (hasCodes) {
+                categoriesData = codeData.categories;
+            } else {
+                // Use hardcoded data but keep server prices
+                categoriesData = HARDCODED_DATA;
+            }
         } else {
             // Fallback to hardcoded data
             categoriesData = HARDCODED_DATA;
-            Object.keys(categoriesData).forEach(key => {
-                if (prices[key]) {
-                    categoriesData[key].price = prices[key];
-                }
-            });
         }
         
+        // Load prices from server and update
+        try {
+            const priceRes = await fetch('/api/prices');
+            const priceData = await priceRes.json();
+            console.log('[LOAD] Server prices:', priceData);
+            
+            if (priceData.prices) {
+                Object.keys(categoriesData).forEach(key => {
+                    if (priceData.prices[key]) {
+                        categoriesData[key].price = parseInt(priceData.prices[key]);
+                    }
+                });
+            }
+        } catch(e) {}
+        
+        console.log('[LOAD] Final categories:', categoriesData);
         renderGameCards();
+        
     } catch(e) {
-        // Fallback
+        console.error('[LOAD ERROR]', e);
         categoriesData = HARDCODED_DATA;
         renderGameCards();
     }
 }
-
 // INIT - replace the old init
 (async function init() {
     const pageOn = await checkPageAccess();
