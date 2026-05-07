@@ -12,16 +12,16 @@
         body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
         .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
         
-        /* Header */
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-shrink:0}
-        .header a{color:var(--w);font-size:20px;text-decoration:none}
-        .header h1{font-size:18px;color:var(--w)}
-        
         /* Balance Card */
         .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w);flex-shrink:0;position:relative}
         .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
         .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
         .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
+        
+        /* Back Button - Inside Balance Card (Top Left) */
+        .back-btn-top{position:absolute;top:8px;left:12px;color:var(--w);font-size:13px;text-decoration:none;z-index:5;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:5px;transition:all 0.2s}
+        .back-btn-top:hover{background:rgba(255,255,255,0.2)}
+        .back-btn-top i{font-size:14px}
         
         /* Notification Bell - Inside Balance Card (Top Right) */
         .noti-bell{position:absolute;top:8px;right:12px;cursor:pointer;font-size:18px;color:var(--w);transition:all 0.3s;z-index:5}
@@ -32,7 +32,7 @@
         /* Noti Dropdown */
         .noti-dropdown{display:none;position:absolute;right:0;top:30px;width:280px;max-height:280px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
         .noti-dropdown.active{display:block}
-        .noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--w);line-height:1.6;white-space:pre-line}
+        .noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--w);line-height:1.6}
         .noti-dropdown .noti-item.pending{border-left-color:var(--orange);background:rgba(230,126,34,0.1)}
         .noti-dropdown .noti-item.success{border-left-color:var(--g);background:rgba(46,204,113,0.1)}
         .noti-dropdown .noti-item.rejected{border-left-color:var(--r);background:rgba(231,76,60,0.1)}
@@ -141,6 +141,12 @@
         .maintenance-subtitle{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:8px}
         .maintenance-timer{font-size:28px;font-weight:bold;color:var(--w);font-family:'Courier New',monospace;margin:15px 0}
         .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px}
+        @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-20px); }
+    15% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-20px); }
+}
     </style>
 </head>
 <body>
@@ -148,12 +154,6 @@
     <div class="copy-notif" id="copyNotif"></div>
     
     <div class="container" id="mainContainer">
-        <!-- Header -->
-        <div class="header">
-            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h1>SOLO M Game Shop</h1>
-        </div>
-        
         <!-- Maintenance -->
         <div id="maintenanceMessage" style="display:none">
             <div class="maintenance-container">
@@ -170,8 +170,9 @@
         </div>
         
         <div id="topupContent">
-            <!-- Balance Card with Noti Bell -->
+            <!-- Balance Card with Back Button + Noti Bell -->
             <div class="balance-card">
+                <a href="/dashboard" class="back-btn-top"><i class="fas fa-arrow-left"></i> Back</a>
                 <div class="noti-bell" onclick="toggleNotiDropdown()">
                     <i class="fas fa-bell"></i>
                     <span class="badge" id="notiBadge">0</span>
@@ -189,7 +190,6 @@
             
             <div class="scroll-content">
                 <div class="tab-content active" id="topup">
-                    <!-- Top Up Notice -->
                     <div class="topup-notice-banner" id="topupNoticeBanner">
                         <div class="topup-notice-header">📢 SOLO M Game Shop မှ အသိပေးခြင်း</div>
                         <div class="topup-notice-msg" id="topupNoticeMsg"></div>
@@ -220,9 +220,31 @@
             </div>
         </div>
     </div>
+    <script>
+// ==================== TOAST NOTIFICATION ====================
+function showToast(msg, type = 'success') {
+    const toast = document.createElement('div');
+    toast.textContent = msg;
+    const bg = type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db';
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${bg};
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: bold;
+        z-index: 99999;
+        animation: fadeInOut 2.5s forwards;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+}
 
-<script>
-    // ==================== PAGE ACCESS CHECK ====================
+// ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess(){
     try{
         const r=await fetch('/api/admin/page_status');const d=await r.json();
@@ -413,6 +435,7 @@ async function submitTopup(){
     if(!iv)return alert('User ID စစ်ဆေးပါ');
     if(!sd)return alert('Screenshot ထည့်ပါ');
     btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;
+    showToast('⏳ Processing your order...', 'info');
     try{
         const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});
         const ud=await ur.json();const su=ud.success?ud.url:sd;
@@ -420,12 +443,20 @@ async function submitTopup(){
         const d=await r.json();
         if(d.success){
             // 🔔 PENDING NOTIFICATION
-            addNotiItem('pending','🟠 <b>ငွေဖြည့်သွင်းခြင်း အောင်မြင်ပါသည်။</b>\n\nမိမိ၏အကောင့်ထဲသို့ Admin မှ အတည်ပြုပြီးသည်နှင့် <b>၁၀ မိနစ်အတွင်း</b> ဖြည့်သွင်းပေးပါမည်။\n\nကျေးဇူးတင်ပါသည်။ 🙏');
-            alert('✅ Order Submitted!');
+            addNotiItem('pending',
+                `🟠 ငွေဖြည့်သွင်းခြင်း အောင်မြင်ပါသည်။\n\n`+
+                `မိမိ၏အကောင့်ထဲသို့ Admin မှ\n`+
+                `အတည်ပြုပြီးသည်နှင့်\n`+
+                `၁၀ မိနစ်အတွင်း ဖြည့်သွင်းပေးပါမည်။\n\n`+
+                `ကျေးဇူးတင်ပါသည်။ 🙏`
+            );
+            showToast('✅ Order Submitted Successfully!', 'success');
             document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';
             loadHistory();renderNotiDropdown();
-        }else alert(d.message||'Error');
-    }catch(e){alert('Connection error')}
+        }else{
+            showToast('❌ ' + (d.message || 'Error'), 'error');
+        }
+    }catch(e){showToast('❌ Connection Error', 'error');}
     btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false;
 }
 
@@ -446,19 +477,41 @@ function checkOrderNoti(orders){
             // 🟢 APPROVED - Top Up Success
             if(o.status==='approved'&&o.payment_method!=='Balance Deduction'){
                 const amt=o.amount||0;
-                const amtText=amt>0?`<b>ငွေ ${fm(amt)} ကျပ်</b>`:'ငွေ';
-                addNotiItem('success',`🟢 <b>အောင်မြင်ပါသည်။</b>\n\nသင်၏အကောင့်ထဲသို့ Admin မှ ${amtText} ဖြည့်သွင်းပြီးပါပြီ။\n\nကျေးဇူးတင်ပါသည်။ 🙏`);
+                const amtText=amt>0?`ငွေ ${fm(amt)} ကျပ်`:'ငွေ';
+                addNotiItem('success',
+                    `🟢 အောင်မြင်ပါသည်။\n\n`+
+                    `သင်၏အကောင့်ထဲသို့ Admin မှ\n`+
+                    `${amtText} ဖြည့်သွင်းပြီးပါပြီ။\n\n`+
+                    `ကျေးဇူးတင်ပါသည်။ 🙏`
+                );
             }
             
             // 🔴 REJECTED - Order Rejected
             else if(o.status==='rejected'){
-                addNotiItem('rejected',`🔴 <b>သင်၏အော်ဒါ ငြင်းပယ်ခံရပါသည်။</b>\n\nငွေလွှဲပြေစာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါတင်ခြင်းကြောင့် ဖြစ်သည်။\n\n<b>နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါက သင်၏အကောင့်အား ပိတ်ခံရနိုင်ပြီး အကောင့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်။</b>\n\n⚠️ သတိပြုပါ။`);
+                addNotiItem('rejected',
+                    `🔴 သင်၏အော်ဒါ ငြင်းပယ်ခံရပါသည်။\n\n`+
+                    `ငွေလွှဲပြေစာအတု(သို့)ရက်လွန်ပြေစာ\n`+
+                    `(သို့)ထပ်ခါထပ်ခါတင်ခြင်းကြောင့်\n`+
+                    `ဖြစ်သည်။\n\n`+
+                    `နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါက\n`+
+                    `သင်၏အကောင့်အား ပိတ်ခံရနိုင်ပြီး\n`+
+                    `အကောင့်ပျက်နိုင်သည်အထိ\n`+
+                    `အရေးယူနိုင်ပါသည်။\n\n`+
+                    `⚠️ သတိပြုပါ။`
+                );
             }
             
             // 🔴 DEDUCTION - Balance Deducted by Admin
             else if(o.status==='approved'&&o.payment_method==='Balance Deduction'){
                 const amt=o.amount||0;
-                addNotiItem('deduction',`🔴 <b>Admin မှ သင်၏အကောင့်ထဲမှ ငွေပြန်နှုတ်ခဲ့ပါသည်။</b>\n\n�မာဏ: <b>ငွေ ${fm(amt)} ကျပ်</b>\nအကြောင်းရင်း: ${o.reject_reason||'N/A'}\n\nမေးမြန်းလိုပါက @Solo_m28 သို့ ဆက်သွယ်ပါ။`);
+                addNotiItem('deduction',
+                    `🔴 Admin မှ သင်၏အကောင့်ထဲမှ\n`+
+                    `ငွေပြန်နှုတ်ခဲ့ပါသည်။\n\n`+
+                    `ပမာဏ: ငွေ ${fm(amt)} ကျပ်\n`+
+                    `အကြောင်းရင်း: ${o.reject_reason||'N/A'}\n\n`+
+                    `မေးမြန်းလိုပါက @Solo_m28 သို့\n`+
+                    `ဆက်သွယ်ပါ။`
+                );
             }
         }
     });
@@ -484,6 +537,4 @@ async function loadBalance(){
     try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const b=d.balance||0;document.getElementById('myBalance').textContent=fm(b)+' Ks';document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`}catch(e){}
 }
 loadBalance();
-</script>
-</body>
-</html>
+    </script>
