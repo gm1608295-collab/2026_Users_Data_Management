@@ -424,6 +424,50 @@ app.post('/api/admin/buycode_notice', async (req, res) => { try { const p = awai
 app.post('/api/admin/buycode_notice/delete', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='buycode'", [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='buycode'"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
+// ==================== TOP UP NOTICE ====================
+app.get('/api/topup_notice', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC LIMIT 1");
+        if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' });
+        const n = r.rows[0];
+        res.json({ success: true, message: n.message, color: n.color, id: n.id, created_at: n.created_at });
+    } catch(e) { res.json({ success: true, message: '' }); }
+});
+
+app.get('/api/admin/topup_notices', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC");
+        res.json({ notices: r.rows });
+    } catch(e) { res.json({ notices: [] }); }
+});
+
+app.post('/api/admin/topup_notice', async (req, res) => {
+    try {
+        const p = await getPool();
+        const { message, color } = req.body;
+        if (!message) return res.json({ success: false });
+        await p.query("INSERT INTO notices (message, color, created_by, notice_type) VALUES ($1,$2,$3,'topup')", [message, color||'#ffffff', 'admin']);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/topup_notice/delete', async (req, res) => {
+    try {
+        const p = await getPool();
+        await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='topup'", [req.body.id]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/admin/topup_notices/delete_all', async (req, res) => {
+    try {
+        const p = await getPool();
+        await p.query("DELETE FROM notices WHERE notice_type='topup'");
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
 // ==================== MAINTENANCE PAGE ====================
 function maintenancePage() {
     return `<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>ပြုပြင်မွမ်းမံနေပါသည်</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0}body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;text-align:center;font-family:sans-serif;color:#fff}.box i{font-size:70px;color:#f39c12;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.box h2{color:#f39c12;margin:15px 0}.box p{color:#ccc;margin-bottom:20px}.box a{color:#000;background:#f39c12;padding:10px 25px;border-radius:6px;text-decoration:none;font-weight:bold}</style></head><body><div class="box"><i class="fas fa-tools"></i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div></body></html>`;
