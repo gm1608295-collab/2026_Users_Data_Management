@@ -281,9 +281,57 @@
     function renderNotice(d){const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
     async function loadNotice(){const ca=localStorage.getItem('noticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderNotice(d)}catch(e){}}try{const r=await fetch("/api/notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('noticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('noticeCache',JSON.stringify(cn));renderNotice(cn)}}else{localStorage.removeItem('noticeCache')}}catch(e){}}
 
-    // ==================== VIDEO PLAYER ====================
-    async function loadDashboardVideo(){const c=document.getElementById('videoContainer'),v=document.getElementById('dashboardVideo'),yt=document.getElementById('dashboardYoutube');if(v.src&&!v.paused&&v.currentTime>0)return;if(yt.src&&yt.style.display!=='none')return;try{const r=await fetch('/api/video');const d=await r.json();if(d.success&&d.url){c.style.display='block';if(d.isYouTube){v.style.display='none';yt.style.display='block';if(yt.src!==d.url)yt.src=d.url}else{yt.style.display='none';v.style.display='block';if(v.src!==d.url){v.src=d.url;v.muted=true;v.autoplay=true;v.playsInline=true;v.setAttribute('playsinline','');v.setAttribute('webkit-playsinline','');v.load();v.play().catch(e=>{v.controls=true})}}}else{c.style.display='none'}}catch(e){}}
-
+    // ==================== VIDEO PLAYER (FIXED) ====================
+async function loadDashboardVideo() {
+    const c = document.getElementById('videoContainer');
+    const v = document.getElementById('dashboardVideo');
+    const yt = document.getElementById('dashboardYoutube');
+    
+    // Don't reload if already playing
+    if (v.src && !v.paused && v.currentTime > 0) return;
+    if (yt.src && yt.style.display !== 'none') return;
+    
+    try {
+        const r = await fetch('/api/video');
+        const d = await r.json();
+        console.log('[VIDEO] API Response:', d);
+        
+        if (d.success && d.url) {
+            c.style.display = 'block';
+            
+            if (d.isYouTube) {
+                console.log('[VIDEO] YouTube detected');
+                v.style.display = 'none';
+                yt.style.display = 'block';
+                yt.src = d.url;
+            } else {
+                console.log('[VIDEO] Direct video detected');
+                yt.style.display = 'none';
+                v.style.display = 'block';
+                v.src = d.url;
+                v.muted = true;
+                v.autoplay = true;
+                v.playsInline = true;
+                v.setAttribute('playsinline', '');
+                v.setAttribute('webkit-playsinline', '');
+                v.load();
+                
+                // Force play
+                setTimeout(() => {
+                    v.play().catch(e => {
+                        console.log('[VIDEO] Play failed:', e.message);
+                        v.controls = true;
+                    });
+                }, 500);
+            }
+        } else {
+            console.log('[VIDEO] No video found');
+            c.style.display = 'none';
+        }
+    } catch(e) {
+        console.error('[VIDEO] Error:', e.message);
+    }
+}
     // ==================== PAGE TIMER ====================
     let pageTimers={};
     async function checkPageTimer(){
