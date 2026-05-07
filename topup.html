@@ -6,14 +6,31 @@
     <title>SOLO M Game Shop - Top Up</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db;--orange:#e67e22}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
         body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
         .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;flex-shrink:0}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;flex-shrink:0;position:relative}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
+        
+        /* Notification Bell */
+        .noti-bell{position:absolute;right:0;top:5px;cursor:pointer;font-size:22px;color:var(--w);transition:all 0.3s}
+        .noti-bell:hover{transform:scale(1.1)}
+        .noti-bell .badge{position:absolute;top:-6px;right:-6px;background:var(--r);color:#fff;font-size:9px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;display:none}
+        .noti-bell .badge.show{display:flex}
+        
+        /* Noti Dropdown */
+        .noti-dropdown{display:none;position:absolute;right:0;top:35px;width:280px;max-height:300px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px}
+        .noti-dropdown.active{display:block}
+        .noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--w);line-height:1.6}
+        .noti-dropdown .noti-item.pending{border-left-color:var(--orange);background:rgba(230,126,34,0.1)}
+        .noti-dropdown .noti-item.success{border-left-color:var(--g);background:rgba(46,204,113,0.1)}
+        .noti-dropdown .noti-item.rejected{border-left-color:var(--r);background:rgba(231,76,60,0.1)}
+        .noti-dropdown .noti-item .noti-time{font-size:8px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right}
+        .noti-dropdown .noti-empty{text-align:center;color:rgba(255,255,255,0.4);padding:15px;font-size:11px}
+        
         .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w);flex-shrink:0}
         .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
         .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
@@ -25,6 +42,13 @@
         .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
         .section{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px;margin-bottom:15px}
         .section h3{color:var(--w);font-size:14px;margin-bottom:10px;text-align:center}
+        
+        /* Top Up Notice */
+        .topup-notice-banner{background:linear-gradient(135deg,rgba(74,28,122,0.3),rgba(26,31,75,0.5));border:1px solid rgba(243,156,18,0.4);border-radius:10px;padding:12px 15px;margin-bottom:12px;position:relative;overflow:hidden;display:none}
+        .topup-notice-banner::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--w);border-radius:2px}
+        .topup-notice-header{font-size:10px;color:var(--w);font-weight:bold;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
+        .topup-notice-msg{font-size:12px;font-weight:bold;line-height:1.5}
+        .topup-notice-time{font-size:9px;color:rgba(255,255,255,0.5);margin-top:6px;text-align:right}
         
         .guide-box{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:10px}
         .guide-box .guide-title{color:var(--w);font-size:12px;font-weight:bold;margin-bottom:8px;text-align:center}
@@ -93,7 +117,6 @@
         .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:6px;object-fit:cover}
         .game-card p{font-size:10px;color:var(--t);margin-top:3px}
         .game-card .unavailable{font-size:8px;color:var(--r);margin-top:2px}
-        .back-btn{display:block;padding:10px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px;flex-shrink:0}
         
         .copy-notif{position:fixed;top:20px;right:20px;background:var(--g);color:#000;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none}
         
@@ -106,12 +129,14 @@
         .login-required p{color:rgba(255,255,255,0.7);font-size:12px;margin-bottom:15px}
         .login-required a{color:var(--w);text-decoration:underline}
         
+        /* Maintenance */
         .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
         .maintenance-icon{font-size:80px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
         .maintenance-title{font-size:22px;font-weight:bold;color:var(--w);margin-bottom:10px}
-        .maintenance-subtitle{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:8px;line-height:1.6}
-        .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:15px}
+        .maintenance-subtitle{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:8px}
+        .maintenance-timer{font-size:28px;font-weight:bold;color:var(--w);font-family:'Courier New',monospace;margin:15px 0}
+        .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px}
     </style>
 </head>
 <body>
@@ -119,490 +144,201 @@
     <div class="copy-notif" id="copyNotif"></div>
     
     <div class="container" id="mainContainer">
-        <div class="header"><a href="/dashboard"><i class="fas fa-arrow-left"></i></a><h1>SOLO M Game Shop</h1></div>
+        <div class="header">
+            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+            <h1>SOLO M Game Shop</h1>
+            <!-- Notification Bell -->
+            <div class="noti-bell" onclick="toggleNotiDropdown()">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notiBadge">0</span>
+                <div class="noti-dropdown" id="notiDropdown">
+                    <div class="noti-empty" id="notiEmpty"><i class="fas fa-bell-slash"></i> No notifications</div>
+                    <div id="notiList"></div>
+                </div>
+            </div>
+        </div>
         
-        <!-- Maintenance Message -->
+        <!-- Maintenance -->
         <div id="maintenanceMessage" style="display:none">
             <div class="maintenance-container">
                 <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
                 <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
-                <div class="maintenance-subtitle">ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</div>
+                <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+                <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
                 <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
             </div>
         </div>
         
-        <!-- Login Required -->
         <div id="loginCheckMessage" style="display:none">
-            <div class="login-required">
-                <i class="fas fa-lock"></i>
-                <h3>ငွေဖြည့်ရန် အကောင့်ဝင်ရန် လိုအပ်ပါသည်</h3>
-                <p>ငွေဖြည့်သွင်းခြင်းမပြုမီ အကောင့်ဝင်ရောက်ရန် လိုအပ်ပါသည်။</p>
-                <a href="/">Login Page သို့သွားရန်</a>
-            </div>
+            <div class="login-required"><i class="fas fa-lock"></i><h3>ငွေဖြည့်ရန် အကောင့်ဝင်ရန် လိုအပ်ပါသည်</h3><p>ငွေဖြည့်သွင်းခြင်းမပြုမီ အကောင့်ဝင်ရောက်ရန် လိုအပ်ပါသည်။</p><a href="/">Login Page သို့သွားရန်</a></div>
         </div>
         
-        <!-- Main Content -->
         <div id="topupContent">
-            <div class="balance-card">
-                <div class="amount" id="myBalance">0 Ks</div>
-                <div class="label">Myanmar Kyat (MMK)</div>
-                <div class="usd-amount" id="usdBalance">≈ $0.00 USD</div>
-            </div>
+            <div class="balance-card"><div class="amount" id="myBalance">0 Ks</div><div class="label">Myanmar Kyat (MMK)</div><div class="usd-amount" id="usdBalance">≈ $0.00 USD</div></div>
             
-            <div class="tabs">
-                <div class="tab active" onclick="showTab('topup')">TopUp</div>
-                <div class="tab" onclick="showTab('history')">Order History</div>
-            </div>
+            <div class="tabs"><div class="tab active" onclick="showTab('topup')">TopUp</div><div class="tab" onclick="showTab('history')">Order History</div></div>
             
             <div class="scroll-content">
-                <!-- TopUp Tab -->
                 <div class="tab-content active" id="topup">
+                    <!-- Top Up Notice -->
+                    <div class="topup-notice-banner" id="topupNoticeBanner">
+                        <div class="topup-notice-header">📢 SOLO M Game Shop မှ အသိပေးခြင်း</div>
+                        <div class="topup-notice-msg" id="topupNoticeMsg"></div>
+                        <div class="topup-notice-time" id="topupNoticeTime"></div>
+                    </div>
+                    
                     <button class="topup-btn" onclick="togglePayment()"><i class="fas fa-plus-circle"></i> Top Up Now</button>
                     
-                    <!-- Guide Box -->
-                    <div class="guide-box" id="guideBox">
-                        <div class="guide-title">📋 ငွေဖြည့်နည်း အဆင့်ဆင့်</div>
-                        <div class="step-item"><span class="step-num">1</span><span class="step-text"><b style="color:var(--w)">ငွေလွှဲပါ</b><br>Wave Pay သို့မဟုတ် A+ Pay သို့ ငွေလွှဲပါ။</span></div>
-                        <div class="step-item"><span class="step-num">2</span><span class="step-text"><b style="color:var(--w)">Screenshot ရိုက်ပါ</b><br>ငွေလွှဲပြေစာ Screenshot ကို ရိုက်ယူပါ။</span></div>
-                        <div class="step-item"><span class="step-num">3</span><span class="step-text"><b style="color:var(--w)">Form ဖြည့်ပါ</b><br>Payment ရွေး၊ User ID ထည့်၊ Screenshot တင်ပါ။</span></div>
-                        <div class="step-item"><span class="step-num">4</span><span class="step-text"><b style="color:var(--w)">Buy နှိပ်ပါ</b><br>၁၀ မိနစ်အတွင်း Admin မှ အတည်ပြုပေးပါမည်။</span></div>
-                        <div class="contact-note">⚠️ ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ။ ဆက်သွယ်ရန်: @Solo_m28</div>
-                    </div>
+                    <div class="guide-box" id="guideBox"><div class="guide-title">📋 ငွေဖြည့်နည်း အဆင့်ဆင့်</div><div class="step-item"><span class="step-num">1</span><span class="step-text"><b style="color:var(--w)">ငွေလွှဲပါ</b><br>Wave Pay သို့မဟုတ် A+ Pay သို့ ငွေလွှဲပါ။</span></div><div class="step-item"><span class="step-num">2</span><span class="step-text"><b style="color:var(--w)">Screenshot ရိုက်ပါ</b><br>ငွေလွှဲပြေစာ Screenshot ကို ရိုက်ယူပါ။</span></div><div class="step-item"><span class="step-num">3</span><span class="step-text"><b style="color:var(--w)">Form ဖြည့်ပါ</b><br>Payment ရွေး၊ User ID ထည့်၊ Screenshot တင်ပါ။</span></div><div class="step-item"><span class="step-num">4</span><span class="step-text"><b style="color:var(--w)">Buy နှိပ်ပါ</b><br>၁၀ မိနစ်အတွင်း Admin မှ အတည်ပြုပေးပါမည်။</span></div><div class="contact-note">⚠️ ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ။ ဆက်သွယ်ရန်: @Solo_m28</div></div>
                     
-                    <!-- Payment Section -->
-                    <div id="paymentSection">
-                        <div class="section">
-                            <h3>ငွေလွှဲရန်</h3>
-                            
-                            <!-- Wave Pay -->
-                            <div class="payment-card">
-                                <img src="https://i.ibb.co/ycnZ5YmQ/bf457901bf5c15ca935fa5236259c441.jpg" alt="Wave Pay">
-                                <div class="payment-info"><div class="pay-name">WAVE PAY</div><div class="pay-number">09254649306</div><div class="pay-owner">Kyi Khaing</div></div>
-                                <button class="copy-btn" onclick="copyText('09254649306')"><i class="fas fa-copy"></i></button>
-                            </div>
-                            
-                            <!-- A+ Pay -->
-                            <div class="payment-card">
-                                <img src="https://i.ibb.co/Kz8Pwpc0/917cdc9887b881089b6c6a2cc1e941dc.jpg" alt="A+ Pay">
-                                <div class="payment-info"><div class="pay-name">A+ PAY</div><div class="pay-number">09672093790</div><div class="pay-owner">Kywe Kywe Htay</div></div>
-                                <button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i></button>
-                            </div>
-                            
-                            <!-- KPay (Unavailable) -->
-                            <div class="payment-card unavailable">
-                                <img src="https://i.ibb.co/Wvj43jMQ/2bfa5f4d02100b7b2c1d87ff55ce16dc.jpg" alt="KPay">
-                                <div class="payment-info"><div class="pay-name">KPay</div><div class="pay-number">Not available at this time</div><div class="pay-owner">KPay</div></div>
-                                <button class="copy-btn" disabled><i class="fas fa-copy"></i></button>
-                            </div>
-                            
-                            <!-- AYA Pay (Unavailable) -->
-                            <div class="payment-card unavailable">
-                                <img src="https://i.ibb.co/9kFpNPhf/b349dc4f29181bec2045c678d1923083.jpg" alt="AYA Pay">
-                                <div class="payment-info"><div class="pay-name">AYA Pay</div><div class="pay-number">Not available at this time</div><div class="pay-owner">AYA Pay</div></div>
-                                <button class="copy-btn" disabled><i class="fas fa-copy"></i></button>
-                            </div>
-                            
-                            <!-- Payment Select -->
-                            <div class="form-group"><label>ငွေလွှဲသည့် Payment</label><select id="topupPayment"><option value="">ရွေးချယ်ပါ</option><option value="Wave Pay">Wave Pay</option><option value="A+ Pay">A+ Pay</option></select></div>
-                            
-                            <!-- User ID -->
-                            <div class="id-row">
-                                <div class="form-group"><label>သင်၏ User ID</label><input type="text" id="verifyUserId" maxlength="10"></div>
-                                <button class="check-id-btn" id="checkIdBtn" onclick="verifyUserId()"><i class="fas fa-check-circle"></i> Check</button>
-                            </div>
-                            <div class="id-result" id="idResult"></div>
-                            
-                            <!-- Screenshot Upload -->
-                            <div class="form-group" style="margin-top:10px">
-                                <label>ငွေလွှဲပြေစာ Screenshot</label>
-                                <div class="file-upload-wrapper">
-                                    <input type="file" id="topupScreenshot" accept="image/*" onchange="handleFileSelect()">
-                                    <div class="file-upload-box" id="fileUploadBox">
-                                        <i class="fas fa-cloud-upload-alt"></i>
-                                        <span class="upload-text" id="uploadText">Payment Screenshot</span>
-                                        <span class="upload-hint" id="uploadHint">ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ</span>
-                                    </div>
-                                </div>
-                                <div id="screenshotPreview" style="text-align:center;margin-top:8px"></div>
-                            </div>
-                            
-                            <!-- Buy Button -->
-                            <div class="btn-row"><button class="buy-btn" id="buyBtn" onclick="submitTopup()" disabled><i class="fas fa-paper-plane"></i> Buy</button></div>
-                            <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px">ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ</p>
-                        </div>
-                    </div>
+                    <div id="paymentSection"><div class="section"><h3>ငွေလွှဲရန်</h3>
+                        <div class="payment-card"><img src="https://i.ibb.co/ycnZ5YmQ/bf457901bf5c15ca935fa5236259c441.jpg" alt="Wave Pay"><div class="payment-info"><div class="pay-name">WAVE PAY</div><div class="pay-number">09254649306</div><div class="pay-owner">Kyi Khaing</div></div><button class="copy-btn" onclick="copyText('09254649306')"><i class="fas fa-copy"></i></button></div>
+                        <div class="payment-card"><img src="https://i.ibb.co/Kz8Pwpc0/917cdc9887b881089b6c6a2cc1e941dc.jpg" alt="A+ Pay"><div class="payment-info"><div class="pay-name">A+ PAY</div><div class="pay-number">09672093790</div><div class="pay-owner">Kywe Kywe Htay</div></div><button class="copy-btn" onclick="copyText('09672093790')"><i class="fas fa-copy"></i></button></div>
+                        <div class="payment-card unavailable"><img src="https://i.ibb.co/Wvj43jMQ/2bfa5f4d02100b7b2c1d87ff55ce16dc.jpg" alt="KPay"><div class="payment-info"><div class="pay-name">KPay</div><div class="pay-number">Not available at this time</div><div class="pay-owner">KPay</div></div><button class="copy-btn" disabled><i class="fas fa-copy"></i></button></div>
+                        <div class="payment-card unavailable"><img src="https://i.ibb.co/9kFpNPhf/b349dc4f29181bec2045c678d1923083.jpg" alt="AYA Pay"><div class="payment-info"><div class="pay-name">AYA Pay</div><div class="pay-number">Not available at this time</div><div class="pay-owner">AYA Pay</div></div><button class="copy-btn" disabled><i class="fas fa-copy"></i></button></div>
+                        <div class="form-group"><label>ငွေလွှဲသည့် Payment</label><select id="topupPayment"><option value="">ရွေးချယ်ပါ</option><option value="Wave Pay">Wave Pay</option><option value="A+ Pay">A+ Pay</option></select></div>
+                        <div class="id-row"><div class="form-group"><label>သင်၏ User ID</label><input type="text" id="verifyUserId" maxlength="10"></div><button class="check-id-btn" id="checkIdBtn" onclick="verifyUserId()"><i class="fas fa-check-circle"></i> Check</button></div>
+                        <div class="id-result" id="idResult"></div>
+                        <div class="form-group" style="margin-top:10px"><label>ငွေလွှဲပြေစာ Screenshot</label><div class="file-upload-wrapper"><input type="file" id="topupScreenshot" accept="image/*" onchange="handleFileSelect()"><div class="file-upload-box" id="fileUploadBox"><i class="fas fa-cloud-upload-alt"></i><span class="upload-text" id="uploadText">Payment Screenshot</span><span class="upload-hint" id="uploadHint">ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ</span></div></div><div id="screenshotPreview" style="text-align:center;margin-top:8px"></div></div>
+                        <div class="btn-row"><button class="buy-btn" id="buyBtn" onclick="submitTopup()" disabled><i class="fas fa-paper-plane"></i> Buy</button></div>
+                        <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px">ငွေလွှဲပြီးမှသာ Buy ကိုနှိပ်ပါ</p>
+                    </div></div>
                     
-                    <!-- Popular Games -->
                     <p style="font-size:13px;color:var(--w);margin:15px 0 10px">Popular Games</p>
                     <div class="games" id="gameGrid"></div>
                 </div>
-                
-                <!-- Order History Tab -->
-                <div class="tab-content" id="history">
-                    <div class="section"><h3>Order History</h3><div id="orderHistory"></div></div>
-                </div>
+                <div class="tab-content" id="history"><div class="section"><h3>Order History</h3><div id="orderHistory"></div></div></div>
             </div>
         </div>
-        
-        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
 
 <script>
     // ==================== PAGE ACCESS CHECK ====================
-    async function checkPageAccess() {
-        try {
-            const r = await fetch('/api/admin/page_status');
-            const d = await r.json();
-            console.log('[TOPUP PAGE CHECK]', d);
-            
-            if (d.pages) {
-                const tp = d.pages.find(p => p.id === 'topup');
-                if (tp && tp.status === 'off') {
-                    console.log('[TOPUP] Page is OFF - showing maintenance');
-                    document.getElementById('maintenanceMessage').style.display = 'block';
-                    document.getElementById('topupContent').style.display = 'none';
-                    document.querySelector('.back-btn').style.display = 'none';
-                    document.getElementById('loginCheckMessage').style.display = 'none';
+    async function checkPageAccess(){
+        try{
+            const r=await fetch('/api/admin/page_status');const d=await r.json();
+            if(d.pages){const tp=d.pages.find(p=>p.id==='topup');
+                if(tp&&tp.status==='off'){
+                    document.getElementById('maintenanceMessage').style.display='block';
+                    document.getElementById('topupContent').style.display='none';
+                    document.getElementById('loginCheckMessage').style.display='none';
+                    checkPageTimer();
                     return false;
                 }
-            }
-            console.log('[TOPUP] Page is ON');
-            return true;
-        } catch(e) {
-            console.error('[TOPUP PAGE CHECK ERROR]', e);
-            return true;
-        }
+            }return true;
+        }catch(e){return true;}
+    }
+
+    // ==================== PAGE TIMER COUNTDOWN ====================
+    async function checkPageTimer(){
+        try{
+            const saved=localStorage.getItem('pageTimers');
+            if(!saved)return;
+            const timers=JSON.parse(saved);
+            const timer=timers['topup'];
+            if(!timer||timer<=Date.now())return;
+            const el=document.getElementById('maintenanceCountdown');
+            const update=()=>{
+                const rem=timer-Date.now();
+                if(rem<=0){location.reload();return}
+                const s=Math.floor(rem/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+                el.textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+            };
+            update();setInterval(update,1000);
+        }catch(e){}
     }
 
     // ==================== GAME CARDS ====================
-    const GAMES = [
-        {name:'Mobile Legends',icon:'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'},
-        {name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},
-        {name:'PUBG Mobile',icon:'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg'},
-        {name:'Clash of Clans',icon:'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg'},
-        {name:'Honor Of King',icon:'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg'},
-        {name:'Life After',icon:'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg'},
-        {name:'Once Human',icon:'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg'},
-        {name:'Zenless Zone Zero',icon:'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg'},
-        {name:'LOL Wild Rift',icon:'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg'},
-        {name:'Farlight 84',icon:'https://i.ibb.co/J9FpbQF/70d84a2ec224ad31674df18d69dfae41.jpg'},
-        {name:'Hay Day',icon:'https://i.ibb.co/pvbd3ffY/929567f62369bdecc2ab5d3ca813a328.jpg'},
-        {name:'Genshin Impact',icon:'https://i.ibb.co/HDLQNyNB/abe019d59a86a88b52a6257ea454269e.jpg'},
-        {name:'Harry Potter',icon:'https://i.ibb.co/Mx5Hwhtg/b9fdabea7e9c7364b0a81860a554c45b.jpg'},
-        {name:'Stumble Guys',icon:'https://i.ibb.co/jvNb65TP/7ebfc026d31609ceda8f787d54515fe6.jpg'},
-        {name:'Whiteout Survival',icon:'https://i.ibb.co/SXq4FR9C/2ad9cb386a3ec90cfa0bb1c185bd5725.jpg'},
-        {name:'FRAG Pro Shooter',icon:'https://i.ibb.co/whJwVb8V/6581051ef1843e5ec6cce61fa38800ff.jpg'},
-        {name:'EAFC Mobile',icon:'https://i.ibb.co/20Fwbhw8/22e5d45bcb1460a72b844d4a60830ce4.jpg'},
-        {name:'Valorant',icon:'https://i.ibb.co/dw3FWFqP/5c95c35ce191a78b4564c3caf49720e1.jpg'},
-        {name:'Modern Strike',icon:'https://i.ibb.co/y9qCn4z/fffa14272a58a15879531ebfde7bd134.jpg'},
-        {name:'Silver and Blood',icon:'https://i.ibb.co/jkv9fFgp/dc308d9db127504128b9f87b96b872a2.jpg'},
-        {name:'Telegram Premium',icon:'https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg'},
-        {name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},
-        {name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}
-    ];
-    
-    function renderGameCards() {
-        document.getElementById('gameGrid').innerHTML = GAMES.map(g => 
-            `<div class="game-card">
-                <img src="${g.icon}" alt="${g.name}" onerror="this.src='https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'">
-                <p>${g.name}</p>
-                <div class="unavailable">မရသေး</div>
-            </div>`
-        ).join('');
-    }
+    const GAMES=[{name:'Mobile Legends',icon:'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'},{name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},{name:'PUBG Mobile',icon:'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg'},{name:'Clash of Clans',icon:'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg'},{name:'Honor Of King',icon:'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg'},{name:'Life After',icon:'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg'},{name:'Once Human',icon:'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg'},{name:'Zenless Zone Zero',icon:'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg'},{name:'LOL Wild Rift',icon:'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg'},{name:'Farlight 84',icon:'https://i.ibb.co/J9FpbQF/70d84a2ec224ad31674df18d69dfae41.jpg'},{name:'Hay Day',icon:'https://i.ibb.co/pvbd3ffY/929567f62369bdecc2ab5d3ca813a328.jpg'},{name:'Genshin Impact',icon:'https://i.ibb.co/HDLQNyNB/abe019d59a86a88b52a6257ea454269e.jpg'},{name:'Harry Potter',icon:'https://i.ibb.co/Mx5Hwhtg/b9fdabea7e9c7364b0a81860a554c45b.jpg'},{name:'Stumble Guys',icon:'https://i.ibb.co/jvNb65TP/7ebfc026d31609ceda8f787d54515fe6.jpg'},{name:'Whiteout Survival',icon:'https://i.ibb.co/SXq4FR9C/2ad9cb386a3ec90cfa0bb1c185bd5725.jpg'},{name:'FRAG Pro Shooter',icon:'https://i.ibb.co/whJwVb8V/6581051ef1843e5ec6cce61fa38800ff.jpg'},{name:'EAFC Mobile',icon:'https://i.ibb.co/20Fwbhw8/22e5d45bcb1460a72b844d4a60830ce4.jpg'},{name:'Valorant',icon:'https://i.ibb.co/dw3FWFqP/5c95c35ce191a78b4564c3caf49720e1.jpg'},{name:'Modern Strike',icon:'https://i.ibb.co/y9qCn4z/fffa14272a58a15879531ebfde7bd134.jpg'},{name:'Silver and Blood',icon:'https://i.ibb.co/jkv9fFgp/dc308d9db127504128b9f87b96b872a2.jpg'},{name:'Telegram Premium',icon:'https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg'},{name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},{name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}];
+    function renderGameCards(){document.getElementById('gameGrid').innerHTML=GAMES.map(g=>`<div class="game-card"><img src="${g.icon}" alt="${g.name}" onerror="this.src='https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'"><p>${g.name}</p><div class="unavailable">မရသေး</div></div>`).join('')}
     renderGameCards();
 
     // ==================== BG MUSIC PLAYER ====================
-    (function() {
-        const a = document.getElementById('bgAudio');
-        if (!a) return;
-        let p = [], i = 0;
-        a.volume = 0.5;
-        a.loop = false;
-        const fl = !sessionStorage.getItem('mp');
-        if (fl) { i = 0; localStorage.setItem('bgi', '0'); localStorage.setItem('bgt0', '0'); }
-        else { i = parseInt(localStorage.getItem('bgi') || '0'); }
-        sessionStorage.setItem('mp', '1');
-        
-        async function fp() {
-            try {
-                const r = await fetch('/api/bg_music?t=' + Date.now());
-                const d = await r.json();
-                if (d.playlist && d.playlist.length > 0) { p = d.playlist; return true; }
-                return false;
-            } catch(e) { return false; }
-        }
-        
-        function pl() {
-            if (!p.length) return;
-            if (i >= p.length) i = 0;
-            const u = p[i];
-            a.src = u;
-            a.load();
-            a.addEventListener('canplay', function h() { a.play().catch(() => {}); a.removeEventListener('canplay', h); });
-        }
-        
-        a.addEventListener('ended', function() {
-            localStorage.setItem('bgt' + i, '0');
-            i = (i + 1) % p.length;
-            localStorage.setItem('bgi', i);
-            localStorage.setItem('bgt' + i, '0');
-            pl();
-        });
-        
-        a.addEventListener('error', function() {
-            i = (i + 1) % p.length;
-            localStorage.setItem('bgi', i);
-            localStorage.setItem('bgt' + i, '0');
-            pl();
-        });
-        
-        setInterval(() => {
-            if (!a.paused && p.length > 0 && a.currentTime > 0) {
-                localStorage.setItem('bgi', i);
-                localStorage.setItem('bgt' + i, a.currentTime);
-            }
-        }, 1000);
-        
-        fp().then(h => { if (h) { if (fl) i = 0; pl(); } });
-        setInterval(fp, 3000);
-    })();
+    (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
 
-    // ==================== INIT ====================
-    (async function init() {
-        const pageOn = await checkPageAccess();
-        if (!pageOn) return;
-        
-        const token = localStorage.getItem('auth_token');
-        const user = localStorage.getItem('user');
-        if (!token || !user || token === 'guest') {
-            document.getElementById('loginCheckMessage').style.display = 'block';
-            document.getElementById('topupContent').style.display = 'none';
-            document.querySelector('.back-btn').style.display = 'none';
-            return;
-        }
-        document.getElementById('loginCheckMessage').style.display = 'none';
-        document.getElementById('topupContent').style.display = 'block';
-    })();
-
-    // ==================== VARIABLES ====================
-    let sd = '', iv = false, cu = null;
-    try { cu = JSON.parse(localStorage.getItem('user') || '{}'); } catch(e) { cu = {}; }
+    // ==================== NOTIFICATION BELL SYSTEM ====================
+    let notiItems=[];
+    let unreadCount=0;
     
-    // ==================== FUNCTIONS ====================
-    function n(m, t = "success") {
-        const e = document.getElementById("copyNotif");
-        e.textContent = m;
-        e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
-        e.style.display = "block";
-        setTimeout(() => e.style.display = "none", 3000);
+    function loadNotiItems(){
+        const saved=localStorage.getItem('topupNotiItems');
+        if(saved){try{notiItems=JSON.parse(saved)}catch(e){notiItems=[]}}
+        unreadCount=parseInt(localStorage.getItem('topupNotiUnread')||'0');
+        updateNotiBadge();
+        renderNotiDropdown();
     }
     
-    function showTab(t) {
-        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
-        event.target.classList.add('active');
-        document.getElementById(t).classList.add('active');
-        if (t === 'history') loadHistory();
+    function addNotiItem(type,message){
+        notiItems.unshift({type,message,time:new Date().toISOString(),read:false});
+        unreadCount++;
+        if(notiItems.length>20)notiItems.pop();
+        localStorage.setItem('topupNotiItems',JSON.stringify(notiItems));
+        localStorage.setItem('topupNotiUnread',unreadCount.toString());
+        updateNotiBadge();
     }
     
-    function togglePayment() {
-        const ps = document.getElementById('paymentSection');
-        const gb = document.getElementById('guideBox');
-        if (ps.style.display === 'block') { ps.style.display = 'none'; gb.style.display = 'none'; }
-        else { ps.style.display = 'block'; gb.style.display = 'block'; }
+    function updateNotiBadge(){
+        const badge=document.getElementById('notiBadge');
+        if(unreadCount>0){badge.textContent=unreadCount>9?'9+':unreadCount;badge.classList.add('show')}
+        else{badge.classList.remove('show')}
     }
     
-    function copyText(t) {
-        navigator.clipboard.writeText(t).then(() => n('✅ Copied!')).catch(() => prompt('Copy:', t));
-    }
-    
-    if (cu && cu.id) document.getElementById('verifyUserId').value = cu.id.toString().padStart(6, '0');
-    
-    function handleFileSelect() {
-        const f = document.getElementById('topupScreenshot').files[0];
-        const ub = document.getElementById('fileUploadBox');
-        const ut = document.getElementById('uploadText');
-        const uh = document.getElementById('uploadHint');
-        if (f) {
-            ub.classList.add('has-file');
-            ut.textContent = '📎 ' + f.name;
-            uh.textContent = (f.size / 1024).toFixed(1) + ' KB';
-            const r = new FileReader();
-            r.onload = function(e) { 
-                sd = e.target.result; 
-                document.getElementById('screenshotPreview').innerHTML = `<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:6px;border:2px solid var(--g)">`; 
-            };
-            r.readAsDataURL(f);
-        } else {
-            ub.classList.remove('has-file');
-            ut.textContent = 'Payment Screenshot';
-            uh.textContent = 'ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';
-            sd = '';
-            document.getElementById('screenshotPreview').innerHTML = '';
+    function toggleNotiDropdown(){
+        const dd=document.getElementById('notiDropdown');
+        dd.classList.toggle('active');
+        if(dd.classList.contains('active')){
+            unreadCount=0;localStorage.setItem('topupNotiUnread','0');
+            notiItems.forEach(n=>n.read=true);
+            localStorage.setItem('topupNotiItems',JSON.stringify(notiItems));
+            updateNotiBadge();renderNotiDropdown();
         }
     }
     
-    async function verifyUserId() {
-        const inputId = document.getElementById('verifyUserId').value.trim();
-        const resultEl = document.getElementById('idResult');
-        const buyBtn = document.getElementById('buyBtn');
-        const checkBtn = document.getElementById('checkIdBtn');
-        
-        if (!inputId) {
-            resultEl.className = 'id-result invalid';
-            resultEl.textContent = '❌ User ID ထည့်ပါ';
-            resultEl.style.display = 'block';
-            iv = false;
-            buyBtn.disabled = true;
-            return;
-        }
-        
-        resultEl.className = 'id-result checking';
-        resultEl.textContent = '⏳ Checking...';
-        resultEl.style.display = 'block';
-        checkBtn.disabled = true;
-        
-        try {
-            const token = localStorage.getItem('auth_token');
-            if (!token) {
-                resultEl.className = 'id-result invalid';
-                resultEl.textContent = '❌ Please login first';
-                resultEl.style.display = 'block';
-                iv = false;
-                buyBtn.disabled = true;
-                checkBtn.disabled = false;
-                return;
-            }
-            
-            const response = await fetch('/api/verify_user_id', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: token, userId: inputId })
-            });
-            
-            const data = await response.json();
-            console.log('[ID CHECK] Response:', data);
-            
-            if (data.success && data.verified) {
-                resultEl.className = 'id-result verified';
-                resultEl.innerHTML = `✅ ID မှန်ကန်ပါသည်<br><small>👤 ${data.username || 'N/A'} | 📧 ${data.email || 'N/A'}</small>`;
-                resultEl.style.display = 'block';
-                iv = true;
-                buyBtn.disabled = false;
-            } else {
-                resultEl.className = 'id-result invalid';
-                resultEl.textContent = '❌ ID မှားယွင်းနေပါသည်';
-                resultEl.style.display = 'block';
-                iv = false;
-                buyBtn.disabled = true;
-            }
-        } catch(e) {
-            console.error('[ID CHECK] Error:', e);
-            resultEl.className = 'id-result invalid';
-            resultEl.textContent = '❌ Connection Error';
-            resultEl.style.display = 'block';
-            iv = false;
-            buyBtn.disabled = true;
-        }
-        
-        checkBtn.disabled = false;
-    }
-    
-    async function submitTopup() {
-        const payment = document.getElementById('topupPayment').value;
-        const inputId = document.getElementById('verifyUserId').value.trim();
-        const btn = document.getElementById('buyBtn');
-        
-        if (!payment) return alert('Payment ရွေးချယ်ပါ');
-        if (!iv) return alert('User ID စစ်ဆေးပါ');
-        if (!sd) return alert('Screenshot ထည့်ပါ');
-        
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buying...';
-        btn.disabled = true;
-        
-        try {
-            const uploadR = await fetch('/api/upload_image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64: sd }) });
-            const uploadD = await uploadR.json();
-            const screenshotUrl = uploadD.success ? uploadD.url : sd;
-            
-            const r = await fetch('/api/submit_order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token'), amount: 0, payment_method: payment, screenshot: screenshotUrl, user_id: inputId }) });
-            const d = await r.json();
-            
-            if (d.success) {
-                alert('✅ Order Submitted!');
-                document.getElementById('topupPayment').value = '';
-                document.getElementById('topupScreenshot').value = '';
-                document.getElementById('screenshotPreview').innerHTML = '';
-                sd = '';
-                iv = false;
-                document.getElementById('buyBtn').disabled = true;
-                document.getElementById('idResult').style.display = 'none';
-                document.getElementById('fileUploadBox').classList.remove('has-file');
-                document.getElementById('uploadText').textContent = 'Payment Screenshot';
-                document.getElementById('uploadHint').textContent = 'ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';
-                document.getElementById('paymentSection').style.display = 'none';
-                document.getElementById('guideBox').style.display = 'none';
-                loadHistory();
-            } else {
-                alert(d.message || 'Error');
-            }
-        } catch(e) { alert('Connection error'); }
-        
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Buy';
-        btn.disabled = false;
-    }
-    
-    async function loadHistory() {
-        const c = document.getElementById('orderHistory');
-        try {
-            const r = await fetch('/api/get_orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) });
-            const d = await r.json();
-            if (d.orders && d.orders.length > 0) { renderOrderHistory(d.orders); }
-            else { c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'; }
-        } catch(e) { c.innerHTML = '<p style="text-align:center;padding:20px">No history</p>'; }
-    }
-    
-    function renderOrderHistory(orders) {
-        const c = document.getElementById('orderHistory');
-        c.innerHTML = orders.map((o, i) => {
-            const sc = o.status === 'approved' ? 'status-approved' : o.status === 'rejected' ? 'status-rejected' : 'status-pending';
-            const st = o.status === 'approved' ? 'APPROVED' : o.status === 'rejected' ? 'REJECTED' : 'PENDING';
-            const rejectBox = o.status === 'rejected' && o.reject_reason ? 
-                `<div class="reject-reason-box">
-                    <div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div>
-                    <div class="reject-msg">${o.reject_reason}</div>
-                </div>` : '';
-            return `<div class="history-item" onclick="toggleDetail(${i})">
-                <div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div>
-                <span class="status-badge ${sc}">${st}</span>
-            </div>
-            <div class="history-detail" id="detail${i}">
-                <p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>
-                ${rejectBox}
-                ${o.screenshot ? `<img src="${o.screenshot}">` : '<p>No screenshot</p>'}
-            </div>`;
+    function renderNotiDropdown(){
+        const list=document.getElementById('notiList');
+        const empty=document.getElementById('notiEmpty');
+        if(notiItems.length===0){empty.style.display='block';list.innerHTML='';return}
+        empty.style.display='none';
+        list.innerHTML=notiItems.map(n=>{
+            const cls=n.type==='pending'?'pending':n.type==='success'?'success':'rejected';
+            return`<div class="noti-item ${cls}">${n.message}<div class="noti-time">${new Date(n.time).toLocaleString()}</div></div>`;
         }).join('');
     }
     
-    function toggleDetail(i) {
-        const d = document.getElementById('detail' + i);
-        if (d) d.style.display = d.style.display === 'block' ? 'none' : 'block';
+    loadNotiItems();
+    document.addEventListener('click',function(e){const dd=document.getElementById('notiDropdown');const bell=document.querySelector('.noti-bell');if(!bell.contains(e.target)&&dd.classList.contains('active')){dd.classList.remove('active')}});
+
+    // ==================== TOP UP NOTICE ====================
+    function renderTopupNotice(d){const b=document.getElementById('topupNoticeBanner'),m=document.getElementById('topupNoticeMsg'),t=document.getElementById('topupNoticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
+    async function loadTopupNotice(){const ca=localStorage.getItem('topupNoticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderTopupNotice(d)}catch(e){}}try{const r=await fetch("/api/topup_notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('topupNoticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('topupNoticeCache',JSON.stringify(cn));renderTopupNotice(cn)}}else{localStorage.removeItem('topupNoticeCache')}}catch(e){}}
+
+    // ==================== INIT ====================
+    (async function init(){const pageOn=await checkPageAccess();if(!pageOn)return;const token=localStorage.getItem('auth_token'),user=localStorage.getItem('user');if(!token||!user||token==='guest'){document.getElementById('loginCheckMessage').style.display='block';document.getElementById('topupContent').style.display='none';return}document.getElementById('loginCheckMessage').style.display='none';document.getElementById('topupContent').style.display='block';loadTopupNotice();setInterval(loadTopupNotice,5000)})()
+
+    let sd='',iv=false,cu=null;try{cu=JSON.parse(localStorage.getItem('user')||'{}')}catch(e){cu={}}
+    function n(m,t="success"){const e=document.getElementById("copyNotif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
+    function showTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));event.target.classList.add('active');document.getElementById(t).classList.add('active');if(t==='history')loadHistory()}
+    function togglePayment(){const ps=document.getElementById('paymentSection'),gb=document.getElementById('guideBox');if(ps.style.display==='block'){ps.style.display='none';gb.style.display='none'}else{ps.style.display='block';gb.style.display='block'}}
+    function copyText(t){navigator.clipboard.writeText(t).then(()=>n('✅ Copied!')).catch(()=>prompt('Copy:',t))}
+    if(cu&&cu.id)document.getElementById('verifyUserId').value=cu.id.toString().padStart(6,'0')
+    function handleFileSelect(){const f=document.getElementById('topupScreenshot').files[0],ub=document.getElementById('fileUploadBox'),ut=document.getElementById('uploadText'),uh=document.getElementById('uploadHint');if(f){ub.classList.add('has-file');ut.textContent='📎 '+f.name;uh.textContent=(f.size/1024).toFixed(1)+' KB';const r=new FileReader();r.onload=function(e){sd=e.target.result;document.getElementById('screenshotPreview').innerHTML=`<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:6px;border:2px solid var(--g)">`};r.readAsDataURL(f)}else{ub.classList.remove('has-file');ut.textContent='Payment Screenshot';uh.textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';sd='';document.getElementById('screenshotPreview').innerHTML=''}}
+    async function verifyUserId(){const ii=document.getElementById('verifyUserId').value.trim(),re=document.getElementById('idResult'),bb=document.getElementById('buyBtn'),cb=document.getElementById('checkIdBtn');if(!ii){re.className='id-result invalid';re.textContent='❌ User ID ထည့်ပါ';re.style.display='block';iv=false;bb.disabled=true;return}re.className='id-result checking';re.textContent='⏳ Checking...';re.style.display='block';cb.disabled=true;try{const r=await fetch('/api/verify_user_id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),userId:ii})});const d=await r.json();if(d.success&&d.verified){re.className='id-result verified';re.innerHTML=`✅ ID မှန်ကန်ပါသည်<br><small>👤 ${d.username||'N/A'} | 📧 ${d.email||'N/A'}</small>`;iv=true;bb.disabled=false}else{re.className='id-result invalid';re.textContent='❌ ID မှားယွင်းနေပါသည်';iv=false;bb.disabled=true}}catch(e){re.className='id-result invalid';re.textContent='❌ Error';iv=false;bb.disabled=true}cb.disabled=false}
+    async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return alert('Payment ရွေးချယ်ပါ');if(!iv)return alert('User ID စစ်ဆေးပါ');if(!sd)return alert('Screenshot ထည့်ပါ');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){addNotiItem('pending','ငွေဖြည့်သွင်းခြင်းအောင်မြင်ပါသည်၊မိမိ၏အကောင့်ထဲသို့ admin မှအတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်းဖြည့်သွင်းပေးပါမည်။ကျေးဇူးတင်ပါသည်။');alert('✅ Order Submitted!');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory();renderNotiDropdown()}else alert(d.message||'Error')}catch(e){alert('Connection error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
+    async function loadHistory(){const c=document.getElementById('orderHistory');try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();if(d.orders&&d.orders.length>0){renderOrderHistory(d.orders);checkOrderNoti(d.orders)}else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'}}catch(e){c.innerHTML='<p style="text-align:center;padding:20px">No history</p>'}}
+    
+    function checkOrderNoti(orders){
+        const lastNoti=localStorage.getItem('topupLastOrderCheck');
+        let lastId=lastNoti?parseInt(lastNoti):0;
+        orders.forEach(o=>{if(o.id>lastId){lastId=o.id;if(o.status==='approved'){addNotiItem('success',`အောင်မြင်ပါသည်၊သင်၏အကောင့်ထဲသို့ admin ဘက်မှ ငွေ ${fm(o.amount||0)} ကျပ်ကို ဖြည့်သွင်းပြီးပါပြီ။ကျေးဇူးတင်ပါသည်။`)}else if(o.status==='rejected'){addNotiItem('rejected','သင်၏အော်ဒါငြင်းပယ်ခံရပါသည်၊ငွေလွှဲပြေသာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါ တင်ခြင်းကြောင့်ဖြစ်သည်။နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါကသင်၏အကောင့်အားပိတ်ခံရနိုင်ပြီး အကောက့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်။')}}});
+        if(lastId>0)localStorage.setItem('topupLastOrderCheck',lastId.toString());
+        renderNotiDropdown();
     }
     
-    function fm(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-    
-    async function loadBalance() {
-        try {
-            const r = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) });
-            const d = await r.json();
-            const b = d.balance || 0;
-            document.getElementById('myBalance').textContent = fm(b) + ' Ks';
-            document.getElementById('usdBalance').textContent = `≈ $${(b / 2100).toFixed(2)} USD`;
-        } catch(e) {}
-    }
-    
+    function renderOrderHistory(orders){const c=document.getElementById('orderHistory');c.innerHTML=orders.map((o,i)=>{const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';const rejectBox=o.status==='rejected'&&o.reject_reason?`<div class="reject-reason-box"><div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div><div class="reject-msg">${o.reject_reason}</div></div>`:'';return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${rejectBox}${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`}).join('')}
+    function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
+    function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+    async function loadBalance(){try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const b=d.balance||0;document.getElementById('myBalance').textContent=fm(b)+' Ks';document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`}catch(e){}}
     loadBalance();
-</script>    
+</script>
 </body>
 </html>
