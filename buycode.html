@@ -7,49 +7,76 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db;--orange:#e67e22}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
         body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
         .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;position:relative}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
+        
+        /* Notification Bell */
+        .noti-bell{position:absolute;right:0;top:5px;cursor:pointer;font-size:22px;color:var(--w);transition:all 0.3s}
+        .noti-bell:hover{transform:scale(1.1)}
+        .noti-bell .badge{position:absolute;top:-6px;right:-6px;background:var(--r);color:#fff;font-size:9px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;display:none}
+        .noti-bell .badge.show{display:flex}
+        .noti-dropdown{display:none;position:absolute;right:0;top:35px;width:280px;max-height:300px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px}
+        .noti-dropdown.active{display:block}
+        .noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--g);line-height:1.6}
+        .noti-dropdown .noti-item .noti-time{font-size:8px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right}
+        .noti-dropdown .noti-empty{text-align:center;color:rgba(255,255,255,0.4);padding:15px;font-size:11px}
         
         .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
         .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
         .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
         .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
         
-        .notice-banner{background:rgba(26,31,75,0.6);border:1px solid rgba(74,28,122,0.5);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
-        .notice-banner .notice-icon{font-size:24px;color:var(--w)}
-        .notice-banner .notice-msg{font-size:12px;font-weight:bold}
-        .notice-banner .notice-time{font-size:9px;color:rgba(255,255,255,0.5)}
+        /* Notice */
+        .notice-banner{background:linear-gradient(135deg,rgba(74,28,122,0.3),rgba(26,31,75,0.5));border:1px solid rgba(243,156,18,0.4);border-radius:10px;padding:12px 15px;margin-bottom:12px;position:relative;overflow:hidden;display:none}
+        .notice-banner::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--w);border-radius:2px}
+        .notice-header{font-size:10px;color:var(--w);font-weight:bold;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
+        .notice-msg{font-size:12px;font-weight:bold;line-height:1.5}
+        .notice-time{font-size:9px;color:rgba(255,255,255,0.5);margin-top:6px;text-align:right}
         
         .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
-        .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
-        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px 10px;text-align:center;cursor:pointer;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s}
-        .game-card:hover{background:rgba(74,28,122,0.4);border-color:var(--w)}
-        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover}
-        .game-card p{font-size:10px;color:var(--t);margin-top:5px}
-        .game-card .price-tag{font-size:9px;color:var(--w);margin-top:3px}
-        .game-card .code-count{font-size:8px;color:var(--g);margin-top:2px}
         
-        .back-btn{display:block;padding:12px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
+        /* Game Cards */
+        .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
+        .game-card{background:rgba(26,31,75,0.7);border-radius:12px;padding:15px 10px;text-align:center;cursor:pointer;border:2px solid rgba(255,255,255,0.1);transition:all 0.3s;position:relative;overflow:hidden}
+        .game-card:hover{background:rgba(74,28,122,0.5);border-color:var(--w);transform:translateY(-2px)}
+        .game-card::after{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(to right,var(--w),var(--r),var(--w))}
+        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover;border:2px solid rgba(255,255,255,0.2)}
+        .game-card p{font-size:10px;color:var(--t);margin-top:5px}
+        .game-card .price-tag{font-size:9px;color:var(--w);margin-top:3px;font-weight:bold}
+        .game-card .code-count{font-size:8px;color:var(--g);margin-top:2px;background:rgba(46,204,113,0.1);padding:2px 8px;border-radius:10px;display:inline-block}
+        
         .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
         
+        /* Modal */
         .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
         .modal.active{display:flex}
         .modal-box{background:var(--p);padding:20px;border-radius:12px;width:90%;max-width:400px;border:2px solid var(--w);max-height:85vh;overflow-y:auto}
         .modal-box h3{color:var(--w);text-align:center;margin-bottom:5px;font-size:16px}
-        .modal-box .modal-img{width:60px;height:60px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 10px}
-        .modal-box .warning-text{font-size:10px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px;line-height:1.5}
-        .modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-        .modal-box .code-val{font-family:'Courier New',monospace;font-size:12px;word-break:break-all;flex:1;color:rgba(255,255,255,0.3);letter-spacing:2px}
+        .modal-box .modal-img{width:60px;height:60px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 10px;border:2px solid var(--w)}
+        .modal-box .warning-text{font-size:10px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px;line-height:1.5;background:rgba(231,76,60,0.1);padding:8px;border-radius:6px;border:1px solid rgba(231,76,60,0.3)}
+        .modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,0.08)}
+        .modal-box .code-val{font-family:'Courier New',monospace;font-size:11px;word-break:break-all;flex:1;color:rgba(255,255,255,0.3);letter-spacing:2px;text-align:center}
         .btn-sm{padding:6px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
         .btn-buy{background:var(--g);color:#000}.btn-buy:disabled{opacity:0.5;cursor:not-allowed}
         .btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
         
+        /* Confirm Modal */
+        .confirm-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:7000;justify-content:center;align-items:center}
+        .confirm-modal.active{display:flex}
+        .confirm-box{background:var(--p);border:2px solid var(--w);border-radius:12px;padding:25px;width:90%;max-width:380px;text-align:center}
+        .confirm-box h3{color:var(--w);margin-bottom:12px}
+        .confirm-box .warn-text{color:rgba(255,255,255,0.85);font-size:11px;line-height:1.8;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:12px;border-radius:8px;border:1px solid rgba(231,76,60,0.3);text-align:left}
+        .confirm-btns{display:flex;gap:10px;justify-content:center}
+        .confirm-btns button{padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px}
+        .confirm-yes{background:var(--g);color:#000}.confirm-no{background:rgba(255,255,255,0.2);color:#fff}
+        
+        /* QR Modal */
         .qr-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:6000;justify-content:center;align-items:center}
         .qr-modal.active{display:flex}
         .qr-box{background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid var(--w);text-align:center;max-height:90vh;overflow-y:auto}
@@ -57,16 +84,21 @@
         .qr-box .qr-container{background:#fff;padding:15px;border-radius:8px;display:inline-block;margin:10px 0}
         .qr-box .reveal-btn{background:var(--a);color:var(--t);border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:12px;margin:5px}
         .qr-box .code-area{display:none;margin-top:10px}
-        .qr-box .code-area .the-code{font-size:16px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;word-break:break-all;letter-spacing:1px;user-select:all;margin:10px 0}
+        .qr-box .code-area .the-code{font-size:16px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;word-break:break-all;letter-spacing:1px;user-select:all;margin:10px 0;border:1px solid var(--g)}
         .qr-box .code-area .timer{font-size:12px;color:var(--w);margin:5px 0}
         .qr-box .copy-btn{background:var(--g);color:#000;border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
         .qr-box .close-qr{background:var(--r);color:var(--t);border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:10px}
         
+        /* Maintenance */
         .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
         .maintenance-icon{font-size:80px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
         @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
         .maintenance-title{font-size:22px;font-weight:bold;color:var(--w);margin-bottom:10px}
-        .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:15px}
+        .maintenance-subtitle{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:8px}
+        .maintenance-timer{font-size:28px;font-weight:bold;color:var(--w);font-family:'Courier New',monospace;margin:15px 0}
+        .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px}
+        
+        .loading-text{text-align:center;color:var(--w);grid-column:1/-1;padding:30px}
     </style>
 </head>
 <body>
@@ -74,12 +106,27 @@
     <div class="notif" id="notif"></div>
     
     <div class="container" id="mainContainer">
-        <div class="header"><a href="/dashboard"><i class="fas fa-arrow-left"></i></a><h1><i class="fas fa-shopping-cart"></i> Buy Code MLBB</h1></div>
+        <div class="header">
+            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+            <h1><i class="fas fa-shopping-cart"></i> Buy Code MLBB</h1>
+            <!-- Notification Bell -->
+            <div class="noti-bell" onclick="toggleNotiDropdown()">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notiBadge">0</span>
+                <div class="noti-dropdown" id="notiDropdown">
+                    <div class="noti-empty" id="notiEmpty"><i class="fas fa-bell-slash"></i> No notifications</div>
+                    <div id="notiList"></div>
+                </div>
+            </div>
+        </div>
         
+        <!-- Maintenance -->
         <div id="maintenanceMessage" style="display:none">
             <div class="maintenance-container">
                 <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
                 <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+                <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+                <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
                 <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
             </div>
         </div>
@@ -91,24 +138,22 @@
                 <div class="usd-amount" id="usdBalance">≈ $0.00 USD</div>
             </div>
             
-            <div class="notice-banner" id="noticeBanner" style="display:none">
-                <div class="notice-icon" id="noticeIcon"><i class="fas fa-bullhorn"></i></div>
-                <div class="notice-text">
-                    <div class="notice-msg" id="noticeMsgDisplay"></div>
-                    <div class="notice-time" id="noticeTime"></div>
-                </div>
+            <!-- Notice -->
+            <div class="notice-banner" id="noticeBanner">
+                <div class="notice-header">📢 SOLO M Game Shop မှ အသိပေးခြင်း</div>
+                <div class="notice-msg" id="noticeMsgDisplay"></div>
+                <div class="notice-time" id="noticeTime"></div>
             </div>
             
             <div class="scroll-content">
                 <div class="game-grid" id="gameGrid">
-                    <p style="text-align:center;color:var(--w);grid-column:1/-1;padding:30px">⏳ Loading codes...</p>
+                    <div class="loading-text">⏳ Loading codes...</div>
                 </div>
             </div>
         </div>
-        
-        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
     </div>
     
+    <!-- Category Modal -->
     <div class="modal" id="categoryModal">
         <div class="modal-box">
             <img class="modal-img" id="modalImg" src="" alt="">
@@ -119,6 +164,22 @@
         </div>
     </div>
     
+    <!-- Confirm Purchase Modal -->
+    <div class="confirm-modal" id="confirmPurchaseModal">
+        <div class="confirm-box">
+            <h3><i class="fas fa-exclamation-triangle" style="color:var(--w)"></i> အသိပေးချက်</h3>
+            <div class="warn-text">
+                ⚠️ <b>Code ကိုဝယ်ယူပြီးသည်နှင့် တစ်ပြိုင်နက် ၁၀ စက္ကန့်အတွင်း အမြန်ကူးယူပါ။</b><br><br>
+                ⏰ အချိန်ပြည့်လျှင် <b style="color:var(--r)">အလိုအလျောက် ပျောက်သွားမည်</b> ဖြစ်ပြီး နောက်တစ်ကြိမ် ပြန်ယူ၍မရနိုင်ပါ။
+            </div>
+            <div class="confirm-btns">
+                <button class="confirm-yes" id="confirmBuyBtn" onclick="confirmBuyCode()">✅ သိပါသည် - ဆက်လုပ်မည်</button>
+                <button class="confirm-no" onclick="closeConfirmPurchase()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- QR Modal -->
     <div class="qr-modal" id="qrModal">
         <div class="qr-box" id="qrBoxContent"></div>
     </div>
@@ -127,248 +188,207 @@
 // ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess(){
     try{
-        const r=await fetch('/api/admin/page_status');
-        const d=await r.json();
-        if(d.pages){
-            const bc=d.pages.find(p=>p.id==='buycode');
+        const r=await fetch('/api/admin/page_status');const d=await r.json();
+        if(d.pages){const bc=d.pages.find(p=>p.id==='buycode');
             if(bc&&bc.status==='off'){
                 document.getElementById('maintenanceMessage').style.display='block';
                 document.getElementById('buycodeContent').style.display='none';
-                document.querySelector('.back-btn').style.display='none';
+                checkPageTimer();
                 return false;
             }
-        }
-        return true;
+        }return true;
     }catch(e){return true;}
 }
 
-// ==================== HARDCODED DATA ====================
+// ==================== PAGE TIMER COUNTDOWN ====================
+async function checkPageTimer(){
+    try{const saved=localStorage.getItem('pageTimers');if(!saved)return;const timers=JSON.parse(saved);const timer=timers['buycode'];if(!timer||timer<=Date.now())return;const el=document.getElementById('maintenanceCountdown');const update=()=>{const rem=timer-Date.now();if(rem<=0){location.reload();return}const s=Math.floor(rem/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;el.textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`};update();setInterval(update,1000)}catch(e){}
+}
+
+// ==================== GLOBAL VARIABLES ====================
 const HARDCODED_DATA = {
-    "shhh_emote": {
-        "name": "Shhh emote",
-        "icon": "https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png",
-        "price": 5000,
-        "codes": [
-            { "id": 27, "code": "2359x2s4zqzq23fb8" },
-            { "id": 28, "code": "29jwchdgqyvj23f5e" },
-            { "id": 29, "code": "29hg4rbrxt6h23f5e" },
-            { "id": 30, "code": "29kqjbw949z823f5e" }
-        ]
-    },
-    "golden_border": {
-        "name": "Golden Month Border",
-        "icon": "https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png",
-        "price": 8000,
-        "codes": [
-            { "id": 31, "code": "27e32tq495s423f5q" },
-            { "id": 32, "code": "27ffr6w3h9ka23f5q" },
-            { "id": 33, "code": "27gpet7tyr4g23f5q" },
-            { "id": 34, "code": "27h77fcrekx923f5q" }
-        ]
-    },
-    "lucky_diamond": {
-        "name": "Lucky Diamond Code",
-        "icon": "https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png",
-        "price": 12000,
-        "codes": [
-            { "id": 35, "code": "2ja2rum6s6x923fnn" },
-            { "id": 36, "code": "47k9hgrpbs2v23fnn" },
-            { "id": 37, "code": "5npzg2zhdbwg23fnn" }
-        ]
-    },
-    "magic_durt": {
-        "name": "Magic Durt",
-        "icon": "https://i.ibb.co/NdpDZ0P7/8.png",
-        "price": 3000,
-        "codes": [
-            { "id": 38, "code": "35smvu4a354423gzj" }
-        ]
-    },
-    "emblem_box": {
-        "name": "Emblem Box",
-        "icon": "https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png",
-        "price": 4000,
-        "codes": [
-            { "id": 39, "code": "28knzpt43hdc23gzc" }
-        ]
-    }
+    "shhh_emote":{"name":"Shhh emote","icon":"https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png","price":5000,"codes":[{"id":27,"code":"2359x2s4zqzq23fb8"},{"id":28,"code":"29jwchdgqyvj23f5e"},{"id":29,"code":"29hg4rbrxt6h23f5e"},{"id":30,"code":"29kqjbw949z823f5e"}]},
+    "golden_border":{"name":"Golden Month Border","icon":"https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png","price":8000,"codes":[{"id":31,"code":"27e32tq495s423f5q"},{"id":32,"code":"27ffr6w3h9ka23f5q"},{"id":33,"code":"27gpet7tyr4g23f5q"},{"id":34,"code":"27h77fcrekx923f5q"}]},
+    "lucky_diamond":{"name":"Lucky Diamond Code","icon":"https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png","price":12000,"codes":[{"id":35,"code":"2ja2rum6s6x923fnn"},{"id":36,"code":"47k9hgrpbs2v23fnn"},{"id":37,"code":"5npzg2zhdbwg23fnn"}]},
+    "magic_durt":{"name":"Magic Durt","icon":"https://i.ibb.co/NdpDZ0P7/8.png","price":3000,"codes":[{"id":38,"code":"35smvu4a354423gzj"}]},
+    "emblem_box":{"name":"Emblem Box","icon":"https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png","price":4000,"codes":[{"id":39,"code":"28knzpt43hdc23gzc"}]}
 };
 
-let categoriesData = HARDCODED_DATA;
+// ==================== LOAD DATA FROM SERVER ====================
+let categoriesData = {};
 let currentBalance = 0;
-let qrTimerInterval = null;
-let revealedCodeValue = '';
-let currentCategoryKey = '';
 
-function n(m, t = "success") { const e = document.getElementById("notif"); e.textContent = m; e.style.background = t === "success" ? "#2ecc71" : "#e74c3c"; e.style.display = "block"; setTimeout(() => e.style.display = "none", 2000); }
-function fm(n) { return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
-
-// ==================== RENDER GAME CARDS ====================
-function renderGameCards() {
-    const cats = Object.keys(categoriesData);
-    const grid = document.getElementById('gameGrid');
-    
-    if (cats.length === 0) {
-        grid.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);grid-column:1/-1;padding:30px">📦 No codes available yet.</p>';
-        return;
-    }
-    
-    let html = '';
-    cats.forEach(key => {
-        const cat = categoriesData[key];
-        if (!cat) return;
-        const codeCount = (cat.codes || []).length;
-        html += `<div class="game-card" onclick="openCategory('${key}')">
-            <img src="${cat.icon}" alt="${cat.name}" onerror="this.style.display='none'">
-            <p>${cat.name}</p>
-            <div class="price-tag">💰 ${fm(cat.price)} Ks</div>
-            <div class="code-count">📦 ${codeCount} codes</div>
-        </div>`;
-    });
-    
-    grid.innerHTML = html;
-}
-
-// ==================== CATEGORY MODAL ====================
-function openCategory(key) {
-    currentCategoryKey = key;
-    const cat = categoriesData[key];
-    if (!cat) return;
-    
-    document.getElementById('modalImg').src = cat.icon;
-    document.getElementById('modalTitle').textContent = cat.name;
-    
-    const codes = cat.codes || [];
-    if (codes.length === 0) {
-        document.getElementById('codeList').innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No codes available.</p>';
-    } else {
-        document.getElementById('codeList').innerHTML = codes.map(c => `
-            <div class="code-item">
-                <span class="code-val">ဝယ်ယူပြီးပါက Code ပေါ်လာမည်</span>
-                <button class="btn-sm btn-buy" onclick="buyCode(${c.id})">Buy (${fm(cat.price)} Ks)</button>
-            </div>
-        `).join('');
-    }
-    
-    document.getElementById('categoryModal').classList.add('active');
-}
-
-function closeCategoryModal() { document.getElementById('categoryModal').classList.remove('active'); }
-
-// ==================== BUY CODE NOTICE ====================
-function renderBuyCodeNotice(d) {
-    const b = document.getElementById('noticeBanner');
-    const m = document.getElementById('noticeMsgDisplay');
-    const t = document.getElementById('noticeTime');
-    
-    if (d && d.message) {
-        b.style.display = 'flex';
-        m.textContent = d.message;
-        m.style.color = d.color || 'var(--t)';
-        document.getElementById('noticeIcon').style.color = d.color || 'var(--w)';
-        t.textContent = new Date(d.created_at).toLocaleString();
-    } else {
-        b.style.display = 'none';
-    }
-}
-
-async function loadBuyCodeNotice() {
+async function loadCategories() {
     try {
-        const r = await fetch("/api/buycode_notice");
-        const d = await r.json();
-        console.log('[BUYCODE NOTICE]', d);  // Debug
+        // Load prices
+        const priceRes = await fetch('/api/prices');
+        const priceData = await priceRes.json();
+        const prices = priceData.prices || {};
         
-        if (d.success && d.message) {
-            renderBuyCodeNotice(d);
+        // Load codes (use hardcoded for now, or from API)
+        const codeRes = await fetch('/api/redeem_codes');
+        const codeData = await codeRes.json();
+        
+        if (codeData.success && codeData.categories) {
+            categoriesData = codeData.categories;
+            
+            // Update prices from admin settings
+            Object.keys(categoriesData).forEach(key => {
+                if (prices[key]) {
+                    categoriesData[key].price = prices[key];
+                }
+            });
+        } else {
+            // Fallback to hardcoded data
+            categoriesData = HARDCODED_DATA;
+            Object.keys(categoriesData).forEach(key => {
+                if (prices[key]) {
+                    categoriesData[key].price = prices[key];
+                }
+            });
         }
-    } catch(e) {
-        console.log('Notice error:', e);
-    }
-}    
-// ==================== BUY CODE ====================
-async function buyCode(codeId) {
-    const cat = categoriesData[currentCategoryKey];
-    if (!cat) return;
-    if (currentBalance < cat.price) return n('ငွေမလုံလောက်ပါ', 'error');
-    if (!confirm(cat.name + '\n\nစျေးနှုန်း: ' + fm(cat.price) + ' Ks\n\nဝယ်ယူမှာသေချာပါသလား?')) return;
-    
-    try {
-        const r = await fetch('/api/buy_code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token'), codeId: codeId }) });
-        const d = await r.json();
         
-        if (d.success) {
-            currentBalance = d.balance;
-            document.getElementById('myBalance').textContent = fm(currentBalance) + ' Ks';
-            document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
-            closeCategoryModal();
-            showQRModal(d.code);
-        } else { n(d.message || 'Error', 'error'); }
-    } catch(e) { n('Connection error', 'error'); }
+        renderGameCards();
+    } catch(e) {
+        // Fallback
+        categoriesData = HARDCODED_DATA;
+        renderGameCards();
+    }
 }
 
-// ==================== QR CODE MODAL ====================
-function showQRModal(code) {
-    revealedCodeValue = code;
-    document.getElementById('qrBoxContent').innerHTML = `
-        <h3><i class="fas fa-qrcode"></i> Scan QR Code</h3>
-        <p style="font-size:11px;color:rgba(255,255,255,0.7)">Code ရယူရန် QR Code ကို Scan ဖတ်ပါ</p>
-        <div class="qr-container" id="qrcodeContainer"></div>
-        <p style="font-size:10px;color:rgba(255,255,255,0.5);margin:8px 0">သို့မဟုတ်</p>
-        <button class="reveal-btn" onclick="revealCode()"><i class="fas fa-eye"></i> Code အစစ် ကြည့်မည်</button>
-        <div class="code-area" id="qrCodeArea">
-            <div class="the-code">${code}</div>
-            <p class="timer" id="qrTimer">⏱️ 10 seconds remaining</p>
-            <button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy Code</button>
-        </div>
-        <button class="close-qr" onclick="closeQRModal()">Close</button>`;
-    
-    document.getElementById('qrModal').classList.add('active');
-    
-    setTimeout(() => {
-        const c = document.getElementById('qrcodeContainer');
-        if (c) { c.innerHTML = ''; new QRCode(c, { text: code, width: 150, height: 150, colorDark: '#000000', colorLight: '#ffffff' }); }
-    }, 100);
-    
-    let sec = 10;
-    if (qrTimerInterval) clearInterval(qrTimerInterval);
-    qrTimerInterval = setInterval(() => {
-        sec--;
-        const t = document.getElementById('qrTimer');
-        if (t) t.textContent = '⏱️ ' + sec + ' seconds remaining';
-        if (sec <= 0) { clearInterval(qrTimerInterval); closeQRModal(); n('⏰ Code ကူးယူချိန်ကုန်သွားပါပြီ'); }
-    }, 1000);
-}
-
-function revealCode() { document.getElementById('qrCodeArea').style.display = 'block'; document.querySelector('.reveal-btn').style.display = 'none'; }
-function copyQRCode() { if (!revealedCodeValue) return; navigator.clipboard.writeText(revealedCodeValue).then(() => { const b = document.getElementById('qrCopyBtn'); if (b) { b.innerHTML = '<i class="fas fa-check"></i> Copied!'; } n('✅ Code Copied!'); }); }
-function closeQRModal() { document.getElementById('qrModal').classList.remove('active'); if (qrTimerInterval) { clearInterval(qrTimerInterval); qrTimerInterval = null; } }
-
-// ==================== BG MUSIC ====================
-(function() { const a = document.getElementById('bgAudio'); if (!a) return; let p = [], i = 0; a.volume = 0.5; a.loop = false; const fl = !sessionStorage.getItem('mp'); if (fl) { i = 0; localStorage.setItem('bgi', '0'); } else { i = parseInt(localStorage.getItem('bgi') || '0'); } sessionStorage.setItem('mp', '1'); async function fp() { try { const r = await fetch('/api/bg_music?t=' + Date.now()); const d = await r.json(); if (d.playlist && d.playlist.length > 0) { p = d.playlist; return true; } return false; } catch(e) { return false; } } function pl() { if (!p.length) return; if (i >= p.length) i = 0; const u = p[i]; a.src = u; a.load(); a.addEventListener('canplay', function h() { a.play().catch(() => {}); a.removeEventListener('canplay', h); }); } a.addEventListener('ended', function() { i = (i + 1) % p.length; localStorage.setItem('bgi', i); pl(); }); fp().then(h => { if (h) { if (fl) i = 0; pl(); } }); setInterval(fp, 3000); })();
-
-// ==================== INIT ====================
+// INIT - replace the old init
 (async function init() {
     const pageOn = await checkPageAccess();
     if (!pageOn) return;
     
     document.getElementById('buycodeContent').style.display = 'block';
     
-    // Render with hardcoded data
-    renderGameCards();
+    // Load with prices from server
+    await loadCategories();
     
     // Load balance
     try {
-        const r = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) });
+        const r = await fetch('/api/get_balance', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ token: localStorage.getItem('auth_token') }) 
+        });
         const d = await r.json();
         currentBalance = d.balance || 0;
         document.getElementById('myBalance').textContent = fm(currentBalance) + ' Ks';
         document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
     } catch(e) {}
     
-    // 👇 ဒါကိုထည့်ပါ
     loadBuyCodeNotice();
-    setInterval(loadBuyCodeNotice, 5000);  // Check every 5 seconds
-    
+    setInterval(loadBuyCodeNotice, 5000);
+})();
+
+// ==================== NOTIFICATION BELL SYSTEM ====================
+let notiItems=[];
+let unreadCount=0;
+
+function loadNotiItems(){const saved=localStorage.getItem('buycodeNotiItems');if(saved){try{notiItems=JSON.parse(saved)}catch(e){notiItems=[]}}unreadCount=parseInt(localStorage.getItem('buycodeNotiUnread')||'0');updateNotiBadge();renderNotiDropdown()}
+function addNotiItem(message){notiItems.unshift({message,time:new Date().toISOString(),read:false});unreadCount++;if(notiItems.length>20)notiItems.pop();localStorage.setItem('buycodeNotiItems',JSON.stringify(notiItems));localStorage.setItem('buycodeNotiUnread',unreadCount.toString());updateNotiBadge()}
+function updateNotiBadge(){const badge=document.getElementById('notiBadge');if(unreadCount>0){badge.textContent=unreadCount>9?'9+':unreadCount;badge.classList.add('show')}else{badge.classList.remove('show')}}
+function toggleNotiDropdown(){const dd=document.getElementById('notiDropdown');dd.classList.toggle('active');if(dd.classList.contains('active')){unreadCount=0;localStorage.setItem('buycodeNotiUnread','0');notiItems.forEach(n=>n.read=true);localStorage.setItem('buycodeNotiItems',JSON.stringify(notiItems));updateNotiBadge();renderNotiDropdown()}}
+function renderNotiDropdown(){const list=document.getElementById('notiList');const empty=document.getElementById('notiEmpty');if(notiItems.length===0){empty.style.display='block';list.innerHTML='';return}empty.style.display='none';list.innerHTML=notiItems.map(n=>`<div class="noti-item">${n.message}<div class="noti-time">${new Date(n.time).toLocaleString()}</div></div>`).join('')}
+loadNotiItems();
+document.addEventListener('click',function(e){const dd=document.getElementById('notiDropdown');const bell=document.querySelector('.noti-bell');if(!bell.contains(e.target)&&dd.classList.contains('active')){dd.classList.remove('active')}});
+
+// ==================== UTILS ====================
+function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",2000)}
+function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+
+// ==================== BUY CODE NOTICE ====================
+function renderBuyCodeNotice(d){const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
+async function loadBuyCodeNotice(){try{const r=await fetch("/api/buycode_notice");const d=await r.json();if(d.success&&d.message){renderBuyCodeNotice(d)}}catch(e){}}
+
+// ==================== RENDER GAME CARDS ====================
+function renderGameCards(){
+    const cats=Object.keys(categoriesData);
+    const grid=document.getElementById('gameGrid');
+    if(cats.length===0){grid.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);grid-column:1/-1;padding:30px">📦 No codes available yet.</p>';return}
+    let html='';
+    cats.forEach(key=>{const cat=categoriesData[key];if(!cat)return;const codeCount=(cat.codes||[]).length;html+=`<div class="game-card" onclick="openCategory('${key}')"><img src="${cat.icon}" alt="${cat.name}" onerror="this.style.display='none'"><p>${cat.name}</p><div class="price-tag">💰 ${fm(cat.price)} Ks</div><div class="code-count">📦 ${codeCount} codes</div></div>`});
+    grid.innerHTML=html;
+}
+
+// ==================== CATEGORY MODAL ====================
+function openCategory(key){currentCategoryKey=key;const cat=categoriesData[key];if(!cat)return;document.getElementById('modalImg').src=cat.icon;document.getElementById('modalTitle').textContent=cat.name;const codes=cat.codes||[];if(codes.length===0){document.getElementById('codeList').innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No codes available.</p>'}else{document.getElementById('codeList').innerHTML=codes.map(c=>`<div class="code-item"><span class="code-val">ဝယ်ယူပြီးပါက Code ပေါ်လာမည်</span><button class="btn-sm btn-buy" onclick="showConfirmBeforeBuy(${c.id})">Buy (${fm(cat.price)} Ks)</button></div>`).join('')}document.getElementById('categoryModal').classList.add('active')}
+function closeCategoryModal(){document.getElementById('categoryModal').classList.remove('active')}
+
+// ==================== CONFIRM BEFORE BUY ====================
+function showConfirmBeforeBuy(codeId){
+    const cat=categoriesData[currentCategoryKey];
+    if(!cat)return;
+    if(currentBalance<cat.price)return n('ငွေမလုံလောက်ပါ','error');
+    pendingCodeId=codeId;
+    pendingPrice=cat.price;
+    document.getElementById('confirmPurchaseModal').classList.add('active');
+}
+function closeConfirmPurchase(){document.getElementById('confirmPurchaseModal').classList.remove('active');pendingCodeId=null;pendingPrice=null}
+async function confirmBuyCode(){
+    if(!pendingCodeId){closeConfirmPurchase();return}
+    closeConfirmPurchase();
+    closeCategoryModal();
+    await buyCode(pendingCodeId);
+}
+
+// ==================== BUY CODE ====================
+async function buyCode(codeId){
+    const cat=categoriesData[currentCategoryKey];
+    if(!cat)return;
+    if(currentBalance<cat.price)return n('ငွေမလုံလောက်ပါ','error');
+    try{
+        const r=await fetch('/api/buy_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),codeId:codeId})});
+        const d=await r.json();
+        if(d.success){
+            currentBalance=d.balance;
+            document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
+            document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
+            // Add notification
+            addNotiItem('ဝယ်ယူအားပေးမှုအတွက်ကျေးဇူးတင်ရှိပါသည်၊အကယ်၍မိမိဝယ်ယူလိုက်သော code သည် အသုံးပြု၍မရခဲ့သည်ရှိသော် Menu Button ထဲက customer service စာမျက်နှာတွင် ပုံနှင့်တကွ ပြည့်စုံအောင် တင်ပြပေးပါ၊admin ဘက်မှစစ်ဆေးအတည်ပြုမှုအောင်မြင်ပါက မိမိ၏အကောင့်ထဲအား သင်ဝယ်ယူခဲ့သည့်ငွေပမာဏအတိုင်းပြန်လည်ပေးလျော်ပါမည်။လိမ်လည်တင်ပြပါက သင့်အကောင့်အား ၁ ရက်တိတိ ဘန်းခံရမည်ဖြစ်ပြီး နောင်တွင် လ/နှစ် နဲ့ချီအောင်ပါပိတ်ပင်နိုင်ပြီး အကောင့်ပါပျက်သွားနိုင်ပါသည်။');
+            showQRModal(d.code);
+        }else{n(d.message||'Error','error')}
+    }catch(e){n('Connection error','error')}
+}
+
+// ==================== QR CODE MODAL ====================
+function showQRModal(code){
+    revealedCodeValue=code;
+    document.getElementById('qrBoxContent').innerHTML=`
+        <h3><i class="fas fa-qrcode"></i> Scan QR Code</h3>
+        <p style="font-size:11px;color:rgba(255,255,255,0.7)">Code ရယူရန် QR Code ကို Scan ဖတ်ပါ</p>
+        <div class="qr-container" id="qrcodeContainer"></div>
+        <p style="font-size:10px;color:rgba(255,255,255,0.5);margin:8px 0">သို့မဟုတ်</p>
+        <button class="reveal-btn" onclick="revealCode()"><i class="fas fa-eye"></i> Code အစစ် ကြည့်မည်</button>
+        <div class="code-area" id="qrCodeArea">
+            <div class="the-code" id="theCodeDisplay">${code}</div>
+            <p class="timer" id="qrTimer">⏱️ 10 seconds remaining</p>
+            <button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy Code</button>
+        </div>
+        <button class="close-qr" onclick="closeQRModal()">Close</button>`;
+    document.getElementById('qrModal').classList.add('active');
+    setTimeout(()=>{const c=document.getElementById('qrcodeContainer');if(c){c.innerHTML='';new QRCode(c,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'})}},100);
+    let sec=10;
+    if(qrTimerInterval)clearInterval(qrTimerInterval);
+    qrTimerInterval=setInterval(()=>{sec--;const t=document.getElementById('qrTimer');if(t)t.textContent='⏱️ '+sec+' seconds remaining';if(sec<=0){clearInterval(qrTimerInterval);document.getElementById('theCodeDisplay').textContent='••••••••••••••••••';document.getElementById('qrCopyBtn').style.display='none';n('⏰ Code သက်တမ်းကုန်သွားပါပြီ');setTimeout(()=>closeQRModal(),2000)}},1000);
+}
+function revealCode(){document.getElementById('qrCodeArea').style.display='block';document.querySelector('.reveal-btn').style.display='none'}
+function copyQRCode(){if(!revealedCodeValue)return;navigator.clipboard.writeText(revealedCodeValue).then(()=>{const b=document.getElementById('qrCopyBtn');if(b){b.innerHTML='<i class="fas fa-check"></i> Copied!';b.style.background='rgba(255,255,255,0.2)'}n('✅ Code Copied!')})}
+function closeQRModal(){document.getElementById('qrModal').classList.remove('active');if(qrTimerInterval){clearInterval(qrTimerInterval);qrTimerInterval=null}}
+
+// ==================== BG MUSIC ====================
+(function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);pl()});fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
+
+// ==================== INIT ====================
+(async function init(){
+    const pageOn=await checkPageAccess();
+    if(!pageOn)return;
+    document.getElementById('buycodeContent').style.display='block';
+    renderGameCards();
+    try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();currentBalance=d.balance||0;document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD'}catch(e){}
+    loadBuyCodeNotice();setInterval(loadBuyCodeNotice,5000);
 })();
 </script>
 </body>
