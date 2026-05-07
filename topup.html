@@ -356,39 +356,55 @@ function checkOrderNoti(orders) {
     let lastId = lastNoti ? parseInt(lastNoti) : 0;
     let hasNew = false;
     
+    console.log('[CHECK ORDER NOTI] Last ID:', lastId, 'Orders count:', orders.length);
+    
     orders.forEach(o => {
+        console.log('[ORDER] ID:', o.id, 'Status:', o.status, 'Payment:', o.payment_method, 'Amount:', o.amount);
+        
         if (o.id > lastId) {
             lastId = o.id;
             hasNew = true;
-            const amount = o.amount || 0;
+            const amount = Math.abs(o.amount || 0);
             
+            // APPROVED - Success Message
             if (o.status === 'approved') {
                 if (o.payment_method === 'Admin Manual') {
-                    addNotiItem('success', `Admin မှ သင်၏အကောင့်ထဲသို့ ငွေ ${fm(amount)} ကျပ်ကို တိုက်ရိုက်ဖြည့်သွင်းပေးပါသည်။ကျေးဇူးတင်ပါသည်။`);
+                    // Admin Balance Add
+                    addNotiItem('success', `Admin မှ သင်၏အကောင့်ထဲသို့ ငွေ ${fm(amount)} ကျပ်ကို တိုက်ရိုက်ဖြည့်သွင်းပေးပါသည်။�ျေးဇူးတင်ပါသည်။`);
+                    console.log('[NOTI] Admin Manual Add:', amount);
                 } else if (o.payment_method === 'Balance Deduction') {
-                    addNotiItem('rejected', `Admin မှ သင်၏အကောင့်ထဲမှ ငွေ ${fm(Math.abs(amount))} ကျပ် ပြန်နှုတ်ခဲ့ပါသည်။\nအကြောင်းရင်း: ${o.reject_reason || 'N/A'}`);
+                    // Admin Balance Deduct
+                    addNotiItem('rejected', `Admin မှ သင်၏အကောင့်ထဲမှ ငွေ ${fm(amount)} ကျပ် ပြန်နှုတ်ခဲ့ပါသည်။\nအကြောင်းရင်း: ${o.reject_reason || 'N/A'}`);
+                    console.log('[NOTI] Balance Deduction:', amount);
                 } else {
+                    // Normal Order Approved
                     addNotiItem('success', `အောင်မြင်ပါသည်၊သင်၏အကောင့်ထဲသို့ admin ဘက်မှ ငွေ ${fm(amount)} ကျပ်ကို ဖြည့်သွင်းပြီးပါပြီ။ကျေးဇူးတင်ပါသည်။`);
+                    console.log('[NOTI] Order Approved:', amount);
                 }
-            } else if (o.status === 'rejected') {
-                // 🔴 THIS IS THE REJECT MESSAGE
+            } 
+            // REJECTED - Error Message
+            else if (o.status === 'rejected') {
                 addNotiItem('rejected', 
                     `သင်၏အော်ဒါငြင်းပယ်ခံရပါသည်။\n` +
                     `ငွေလွှဲပြေသာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါ တင်ခြင်းကြောင့်ဖြစ်သည်။\n` +
-                    `နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါကသင်၏အကောင့်အားပိတ်ခံရနိုင်ပြီး အကောင့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်။\n\n` +
+                    `နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါကသင်၏အကောင့်အားပိတ်ခံရနိုင်ပြီး အကောင့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်。\n\n` +
                     (o.reject_reason ? `📝 အကြောင်းရင်း: ${o.reject_reason}` : '')
                 );
+                console.log('[NOTI] Order Rejected:', o.reject_reason);
             }
         }
     });
     
     if (lastId > 0) {
         localStorage.setItem('topupLastOrderCheck', lastId.toString());
+        console.log('[CHECK ORDER NOTI] Saved Last ID:', lastId);
     }
     if (hasNew) {
         renderNotiDropdown();
+        console.log('[CHECK ORDER NOTI] New notifications rendered');
     }
 }
+
 function renderOrderHistory(orders){const c=document.getElementById('orderHistory');c.innerHTML=orders.map((o,i)=>{const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';const rejectBox=o.status==='rejected'&&o.reject_reason?`<div class="reject-reason-box"><div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div><div class="reject-msg">${o.reject_reason}</div></div>`:'';return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${rejectBox}${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`}).join('')}
 function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
 function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
