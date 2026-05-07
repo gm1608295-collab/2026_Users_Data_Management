@@ -260,23 +260,15 @@ app.post('/api/admin/update_balance', async (req, res) => {
         const p = await getPool();
         const { userId, amount } = req.body;
         
-        // Update balance
+        // Update balance only - DON'T create order record
         await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', [amount, userId]);
         
-        // If adding money (positive amount), create an auto-approved order
-        if (amount > 0) {
-            const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
-            const un = user.rows[0]?.username || 'Unknown';
-            
-            // Create order record
-            await p.query(
-                'INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-                [userId, un, amount, 'Admin Manual', '', 'approved', userId.toString()]
-            );
-        }
-        
+        console.log(`[BALANCE] User ${userId}: ${amount > 0 ? '+' : ''}${amount} Ks`);
         res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+    } catch(e) { 
+        console.error('[BALANCE ERROR]', e);
+        res.json({ success: false }); 
+    }
 });
 // ==================== ORDERS ====================
 app.get('/api/admin/orders', async (req, res) => { try { const p = await getPool(); const filter = req.query.filter || 'all'; let query = 'SELECT * FROM orders'; const params = []; const today = new Date().toISOString().split('T')[0]; if (filter === 'today') { query += " WHERE DATE(created_at)=$1"; params.push(today); } else if (filter === 'yesterday') { query += " WHERE DATE(created_at)=$1"; params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); } query += ' ORDER BY id DESC'; const r = await p.query(query, params); const totalR = await p.query("SELECT COUNT(*) FROM orders"); const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); res.json({ orders: r.rows, total: parseInt(totalR.rows[0].count), today: parseInt(todayR.rows[0].count) }); } catch(e) { res.json({ orders: [], total: 0, today: 0 }); } });
