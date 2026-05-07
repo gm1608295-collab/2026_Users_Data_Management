@@ -214,131 +214,267 @@
 
 <script>
     // ==================== PAGE ACCESS CHECK ====================
-    async function checkPageAccess(){
-        try{
-            const r=await fetch('/api/admin/page_status');const d=await r.json();
-            if(d.pages){const tp=d.pages.find(p=>p.id==='topup');
-                if(tp&&tp.status==='off'){
-                    document.getElementById('maintenanceMessage').style.display='block';
-                    document.getElementById('topupContent').style.display='none';
-                    document.getElementById('loginCheckMessage').style.display='none';
-                    checkPageTimer();
-                    return false;
-                }
-            }return true;
-        }catch(e){return true;}
-    }
-
-    // ==================== PAGE TIMER COUNTDOWN ====================
-    async function checkPageTimer(){
-        try{
-            const saved=localStorage.getItem('pageTimers');
-            if(!saved)return;
-            const timers=JSON.parse(saved);
-            const timer=timers['topup'];
-            if(!timer||timer<=Date.now())return;
-            const el=document.getElementById('maintenanceCountdown');
-            const update=()=>{
-                const rem=timer-Date.now();
-                if(rem<=0){location.reload();return}
-                const s=Math.floor(rem/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
-                el.textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-            };
-            update();setInterval(update,1000);
-        }catch(e){}
-    }
-
-    // ==================== GAME CARDS ====================
-    const GAMES=[{name:'Mobile Legends',icon:'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'},{name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},{name:'PUBG Mobile',icon:'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg'},{name:'Clash of Clans',icon:'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg'},{name:'Honor Of King',icon:'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg'},{name:'Life After',icon:'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg'},{name:'Once Human',icon:'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg'},{name:'Zenless Zone Zero',icon:'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg'},{name:'LOL Wild Rift',icon:'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg'},{name:'Farlight 84',icon:'https://i.ibb.co/J9FpbQF/70d84a2ec224ad31674df18d69dfae41.jpg'},{name:'Hay Day',icon:'https://i.ibb.co/pvbd3ffY/929567f62369bdecc2ab5d3ca813a328.jpg'},{name:'Genshin Impact',icon:'https://i.ibb.co/HDLQNyNB/abe019d59a86a88b52a6257ea454269e.jpg'},{name:'Harry Potter',icon:'https://i.ibb.co/Mx5Hwhtg/b9fdabea7e9c7364b0a81860a554c45b.jpg'},{name:'Stumble Guys',icon:'https://i.ibb.co/jvNb65TP/7ebfc026d31609ceda8f787d54515fe6.jpg'},{name:'Whiteout Survival',icon:'https://i.ibb.co/SXq4FR9C/2ad9cb386a3ec90cfa0bb1c185bd5725.jpg'},{name:'FRAG Pro Shooter',icon:'https://i.ibb.co/whJwVb8V/6581051ef1843e5ec6cce61fa38800ff.jpg'},{name:'EAFC Mobile',icon:'https://i.ibb.co/20Fwbhw8/22e5d45bcb1460a72b844d4a60830ce4.jpg'},{name:'Valorant',icon:'https://i.ibb.co/dw3FWFqP/5c95c35ce191a78b4564c3caf49720e1.jpg'},{name:'Modern Strike',icon:'https://i.ibb.co/y9qCn4z/fffa14272a58a15879531ebfde7bd134.jpg'},{name:'Silver and Blood',icon:'https://i.ibb.co/jkv9fFgp/dc308d9db127504128b9f87b96b872a2.jpg'},{name:'Telegram Premium',icon:'https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg'},{name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},{name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}];
-    function renderGameCards(){document.getElementById('gameGrid').innerHTML=GAMES.map(g=>`<div class="game-card"><img src="${g.icon}" alt="${g.name}" onerror="this.src='https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'"><p>${g.name}</p><div class="unavailable">မရသေး</div></div>`).join('')}
-    renderGameCards();
-
-    // ==================== BG MUSIC PLAYER ====================
-    (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
-
-    // ==================== NOTIFICATION BELL SYSTEM ====================
-    let notiItems=[];
-    let unreadCount=0;
-    
-    function loadNotiItems(){
-        const saved=localStorage.getItem('topupNotiItems');
-        if(saved){try{notiItems=JSON.parse(saved)}catch(e){notiItems=[]}}
-        unreadCount=parseInt(localStorage.getItem('topupNotiUnread')||'0');
-        updateNotiBadge();
-        renderNotiDropdown();
-    }
-    
-    function addNotiItem(type,message){
-        notiItems.unshift({type,message,time:new Date().toISOString(),read:false});
-        unreadCount++;
-        if(notiItems.length>20)notiItems.pop();
-        localStorage.setItem('topupNotiItems',JSON.stringify(notiItems));
-        localStorage.setItem('topupNotiUnread',unreadCount.toString());
-        updateNotiBadge();
-    }
-    
-    function updateNotiBadge(){
-        const badge=document.getElementById('notiBadge');
-        if(unreadCount>0){badge.textContent=unreadCount>9?'9+':unreadCount;badge.classList.add('show')}
-        else{badge.classList.remove('show')}
-    }
-    
-    function toggleNotiDropdown(){
-        const dd=document.getElementById('notiDropdown');
-        dd.classList.toggle('active');
-        if(dd.classList.contains('active')){
-            unreadCount=0;localStorage.setItem('topupNotiUnread','0');
-            notiItems.forEach(n=>n.read=true);
-            localStorage.setItem('topupNotiItems',JSON.stringify(notiItems));
-            updateNotiBadge();renderNotiDropdown();
+async function checkPageAccess(){
+    try{
+        const r=await fetch('/api/admin/page_status');const d=await r.json();
+        console.log('[TOPUP PAGE CHECK]', d);
+        if(d.pages){
+            const tp=d.pages.find(p=>p.id==='topup');
+            if(tp&&tp.status==='off'){
+                console.log('[TOPUP] Page is OFF - showing maintenance');
+                document.getElementById('maintenanceMessage').style.display='block';
+                document.getElementById('topupContent').style.display='none';
+                document.getElementById('loginCheckMessage').style.display='none';
+                checkPageTimer();
+                return false;
+            }
         }
-    }
-    
-    function renderNotiDropdown(){
-        const list=document.getElementById('notiList');
-        const empty=document.getElementById('notiEmpty');
-        if(notiItems.length===0){empty.style.display='block';list.innerHTML='';return}
-        empty.style.display='none';
-        list.innerHTML=notiItems.map(n=>{
-            const cls=n.type==='pending'?'pending':n.type==='success'?'success':'rejected';
-            return`<div class="noti-item ${cls}">${n.message}<div class="noti-time">${new Date(n.time).toLocaleString()}</div></div>`;
-        }).join('');
-    }
-    
-    loadNotiItems();
-    document.addEventListener('click',function(e){const dd=document.getElementById('notiDropdown');const bell=document.querySelector('.noti-bell');if(!bell.contains(e.target)&&dd.classList.contains('active')){dd.classList.remove('active')}});
+        console.log('[TOPUP] Page is ON');
+        return true;
+    }catch(e){return true;}
+}
 
-    // ==================== TOP UP NOTICE ====================
-    function renderTopupNotice(d){const b=document.getElementById('topupNoticeBanner'),m=document.getElementById('topupNoticeMsg'),t=document.getElementById('topupNoticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
-    async function loadTopupNotice(){const ca=localStorage.getItem('topupNoticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderTopupNotice(d)}catch(e){}}try{const r=await fetch("/api/topup_notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('topupNoticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('topupNoticeCache',JSON.stringify(cn));renderTopupNotice(cn)}}else{localStorage.removeItem('topupNoticeCache')}}catch(e){}}
+// ==================== PAGE TIMER COUNTDOWN ====================
+async function checkPageTimer(){
+    try{
+        const saved=localStorage.getItem('pageTimers');
+        if(!saved)return;
+        const timers=JSON.parse(saved);
+        const timer=timers['topup'];
+        if(!timer||timer<=Date.now())return;
+        const el=document.getElementById('maintenanceCountdown');
+        const update=()=>{
+            const rem=timer-Date.now();
+            if(rem<=0){location.reload();return}
+            const s=Math.floor(rem/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+            el.textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        };
+        update();setInterval(update,1000);
+    }catch(e){}
+}
 
-    // ==================== INIT ====================
-    (async function init(){const pageOn=await checkPageAccess();if(!pageOn)return;const token=localStorage.getItem('auth_token'),user=localStorage.getItem('user');if(!token||!user||token==='guest'){document.getElementById('loginCheckMessage').style.display='block';document.getElementById('topupContent').style.display='none';return}document.getElementById('loginCheckMessage').style.display='none';document.getElementById('topupContent').style.display='block';loadTopupNotice();setInterval(loadTopupNotice,5000)})()
+// ==================== GAME CARDS ====================
+const GAMES=[
+    {name:'Mobile Legends',icon:'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'},
+    {name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},
+    {name:'PUBG Mobile',icon:'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg'},
+    {name:'Clash of Clans',icon:'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg'},
+    {name:'Honor Of King',icon:'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg'},
+    {name:'Life After',icon:'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg'},
+    {name:'Once Human',icon:'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg'},
+    {name:'Zenless Zone Zero',icon:'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg'},
+    {name:'LOL Wild Rift',icon:'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg'},
+    {name:'Farlight 84',icon:'https://i.ibb.co/J9FpbQF/70d84a2ec224ad31674df18d69dfae41.jpg'},
+    {name:'Hay Day',icon:'https://i.ibb.co/pvbd3ffY/929567f62369bdecc2ab5d3ca813a328.jpg'},
+    {name:'Genshin Impact',icon:'https://i.ibb.co/HDLQNyNB/abe019d59a86a88b52a6257ea454269e.jpg'},
+    {name:'Harry Potter',icon:'https://i.ibb.co/Mx5Hwhtg/b9fdabea7e9c7364b0a81860a554c45b.jpg'},
+    {name:'Stumble Guys',icon:'https://i.ibb.co/jvNb65TP/7ebfc026d31609ceda8f787d54515fe6.jpg'},
+    {name:'Whiteout Survival',icon:'https://i.ibb.co/SXq4FR9C/2ad9cb386a3ec90cfa0bb1c185bd5725.jpg'},
+    {name:'FRAG Pro Shooter',icon:'https://i.ibb.co/whJwVb8V/6581051ef1843e5ec6cce61fa38800ff.jpg'},
+    {name:'EAFC Mobile',icon:'https://i.ibb.co/20Fwbhw8/22e5d45bcb1460a72b844d4a60830ce4.jpg'},
+    {name:'Valorant',icon:'https://i.ibb.co/dw3FWFqP/5c95c35ce191a78b4564c3caf49720e1.jpg'},
+    {name:'Modern Strike',icon:'https://i.ibb.co/y9qCn4z/fffa14272a58a15879531ebfde7bd134.jpg'},
+    {name:'Silver and Blood',icon:'https://i.ibb.co/jkv9fFgp/dc308d9db127504128b9f87b96b872a2.jpg'},
+    {name:'Telegram Premium',icon:'https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg'},
+    {name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},
+    {name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}
+];
+function renderGameCards(){document.getElementById('gameGrid').innerHTML=GAMES.map(g=>`<div class="game-card"><img src="${g.icon}" alt="${g.name}" onerror="this.src='https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'"><p>${g.name}</p><div class="unavailable">မရသေး</div></div>`).join('')}
+renderGameCards();
 
-    let sd='',iv=false,cu=null;try{cu=JSON.parse(localStorage.getItem('user')||'{}')}catch(e){cu={}}
-    function n(m,t="success"){const e=document.getElementById("copyNotif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-    function showTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));event.target.classList.add('active');document.getElementById(t).classList.add('active');if(t==='history')loadHistory()}
-    function togglePayment(){const ps=document.getElementById('paymentSection'),gb=document.getElementById('guideBox');if(ps.style.display==='block'){ps.style.display='none';gb.style.display='none'}else{ps.style.display='block';gb.style.display='block'}}
-    function copyText(t){navigator.clipboard.writeText(t).then(()=>n('✅ Copied!')).catch(()=>prompt('Copy:',t))}
-    if(cu&&cu.id)document.getElementById('verifyUserId').value=cu.id.toString().padStart(6,'0')
-    function handleFileSelect(){const f=document.getElementById('topupScreenshot').files[0],ub=document.getElementById('fileUploadBox'),ut=document.getElementById('uploadText'),uh=document.getElementById('uploadHint');if(f){ub.classList.add('has-file');ut.textContent='📎 '+f.name;uh.textContent=(f.size/1024).toFixed(1)+' KB';const r=new FileReader();r.onload=function(e){sd=e.target.result;document.getElementById('screenshotPreview').innerHTML=`<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:6px;border:2px solid var(--g)">`};r.readAsDataURL(f)}else{ub.classList.remove('has-file');ut.textContent='Payment Screenshot';uh.textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';sd='';document.getElementById('screenshotPreview').innerHTML=''}}
-    async function verifyUserId(){const ii=document.getElementById('verifyUserId').value.trim(),re=document.getElementById('idResult'),bb=document.getElementById('buyBtn'),cb=document.getElementById('checkIdBtn');if(!ii){re.className='id-result invalid';re.textContent='❌ User ID ထည့်ပါ';re.style.display='block';iv=false;bb.disabled=true;return}re.className='id-result checking';re.textContent='⏳ Checking...';re.style.display='block';cb.disabled=true;try{const r=await fetch('/api/verify_user_id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),userId:ii})});const d=await r.json();if(d.success&&d.verified){re.className='id-result verified';re.innerHTML=`✅ ID မှန်ကန်ပါသည်<br><small>👤 ${d.username||'N/A'} | 📧 ${d.email||'N/A'}</small>`;iv=true;bb.disabled=false}else{re.className='id-result invalid';re.textContent='❌ ID မှားယွင်းနေပါသည်';iv=false;bb.disabled=true}}catch(e){re.className='id-result invalid';re.textContent='❌ Error';iv=false;bb.disabled=true}cb.disabled=false}
-    async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return alert('Payment ရွေးချယ်ပါ');if(!iv)return alert('User ID စစ်ဆေးပါ');if(!sd)return alert('Screenshot ထည့်ပါ');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){addNotiItem('pending','ငွေဖြည့်သွင်းခြင်းအောင်မြင်ပါသည်၊မိမိ၏အကောင့်ထဲသို့ admin မှအတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်းဖြည့်သွင်းပေးပါမည်။ကျေးဇူးတင်ပါသည်။');alert('✅ Order Submitted!');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory();renderNotiDropdown()}else alert(d.message||'Error')}catch(e){alert('Connection error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
-    async function loadHistory(){const c=document.getElementById('orderHistory');try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();if(d.orders&&d.orders.length>0){renderOrderHistory(d.orders);checkOrderNoti(d.orders)}else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'}}catch(e){c.innerHTML='<p style="text-align:center;padding:20px">No history</p>'}}
-    
-    function checkOrderNoti(orders){
-        const lastNoti=localStorage.getItem('topupLastOrderCheck');
-        let lastId=lastNoti?parseInt(lastNoti):0;
-        orders.forEach(o=>{if(o.id>lastId){lastId=o.id;if(o.status==='approved'){addNotiItem('success',`အောင်မြင်ပါသည်၊သင်၏အကောင့်ထဲသို့ admin ဘက်မှ ငွေ ${fm(o.amount||0)} ကျပ်ကို ဖြည့်သွင်းပြီးပါပြီ။ကျေးဇူးတင်ပါသည်။`)}else if(o.status==='rejected'){addNotiItem('rejected','သင်၏အော်ဒါငြင်းပယ်ခံရပါသည်၊ငွေလွှဲပြေသာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါ တင်ခြင်းကြောင့်ဖြစ်သည်။နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါကသင်၏အကောင့်အားပိတ်ခံရနိုင်ပြီး အကောက့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်။')}}});
-        if(lastId>0)localStorage.setItem('topupLastOrderCheck',lastId.toString());
-        renderNotiDropdown();
+// ==================== BG MUSIC PLAYER ====================
+(function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
+
+// ==================== NOTIFICATION BELL SYSTEM ====================
+let notiItems=[];
+let unreadCount=0;
+
+function loadNotiItems(){
+    const saved=localStorage.getItem('topupNotiItems');
+    if(saved){try{notiItems=JSON.parse(saved)}catch(e){notiItems=[]}}
+    unreadCount=parseInt(localStorage.getItem('topupNotiUnread')||'0');
+    updateNotiBadge();
+    renderNotiDropdown();
+}
+
+function addNotiItem(type,message){
+    notiItems.unshift({type,message,time:new Date().toISOString(),read:false});
+    unreadCount++;
+    if(notiItems.length>50)notiItems.pop();
+    localStorage.setItem('topupNotiItems',JSON.stringify(notiItems));
+    localStorage.setItem('topupNotiUnread',unreadCount.toString());
+    updateNotiBadge();
+}
+
+function updateNotiBadge(){
+    const badge=document.getElementById('notiBadge');
+    if(unreadCount>0){badge.textContent=unreadCount>9?'9+':unreadCount;badge.classList.add('show')}
+    else{badge.classList.remove('show')}
+}
+
+function toggleNotiDropdown(){
+    const dd=document.getElementById('notiDropdown');
+    dd.classList.toggle('active');
+    if(dd.classList.contains('active')){
+        unreadCount=0;localStorage.setItem('topupNotiUnread','0');
+        notiItems.forEach(n=>n.read=true);
+        localStorage.setItem('topupNotiItems',JSON.stringify(notiItems));
+        updateNotiBadge();renderNotiDropdown();
     }
+}
+
+function renderNotiDropdown(){
+    const list=document.getElementById('notiList');
+    const empty=document.getElementById('notiEmpty');
+    if(notiItems.length===0){empty.style.display='block';list.innerHTML='';return}
+    empty.style.display='none';
+    list.innerHTML=notiItems.map(n=>{
+        const cls=n.type==='pending'?'pending':n.type==='success'?'success':n.type==='deduction'?'rejected':'rejected';
+        return`<div class="noti-item ${cls}">${n.message}<div class="noti-time">${new Date(n.time).toLocaleString()}</div></div>`;
+    }).join('');
+}
+
+loadNotiItems();
+document.addEventListener('click',function(e){const dd=document.getElementById('notiDropdown');const bell=document.querySelector('.noti-bell');if(!bell.contains(e.target)&&dd.classList.contains('active')){dd.classList.remove('active')}});
+
+// ==================== TOP UP NOTICE ====================
+function renderTopupNotice(d){const b=document.getElementById('topupNoticeBanner'),m=document.getElementById('topupNoticeMsg'),t=document.getElementById('topupNoticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
+async function loadTopupNotice(){const ca=localStorage.getItem('topupNoticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderTopupNotice(d)}catch(e){}}try{const r=await fetch("/api/topup_notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('topupNoticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('topupNoticeCache',JSON.stringify(cn));renderTopupNotice(cn)}}else{localStorage.removeItem('topupNoticeCache')}}catch(e){}}
+
+// ==================== INIT ====================
+(async function init(){
+    const pageOn=await checkPageAccess();
+    if(!pageOn)return;
     
-    function renderOrderHistory(orders){const c=document.getElementById('orderHistory');c.innerHTML=orders.map((o,i)=>{const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';const rejectBox=o.status==='rejected'&&o.reject_reason?`<div class="reject-reason-box"><div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div><div class="reject-msg">${o.reject_reason}</div></div>`:'';return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${rejectBox}${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`}).join('')}
-    function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
-    function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
-    async function loadBalance(){try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const b=d.balance||0;document.getElementById('myBalance').textContent=fm(b)+' Ks';document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`}catch(e){}}
-    loadBalance();
+    const token=localStorage.getItem('auth_token'),user=localStorage.getItem('user');
+    if(!token||!user||token==='guest'){
+        document.getElementById('loginCheckMessage').style.display='block';
+        document.getElementById('topupContent').style.display='none';
+        return;
+    }
+    document.getElementById('loginCheckMessage').style.display='none';
+    document.getElementById('topupContent').style.display='block';
+    loadTopupNotice();
+    setInterval(loadTopupNotice,5000);
+})();
+
+// ==================== VARIABLES ====================
+let sd='',iv=false,cu=null;
+try{cu=JSON.parse(localStorage.getItem('user')||'{}')}catch(e){cu={}}
+
+// ==================== FUNCTIONS ====================
+function n(m,t="success"){const e=document.getElementById("copyNotif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
+
+function showTab(t){
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(t).classList.add('active');
+    if(t==='history')loadHistory();
+}
+
+function togglePayment(){const ps=document.getElementById('paymentSection'),gb=document.getElementById('guideBox');if(ps.style.display==='block'){ps.style.display='none';gb.style.display='none'}else{ps.style.display='block';gb.style.display='block'}}
+function copyText(t){navigator.clipboard.writeText(t).then(()=>n('✅ Copied!')).catch(()=>prompt('Copy:',t))}
+if(cu&&cu.id)document.getElementById('verifyUserId').value=cu.id.toString().padStart(6,'0')
+
+function handleFileSelect(){
+    const f=document.getElementById('topupScreenshot').files[0],ub=document.getElementById('fileUploadBox'),ut=document.getElementById('uploadText'),uh=document.getElementById('uploadHint');
+    if(f){ub.classList.add('has-file');ut.textContent='📎 '+f.name;uh.textContent=(f.size/1024).toFixed(1)+' KB';const r=new FileReader();r.onload=function(e){sd=e.target.result;document.getElementById('screenshotPreview').innerHTML=`<img src="${sd}" style="max-width:100%;max-height:150px;border-radius:6px;border:2px solid var(--g)">`};r.readAsDataURL(f)}
+    else{ub.classList.remove('has-file');ut.textContent='Payment Screenshot';uh.textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';sd='';document.getElementById('screenshotPreview').innerHTML=''}
+}
+
+async function verifyUserId(){
+    const ii=document.getElementById('verifyUserId').value.trim(),re=document.getElementById('idResult'),bb=document.getElementById('buyBtn'),cb=document.getElementById('checkIdBtn');
+    if(!ii){re.className='id-result invalid';re.textContent='❌ User ID ထည့်ပါ';re.style.display='block';iv=false;bb.disabled=true;return}
+    re.className='id-result checking';re.textContent='⏳ Checking...';re.style.display='block';cb.disabled=true;
+    try{
+        const token=localStorage.getItem('auth_token');
+        if(!token){re.className='id-result invalid';re.textContent='❌ Please login first';re.style.display='block';iv=false;bb.disabled=true;cb.disabled=false;return}
+        const r=await fetch('/api/verify_user_id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,userId:ii})});
+        const d=await r.json();
+        if(d.success&&d.verified){re.className='id-result verified';re.innerHTML=`✅ ID မှန်ကန်ပါသည်<br><small>👤 ${d.username||'N/A'} | 📧 ${d.email||'N/A'}</small>`;iv=true;bb.disabled=false}
+        else{re.className='id-result invalid';re.textContent='❌ ID မှားယွင်းနေပါသည်';iv=false;bb.disabled=true}
+    }catch(e){re.className='id-result invalid';re.textContent='❌ Connection Error';iv=false;bb.disabled=true}
+    cb.disabled=false;
+}
+
+async function submitTopup(){
+    const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');
+    if(!pm)return alert('Payment ရွေးချယ်ပါ');
+    if(!iv)return alert('User ID စစ်ဆေးပါ');
+    if(!sd)return alert('Screenshot ထည့်ပါ');
+    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;
+    try{
+        const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});
+        const ud=await ur.json();const su=ud.success?ud.url:sd;
+        const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});
+        const d=await r.json();
+        if(d.success){
+            // 🔔 PENDING NOTIFICATION
+            addNotiItem('pending','🟠 <b>ငွေဖြည့်သွင်းခြင်း အောင်မြင်ပါသည်။</b>\n\nမိမိ၏အကောင့်ထဲသို့ Admin မှ အတည်ပြုပြီးသည်နှင့် <b>၁၀ မိနစ်အတွင်း</b> ဖြည့်သွင်းပေးပါမည်။\n\nကျေးဇူးတင်ပါသည်။ 🙏');
+            alert('✅ Order Submitted!');
+            document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';
+            loadHistory();renderNotiDropdown();
+        }else alert(d.message||'Error');
+    }catch(e){alert('Connection error')}
+    btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false;
+}
+
+async function loadHistory(){
+    const c=document.getElementById('orderHistory');
+    try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();if(d.orders&&d.orders.length>0){renderOrderHistory(d.orders);checkOrderNoti(d.orders)}else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'}}catch(e){c.innerHTML='<p style="text-align:center;padding:20px">No history</p>'}
+}
+
+// ==================== ORDER NOTIFICATION CHECKER ====================
+function checkOrderNoti(orders){
+    const lastNoti=localStorage.getItem('topupLastOrderCheck');
+    let lastId=lastNoti?parseInt(lastNoti):0;
+    
+    orders.forEach(o=>{
+        if(o.id>lastId){
+            lastId=o.id;
+            
+            // 🟢 APPROVED - Top Up Success
+            if(o.status==='approved'&&o.payment_method!=='Balance Deduction'){
+                const amt=o.amount||0;
+                const amtText=amt>0?`<b>ငွေ ${fm(amt)} ကျပ်</b>`:'ငွေ';
+                addNotiItem('success',`🟢 <b>အောင်မြင်ပါသည်။</b>\n\nသင်၏အကောင့်ထဲသို့ Admin မှ ${amtText} ဖြည့်သွင်းပြီးပါပြီ။\n\nကျေးဇူးတင်ပါသည်။ 🙏`);
+            }
+            
+            // 🔴 REJECTED - Order Rejected
+            else if(o.status==='rejected'){
+                addNotiItem('rejected',`🔴 <b>သင်၏အော်ဒါ ငြင်းပယ်ခံရပါသည်။</b>\n\nငွေလွှဲပြေစာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါတင်ခြင်းကြောင့် ဖြစ်သည်။\n\n<b>နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါက သင်၏အကောင့်အား ပိတ်ခံရနိုင်ပြီး အကောင့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်။</b>\n\n⚠️ သတိပြုပါ။`);
+            }
+            
+            // 🔴 DEDUCTION - Balance Deducted by Admin
+            else if(o.status==='approved'&&o.payment_method==='Balance Deduction'){
+                const amt=o.amount||0;
+                addNotiItem('deduction',`🔴 <b>Admin မှ သင်၏အကောင့်ထဲမှ ငွေပြန်နှုတ်ခဲ့ပါသည်။</b>\n\n�မာဏ: <b>ငွေ ${fm(amt)} ကျပ်</b>\nအကြောင်းရင်း: ${o.reject_reason||'N/A'}\n\nမေးမြန်းလိုပါက @Solo_m28 သို့ ဆက်သွယ်ပါ။`);
+            }
+        }
+    });
+    
+    if(lastId>0)localStorage.setItem('topupLastOrderCheck',lastId.toString());
+    renderNotiDropdown();
+}
+
+function renderOrderHistory(orders){
+    const c=document.getElementById('orderHistory');
+    c.innerHTML=orders.map((o,i)=>{
+        const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';
+        const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';
+        const rejectBox=o.status==='rejected'&&o.reject_reason?`<div class="reject-reason-box"><div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div><div class="reject-msg">${o.reject_reason}</div></div>`:'';
+        return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${rejectBox}${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`;
+    }).join('');
+}
+
+function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
+function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+
+async function loadBalance(){
+    try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const b=d.balance||0;document.getElementById('myBalance').textContent=fm(b)+' Ks';document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`}catch(e){}
+}
+loadBalance();
 </script>
 </body>
 </html>
