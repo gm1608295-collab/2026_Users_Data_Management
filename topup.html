@@ -465,42 +465,41 @@ async function loadHistory(){
     try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();if(d.orders&&d.orders.length>0){renderOrderHistory(d.orders);checkOrderNoti(d.orders)}else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'}}catch(e){c.innerHTML='<p style="text-align:center;padding:20px">No history</p>'}
 }
 
-// ==================== ORDER NOTIFICATION CHECKER ====================
-function checkOrderNoti(orders){
-    const lastNoti=localStorage.getItem('topupLastOrderCheck');
-    let lastId=lastNoti?parseInt(lastNoti):0;
+
+        function checkOrderNoti(orders) {
+    const lastNoti = localStorage.getItem('topupLastOrderCheck');
+    let lastId = lastNoti ? parseInt(lastNoti) : 0;
+    let hasNew = false;
     
-    orders.forEach(o=>{
-        if(o.id>lastId){
-            lastId=o.id;
+    orders.forEach(o => {
+        if (o.id > lastId) {
+            lastId = o.id;
+            hasNew = true;
+            const amount = o.amount || 0;
             
-            // 🟢 APPROVED - Top Up Success
-            if(o.status==='approved'&&o.payment_method!=='Balance Deduction'){
-                const amt=o.amount||0;
-                const amtText=amt>0?`ငွေ ${fm(amt)} ကျပ်`:'ငွေ';
-                addNotiItem('success',
-                    `🟢 အောင်မြင်ပါသည်။\n\n`+
-                    `သင်၏အကောင့်ထဲသို့ Admin မှ\n`+
-                    `${amtText} ဖြည့်သွင်းပြီးပါပြီ။\n\n`+
-                    `ကျေးဇူးတင်ပါသည်။ 🙏`
-                );
+            if (o.status === 'approved') {
+                if (o.payment_method === 'Admin Manual') {
+                    // Admin က တိုက်ရိုက်ထည့်တာ
+                    addNotiItem('success', `Admin မှ သင်၏အကောင့်ထဲသို့ ငွေ ${fm(amount)} ကျပ်ကို တိုက်ရိုက်ဖြည့်သွင်းပေးပါသည်။ကျေးဇူးတင်ပါသည်။`);
+                } else {
+                    // Order ကနေ Approve လုပ်တာ
+                    addNotiItem('success', `အောင်မြင်ပါသည်၊သင်၏အကောင့်ထဲသို့ admin ဘက်မှ ငွေ ${fm(amount)} ကျပ်ကို ဖြည့်သွင်းပြီးပါပြီ။ကျေးဇူးတင်ပါသည်။`);
+                }
+            } else if (o.status === 'rejected') {
+                // Rejected
+                addNotiItem('rejected', 'သင်၏အော်ဒါငြင်းပယ်ခံရပါသည်၊ငွေလွှဲပြေသာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါ တင်ခြင်းကြောင့်ဖြစ်သည်။နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါကသင်၏အကောင့်အားပိတ်ခံရနိုင်ပြီး အကောက့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်။');
             }
-            
-            // 🔴 REJECTED - Order Rejected
-            else if(o.status==='rejected'){
-                addNotiItem('rejected',
-                    `🔴 သင်၏အော်ဒါ ငြင်းပယ်ခံရပါသည်။\n\n`+
-                    `ငွေလွှဲပြေစာအတု(သို့)ရက်လွန်ပြေစာ\n`+
-                    `(သို့)ထပ်ခါထပ်ခါတင်ခြင်းကြောင့်\n`+
-                    `ဖြစ်သည်။\n\n`+
-                    `နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါက\n`+
-                    `သင်၏အကောင့်အား ပိတ်ခံရနိုင်ပြီး\n`+
-                    `အကောင့်ပျက်နိုင်သည်အထိ\n`+
-                    `အရေးယူနိုင်ပါသည်။\n\n`+
-                    `⚠️ သတိပြုပါ။`
-                );
-            }
-            
+        }
+    });
+    
+    if (lastId > 0) {
+        localStorage.setItem('topupLastOrderCheck', lastId.toString());
+    }
+    if (hasNew) {
+        renderNotiDropdown();
+    }
+}
+        
             // 🔴 DEDUCTION - Balance Deducted by Admin
             else if(o.status==='approved'&&o.payment_method==='Balance Deduction'){
                 const amt=o.amount||0;
