@@ -438,26 +438,72 @@ app.get('/api/redeem_codes', async (req, res) => {
 
 app.post('/api/buy_code', async (req, res) => {
     const { token, codeId } = req.body;
+    console.log('[BUY CODE] Request:', { token: token?.substring(0,10)+'...', codeId });
+    
     if (!token || !codeId) return res.json({ success: false, message: 'Missing data' });
+    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
+        
+        // Check code exists and not used
         const codeCheck = await p.query('SELECT * FROM redeem_codes WHERE id=$1 AND used=false', [codeId]);
-        if (codeCheck.rows.length === 0) return res.json({ success: false, message: 'Code not available' });
+        if (codeCheck.rows.length === 0) {
+            console.log('[BUY CODE] Code not available:', codeId);
+            return res.json({ success: false, message: 'Code not available' });
+        }
+        
         const code = codeCheck.rows[0];
-        const cat = REDEEM_CATEGORIES.find(c => c.id === code.category);
-        const price = cat ? cat.price : 0;
+        console.log('[BUY CODE] Found code:', code.code, 'Category:', code.category);
+        
+        // Get price from code_prices table
+        const priceRes = await p.query('SELECT price FROM code_prices WHERE category=$1', [code.category]);
+        let price = 0;
+        
+        if (priceRes.rows.length > 0) {
+            price = parseFloat(priceRes.rows[0].price);
+        } else {
+            // Fallback prices
+            const fallback = {
+                shhh_emote: 5000,
+                golden_border: 8000,
+                lucky_diamond: 12000,
+                magic_durt: 3000,
+                emblem_box: 4000
+            };
+            price = fallback[code.category] || 0;
+        }
+        
+        console.log('[BUY CODE] Price:', price, 'Ks');
+        
+        // Check balance
         const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
         if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
-        const balance = user.rows[0].balance || 0;
-        if (balance < price) return res.json({ success: false, message: 'Insufficient balance' });
+        
+        const balance = parseFloat(user.rows[0].balance || 0);
+        console.log('[BUY CODE] User balance:', balance);
+        
+        if (balance < price) {
+            console.log('[BUY CODE] Insufficient balance');
+            return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
+        }
+        
+        // Mark code as used
         await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, codeId]);
+        
+        // Deduct balance
         await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [price, uid]);
-        console.log(`[BUY CODE] User ${uid} bought ${code.code} for ${price} Ks`);
-        res.json({ success: true, code: code.code, balance: balance - price });
-    } catch(e) { res.json({ success: false, message: e.message }); }
+        
+        const newBalance = balance - price;
+        console.log('[BUY CODE] SUCCESS! New balance:', newBalance);
+        
+        res.json({ success: true, code: code.code, balance: newBalance, message: 'Purchase successful!' });
+        
+    } catch(e) {
+        console.error('[BUY CODE ERROR]', e.message);
+        res.json({ success: false, message: 'Error: ' + e.message });
+    }
 });
-
 // Admin Code Management
 app.get('/api/admin/redeem_codes', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC'); res.json({ success: true, codes: r.rows }); } catch(e) { res.json({ success: false, codes: [] }); } });
 app.post('/api/admin/redeem_code', async (req, res) => { const { category, code } = req.body; if (!category || !code) return res.json({ success: false }); try { const p = await getPool(); await p.query('INSERT INTO redeem_codes (category, code, used) VALUES ($1, $2, $3)', [category, code, false]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
