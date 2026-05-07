@@ -11,30 +11,34 @@
         html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
         body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
         .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;flex-shrink:0;position:relative}
+        
+        /* Header */
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-shrink:0}
         .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h1{font-size:18px;color:var(--w)}
         
-        /* Notification Bell */
-        .noti-bell{position:absolute;right:0;top:5px;cursor:pointer;font-size:22px;color:var(--w);transition:all 0.3s}
-        .noti-bell:hover{transform:scale(1.1)}
-        .noti-bell .badge{position:absolute;top:-6px;right:-6px;background:var(--r);color:#fff;font-size:9px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;display:none}
+        /* Balance Card */
+        .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w);flex-shrink:0;position:relative}
+        .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
+        .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
+        .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
+        
+        /* Notification Bell - Inside Balance Card (Top Right) */
+        .noti-bell{position:absolute;top:8px;right:12px;cursor:pointer;font-size:18px;color:var(--w);transition:all 0.3s;z-index:5}
+        .noti-bell:hover{transform:scale(1.15)}
+        .noti-bell .badge{position:absolute;top:-5px;right:-5px;background:var(--r);color:#fff;font-size:8px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;display:none}
         .noti-bell .badge.show{display:flex}
         
         /* Noti Dropdown */
-        .noti-dropdown{display:none;position:absolute;right:0;top:35px;width:280px;max-height:300px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px}
+        .noti-dropdown{display:none;position:absolute;right:0;top:30px;width:280px;max-height:280px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
         .noti-dropdown.active{display:block}
-        .noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--w);line-height:1.6}
+        .noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--w);line-height:1.6;white-space:pre-line}
         .noti-dropdown .noti-item.pending{border-left-color:var(--orange);background:rgba(230,126,34,0.1)}
         .noti-dropdown .noti-item.success{border-left-color:var(--g);background:rgba(46,204,113,0.1)}
         .noti-dropdown .noti-item.rejected{border-left-color:var(--r);background:rgba(231,76,60,0.1)}
         .noti-dropdown .noti-item .noti-time{font-size:8px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right}
         .noti-dropdown .noti-empty{text-align:center;color:rgba(255,255,255,0.4);padding:15px;font-size:11px}
         
-        .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w);flex-shrink:0}
-        .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
-        .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
-        .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
         .tabs{display:flex;gap:5px;margin-bottom:15px;flex-shrink:0}
         .tab{flex:1;padding:10px;text-align:center;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;cursor:pointer;color:var(--t)}
         .tab.active{background:var(--a);color:var(--w)}
@@ -144,18 +148,10 @@
     <div class="copy-notif" id="copyNotif"></div>
     
     <div class="container" id="mainContainer">
+        <!-- Header -->
         <div class="header">
             <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
             <h1>SOLO M Game Shop</h1>
-            <!-- Notification Bell -->
-            <div class="noti-bell" onclick="toggleNotiDropdown()">
-                <i class="fas fa-bell"></i>
-                <span class="badge" id="notiBadge">0</span>
-                <div class="noti-dropdown" id="notiDropdown">
-                    <div class="noti-empty" id="notiEmpty"><i class="fas fa-bell-slash"></i> No notifications</div>
-                    <div id="notiList"></div>
-                </div>
-            </div>
         </div>
         
         <!-- Maintenance -->
@@ -174,7 +170,20 @@
         </div>
         
         <div id="topupContent">
-            <div class="balance-card"><div class="amount" id="myBalance">0 Ks</div><div class="label">Myanmar Kyat (MMK)</div><div class="usd-amount" id="usdBalance">≈ $0.00 USD</div></div>
+            <!-- Balance Card with Noti Bell -->
+            <div class="balance-card">
+                <div class="noti-bell" onclick="toggleNotiDropdown()">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notiBadge">0</span>
+                    <div class="noti-dropdown" id="notiDropdown">
+                        <div class="noti-empty" id="notiEmpty"><i class="fas fa-bell-slash"></i> No notifications</div>
+                        <div id="notiList"></div>
+                    </div>
+                </div>
+                <div class="amount" id="myBalance">0 Ks</div>
+                <div class="label">Myanmar Kyat (MMK)</div>
+                <div class="usd-amount" id="usdBalance">≈ $0.00 USD</div>
+            </div>
             
             <div class="tabs"><div class="tab active" onclick="showTab('topup')">TopUp</div><div class="tab" onclick="showTab('history')">Order History</div></div>
             
