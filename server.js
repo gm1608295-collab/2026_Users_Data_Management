@@ -294,11 +294,73 @@ function startLongPolling() {
     } getUpdates();
 } startLongPolling();
 
-// ==================== VIDEO SYSTEM ====================
-app.post('/api/admin/video', async (req, res) => { const { url } = req.body; if (!url) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.get('/api/video', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1'); if (r.rows.length > 0) { res.json({ success: true, url: r.rows[0].video_url }); } else { res.json({ success: false, url: '' }); } } catch(e) { res.json({ success: false, url: '' }); } });
-app.post('/api/admin/video/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+// ==================== VIDEO SYSTEM (FIXED) ====================
 
+// Helper function to convert YouTube URL to embeddable format
+function getEmbedUrl(url) {
+    if (!url) return '';
+    
+    // Already a direct video URL
+    if (url.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i)) return url;
+    if (url.includes('catbox.moe') || url.includes('files.')) return url;
+    
+    // YouTube
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&playsinline=1`;
+    
+    // YouTube Shorts
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&mute=1&playsinline=1`;
+    
+    return url;
+}
+
+// Save Video
+app.post('/api/admin/video', async (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM videos');
+        await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]);
+        console.log('[VIDEO SAVE]', url.substring(0, 50));
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Get Video
+app.get('/api/video', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1');
+        
+        if (r.rows.length > 0) {
+            const rawUrl = r.rows[0].video_url;
+            const embedUrl = getEmbedUrl(rawUrl);
+            const isYouTube = embedUrl.includes('youtube.com/embed');
+            
+            console.log('[VIDEO API]', isYouTube ? 'YouTube' : 'Direct', embedUrl.substring(0, 60));
+            
+            res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: isYouTube });
+        } else {
+            console.log('[VIDEO API] No video in database');
+            res.json({ success: false, url: '' });
+        }
+    } catch(e) {
+        console.error('[VIDEO API ERROR]', e);
+        res.json({ success: false, url: '' });
+    }
+});
+
+// Delete Video
+app.post('/api/admin/video/delete', async (req, res) => {
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM videos');
+        console.log('[VIDEO] Deleted');
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
 // ==================== BUY CODE SYSTEM ====================
 const REDEEM_CATEGORIES = [
     { id: 'shhh_emote', name: 'Shhh emote', icon: 'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png', price: 5000 },
