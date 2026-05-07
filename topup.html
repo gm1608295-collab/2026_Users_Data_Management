@@ -238,20 +238,7 @@ function showToast(msg, type = 'success') {
     const toast = document.createElement('div');
     toast.textContent = msg;
     const bg = type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db';
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${bg};
-        color: #fff;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: bold;
-        z-index: 99999;
-        animation: fadeInOut 2.5s forwards;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.4);
-    `;
+    toast.style.cssText = `position:fixed;top:20px;right:20px;background:${bg};color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:bold;z-index:99999;animation:fadeInOut 2.5s forwards;box-shadow:0 5px 20px rgba(0,0,0,0.4)`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2500);
 }
@@ -347,43 +334,97 @@ function handleFileSelect(){const f=document.getElementById('topupScreenshot').f
 
 async function verifyUserId(){const ii=document.getElementById('verifyUserId').value.trim(),re=document.getElementById('idResult'),bb=document.getElementById('buyBtn'),cb=document.getElementById('checkIdBtn');if(!ii){re.className='id-result invalid';re.textContent='❌ User ID ထည့်ပါ';re.style.display='block';iv=false;bb.disabled=true;return}re.className='id-result checking';re.textContent='⏳ Checking...';re.style.display='block';cb.disabled=true;try{const token=localStorage.getItem('auth_token');if(!token){re.className='id-result invalid';re.textContent='❌ Please login';re.style.display='block';iv=false;bb.disabled=true;cb.disabled=false;return}const r=await fetch('/api/verify_user_id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,userId:ii})});const d=await r.json();if(d.success&&d.verified){re.className='id-result verified';re.innerHTML=`✅ ID မှန်ကန်ပါသည်<br><small>👤 ${d.username||'N/A'} | 📧 ${d.email||'N/A'}</small>`;iv=true;bb.disabled=false}else{re.className='id-result invalid';re.textContent='❌ ID မှားယွင်းနေပါသည်';iv=false;bb.disabled=true}}catch(e){re.className='id-result invalid';re.textContent='❌ Error';iv=false;bb.disabled=true}cb.disabled=false}
 
-async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return alert('Payment ရွေးချယ်ပါ');if(!iv)return alert('User ID စစ်ဆေးပါ');if(!sd)return alert('Screenshot ထည့်ပါ');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){addNotiItem('pending','ငွေဖြည့်သွင်းခြင်းအောင်မြင်ပါသည်၊မိမိ၏အကောင့်ထဲသို့ admin မှအတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်းဖြည့်သွင်းပေးပါမည်။ကျေးဇူးတင်ပါသည်။');showToast('✅ Order Submitted!','success');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory()}else{showToast(d.message||'Error','error')}}catch(e){showToast('Connection error','error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
+async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return alert('Payment ရွေးချယ်ပါ');if(!iv)return alert('User ID စစ်ဆေးပါ');if(!sd)return alert('Screenshot ထည့်ပါ');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){addNotiItem('pending','ငွေဖြည့်သွင်းခြင်းအောင်မြင်ပါသည်၊မိမိ၏အကောင့်ထဲသို့ admin မှအတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်းဖြည့်သွင်းပေးပါမည်。�ျေးဇူးတင်ပါသည်။');showToast('✅ Order Submitted!','success');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory()}else{showToast(d.message||'Error','error')}}catch(e){showToast('Connection error','error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
 
 async function loadHistory(){const c=document.getElementById('orderHistory');try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();if(d.orders&&d.orders.length>0){renderOrderHistory(d.orders);checkOrderNoti(d.orders)}else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'}}catch(e){c.innerHTML='<p style="text-align:center;padding:20px">No history</p>'}}
 
-function checkOrderNoti(orders) {
-    const lastNoti = localStorage.getItem('topupLastOrderCheck');
-    let lastId = lastNoti ? parseInt(lastNoti) : 0;
-    let hasNew = false;
+function checkOrderNoti(orders){
+    const lastNoti=localStorage.getItem('topupLastOrderCheck');
+    let lastId=lastNoti?parseInt(lastNoti):0;
+    let hasNew=false;
     
-    orders.forEach(o => {
-        if (o.id > lastId) {
-            lastId = o.id;
-            hasNew = true;
-            const amount = Math.abs(o.amount || 0);
+    orders.forEach(o=>{
+        if(o.id>lastId){
+            lastId=o.id;
+            hasNew=true;
+            const amount=Math.abs(o.amount||0);
             
-            if (o.status === 'approved') {
-                addNotiItem('success', `အောင်မြင်ပါသည်၊သင်၏အကောင့်ထဲသို့ admin ဘက်မှ ငွေ ${fm(amount)} ကျပ်ကို ဖြည့်သွင်းပြီးပါပြီ။ကျေးဇူးတင်ပါသည်。`);
-            } else if (o.status === 'rejected') {
-                addNotiItem('rejected', 
-                    `သင်၏အော်ဒါငြင်းပယ်ခံရပါသည်။\n` +
-                    `ငွေလွှဲပြေသာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါ တင်ခြင်းကြောင့်ဖြစ်သည်။\n` +
+            if(o.status==='approved'){
+                addNotiItem('success',`အောင်မြင်ပါသည်၊ admin ဘက်မှသင်၏အကောင့်ထဲသို့ တစ်မိနစ်အတွင်းဖြည့်သွင်းပေးနေပါသည်။"。`);
+            }else if(o.status==='rejected'){
+                addNotiItem('rejected',
+                    `သင်၏အော်ဒါငြင်းပယ်ခံရပါသည်။\n`+
+                    `ငွေလွှဲပြေသာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါ တင်ခြင်းကြောင့်ဖြစ်သည်。\n`+
                     `နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါကသင်၏အကောင့်အားပိတ်ခံရနိုင်ပြီး အကောင့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်。`
                 );
             }
         }
     });
     
-    if (lastId > 0) localStorage.setItem('topupLastOrderCheck', lastId.toString());
-    if (hasNew) renderNotiDropdown();
+    if(lastId>0)localStorage.setItem('topupLastOrderCheck',lastId.toString());
+    if(hasNew)renderNotiDropdown();
+}
+
+// ==================== BALANCE CHANGE NOTIFICATION ====================
+// Check for balance changes (Admin Manual Add/Deduct)
+async function checkBalanceChanges(){
+    const savedBalance=parseFloat(localStorage.getItem('topupLastBalance')||'0');
+    const token=localStorage.getItem('auth_token');
+    if(!token||token==='guest')return;
+    
+    try{
+        const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
+        const d=await r.json();
+        const currentBalance=parseFloat(d.balance||0);
+        
+        if(savedBalance>0){
+            const diff=currentBalance-savedBalance;
+            
+            if(diff>0){
+                // Balance increased - Admin added money
+                const lastAdd=localStorage.getItem('topupLastAddAmount');
+                const lastAddTime=parseInt(localStorage.getItem('topupLastAddTime')||'0');
+                
+                if(!lastAdd||Math.abs(diff-parseFloat(lastAdd))>0.01||Date.now()-lastAddTime>60000){
+                    addNotiItem('success',`Admin မှ သင်၏အကောင့်ထဲသို့ ငွေ ${fm(diff)} ကျပ်ကို တိုက်ရိုက်ဖြည့်သွင်းပေးပါသည်။ကျေးဇူးတင်ပါသည်。`);
+                    localStorage.setItem('topupLastAddAmount',diff.toString());
+                    localStorage.setItem('topupLastAddTime',Date.now().toString());
+                    renderNotiDropdown();
+                }
+            }else if(diff<0){
+                // Balance decreased - Admin deducted money
+                addNotiItem('rejected',`Admin မှ သင်၏အကောင့်ထဲမှ ငွေ ${fm(Math.abs(diff))} ကျပ် ပြန်နှုတ်ခဲ့ပါသည်။`);
+                renderNotiDropdown();
+            }
         }
+        
+        localStorage.setItem('topupLastBalance',currentBalance.toString());
+    }catch(e){}
+}
 
 function renderOrderHistory(orders){const c=document.getElementById('orderHistory');c.innerHTML=orders.map((o,i)=>{const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';const rejectBox=o.status==='rejected'&&o.reject_reason?`<div class="reject-reason-box"><div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div><div class="reject-msg">${o.reject_reason}</div></div>`:'';return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${rejectBox}${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`}).join('')}
 function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
 function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
 
-async function loadBalance(){try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const b=d.balance||0;document.getElementById('myBalance').textContent=fm(b)+' Ks';document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`}catch(e){}}
+async function loadBalance(){
+    try{
+        const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+        const d=await r.json();
+        const b=d.balance||0;
+        document.getElementById('myBalance').textContent=fm(b)+' Ks';
+        document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`;
+        
+        // Store initial balance
+        const saved=localStorage.getItem('topupLastBalance');
+        if(!saved||parseFloat(saved)===0){
+            localStorage.setItem('topupLastBalance',b.toString());
+        }
+    }catch(e){}
+}
+
+// Initialize balance + check changes
 loadBalance();
+setInterval(checkBalanceChanges,5000);
     </script>
 </body>
 </html>
