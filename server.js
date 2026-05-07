@@ -479,6 +479,72 @@ async function servePageWithCheck(req, res, pageId, filePath) {
     res.sendFile(path.join(__dirname, filePath));
 }
 
+// ==================== PRICE MANAGEMENT ====================
+
+// Create prices table
+async function initPriceTable() {
+    try {
+        const p = await getPool();
+        await p.query(`CREATE TABLE IF NOT EXISTS code_prices (
+            category VARCHAR(50) PRIMARY KEY, 
+            price DECIMAL DEFAULT 5000,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`).catch(() => {});
+        
+        // Insert default prices
+        const defaults = [
+            { category: 'shhh_emote', price: 5000 },
+            { category: 'golden_border', price: 8000 },
+            { category: 'lucky_diamond', price: 12000 },
+            { category: 'magic_durt', price: 3000 },
+            { category: 'emblem_box', price: 4000 }
+        ];
+        
+        for (const d of defaults) {
+            await p.query(
+                "INSERT INTO code_prices (category, price) VALUES ($1, $2) ON CONFLICT (category) DO NOTHING",
+                [d.category, d.price]
+            ).catch(() => {});
+        }
+        console.log('✅ Code prices ready');
+    } catch(e) {}
+}
+initPriceTable();
+
+// Get all prices (admin)
+app.get('/api/admin/prices', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM code_prices ORDER BY category');
+        res.json({ success: true, prices: r.rows });
+    } catch(e) { res.json({ success: false, prices: [] }); }
+});
+
+// Update price (admin)
+app.post('/api/admin/price', async (req, res) => {
+    const { category, price } = req.body;
+    if (!category || !price) return res.json({ success: false, message: 'Missing data' });
+    try {
+        const p = await getPool();
+        await p.query(
+            "INSERT INTO code_prices (category, price) VALUES ($1, $2) ON CONFLICT (category) DO UPDATE SET price=$2, updated_at=NOW()",
+            [category, price]
+        );
+        console.log(`[PRICE UPDATE] ${category} -> ${price} Ks`);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false, message: e.message }); }
+});
+
+// Get prices for buycode page (user)
+app.get('/api/prices', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM code_prices ORDER BY category');
+        const prices = {};
+        r.rows.forEach(row => { prices[row.category] = parseFloat(row.price); });
+        res.json({ success: true, prices });
+    } catch(e) { res.json({ success: false, prices: {} }); }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
