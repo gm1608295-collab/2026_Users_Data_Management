@@ -138,6 +138,25 @@
         async function doRegister(){const na=document.getElementById("regName").value.trim(),em=document.getElementById("regEmail").value.trim(),ph=document.getElementById("regPhone").value.trim(),ps=document.getElementById("regPass").value,cf=document.getElementById("regConfirm").value;if(!na||!em||!ph||!ps||!cf)return n("အားလုံးဖြည့်ပါ","error");if(ps!==cf)return n("Password မတူညီပါ","error");if(ps.length<6)return n("Password အနည်းဆုံး ၆ လုံး","error");try{const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:na,email:em,phone:ph,password:ps,captcha:getCap()})});const d=await r.json();d.success?(n("✅ အကောင့်ဖွင့်ပြီးပါပြီ!"),showLogin()):n(d.message,"error")}catch(e){n("Connection error","error")}}
         
         async function doLogin(){const em=document.getElementById("loginEmail").value.trim(),ps=document.getElementById("loginPassword").value,btn=document.getElementById("loginBtn");if(!em||!ps)return n("အားလုံးဖြည့်ပါ","error");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';btn.disabled=true;try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em,password:ps,captcha:getCap()})});const d=await r.json();if(d.success){const bc=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:d.user.id.toString()})});const bd=await bc.json();if(bd.banned){btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;return n("❌ ဤအကောင့်သည် ပိတ်ခံထားရပါသည်","error")}localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("✅ Login Successful!");setTimeout(()=>window.location.href="/dashboard",500)}else{btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;n(d.message,"error")}}catch(e){btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;n("Connection error","error")}}
+        // Ban Check
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+if (user.id) {
+    const r = await fetch("/api/check_banned", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id.toString() })
+    });
+    const d = await r.json();
+    if (d.banned) {
+        document.body.innerHTML = `<div class="banned-container">
+            <div class="banned-icon">🚫</div>
+            <h2>သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2>
+            <p>Admin မှ သင့်အကောင့်အား ပိတ်ပင်ထားပါသည်။</p>
+            <button onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button>
+        </div>`;
+        return; // Stop page from loading
+    }
+}
     </script>
 </body>
 </html>
