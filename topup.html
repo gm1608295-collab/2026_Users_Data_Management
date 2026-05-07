@@ -28,7 +28,19 @@
         .noti-bell:hover{transform:scale(1.15)}
         .noti-bell .badge{position:absolute;top:-5px;right:-5px;background:var(--r);color:#fff;font-size:8px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;display:none}
         .noti-bell .badge.show{display:flex}
-        
+
+        .noti-dropdown .noti-item.pending {
+    border-left-color: var(--orange);
+    background: rgba(230,126,34,0.15);
+}
+.noti-dropdown .noti-item.success {
+    border-left-color: var(--g);
+    background: rgba(46,204,113,0.15);
+}
+.noti-dropdown .noti-item.rejected {
+    border-left-color: var(--r);
+    background: rgba(231,76,60,0.15);
+}
         /* Noti Dropdown */
         .noti-dropdown{display:none;position:absolute;right:0;top:30px;width:280px;max-height:280px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
         .noti-dropdown.active{display:block}
@@ -536,4 +548,25 @@ async function loadBalance(){
     try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();const b=d.balance||0;document.getElementById('myBalance').textContent=fm(b)+' Ks';document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`}catch(e){}
 }
 loadBalance();
+   // Ban Check
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+if (user.id) {
+    const r = await fetch("/api/check_banned", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id.toString() })
+    });
+    const d = await r.json();
+    if (d.banned) {
+        document.body.innerHTML = `<div class="banned-container">
+            <div class="banned-icon">🚫</div>
+            <h2>သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2>
+            <p>Admin မှ သင့်အကောင့်အား ပိတ်ပင်ထားပါသည်။</p>
+            <button onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button>
+        </div>`;
+        return; // Stop page from loading
+    }
+}
     </script>
+</body>
+</html>
