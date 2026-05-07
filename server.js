@@ -420,13 +420,18 @@ app.get('/api/redeem_codes', async (req, res) => {
     try {
         const p = await getPool();
         const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY category, id ASC");
-        console.log('[REDEEM CODES] Total:', r.rows.length);
+        console.log('[REDEEM CODES] Total available:', r.rows.length);
         
         const grouped = {};
         REDEEM_CATEGORIES.forEach(cat => {
             const codes = r.rows.filter(c => c.category === cat.id && !c.used);
-            grouped[cat.id] = { name: cat.name, icon: cat.icon, price: cat.price, codes: codes.map(c => ({ id: c.id, code: c.code })) };
-            if (codes.length > 0) console.log(`  ${cat.name}: ${codes.length} codes`);
+            grouped[cat.id] = { 
+                name: cat.name, 
+                icon: cat.icon, 
+                price: cat.price, 
+                codes: codes.map(c => ({ id: c.id, code: c.code })) 
+            };
+            console.log(`  ${cat.name}: ${codes.length} codes`);
         });
         
         res.json({ success: true, categories: grouped });
