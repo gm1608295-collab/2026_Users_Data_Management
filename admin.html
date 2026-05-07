@@ -324,63 +324,19 @@ async function subBalance(uid) {
     if (!reason.trim()) return n('Reason is required!', 'error');
     
     try {
-        const userRes = await fetch('/api/admin/search_user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: uid.toString() })
-        });
-        const userData = await userRes.json();
-        const username = userData.users?.[0]?.username || 'Unknown';
-        
-        // Update balance
+        // Update balance only - no order record
         await fetch('/api/admin/update_balance', {
             method: 'POST',
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId: uid, amount: -amount })
         });
         
-        // Create deduction order
-        const orderRes = await fetch('/api/submit_order', {
-            method: 'POST',
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                token: 'token_' + uid, 
-                amount: amount, 
-                payment_method: 'Balance Deduction', 
-                screenshot: '', 
-                user_id: uid.toString() 
-            })
-        });
-        
-        // Auto-approve with reason
-        const ordersRes = await fetch('/api/get_orders', {
-            method: 'POST',
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: 'token_' + uid })
-        });
-        const ordersData = await ordersRes.json();
-        if (ordersData.orders && ordersData.orders.length > 0) {
-            const lastOrder = ordersData.orders[0];
-            await fetch('/api/admin/order_status', {
-                method: 'POST',
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    id: lastOrder.id, 
-                    status: 'approved', 
-                    reason: reason.trim() 
-                })
-            });
-        }
-        
         n('✅ Balance Deducted! -' + fm(amount) + ' Ks');
         document.getElementById('bal' + uid).value = '';
         searchUser();
         loadAdminData();
         
-    } catch(e) { 
-        console.error('[DEDUCT ERROR]', e);
-        n('Error', 'error'); 
-    }
+    } catch(e) { n('Error', 'error'); }
 }
 // ==================== ORDERS ====================
 async function loadAdminOrders(f){currentOrderFilter=f;try{const r=await fetch(`/api/admin/orders?filter=${f}`);const d=await r.json();const c=document.getElementById('adminOrders');document.getElementById("totalOrders").textContent=d.total||0;document.getElementById("todayOrders").textContent=d.today||0;if(!d.orders||d.orders.length===0){c.innerHTML='<p style="font-size:10px">No orders</p>';return}let cd='',h='';d.orders.forEach(o=>{const ds=new Date(o.created_at).toLocaleDateString('my-MM',{year:'numeric',month:'short',day:'numeric'});if(ds!==cd){cd=ds;h+=`<div class="order-date-header">📅 ${ds}</div>`}h+=`<div class="order-row"><div><b>${o.username||'N/A'}</b><br>💰 ${o.amount} Ks | 💳 ${o.payment_method}<br><small>🆔 ${o.submitted_user_id||o.user_id} | ${new Date(o.created_at).toLocaleTimeString()}</small></div><div style="display:flex;gap:2px;align-items:center"><span style="font-size:8px;color:${o.status==='approved'?'var(--g)':o.status==='rejected'?'var(--r)':'var(--w)'}">${o.status}</span>${o.screenshot?`<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">`:'📷'}${o.status==='pending'?`<button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="approveOrder(${o.id},${o.user_id},${o.amount})">✓</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="rejectOrderWithReason(${o.id})">✕</button>`:''}</div></div>`});c.innerHTML=h}catch(e){}}
