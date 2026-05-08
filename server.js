@@ -501,26 +501,66 @@ app.get('/api/redeem_codes', async (req, res) => {
 
 app.post('/api/buy_code', async (req, res) => {
     const { token, codeId } = req.body;
-    if (!token || !codeId) return res.json({ success: false, message: 'Missing data' });
+    
+    console.log('[BUY CODE API] Received:', { token: token?.substring(0,10)+'...', codeId });
+    
+    if (!token || !codeId) {
+        console.log('[BUY CODE API] Missing data');
+        return res.json({ success: false, message: 'Missing data - Token or Code ID not provided' });
+    }
+    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
+        
+        if (isNaN(uid)) {
+            return res.json({ success: false, message: 'Invalid token' });
+        }
+        
+        // Check code exists
         const codeCheck = await p.query('SELECT * FROM redeem_codes WHERE id=$1 AND used=false', [codeId]);
-        if (codeCheck.rows.length === 0) return res.json({ success: false, message: 'Code not available' });
+        console.log('[BUY CODE API] Code check:', codeCheck.rows.length > 0 ? 'Found' : 'Not found');
+        
+        if (codeCheck.rows.length === 0) {
+            return res.json({ success: false, message: 'Code not available' });
+        }
+        
         const code = codeCheck.rows[0];
+        
+        // Get price from REDEEM_CATEGORIES
         const cat = REDEEM_CATEGORIES.find(c => c.id === code.category);
         const price = cat ? cat.price : 0;
+        console.log('[BUY CODE API] Price:', price);
+        
+        // Check balance
         const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
         const balance = parseFloat(user.rows[0].balance || 0);
-        if (balance < price) return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
+        console.log('[BUY CODE API] Balance:', balance);
+        
+        if (balance < price) {
+            return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
+        }
+        
+        // Mark as used
         await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, codeId]);
+        
+        // Deduct balance
         await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [price, uid]);
-        console.log(`[BUY CODE] User ${uid} bought ${code.code} for ${price} Ks`);
-        res.json({ success: true, code: code.code, balance: balance - price });
-    } catch(e) { res.json({ success: false, message: e.message }); }
+        
+        const newBalance = balance - price;
+        console.log('[BUY CODE API] SUCCESS! New balance:', newBalance);
+        
+        res.json({ success: true, code: code.code, balance: newBalance });
+        
+    } catch(e) {
+        console.error('[BUY CODE API ERROR]', e);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
 });
-
 app.get('/api/admin/redeem_codes', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC'); res.json({ success: true, codes: r.rows }); } catch(e) { res.json({ success: false, codes: [] }); } });
 app.post('/api/admin/redeem_code', async (req, res) => { const { category, code } = req.body; if (!category || !code) return res.json({ success: false }); try { const p = await getPool(); await p.query('INSERT INTO redeem_codes (category, code, used) VALUES ($1, $2, $3)', [category, code, false]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/redeem_code/delete', async (req, res) => { const { id } = req.body; if (!id) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM redeem_codes WHERE id=$1', [id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
