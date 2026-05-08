@@ -214,13 +214,45 @@ function showCodeModal(code){
     '</div>';
     document.body.appendChild(modal);
     document.getElementById('copyCodeBtn').addEventListener('click', function() {
-        var codeText = document.getElementById('theCodeText').textContent;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(codeText).then(function() { n('✅ Code Copied!'); }).catch(function() { prompt('Copy:', codeText); });
-        } else { prompt('Copy:', codeText); }
-    });
-    var timerInterval = setInterval(function() { sec--; var t = document.getElementById('codeTimerDisplay'); if (t) t.textContent = '⏱️ Auto close in ' + sec + ' seconds'; if (sec <= 0) { clearInterval(timerInterval); if (document.getElementById('codeRevealModal')) document.getElementById('codeRevealModal').remove(); n('⏰ Code သက်တမ်းကုန်သွားပါပြီ'); } }, 1000);
-    modal.addEventListener('click', function(e) { if (e.target === modal) { clearInterval(timerInterval); modal.remove(); } });
+    var codeText = document.getElementById('theCodeText').textContent;
+    var copyBtn = document.getElementById('copyCodeBtn');
+    
+    // Method 1: Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(codeText).then(function() {
+            // Success - show feedback
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            copyBtn.style.background = '#rgba(255,255,255,0.2)';
+            copyBtn.style.color = '#2ecc71';
+            n('✅ Code Copied!');
+        }).catch(function() {
+            // Fallback
+            fallbackCopy(codeText, copyBtn);
+        });
+    } else {
+        // Fallback
+        fallbackCopy(codeText, copyBtn);
+    }
+});
+
+function fallbackCopy(text, btn) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try {
+        document.execCommand('copy');
+        n('✅ Code Copied!');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.style.background = 'rgba(255,255,255,0.2)';
+        btn.style.color = '#2ecc71';
+    } catch(e) {
+        n('❌ Copy failed - Please manually copy', 'error');
+    }
+    document.body.removeChild(ta);
 }
 
 // ==================== RENDER GAME CARDS ====================
@@ -304,9 +336,59 @@ function loadNotice(){fetch("/api/buycode_notice").then(function(r){return r.jso
 
 // ==================== CHECK FOR NEW CODES ====================
 var lastCodeId = parseInt(localStorage.getItem('buycodeLastCodeId') || '0');
-function checkNewCodes() { fetch('/api/buycode_new_codes').then(function(r) { return r.json(); }).then(function(d) { if (d.success && d.hasNew && d.latestId > lastCodeId) { lastCodeId = d.latestId; localStorage.setItem('buycodeLastCodeId', lastCodeId); addNotiItem(d.message); } }).catch(function() {}); }
-setInterval(checkNewCodes, 30000); checkNewCodes();
 
+function checkNewCodes() {
+    fetch('/api/buycode_new_codes')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success && d.hasNew && d.latestId > lastCodeId) {
+            // New codes available!
+            lastCodeId = d.latestId;
+            localStorage.setItem('buycodeLastCodeId', lastCodeId);
+            
+            // ====== CLEAR SOLD OUT STATUS ======
+            // Admin added new codes, so clear all sold out flags
+            soldOutCategories = {};
+            saveSoldOut();
+            
+            // Reload categories from server
+            loadCategoriesFromServer();
+            
+            addNotiItem(d.message);
+        }
+    })
+    .catch(function() {});
+}
+
+// ====== RELOAD CATEGORIES FROM SERVER ======
+function loadCategoriesFromServer() {
+    fetch('/api/redeem_codes')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success && d.categories) {
+            // Update hardcoded data with server data
+            var hasCodes = false;
+            for (var key in d.categories) {
+                if (d.categories[key].codes && d.categories[key].codes.length > 0) {
+                    hasCodes = true;
+                    // Update codes
+                    CATEGORIES[key].codes = d.categories[key].codes;
+                    // Clear sold out for this category
+                    if (soldOutCategories[key]) {
+                        delete soldOutCategories[key];
+                    }
+                }
+            }
+            saveSoldOut();
+            renderGameCards();
+        }
+    })
+    .catch(function() {});
+}
+
+// Check every 30 seconds
+setInterval(checkNewCodes, 30000);
+checkNewCodes();
 // ==================== PAGE ACCESS CHECK ====================
 function checkPageAccess(callback){fetch('/api/admin/page_status').then(function(r){return r.json()}).then(function(d){if(d.pages){var bc=d.pages.find(function(p){return p.id==='buycode'});if(bc&&bc.status==='off'){document.getElementById('maintenanceMessage').style.display='block';document.getElementById('buycodeContent').style.display='none';callback(false);return}}callback(true);}).catch(function(){callback(true)});}
 
