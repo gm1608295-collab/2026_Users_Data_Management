@@ -7,88 +7,88 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
-        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;position:relative}
-        .header a{color:var(--w);font-size:20px;text-decoration:none}
-        .header h1{font-size:18px;color:var(--w)}
-        
-        .noti-bell{position:absolute;right:0;top:5px;cursor:pointer;font-size:22px;color:var(--w)}
-        .noti-bell .badge{position:absolute;top:-6px;right:-6px;background:var(--r);color:#fff;font-size:9px;width:18px;height:18px;border-radius:50%;display:none;align-items:center;justify-content:center;font-weight:bold}
-        .noti-bell .badge.show{display:flex}
-        .noti-dropdown{display:none;position:absolute;right:0;top:35px;width:300px;max-height:300px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px}
-        .noti-dropdown.active{display:block}
-        .noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--g);line-height:1.6;color:var(--t)}
-        .noti-dropdown .noti-item .noti-time{font-size:8px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right}
-        .noti-dropdown .noti-empty{text-align:center;color:rgba(255,255,255,0.4);padding:15px;font-size:11px}
-        
-        .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
-        .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
-        .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
-        .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
-        
-        .notice-banner{background:linear-gradient(135deg,rgba(74,28,122,0.3),rgba(26,31,75,0.5));border:1px solid rgba(243,156,18,0.4);border-radius:10px;padding:12px 15px;margin-bottom:12px;position:relative;overflow:hidden;display:none}
-        .notice-banner::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--w)}
-        .notice-header{font-size:10px;color:var(--w);font-weight:bold;margin-bottom:6px;text-transform:uppercase}
-        .notice-msg{font-size:12px;font-weight:bold;line-height:1.5}
-        .notice-time{font-size:9px;color:rgba(255,255,255,0.5);margin-top:6px;text-align:right}
-        
-        .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
-        .game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
-        .game-card{background:rgba(26,31,75,0.7);border-radius:12px;padding:15px 10px;text-align:center;cursor:pointer;border:2px solid rgba(255,255,255,0.1);transition:all 0.3s;position:relative;overflow:hidden}
-        .game-card:hover{background:rgba(74,28,122,0.5);border-color:var(--w);transform:translateY(-2px)}
-        .game-card::after{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(to right,var(--w),var(--r),var(--w))}
-        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover;border:2px solid rgba(255,255,255,0.2)}
-        .game-card p{font-size:10px;color:var(--t);margin-top:5px}
-        .game-card .price-tag{font-size:9px;color:var(--w);margin-top:3px;font-weight:bold}
-        .game-card .code-count{font-size:8px;color:var(--g);margin-top:2px;background:rgba(46,204,113,0.1);padding:2px 8px;border-radius:10px;display:inline-block}
-        
-        .notif-toast{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
-        
-        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
-        .modal.active{display:flex}
-        .modal-box{background:var(--p);padding:20px;border-radius:12px;width:90%;max-width:400px;border:2px solid var(--w);max-height:85vh;overflow-y:auto}
-        .modal-box h3{color:var(--w);text-align:center;margin-bottom:5px;font-size:16px}
-        .modal-box .modal-img{width:60px;height:60px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 10px;border:2px solid var(--w)}
-        .modal-box .warning-text{font-size:10px;color:var(--r);text-align:center;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:8px;border-radius:6px;border:1px solid rgba(231,76,60,0.3)}
-        .modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,0.08)}
-        .modal-box .code-val{font-family:'Courier New',monospace;font-size:11px;flex:1;color:rgba(255,255,255,0.3);letter-spacing:2px;text-align:center}
-        .btn-sm{padding:6px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
-        .btn-buy{background:var(--g);color:#000}
-        .btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
-        
-        .confirm-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:7000;justify-content:center;align-items:center}
-        .confirm-modal.active{display:flex}
-        .confirm-box{background:var(--p);border:2px solid var(--w);border-radius:12px;padding:25px;width:90%;max-width:380px;text-align:center}
-        .confirm-box h3{color:var(--w);margin-bottom:12px}
-        .confirm-box .warn-text{color:rgba(255,255,255,0.85);font-size:11px;line-height:1.8;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:12px;border-radius:8px;border:1px solid rgba(231,76,60,0.3);text-align:left}
-        .confirm-btns{display:flex;gap:10px;justify-content:center}
-        .confirm-btns button{padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px}
-        .confirm-yes{background:var(--g);color:#000}.confirm-no{background:rgba(255,255,255,0.2);color:#fff}
-        
-        .qr-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:6000;justify-content:center;align-items:center}
-        .qr-modal.active{display:flex}
-        .qr-box{background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid var(--w);text-align:center;max-height:90vh;overflow-y:auto}
-        .qr-box h3{color:var(--w);margin-bottom:10px;font-size:15px}
-        .qr-box .qr-container{background:#fff;padding:15px;border-radius:8px;display:inline-block;margin:10px 0}
-        .qr-box .reveal-btn{background:var(--a);color:var(--t);border:none;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:12px;margin:5px}
-        .qr-box .code-area{display:none;margin-top:10px}
-        .qr-box .the-code{font-size:16px;font-family:'Courier New',monospace;color:var(--g);background:rgba(0,0,0,0.5);padding:15px;border-radius:8px;word-break:break-all;letter-spacing:1px;user-select:all;margin:10px 0;border:1px solid var(--g)}
-        .qr-box .timer{font-size:12px;color:var(--w);margin:5px 0}
-        .qr-box .copy-btn{background:var(--g);color:#000;border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:bold}
-        .qr-box .close-qr{background:var(--r);color:var(--t);border:none;padding:8px 25px;border-radius:6px;cursor:pointer;font-size:12px;margin-top:10px}
-        
-        .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
-        .maintenance-icon{font-size:80px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
-        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
-        .maintenance-title{font-size:22px;font-weight:bold;color:var(--w);margin-bottom:10px}
-        .maintenance-subtitle{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:8px}
-        .maintenance-timer{font-size:28px;color:var(--w);font-family:'Courier New',monospace;margin:15px 0}
-        .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px}
-    </style>
+  :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
+.container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+
+/* ========== HEADER ========== */
+.header{display:flex;align-items:center;gap:10px;margin-bottom:15px;position:relative}
+.header a{color:var(--w);font-size:20px;text-decoration:none}
+.header h1{font-size:18px;color:var(--w)}
+
+/* ========== NOTIFICATION BELL ========== */
+.noti-bell{position:absolute;right:0;top:5px;cursor:pointer;font-size:22px;color:var(--w)}
+.noti-bell .badge{position:absolute;top:-6px;right:-6px;background:var(--r);color:#fff;font-size:9px;width:18px;height:18px;border-radius:50%;display:none;align-items:center;justify-content:center;font-weight:bold}
+.noti-bell .badge.show{display:flex}
+.noti-dropdown{display:none;position:absolute;right:0;top:35px;width:300px;max-height:300px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px}
+.noti-dropdown.active{display:block}
+.noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--g);line-height:1.6;color:var(--t)}
+.noti-dropdown .noti-item .noti-time{font-size:8px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right}
+.noti-dropdown .noti-empty{text-align:center;color:rgba(255,255,255,0.4);padding:15px;font-size:11px}
+
+/* ========== BALANCE CARD ========== */
+.balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w)}
+.balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
+.balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
+.balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
+
+/* ========== NOTICE BANNER ========== */
+.notice-banner{background:linear-gradient(135deg,rgba(74,28,122,0.3),rgba(26,31,75,0.5));border:1px solid rgba(243,156,18,0.4);border-radius:10px;padding:12px 15px;margin-bottom:12px;position:relative;overflow:hidden;display:none}
+.notice-banner::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--w)}
+.notice-header{font-size:10px;color:var(--w);font-weight:bold;margin-bottom:6px;text-transform:uppercase}
+.notice-msg{font-size:12px;font-weight:bold;line-height:1.5}
+.notice-time{font-size:9px;color:rgba(255,255,255,0.5);margin-top:6px;text-align:right}
+
+/* ========== SCROLL AREA ========== */
+.scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
+
+/* ========== GAME CARDS ========== */
+.game-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
+.game-card{background:rgba(26,31,75,0.7);border-radius:12px;padding:15px 10px;text-align:center;cursor:pointer;border:2px solid rgba(255,255,255,0.1);transition:all 0.3s;position:relative;overflow:hidden}
+.game-card:hover{background:rgba(74,28,122,0.5);border-color:var(--w);transform:translateY(-2px)}
+.game-card::after{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(to right,var(--w),var(--r),var(--w))}
+.game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:8px;object-fit:cover;border:2px solid rgba(255,255,255,0.2)}
+.game-card p{font-size:10px;color:var(--t);margin-top:5px}
+.game-card .price-tag{font-size:9px;color:var(--w);margin-top:3px;font-weight:bold}
+.game-card .code-count{font-size:8px;color:var(--g);margin-top:2px;background:rgba(46,204,113,0.1);padding:2px 8px;border-radius:10px;display:inline-block}
+
+/* ========== TOAST NOTIFICATION ========== */
+.notif-toast{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
+
+/* ========== CATEGORY MODAL ========== */
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
+.modal.active{display:flex}
+.modal-box{background:var(--p);padding:20px;border-radius:12px;width:90%;max-width:400px;border:2px solid var(--w);max-height:85vh;overflow-y:auto}
+.modal-box h3{color:var(--w);text-align:center;margin-bottom:5px;font-size:16px}
+.modal-box .modal-img{width:60px;height:60px;border-radius:12px;object-fit:cover;display:block;margin:0 auto 10px;border:2px solid var(--w)}
+.modal-box .warning-text{font-size:10px;color:var(--r);text-align:center;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:8px;border-radius:6px;border:1px solid rgba(231,76,60,0.3)}
+.modal-box .code-item{background:rgba(0,0,0,0.4);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,0.08)}
+.modal-box .code-val{font-family:'Courier New',monospace;font-size:11px;flex:1;color:rgba(255,255,255,0.3);letter-spacing:2px;text-align:center}
+.btn-sm{padding:6px 12px;font-size:10px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap}
+.btn-buy{background:var(--g);color:#000}
+.btn-close{background:var(--r);color:var(--t);padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-size:13px;display:block;margin:10px auto 0}
+
+/* ========== CONFIRM MODAL ========== */
+.confirm-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:7000;justify-content:center;align-items:center}
+.confirm-modal.active{display:flex}
+.confirm-box{background:var(--p);border:2px solid var(--w);border-radius:12px;padding:25px;width:90%;max-width:380px;text-align:center}
+.confirm-box h3{color:var(--w);margin-bottom:12px}
+.confirm-box .warn-text{color:rgba(255,255,255,0.85);font-size:11px;line-height:1.8;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:12px;border-radius:8px;border:1px solid rgba(231,76,60,0.3);text-align:left}
+.confirm-btns{display:flex;gap:10px;justify-content:center}
+.confirm-btns button{padding:10px 25px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px}
+.confirm-yes{background:var(--g);color:#000}.confirm-no{background:rgba(255,255,255,0.2);color:#fff}
+
+/* ========== MAINTENANCE ========== */
+.maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
+.maintenance-icon{font-size:80px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
+.maintenance-title{font-size:22px;font-weight:bold;color:var(--w);margin-bottom:10px}
+.maintenance-subtitle{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:8px}
+.maintenance-timer{font-size:28px;color:var(--w);font-family:'Courier New',monospace;margin:15px 0}
+.maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px}
+   </style>
 </head>
 <body>
     <audio id="bgAudio" loop style="display:none"></audio>
@@ -251,31 +251,85 @@ function soldOutAlert(){
 }
 
 // ==================== CATEGORY MODAL ====================
-function openCategory(key){
-    currentCategoryKey=key;
-    var cat=CATEGORIES[key];
-    if(!cat)return;
-    document.getElementById('modalImg').src=cat.icon;
-    document.getElementById('modalTitle').textContent=cat.name;
-    var codes=cat.codes;
-    var h='';
-    if(codes.length===0){
+function openCategory(key) {
+    currentCategoryKey = key;
+    var cat = CATEGORIES[key];
+    if (!cat) return;
+    
+    document.getElementById('modalImg').src = cat.icon;
+    document.getElementById('modalTitle').textContent = cat.name;
+    
+    var codes = cat.codes;
+    var h = '';
+    
+    if (codes.length === 0) {
         // All sold out
-        h='<div style="text-align:center;padding:20px">'+
-            '<p style="font-size:24px;margin-bottom:10px">😢</p>'+
-            '<p style="color:#e74c3c;font-weight:bold;font-size:13px;margin-bottom:5px">❌ Code ရောင်းကုန်သွားပါပြီ</p>'+
-            '<p style="color:rgba(255,255,255,0.5);font-size:10px">ဆက်လက်စောင့်ဆိုင်းပါ</p>'+
+        h = '<div style="text-align:center;padding:20px">' +
+            '<p style="font-size:24px;margin-bottom:10px">😢</p>' +
+            '<p style="color:#e74c3c;font-weight:bold;font-size:13px;margin-bottom:5px">❌ Code ရောင်းကုန်သွားပါပြီ</p>' +
+            '<p style="color:rgba(255,255,255,0.5);font-size:10px">ဆက်လက်စောင့်ဆိုင်းပါ</p>' +
         '</div>';
-    }else{
-        codes.forEach(function(c){
-            h+='<div class="code-item">'+
-                '<span class="code-val">ဝယ်ယူပြီးပါက Code ပေါ်လာမည်</span>'+
-                '<button class="btn-sm btn-buy" onclick="showConfirmBeforeBuy('+c.id+')">Buy ('+fm(cat.price)+' Ks)</button>'+
+    } else {
+        for (var i = 0; i < codes.length; i++) {
+            var c = codes[i];
+            h += '<div class="code-item">' +
+                '<span class="code-val">ဝယ်ယူပြီးပါက Code ပေါ်လာမည်</span>' +
+                '<button class="btn-sm btn-buy" onclick="buyCodeClick(' + c.id + ')">Buy (' + fm(cat.price) + ' Ks)</button>' +
             '</div>';
-        });
+        }
     }
-    document.getElementById('codeList').innerHTML=h;
-    document.getElementById('categoryModal').classList.add('active');
+    
+    document.getElementById('codeList').innerHTML = h;
+    document.getElementById('categoryModal').style.display = 'flex';
+}
+
+// ==================== BUY CODE CLICK (New Function) ====================
+function buyCodeClick(codeId) {
+    // Close modal first
+    document.getElementById('categoryModal').style.display = 'none';
+    
+    // Show confirm
+    var id = parseInt(codeId);
+    if (!id || isNaN(id)) {
+        n('❌ Code error', 'error');
+        return;
+    }
+    
+    var cat = CATEGORIES[currentCategoryKey];
+    if (!cat) {
+        n('❌ Category error', 'error');
+        return;
+    }
+    
+    if (currentBalance < cat.price) {
+        n('ငွေမလုံလောက်ပါ', 'error');
+        return;
+    }
+    
+    pendingCodeId = id;
+    document.getElementById('confirmPurchaseModal').style.display = 'flex';
+}
+
+// ==================== CLOSE MODALS ====================
+function closeCategoryModal() {
+    document.getElementById('categoryModal').style.display = 'none';
+}
+
+function closeConfirmPurchase() {
+    document.getElementById('confirmPurchaseModal').style.display = 'none';
+    pendingCodeId = null;
+}
+
+function confirmBuyCode() {
+    var id = pendingCodeId;
+    document.getElementById('confirmPurchaseModal').style.display = 'none';
+    
+    if (!id || isNaN(id)) {
+        n('❌ Code error', 'error');
+        return;
+    }
+    
+    buyCode(id);
 }
 // ==================== CONFIRM BEFORE BUY ====================
 function showConfirmBeforeBuy(codeId){
