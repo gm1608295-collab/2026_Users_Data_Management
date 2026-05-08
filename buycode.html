@@ -193,31 +193,53 @@ function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
 
 // ==================== CODE REVEAL MODAL ====================
 function showCodeModal(code){
-    revealedCodeValue=code;
-    var modal=document.createElement('div');
-    modal.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;justify-content:center;align-items:center';
-    modal.innerHTML='<div style="background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid #f39c12;text-align:center;max-height:90vh;overflow-y:auto">'+
-        '<h3 style="color:#f39c12;margin-bottom:15px;font-size:18px"><i class="fas fa-gift"></i> Your Code</h3>'+
-        '<div style="background:rgba(0,0,0,0.5);padding:20px;border-radius:10px;border:2px solid #2ecc71;margin:15px 0">'+
-            '<div style="font-size:20px;font-family:Courier New,monospace;color:#2ecc71;letter-spacing:2px;word-break:break-all" id="revealedCodeDisplay">'+code+'</div>'+
-        '</div>'+
-        '<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:10px 0">⚠️ Code ကို သိမ်းဆည်းထားပါ</p>'+
-        '<button onclick="copyRevealedCode()" style="background:#2ecc71;color:#000;border:none;padding:12px 30px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;margin:5px"><i class="fas fa-copy"></i> Copy Code</button>'+
-        '<button onclick="this.parentElement.parentElement.remove()" style="display:block;background:#e74c3c;color:#fff;border:none;padding:10px 25px;border-radius:6px;cursor:pointer;font-size:13px;margin:10px auto 0">Close</button>'+
+    revealedCodeValue = code;
+    
+    // Auto-close timer
+    var sec = 10;
+    var timerDisplay = '';
+    
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;justify-content:center;align-items:center';
+    modal.id = 'codeRevealModal';
+    
+    modal.innerHTML = '<div style="background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid #f39c12;text-align:center;max-height:90vh;overflow-y:auto">' +
+        '<h3 style="color:#f39c12;margin-bottom:15px;font-size:18px"><i class="fas fa-gift"></i> Your Code</h3>' +
+        '<div style="background:rgba(0,0,0,0.5);padding:20px;border-radius:10px;border:2px solid #2ecc71;margin:15px 0">' +
+            '<div style="font-size:20px;font-family:Courier New,monospace;color:#2ecc71;letter-spacing:2px;word-break:break-all" id="revealedCodeDisplay">' + code + '</div>' +
+        '</div>' +
+        '<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:10px 0">⚠️ Code ကို သိမ်းဆည်းထားပါ</p>' +
+        '<p style="color:#f39c12;font-size:12px;margin:8px 0" id="codeTimerText">⏱️ Auto close in 10 seconds</p>' +
+        '<button onclick="copyRevealedCode()" style="background:#2ecc71;color:#000;border:none;padding:12px 30px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;margin:5px"><i class="fas fa-copy"></i> Copy Code</button>' +
     '</div>';
+    
     document.body.appendChild(modal);
-    modal.addEventListener('click',function(e){if(e.target===modal)modal.remove()});
-}
-
-function copyRevealedCode(){
-    if(!revealedCodeValue)return;
-    navigator.clipboard.writeText(revealedCodeValue).then(function(){
-        n('✅ Code Copied!');
-    }).catch(function(){
-        prompt('Copy:',revealedCodeValue);
+    
+    // Timer - auto close
+    var timerInterval = setInterval(function(){
+        sec--;
+        var timerEl = document.getElementById('codeTimerText');
+        if (timerEl) {
+            timerEl.textContent = '⏱️ Auto close in ' + sec + ' seconds';
+        }
+        
+        if (sec <= 0) {
+            clearInterval(timerInterval);
+            if (document.getElementById('codeRevealModal')) {
+                document.getElementById('codeRevealModal').remove();
+            }
+            n('⏰ Code သက်တမ်းကုန်သွားပါပြီ');
+        }
+    }, 1000);
+    
+    // Click outside to close
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            clearInterval(timerInterval);
+            modal.remove();
+        }
     });
 }
-
 // ==================== RENDER GAME CARDS ====================
 function renderGameCards(){
     var grid=document.getElementById('gameGrid');
@@ -285,10 +307,9 @@ function openCategory(key) {
 
 // ==================== BUY CODE CLICK (New Function) ====================
 function buyCodeClick(codeId) {
-    // Close modal first
+    // Close category modal
     document.getElementById('categoryModal').style.display = 'none';
     
-    // Show confirm
     var id = parseInt(codeId);
     if (!id || isNaN(id)) {
         n('❌ Code error', 'error');
@@ -309,7 +330,6 @@ function buyCodeClick(codeId) {
     pendingCodeId = id;
     document.getElementById('confirmPurchaseModal').style.display = 'flex';
 }
-
 // ==================== CLOSE MODALS ====================
 function closeCategoryModal() {
     document.getElementById('categoryModal').style.display = 'none';
@@ -359,6 +379,10 @@ function buyCode(codeId){
     var token=localStorage.getItem('auth_token');
     if(!token){n('❌ Please login first','error');return}
     
+    // Close all modals first
+    document.getElementById('categoryModal').style.display = 'none';
+    document.getElementById('confirmPurchaseModal').style.display = 'none';
+    
     fetch('/api/buy_code',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -378,7 +402,7 @@ function buyCode(codeId){
             // Add Noti
             addNotiItem('ဝယ်ယူအားပေးမှုအတွက်ကျေးဇူးတင်ရှိပါသည်၊အကယ်၍မိမိဝယ်ယူလိုက်သော code သည် အသုံးပြု၍မရခဲ့သည်ရှိသော် Menu Button ထဲက customer service စာမျက်နှာတွင် ပုံနှင့်တကွ ပြည့်စုံအောင် တင်ပြပေးပါ၊admin ဘက်မှစစ်ဆေးအတည်ပြုမှုအောင်မြင်ပါက မိမိ၏အကောင့်ထဲအား သင်ဝယ်ယူခဲ့သည့်ငွေပမာဏအတိုင်းပြန်လည်ပေးလျော်ပါမည်။လိမ်လည်တင်ပြပါက သင့်အကောင့်အား ၁ ရက်တိတိ ဘန်းခံရမည်ဖြစ်ပြီး နောင်တွင် လ/နှစ် နဲ့ချီအောင်ပါပိတ်ပင်နိုင်ပြီး အကောင့်ပါပျက်သွားနိုင်ပါသည်။');
             
-            // Show code directly (NO QR)
+            // Show code modal (auto-close after 10 seconds)
             showCodeModal(d.code);
         }else{n(d.message||'Error','error')}
     }).catch(function(e){n('Connection error','error')});
