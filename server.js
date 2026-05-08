@@ -176,7 +176,48 @@ app.get('/auth/tiktok/callback', async (req, res) => {
 
 // ==================== PASSWORDS / DATA ====================
 app.post('/api/get_passwords', (req, res) => { res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' }); });
-// ==================== CHANGE PASSWORD (WITH CURRENT PASSWORD VERIFICATION) ====================
+// ==================== ADMIN: GET USER DATA PASSWORDS ====================
+app.post('/api/admin/get_user_data_pass', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id=$1', [userId]);
+        if (r.rows.length > 0) {
+            res.json({
+                success: true,
+                gmail_pass: r.rows[0].gmail_pass || 'DoubleMK2008',
+                mlbb_pass: r.rows[0].mlbb_pass || 'GlobalMK2008',
+                tiktok_pass: r.rows[0].tiktok_pass || 'DoubleMK2008'
+            });
+        } else {
+            res.json({ success: false, message: 'User not found' });
+        }
+    } catch(e) { res.json({ success: false }); }
+});
+
+// ==================== ADMIN: UPDATE USER DATA PASSWORDS (DIRECT) ====================
+app.post('/api/admin/update_data_pass', async (req, res) => {
+    const { userId, gmail_pass, mlbb_pass, tiktok_pass } = req.body;
+    if (!userId) return res.json({ success: false, message: 'User ID required' });
+    try {
+        const p = await getPool();
+        
+        if (gmail_pass) {
+            await p.query('UPDATE auth_users SET gmail_pass=$1 WHERE id=$2', [gmail_pass, userId]);
+        }
+        if (mlbb_pass) {
+            await p.query('UPDATE auth_users SET mlbb_pass=$1 WHERE id=$2', [mlbb_pass, userId]);
+        }
+        if (tiktok_pass) {
+            await p.query('UPDATE auth_users SET tiktok_pass=$1 WHERE id=$2', [tiktok_pass, userId]);
+        }
+        
+        res.json({ success: true, message: 'Data passwords updated!' });
+    } catch(e) { res.json({ success: false, message: 'Server error' }); }
+});
+
+// ==================== CHANGE PASSWORD (USER - WITH CURRENT PASSWORD VERIFICATION) ====================
 app.post('/api/change_password', async (req, res) => {
     const { token, type, currentPassword, newPassword } = req.body;
     
@@ -192,7 +233,6 @@ app.post('/api/change_password', async (req, res) => {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         
-        // Get user
         const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
         if (user.rows.length === 0) {
             return res.json({ success: false, message: 'User not found' });
@@ -202,12 +242,10 @@ app.post('/api/change_password', async (req, res) => {
         const col = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
         const currentStored = u[col] || (type === 'gmail' ? 'DoubleMK2008' : type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008');
         
-        // Verify current password
         if (currentPassword !== currentStored) {
             return res.json({ success: false, message: 'Current password is incorrect!' });
         }
         
-        // Update password
         await p.query(`UPDATE auth_users SET ${col}=$1 WHERE id=$2`, [newPassword, uid]);
         
         res.json({ success: true, message: 'Password changed successfully!' });
