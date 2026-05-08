@@ -262,37 +262,65 @@ app.post('/api/admin/update_data_pass', async (req, res) => {
 app.post('/api/change_password', async (req, res) => {
     const { token, type, currentPassword, newPassword } = req.body;
     
+    console.log('[CHANGE PASSWORD] Request:', { token: token?.substring(0,10)+'...', type, hasCurrent: !!currentPassword, hasNew: !!newPassword });
+    
     if (!token || !type || !currentPassword || !newPassword) {
         return res.json({ success: false, message: 'All fields required' });
+    }
+    
+    // Guest users cannot change password
+    if (token === 'guest') {
+        return res.json({ success: false, message: 'Guest accounts cannot change password' });
     }
     
     if (newPassword.length < 6) {
         return res.json({ success: false, message: 'Password must be at least 6 characters' });
     }
     
+    if (currentPassword === newPassword) {
+        return res.json({ success: false, message: 'New password must be different' });
+    }
+    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         
+        console.log('[CHANGE PASSWORD] User ID:', uid);
+        
+        if (isNaN(uid) || uid <= 0) {
+            return res.json({ success: false, message: 'Invalid session. Please login again.' });
+        }
+        
         const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
+        console.log('[CHANGE PASSWORD] User found:', user.rows.length > 0);
+        
         if (user.rows.length === 0) {
-            return res.json({ success: false, message: 'User not found' });
+            return res.json({ success: false, message: 'User not found. Please login again.' });
         }
         
         const u = user.rows[0];
         const col = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
-        const currentStored = u[col] || (type === 'gmail' ? 'DoubleMK2008' : type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008');
+        
+        // Get current stored password (or default)
+        const defaultPass = type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008';
+        const currentStored = u[col] || defaultPass;
+        
+        console.log('[CHANGE PASSWORD] Column:', col, 'Stored:', currentStored?.substring(0,3)+'...', 'Input:', currentPassword?.substring(0,3)+'...');
         
         if (currentPassword !== currentStored) {
             return res.json({ success: false, message: 'Current password is incorrect!' });
         }
         
+        // Update password
         await p.query(`UPDATE auth_users SET ${col}=$1 WHERE id=$2`, [newPassword, uid]);
+        
+        console.log('[CHANGE PASSWORD] SUCCESS!');
         
         res.json({ success: true, message: 'Password changed successfully!' });
         
     } catch(e) {
-        res.json({ success: false, message: 'Server error' });
+        console.error('[CHANGE PASSWORD ERROR]', e);
+        res.json({ success: false, message: 'Server error. Please try again.' });
     }
 });
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
