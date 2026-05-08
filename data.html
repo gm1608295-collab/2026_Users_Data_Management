@@ -1198,34 +1198,51 @@ const COUNTRIES_DATA = [
         } catch(e) { return true; }
     }
 
-    // ==================== PAGE TIMER COUNTDOWN ====================
-    async function checkPageTimer() {
-        try {
-            const saved = localStorage.getItem('pageTimers');
-            if (!saved) return;
-            const timers = JSON.parse(saved);
-            const timer = timers['data'];
-            if (!timer || timer <= Date.now()) return;
-            
-            document.getElementById('pageTimerBanner').style.display = 'block';
-            
-            const el = document.getElementById('pageTimerCountdown');
-            const update = () => {
-                const rem = timer - Date.now();
-                if (rem <= 0) {
-                    location.reload();
-                    return;
-                }
-                const s = Math.floor(rem / 1000);
-                const h = Math.floor(s / 3600);
-                const m = Math.floor((s % 3600) / 60);
-                const sec = s % 60;
+    // ==================== PAGE TIMER COUNTDOWN (FIXED) ====================
+async function checkPageTimer() {
+    try {
+        const saved = localStorage.getItem('pageTimers');
+        if (!saved) return;
+        
+        const timers = JSON.parse(saved);
+        const timer = timers['data'];
+        
+        if (!timer || timer <= Date.now()) return;
+        
+        // Show timer banner
+        const banner = document.getElementById('pageTimerBanner');
+        const el = document.getElementById('pageTimerCountdown');
+        
+        if (banner) banner.style.display = 'block';
+        
+        const update = () => {
+            const rem = timer - Date.now();
+            if (rem <= 0) {
+                // Timer expired - reload page
+                delete timers['data'];
+                localStorage.setItem('pageTimers', JSON.stringify(timers));
+                location.reload();
+                return;
+            }
+            const s = Math.floor(rem / 1000);
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            if (el) {
                 el.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-            };
-            update();
-            setInterval(update, 1000);
-        } catch(e) {}
+            }
+        };
+        
+        // Run immediately
+        update();
+        
+        // Update every second
+        setInterval(update, 1000);
+        
+    } catch(e) {
+        console.log('Timer error:', e);
     }
+}
 
     // ==================== BG MUSIC PLAYER ====================
     (function() {
