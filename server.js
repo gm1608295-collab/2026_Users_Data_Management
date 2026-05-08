@@ -364,7 +364,29 @@ app.get('/api/admin/users_grouped', async (req, res) => { try { const p = await 
 app.post('/api/admin/edit_user', async (req, res) => { try { const p = await getPool(); req.body.password ? await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3,password=$4 WHERE id=$5", [req.body.username, req.body.email, req.body.phone, req.body.password, req.body.id]) : await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3 WHERE id=$4", [req.body.username, req.body.email, req.body.phone, req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/ban', async (req, res) => { try { const p = await getPool(); await p.query('INSERT INTO banned_users (user_id,banned_by) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', [req.body.userId, 'admin']); tgSend('🚫 Banned: ' + req.body.userId); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/unban', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM auth_users WHERE id=$1', [req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/delete', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const userId = req.body.userId;
+        
+        // First, add to banned_users so user gets auto-kicked
+        await p.query(
+            'INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', 
+            [userId, 'admin']
+        );
+        
+        // Then delete the user
+        await p.query('DELETE FROM auth_users WHERE id=$1', [userId]);
+        
+        // Also delete user's orders
+        await p.query('DELETE FROM orders WHERE user_id=$1', [userId]);
+        
+        tgSend(`🗑️ Deleted: ${userId}`);
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
 app.post('/api/admin/search_user', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT id,username,email,balance FROM auth_users WHERE id::text=$1 OR username ILIKE $2 OR email ILIKE $2 LIMIT 5', [req.body.query, '%'+req.body.query+'%']); res.json({ users: r.rows }); } catch(e) { res.json({ users: [] }); } });
 app.post('/api/admin/update_balance', async (req, res) => { try { const p = await getPool(); await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', [req.body.amount, req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
