@@ -48,6 +48,15 @@ const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 function sendOnesignal(msg) { try { const data = JSON.stringify({ app_id: ONESIGNAL_APP_ID, included_segments: ["All"], contents: { en: msg }, headings: { en: "SOLO M Game Shop" } }); const req = https.request({ hostname: 'onesignal.com', path: '/api/v1/notifications', method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${ONESIGNAL_API_KEY}` } }); req.write(data); req.end(); } catch(e) {} }
 
+// ==================== REDEEM CATEGORIES (Hardcoded Prices) ====================
+const REDEEM_CATEGORIES = [
+    { id: 'shhh_emote', name: 'Shhh emote', icon: 'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png', price: 5000 },
+    { id: 'golden_border', name: 'Golden Month Border', icon: 'https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png', price: 8000 },
+    { id: 'lucky_diamond', name: 'Lucky Diamond Code', icon: 'https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png', price: 12000 },
+    { id: 'magic_durt', name: 'Magic Durt', icon: 'https://i.ibb.co/NdpDZ0P7/8.png', price: 3000 },
+    { id: 'emblem_box', name: 'Emblem Box', icon: 'https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png', price: 4000 }
+];
+
 // ==================== INIT TABLES ====================
 async function initTables(p) {
     const queries = [
@@ -66,18 +75,6 @@ async function initTables(p) {
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
 initTables(pool1); initTables(pool2);
-
-// Add columns
-async function addColumns() {
-    try {
-        await pool1.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT ''").catch(() => {});
-        await pool2.query("ALTER TABLE orders ADD COLUMN IF NOT EXISTS reject_reason TEXT DEFAULT ''").catch(() => {});
-        await pool1.query("ALTER TABLE notices ADD COLUMN IF NOT EXISTS notice_type VARCHAR(20) DEFAULT 'dashboard'").catch(() => {});
-        await pool2.query("ALTER TABLE notices ADD COLUMN IF NOT EXISTS notice_type VARCHAR(20) DEFAULT 'dashboard'").catch(() => {});
-        console.log('✅ Columns ready');
-    } catch(e) {}
-}
-addColumns();
 
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
@@ -191,40 +188,9 @@ app.post('/api/verify_user_id', async (req, res) => {
 });
 
 // ==================== SLIDER ====================
-app.get('/api/slider_images', async (req, res) => { 
-    try { 
-        const p = await getPool(); 
-        const r = await p.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); 
-        if (r.rows.length === 0) {
-            return res.json({ success: true, images: [] });
-        }
-        const images = JSON.parse(r.rows[0].image_urls || '[]');
-        console.log('[SLIDER] Sending', images.length, 'images');
-        res.json({ success: true, images: images }); 
-    } catch(e) { 
-        console.error('[SLIDER ERROR]', e.message);
-        res.json({ success: true, images: [] }); 
-    } 
-});
+app.get('/api/slider_images', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ images: [] }); res.json({ success: true, images: JSON.parse(r.rows[0].image_urls || '[]') }); } catch(e) { res.json({ images: [] }); } });
+app.post('/api/admin/slider_images', async (req, res) => { try { const p = await getPool(); const { images } = req.body; if (!images || images.length === 0) { await p.query('DELETE FROM slider_images'); return res.json({ success: true }); } await p.query('DELETE FROM slider_images'); await p.query('INSERT INTO slider_images (image_urls) VALUES ($1)', [JSON.stringify(images)]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
-app.post('/api/admin/slider_images', async (req, res) => { 
-    try { 
-        const p = await getPool(); 
-        const { images } = req.body;
-        if (!images || images.length === 0) { 
-            await p.query('DELETE FROM slider_images'); 
-            console.log('[SLIDER] Cleared');
-            return res.json({ success: true }); 
-        } 
-        await p.query('DELETE FROM slider_images');
-        await p.query('INSERT INTO slider_images (image_urls) VALUES ($1)', [JSON.stringify(images)]); 
-        console.log('[SLIDER] Saved', images.length, 'images');
-        res.json({ success: true }); 
-    } catch(e) { 
-        console.error('[SLIDER SAVE ERROR]', e.message);
-        res.json({ success: false }); 
-    } 
-});
 // ==================== BG MUSIC ====================
 app.get('/api/bg_music', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT music_urls FROM bg_music ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ playlist: [] }); res.json({ playlist: JSON.parse(r.rows[0].music_urls || '[]') }); } catch(e) { res.json({ playlist: [] }); } });
 app.post('/api/admin/bg_music', async (req, res) => { try { const p = await getPool(); const { playlist } = req.body; if (!playlist || playlist.length === 0) { await p.query('DELETE FROM bg_music'); return res.json({ success: true }); } await p.query('DELETE FROM bg_music'); await p.query('INSERT INTO bg_music (music_urls) VALUES ($1)', [JSON.stringify(playlist)]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
@@ -235,7 +201,6 @@ app.post('/api/admin/toggle_page', async (req, res) => { try { const p = await g
 
 // ==================== BACKUP & RESTORE ====================
 app.get('/api/admin/backup', async (req, res) => { try { const p = await getPool(); const users = await p.query('SELECT * FROM auth_users'); const orders = await p.query('SELECT * FROM orders'); const notices = await p.query('SELECT * FROM notices'); const slider = await p.query('SELECT * FROM slider_images'); const bgM = await p.query('SELECT * FROM bg_music'); const ps = await p.query('SELECT * FROM page_status'); const banned = await p.query('SELECT * FROM banned_users'); const codes = await p.query('SELECT * FROM redeem_codes'); const videos = await p.query('SELECT * FROM videos'); res.json({ success: true, data: { version: '1.0', date: new Date().toISOString(), tables: { auth_users: users.rows, orders: orders.rows, notices: notices.rows, slider_images: slider.rows, bg_music: bgM.rows, page_status: ps.rows, banned_users: banned.rows, redeem_codes: codes.rows, videos: videos.rows } } }); } catch(e) { res.json({ success: false }); } });
-
 app.post('/api/admin/restore', async (req, res) => {
     const { data } = req.body; if (!data || !data.tables) return res.json({ success: false });
     try { const p = await getPool(); const t = data.tables;
@@ -251,320 +216,315 @@ app.post('/api/admin/restore', async (req, res) => {
 // ==================== ADMIN ====================
 app.get('/api/admin/users_grouped', async (req, res) => { try { const p = await getPool(); const lo = await p.query("SELECT * FROM auth_users WHERE login_type='local' ORDER BY id DESC"); const go = await p.query("SELECT * FROM auth_users WHERE login_type='google' ORDER BY id DESC"); const ti = await p.query("SELECT * FROM auth_users WHERE login_type='tiktok' ORDER BY id DESC"); const tg = await p.query("SELECT * FROM auth_users WHERE login_type='telegram' ORDER BY id DESC"); const ba = await p.query("SELECT user_id FROM banned_users"); res.json({ success: true, local: lo.rows, google: go.rows, tiktok: ti.rows, telegram: tg.rows, banned: ba.rows.map(r=>r.user_id), total: lo.rows.length + go.rows.length + ti.rows.length + tg.rows.length }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/edit_user', async (req, res) => { try { const p = await getPool(); req.body.password ? await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3,password=$4 WHERE id=$5", [req.body.username, req.body.email, req.body.phone, req.body.password, req.body.id]) : await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3 WHERE id=$4", [req.body.username, req.body.email, req.body.phone, req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/ban', async (req, res) => { try { const p = await getPool(); await p.query('INSERT INTO banned_users (user_id,banned_by) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', [req.body.userId, 'admin']); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/ban', async (req, res) => { try { const p = await getPool(); await p.query('INSERT INTO banned_users (user_id,banned_by) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', [req.body.userId, 'admin']); tgSend('🚫 Banned: ' + req.body.userId); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/unban', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM auth_users WHERE id=$1', [req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/search_user', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT id,username,email,balance FROM auth_users WHERE id::text=$1 OR username ILIKE $2 OR email ILIKE $2 LIMIT 5', [req.body.query, '%'+req.body.query+'%']); res.json({ users: r.rows }); } catch(e) { res.json({ users: [] }); } });
-app.post('/api/admin/update_balance', async (req, res) => {
-    try {
-        const p = await getPool();
-        const { userId, amount } = req.body;
-        
-        // Update balance only - DON'T create order record
-        await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', [amount, userId]);
-        
-        console.log(`[BALANCE] User ${userId}: ${amount > 0 ? '+' : ''}${amount} Ks`);
-        res.json({ success: true });
-    } catch(e) { 
-        console.error('[BALANCE ERROR]', e);
-        res.json({ success: false }); 
-    }
-});
+app.post('/api/admin/update_balance', async (req, res) => { try { const p = await getPool(); await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', [req.body.amount, req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+
 // ==================== ORDERS ====================
 app.get('/api/admin/orders', async (req, res) => { try { const p = await getPool(); const filter = req.query.filter || 'all'; let query = 'SELECT * FROM orders'; const params = []; const today = new Date().toISOString().split('T')[0]; if (filter === 'today') { query += " WHERE DATE(created_at)=$1"; params.push(today); } else if (filter === 'yesterday') { query += " WHERE DATE(created_at)=$1"; params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); } query += ' ORDER BY id DESC'; const r = await p.query(query, params); const totalR = await p.query("SELECT COUNT(*) FROM orders"); const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); res.json({ orders: r.rows, total: parseInt(totalR.rows[0].count), today: parseInt(todayR.rows[0].count) }); } catch(e) { res.json({ orders: [], total: 0, today: 0 }); } });
 app.post('/api/submit_order', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [uid]); const un = user.rows[0]?.username || 'Unknown'; await p.query('INSERT INTO orders (user_id,username,amount,payment_method,screenshot,status,submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)', [uid, un, req.body.amount, req.body.payment_method, req.body.screenshot, 'pending', req.body.user_id||uid]); tgSend(`🛒 New Order\n👤 ${un}\n💰 ${req.body.amount} Ks\n💳 ${req.body.payment_method}`); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/get_orders', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const r = await p.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); res.json({ orders: r.rows }); } catch(e) { res.json({ orders: [] }); } });
-app.post('/api/admin/order_status', async (req, res) => {
-    try {
-        const p = await getPool();
-        const { id, status, reason } = req.body;
-        
-        // Update order status
-        if (status === 'rejected') {
-            await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', 
-                [status, reason || '', id]);
-        } else {
-            await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]);
-        }
-        
-        // Get order details for notification
-        const order = await p.query('SELECT user_id, amount, username FROM orders WHERE id=$1', [id]);
-        
-        if (order.rows.length > 0) {
-            const o = order.rows[0];
-            
-            if (status === 'approved' && o.amount > 0) {
-                // Add balance when approved
-                await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', 
-                    [o.amount, o.user_id]);
-            }
-            
-            console.log(`[ORDER] #${id} -> ${status} | User: ${o.user_id} | Amount: ${o.amount} Ks`);
-        }
-        
-        res.json({ success: true });
-    } catch(e) { 
-        console.error('[ORDER STATUS ERROR]', e);
-        res.json({ success: false }); 
-    }
-});
+app.post('/api/admin/order_status', async (req, res) => { try { const p = await getPool(); const { id, status, reason } = req.body; if (status === 'rejected') { await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || '', id]); } else { await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]); } res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/get_balance', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); res.json({ balance: r.rows[0]?.balance || 0 }); } catch(e) { res.json({ balance: 0 }); } });
 
-// ==================== NOTICE ====================
+// ==================== NOTICES ====================
 app.get('/api/notice', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL ORDER BY id DESC LIMIT 1"); if (r.rows.length === 0) return res.json({ message: '' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); } catch(e) { res.json({ message: '' }); } });
 app.get('/api/admin/notices', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL ORDER BY id DESC"); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
 app.post('/api/admin/notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'dashboard')", [message, color||'#fff', 'admin']); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/notice/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM notices WHERE id=$1', [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
-// ==================== BOT MESSAGE ====================
-app.post('/api/admin/bot_message', async (req, res) => { const { message } = req.body; if (!message) return res.json({ success: false }); try { const p = await getPool(); const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'"); let count = 0; for (const user of users.rows) { const tid = user.google_id.replace('tg_', ''); try { await fetch(`${TELEGRAM_API}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: tid, text: `📢 ${message}`, parse_mode: 'HTML' }) }); count++; } catch(e) {} } res.json({ success: true, count }); } catch(e) { res.json({ success: false }); } });
+// Top Up Notice
+app.get('/api/topup_notice', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC LIMIT 1"); if (r.rows.length === 0) return res.json({ message: '' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); } catch(e) { res.json({ message: '' }); } });
+app.get('/api/admin/topup_notices', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC"); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
+app.post('/api/admin/topup_notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'topup')", [message, color||'#fff', 'admin']); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/topup_notice/delete', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='topup'", [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/topup_notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='topup'"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
-// ==================== TELEGRAM BOT ====================
-let lastUpdateId = 0;
-function sendTelegramMessage(chatId, text, replyMarkup = null) { const body = { chat_id: chatId, text, parse_mode: 'HTML' }; if (replyMarkup) body.reply_markup = JSON.stringify(replyMarkup); https.get(`${TELEGRAM_API}/sendMessage?${new URLSearchParams(body).toString()}`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
-async function createTelegramUser(userId, firstName) { try { const p = await getPool(); const exist = await p.query("SELECT * FROM auth_users WHERE google_id=$1", ['tg_'+userId]); if (exist.rows.length > 0) { await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [exist.rows[0].id]); return { id: exist.rows[0].id, balance: exist.rows[0].balance || 0 }; } const nu = await p.query('INSERT INTO auth_users (username,email,google_id,login_type,balance) VALUES ($1,$2,$3,$4,$5) RETURNING id', [firstName||'User', 'tg_'+userId+'@telegram.com', 'tg_'+userId, 'telegram', 0]); return { id: nu.rows[0].id, balance: 0 }; } catch(e) { return null; } }
-
-function startLongPolling() {
-    console.log('🤖 Bot Started');
-    const quickKeyboard = { inline_keyboard: [[{ text: '💳 Check Balance', callback_data: 'balance' }]] };
-    async function getUpdates() {
-        try { const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId+1}&timeout=15`; const response = await fetch(url, { signal: AbortSignal.timeout(20000) }); const result = await response.json();
-            if (result.ok && result.result.length > 0) { for (const update of result.result) { lastUpdateId = update.update_id;
-                const msg = update.message; if (!msg) continue;
-                const chatId = msg.chat.id; const text = (msg.text||'').trim(); const firstName = msg.from.first_name||'User';
-                if (text==='/start') { const user=await createTelegramUser(msg.from.id, firstName); sendTelegramMessage(chatId, `👋 ${firstName}!\n💳 Balance: <b>${(user?.balance||0).toLocaleString()} Ks</b>`, quickKeyboard); }
-                else { sendTelegramMessage(chatId, '/start'); }
-            } }
-        } catch(e) { console.log('Polling:', e.message); } setTimeout(getUpdates, 500);
-    } getUpdates();
-} startLongPolling();
-
-// ==================== VIDEO SYSTEM (FIXED) ====================
-
-// Helper function to convert YouTube URL to embeddable format
-function getEmbedUrl(url) {
-    if (!url) return '';
-    
-    // Already a direct video URL
-    if (url.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i)) return url;
-    if (url.includes('catbox.moe') || url.includes('files.')) return url;
-    
-    // YouTube
-    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
-    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&playsinline=1`;
-    
-    // YouTube Shorts
-    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
-    if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&mute=1&playsinline=1`;
-    
-    return url;
-}
-
-// Save Video
-app.post('/api/admin/video', async (req, res) => {
-    const { url } = req.body;
-    if (!url) return res.json({ success: false });
-    try {
-        const p = await getPool();
-        await p.query('DELETE FROM videos');
-        await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]);
-        console.log('[VIDEO SAVE]', url.substring(0, 50));
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-// Get Video
-app.get('/api/video', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1');
-        
-        if (r.rows.length > 0) {
-            const rawUrl = r.rows[0].video_url;
-            const embedUrl = getEmbedUrl(rawUrl);
-            const isYouTube = embedUrl.includes('youtube.com/embed');
-            
-            console.log('[VIDEO API]', isYouTube ? 'YouTube' : 'Direct', embedUrl.substring(0, 60));
-            
-            res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: isYouTube });
-        } else {
-            console.log('[VIDEO API] No video in database');
-            res.json({ success: false, url: '' });
-        }
-    } catch(e) {
-        console.error('[VIDEO API ERROR]', e);
-        res.json({ success: false, url: '' });
-    }
-});
-
-// Delete Video
-app.post('/api/admin/video/delete', async (req, res) => {
-    try {
-        const p = await getPool();
-        await p.query('DELETE FROM videos');
-        console.log('[VIDEO] Deleted');
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-// ==================== BUY CODE SYSTEM ====================
-const REDEEM_CATEGORIES = [
-    { id: 'shhh_emote', name: 'Shhh emote', icon: 'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png', price: 5000 },
-    { id: 'golden_border', name: 'Golden Month Border', icon: 'https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png', price: 8000 },
-    { id: 'lucky_diamond', name: 'Lucky Diamond Code', icon: 'https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png', price: 12000 },
-    { id: 'magic_durt', name: 'Magic Durt', icon: 'https://i.ibb.co/NdpDZ0P7/8.png', price: 3000 },
-    { id: 'emblem_box', name: 'Emblem Box', icon: 'https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png', price: 4000 }
-];
-
-app.get('/api/redeem_codes', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY category, id ASC");
-        console.log('[REDEEM CODES] Total available:', r.rows.length);
-        
-        const grouped = {};
-        REDEEM_CATEGORIES.forEach(cat => {
-            const codes = r.rows.filter(c => c.category === cat.id && !c.used);
-            grouped[cat.id] = { 
-                name: cat.name, 
-                icon: cat.icon, 
-                price: cat.price, 
-                codes: codes.map(c => ({ id: c.id, code: c.code })) 
-            };
-            console.log(`  ${cat.name}: ${codes.length} codes`);
-        });
-        
-        res.json({ success: true, categories: grouped });
-    } catch(e) { 
-        console.error('[REDEEM CODES ERROR]', e.message);
-        res.json({ success: false, categories: {} }); 
-    }
-});
-
-app.post('/api/buy_code', async (req, res) => {
-    const { token, codeId } = req.body;
-    console.log('[BUY CODE] Request:', { token: token?.substring(0,10)+'...', codeId });
-    
-    if (!token || !codeId) return res.json({ success: false, message: 'Missing data' });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        
-        // Check code exists and not used
-        const codeCheck = await p.query('SELECT * FROM redeem_codes WHERE id=$1 AND used=false', [codeId]);
-        if (codeCheck.rows.length === 0) {
-            console.log('[BUY CODE] Code not available:', codeId);
-            return res.json({ success: false, message: 'Code not available' });
-        }
-        
-        const code = codeCheck.rows[0];
-        console.log('[BUY CODE] Found code:', code.code, 'Category:', code.category);
-        
-        // Get price from code_prices table
-        const priceRes = await p.query('SELECT price FROM code_prices WHERE category=$1', [code.category]);
-        let price = 0;
-        
-        if (priceRes.rows.length > 0) {
-            price = parseFloat(priceRes.rows[0].price);
-        } else {
-            // Fallback prices
-            const fallback = {
-                shhh_emote: 5000,
-                golden_border: 8000,
-                lucky_diamond: 12000,
-                magic_durt: 3000,
-                emblem_box: 4000
-            };
-            price = fallback[code.category] || 0;
-        }
-        
-        console.log('[BUY CODE] Price:', price, 'Ks');
-        
-        // Check balance
-        const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
-        
-        const balance = parseFloat(user.rows[0].balance || 0);
-        console.log('[BUY CODE] User balance:', balance);
-        
-        if (balance < price) {
-            console.log('[BUY CODE] Insufficient balance');
-            return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
-        }
-        
-        // Mark code as used
-        await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, codeId]);
-        
-        // Deduct balance
-        await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [price, uid]);
-        
-        const newBalance = balance - price;
-        console.log('[BUY CODE] SUCCESS! New balance:', newBalance);
-        
-        res.json({ success: true, code: code.code, balance: newBalance, message: 'Purchase successful!' });
-        
-    } catch(e) {
-        console.error('[BUY CODE ERROR]', e.message);
-        res.json({ success: false, message: 'Error: ' + e.message });
-    }
-});
-// Admin Code Management
-app.get('/api/admin/redeem_codes', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC'); res.json({ success: true, codes: r.rows }); } catch(e) { res.json({ success: false, codes: [] }); } });
-app.post('/api/admin/redeem_code', async (req, res) => { const { category, code } = req.body; if (!category || !code) return res.json({ success: false }); try { const p = await getPool(); await p.query('INSERT INTO redeem_codes (category, code, used) VALUES ($1, $2, $3)', [category, code, false]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/redeem_code/delete', async (req, res) => { const { id } = req.body; if (!id) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM redeem_codes WHERE id=$1', [id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-
-// ==================== BUY CODE NOTICE ====================
+// Buy Code Notice
 app.get('/api/buycode_notice', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC LIMIT 1"); if (r.rows.length === 0) return res.json({ message: '' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); } catch(e) { res.json({ message: '' }); } });
 app.get('/api/admin/buycode_notices', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC"); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
 app.post('/api/admin/buycode_notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'buycode')", [message, color||'#fff', 'admin']); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/buycode_notice/delete', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='buycode'", [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='buycode'"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
-// ==================== TOP UP NOTICE ====================
-app.get('/api/topup_notice', async (req, res) => {
+// ==================== BOT MESSAGE ====================
+app.post('/api/admin/bot_message', async (req, res) => { const { message } = req.body; if (!message) return res.json({ success: false }); try { const p = await getPool(); const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'"); let count = 0; for (const user of users.rows) { const tid = user.google_id.replace('tg_', ''); try { await fetch(`${TELEGRAM_API}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: tid, text: `📢 ${message}`, parse_mode: 'HTML' }) }); count++; } catch(e) {} } res.json({ success: true, count }); } catch(e) { res.json({ success: false }); } });
+
+// ==================== TELEGRAM BOT (ENHANCED) ====================
+let lastUpdateId = 0;
+
+function sendTelegramMessage(chatId, text, replyMarkup = null) {
+    const body = { chat_id: chatId, text, parse_mode: 'HTML' };
+    if (replyMarkup) body.reply_markup = JSON.stringify(replyMarkup);
+    https.get(`${TELEGRAM_API}/sendMessage?${new URLSearchParams(body).toString()}`, (res) => {
+        res.on('data', () => {});
+    }).on('error', () => {});
+}
+
+async function createTelegramUser(userId, firstName) {
     try {
         const p = await getPool();
-        const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC LIMIT 1");
-        if (r.rows.length === 0) return res.json({ success: true, message: '', color: '#ffffff' });
-        const n = r.rows[0];
-        res.json({ success: true, message: n.message, color: n.color, id: n.id, created_at: n.created_at });
-    } catch(e) { res.json({ success: true, message: '' }); }
+        const tgId = 'tg_' + userId;
+        const exist = await p.query("SELECT * FROM auth_users WHERE google_id = $1", [tgId]);
+        
+        if (exist.rows.length > 0) {
+            await p.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [exist.rows[0].id]);
+            return { id: exist.rows[0].id, isNew: false, balance: exist.rows[0].balance || 0 };
+        }
+        
+        const displayName = firstName || 'TG User';
+        const email = 'tg_' + userId + '@telegram.com';
+        
+        const nu = await p.query(
+            'INSERT INTO auth_users (username, email, google_id, login_type, balance) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [displayName, email, tgId, 'telegram', 0]
+        );
+        
+        tgSend(`🆕 New Telegram User\n👤 ${displayName}\n🆔 ${tgId}`);
+        
+        return { id: nu.rows[0].id, isNew: true, balance: 0 };
+    } catch(e) { return null; }
+}
+
+async function getUserBalance(userId) {
+    try { const p = await getPool(); const r = await p.query("SELECT balance FROM auth_users WHERE google_id = $1", ['tg_' + userId]); return r.rows.length > 0 ? (r.rows[0].balance || 0) : null; }
+    catch(e) { return null; }
+}
+
+async function getUserOrders(userId) {
+    try { const p = await getPool(); const user = await p.query("SELECT id FROM auth_users WHERE google_id = $1", ['tg_' + userId]); if (user.rows.length === 0) return []; const r = await p.query("SELECT * FROM orders WHERE user_id = $1 ORDER BY id DESC LIMIT 3", [user.rows[0].id]); return r.rows; }
+    catch(e) { return []; }
+}
+
+async function createOTP(userId) {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    try { const p = await getPool(); await p.query("UPDATE otp_codes SET used = true WHERE user_id = $1", [userId]); await p.query("INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '60 seconds')", [userId, otp]); }
+    catch(e) {}
+    return otp;
+}
+
+function startLongPolling() {
+    console.log('🤖 Enhanced Bot Started');
+    
+    const mainKeyboard = {
+        inline_keyboard: [
+            [{ text: '🏠 Login Now', url: 'https://two026-users-data-management.onrender.com' }],
+            [{ text: '💰 Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
+            [{ text: '🛒 Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
+            [{ text: '📞 Contact Admin', url: 'https://t.me/Solo_m28' }]
+        ]
+    };
+    
+    const quickKeyboard = {
+        inline_keyboard: [
+            [{ text: '💳 Check Balance', callback_data: 'balance' }],
+            [{ text: '🔐 Get OTP', callback_data: 'otp' }],
+            [{ text: '📋 Order Status', callback_data: 'status' }],
+            [{ text: '🛒 Buy Code', callback_data: 'buycode' }],
+            [{ text: '📞 Contact', url: 'https://t.me/Solo_m28' }]
+        ]
+    };
+    
+    async function getUpdates() {
+        try {
+            const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId + 1}&timeout=15`;
+            const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+            const result = await response.json();
+            
+            if (result.ok && result.result.length > 0) {
+                for (const update of result.result) {
+                    lastUpdateId = update.update_id;
+                    
+                    // Handle Callback Query (Inline Button Press)
+                    if (update.callback_query) {
+                        const cq = update.callback_query;
+                        const chatId = cq.message.chat.id;
+                        const data = cq.data;
+                        const firstName = cq.from.first_name || 'User';
+                        
+                        const user = await createTelegramUser(cq.from.id, firstName);
+                        if (!user) { sendTelegramMessage(chatId, '❌ Error. Try /start'); continue; }
+                        
+                        if (data === 'balance') {
+                            const balance = user.balance || 0;
+                            sendTelegramMessage(chatId, `💳 <b>Your Balance</b>\n\n💰 <b>${balance.toLocaleString()} Ks</b>\n💵 ≈ $${(balance/2100).toFixed(2)} USD\n\nငွေဖြည့်လိုပါက Top Up ခလုတ်ကိုနှိပ်ပါ။`, quickKeyboard);
+                        }
+                        else if (data === 'otp') {
+                            const otp = await createOTP(user.id);
+                            sendTelegramMessage(chatId, `🔐 <b>Your OTP Code</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်။`, quickKeyboard);
+                        }
+                        else if (data === 'status') {
+                            const orders = await getUserOrders(cq.from.id);
+                            if (orders.length === 0) {
+                                sendTelegramMessage(chatId, '📋 No orders yet.', quickKeyboard);
+                            } else {
+                                let msg = '📋 <b>နောက်ဆုံး Orders</b>\n\n';
+                                orders.forEach(o => {
+                                    const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+                                    msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
+                                });
+                                sendTelegramMessage(chatId, msg, quickKeyboard);
+                            }
+                        }
+                        else if (data === 'buycode') {
+                            sendTelegramMessage(chatId, '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard);
+                        }
+                        
+                        try { await fetch(`${TELEGRAM_API}/answerCallbackQuery`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: cq.id }) }); } catch(e) {}
+                        continue;
+                    }
+                    
+                    // Handle Regular Message
+                    const msg = update.message;
+                    if (!msg) continue;
+                    
+                    const chatId = msg.chat.id;
+                    const text = (msg.text || '').trim();
+                    const firstName = msg.from.first_name || 'User';
+                    
+                    if (text === '/start' || text === '/login') {
+                        const user = await createTelegramUser(msg.from.id, firstName);
+                        const welcomeMsg = user.isNew ? 
+                            `🎉 <b>Welcome to SOLO M Game Shop!</b>\n\nမင်္ဂလာပါ ${firstName}!\n\nသင်၏အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ။` :
+                            `👋 ပြန်လည်ကြိုဆိုပါတယ် ${firstName}!`;
+                        
+                        sendTelegramMessage(chatId, 
+                            welcomeMsg + '\n\n' +
+                            '💳 Balance: <b>' + (user.balance || 0).toLocaleString() + ' Ks</b>\n\n' +
+                            'အောက်ပါ ခလုတ်များကို နှိပ်၍ အသုံးပြုနိုင်ပါသည်။',
+                            quickKeyboard
+                        );
+                    }
+                    else if (text === '/help') {
+                        sendTelegramMessage(chatId,
+                            `📖 <b>SOLO M Game Shop</b>\n\n` +
+                            `<b>Commands:</b>\n` +
+                            `/start - Login/Register\n` +
+                            `/help - အကူအညီ\n` +
+                            `/balance - လက်ကျန်ငွေ\n` +
+                            `/otp - OTP Code\n` +
+                            `/status - Order Status\n` +
+                            `/buy - Code ဝယ်ယူ\n\n` +
+                            `<b>ဆက်သွယ်ရန်:</b> @Solo_m28`,
+                            quickKeyboard
+                        );
+                    }
+                    else if (text === '/balance') {
+                        const user = await createTelegramUser(msg.from.id, firstName);
+                        const balance = user ? (user.balance || 0) : 0;
+                        sendTelegramMessage(chatId, `💳 <b>Your Balance</b>\n\n💰 <b>${balance.toLocaleString()} Ks</b>\n💵 ≈ $${(balance/2100).toFixed(2)} USD`, quickKeyboard);
+                    }
+                    else if (text === '/otp') {
+                        const user = await createTelegramUser(msg.from.id, firstName);
+                        if (user) {
+                            const otp = await createOTP(user.id);
+                            sendTelegramMessage(chatId, `🔐 <b>Your OTP Code</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။`);
+                        }
+                    }
+                    else if (text === '/status') {
+                        const orders = await getUserOrders(msg.from.id);
+                        if (orders.length === 0) {
+                            sendTelegramMessage(chatId, '📋 No orders yet.');
+                        } else {
+                            let msg = '📋 <b>နောက်ဆုံး Orders</b>\n\n';
+                            orders.forEach(o => {
+                                const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+                                msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
+                            });
+                            sendTelegramMessage(chatId, msg);
+                        }
+                    }
+                    else if (text === '/buy') {
+                        sendTelegramMessage(chatId, '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard);
+                    }
+                    else {
+                        sendTelegramMessage(chatId, 
+                            `အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n` +
+                            `/start - စတင်ရန်\n` +
+                            `/help - အကူအညီ\n` +
+                            `/balance - လက်ကျန်ငွေ\n` +
+                            `/otp - OTP Code\n` +
+                            `/status - Order မှတ်တမ်း\n` +
+                            `/buy - Code ဝယ်ယူရန်`,
+                            quickKeyboard
+                        );
+                    }
+                }
+            }
+        } catch(e) {
+            console.log('Bot Polling:', e.message);
+        }
+        setTimeout(getUpdates, 500);
+    }
+    
+    getUpdates();
+    console.log('✅ Bot Long Polling Active');
+}
+
+startLongPolling();
+
+// ==================== VIDEO SYSTEM ====================
+function getEmbedUrl(url) {
+    if (!url) return '';
+    if (url.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i)) return url;
+    if (url.includes('catbox.moe') || url.includes('files.')) return url;
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&playsinline=1`;
+    const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
+    if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&mute=1&playsinline=1`;
+    return url;
+}
+
+app.post('/api/admin/video', async (req, res) => { const { url } = req.body; if (!url) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/video', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1'); if (r.rows.length > 0) { const rawUrl = r.rows[0].video_url; const embedUrl = getEmbedUrl(rawUrl); res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: embedUrl.includes('youtube.com/embed') }); } else { res.json({ success: false, url: '' }); } } catch(e) { res.json({ success: false, url: '' }); } });
+app.post('/api/admin/video/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+
+// ==================== BUY CODE SYSTEM ====================
+app.get('/api/redeem_codes', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY category, id ASC");
+        console.log('[REDEEM CODES] Total:', r.rows.length);
+        
+        const grouped = {};
+        REDEEM_CATEGORIES.forEach(cat => {
+            const codes = r.rows.filter(c => c.category === cat.id && !c.used);
+            grouped[cat.id] = { name: cat.name, icon: cat.icon, price: cat.price, codes: codes.map(c => ({ id: c.id, code: c.code })) };
+        });
+        
+        res.json({ success: true, categories: grouped });
+    } catch(e) { res.json({ success: false, categories: {} }); }
 });
 
-app.get('/api/admin/topup_notices', async (req, res) => {
+app.post('/api/buy_code', async (req, res) => {
+    const { token, codeId } = req.body;
+    if (!token || !codeId) return res.json({ success: false, message: 'Missing data' });
     try {
         const p = await getPool();
-        const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC");
-        res.json({ notices: r.rows });
-    } catch(e) { res.json({ notices: [] }); }
+        const uid = parseInt(token.replace('token_', ''));
+        const codeCheck = await p.query('SELECT * FROM redeem_codes WHERE id=$1 AND used=false', [codeId]);
+        if (codeCheck.rows.length === 0) return res.json({ success: false, message: 'Code not available' });
+        const code = codeCheck.rows[0];
+        const cat = REDEEM_CATEGORIES.find(c => c.id === code.category);
+        const price = cat ? cat.price : 0;
+        const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
+        const balance = parseFloat(user.rows[0].balance || 0);
+        if (balance < price) return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
+        await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, codeId]);
+        await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [price, uid]);
+        console.log(`[BUY CODE] User ${uid} bought ${code.code} for ${price} Ks`);
+        res.json({ success: true, code: code.code, balance: balance - price });
+    } catch(e) { res.json({ success: false, message: e.message }); }
 });
 
-app.post('/api/admin/topup_notice', async (req, res) => {
-    try {
-        const p = await getPool();
-        const { message, color } = req.body;
-        if (!message) return res.json({ success: false });
-        await p.query("INSERT INTO notices (message, color, created_by, notice_type) VALUES ($1,$2,$3,'topup')", [message, color||'#ffffff', 'admin']);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
+app.get('/api/admin/redeem_codes', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC'); res.json({ success: true, codes: r.rows }); } catch(e) { res.json({ success: false, codes: [] }); } });
+app.post('/api/admin/redeem_code', async (req, res) => { const { category, code } = req.body; if (!category || !code) return res.json({ success: false }); try { const p = await getPool(); await p.query('INSERT INTO redeem_codes (category, code, used) VALUES ($1, $2, $3)', [category, code, false]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/redeem_code/delete', async (req, res) => { const { id } = req.body; if (!id) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM redeem_codes WHERE id=$1', [id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
-app.post('/api/admin/topup_notice/delete', async (req, res) => {
-    try {
-        const p = await getPool();
-        await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='topup'", [req.body.id]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-app.post('/api/admin/topup_notices/delete_all', async (req, res) => {
-    try {
-        const p = await getPool();
-        await p.query("DELETE FROM notices WHERE notice_type='topup'");
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
 // ==================== MAINTENANCE PAGE ====================
 function maintenancePage() {
     return `<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>ပြုပြင်မွမ်းမံနေပါသည်</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0}body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;text-align:center;font-family:sans-serif;color:#fff}.box i{font-size:70px;color:#f39c12;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.box h2{color:#f39c12;margin:15px 0}.box p{color:#ccc;margin-bottom:20px}.box a{color:#000;background:#f39c12;padding:10px 25px;border-radius:6px;text-decoration:none;font-weight:bold}</style></head><body><div class="box"><i class="fas fa-tools"></i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div></body></html>`;
@@ -576,72 +536,6 @@ async function servePageWithCheck(req, res, pageId, filePath) {
     res.sendFile(path.join(__dirname, filePath));
 }
 
-// ==================== PRICE MANAGEMENT ====================
-
-// Create prices table
-async function initPriceTable() {
-    try {
-        const p = await getPool();
-        await p.query(`CREATE TABLE IF NOT EXISTS code_prices (
-            category VARCHAR(50) PRIMARY KEY, 
-            price DECIMAL DEFAULT 5000,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`).catch(() => {});
-        
-        // Insert default prices
-        const defaults = [
-            { category: 'shhh_emote', price: 5000 },
-            { category: 'golden_border', price: 8000 },
-            { category: 'lucky_diamond', price: 12000 },
-            { category: 'magic_durt', price: 3000 },
-            { category: 'emblem_box', price: 4000 }
-        ];
-        
-        for (const d of defaults) {
-            await p.query(
-                "INSERT INTO code_prices (category, price) VALUES ($1, $2) ON CONFLICT (category) DO NOTHING",
-                [d.category, d.price]
-            ).catch(() => {});
-        }
-        console.log('✅ Code prices ready');
-    } catch(e) {}
-}
-initPriceTable();
-
-// Get all prices (admin)
-app.get('/api/admin/prices', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query('SELECT * FROM code_prices ORDER BY category');
-        res.json({ success: true, prices: r.rows });
-    } catch(e) { res.json({ success: false, prices: [] }); }
-});
-
-// Update price (admin)
-app.post('/api/admin/price', async (req, res) => {
-    const { category, price } = req.body;
-    if (!category || !price) return res.json({ success: false, message: 'Missing data' });
-    try {
-        const p = await getPool();
-        await p.query(
-            "INSERT INTO code_prices (category, price) VALUES ($1, $2) ON CONFLICT (category) DO UPDATE SET price=$2, updated_at=NOW()",
-            [category, price]
-        );
-        console.log(`[PRICE UPDATE] ${category} -> ${price} Ks`);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false, message: e.message }); }
-});
-
-// Get prices for buycode page (user)
-app.get('/api/prices', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query('SELECT * FROM code_prices ORDER BY category');
-        const prices = {};
-        r.rows.forEach(row => { prices[row.category] = parseFloat(row.price); });
-        res.json({ success: true, prices });
-    } catch(e) { res.json({ success: false, prices: {} }); }
-});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
@@ -662,9 +556,7 @@ app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offlin
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log(`🗄️ DB: DB1 + DB2 Auto-Switch`);
-    console.log(`📄 Page Control: 9 pages`);
+    console.log(`📄 Page Control: ${ALL_PAGES.length} pages`);
+    console.log(`🤖 Bot: Enhanced Long Polling`);
     console.log(`🎮 Redeem Codes: ${REDEEM_CATEGORIES.length} categories`);
-    console.log(`📹 Video: YouTube + Catbox`);
-    console.log(`🎵 Music: Catbox (Audio Only)`);
-    console.log(`🖼️ Images: ImgBB`);
 });
