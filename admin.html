@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="my">
 <head>
@@ -19,11 +18,25 @@
         .form-group{margin-bottom:8px}.form-group label{display:block;font-size:11px;margin-bottom:3px;color:#ccc}
         .form-group input,.form-group textarea,.form-group select{width:100%;padding:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:5px;color:var(--t);font-size:11px}
         .btn{padding:8px 14px;border:none;border-radius:5px;font-size:11px;font-weight:bold;cursor:pointer;margin:3px}
-        .btn-w{background:var(--w);color:#000}.btn-g{background:var(--g);color:#000}.btn-r{background:var(--r);color:#fff}.btn-b{background:var(--b);color:#fff}.btn-o{background:#ff9800;color:#000}
+        .btn-w{background:var(--w);color:#000}.btn-g{background:var(--g);color:#000}.btn-r{background:var(--r);color:#fff}.btn-b{background:var(--b);color:#fff}.btn-o{background:#ff9800;color:#000}.btn-p{background:#9b59b6;color:#fff}
         .btn-row{display:flex;gap:8px;flex-wrap:wrap}.btn-row .btn{flex:1;min-width:100px;text-align:center}
         .btn:disabled{opacity:0.5;cursor:not-allowed}
-        .user-row{display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:3px solid var(--g)}
+
+        /* ========== USER ROW ========== */
+        .user-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:4px;font-size:10px;border-left:4px solid var(--g);gap:10px}
         .user-row.banned{border-left-color:var(--r);opacity:0.7}
+        .user-info{flex:1;min-width:0}
+        .user-info b{color:var(--w);font-size:11px}
+        .user-info small{color:rgba(255,255,255,0.5);font-size:9px;display:block;margin-top:2px;word-break:break-all}
+        .user-btns{display:flex;flex-direction:column;gap:3px;flex-shrink:0}
+        .user-btns .btn-row{display:flex;gap:2px}
+        .user-btns .btn-micro{padding:4px 7px;font-size:8px;border:none;border-radius:3px;cursor:pointer;font-weight:bold;white-space:nowrap}
+        .btn-micro.edit{background:var(--w);color:#000}
+        .btn-micro.pass{background:#9b59b6;color:#fff}
+        .btn-micro.ban{background:var(--r);color:#fff}
+        .btn-micro.unban{background:var(--g);color:#000}
+        .btn-micro.del{background:#c0392b;color:#fff}
+
         .order-row{display:flex;justify-content:space-between;align-items:center;padding:7px 8px;background:rgba(0,0,0,0.2);border-radius:5px;margin-bottom:3px;font-size:10px;border-left:3px solid var(--w)}
         .order-date-header{color:var(--w);font-size:11px;font-weight:bold;padding:8px 0 4px 0;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:5px}
         .stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:10px}
@@ -37,7 +50,7 @@
         .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:5px;z-index:10000;font-size:12px;max-width:250px;font-weight:bold;display:none}
         .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;justify-content:center;align-items:center}
         .modal.active{display:flex}
-        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto}
+        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;width:90%;max-width:420px;max-height:80vh;overflow-y:auto}
         .modal-box h3{color:var(--w);margin-bottom:12px;text-align:center;font-size:15px}.modal-close{float:right;color:var(--r);cursor:pointer;font-size:20px}
         .loading-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;justify-content:center;align-items:center;flex-direction:column}
         .loading-overlay.active{display:flex}
@@ -66,6 +79,11 @@
         .card-status.empty{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.5)}
         .card-status.filled{background:rgba(46,204,113,0.2);color:var(--g)}
         .preview-audio{width:100%;height:24px;margin-top:5px}
+
+        /* ========== DATA PASS MODAL STYLES ========== */
+        .pass-display-box{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:12px;margin-bottom:10px}
+        .pass-display-box .pass-label{font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
+        .pass-display-box .pass-value{font-size:14px;font-family:'Courier New',monospace;color:var(--w);font-weight:bold;margin-top:4px;letter-spacing:1px}
     </style>
 </head>
 <body>
@@ -115,10 +133,10 @@
                 <div id="adminOrders" style="max-height:250px;overflow-y:auto;margin-bottom:8px"></div>
                 
                 <!-- User Lists -->
-                <h3 style="margin-top:10px">📧 Local</h3><div id="localList" style="max-height:100px;overflow-y:auto"></div>
-                <h3 style="margin-top:10px">🔵 Google</h3><div id="googleList" style="max-height:100px;overflow-y:auto"></div>
-                <h3 style="margin-top:10px">🎵 TikTok</h3><div id="tiktokList" style="max-height:100px;overflow-y:auto"></div>
-                <h3 style="margin-top:10px">🤖 Telegram</h3><div id="telegramList" style="max-height:100px;overflow-y:auto"></div>
+                <h3 style="margin-top:10px">📧 Local</h3><div id="localList" style="max-height:150px;overflow-y:auto"></div>
+                <h3 style="margin-top:10px">🔵 Google</h3><div id="googleList" style="max-height:150px;overflow-y:auto"></div>
+                <h3 style="margin-top:10px">🎵 TikTok</h3><div id="tiktokList" style="max-height:150px;overflow-y:auto"></div>
+                <h3 style="margin-top:10px">🤖 Telegram</h3><div id="telegramList" style="max-height:150px;overflow-y:auto"></div>
                 
                 <!-- Dashboard Notice -->
                 <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
@@ -153,7 +171,7 @@
                 <!-- Redeem Code Management -->
                 <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
                     <h3><i class="fas fa-gift"></i> Redeem Code Management</h3>
-                    <div class="form-group"><label>Category</label><select id="redeemCategory"><option value="shhh_emote">Shhh emote (5,000 Ks)</option><option value="golden_border">Golden Month Border (8,000 Ks)</option><option value="lucky_diamond">Lucky Diamond Code (12,000 Ks)</option><option value="magic_durt">Magic Durt (3,000 Ks)</option><option value="emblem_box">Emblem Box (4,000 Ks)</option></select></div>
+                    <div class="form-group"><label>Category</label><select id="redeemCategory"><option value="shhh_emote">Shhh emote (2,500 Ks)</option><option value="golden_border">Golden Month Border (3,500 Ks)</option><option value="lucky_diamond">Lucky Diamond Code (2,000 Ks)</option><option value="magic_durt">Magic Durt (1,500 Ks)</option><option value="emblem_box">Emblem Box (1,500 Ks)</option></select></div>
                     <div class="form-group"><label>Code</label><input type="text" id="redeemCode" placeholder="Enter redeem code..."></div>
                     <button class="btn btn-g" onclick="addRedeemCode()"><i class="fas fa-plus"></i> Add Code</button>
                     <div id="redeemCodeList" style="max-height:200px;overflow-y:auto;margin-top:8px"></div>
@@ -185,8 +203,33 @@
         </div>
     </div>
     
-    <!-- Edit Modal -->
-    <div class="modal" id="editModal"><div class="modal-box"><span class="modal-close" onclick="closeEditModal()">&times;</span><h3>Edit User</h3><input type="hidden" id="editUserId"><div class="form-group"><label>Name</label><input type="text" id="editName"></div><div class="form-group"><label>Email</label><input type="email" id="editEmail"></div><div class="form-group"><label>Phone</label><input type="text" id="editPhone"></div><div class="form-group"><label>New Password</label><input type="password" id="editPass"></div><button class="btn btn-g" onclick="saveEdit()">Save</button></div></div>
+    <!-- Edit User Modal -->
+    <div class="modal" id="editModal"><div class="modal-box"><span class="modal-close" onclick="closeEditModal()">&times;</span><h3>Edit User</h3><input type="hidden" id="editUserId"><div class="form-group"><label>Name</label><input type="text" id="editName"></div><div class="form-group"><label>Email</label><input type="email" id="editEmail"></div><div class="form-group"><label>Phone</label><input type="text" id="editPhone"></div><div class="form-group"><label>New Password (leave empty to keep)</label><input type="text" id="editPass"></div><button class="btn btn-g" onclick="saveEdit()">Save</button></div></div>
+    
+    <!-- Data Pass Modal -->
+    <div class="modal" id="dataPassModal"><div class="modal-box"><span class="modal-close" onclick="closeDataPassModal()">&times;</span><h3><i class="fas fa-key"></i> Data Password Management</h3><input type="hidden" id="dataPassUserId"><input type="hidden" id="dataPassUsername">
+        <p style="font-size:10px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:12px">User: <b style="color:var(--w)" id="dataPassUserDisplay"></b></p>
+        
+        <div class="pass-display-box">
+            <div class="pass-label">📧 Gmail - Current Password</div>
+            <div class="pass-value" id="currentGmailPass">---</div>
+        </div>
+        <div class="form-group"><label>🆕 New Gmail Password</label><input type="text" id="newGmailPass" placeholder="Enter new Gmail password"></div>
+        
+        <div class="pass-display-box" style="margin-top:12px">
+            <div class="pass-label">🎮 MLBB - Current Password</div>
+            <div class="pass-value" id="currentMlbbPass">---</div>
+        </div>
+        <div class="form-group"><label>🆕 New MLBB Password</label><input type="text" id="newMlbbPass" placeholder="Enter new MLBB password"></div>
+        
+        <div class="pass-display-box" style="margin-top:12px">
+            <div class="pass-label">🎵 TikTok - Current Password</div>
+            <div class="pass-value" id="currentTiktokPass">---</div>
+        </div>
+        <div class="form-group"><label>🆕 New TikTok Password</label><input type="text" id="newTiktokPass" placeholder="Enter new TikTok password"></div>
+        
+        <button class="btn btn-g" onclick="saveDataPass()" style="width:100%"><i class="fas fa-save"></i> Save All Changes</button>
+    </div></div>
     
     <!-- Timer Modal -->
     <div class="modal" id="timerModal"><div class="modal-box"><span class="modal-close" onclick="closeTimerModal()">&times;</span><h3>⏱️ Set Auto-ON Timer</h3><input type="hidden" id="timerPageId"><p style="font-size:10px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:10px">စာမျက်နှာ ပြန်ဖွင့်မည့်အချိန်</p>
@@ -201,7 +244,7 @@
         <button class="btn btn-g" onclick="confirmTimer()" style="width:100%"><i class="fas fa-clock"></i> Set Timer</button>
     </div></div>
     
-    <!-- Restore Modal -->
+    <!-- Restore Confirm Modal -->
     <div class="modal" id="restoreConfirmModal"><div class="modal-box"><span class="modal-close" onclick="closeRestoreConfirm()">&times;</span><h3>⚠️ Restore Database</h3><p style="font-size:11px;color:var(--r);text-align:center;margin-bottom:15px">လက်ရှိ Database ကို Backup File ဖြင့် အစားထိုးမှာ သေချာပါသလား?</p><div style="display:flex;gap:8px"><button class="btn btn-r" onclick="confirmRestore()" style="flex:1">Yes</button><button class="btn" onclick="closeRestoreConfirm()" style="flex:1;background:rgba(255,255,255,0.2)">Cancel</button></div></div></div>
 
 <script>
@@ -214,26 +257,24 @@
     function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
     function showLoading(t,s){document.getElementById('loadingText').textContent=t||'Loading...';document.getElementById('loadingSubtext').textContent=s||'';document.getElementById('loadingOverlay').classList.add('active')}
     function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active')}
-    function openEditModal(uid,un,em,ph){document.getElementById("editUserId").value=uid;document.getElementById("editName").value=un||'';document.getElementById("editEmail").value=em||'';document.getElementById("editPhone").value=ph||'';document.getElementById("editPass").value='';document.getElementById("editModal").classList.add("active")}
-    function closeEditModal(){document.getElementById("editModal").classList.remove("active")}
-    function closeRestoreConfirm(){document.getElementById("restoreConfirmModal").classList.remove("active");pendingRestoreData=null}
     function zoomImage(src){const m=document.createElement('div');m.className='zoom-overlay';m.onclick=()=>m.remove();m.innerHTML=`<img src="${src}">`;document.body.appendChild(m)}
     
+    // ==================== ADMIN UNLOCK ====================
     async function unlockAdmin(){
         if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");
         document.getElementById("adminBox").style.display="block";showLoading('Loading...');
         try{await Promise.all([loadAdminData(),loadAdminOrders('all'),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes()]);updateBackupInfo();hideLoading();n('✅ Loaded');startAutoRefresh()}catch(e){hideLoading();n('Error','error')}
     }
-    
     function startAutoRefresh(){if(autoRefreshInterval)clearInterval(autoRefreshInterval);autoRefreshInterval=setInterval(async()=>{await Promise.all([loadAdminData(),loadAdminOrders(currentOrderFilter),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes()])},5000)}
     
     // ==================== BACKUP & RESTORE ====================
     async function backupDatabase(){showLoading('Backup...');try{const r=await fetch('/api/admin/backup');const d=await r.json();if(d.success&&d.data){const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);n('✅ Downloaded!');localStorage.setItem('lastBackup',new Date().toLocaleString());updateBackupInfo()}else n('Failed','error')}catch(e){n('Error','error')}hideLoading()}
     function restoreDatabase(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{pendingRestoreData=JSON.parse(e.target.result);if(!pendingRestoreData.tables){n('Invalid','error');return}document.getElementById('restoreConfirmModal').classList.add('active')}catch(e){n('Invalid JSON','error')}};reader.readAsText(file);input.value=''}
     async function confirmRestore(){if(!pendingRestoreData)return;showLoading('Restoring...');try{const r=await fetch('/api/admin/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:pendingRestoreData})});const d=await r.json();d.success?(n('✅ Restored!'),closeRestoreConfirm(),unlockAdmin(),updateBackupInfo()):n(d.message||'Error','error')}catch(e){n('Error','error')}hideLoading()}
+    function closeRestoreConfirm(){document.getElementById("restoreConfirmModal").classList.remove("active");pendingRestoreData=null}
     function updateBackupInfo(){const lb=localStorage.getItem('lastBackup');document.getElementById('backupInfo').innerHTML=lb?`📅 Last Backup: ${lb}`:`📅 Last Backup: No backup yet`}
     
-    // ==================== PAGE CONTROL + TIMER ====================
+    // ==================== PAGE CONTROL ====================
     async function loadPageToggles(){try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){let h='';d.pages.forEach(p=>{const icon=pageIcons[p.id]||'📄';const timer=pageTimers[p.id];const hasTimer=timer&&timer>Date.now();const status=p.status==='on'?'on':(hasTimer?'timer':'off');const st=p.status==='on'?'ACTIVE':(hasTimer?'TIMER':'OFF');const checked=p.status==='on'?'checked':'';const td=hasTimer?`<span class="timer-display">⏱️ ${formatTimeRemaining(timer-Date.now())}</span>`:'<span style="font-size:9px;color:rgba(255,255,255,0.3)">--:--:--</span>';h+=`<tr><td>${icon}</td><td>${p.name}</td><td><span class="status-badge ${status}">${st}</span></td><td><label class="toggle-switch"><input type="checkbox" ${checked} onchange="handlePageToggle('${p.id}',this.checked)"><span class="toggle-slider"></span></label></td><td>${td}</td><td>${p.status==='off'&&!hasTimer?`<button class="timer-btn" style="background:var(--w);color:#000" onclick="openTimerModal('${p.id}')">⏱️ Timer</button>`:''}${hasTimer?`<button class="timer-btn" style="background:var(--r);color:#fff" onclick="cancelTimer('${p.id}')">✕ Cancel</button>`:''}${p.status==='on'?`<button class="timer-btn" style="background:var(--r);color:#fff" onclick="turnOffPage('${p.id}')">OFF</button>`:''}</td></tr>`});document.getElementById('pageToggleList').innerHTML=h}}catch(e){}}
     function formatTimeRemaining(ms){if(ms<=0)return'00:00:00';const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`}
     function handlePageToggle(id,on){if(!on){openTimerModal(id);return}cancelTimer(id);togglePage(id,true)}
@@ -246,47 +287,123 @@
     async function togglePage(id,on){try{await fetch('/api/admin/toggle_page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_id:id,status:on?'on':'off'})});loadPageToggles()}catch(e){n('Error','error')}}
     try{pageTimers=JSON.parse(localStorage.getItem('pageTimers')||'{}');Object.keys(pageTimers).forEach(id=>{const tt=pageTimers[id],r=tt-Date.now();if(r>0){setTimeout(async()=>{await togglePage(id,true);delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles()},r)}else{delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers))}})}catch(e){}
     
-    // ==================== VIDEO SYSTEM ====================
+    // ==================== VIDEO ====================
     async function saveVideoUrl(){const url=document.getElementById('videoUrl').value.trim();if(!url)return n('Enter URL','error');try{await fetch('/api/admin/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});n('✅ Saved!');document.getElementById('videoUrl').value='';loadCurrentVideo()}catch(e){n('Error','error')}}
     async function loadCurrentVideo(){try{const r=await fetch('/api/video');const d=await r.json();const info=document.getElementById('currentVideoInfo');if(d.success&&d.url){info.innerHTML=`📹 <a href="${d.originalUrl||d.url}" target="_blank" style="color:var(--b)">${(d.originalUrl||d.url).substring(0,40)}...</a>`}else{info.innerHTML='<span style="color:rgba(255,255,255,0.5)">📹 No video</span>'}}catch(e){}}
     async function deleteVideo(){if(!confirm('Delete?'))return;try{await fetch('/api/admin/video/delete',{method:'POST'});n('✅ Deleted!');document.getElementById('videoUrl').value='';loadCurrentVideo()}catch(e){n('Error','error')}}
     
     // ==================== ADMIN DATA ====================
-    async function loadAdminData(){try{const r=await fetch("/api/admin/users_grouped");const d=await r.json();document.getElementById("totalUsers").textContent=d.total||0;document.getElementById("bannedUsers").textContent=(d.banned||[]).length;const banned=d.banned||[];const rl=(l,c,e)=>{c.innerHTML=l.length===0?'<p style="font-size:10px">No users</p>':l.map(u=>{const b=banned.includes(u.id.toString());return`<div class="user-row${b?' banned':''}"><div><b>ID:${u.id.toString().padStart(6,'0')}</b><br>${u.username||'N/A'}<br><small>${u.email}</small></div><div style="display:flex;gap:2px">${e?`<button class="btn btn-w" style="font-size:9px;padding:3px 6px" onclick="openEditModal('${u.id}','${u.username||''}','${u.email||''}','${u.phone||''}')">Edit</button>`:''}${b?`<button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="unbanUser('${u.id}')">Unban</button>`:`<button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="banUserById('${u.id}')">Ban</button>`}<button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delUserById('${u.id}')">Del</button></div></div>`}).join('')};rl(d.local||[],document.getElementById("localList"),true);rl(d.google||[],document.getElementById("googleList"),false);rl(d.tiktok||[],document.getElementById("tiktokList"),false);rl(d.telegram||[],document.getElementById("telegramList"),false)}catch(e){}}
+    async function loadAdminData(){try{const r=await fetch("/api/admin/users_grouped");const d=await r.json();document.getElementById("totalUsers").textContent=d.total||0;document.getElementById("bannedUsers").textContent=(d.banned||[]).length;const banned=d.banned||[];
+        const renderUserList=(list,container,editable)=>{
+            container.innerHTML=list.length===0?'<p style="font-size:10px;color:rgba(255,255,255,0.4)">No users</p>':list.map(u=>{
+                const b=banned.includes(u.id.toString());
+                const idDisplay=u.id.toString().padStart(6,'0');
+                return`<div class="user-row${b?' banned':''}">
+                    <div class="user-info">
+                        <b>🆔 ${idDisplay}</b> | ${u.username||'N/A'}<br>
+                        <small>📧 ${u.email||'N/A'} | 💰 ${u.balance||0} Ks</small>
+                    </div>
+                    <div class="user-btns">
+                        <div class="btn-row">
+                            ${editable?`<button class="btn-micro edit" onclick="openEditModal('${u.id}','${(u.username||'').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}','${u.phone||''}')">✏️ Edit</button>`:''}
+                            <button class="btn-micro pass" onclick="openDataPassModal('${u.id}','${(u.username||'User').replace(/'/g,"\\'")}')">🔑 Data Pass</button>
+                        </div>
+                        <div class="btn-row">
+                            ${b?`<button class="btn-micro unban" onclick="unbanUser('${u.id}')">✅ Unban</button>`:`<button class="btn-micro ban" onclick="banUserById('${u.id}')">🚫 Ban</button>`}
+                            <button class="btn-micro del" onclick="delUserById('${u.id}')">🗑️ Del</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        };
+        renderUserList(d.local||[],document.getElementById("localList"),true);
+        renderUserList(d.google||[],document.getElementById("googleList"),false);
+        renderUserList(d.tiktok||[],document.getElementById("tiktokList"),false);
+        renderUserList(d.telegram||[],document.getElementById("telegramList"),false);
+    }catch(e){}}
+    
+    // ==================== USER ACTIONS ====================
     async function banUserById(id){await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Banned!");loadAdminData()}
     async function unbanUser(id){await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Unbanned!");loadAdminData()}
-    async function delUserById(id){if(!confirm("Delete?"))return;await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Deleted!");loadAdminData()}
+    async function delUserById(id){if(!confirm("Delete user #"+id+" ?"))return;await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Deleted!");loadAdminData()}
+    
+    function openEditModal(uid,un,em,ph){document.getElementById("editUserId").value=uid;document.getElementById("editName").value=un||'';document.getElementById("editEmail").value=em||'';document.getElementById("editPhone").value=ph||'';document.getElementById("editPass").value='';document.getElementById("editModal").classList.add("active")}
+    function closeEditModal(){document.getElementById("editModal").classList.remove("active")}
     async function saveEdit(){const id=document.getElementById("editUserId").value,un=document.getElementById("editName").value,em=document.getElementById("editEmail").value,ph=document.getElementById("editPhone").value,pw=document.getElementById("editPass").value;try{await fetch("/api/admin/edit_user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:parseInt(id),username:un,email:em,phone:ph,password:pw||''})});n("Updated!");closeEditModal();loadAdminData()}catch(e){n("Error","error")}}
-    async function searchUser(){const q=document.getElementById('userSearch').value;if(q.length<2){document.getElementById('userSearchResult').innerHTML='';return}try{const r=await fetch('/api/admin/search_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();document.getElementById('userSearchResult').innerHTML=d.users.map(u=>`<div class="user-row"><div><b>ID:${u.id}</b> ${u.username||''}<br><small>${u.email}</small><br>Balance: ${u.balance||0} Ks</div><div style="display:flex;gap:2px"><input type="number" id="bal${u.id}" placeholder="Amt" style="width:50px;padding:2px;font-size:9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px"><button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="addBalance(${u.id})">+</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="subBalance(${u.id})">-</button></div></div>`).join('')}catch(e){}}
+    
+    // ==================== DATA PASS MANAGEMENT ====================
+    function openDataPassModal(uid,uname){
+        document.getElementById('dataPassUserId').value=uid;
+        document.getElementById('dataPassUsername').value=uname;
+        document.getElementById('dataPassUserDisplay').textContent=uname+' (ID: '+uid.toString().padStart(6,'0')+')';
+        document.getElementById('newGmailPass').value='';
+        document.getElementById('newMlbbPass').value='';
+        document.getElementById('newTiktokPass').value='';
+        
+        // Fetch current passwords
+        fetch('/api/admin/get_user_data_pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})})
+        .then(r=>r.json()).then(d=>{
+            document.getElementById('currentGmailPass').textContent=d.gmail_pass||'Default: DoubleMK2008';
+            document.getElementById('currentMlbbPass').textContent=d.mlbb_pass||'Default: GlobalMK2008';
+            document.getElementById('currentTiktokPass').textContent=d.tiktok_pass||'Default: DoubleMK2008';
+        }).catch(()=>{
+            document.getElementById('currentGmailPass').textContent='Default: DoubleMK2008';
+            document.getElementById('currentMlbbPass').textContent='Default: GlobalMK2008';
+            document.getElementById('currentTiktokPass').textContent='Default: DoubleMK2008';
+        });
+        
+        document.getElementById('dataPassModal').classList.add('active');
+    }
+    function closeDataPassModal(){document.getElementById('dataPassModal').classList.remove('active')}
+    async function saveDataPass(){
+        const uid=document.getElementById('dataPassUserId').value;
+        const gpass=document.getElementById('newGmailPass').value.trim();
+        const mpass=document.getElementById('newMlbbPass').value.trim();
+        const tpass=document.getElementById('newTiktokPass').value.trim();
+        
+        if(!gpass&&!mpass&&!tpass)return n('❌ Enter at least one new password','error');
+        
+        try{
+            const r=await fetch('/api/admin/update_data_pass',{
+                method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({userId:uid,gmail_pass:gpass||null,mlbb_pass:mpass||null,tiktok_pass:tpass||null})
+            });
+            const d=await r.json();
+            if(d.success){n('✅ Data passwords updated!');closeDataPassModal();}else{n(d.message||'Error','error')}
+        }catch(e){n('Error','error')}
+    }
+    
+    // ==================== SEARCH ====================
+    async function searchUser(){const q=document.getElementById('userSearch').value;if(q.length<2){document.getElementById('userSearchResult').innerHTML='';return}try{const r=await fetch('/api/admin/search_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();document.getElementById('userSearchResult').innerHTML=d.users.map(u=>`<div class="user-row"><div class="user-info"><b>ID:${u.id.toString().padStart(6,'0')}</b> ${u.username||''}<br><small>📧 ${u.email} | 💰 ${u.balance||0} Ks</small></div><div style="display:flex;gap:2px;align-items:center"><input type="number" id="bal${u.id}" placeholder="Amt" style="width:50px;padding:3px;font-size:9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px"><button class="btn btn-g" style="font-size:9px;padding:4px 8px" onclick="addBalance(${u.id})">+</button><button class="btn btn-r" style="font-size:9px;padding:4px 8px" onclick="subBalance(${u.id})">-</button></div></div>`).join('')}catch(e){}}
     async function addBalance(uid){const a=document.getElementById('bal'+uid).value;if(!a)return;await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:parseFloat(a)})});n('Added!');searchUser();loadAdminData()}
     async function subBalance(uid){const a=document.getElementById('bal'+uid).value;if(!a)return;await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:-parseFloat(a)})});n('Deducted!');searchUser();loadAdminData()}
     
     // ==================== ORDERS ====================
-    async function loadAdminOrders(f){currentOrderFilter=f;try{const r=await fetch(`/api/admin/orders?filter=${f}`);const d=await r.json();const c=document.getElementById('adminOrders');document.getElementById("totalOrders").textContent=d.total||0;document.getElementById("todayOrders").textContent=d.today||0;if(!d.orders||d.orders.length===0){c.innerHTML='<p style="font-size:10px">No orders</p>';return}let cd='',h='';d.orders.forEach(o=>{const ds=new Date(o.created_at).toLocaleDateString('my-MM',{year:'numeric',month:'short',day:'numeric'});if(ds!==cd){cd=ds;h+=`<div class="order-date-header">📅 ${ds}</div>`}h+=`<div class="order-row"><div><b>${o.username||'N/A'}</b><br>💰 ${o.amount} Ks | 💳 ${o.payment_method}<br><small>🆔 ${o.submitted_user_id||o.user_id} | ${new Date(o.created_at).toLocaleTimeString()}</small></div><div style="display:flex;gap:2px;align-items:center"><span style="font-size:8px;color:${o.status==='approved'?'var(--g)':o.status==='rejected'?'var(--r)':'var(--w)'}">${o.status}</span>${o.screenshot?`<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">`:'📷'}${o.status==='pending'?`<button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="approveOrder(${o.id},${o.user_id},${o.amount})">✓</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="rejectOrderWithReason(${o.id})">✕</button>`:''}</div></div>`});c.innerHTML=h}catch(e){}}
+    async function loadAdminOrders(f){currentOrderFilter=f;try{const r=await fetch(`/api/admin/orders?filter=${f}`);const d=await r.json();const c=document.getElementById('adminOrders');document.getElementById("totalOrders").textContent=d.total||0;document.getElementById("todayOrders").textContent=d.today||0;if(!d.orders||d.orders.length===0){c.innerHTML='<p style="font-size:10px;color:rgba(255,255,255,0.4)">No orders</p>';return}let cd='',h='';d.orders.forEach(o=>{const ds=new Date(o.created_at).toLocaleDateString('my-MM',{year:'numeric',month:'short',day:'numeric'});if(ds!==cd){cd=ds;h+=`<div class="order-date-header">📅 ${ds}</div>`}h+=`<div class="order-row"><div><b>${o.username||'N/A'}</b><br>💰 ${o.amount} Ks | 💳 ${o.payment_method}<br><small>🆔 ${o.submitted_user_id||o.user_id} | ${new Date(o.created_at).toLocaleTimeString()}</small></div><div style="display:flex;gap:2px;align-items:center"><span style="font-size:8px;color:${o.status==='approved'?'var(--g)':o.status==='rejected'?'var(--r)':'var(--w)'}">${o.status}</span>${o.screenshot?`<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">`:'📷'}${o.status==='pending'?`<button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="approveOrder(${o.id},${o.user_id},${o.amount})">✓</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="rejectOrderWithReason(${o.id})">✕</button>`:''}</div></div>`});c.innerHTML=h}catch(e){}}
     async function approveOrder(id,userId,amount){try{await fetch('/api/admin/order_status',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status:'approved'})});if(amount>0)await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:userId,amount:parseFloat(amount)})});n('✅ Approved!');loadAdminOrders(currentOrderFilter);loadAdminData()}catch(e){n('Error','error')}}
     function rejectOrderWithReason(id){const reason=prompt('ငြင်းပယ်ရသည့်အကြောင်းရင်း:\n\n• ပြေစာအတု\n• ရက်လွန်ပြေစာ\n• ထပ်ခါတင်ခြင်း');if(reason===null)return;if(!reason.trim())return n('Reason required!','error');rejectOrder(id,reason.trim())}
     async function rejectOrder(id,reason){try{await fetch('/api/admin/order_status',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status:'rejected',reason})});n('❌ Rejected!');loadAdminOrders(currentOrderFilter)}catch(e){n('Error','error')}}
     
     // ==================== DASHBOARD NOTICE ====================
-    async function loadNoticeList(){try{const r=await fetch("/api/admin/notices");const d=await r.json();const t=document.getElementById("noticeTable");if(d.notices&&d.notices.length>0){let h='<tr><th>Msg</th><th>Clr</th><th>Date</th><th>Act</th></tr>';d.notices.forEach(n=>{h+=`<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color||'#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delNoticeById(${n.id})">Del</button></td></tr>`});t.innerHTML=h}else{t.innerHTML='<tr><td colspan="4">No notices</td></tr>'}}catch(e){}}
+    async function loadNoticeList(){try{const r=await fetch("/api/admin/notices");const d=await r.json();const t=document.getElementById("noticeTable");if(d.notices&&d.notices.length>0){let h='<tr><th>Msg</th><th>Clr</th><th>Date</th><th>Act</th></tr>';d.notices.forEach(n=>{h+=`<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color||'#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delNoticeById(${n.id})">Del</button></td></tr>`});t.innerHTML=h}else{t.innerHTML='<tr><td colspan="4" style="color:rgba(255,255,255,0.4)">No notices</td></tr>'}}catch(e){}}
     async function postNotice(){const m=document.getElementById("adminNoticeMsg").value,co=document.getElementById("noticeColor").value;if(!m)return n("Enter text","error");try{await fetch("/api/admin/notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m,color:co})});n("Posted!");document.getElementById("adminNoticeMsg").value="";loadNoticeList()}catch(e){n("Error","error")}}
     async function delNoticeById(id){if(!confirm("Delete?"))return;await fetch("/api/admin/notice/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})});n("Deleted!");loadNoticeList()}
     async function deleteAllNotices(){if(!confirm('Delete ALL?'))return;try{await fetch('/api/admin/notices/delete_all',{method:'POST'});n('✅ Deleted!');loadNoticeList()}catch(e){n('Error','error')}}
     
     // ==================== TOP UP NOTICE ====================
-    async function loadTopupNoticeList(){try{const r=await fetch("/api/admin/topup_notices");const d=await r.json();const t=document.getElementById("topupNoticeTable");if(d.notices&&d.notices.length>0){let h='<tr><th>Msg</th><th>Clr</th><th>Date</th><th>Act</th></tr>';d.notices.forEach(n=>{h+=`<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color||'#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delTopupNoticeById(${n.id})">Del</button></td></tr>`});t.innerHTML=h}else{t.innerHTML='<tr><td colspan="4">No notices</td></tr>'}}catch(e){}}
+    async function loadTopupNoticeList(){try{const r=await fetch("/api/admin/topup_notices");const d=await r.json();const t=document.getElementById("topupNoticeTable");if(d.notices&&d.notices.length>0){let h='<tr><th>Msg</th><th>Clr</th><th>Date</th><th>Act</th></tr>';d.notices.forEach(n=>{h+=`<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color||'#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delTopupNoticeById(${n.id})">Del</button></td></tr>`});t.innerHTML=h}else{t.innerHTML='<tr><td colspan="4" style="color:rgba(255,255,255,0.4)">No notices</td></tr>'}}catch(e){}}
     async function postTopupNotice(){const m=document.getElementById("topupNoticeMsg").value,co=document.getElementById("topupNoticeColor").value;if(!m)return n("Enter text","error");try{await fetch("/api/admin/topup_notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m,color:co})});n("Posted!");document.getElementById("topupNoticeMsg").value="";loadTopupNoticeList()}catch(e){n("Error","error")}}
     async function delTopupNoticeById(id){if(!confirm("Delete?"))return;await fetch("/api/admin/topup_notice/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})});n("Deleted!");loadTopupNoticeList()}
     async function deleteAllTopupNotices(){if(!confirm('Delete ALL?'))return;try{await fetch('/api/admin/topup_notices/delete_all',{method:'POST'});n('✅ Deleted!');loadTopupNoticeList()}catch(e){n('Error','error')}}
     
     // ==================== BUY CODE NOTICE ====================
-    async function loadBuyCodeNoticeList(){try{const r=await fetch("/api/admin/buycode_notices");const d=await r.json();const t=document.getElementById("buycodeNoticeTable");if(d.notices&&d.notices.length>0){let h='<tr><th>Msg</th><th>Clr</th><th>Date</th><th>Act</th></tr>';d.notices.forEach(n=>{h+=`<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color||'#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delBuyCodeNoticeById(${n.id})">Del</button></td></tr>`});t.innerHTML=h}else{t.innerHTML='<tr><td colspan="4">No notices</td></tr>'}}catch(e){}}
+    async function loadBuyCodeNoticeList(){try{const r=await fetch("/api/admin/buycode_notices");const d=await r.json();const t=document.getElementById("buycodeNoticeTable");if(d.notices&&d.notices.length>0){let h='<tr><th>Msg</th><th>Clr</th><th>Date</th><th>Act</th></tr>';d.notices.forEach(n=>{h+=`<tr><td style="max-width:150px;word-break:break-word"><span style="color:${n.color||'#fff'}">${n.message}</span></td><td><span style="background:${n.color};padding:4px 12px;border-radius:3px">&nbsp;</span></td><td>${new Date(n.created_at).toLocaleDateString()}</td><td><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="delBuyCodeNoticeById(${n.id})">Del</button></td></tr>`});t.innerHTML=h}else{t.innerHTML='<tr><td colspan="4" style="color:rgba(255,255,255,0.4)">No notices</td></tr>'}}catch(e){}}
     async function postBuyCodeNotice(){const m=document.getElementById("buycodeNoticeMsg").value,co=document.getElementById("buycodeNoticeColor").value;if(!m)return n("Enter text","error");try{await fetch("/api/admin/buycode_notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m,color:co})});n("Posted!");document.getElementById("buycodeNoticeMsg").value="";loadBuyCodeNoticeList()}catch(e){n("Error","error")}}
     async function delBuyCodeNoticeById(id){if(!confirm("Delete?"))return;await fetch("/api/admin/buycode_notice/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})});n("Deleted!");loadBuyCodeNoticeList()}
     async function deleteAllBuyCodeNotices(){if(!confirm('Delete ALL?'))return;try{await fetch('/api/admin/buycode_notices/delete_all',{method:'POST'});n('✅ Deleted!');loadBuyCodeNoticeList()}catch(e){n('Error','error')}}
     
-    // ==================== REDEEM CODE MANAGEMENT ====================
-    async function loadRedeemCodes(){try{const r=await fetch('/api/admin/redeem_codes');const d=await r.json();if(d.codes){const cats={shhh_emote:'🎭 Shhh emote (5K)',golden_border:'🏆 Golden Border (8K)',lucky_diamond:'💎 Lucky Diamond (12K)',magic_durt:'✨ Magic Durt (3K)',emblem_box:'📦 Emblem Box (4K)'};let h='';d.codes.forEach(c=>{h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:4px;margin-bottom:3px;font-size:9px;border-left:3px solid ${c.used?'var(--r)':'var(--g)'}"><div><b>${cats[c.category]||c.category}</b><br>${c.code}<br><small>${c.used?'❌ Used':'✅ Available'}</small></div><button class="btn btn-r" style="font-size:8px;padding:2px 6px" onclick="delRedeemCode(${c.id})">Del</button></div>`});document.getElementById('redeemCodeList').innerHTML=h||'<p style="font-size:10px;color:rgba(255,255,255,0.5)">No codes</p>'}}catch(e){}}
+    // ==================== REDEEM CODES ====================
+    async function loadRedeemCodes(){try{const r=await fetch('/api/admin/redeem_codes');const d=await r.json();if(d.codes){const cats={shhh_emote:'🎭 Shhh emote (2.5K)',golden_border:'🏆 Golden Border (3.5K)',lucky_diamond:'💎 Lucky Diamond (2K)',magic_durt:'✨ Magic Durt (1.5K)',emblem_box:'📦 Emblem Box (1.5K)'};let h='';d.codes.forEach(c=>{h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:4px;margin-bottom:3px;font-size:9px;border-left:3px solid ${c.used?'var(--r)':'var(--g)'}"><div><b>${cats[c.category]||c.category}</b><br>${c.code}<br><small>${c.used?'❌ Used':'✅ Available'}</small></div><button class="btn btn-r" style="font-size:8px;padding:2px 6px" onclick="delRedeemCode(${c.id})">Del</button></div>`});document.getElementById('redeemCodeList').innerHTML=h||'<p style="font-size:10px;color:rgba(255,255,255,0.5)">No codes</p>'}}catch(e){}}
     async function addRedeemCode(){const cat=document.getElementById('redeemCategory').value;const code=document.getElementById('redeemCode').value.trim();if(!cat||!code)return n('Fill all fields','error');try{await fetch('/api/admin/redeem_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({category:cat,code})});n('✅ Added!');document.getElementById('redeemCode').value='';loadRedeemCodes()}catch(e){n('Error','error')}}
     async function delRedeemCode(id){if(!confirm('Delete?'))return;await fetch('/api/admin/redeem_code/delete',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});n('Deleted!');loadRedeemCodes()}
     
@@ -297,12 +414,11 @@
     // ==================== SLIDER ====================
     async function saveSliderImages(){const urls=[];for(let i=1;i<=5;i++){const inp=document.getElementById('sliderUrl'+i);if(inp&&inp.value.trim())urls.push(inp.value.trim())}if(!urls.length)return n("Enter URLs","error");try{await fetch('/api/admin/slider_images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:urls})});n('Saved!');for(let i=1;i<=5;i++)document.getElementById('sliderUrl'+i).value='';loadSliderPreview()}catch(e){n('Error','error')}}
     async function clearSliderImages(){try{await fetch('/api/admin/slider_images',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({images:[]})});n('Cleared!');loadSliderPreview()}catch(e){n('Error','error')}}
-    async function loadSliderPreview(){try{const r=await fetch('/api/slider_images');const d=await r.json();const c=document.getElementById('sliderPreviewList');if(d.images&&d.images.length>0){c.innerHTML=d.images.map((u,i)=>`<div class="preview-box">${i+1}. ${u.substring(0,50)}...</div>`).join('')}else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No images</span>'}}catch(e){}}
+    async function loadSliderPreview(){try{const r=await fetch('/api/slider_images');const d=await r.json();const c=document.getElementById('sliderPreviewList');if(d.images&&d.images.length>0){c.innerHTML=d.images.map((u,i)=>`<div style="font-size:9px;padding:3px 0;color:rgba(255,255,255,0.6)">${i+1}. ${u.substring(0,50)}...</div>`).join('')}else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No images</span>'}}catch(e){}}
     
     // ==================== BG MUSIC ====================
     function buildMusicSlots(){let h='';for(let i=1;i<=3;i++){h+=`<div class="video-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><b style="font-size:11px;color:var(--w)">🎵 Music ${i}</b><span class="card-status empty" id="musicStatus${i}">Empty</span></div><input type="file" id="musicFile${i}" accept="audio/*" onchange="handleFileSelect(${i})" style="width:100%;font-size:9px;padding:4px;margin-bottom:5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><input type="text" id="musicUrl${i}" placeholder="Or Audio URL..." style="width:100%;font-size:9px;padding:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><div style="display:flex;gap:5px;margin-top:5px"><button class="btn btn-b" id="uploadBtn${i}" onclick="uploadMusic(${i})" style="font-size:9px;padding:4px 8px"><i class="fas fa-upload"></i> Upload</button><button class="btn btn-r" onclick="clearMusicSlot(${i})" style="font-size:9px;padding:4px 8px"><i class="fas fa-times"></i></button></div><audio class="preview-audio" id="preview${i}" controls style="display:none;width:100%;height:24px;margin-top:5px"></audio></div>`}document.getElementById('musicSlots').innerHTML=h}
     buildMusicSlots();
-    
     function handleFileSelect(s){const f=document.getElementById('musicFile'+s).files[0],p=document.getElementById('preview'+s);if(f){p.src=URL.createObjectURL(f);p.style.display='block';document.getElementById('musicUrl'+s).placeholder='File: '+f.name}else{p.style.display='none'}}
     async function uploadMusic(s){const fi=document.getElementById('musicFile'+s),ui=document.getElementById('musicUrl'+s),ub=document.getElementById('uploadBtn'+s),sd=document.getElementById('musicStatus'+s),pr=document.getElementById('preview'+s);const f=fi.files[0],du=ui.value.trim();if(!f&&du){ui.value=du;sd.textContent='URL Set';sd.className='card-status filled';pr.src=du;pr.style.display='block';n('✅ URL added');return}if(!f)return n('Select file','error');ub.disabled=true;try{const b64=await new Promise((r,rj)=>{const reader=new FileReader();reader.onload=e=>r(e.target.result);reader.onerror=rj;reader.readAsDataURL(f)});const res=await fetch('/api/upload_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,filename:f.name})});const d=await res.json();if(d.success&&d.url){ui.value=d.url;sd.textContent='Uploaded ✅';sd.className='card-status filled';pr.src=d.url;pr.style.display='block';fi.value='';n('✅ Uploaded!')}else{n(d.message||'Failed','error')}}catch(e){n('Error','error')}finally{ub.disabled=false}}
     function clearMusicSlot(s){document.getElementById('musicFile'+s).value='';document.getElementById('musicUrl'+s).value='';document.getElementById('preview'+s).style.display='none';document.getElementById('musicStatus'+s).textContent='Empty';document.getElementById('musicStatus'+s).className='card-status empty'}
