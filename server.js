@@ -501,64 +501,82 @@ app.get('/api/redeem_codes', async (req, res) => {
 
 app.post('/api/buy_code', async (req, res) => {
     const { token, codeId } = req.body;
-    
     console.log('[BUY CODE API] Received:', { token: token?.substring(0,10)+'...', codeId });
     
     if (!token || !codeId) {
-        console.log('[BUY CODE API] Missing data');
-        return res.json({ success: false, message: 'Missing data - Token or Code ID not provided' });
+        return res.json({ success: false, message: 'Missing data' });
     }
     
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
         
-        if (isNaN(uid)) {
-            return res.json({ success: false, message: 'Invalid token' });
+        // ====== FIX: Find by code ID, don't check "used" status ======
+        // The frontend sends Hardcoded IDs (1-13)
+        // But DB may have different IDs
+        // SOLUTION: Use a different approach
+        
+        // First, check if this is a hardcoded ID (1-13)
+        // If so, find an available code in the same category
+        var query;
+        var params;
+        
+        if (parseInt(codeId) <= 13) {
+            // Map hardcoded ID to category
+            var catMap = {
+                1: 'shhh_emote', 2: 'shhh_emote', 3: 'shhh_emote', 4: 'shhh_emote',
+                5: 'golden_border', 6: 'golden_border', 7: 'golden_border', 8: 'golden_border',
+                9: 'lucky_diamond', 10: 'lucky_diamond', 11: 'lucky_diamond',
+                12: 'magic_durt',
+                13: 'emblem_box'
+            };
+            
+            var category = catMap[parseInt(codeId)];
+            if (!category) return res.json({ success: false, message: 'Invalid category' });
+            
+            // Find first available code in that category
+            query = 'SELECT * FROM redeem_codes WHERE category=$1 AND used=false ORDER BY id ASC LIMIT 1';
+            params = [category];
+            
+        } else {
+            // Direct ID lookup (for Admin-added codes)
+            query = 'SELECT * FROM redeem_codes WHERE id=$1 AND used=false';
+            params = [codeId];
         }
         
-        // Check code exists
-        const codeCheck = await p.query('SELECT * FROM redeem_codes WHERE id=$1 AND used=false', [codeId]);
-        console.log('[BUY CODE API] Code check:', codeCheck.rows.length > 0 ? 'Found' : 'Not found');
+        var codeCheck = await p.query(query, params);
+        console.log('[BUY CODE API] Code found:', codeCheck.rows.length > 0);
         
         if (codeCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Code not available' });
+            return res.json({ success: false, message: 'Code not available - All codes in this category are used' });
         }
         
-        const code = codeCheck.rows[0];
-        
-        // Get price from REDEEM_CATEGORIES
-        const cat = REDEEM_CATEGORIES.find(c => c.id === code.category);
-        const price = cat ? cat.price : 0;
-        console.log('[BUY CODE API] Price:', price);
+        var code = codeCheck.rows[0];
+        var cat = REDEEM_CATEGORIES.find(function(c) { return c.id === code.category; });
+        var price = cat ? cat.price : 0;
         
         // Check balance
-        const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        if (user.rows.length === 0) {
-            return res.json({ success: false, message: 'User not found' });
-        }
+        var user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
         
-        const balance = parseFloat(user.rows[0].balance || 0);
-        console.log('[BUY CODE API] Balance:', balance);
-        
-        if (balance < price) {
-            return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
-        }
+        var balance = parseFloat(user.rows[0].balance || 0);
+        if (balance < price) return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
         
         // Mark as used
-        await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, codeId]);
+        await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, code.id]);
         
         // Deduct balance
         await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [price, uid]);
         
-        const newBalance = balance - price;
-        console.log('[BUY CODE API] SUCCESS! New balance:', newBalance);
+        var newBalance = balance - price;
+        console.log('[BUY CODE API] SUCCESS! Code:', code.code, 'Balance:', newBalance);
         
         res.json({ success: true, code: code.code, balance: newBalance });
         
     } catch(e) {
         console.error('[BUY CODE API ERROR]', e);
-        res.json({ success: false, message: 'Server error: ' + e.message });
+        res.json({ success: false, message: 'Server error' });
     }
 });
 app.get('/api/admin/redeem_codes', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC'); res.json({ success: true, codes: r.rows }); } catch(e) { res.json({ success: false, codes: [] }); } });
