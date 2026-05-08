@@ -199,11 +199,16 @@ function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
 
 // ==================== SHOW CODE MODAL ====================
 function showCodeModal(code){
-    var existing = document.getElementById('codeRevealModal'); if (existing) existing.remove();
+    var existing = document.getElementById('codeRevealModal');
+    if (existing) existing.remove();
+    
     var sec = 10;
-    var modal = document.createElement('div'); modal.id = 'codeRevealModal';
+    var modal = document.createElement('div');
+    modal.id = 'codeRevealModal';
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;justify-content:center;align-items:center';
-    modal.innerHTML = '<div style="background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid #f39c12;text-align:center;max-height:90vh;overflow-y:auto">' +
+    
+    modal.innerHTML = 
+    '<div style="background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid #f39c12;text-align:center;max-height:90vh;overflow-y:auto">' +
         '<h3 style="color:#f39c12;margin-bottom:15px;font-size:18px"><i class="fas fa-gift"></i> Your Code</h3>' +
         '<div style="background:rgba(0,0,0,0.5);padding:20px;border-radius:10px;border:2px solid #2ecc71;margin:15px 0">' +
             '<div style="font-size:20px;font-family:Courier New,monospace;color:#2ecc71;letter-spacing:2px;word-break:break-all" id="theCodeText">' + code + '</div>' +
@@ -212,49 +217,67 @@ function showCodeModal(code){
         '<p style="color:#f39c12;font-size:12px;margin:8px 0" id="codeTimerDisplay">⏱️ Auto close in 10 seconds</p>' +
         '<button id="copyCodeBtn" style="background:#2ecc71;color:#000;border:none;padding:12px 30px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;margin:5px"><i class="fas fa-copy"></i> Copy Code</button>' +
     '</div>';
-    document.body.appendChild(modal);
-    document.getElementById('copyCodeBtn').addEventListener('click', function() {
-    var codeText = document.getElementById('theCodeText').textContent;
-    var copyBtn = document.getElementById('copyCodeBtn');
     
-    // Method 1: Clipboard API
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(codeText).then(function() {
-            // Success - show feedback
-            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            copyBtn.style.background = '#rgba(255,255,255,0.2)';
-            copyBtn.style.color = '#2ecc71';
-            n('✅ Code Copied!');
-        }).catch(function() {
+    document.body.appendChild(modal);
+    
+    // Copy Button Click
+    document.getElementById('copyCodeBtn').onclick = function() {
+        var codeText = document.getElementById('theCodeText').textContent;
+        var btn = document.getElementById('copyCodeBtn');
+        
+        // Try to copy
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(codeText).then(function() {
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.style.background = 'rgba(255,255,255,0.2)';
+                btn.style.color = '#2ecc71';
+                n('✅ Code Copied!');
+            }).catch(function() {
+                prompt('Copy (Ctrl+C):', codeText);
+            });
+        } else {
             // Fallback
-            fallbackCopy(codeText, copyBtn);
-        });
-    } else {
-        // Fallback
-        fallbackCopy(codeText, copyBtn);
-    }
-});
-
-function fallbackCopy(text, btn) {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.position = 'fixed';
-    ta.style.left = '-9999px';
-    document.body.appendChild(ta);
-    ta.focus();
-    ta.select();
-    try {
-        document.execCommand('copy');
-        n('✅ Code Copied!');
-        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        btn.style.background = 'rgba(255,255,255,0.2)';
-        btn.style.color = '#2ecc71';
-    } catch(e) {
-        n('❌ Copy failed - Please manually copy', 'error');
-    }
-    document.body.removeChild(ta);
+            var ta = document.createElement('textarea');
+            ta.value = codeText;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                btn.style.background = 'rgba(255,255,255,0.2)';
+                btn.style.color = '#2ecc71';
+                n('✅ Code Copied!');
+            } catch(e) {
+                prompt('Copy (Ctrl+C):', codeText);
+            }
+            document.body.removeChild(ta);
+        }
+    };
+    
+    // Timer
+    var timerInterval = setInterval(function() {
+        sec--;
+        var t = document.getElementById('codeTimerDisplay');
+        if (t) t.textContent = '⏱️ Auto close in ' + sec + ' seconds';
+        if (sec <= 0) {
+            clearInterval(timerInterval);
+            if (document.getElementById('codeRevealModal')) {
+                document.getElementById('codeRevealModal').remove();
+            }
+            n('⏰ Code သက်တမ်းကုန်သွားပါပြီ');
+        }
+    }, 1000);
+    
+    // Click outside to close
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            clearInterval(timerInterval);
+            modal.remove();
+        }
+    });
 }
-
 // ==================== RENDER GAME CARDS ====================
 function renderGameCards(){
     var grid=document.getElementById('gameGrid'); var cats=Object.keys(CATEGORIES); var h='';
