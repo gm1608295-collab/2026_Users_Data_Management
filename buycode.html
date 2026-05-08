@@ -425,6 +425,59 @@ checkPageAccess(function(pageOn){
     fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).then(function(r){return r.json()}).then(function(d){currentBalance=d.balance||0;document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD'}).catch(function(){});
     loadNotice(); setInterval(loadNotice,5000);
 });
+// ==================== PAGE TIMER COUNTDOWN ====================
+function checkPageTimer() {
+    try {
+        var saved = localStorage.getItem('pageTimers');
+        if (!saved) return;
+        
+        var timers = JSON.parse(saved);
+        var timer = timers['buycode'];
+        
+        if (!timer || timer <= Date.now()) return;
+        
+        var el = document.getElementById('maintenanceCountdown');
+        if (!el) return;
+        
+        var update = function() {
+            var rem = timer - Date.now();
+            if (rem <= 0) {
+                location.reload();
+                return;
+            }
+            var s = Math.floor(rem / 1000);
+            var h = Math.floor(s / 3600);
+            var m = Math.floor((s % 3600) / 60);
+            var sec = s % 60;
+            el.textContent = h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0') + ':' + sec.toString().padStart(2, '0');
+        };
+        
+        update();
+        setInterval(update, 1000);
+        
+    } catch(e) {}
+}
+function checkPageAccess(callback) {
+    fetch('/api/admin/page_status')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.pages) {
+            var bc = d.pages.find(function(p) { return p.id === 'buycode'; });
+            if (bc && bc.status === 'off') {
+                document.getElementById('maintenanceMessage').style.display = 'block';
+                document.getElementById('buycodeContent').style.display = 'none';
+                
+                // ====== START TIMER COUNTDOWN ======
+                checkPageTimer();
+                
+                callback(false);
+                return;
+            }
+        }
+        callback(true);
+    })
+    .catch(function() { callback(true); });
+}
 </script>
 </body>
 </html>
