@@ -175,7 +175,7 @@ var CATEGORIES = {
     "emblem_box":{name:"Emblem Box",icon:"https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png",price:4000,codes:[{id:13,code:"28knzpt43hdc23gzc"}]}
 };
 
-var currentBalance=0,qrTimerInterval=null,revealedCodeValue='',currentCategoryKey='',pendingCodeId=null;
+var currentBalance=0,revealedCodeValue='',currentCategoryKey='',pendingCodeId=null;
 
 // ==================== NOTIFICATION BELL ====================
 var notiItems=[],unreadCount=0;
@@ -190,6 +190,33 @@ document.addEventListener('click',function(e){var dd=document.getElementById('no
 // ==================== UTILS ====================
 function n(m,t){t=t||"success";var e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(function(){e.style.display="none"},2000)}
 function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+
+// ==================== CODE REVEAL MODAL ====================
+function showCodeModal(code){
+    revealedCodeValue=code;
+    var modal=document.createElement('div');
+    modal.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;justify-content:center;align-items:center';
+    modal.innerHTML='<div style="background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid #f39c12;text-align:center;max-height:90vh;overflow-y:auto">'+
+        '<h3 style="color:#f39c12;margin-bottom:15px;font-size:18px"><i class="fas fa-gift"></i> Your Code</h3>'+
+        '<div style="background:rgba(0,0,0,0.5);padding:20px;border-radius:10px;border:2px solid #2ecc71;margin:15px 0">'+
+            '<div style="font-size:20px;font-family:Courier New,monospace;color:#2ecc71;letter-spacing:2px;word-break:break-all" id="revealedCodeDisplay">'+code+'</div>'+
+        '</div>'+
+        '<p style="color:rgba(255,255,255,0.6);font-size:11px;margin:10px 0">⚠️ Code ကို သိမ်းဆည်းထားပါ</p>'+
+        '<button onclick="copyRevealedCode()" style="background:#2ecc71;color:#000;border:none;padding:12px 30px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;margin:5px"><i class="fas fa-copy"></i> Copy Code</button>'+
+        '<button onclick="this.parentElement.parentElement.remove()" style="display:block;background:#e74c3c;color:#fff;border:none;padding:10px 25px;border-radius:6px;cursor:pointer;font-size:13px;margin:10px auto 0">Close</button>'+
+    '</div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click',function(e){if(e.target===modal)modal.remove()});
+}
+
+function copyRevealedCode(){
+    if(!revealedCodeValue)return;
+    navigator.clipboard.writeText(revealedCodeValue).then(function(){
+        n('✅ Code Copied!');
+    }).catch(function(){
+        prompt('Copy:',revealedCodeValue);
+    });
+}
 
 // ==================== RENDER GAME CARDS ====================
 function renderGameCards(){
@@ -223,19 +250,21 @@ function closeCategoryModal(){document.getElementById('categoryModal').classList
 
 // ==================== CONFIRM BEFORE BUY ====================
 function showConfirmBeforeBuy(codeId){
-    if(!codeId||isNaN(codeId)){n('❌ Code error - Please reopen category','error');return}
+    var id=parseInt(codeId);
+    if(!id||isNaN(id)){n('❌ Code error - Please reopen category','error');return}
     var cat=CATEGORIES[currentCategoryKey];
     if(!cat){n('❌ Category error','error');return}
     if(currentBalance<cat.price){n('ငွေမလုံလောက်ပါ','error');return}
-    pendingCodeId=parseInt(codeId);
+    pendingCodeId=id;
     document.getElementById('confirmPurchaseModal').classList.add('active');
 }
 function closeConfirmPurchase(){document.getElementById('confirmPurchaseModal').classList.remove('active');pendingCodeId=null}
 function confirmBuyCode(){
-    if(!pendingCodeId){closeConfirmPurchase();return}
+    var id=pendingCodeId;
     closeConfirmPurchase();
     closeCategoryModal();
-    buyCode(pendingCodeId);
+    if(!id||isNaN(id)){n('❌ Code error','error');return}
+    buyCode(id);
 }
 
 // ==================== BUY CODE ====================
@@ -256,36 +285,87 @@ function buyCode(codeId){
             currentBalance=d.balance;
             document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
             document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
+            
+            // Remove used code
             var codes=CATEGORIES[currentCategoryKey].codes;
             var idx=codes.findIndex(function(c){return c.id===parseInt(codeId)});
             if(idx>-1)codes.splice(idx,1);
             renderGameCards();
+            
+            // Add Noti
             addNotiItem('ဝယ်ယူအားပေးမှုအတွက်ကျေးဇူးတင်ရှိပါသည်၊အကယ်၍မိမိဝယ်ယူလိုက်သော code သည် အသုံးပြု၍မရခဲ့သည်ရှိသော် Menu Button ထဲက customer service စာမျက်နှာတွင် ပုံနှင့်တကွ ပြည့်စုံအောင် တင်ပြပေးပါ၊admin ဘက်မှစစ်ဆေးအတည်ပြုမှုအောင်မြင်ပါက မိမိ၏အကောင့်ထဲအား သင်ဝယ်ယူခဲ့သည့်ငွေပမာဏအတိုင်းပြန်လည်ပေးလျော်ပါမည်။လိမ်လည်တင်ပြပါက သင့်အကောင့်အား ၁ ရက်တိတိ ဘန်းခံရမည်ဖြစ်ပြီး နောင်တွင် လ/နှစ် နဲ့ချီအောင်ပါပိတ်ပင်နိုင်ပြီး အကောင့်ပါပျက်သွားနိုင်ပါသည်။');
-            showQRModal(d.code);
+            
+            // Show code directly (NO QR)
+            showCodeModal(d.code);
         }else{n(d.message||'Error','error')}
     }).catch(function(e){n('Connection error','error')});
 }
 
-// ==================== QR CODE MODAL ====================
-function showQRModal(code){
-    revealedCodeValue=code;
-    document.getElementById('qrBoxContent').innerHTML='<h3><i class="fas fa-qrcode"></i> Scan QR Code</h3><p style="font-size:11px;color:rgba(255,255,255,0.7)">Code ရယူရန် QR Code ကို Scan ဖတ်ပါ</p><div class="qr-container" id="qrcodeContainer"></div><p style="font-size:10px;color:rgba(255,255,255,0.5);margin:8px 0">သို့မဟုတ်</p><button class="reveal-btn" onclick="revealCode()"><i class="fas fa-eye"></i> Code ကြည့်မည်</button><div class="code-area" id="qrCodeArea"><div class="the-code" id="theCodeDisplay">'+code+'</div><p class="timer" id="qrTimer">⏱️ 10 seconds remaining</p><button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy</button></div><button class="close-qr" onclick="closeQRModal()">Close</button>';
-    document.getElementById('qrModal').classList.add('active');
-    setTimeout(function(){var c=document.getElementById('qrcodeContainer');if(c){c.innerHTML='';new QRCode(c,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'})}},100);
-    var sec=10;
-    if(qrTimerInterval)clearInterval(qrTimerInterval);
-    qrTimerInterval=setInterval(function(){sec--;var t=document.getElementById('qrTimer');if(t)t.textContent='⏱️ '+sec+' seconds remaining';if(sec<=0){clearInterval(qrTimerInterval);document.getElementById('theCodeDisplay').textContent='••••••••••••••••••';document.getElementById('qrCopyBtn').style.display='none';n('⏰ Code သက်တမ်းကုန်သွားပါပြီ');setTimeout(function(){closeQRModal()},2000)}},1000);
-}
-function revealCode(){document.getElementById('qrCodeArea').style.display='block';document.querySelector('.reveal-btn').style.display='none'}
-function copyQRCode(){if(!revealedCodeValue)return;navigator.clipboard.writeText(revealedCodeValue).then(function(){var b=document.getElementById('qrCopyBtn');if(b){b.innerHTML='<i class="fas fa-check"></i> Copied!';b.style.background='rgba(255,255,255,0.2)'}n('✅ Code Copied!')})}
-function closeQRModal(){document.getElementById('qrModal').classList.remove('active');if(qrTimerInterval){clearInterval(qrTimerInterval);qrTimerInterval=null}}
-
 // ==================== BG MUSIC ====================
-(function(){var a=document.getElementById('bgAudio');if(!a)return;var p=[],i=0;a.volume=0.5;a.loop=false;var fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');function fp(){fetch('/api/bg_music?t='+Date.now()).then(function(r){return r.json()}).then(function(d){if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}).catch(function(){return false}).then(function(h){if(h){if(fl)i=0;pl()}})}function pl(){if(!p.length)return;if(i>=p.length)i=0;var u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(function(){});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);pl()});fp();setInterval(fp,3000)})()
+(function(){
+    var a=document.getElementById('bgAudio');
+    if(!a)return;
+    var p=[],i=0;
+    a.volume=0.5;
+    a.loop=false;
+    var fl=!sessionStorage.getItem('mp');
+    if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}
+    else{i=parseInt(localStorage.getItem('bgi')||'0')}
+    sessionStorage.setItem('mp','1');
+    
+    function fp(){
+        fetch('/api/bg_music?t='+Date.now())
+        .then(function(r){return r.json()})
+        .then(function(d){
+            if(d.playlist&&d.playlist.length>0){p=d.playlist;if(fl)i=0;pl()}
+        }).catch(function(){});
+    }
+    
+    function pl(){
+        if(!p.length)return;
+        if(i>=p.length)i=0;
+        var u=p[i];
+        a.src=u;a.load();
+        a.addEventListener('canplay',function h(){a.play().catch(function(){});a.removeEventListener('canplay',h)});
+    }
+    
+    a.addEventListener('ended',function(){
+        localStorage.setItem('bgt'+i,'0');
+        i=(i+1)%p.length;
+        localStorage.setItem('bgi',i);
+        localStorage.setItem('bgt'+i,'0');
+        pl();
+    });
+    
+    a.addEventListener('error',function(){
+        i=(i+1)%p.length;
+        localStorage.setItem('bgi',i);
+        localStorage.setItem('bgt'+i,'0');
+        pl();
+    });
+    
+    setInterval(function(){
+        if(!a.paused&&p.length>0&&a.currentTime>0){
+            localStorage.setItem('bgi',i);
+            localStorage.setItem('bgt'+i,a.currentTime);
+        }
+    },1000);
+    
+    fp();
+    setInterval(fp,3000);
+})();
 
 // ==================== NOTICE ====================
-function renderNotice(d){var b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
-function loadNotice(){fetch("/api/buycode_notice").then(function(r){return r.json()}).then(function(d){if(d.success&&d.message)renderNotice(d)}).catch(function(){})}
+function renderNotice(d){
+    var b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');
+    if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}
+    else{b.style.display='none'}
+}
+function loadNotice(){
+    fetch("/api/buycode_notice").then(function(r){return r.json()}).then(function(d){
+        if(d.success&&d.message)renderNotice(d)
+    }).catch(function(){});
+}
 
 // ==================== PAGE ACCESS CHECK ====================
 function checkPageAccess(callback){
