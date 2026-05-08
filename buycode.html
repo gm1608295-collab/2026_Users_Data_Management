@@ -200,29 +200,103 @@ function openCategory(key){currentCategoryKey=key;const cat=CATEGORIES[key];if(!
 function closeCategoryModal(){document.getElementById('categoryModal').classList.remove('active')}
 
 // ==================== CONFIRM BEFORE BUY ====================
-function showConfirmBeforeBuy(codeId){const cat=CATEGORIES[currentCategoryKey];if(!cat)return;if(currentBalance<cat.price)return n('ငွေမလုံလောက်ပါ','error');pendingCodeId=codeId;document.getElementById('confirmPurchaseModal').classList.add('active')}
+function showConfirmBeforeBuy(codeId) {
+    console.log('[CONFIRM] codeId:', codeId);
+    console.log('[CONFIRM] currentCategoryKey:', currentCategoryKey);
+    
+    if (!codeId) {
+        n('❌ Code error - Please reopen category', 'error');
+        return;
+    }
+    
+    const cat = CATEGORIES[currentCategoryKey];
+    if (!cat) {
+        n('❌ Category error', 'error');
+        return;
+    }
+    
+    if (currentBalance < cat.price) {
+        n('ငွေမလုံလောက်ပါ', 'error');
+        return;
+    }
+    
+    pendingCodeId = codeId;
+    document.getElementById('confirmPurchaseModal').classList.add('active');
+}
 function closeConfirmPurchase(){document.getElementById('confirmPurchaseModal').classList.remove('active');pendingCodeId=null}
 async function confirmBuyCode(){if(!pendingCodeId){closeConfirmPurchase();return}closeConfirmPurchase();closeCategoryModal();await buyCode(pendingCodeId)}
 
 // ==================== BUY CODE ====================
-async function buyCode(codeId){
-    const cat=CATEGORIES[currentCategoryKey];if(!cat)return;
-    if(currentBalance<cat.price)return n('ငွေမလုံလောက်ပါ','error');
-    try{
-        const r=await fetch('/api/buy_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),codeId:codeId})});
-        const d=await r.json();
-        if(d.success){
-            currentBalance=d.balance;
-            document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
-            document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
-            // Remove used code
-            const codes=CATEGORIES[currentCategoryKey].codes;const idx=codes.findIndex(c=>c.id===codeId);if(idx>-1)codes.splice(idx,1);renderGameCards();
-            // Add Notification
+async function buyCode(codeId) {
+    console.log('[BUY CODE] codeId:', codeId);
+    console.log('[BUY CODE] currentCategoryKey:', currentCategoryKey);
+    console.log('[BUY CODE] token:', localStorage.getItem('auth_token'));
+    
+    // Validate inputs
+    if (!codeId || codeId === undefined || codeId === null) {
+        n('❌ Code ID missing - Please try again', 'error');
+        return;
+    }
+    
+    if (!currentCategoryKey) {
+        n('❌ Category not selected', 'error');
+        return;
+    }
+    
+    const cat = CATEGORIES[currentCategoryKey];
+    if (!cat) {
+        n('❌ Category not found', 'error');
+        return;
+    }
+    
+    if (currentBalance < cat.price) {
+        n('ငွေမလုံလောက်ပါ', 'error');
+        return;
+    }
+    
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        n('❌ Please login first', 'error');
+        return;
+    }
+    
+    try {
+        console.log('[BUY CODE] Sending request...');
+        const r = await fetch('/api/buy_code', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: token,
+                codeId: codeId
+            })
+        });
+        
+        const d = await r.json();
+        console.log('[BUY CODE] Response:', d);
+        
+        if (d.success) {
+            currentBalance = d.balance;
+            document.getElementById('myBalance').textContent = fm(currentBalance) + ' Ks';
+            document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
+            
+            // Remove used code from local data
+            const codes = CATEGORIES[currentCategoryKey].codes;
+            const idx = codes.findIndex(c => c.id === codeId);
+            if (idx > -1) codes.splice(idx, 1);
+            renderGameCards();
+            
+            // Add Noti
             addNotiItem('ဝယ်ယူအားပေးမှုအတွက်ကျေးဇူးတင်ရှိပါသည်၊အကယ်၍မိမိဝယ်ယူလိုက်သော code သည် အသုံးပြု၍မရခဲ့သည်ရှိသော် Menu Button ထဲက customer service စာမျက်နှာတွင် ပုံနှင့်တကွ ပြည့်စုံအောင် တင်ပြပေးပါ၊admin ဘက်မှစစ်ဆေးအတည်ပြုမှုအောင်မြင်ပါက မိမိ၏အကောင့်ထဲအား သင်ဝယ်ယူခဲ့သည့်ငွေပမာဏအတိုင်းပြန်လည်ပေးလျော်ပါမည်။လိမ်လည်တင်ပြပါက သင့်အကောင့်အား ၁ ရက်တိတိ ဘန်းခံရမည်ဖြစ်ပြီး နောင်တွင် လ/နှစ် နဲ့ချီအောင်ပါပိတ်ပင်နိုင်ပြီး အကောင့်ပါပျက်သွားနိုင်ပါသည်။');
+            
             showQRModal(d.code);
-        }else{n(d.message||'Error','error')}
-    }catch(e){n('Connection error','error')}
-}
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) {
+        console.error('[BUY CODE ERROR]', e);
+        n('Connection error - Please try again', 'error');
+    }
+    }
 
 // ==================== QR CODE MODAL ====================
 function showQRModal(code){
