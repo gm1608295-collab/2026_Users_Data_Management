@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="my">
 <head>
@@ -189,26 +188,42 @@ async function checkPageAccess(){
     try{
         const r=await fetch('/api/admin/page_status');const d=await r.json();
         if(d.pages){const bc=d.pages.find(p=>p.id==='buycode');
-            if(bc&&bc.status==='off'){document.getElementById('maintenanceMessage').style.display='block';document.getElementById('buycodeContent').style.display='none';checkPageTimer();return false}
+            if(bc&&bc.status==='off'){
+                document.getElementById('maintenanceMessage').style.display='block';
+                document.getElementById('buycodeContent').style.display='none';
+                checkPageTimer();
+                return false;
+            }
         }return true;
     }catch(e){return true;}
 }
 
-// ==================== PAGE TIMER COUNTDOWN ====================
+// ==================== PAGE TIMER ====================
 async function checkPageTimer(){
     try{const saved=localStorage.getItem('pageTimers');if(!saved)return;const timers=JSON.parse(saved);const timer=timers['buycode'];if(!timer||timer<=Date.now())return;const el=document.getElementById('maintenanceCountdown');const update=()=>{const rem=timer-Date.now();if(rem<=0){location.reload();return}const s=Math.floor(rem/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;el.textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`};update();setInterval(update,1000)}catch(e){}
 }
 
 // ==================== HARDCODED DATA ====================
 const HARDCODED_DATA = {
-    "shhh_emote":{"name":"Shhh emote","icon":"https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png","price":5000,"codes":[]},
-    "golden_border":{"name":"Golden Month Border","icon":"https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png","price":8000,"codes":[]},
-    "lucky_diamond":{"name":"Lucky Diamond Code","icon":"https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png","price":12000,"codes":[]},
-    "magic_durt":{"name":"Magic Durt","icon":"https://i.ibb.co/NdpDZ0P7/8.png","price":3000,"codes":[]},
-    "emblem_box":{"name":"Emblem Box","icon":"https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png","price":4000,"codes":[]}
+    "shhh_emote":{"name":"Shhh emote","icon":"https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png","price":5000,"codes":[
+        {"id":1,"code":"2359x2s4zqzq23fb8"},{"id":2,"code":"29jwchdgqyvj23f5e"},
+        {"id":3,"code":"29hg4rbrxt6h23f5e"},{"id":4,"code":"29kqjbw949z823f5e"}
+    ]},
+    "golden_border":{"name":"Golden Month Border","icon":"https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png","price":8000,"codes":[
+        {"id":5,"code":"27e32tq495s423f5q"},{"id":6,"code":"27ffr6w3h9ka23f5q"},
+        {"id":7,"code":"27gpet7tyr4g23f5q"},{"id":8,"code":"27h77fcrekx923f5q"}
+    ]},
+    "lucky_diamond":{"name":"Lucky Diamond Code","icon":"https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png","price":12000,"codes":[
+        {"id":9,"code":"2ja2rum6s6x923fnn"},{"id":10,"code":"47k9hgrpbs2v23fnn"},
+        {"id":11,"code":"5npzg2zhdbwg23fnn"}
+    ]},
+    "magic_durt":{"name":"Magic Durt","icon":"https://i.ibb.co/NdpDZ0P7/8.png","price":3000,"codes":[
+        {"id":12,"code":"35smvu4a354423gzj"}
+    ]},
+    "emblem_box":{"name":"Emblem Box","icon":"https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png","price":4000,"codes":[
+        {"id":13,"code":"28knzpt43hdc23gzc"}
+    ]}
 };
-
-const HARCODED_PRICES = {shhh_emote:5000,golden_border:8000,lucky_diamond:12000,magic_durt:3000,emblem_box:4000};
 
 let categoriesData = {};
 let currentBalance = 0;
@@ -217,22 +232,75 @@ let revealedCodeValue = '';
 let currentCategoryKey = '';
 let pendingCodeId = null;
 
-// ==================== LOAD DATA ====================
-async function loadCategories(){
-    try{
-        const r=await fetch('/api/redeem_codes');const d=await r.json();
-        console.log('[LOAD] Server:',d);
-        
-        if(d.success&&d.categories){
-            const hasCodes=Object.values(d.categories).some(cat=>cat.codes&&cat.codes.length>0);
-            if(hasCodes){categoriesData=d.categories}else{categoriesData=HARDCODED_DATA}
-        }else{categoriesData=HARDCODED_DATA}
-    }catch(e){categoriesData=HARDCODED_DATA}
+// ==================== RENDER GAME CARDS ====================
+function renderGameCards(){
+    const cats=Object.keys(categoriesData),grid=document.getElementById('gameGrid');
+    console.log('[RENDER] Categories:', cats.length, categoriesData);
     
-    // Apply hardcoded prices
-    Object.keys(categoriesData).forEach(key=>{if(HARCODED_PRICES[key]){categoriesData[key].price=HARCODED_PRICES[key]}});
+    if(cats.length===0){
+        // USE HARDCODED DATA
+        console.log('[RENDER] Using hardcoded data');
+        categoriesData = JSON.parse(JSON.stringify(HARDCODED_DATA));
+    }
+    
+    const finalCats = Object.keys(categoriesData);
+    if(finalCats.length===0){
+        grid.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);grid-column:1/-1;padding:30px">📦 No codes available.</p>';
+        return;
+    }
+    
+    let h='';
+    finalCats.forEach(key=>{
+        const cat=categoriesData[key];
+        if(!cat)return;
+        const cnt=(cat.codes||[]).length;
+        console.log('[RENDER]', cat.name, cnt, 'codes');
+        h+=`<div class="game-card" onclick="openCategory('${key}')">
+            <img src="${cat.icon}" alt="${cat.name}" onerror="this.style.display='none'">
+            <p>${cat.name}</p>
+            <div class="price-tag">💰 ${fm(cat.price)} Ks</div>
+            <div class="code-count">📦 ${cnt} codes</div>
+        </div>`;
+    });
+    grid.innerHTML=h;
+}
+
+// ==================== LOAD DATA FROM SERVER ====================
+async function loadCategories(){
+    console.log('[LOAD] Fetching from server...');
+    try{
+        const r=await fetch('/api/redeem_codes');
+        const d=await r.json();
+        console.log('[LOAD] Server response:', d);
+        
+        if(d.success && d.categories){
+            const hasCodes = Object.values(d.categories).some(cat => cat.codes && cat.codes.length > 0);
+            if(hasCodes){
+                categoriesData = d.categories;
+                console.log('[LOAD] Using server data');
+            } else {
+                console.log('[LOAD] Server has no codes, using hardcoded');
+                categoriesData = JSON.parse(JSON.stringify(HARDCODED_DATA));
+            }
+        } else {
+            console.log('[LOAD] Server failed, using hardcoded');
+            categoriesData = JSON.parse(JSON.stringify(HARDCODED_DATA));
+        }
+    } catch(e) {
+        console.error('[LOAD] Error:', e);
+        categoriesData = JSON.parse(JSON.stringify(HARDCODED_DATA));
+    }
+    
     renderGameCards();
 }
+
+// ==================== UTILS ====================
+function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",2000)}
+function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+
+// ==================== BUY CODE NOTICE ====================
+function renderBuyCodeNotice(d){const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
+async function loadBuyCodeNotice(){try{const r=await fetch("/api/buycode_notice");const d=await r.json();if(d.success&&d.message)renderBuyCodeNotice(d)}catch(e){}}
 
 // ==================== NOTIFICATION BELL ====================
 let notiItems=[],unreadCount=0;
@@ -243,23 +311,6 @@ function toggleNotiDropdown(){const dd=document.getElementById('notiDropdown');d
 function renderNotiDropdown(){const l=document.getElementById('notiList'),e=document.getElementById('notiEmpty');if(notiItems.length===0){e.style.display='block';l.innerHTML='';return}e.style.display='none';l.innerHTML=notiItems.map(n=>`<div class="noti-item">${n.message}<div class="noti-time">${new Date(n.time).toLocaleString()}</div></div>`).join('')}
 loadNotiItems();
 document.addEventListener('click',function(e){const dd=document.getElementById('notiDropdown'),bell=document.querySelector('.noti-bell');if(!bell.contains(e.target)&&dd.classList.contains('active'))dd.classList.remove('active')});
-
-// ==================== UTILS ====================
-function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",2000)}
-function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
-
-// ==================== NOTICE ====================
-function renderBuyCodeNotice(d){const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
-async function loadBuyCodeNotice(){try{const r=await fetch("/api/buycode_notice");const d=await r.json();if(d.success&&d.message)renderBuyCodeNotice(d)}catch(e){}}
-
-// ==================== RENDER GAME CARDS ====================
-function renderGameCards(){
-    const cats=Object.keys(categoriesData),grid=document.getElementById('gameGrid');
-    if(cats.length===0){grid.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);grid-column:1/-1;padding:30px">📦 No codes available.</p>';return}
-    let h='';
-    cats.forEach(key=>{const cat=categoriesData[key];if(!cat)return;const cnt=(cat.codes||[]).length;h+=`<div class="game-card" onclick="openCategory('${key}')"><img src="${cat.icon}" alt="${cat.name}" onerror="this.style.display='none'"><p>${cat.name}</p><div class="price-tag">💰 ${fm(cat.price)} Ks</div><div class="code-count">📦 ${cnt} codes</div></div>`});
-    grid.innerHTML=h;
-}
 
 // ==================== CATEGORY MODAL ====================
 function openCategory(key){
@@ -292,7 +343,7 @@ async function buyCode(codeId){
             currentBalance=d.balance;
             document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
             document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
-            addNotiItem('ဝယ်ယူအားပေးမှုအတွက်ကျေးဇူးတင်ရှိပါသည်။ Code ပြဿနာရှိပါက Customer Service တွင် ပုံနှင့်တကွ တင်ပြပါ။');
+            addNotiItem('ဝယ်ယူအားပေးမှုအတွက်ကျေးဇူးတင်ရှိပါသည်။');
             showQRModal(d.code);
             setTimeout(()=>loadCategories(),1000);
         }else{n(d.message||'Error','error')}
@@ -302,7 +353,7 @@ async function buyCode(codeId){
 // ==================== QR CODE MODAL ====================
 function showQRModal(code){
     revealedCodeValue=code;
-    document.getElementById('qrBoxContent').innerHTML=`<h3><i class="fas fa-qrcode"></i> Scan QR Code</h3><p style="font-size:11px;color:rgba(255,255,255,0.7)">Code ရယူရန် QR Code ကို Scan ဖတ်ပါ</p><div class="qr-container" id="qrcodeContainer"></div><p style="font-size:10px;color:rgba(255,255,255,0.5);margin:8px 0">သို့မဟုတ်</p><button class="reveal-btn" onclick="revealCode()"><i class="fas fa-eye"></i> Code အစစ် ကြည့်မည်</button><div class="code-area" id="qrCodeArea"><div class="the-code" id="theCodeDisplay">${code}</div><p class="timer" id="qrTimer">⏱️ 10 seconds remaining</p><button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy Code</button></div><button class="close-qr" onclick="closeQRModal()">Close</button>`;
+    document.getElementById('qrBoxContent').innerHTML=`<h3><i class="fas fa-qrcode"></i> Scan QR Code</h3><p style="font-size:11px;color:rgba(255,255,255,0.7)">Code ရယူရန် QR Code ကို Scan ဖတ်ပါ</p><div class="qr-container" id="qrcodeContainer"></div><p style="font-size:10px;color:rgba(255,255,255,0.5);margin:8px 0">သို့မဟုတ်</p><button class="reveal-btn" onclick="revealCode()"><i class="fas fa-eye"></i> Code ကြည့်မည်</button><div class="code-area" id="qrCodeArea"><div class="the-code" id="theCodeDisplay">${code}</div><p class="timer" id="qrTimer">⏱️ 10 seconds remaining</p><button class="copy-btn" id="qrCopyBtn" onclick="copyQRCode()"><i class="fas fa-copy"></i> Copy</button></div><button class="close-qr" onclick="closeQRModal()">Close</button>`;
     document.getElementById('qrModal').classList.add('active');
     setTimeout(()=>{const c=document.getElementById('qrcodeContainer');if(c){c.innerHTML='';new QRCode(c,{text:code,width:150,height:150,colorDark:'#000000',colorLight:'#ffffff'})}},100);
     let sec=10;if(qrTimerInterval)clearInterval(qrTimerInterval);
@@ -315,13 +366,32 @@ function closeQRModal(){document.getElementById('qrModal').classList.remove('act
 // ==================== BG MUSIC ====================
 (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);pl()});fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
 
-// ==================== INIT ====================
+// ==================== INIT (FIXED) ====================
 (async function init(){
-    const pageOn=await checkPageAccess();if(!pageOn)return;
+    console.log('[INIT] Starting...');
+    const pageOn=await checkPageAccess();
+    if(!pageOn)return;
+    
     document.getElementById('buycodeContent').style.display='block';
+    
+    // Load categories FIRST
+    console.log('[INIT] Loading categories...');
     await loadCategories();
-    try{const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();currentBalance=d.balance||0;document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD'}catch(e){}
-    loadBuyCodeNotice();setInterval(loadBuyCodeNotice,5000);
+    console.log('[INIT] Categories loaded:', Object.keys(categoriesData).length);
+    
+    // Load balance
+    try{
+        const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
+        const d=await r.json();
+        currentBalance=d.balance||0;
+        document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
+        document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
+    }catch(e){}
+    
+    loadBuyCodeNotice();
+    setInterval(loadBuyCodeNotice,5000);
+    
+    console.log('[INIT] Complete!');
 })();
 </script>
 </body>
