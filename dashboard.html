@@ -355,6 +355,37 @@ async function loadDashboardVideo() {
             if(user.id){fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})}).then(r=>r.json()).then(d=>{if(d.banned){document.body.innerHTML=`<div class="banned-container"><div class="banned-icon">🚫</div><h2 class="banned-title">သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><div class="banned-contact"><h4>ဆက်သွယ်ရန်</h4><p>📧 gm1608295@gmail.com</p><p>📞 09672093790</p><p>💬 @Solo_m28</p></div><div class="banned-btns"><button class="btn-stay" onclick="location.reload()">ဆက်နေမည်</button><button class="btn-new" onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button></div></div>`}}).catch(()=>{})}
         }catch(e){console.error('[DASHBOARD ERROR]',e)}
     };
+    // ==================== REAL-TIME ACCOUNT CHECK (BAN + DELETE) ====================
+async function checkAccountStatus() {
+    const token = localStorage.getItem('auth_token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!token || token === 'guest') return;
+    if (!user || !user.id) return;
+    
+    try {
+        const r = await fetch('/api/check_banned', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id.toString() })
+        });
+        const d = await r.json();
+        
+        if (d.banned) {
+            // User is banned or deleted
+            alert('⚠️ သင်၏အကောင့်ကို Admin မှ ပိတ်သိမ်းထားပါသည်။\n\nဆက်သွယ်ရန်: @Solo_m28');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+    } catch(e) {}
+}
+
+// Check every 10 seconds
+setInterval(checkAccountStatus, 10000);
+
+// Check immediately on page load
+checkAccountStatus();
 </script>
 </body>
 </html>
