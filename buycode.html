@@ -168,11 +168,11 @@
 <script>
 // ==================== HARDCODED DATA ====================
 var CATEGORIES = {
-    "shhh_emote":{name:"Shhh emote",icon:"https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png",price:5000,codes:[{id:1,code:"2359x2s4zqzq23fb8"},{id:2,code:"29jwchdgqyvj23f5e"},{id:3,code:"29hg4rbrxt6h23f5e"},{id:4,code:"29kqjbw949z823f5e"}]},
-    "golden_border":{name:"Golden Month Border",icon:"https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png",price:8000,codes:[{id:5,code:"27e32tq495s423f5q"},{id:6,code:"27ffr6w3h9ka23f5q"},{id:7,code:"27gpet7tyr4g23f5q"},{id:8,code:"27h77fcrekx923f5q"}]},
-    "lucky_diamond":{name:"Lucky Diamond Code",icon:"https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png",price:12000,codes:[{id:9,code:"2ja2rum6s6x923fnn"},{id:10,code:"47k9hgrpbs2v23fnn"},{id:11,code:"5npzg2zhdbwg23fnn"}]},
-    "magic_durt":{name:"Magic Durt",icon:"https://i.ibb.co/NdpDZ0P7/8.png",price:3000,codes:[{id:12,code:"35smvu4a354423gzj"}]},
-    "emblem_box":{name:"Emblem Box",icon:"https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png",price:4000,codes:[{id:13,code:"28knzpt43hdc23gzc"}]}
+    "shhh_emote":{name:"Shhh emote",icon:"https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png",price:2500,codes:[{id:1,code:"2359x2s4zqzq23fb8"},{id:2,code:"29jwchdgqyvj23f5e"},{id:3,code:"29hg4rbrxt6h23f5e"},{id:4,code:"29kqjbw949z823f5e"}]},
+    "golden_border":{name:"Golden Month Border",icon:"https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png",price:3500,codes:[{id:5,code:"27e32tq495s423f5q"},{id:6,code:"27ffr6w3h9ka23f5q"},{id:7,code:"27gpet7tyr4g23f5q"},{id:8,code:"27h77fcrekx923f5q"}]},
+    "lucky_diamond":{name:"Lucky Diamond Code",icon:"https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png",price:2000,codes:[{id:9,code:"2ja2rum6s6x923fnn"},{id:10,code:"47k9hgrpbs2v23fnn"},{id:11,code:"5npzg2zhdbwg23fnn"}]},
+    "magic_durt":{name:"Magic Durt",icon:"https://i.ibb.co/NdpDZ0P7/8.png",price:1500,codes:[{id:12,code:"35smvu4a354423gzj"}]},
+    "emblem_box":{name:"Emblem Box",icon:"https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png",price:1500,codes:[{id:13,code:"28knzpt43hdc23gzc"}]}
 };
 
 var currentBalance=0,revealedCodeValue='',currentCategoryKey='',pendingCodeId=null;
@@ -302,59 +302,7 @@ function buyCode(codeId){
 }
 
 // ==================== BG MUSIC ====================
-(function(){
-    var a=document.getElementById('bgAudio');
-    if(!a)return;
-    var p=[],i=0;
-    a.volume=0.5;
-    a.loop=false;
-    var fl=!sessionStorage.getItem('mp');
-    if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}
-    else{i=parseInt(localStorage.getItem('bgi')||'0')}
-    sessionStorage.setItem('mp','1');
-    
-    function fp(){
-        fetch('/api/bg_music?t='+Date.now())
-        .then(function(r){return r.json()})
-        .then(function(d){
-            if(d.playlist&&d.playlist.length>0){p=d.playlist;if(fl)i=0;pl()}
-        }).catch(function(){});
-    }
-    
-    function pl(){
-        if(!p.length)return;
-        if(i>=p.length)i=0;
-        var u=p[i];
-        a.src=u;a.load();
-        a.addEventListener('canplay',function h(){a.play().catch(function(){});a.removeEventListener('canplay',h)});
-    }
-    
-    a.addEventListener('ended',function(){
-        localStorage.setItem('bgt'+i,'0');
-        i=(i+1)%p.length;
-        localStorage.setItem('bgi',i);
-        localStorage.setItem('bgt'+i,'0');
-        pl();
-    });
-    
-    a.addEventListener('error',function(){
-        i=(i+1)%p.length;
-        localStorage.setItem('bgi',i);
-        localStorage.setItem('bgt'+i,'0');
-        pl();
-    });
-    
-    setInterval(function(){
-        if(!a.paused&&p.length>0&&a.currentTime>0){
-            localStorage.setItem('bgi',i);
-            localStorage.setItem('bgt'+i,a.currentTime);
-        }
-    },1000);
-    
-    fp();
-    setInterval(fp,3000);
-})();
-
+(function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
 // ==================== NOTICE ====================
 function renderNotice(d){
     var b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');
