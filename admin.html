@@ -325,8 +325,26 @@
     // ==================== USER ACTIONS ====================
     async function banUserById(id){await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Banned!");loadAdminData()}
     async function unbanUser(id){await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Unbanned!");loadAdminData()}
-    async function delUserById(id){if(!confirm("Delete user #"+id+" ?"))return;await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Deleted!");loadAdminData()}
+    async function delUserById(id) {
+    if (!confirm("⚠️ Are you SURE you want to delete user #" + id + "?\n\nThis action cannot be undone. User will be banned first, then deleted.")) return;
     
+    try {
+        const r = await fetch("/api/admin/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: id })
+        });
+        const d = await r.json();
+        if (d.success) {
+            n("✅ User banned & deleted!");
+            loadAdminData();
+        } else {
+            n("❌ Error deleting user", "error");
+        }
+    } catch(e) {
+        n("❌ Connection error", "error");
+    }
+    } 
     function openEditModal(uid,un,em,ph){document.getElementById("editUserId").value=uid;document.getElementById("editName").value=un||'';document.getElementById("editEmail").value=em||'';document.getElementById("editPhone").value=ph||'';document.getElementById("editPass").value='';document.getElementById("editModal").classList.add("active")}
     function closeEditModal(){document.getElementById("editModal").classList.remove("active")}
     async function saveEdit(){const id=document.getElementById("editUserId").value,un=document.getElementById("editName").value,em=document.getElementById("editEmail").value,ph=document.getElementById("editPhone").value,pw=document.getElementById("editPass").value;try{await fetch("/api/admin/edit_user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:parseInt(id),username:un,email:em,phone:ph,password:pw||''})});n("Updated!");closeEditModal();loadAdminData()}catch(e){n("Error","error")}}
