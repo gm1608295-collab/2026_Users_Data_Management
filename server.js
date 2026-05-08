@@ -176,7 +176,46 @@ app.get('/auth/tiktok/callback', async (req, res) => {
 
 // ==================== PASSWORDS / DATA ====================
 app.post('/api/get_passwords', (req, res) => { res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' }); });
-app.post('/api/change_password', (req, res) => { res.json({ success: true }); });
+// ==================== CHANGE PASSWORD (WITH CURRENT PASSWORD VERIFICATION) ====================
+app.post('/api/change_password', async (req, res) => {
+    const { token, type, currentPassword, newPassword } = req.body;
+    
+    if (!token || !type || !currentPassword || !newPassword) {
+        return res.json({ success: false, message: 'All fields required' });
+    }
+    
+    if (newPassword.length < 6) {
+        return res.json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        // Get user
+        const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        const u = user.rows[0];
+        const col = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
+        const currentStored = u[col] || (type === 'gmail' ? 'DoubleMK2008' : type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008');
+        
+        // Verify current password
+        if (currentPassword !== currentStored) {
+            return res.json({ success: false, message: 'Current password is incorrect!' });
+        }
+        
+        // Update password
+        await p.query(`UPDATE auth_users SET ${col}=$1 WHERE id=$2`, [newPassword, uid]);
+        
+        res.json({ success: true, message: 'Password changed successfully!' });
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
 app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
 
