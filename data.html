@@ -6,190 +6,1298 @@
     <title>Data - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
-        .container{max-width:500px;margin:0 auto}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,var(--a),var(--p));padding:12px 15px;border-radius:10px;border-bottom:3px solid var(--w)}
-        .header a{color:var(--w);font-size:20px;text-decoration:none}
-        .header h2{color:var(--w);font-size:16px}
-        .panel{background:rgba(26,31,75,0.6);padding:15px;border-radius:10px;margin-bottom:15px;border:1px solid rgba(74,28,122,0.5)}
-        .panel h3{color:var(--w);font-size:14px;margin-bottom:10px;border-bottom:2px solid var(--a);padding-bottom:6px}
-        .pass-wrapper{position:relative}
-        .pass-wrapper input{padding-right:40px!important}
-        .pass-wrapper .eye-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px}
-        .form-group{margin-bottom:10px}
-        .form-group label{display:block;font-size:12px;margin-bottom:4px;color:#ccc}
-        .form-group input,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--t);font-size:13px}
-        .form-group select option{background:var(--bg);color:var(--t)}
-        .btn{width:100%;padding:10px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;margin-top:6px}
-        .btn-w{background:var(--w);color:#000}.btn-g{background:var(--g)}
-        .data-select{display:flex;gap:8px;margin-bottom:12px}
-        .data-card{flex:1;padding:10px 6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;text-align:center;cursor:pointer;transition:all 0.3s}
-        .data-card:hover,.data-card.sel{background:rgba(74,28,122,0.5);border-color:var(--w)}
-        .data-card img{width:45px;height:45px;border-radius:8px;margin-bottom:5px;object-fit:cover}
-        .data-card p{font-size:10px;color:var(--t);margin:0;font-weight:bold}
-        .sub-tab{display:none}.sub-tab.active{display:block}
-        .add-btn{background:var(--w);color:#000;border:none;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;font-weight:bold;flex-shrink:0}
-        .input-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}.input-row input{flex:1}
-        .remove-btn{background:var(--r);color:#fff;border:none;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:11px;flex-shrink:0}
-        .data-info-link{text-align:right;margin-bottom:5px}
-        .data-info-link a{color:var(--b);font-size:10px;text-decoration:underline;cursor:pointer}
-        .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:5px;display:none;z-index:1000;font-size:12px}
-        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;justify-content:center;align-items:center}
-        .modal.active{display:flex}
-        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto}
-        .modal-box h3{color:var(--w);margin-bottom:12px;text-align:center;font-size:15px}
-        .modal-close{float:right;color:var(--r);cursor:pointer;font-size:20px}
-        .copy-pass-btn{color:var(--b);cursor:pointer;font-size:11px;margin-left:4px}
-        .back-btn{display:block;padding:10px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
+        :root {
+            --bg: #0a0a1a;
+            --p: #1a1f4b;
+            --a: #4a1c7a;
+            --r: #e74c3c;
+            --g: #2ecc71;
+            --w: #f39c12;
+            --b: #3498db;
+            --t: #fff;
+            --card-bg: rgba(26, 31, 75, 0.7);
+            --border-glow: rgba(243, 156, 18, 0.4);
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        html, body {
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        body {
+            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
+            color: var(--t);
+            min-height: 100vh;
+            padding: 15px;
+            overflow-y: auto !important;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding-bottom: 20px;
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            background: linear-gradient(to right, var(--a), var(--p));
+            padding: 14px 15px;
+            border-radius: 12px;
+            border-bottom: 3px solid var(--w);
+            position: relative;
+        }
+        .header a {
+            color: var(--w);
+            font-size: 20px;
+            text-decoration: none;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .header a:hover {
+            transform: scale(1.1);
+        }
+        .header h2 {
+            color: var(--w);
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        /* ========== MARQUEE ========== */
+        .marquee-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 7px 12px;
+            overflow: hidden;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .marquee-text {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.85);
+            white-space: nowrap;
+            animation: marquee 30s linear infinite;
+        }
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* ========== MAINTENANCE ========== */
+        .maintenance-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 70vh;
+            text-align: center;
+            padding: 20px;
+        }
+        .maintenance-icon {
+            font-size: 70px;
+            color: var(--w);
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+        .maintenance-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--w);
+            margin-bottom: 10px;
+        }
+        .maintenance-subtitle {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 8px;
+        }
+        .maintenance-timer {
+            font-size: 26px;
+            font-weight: bold;
+            color: var(--w);
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+        }
+        .maintenance-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: var(--w);
+            color: #000;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        /* ========== PAGE TIMER BANNER ========== */
+        .page-timer-banner {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.3);
+            border-radius: 10px;
+            padding: 12px 15px;
+            display: none;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .page-timer-banner .timer-icon {
+            font-size: 22px;
+            color: var(--r);
+            margin-bottom: 4px;
+        }
+        .page-timer-banner .timer-title {
+            font-size: 11px;
+            color: var(--r);
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .page-timer-banner .timer-countdown {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--w);
+            font-family: 'Courier New', monospace;
+        }
+
+        /* ========== DATA INFO LINK ========== */
+        .data-info-link {
+            text-align: right;
+            margin-bottom: 8px;
+        }
+        .data-info-link a {
+            color: var(--b);
+            font-size: 10px;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+        .data-info-link a:hover {
+            color: var(--w);
+        }
+
+        /* ========== PANEL ========== */
+        .panel {
+            background: var(--card-bg);
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid rgba(74, 28, 122, 0.5);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .panel h3 {
+            color: var(--w);
+            font-size: 14px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid rgba(74, 28, 122, 0.5);
+            padding-bottom: 8px;
+        }
+
+        /* ========== DATA CARD SELECT ========== */
+        .data-select {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .data-card {
+            flex: 1;
+            padding: 14px 8px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .data-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            transition: background 0.3s;
+        }
+        .data-card:hover {
+            background: rgba(74, 28, 122, 0.4);
+            border-color: var(--w);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        .data-card.sel {
+            background: rgba(74, 28, 122, 0.5);
+            border-color: var(--w);
+            box-shadow: 0 0 20px rgba(243, 156, 18, 0.2);
+        }
+        .data-card.sel::before {
+            background: linear-gradient(to right, var(--w), var(--r), var(--w));
+        }
+        .data-card img {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            margin-bottom: 6px;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s;
+        }
+        .data-card:hover img {
+            transform: scale(1.08);
+        }
+        .data-card p {
+            font-size: 10px;
+            color: var(--t);
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        /* ========== SUB TAB ========== */
+        .sub-tab {
+            display: none;
+        }
+        .sub-tab.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== FORM ELEMENTS ========== */
+        .pass-wrapper {
+            position: relative;
+        }
+        .pass-wrapper input {
+            padding-right: 42px !important;
+        }
+        .pass-wrapper .eye-btn {
+            position: absolute;
+            right: 6px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 13px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .pass-wrapper .eye-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--w);
+        }
+        .form-group {
+            margin-bottom: 10px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #ccc;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--t);
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--w);
+            box-shadow: 0 0 12px rgba(243, 156, 18, 0.15);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .form-group select {
+            cursor: pointer;
+        }
+        .form-group select option {
+            background: var(--bg);
+            color: var(--t);
+            padding: 8px;
+        }
+
+        /* ========== COUNTRY SELECT WITH FLAG ========== */
+        .country-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .country-flag {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            width: 100%;
+            padding: 11px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .btn-w {
+            background: linear-gradient(135deg, var(--w), #e67e22);
+            color: #000;
+        }
+        .btn-w:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(243, 156, 18, 0.3);
+        }
+        .btn-g {
+            background: linear-gradient(135deg, var(--g), #27ae60);
+            color: #000;
+        }
+        .btn-g:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 204, 113, 0.3);
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        /* ========== INPUT ROW (ADD/REMOVE) ========== */
+        .input-row {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 6px;
+            animation: fadeIn 0.2s ease;
+        }
+        .input-row input {
+            flex: 1;
+        }
+        .add-btn {
+            background: var(--w);
+            color: #000;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .add-btn:hover {
+            background: #e67e22;
+            transform: scale(1.1);
+        }
+        .remove-btn {
+            background: var(--r);
+            color: #fff;
+            border: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 13px;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .remove-btn:hover {
+            background: #c0392b;
+            transform: scale(1.1);
+        }
+
+        /* ========== TOAST ========== */
+        .notif {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            z-index: 10000;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            animation: slideIn 0.3s ease;
+            display: none;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ========== MODAL ========== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-box {
+            background: var(--p);
+            border: 2px solid var(--w);
+            border-radius: 14px;
+            padding: 22px;
+            width: 90%;
+            max-width: 420px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+        }
+        .modal-box h3 {
+            color: var(--w);
+            margin-bottom: 14px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .modal-close {
+            float: right;
+            color: var(--r);
+            cursor: pointer;
+            font-size: 22px;
+            transition: transform 0.2s;
+        }
+        .modal-close:hover {
+            transform: scale(1.2);
+        }
+
+        /* ========== INFO MODAL STYLES ========== */
+        .info-section {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border-left: 3px solid var(--w);
+        }
+        .info-section h4 {
+            color: var(--w);
+            font-size: 13px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info-section p {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.7;
+        }
+        .password-display {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            transition: border-color 0.3s;
+        }
+        .password-display:hover {
+            border-color: var(--w);
+        }
+        .password-display code {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--w);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        .copy-pass-btn {
+            background: rgba(52, 152, 219, 0.2);
+            color: var(--b);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            cursor: pointer;
+            font-size: 11px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .copy-pass-btn:hover {
+            background: rgba(52, 152, 219, 0.4);
+        }
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(46, 204, 113, 0.15);
+            border: 1px solid rgba(46, 204, 113, 0.3);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 10px;
+            color: var(--g);
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
     <audio id="bgAudio" loop style="display:none"></audio>
     <div class="notif" id="notif"></div>
-    <div class="container">
-        <div class="header">
-            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h2><i class="fas fa-database"></i> Data</h2>
-        </div>
-        
-        <div class="data-info-link"><a onclick="openDataInfo()">အသေးစိတ်သိရှိရန် ဤနေရာကိုနှိပ်ပါ <i class="fas fa-info-circle"></i></a></div>
-        
-        <div class="panel">
-            <div class="data-select">
-                <div class="data-card sel" onclick="showSub('gmailSub')"><img src="https://i.ibb.co/zWXRD2bF/88e14cc7e7fcbb0e0e09de26cec86c61.jpg" alt="Gmail"><p>Gmail</p></div>
-                <div class="data-card" onclick="showSub('mlbbSub')"><img src="https://i.ibb.co/NDZp85p/85cef5aaf89054952dd0c1cb350d7061.jpg" alt="MLBB"><p>MLBB</p></div>
-                <div class="data-card" onclick="showSub('tiktokSub')"><img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok"><p>TikTok</p></div>
-            </div>
-            
-            <div class="sub-tab active" id="gmailSub">
-                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataGmailPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataGmailPass',this)"><i class="fas fa-eye"></i></button></div></div>
-                <button class="btn btn-w" onclick="unlockData('gmail')">Unlock Gmail</button>
-                <div id="gmailForm" style="display:none;margin-top:12px">
-                    <div class="form-group"><label>Name</label><input type="text" id="gName"></div>
-                    <div class="form-group"><label>Email</label><div id="gmailEmailList"><div class="input-row"><input type="email" class="gmail-email" placeholder="Enter email"><button class="add-btn" onclick="addGmailEmail()">+</button></div></div></div>
-                    <div class="form-group"><label>Phone</label><div id="gmailPhoneList"><div class="input-row"><input type="text" class="gmail-phone" placeholder="Enter phone"><button class="add-btn" onclick="addGmailPhone()">+</button></div></div></div>
-                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="gPw"><button class="eye-btn" onclick="togglePass('gPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="gConfirmPw"><button class="eye-btn" onclick="togglePass('gConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>DOB</label><input type="date" id="gAge"></div>
-                    <div class="form-group"><label>Country</label><select id="gCountry" onchange="loadRegions('gCountry','gRegion')"><option value="">Select</option></select></div>
-                    <div class="form-group"><label>Region</label><select id="gRegion"><option value="">Select</option></select></div>
-                    <button class="btn btn-g" onclick="saveGmailData()"><i class="fas fa-save"></i> Save</button>
-                </div>
-            </div>
-            
-            <div class="sub-tab" id="mlbbSub">
-                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataMlbbPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataMlbbPass',this)"><i class="fas fa-eye"></i></button></div></div>
-                <button class="btn btn-w" onclick="unlockData('mlbb')">Unlock MLBB</button>
-                <div id="mlbbForm" style="display:none;margin-top:12px">
-                    <div class="form-group"><label>In-Game Name</label><input type="text" id="mName"></div>
-                    <div class="form-group"><label>In-Game ID</label><input type="text" id="mId"></div>
-                    <div class="form-group"><label>Server ID</label><input type="text" id="mServer"></div>
-                    <div class="form-group"><label>Gmail</label><div id="mlbbEmailList"><div class="input-row"><input type="email" class="mlbb-email" placeholder="Enter Gmail"><button class="add-btn" onclick="addMlbbEmail()">+</button></div></div></div>
-                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="mPw"><button class="eye-btn" onclick="togglePass('mPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="mConfirmPw"><button class="eye-btn" onclick="togglePass('mConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>DOB</label><input type="date" id="mAge"></div>
-                    <div class="form-group"><label>Country</label><select id="mCountry" onchange="loadRegions('mCountry','mRegion')"><option value="">Select</option></select></div>
-                    <div class="form-group"><label>Region</label><select id="mRegion"><option value="">Select</option></select></div>
-                    <button class="btn btn-g" onclick="saveMlbbData()"><i class="fas fa-save"></i> Save</button>
-                </div>
-            </div>
-            
-            <div class="sub-tab" id="tiktokSub">
-                <div class="form-group"><label>Generator Password</label><div class="pass-wrapper"><input type="password" id="dataTiktokPass" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('dataTiktokPass',this)"><i class="fas fa-eye"></i></button></div></div>
-                <button class="btn btn-w" onclick="unlockData('tiktok')">Unlock TikTok</button>
-                <div id="tiktokForm" style="display:none;margin-top:12px">
-                    <div class="form-group"><label>Full Name</label><input type="text" id="tFullName"></div>
-                    <div class="form-group"><label>Last Name</label><input type="text" id="tLastName"></div>
-                    <div class="form-group"><label>Email</label><div id="tiktokEmailList"><div class="input-row"><input type="email" class="tiktok-email" placeholder="Enter email"><button class="add-btn" onclick="addTiktokEmail()">+</button></div></div></div>
-                    <div class="form-group"><label>Phone</label><div id="tiktokPhoneList"><div class="input-row"><input type="text" class="tiktok-phone" placeholder="Enter phone"><button class="add-btn" onclick="addTiktokPhone()">+</button></div></div></div>
-                    <div class="form-group"><label>Password</label><div class="pass-wrapper"><input type="password" id="tPw"><button class="eye-btn" onclick="togglePass('tPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>Confirm</label><div class="pass-wrapper"><input type="password" id="tConfirmPw"><button class="eye-btn" onclick="togglePass('tConfirmPw',this)"><i class="fas fa-eye"></i></button></div></div>
-                    <div class="form-group"><label>DOB</label><input type="date" id="tAge"></div>
-                    <div class="form-group"><label>Country</label><select id="tCountry" onchange="loadRegions('tCountry','tRegion')"><option value="">Select</option></select></div>
-                    <div class="form-group"><label>Region</label><select id="tRegion"><option value="">Select</option></select></div>
-                    <button class="btn btn-g" onclick="saveTiktokData()"><i class="fas fa-save"></i> Save</button>
-                </div>
+
+    <div class="container" id="mainContainer">
+        <!-- Maintenance Message -->
+        <div id="maintenanceMessage" style="display:none">
+            <div class="maintenance-container">
+                <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+                <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+                <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+                <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
+                <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
             </div>
         </div>
-        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
+
+        <!-- Data Content -->
+        <div id="dataContent">
+            <!-- Header -->
+            <div class="header">
+                <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+                <h2><i class="fas fa-database"></i> Data</h2>
+            </div>
+
+            <!-- Marquee -->
+            <div class="marquee-box">
+                <span class="marquee-text">
+                    🔒 သင်၏ Data များအားလုံးကို Encryption ဖြင့် လုံခြုံစွာ သိမ်းဆည်းထားပါသည် | 
+                    ✅ 100% လုံခြုံမှုရှိပြီး မည်သူမှ ခိုးယူ၍မရပါ | 
+                    📋 Gmail, MLBB, TikTok အကောင့်များကို စနစ်တကျ သိမ်းဆည်းနိုင်ပါသည် |
+                    🛡️ Admin မှလွဲ၍ မည်သူမှ ကြည့်ရှု၍မရပါ
+                </span>
+            </div>
+
+            <!-- Page Timer Banner -->
+            <div class="page-timer-banner" id="pageTimerBanner">
+                <div class="timer-icon"><i class="fas fa-clock"></i></div>
+                <div class="timer-title">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+                <div class="timer-countdown" id="pageTimerCountdown">--:--:--</div>
+            </div>
+
+            <!-- Data Info Link -->
+            <div class="data-info-link">
+                <a onclick="openDataInfo()"><i class="fas fa-info-circle"></i> အသေးစိတ်သိရှိရန် ဤနေရာကိုနှိပ်ပါ</a>
+            </div>
+
+            <!-- Main Panel -->
+            <div class="panel">
+                <!-- Card Select -->
+                <div class="data-select">
+                    <div class="data-card sel" onclick="showSub('gmailSub')">
+                        <img src="https://i.ibb.co/zWXRD2bF/88e14cc7e7fcbb0e0e09de26cec86c61.jpg" alt="Gmail">
+                        <p>📧 Gmail</p>
+                    </div>
+                    <div class="data-card" onclick="showSub('mlbbSub')">
+                        <img src="https://i.ibb.co/NDZp85p/85cef5aaf89054952dd0c1cb350d7061.jpg" alt="MLBB">
+                        <p>🎮 MLBB</p>
+                    </div>
+                    <div class="data-card" onclick="showSub('tiktokSub')">
+                        <img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok">
+                        <p>🎵 TikTok</p>
+                    </div>
+                </div>
+
+                <!-- GMAIL SUB TAB -->
+                <div class="sub-tab active" id="gmailSub">
+                    <div class="form-group">
+                        <label>🔐 Generator Password</label>
+                        <div class="pass-wrapper">
+                            <input type="password" id="dataGmailPass" placeholder="Enter Gmail password to unlock">
+                            <button class="eye-btn" onclick="togglePass('dataGmailPass', this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <button class="btn btn-w" onclick="unlockData('gmail')"><i class="fas fa-unlock"></i> Unlock Gmail</button>
+                    <div id="gmailForm" style="display:none;margin-top:14px">
+                        <div class="form-group"><label>👤 Full Name</label><input type="text" id="gName" placeholder="Enter full name"></div>
+                        <div class="form-group"><label>📧 Email Address</label><div id="gmailEmailList"><div class="input-row"><input type="email" class="gmail-email" placeholder="Enter email"><button class="add-btn" onclick="addGmailEmail()">+</button></div></div></div>
+                        <div class="form-group"><label>📱 Phone Number</label><div id="gmailPhoneList"><div class="input-row"><input type="text" class="gmail-phone" placeholder="Enter phone"><button class="add-btn" onclick="addGmailPhone()">+</button></div></div></div>
+                        <div class="form-group"><label>🔑 Password</label><div class="pass-wrapper"><input type="password" id="gPw" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('gPw', this)"><i class="fas fa-eye"></i></button></div></div>
+                        <div class="form-group"><label>🔑 Confirm Password</label><div class="pass-wrapper"><input type="password" id="gConfirmPw" placeholder="Confirm password"><button class="eye-btn" onclick="togglePass('gConfirmPw', this)"><i class="fas fa-eye"></i></button></div></div>
+                        <div class="form-group"><label>🎂 Date of Birth</label><input type="date" id="gAge"></div>
+                        <div class="form-group"><label>🌍 Country</label><select id="gCountry" onchange="loadRegions('gCountry', 'gRegion')"><option value="">Select Country...</option></select></div>
+                        <div class="form-group"><label>📍 Region/State</label><select id="gRegion"><option value="">Select Region...</option></select></div>
+                        <button class="btn btn-g" onclick="saveGmailData()"><i class="fas fa-save"></i> Save Gmail Data</button>
+                    </div>
+                </div>
+
+                <!-- MLBB SUB TAB -->
+                <div class="sub-tab" id="mlbbSub">
+                    <div class="form-group">
+                        <label>🔐 Generator Password</label>
+                        <div class="pass-wrapper">
+                            <input type="password" id="dataMlbbPass" placeholder="Enter MLBB password to unlock">
+                            <button class="eye-btn" onclick="togglePass('dataMlbbPass', this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <button class="btn btn-w" onclick="unlockData('mlbb')"><i class="fas fa-unlock"></i> Unlock MLBB</button>
+                    <div id="mlbbForm" style="display:none;margin-top:14px">
+                        <div class="form-group"><label>🎮 In-Game Name</label><input type="text" id="mName" placeholder="Enter in-game name"></div>
+                        <div class="form-group"><label>🆔 In-Game ID</label><input type="text" id="mId" placeholder="Enter game ID"></div>
+                        <div class="form-group"><label>🖥️ Server ID</label><input type="text" id="mServer" placeholder="Enter server ID"></div>
+                        <div class="form-group"><label>📧 Gmail</label><div id="mlbbEmailList"><div class="input-row"><input type="email" class="mlbb-email" placeholder="Enter Gmail"><button class="add-btn" onclick="addMlbbEmail()">+</button></div></div></div>
+                        <div class="form-group"><label>🔑 Password</label><div class="pass-wrapper"><input type="password" id="mPw" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('mPw', this)"><i class="fas fa-eye"></i></button></div></div>
+                        <div class="form-group"><label>🔑 Confirm Password</label><div class="pass-wrapper"><input type="password" id="mConfirmPw" placeholder="Confirm password"><button class="eye-btn" onclick="togglePass('mConfirmPw', this)"><i class="fas fa-eye"></i></button></div></div>
+                        <div class="form-group"><label>🎂 Date of Birth</label><input type="date" id="mAge"></div>
+                        <div class="form-group"><label>🌍 Country</label><select id="mCountry" onchange="loadRegions('mCountry', 'mRegion')"><option value="">Select Country...</option></select></div>
+                        <div class="form-group"><label>📍 Region/State</label><select id="mRegion"><option value="">Select Region...</option></select></div>
+                        <button class="btn btn-g" onclick="saveMlbbData()"><i class="fas fa-save"></i> Save MLBB Data</button>
+                    </div>
+                </div>
+
+                <!-- TIKTOK SUB TAB -->
+                <div class="sub-tab" id="tiktokSub">
+                    <div class="form-group">
+                        <label>🔐 Generator Password</label>
+                        <div class="pass-wrapper">
+                            <input type="password" id="dataTiktokPass" placeholder="Enter TikTok password to unlock">
+                            <button class="eye-btn" onclick="togglePass('dataTiktokPass', this)"><i class="fas fa-eye"></i></button>
+                        </div>
+                    </div>
+                    <button class="btn btn-w" onclick="unlockData('tiktok')"><i class="fas fa-unlock"></i> Unlock TikTok</button>
+                    <div id="tiktokForm" style="display:none;margin-top:14px">
+                        <div class="form-group"><label>👤 Full Name</label><input type="text" id="tFullName" placeholder="Enter full name"></div>
+                        <div class="form-group"><label>👤 Last Name</label><input type="text" id="tLastName" placeholder="Enter last name"></div>
+                        <div class="form-group"><label>📧 Email</label><div id="tiktokEmailList"><div class="input-row"><input type="email" class="tiktok-email" placeholder="Enter email"><button class="add-btn" onclick="addTiktokEmail()">+</button></div></div></div>
+                        <div class="form-group"><label>📱 Phone</label><div id="tiktokPhoneList"><div class="input-row"><input type="text" class="tiktok-phone" placeholder="Enter phone"><button class="add-btn" onclick="addTiktokPhone()">+</button></div></div></div>
+                        <div class="form-group"><label>🔑 Password</label><div class="pass-wrapper"><input type="password" id="tPw" placeholder="Enter password"><button class="eye-btn" onclick="togglePass('tPw', this)"><i class="fas fa-eye"></i></button></div></div>
+                        <div class="form-group"><label>🔑 Confirm Password</label><div class="pass-wrapper"><input type="password" id="tConfirmPw" placeholder="Confirm password"><button class="eye-btn" onclick="togglePass('tConfirmPw', this)"><i class="fas fa-eye"></i></button></div></div>
+                        <div class="form-group"><label>🎂 Date of Birth</label><input type="date" id="tAge"></div>
+                        <div class="form-group"><label>🌍 Country</label><select id="tCountry" onchange="loadRegions('tCountry', 'tRegion')"><option value="">Select Country...</option></select></div>
+                        <div class="form-group"><label>📍 Region/State</label><select id="tRegion"><option value="">Select Region...</option></select></div>
+                        <button class="btn btn-g" onclick="saveTiktokData()"><i class="fas fa-save"></i> Save TikTok Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div class="modal" id="dataInfoModal"><div class="modal-box"><span class="modal-close" onclick="closeDataInfo()">&times;</span><h3><i class="fas fa-info-circle"></i> Data များအကြောင်း</h3>
-        <div style="font-size:11px;line-height:1.8;color:rgba(255,255,255,0.85)">
-            <p><b style="color:var(--w)">📧 Gmail Data</b> - သင်၏ Gmail အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
-            <br><p><b style="color:var(--w)">🎮 MLBB Data</b> - သင်၏ Mobile Legends အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
-            <br><p><b style="color:var(--w)">🎵 TikTok Data</b> - သင်၏ TikTok အကောင့်အချက်အလက်များကို သိမ်းဆည်းနိုင်ပါသည်။</p>
-            <br><p><b style="color:var(--w)">🔒 Generator Password (အများသုံး)</b></p>
-            <p>• Gmail: <b>DoubleMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i></span></p>
-            <p>• MLBB: <b>GlobalMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('GlobalMK2008')"><i class="fas fa-copy"></i></span></p>
-            <p>• TikTok: <b>DoubleMK2008</b> <span class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i></span></p>
-            <br><p><b style="color:var(--w)">🔑 ကိုယ်ပိုင် Password</b> - Password Tab တွင် ပြောင်းလဲနိုင်ပါသည်။</p>
-            <br><p><b style="color:var(--w)">🛡️ လုံခြုံရေး</b> - Data များကို Encryption ဖြင့် ကာကွယ်ထားပါသည်။</p>
+
+    <!-- Data Info Modal -->
+    <div class="modal" id="dataInfoModal">
+        <div class="modal-box">
+            <span class="modal-close" onclick="closeDataInfo()">&times;</span>
+            <h3><i class="fas fa-info-circle"></i> Data များအကြောင်း</h3>
+            
+            <div class="info-section">
+                <h4>📧 Gmail Data</h4>
+                <p>သင်၏ Gmail အကောင့်အချက်အလက်များကို လုံခြုံစွာ သိမ်းဆည်းနိုင်ပါသည်။ Email, Password, Phone, DOB, Country တို့ကို စနစ်တကျ မှတ်တမ်းတင်ထားနိုင်ပါသည်။</p>
+            </div>
+            
+            <div class="info-section">
+                <h4>🎮 MLBB Data</h4>
+                <p>သင်၏ Mobile Legends အကောင့်အချက်အလက်များ - In-Game Name, ID, Server, Gmail, Password တို့ကို သိမ်းဆည်းနိုင်ပါသည်။</p>
+            </div>
+            
+            <div class="info-section">
+                <h4>🎵 TikTok Data</h4>
+                <p>သင်၏ TikTok အကောင့်အချက်အလက်များ - Name, Email, Phone, Password တို့ကို သိမ်းဆည်းနိုင်ပါသည်။</p>
+            </div>
+            
+            <div class="info-section" style="border-left-color: var(--w); background: rgba(243,156,18,0.05);">
+                <h4>🔒 Generator Password များ</h4>
+                <div class="password-display">
+                    <div>
+                        <span style="font-size:10px;color:rgba(255,255,255,0.5)">📧 Gmail</span><br>
+                        <code>DoubleMK2008</code>
+                    </div>
+                    <button class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div class="password-display">
+                    <div>
+                        <span style="font-size:10px;color:rgba(255,255,255,0.5)">🎮 MLBB</span><br>
+                        <code>GlobalMK2008</code>
+                    </div>
+                    <button class="copy-pass-btn" onclick="copyPassText('GlobalMK2008')"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div class="password-display">
+                    <div>
+                        <span style="font-size:10px;color:rgba(255,255,255,0.5)">🎵 TikTok</span><br>
+                        <code>DoubleMK2008</code>
+                    </div>
+                    <button class="copy-pass-btn" onclick="copyPassText('DoubleMK2008')"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+            </div>
+            
+            <div class="info-section">
+                <h4>🔑 ကိုယ်ပိုင် Password</h4>
+                <p><a href="/password.html" style="color:var(--b);text-decoration:underline;font-weight:bold;">Password Tab</a> တွင် မိမိကိုယ်ပိုင် Generator Password အဖြစ် ပြောင်းလဲနိုင်ပါသည်။</p>
+            </div>
+            
+            <div class="info-section" style="border-left-color: var(--g);">
+                <h4>🛡️ လုံခြုံရေး အာမခံချက်</h4>
+                <p>Data များအားလုံးကို Encryption ဖြင့် ကာကွယ်ထားပါသည်။ Admin မှလွဲ၍ မည်သူမှ ကြည့်ရှုနိုင်မည် မဟုတ်ပါ။</p>
+                <span class="security-badge"><i class="fas fa-shield-alt"></i> 256-bit Encrypted</span>
+            </div>
         </div>
-    </div></div>
+    </div>
 
 <script>
-    // ==================== GLOBAL: BG Music Player ====================
-    const bgAudio = document.getElementById('bgAudio');
-    let musicPlaylist = [], musicCurrentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
-    bgAudio.volume = 0.6;
-    async function checkMusic() {
-        try {
-            const r = await fetch('/api/bg_music?t=' + Date.now());
-            const d = await r.json();
-            if (d.playlist && d.playlist.length > 0) {
-                const newList = JSON.stringify(d.playlist), oldList = JSON.stringify(musicPlaylist);
-                if (newList !== oldList) { musicPlaylist = d.playlist; musicCurrentIndex = 0; playMusic(); }
-                else if (bgAudio.paused && bgAudio.src) { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }
-            } else { bgAudio.pause(); bgAudio.src = ''; musicPlaylist = []; }
-        } catch(e) {}
-    }
-    function playMusic() {
-        if (!musicPlaylist.length) return;
-        if (musicCurrentIndex >= musicPlaylist.length) musicCurrentIndex = 0;
-        const url = musicPlaylist[musicCurrentIndex];
-        if (bgAudio.src !== url) {
-            bgAudio.src = url;
-            bgAudio.addEventListener('canplay', function() { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }, { once: true });
-        } else { bgAudio.play().catch(() => {}); }
-    }
-    bgAudio.addEventListener('ended', function() {
-        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime);
-        musicCurrentIndex = (musicCurrentIndex + 1) % musicPlaylist.length;
-        localStorage.setItem('bgMusicIndex', musicCurrentIndex);
-        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, '0');
-        playMusic();
-    });
-    setInterval(() => { if (!bgAudio.paused && musicPlaylist.length > 0) { localStorage.setItem('bgMusicIndex', musicCurrentIndex); localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime); } }, 500);
-    checkMusic();
-    setInterval(checkMusic, 2000);
+    // ==================== COUNTRIES DATA - 195 COUNTRIES ====================
+const COUNTRIES_DATA = [
+    { name: "Afghanistan", flag: "🇦🇫", regions: ["Kabul", "Kandahar", "Herat", "Mazar-i-Sharif", "Jalalabad", "Bamyan", "Kunduz", "Ghazni"] },
+    { name: "Albania", flag: "🇦🇱", regions: ["Tirana", "Durrës", "Vlorë", "Shkodër", "Fier", "Berat", "Korçë", "Elbasan"] },
+    { name: "Algeria", flag: "🇩🇿", regions: ["Algiers", "Oran", "Constantine", "Annaba", "Batna", "Tlemcen", "Sétif", "Biskra"] },
+    { name: "Andorra", flag: "🇦🇩", regions: ["Andorra la Vella", "Escaldes-Engordany", "Encamp", "La Massana", "Ordino", "Sant Julià de Lòria"] },
+    { name: "Angola", flag: "🇦🇴", regions: ["Luanda", "Huambo", "Benguela", "Lobito", "Lubango", "Malanje", "Cabinda", "Namibe"] },
+    { name: "Antigua and Barbuda", flag: "🇦🇬", regions: ["St. John's", "Codrington", "Parham", "Bolands", "Falmouth", "Liberta"] },
+    { name: "Argentina", flag: "🇦🇷", regions: ["Buenos Aires", "Córdoba", "Rosario", "Mendoza", "Tucumán", "La Plata", "Mar del Plata", "Salta"] },
+    { name: "Armenia", flag: "🇦🇲", regions: ["Yerevan", "Gyumri", "Vanadzor", "Vagharshapat", "Hrazdan", "Abovyan", "Kapan", "Armavir"] },
+    { name: "Australia", flag: "🇦🇺", regions: ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Gold Coast", "Canberra", "Hobart", "Darwin"] },
+    { name: "Austria", flag: "🇦🇹", regions: ["Vienna", "Salzburg", "Graz", "Innsbruck", "Linz", "Klagenfurt", "Bregenz", "St. Pölten"] },
+    { name: "Azerbaijan", flag: "🇦🇿", regions: ["Baku", "Ganja", "Sumgait", "Lankaran", "Nakhchivan", "Quba", "Shaki", "Khankendi"] },
+    { name: "Bahamas", flag: "🇧🇸", regions: ["Nassau", "Freeport", "Marsh Harbour", "Alice Town", "George Town", "Dunmore Town"] },
+    { name: "Bahrain", flag: "🇧🇭", regions: ["Manama", "Riffa", "Muharraq", "Hamad Town", "Isa Town", "Sitra", "Budaiya"] },
+    { name: "Bangladesh", flag: "🇧🇩", regions: ["Dhaka", "Chittagong", "Khulna", "Rajshahi", "Sylhet", "Barisal", "Rangpur", "Mymensingh", "Comilla"] },
+    { name: "Barbados", flag: "🇧🇧", regions: ["Bridgetown", "Speightstown", "Oistins", "Holetown", "Bathsheba", "Six Cross Roads"] },
+    { name: "Belarus", flag: "🇧🇾", regions: ["Minsk", "Gomel", "Mogilev", "Vitebsk", "Grodno", "Brest", "Baranovichi", "Pinsk"] },
+    { name: "Belgium", flag: "🇧🇪", regions: ["Brussels", "Antwerp", "Ghent", "Bruges", "Liège", "Leuven", "Namur", "Charleroi"] },
+    { name: "Belize", flag: "🇧🇿", regions: ["Belize City", "Belmopan", "San Ignacio", "Orange Walk", "Dangriga", "Corozal", "Punta Gorda"] },
+    { name: "Benin", flag: "🇧🇯", regions: ["Cotonou", "Porto-Novo", "Parakou", "Abomey", "Natitingou", "Ouidah", "Kandi", "Lokossa"] },
+    { name: "Bhutan", flag: "🇧🇹", regions: ["Thimphu", "Phuntsholing", "Paro", "Punakha", "Bumthang", "Trongsa", "Wangdue Phodrang"] },
+    { name: "Bolivia", flag: "🇧🇴", regions: ["La Paz", "Santa Cruz", "Cochabamba", "Sucre", "Oruro", "Tarija", "Potosí", "Trinidad"] },
+    { name: "Bosnia and Herzegovina", flag: "🇧🇦", regions: ["Sarajevo", "Banja Luka", "Mostar", "Tuzla", "Zenica", "Bijeljina", "Brčko", "Trebinje"] },
+    { name: "Botswana", flag: "🇧🇼", regions: ["Gaborone", "Francistown", "Molepolole", "Maun", "Serowe", "Kasane", "Jwaneng", "Lobatse"] },
+    { name: "Brazil", flag: "🇧🇷", regions: ["São Paulo", "Rio de Janeiro", "Salvador", "Brasília", "Fortaleza", "Manaus", "Curitiba", "Recife", "Porto Alegre"] },
+    { name: "Brunei", flag: "🇧🇳", regions: ["Bandar Seri Begawan", "Kuala Belait", "Seria", "Tutong", "Muara", "Bangar"] },
+    { name: "Bulgaria", flag: "🇧🇬", regions: ["Sofia", "Plovdiv", "Varna", "Burgas", "Ruse", "Stara Zagora", "Pleven", "Dobrich"] },
+    { name: "Burkina Faso", flag: "🇧🇫", regions: ["Ouagadougou", "Bobo-Dioulasso", "Koudougou", "Banfora", "Ouahigouya", "Fada N'gourma", "Tenkodogo"] },
+    { name: "Burundi", flag: "🇧🇮", regions: ["Bujumbura", "Gitega", "Ngozi", "Rumonge", "Kayanza", "Muyinga", "Ruyigi", "Makamba"] },
+    { name: "Cambodia", flag: "🇰🇭", regions: ["Phnom Penh", "Siem Reap", "Battambang", "Sihanoukville", "Kampot", "Kep", "Kampong Cham", "Poipet"] },
+    { name: "Cameroon", flag: "🇨🇲", regions: ["Yaoundé", "Douala", "Bamenda", "Garoua", "Maroua", "Bafoussam", "Limbe", "Kumba"] },
+    { name: "Canada", flag: "🇨🇦", regions: ["Toronto", "Vancouver", "Montreal", "Calgary", "Ottawa", "Edmonton", "Quebec City", "Winnipeg", "Halifax"] },
+    { name: "Cape Verde", flag: "🇨🇻", regions: ["Praia", "Mindelo", "Santa Maria", "Assomada", "Tarrafal", "Sal Rei", "São Filipe"] },
+    { name: "Central African Republic", flag: "🇨🇫", regions: ["Bangui", "Bimbo", "Berbérati", "Carnot", "Bambari", "Bouar", "Bossangoa", "Mbaïki"] },
+    { name: "Chad", flag: "🇹🇩", regions: ["N'Djamena", "Moundou", "Sarh", "Abéché", "Kélo", "Am Timan", "Doba", "Pala"] },
+    { name: "Chile", flag: "🇨🇱", regions: ["Santiago", "Valparaíso", "Concepción", "La Serena", "Antofagasta", "Puerto Montt", "Temuco", "Iquique"] },
+    { name: "China", flag: "🇨🇳", regions: ["Beijing", "Shanghai", "Guangzhou", "Shenzhen", "Chengdu", "Hangzhou", "Wuhan", "Nanjing", "Chongqing"] },
+    { name: "Colombia", flag: "🇨🇴", regions: ["Bogotá", "Medellín", "Cali", "Barranquilla", "Cartagena", "Bucaramanga", "Pereira", "Santa Marta"] },
+    { name: "Comoros", flag: "🇰🇲", regions: ["Moroni", "Mutsamudu", "Fomboni", "Domoni", "Tsémbehou", "Ouani"] },
+    { name: "Congo (DRC)", flag: "🇨🇩", regions: ["Kinshasa", "Lubumbashi", "Mbuji-Mayi", "Kisangani", "Bukavu", "Goma", "Matadi", "Kananga"] },
+    { name: "Congo (Republic)", flag: "🇨🇬", regions: ["Brazzaville", "Pointe-Noire", "Dolisie", "Nkayi", "Owando", "Ouésso", "Madingou"] },
+    { name: "Costa Rica", flag: "🇨🇷", regions: ["San José", "Alajuela", "Cartago", "Heredia", "Liberia", "Puntarenas", "Limón", "San Isidro"] },
+    { name: "Croatia", flag: "🇭🇷", regions: ["Zagreb", "Split", "Dubrovnik", "Rijeka", "Zadar", "Osijek", "Pula", "Šibenik"] },
+    { name: "Cuba", flag: "🇨🇺", regions: ["Havana", "Santiago de Cuba", "Camagüey", "Holguín", "Santa Clara", "Trinidad", "Cienfuegos", "Varadero"] },
+    { name: "Cyprus", flag: "🇨🇾", regions: ["Nicosia", "Limassol", "Larnaca", "Paphos", "Famagusta", "Kyrenia", "Ayia Napa", "Protaras"] },
+    { name: "Czech Republic", flag: "🇨🇿", regions: ["Prague", "Brno", "Ostrava", "Plzeň", "Liberec", "Olomouc", "České Budějovice", "Karlovy Vary"] },
+    { name: "Denmark", flag: "🇩🇰", regions: ["Copenhagen", "Aarhus", "Odense", "Aalborg", "Esbjerg", "Randers", "Kolding", "Vejle"] },
+    { name: "Djibouti", flag: "🇩🇯", regions: ["Djibouti City", "Ali Sabieh", "Tadjourah", "Obock", "Dikhil", "Arta", "Holhol"] },
+    { name: "Dominica", flag: "🇩🇲", regions: ["Roseau", "Portsmouth", "Marigot", "Castle Bruce", "Salisbury", "Wesley"] },
+    { name: "Dominican Republic", flag: "🇩🇴", regions: ["Santo Domingo", "Santiago", "Puerto Plata", "La Romana", "Punta Cana", "San Pedro", "Boca Chica"] },
+    { name: "Ecuador", flag: "🇪🇨", regions: ["Quito", "Guayaquil", "Cuenca", "Manta", "Ambato", "Esmeraldas", "Loja", "Machala"] },
+    { name: "Egypt", flag: "🇪🇬", regions: ["Cairo", "Alexandria", "Giza", "Luxor", "Aswan", "Sharm El Sheikh", "Hurghada", "Port Said", "Mansoura"] },
+    { name: "El Salvador", flag: "🇸🇻", regions: ["San Salvador", "Santa Ana", "San Miguel", "Sonsonate", "Santa Tecla", "Usulután"] },
+    { name: "Equatorial Guinea", flag: "🇬🇶", regions: ["Malabo", "Bata", "Ebebiyín", "Mongomo", "Evinayong", "Luba"] },
+    { name: "Eritrea", flag: "🇪🇷", regions: ["Asmara", "Keren", "Massawa", "Assab", "Mendefera", "Barentu", "Adi Keyh"] },
+    { name: "Estonia", flag: "🇪🇪", regions: ["Tallinn", "Tartu", "Narva", "Pärnu", "Kohtla-Järve", "Viljandi", "Rakvere", "Kuressaare"] },
+    { name: "Eswatini", flag: "🇸🇿", regions: ["Mbabane", "Manzini", "Lobamba", "Siteki", "Piggs Peak", "Nhlangano"] },
+    { name: "Ethiopia", flag: "🇪🇹", regions: ["Addis Ababa", "Dire Dawa", "Mekelle", "Adama", "Gondar", "Bahir Dar", "Hawassa", "Jimma"] },
+    { name: "Fiji", flag: "🇫🇯", regions: ["Suva", "Nadi", "Lautoka", "Labasa", "Ba", "Levuka", "Savusavu"] },
+    { name: "Finland", flag: "🇫🇮", regions: ["Helsinki", "Espoo", "Tampere", "Vantaa", "Oulu", "Turku", "Jyväskylä", "Lahti"] },
+    { name: "France", flag: "🇫🇷", regions: ["Paris", "Marseille", "Lyon", "Toulouse", "Nice", "Bordeaux", "Lille", "Strasbourg", "Nantes"] },
+    { name: "Gabon", flag: "🇬🇦", regions: ["Libreville", "Port-Gentil", "Franceville", "Oyem", "Moanda", "Mouila", "Lambaréné"] },
+    { name: "Gambia", flag: "🇬🇲", regions: ["Banjul", "Serekunda", "Brikama", "Bakau", "Farafenni", "Basse", "Bansang"] },
+    { name: "Georgia", flag: "🇬🇪", regions: ["Tbilisi", "Batumi", "Kutaisi", "Rustavi", "Zugdidi", "Gori", "Poti", "Sokhumi"] },
+    { name: "Germany", flag: "🇩🇪", regions: ["Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne", "Stuttgart", "Düsseldorf", "Leipzig", "Dresden"] },
+    { name: "Ghana", flag: "🇬🇭", regions: ["Accra", "Kumasi", "Tamale", "Takoradi", "Cape Coast", "Sunyani", "Ho", "Obuasi"] },
+    { name: "Greece", flag: "🇬🇷", regions: ["Athens", "Thessaloniki", "Patras", "Heraklion", "Larissa", "Volos", "Rhodes", "Corfu"] },
+    { name: "Grenada", flag: "🇬🇩", regions: ["St. George's", "Grenville", "Sauteurs", "Victoria", "Hillsborough", "Gouyave"] },
+    { name: "Guatemala", flag: "🇬🇹", regions: ["Guatemala City", "Antigua", "Quetzaltenango", "Escuintla", "Cobán", "Flores", "Chichicastenango"] },
+    { name: "Guinea", flag: "🇬🇳", regions: ["Conakry", "Nzérékoré", "Kankan", "Kindia", "Labé", "Mamou", "Faranah"] },
+    { name: "Guinea-Bissau", flag: "🇬🇼", regions: ["Bissau", "Gabú", "Bafatá", "Cacheu", "Bolama", "Buba", "Farim"] },
+    { name: "Guyana", flag: "🇬🇾", regions: ["Georgetown", "Linden", "New Amsterdam", "Bartica", "Lethem", "Mabaruma"] },
+    { name: "Haiti", flag: "🇭🇹", regions: ["Port-au-Prince", "Cap-Haïtien", "Gonaïves", "Jacmel", "Les Cayes", "Port-de-Paix", "Jérémie"] },
+    { name: "Honduras", flag: "🇭🇳", regions: ["Tegucigalpa", "San Pedro Sula", "La Ceiba", "Comayagua", "Roatán", "Copán", "Trujillo"] },
+    { name: "Hungary", flag: "🇭🇺", regions: ["Budapest", "Debrecen", "Szeged", "Miskolc", "Pécs", "Győr", "Nyíregyháza", "Kecskemét"] },
+    { name: "Iceland", flag: "🇮🇸", regions: ["Reykjavik", "Kópavogur", "Hafnarfjörður", "Akureyri", "Reykjanesbær", "Garðabær", "Selfoss"] },
+    { name: "India", flag: "🇮🇳", regions: ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "Chennai", "Kolkata", "Pune", "Jaipur", "Ahmedabad"] },
+    { name: "Indonesia", flag: "🇮🇩", regions: ["Jakarta", "Surabaya", "Bandung", "Medan", "Bali", "Yogyakarta", "Semarang", "Makassar", "Palembang"] },
+    { name: "Iran", flag: "🇮🇷", regions: ["Tehran", "Mashhad", "Isfahan", "Tabriz", "Shiraz", "Qom", "Ahvaz", "Kermanshah"] },
+    { name: "Iraq", flag: "🇮🇶", regions: ["Baghdad", "Mosul", "Basra", "Erbil", "Najaf", "Karbala", "Sulaymaniyah", "Kirkuk"] },
+    { name: "Ireland", flag: "🇮🇪", regions: ["Dublin", "Cork", "Limerick", "Galway", "Waterford", "Kilkenny", "Sligo", "Dundalk"] },
+    { name: "Israel", flag: "🇮🇱", regions: ["Jerusalem", "Tel Aviv", "Haifa", "Eilat", "Netanya", "Ashdod", "Beersheba", "Nazareth"] },
+    { name: "Italy", flag: "🇮🇹", regions: ["Rome", "Milan", "Naples", "Turin", "Florence", "Venice", "Bologna", "Genoa", "Verona"] },
+    { name: "Ivory Coast", flag: "🇨🇮", regions: ["Abidjan", "Yamoussoukro", "Bouaké", "Daloa", "Korhogo", "San-Pédro", "Man"] },
+    { name: "Jamaica", flag: "🇯🇲", regions: ["Kingston", "Montego Bay", "Negril", "Ocho Rios", "Port Antonio", "Spanish Town", "Mandeville"] },
+    { name: "Japan", flag: "🇯🇵", regions: ["Tokyo", "Osaka", "Kyoto", "Yokohama", "Sapporo", "Fukuoka", "Nagoya", "Kobe", "Hiroshima"] },
+    { name: "Jordan", flag: "🇯🇴", regions: ["Amman", "Petra", "Aqaba", "Irbid", "Zarqa", "Madaba", "Jerash", "Wadi Rum"] },
+    { name: "Kazakhstan", flag: "🇰🇿", regions: ["Almaty", "Nur-Sultan", "Shymkent", "Karaganda", "Aktobe", "Taraz", "Pavlodar", "Atyrau"] },
+    { name: "Kenya", flag: "🇰🇪", regions: ["Nairobi", "Mombasa", "Kisumu", "Nakuru", "Eldoret", "Malindi", "Lamu", "Nyeri"] },
+    { name: "Kiribati", flag: "🇰🇮", regions: ["Tarawa", "Betio", "Bikenibeu", "Taburao", "Bairiki", "Eita"] },
+    { name: "Kuwait", flag: "🇰🇼", regions: ["Kuwait City", "Hawalli", "Farwaniya", "Ahmadi", "Jahra", "Salmiya", "Fahaheel"] },
+    { name: "Kyrgyzstan", flag: "🇰🇬", regions: ["Bishkek", "Osh", "Jalal-Abad", "Karakol", "Tokmok", "Naryn", "Batken", "Talas"] },
+    { name: "Laos", flag: "🇱🇦", regions: ["Vientiane", "Luang Prabang", "Savannakhet", "Pakse", "Vang Vieng", "Phonsavan", "Thakhek", "Udomxai"] },
+    { name: "Latvia", flag: "🇱🇻", regions: ["Riga", "Daugavpils", "Liepāja", "Jelgava", "Jūrmala", "Ventspils", "Rēzekne", "Valmiera"] },
+    { name: "Lebanon", flag: "🇱🇧", regions: ["Beirut", "Tripoli", "Sidon", "Tyre", "Byblos", "Zahle", "Baalbek", "Jounieh"] },
+    { name: "Lesotho", flag: "🇱🇸", regions: ["Maseru", "Teyateyaneng", "Mafeteng", "Mohale's Hoek", "Quthing", "Butha-Buthe", "Leribe"] },
+    { name: "Liberia", flag: "🇱🇷", regions: ["Monrovia", "Gbarnga", "Kakata", "Harper", "Voinjama", "Buchanan", "Zwedru"] },
+    { name: "Libya", flag: "🇱🇾", regions: ["Tripoli", "Benghazi", "Misrata", "Sabha", "Zawiya", "Tobruk", "Sirte", "Derna"] },
+    { name: "Liechtenstein", flag: "🇱🇮", regions: ["Vaduz", "Schaan", "Balzers", "Triesen", "Eschen", "Mauren", "Ruggell"] },
+    { name: "Lithuania", flag: "🇱🇹", regions: ["Vilnius", "Kaunas", "Klaipėda", "Šiauliai", "Panevėžys", "Alytus", "Marijampolė", "Utena"] },
+    { name: "Luxembourg", flag: "🇱🇺", regions: ["Luxembourg City", "Esch-sur-Alzette", "Differdange", "Dudelange", "Ettelbruck", "Wiltz"] },
+    { name: "Madagascar", flag: "🇲🇬", regions: ["Antananarivo", "Toamasina", "Antsirabe", "Mahajanga", "Fianarantsoa", "Toliara", "Nosy Be"] },
+    { name: "Malawi", flag: "🇲🇼", regions: ["Lilongwe", "Blantyre", "Mzuzu", "Zomba", "Mangochi", "Karonga", "Salima"] },
+    { name: "Malaysia", flag: "🇲🇾", regions: ["Kuala Lumpur", "Penang", "Johor Bahru", "Kota Kinabalu", "Kuching", "Malacca", "Ipoh", "Langkawi", "Putrajaya"] },
+    { name: "Maldives", flag: "🇲🇻", regions: ["Malé", "Addu City", "Fuvahmulah", "Hulhumalé", "Villingili", "Thinadhoo"] },
+    { name: "Mali", flag: "🇲🇱", regions: ["Bamako", "Sikasso", "Mopti", "Timbuktu", "Gao", "Kayes", "Kidal", "Ségou"] },
+    { name: "Malta", flag: "🇲🇹", regions: ["Valletta", "Birkirkara", "Sliema", "St. Julian's", "Mosta", "Qormi", "Żabbar", "Gozo"] },
+    { name: "Marshall Islands", flag: "🇲🇭", regions: ["Majuro", "Ebeye", "Kwajalein", "Jaluit", "Wotje", "Rongelap"] },
+    { name: "Mauritania", flag: "🇲🇷", regions: ["Nouakchott", "Nouadhibou", "Rosso", "Kaédi", "Zouérat", "Atar", "Kiffa"] },
+    { name: "Mauritius", flag: "🇲🇺", regions: ["Port Louis", "Curepipe", "Beau Bassin", "Quatre Bornes", "Vacoas", "Mahébourg", "Flic en Flac"] },
+    { name: "Mexico", flag: "🇲🇽", regions: ["Mexico City", "Guadalajara", "Monterrey", "Cancún", "Puebla", "Tijuana", "Mérida", "Oaxaca", "Puerto Vallarta"] },
+    { name: "Micronesia", flag: "🇫🇲", regions: ["Palikir", "Weno", "Kolonia", "Tofol", "Colonia", "Lelu"] },
+    { name: "Moldova", flag: "🇲🇩", regions: ["Chișinău", "Bălți", "Tiraspol", "Cahul", "Orhei", "Ungheni", "Soroca"] },
+    { name: "Monaco", flag: "🇲🇨", regions: ["Monaco-Ville", "Monte Carlo", "La Condamine", "Fontvieille", "Larvotto", "Moneghetti"] },
+    { name: "Mongolia", flag: "🇲🇳", regions: ["Ulaanbaatar", "Erdenet", "Darkhan", "Choibalsan", "Mörön", "Khovd", "Ölgii"] },
+    { name: "Montenegro", flag: "🇲🇪", regions: ["Podgorica", "Nikšić", "Budva", "Kotor", "Bar", "Herceg Novi", "Cetinje", "Tivat"] },
+    { name: "Morocco", flag: "🇲🇦", regions: ["Casablanca", "Rabat", "Marrakech", "Fez", "Tangier", "Agadir", "Chefchaouen", "Essaouira"] },
+    { name: "Mozambique", flag: "🇲🇿", regions: ["Maputo", "Beira", "Nampula", "Pemba", "Quelimane", "Tete", "Inhambane", "Lichinga"] },
+    { name: "Myanmar", flag: "🇲🇲", regions: ["Yangon", "Mandalay", "Naypyidaw", "Bago", "Taunggyi", "Mawlamyine", "Pathein", "Sittwe", "Myitkyina"] },
+    { name: "Namibia", flag: "🇳🇦", regions: ["Windhoek", "Swakopmund", "Walvis Bay", "Oshakati", "Lüderitz", "Gobabis", "Keetmanshoop"] },
+    { name: "Nauru", flag: "🇳🇷", regions: ["Yaren", "Denigomodu", "Meneng", "Aiwo", "Boe", "Buada"] },
+    { name: "Nepal", flag: "🇳🇵", regions: ["Kathmandu", "Pokhara", "Lalitpur", "Biratnagar", "Chitwan", "Bhaktapur", "Lumbini", "Nagarkot"] },
+    { name: "Netherlands", flag: "🇳🇱", regions: ["Amsterdam", "Rotterdam", "The Hague", "Utrecht", "Eindhoven", "Groningen", "Maastricht", "Leiden"] },
+    { name: "New Zealand", flag: "🇳🇿", regions: ["Auckland", "Wellington", "Christchurch", "Queenstown", "Hamilton", "Tauranga", "Dunedin", "Rotorua"] },
+    { name: "Nicaragua", flag: "🇳🇮", regions: ["Managua", "León", "Granada", "Masaya", "Estelí", "Matagalpa", "San Juan del Sur"] },
+    { name: "Niger", flag: "🇳🇪", regions: ["Niamey", "Zinder", "Maradi", "Agadez", "Tahoua", "Dosso", "Diffa"] },
+    { name: "Nigeria", flag: "🇳🇬", regions: ["Lagos", "Abuja", "Kano", "Ibadan", "Port Harcourt", "Benin City", "Enugu", "Calabar", "Warri"] },
+    { name: "North Korea", flag: "🇰🇵", regions: ["Pyongyang", "Hamhung", "Chongjin", "Nampo", "Wonsan", "Kaesong", "Sinuiju"] },
+    { name: "North Macedonia", flag: "🇲🇰", regions: ["Skopje", "Bitola", "Ohrid", "Tetovo", "Kumanovo", "Prilep", "Struga"] },
+    { name: "Norway", flag: "🇳🇴", regions: ["Oslo", "Bergen", "Trondheim", "Stavanger", "Tromsø", "Drammen", "Bodø", "Ålesund"] },
+    { name: "Oman", flag: "🇴🇲", regions: ["Muscat", "Salalah", "Nizwa", "Sohar", "Sur", "Barka", "Khasab", "Ibri"] },
+    { name: "Pakistan", flag: "🇵🇰", regions: ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Peshawar", "Quetta", "Multan", "Faisalabad", "Sialkot"] },
+    { name: "Palau", flag: "🇵🇼", regions: ["Ngerulmud", "Koror", "Melekeok", "Airai", "Peleliu", "Angaur"] },
+    { name: "Palestine", flag: "🇵🇸", regions: ["Gaza", "Ramallah", "Bethlehem", "Hebron", "Nablus", "Jenin", "Jericho"] },
+    { name: "Panama", flag: "🇵🇦", regions: ["Panama City", "Colón", "David", "Bocas del Toro", "Boquete", "El Valle", "Santiago"] },
+    { name: "Papua New Guinea", flag: "🇵🇬", regions: ["Port Moresby", "Lae", "Mount Hagen", "Madang", "Goroka", "Rabaul", "Wewak"] },
+    { name: "Paraguay", flag: "🇵🇾", regions: ["Asunción", "Ciudad del Este", "Encarnación", "San Lorenzo", "Luque", "Pedro Juan Caballero"] },
+    { name: "Peru", flag: "🇵🇪", regions: ["Lima", "Cusco", "Arequipa", "Trujillo", "Iquitos", "Puno", "Piura", "Chiclayo"] },
+    { name: "Philippines", flag: "🇵🇭", regions: ["Manila", "Cebu", "Davao", "Quezon City", "Makati", "Baguio", "Iloilo", "Cagayan de Oro", "Zamboanga"] },
+    { name: "Poland", flag: "🇵🇱", regions: ["Warsaw", "Krakow", "Gdansk", "Wroclaw", "Poznan", "Lodz", "Szczecin", "Lublin"] },
+    { name: "Portugal", flag: "🇵🇹", regions: ["Lisbon", "Porto", "Faro", "Braga", "Coimbra", "Aveiro", "Sintra", "Lagos"] },
+    { name: "Qatar", flag: "🇶🇦", regions: ["Doha", "Al Wakrah", "Al Khor", "Al Rayyan", "Umm Salal", "Mesaieed", "Lusail"] },
+    { name: "Romania", flag: "🇷🇴", regions: ["Bucharest", "Cluj-Napoca", "Timișoara", "Brașov", "Iași", "Constanța", "Sibiu", "Oradea"] },
+    { name: "Russia", flag: "🇷🇺", regions: ["Moscow", "St. Petersburg", "Novosibirsk", "Kazan", "Sochi", "Vladivostok", "Yekaterinburg", "Kaliningrad"] },
+    { name: "Rwanda", flag: "🇷🇼", regions: ["Kigali", "Butare", "Gisenyi", "Ruhengeri", "Gitarama", "Cyangugu", "Kibuye"] },
+    { name: "Saint Kitts and Nevis", flag: "🇰🇳", regions: ["Basseterre", "Charlestown", "Sandy Point", "Cayon", "Gingerland", "Newcastle"] },
+    { name: "Saint Lucia", flag: "🇱🇨", regions: ["Castries", "Vieux Fort", "Soufrière", "Gros Islet", "Rodney Bay", "Dennery"] },
+    { name: "Saint Vincent", flag: "🇻🇨", regions: ["Kingstown", "Barrouallie", "Chateaubelair", "Georgetown", "Layou", "Port Elizabeth"] },
+    { name: "Samoa", flag: "🇼🇸", regions: ["Apia", "Salelologa", "Mulifanua", "Leulumoega", "Safotu", "Falealupo"] },
+    { name: "San Marino", flag: "🇸🇲", regions: ["San Marino", "Serravalle", "Borgo Maggiore", "Domagnano", "Fiorentino", "Montegiardino"] },
+    { name: "Sao Tome and Principe", flag: "🇸🇹", regions: ["São Tomé", "Santo António", "Neves", "Guadalupe", "Trindade", "Santana"] },
+    { name: "Saudi Arabia", flag: "🇸🇦", regions: ["Riyadh", "Jeddah", "Mecca", "Medina", "Dammam", "Taif", "Abha", "Tabuk", "Al Khobar"] },
+    { name: "Senegal", flag: "🇸🇳", regions: ["Dakar", "Saint-Louis", "Thiès", "Touba", "Kaolack", "Ziguinchor", "Mbour"] },
+    { name: "Serbia", flag: "🇷🇸", regions: ["Belgrade", "Novi Sad", "Niš", "Kragujevac", "Subotica", "Zrenjanin", "Čačak"] },
+    { name: "Seychelles", flag: "🇸🇨", regions: ["Victoria", "Anse Royale", "Beau Vallon", "Anse Boileau", "Takamaka", "Grand Anse"] },
+    { name: "Sierra Leone", flag: "🇸🇱", regions: ["Freetown", "Makeni", "Bo", "Kenema", "Koidu", "Port Loko", "Waterloo"] },
+    { name: "Singapore", flag: "🇸🇬", regions: ["Central", "North East", "North West", "South East", "South West", "East", "Orchard", "Marina Bay"] },
+    { name: "Slovakia", flag: "🇸🇰", regions: ["Bratislava", "Košice", "Prešov", "Žilina", "Nitra", "Banská Bystrica", "Trnava"] },
+    { name: "Slovenia", flag: "🇸🇮", regions: ["Ljubljana", "Maribor", "Celje", "Kranj", "Koper", "Velenje", "Novo Mesto"] },
+    { name: "Solomon Islands", flag: "🇸🇧", regions: ["Honiara", "Gizo", "Auki", "Kirakira", "Tulagi", "Lata"] },
+    { name: "Somalia", flag: "🇸🇴", regions: ["Mogadishu", "Hargeisa", "Kismayo", "Baidoa", "Bosaso", "Marka", "Berbera"] },
+    { name: "South Africa", flag: "🇿🇦", regions: ["Johannesburg", "Cape Town", "Durban", "Pretoria", "Port Elizabeth", "Bloemfontein", "Knysna", "Stellenbosch"] },
+    { name: "South Korea", flag: "🇰🇷", regions: ["Seoul", "Busan", "Incheon", "Daegu", "Gwangju", "Daejeon", "Jeju", "Suwon", "Ulsan"] },
+    { name: "South Sudan", flag: "🇸🇸", regions: ["Juba", "Malakal", "Wau", "Yei", "Yambio", "Rumbek", "Bor", "Aweil"] },
+    { name: "Spain", flag: "🇪🇸", regions: ["Madrid", "Barcelona", "Valencia", "Seville", "Bilbao", "Málaga", "Granada", "Palma", "Ibiza"] },
+    { name: "Sri Lanka", flag: "🇱🇰", regions: ["Colombo", "Kandy", "Galle", "Jaffna", "Negombo", "Anuradhapura", "Trincomalee", "Bentota"] },
+    { name: "Sudan", flag: "🇸🇩", regions: ["Khartoum", "Omdurman", "Port Sudan", "Kassala", "Nyala", "El Obeid", "Wad Madani"] },
+    { name: "Suriname", flag: "🇸🇷", regions: ["Paramaribo", "Lelydorp", "Nieuw Nickerie", "Moengo", "Albina", "Brokopondo"] },
+    { name: "Sweden", flag: "🇸🇪", regions: ["Stockholm", "Gothenburg", "Malmö", "Uppsala", "Västerås", "Örebro", "Linköping", "Lund"] },
+    { name: "Switzerland", flag: "🇨🇭", regions: ["Zurich", "Geneva", "Basel", "Bern", "Lucerne", "Lausanne", "Interlaken", "Zermatt"] },
+    { name: "Syria", flag: "🇸🇾", regions: ["Damascus", "Aleppo", "Homs", "Latakia", "Hama", "Deir ez-Zor", "Tartus"] },
+    { name: "Taiwan", flag: "🇹🇼", regions: ["Taipei", "Kaohsiung", "Taichung", "Tainan", "Hsinchu", "Keelung", "Chiayi"] },
+    { name: "Tajikistan", flag: "🇹🇯", regions: ["Dushanbe", "Khujand", "Kulob", "Bokhtar", "Istaravshan", "Panjakent", "Khorugh"] },
+    { name: "Tanzania", flag: "🇹🇿", regions: ["Dar es Salaam", "Dodoma", "Arusha", "Zanzibar", "Mwanza", "Mbeya", "Moshi", "Kigoma"] },
+    { name: "Thailand", flag: "🇹🇭", regions: ["Bangkok", "Chiang Mai", "Phuket", "Pattaya", "Krabi", "Hua Hin", "Koh Samui", "Ayutthaya", "Chiang Rai"] },
+    { name: "Timor-Leste", flag: "🇹🇱", regions: ["Dili", "Baucau", "Maliana", "Suai", "Same", "Ainaro"] },
+    { name: "Togo", flag: "🇹🇬", regions: ["Lomé", "Sokodé", "Kara", "Kpalimé", "Atakpamé", "Dapaong", "Bassar"] },
+    { name: "Tonga", flag: "🇹🇴", regions: ["Nuku'alofa", "Neiafu", "Pangai", "'Ohonua", "Haveluloto", "Vaini"] },
+    { name: "Trinidad and Tobago", flag: "🇹🇹", regions: ["Port of Spain", "San Fernando", "Chaguanas", "Arima", "Scarborough", "Tunapuna"] },
+    { name: "Tunisia", flag: "🇹🇳", regions: ["Tunis", "Sfax", "Sousse", "Kairouan", "Bizerte", "Gabès", "Djerba", "Hammamet"] },
+    { name: "Turkey", flag: "🇹🇷", regions: ["Istanbul", "Ankara", "Izmir", "Antalya", "Bursa", "Gaziantep", "Konya", "Bodrum", "Trabzon"] },
+    { name: "Turkmenistan", flag: "🇹🇲", regions: ["Ashgabat", "Turkmenabat", "Dashoguz", "Mary", "Balkanabat", "Tejen", "Serdar"] },
+    { name: "Tuvalu", flag: "🇹🇻", regions: ["Funafuti", "Vaiaku", "Nanumea", "Nukufetau", "Niutao", "Nui"] },
+    { name: "UAE", flag: "🇦🇪", regions: ["Dubai", "Abu Dhabi", "Sharjah", "Ajman", "Ras Al Khaimah", "Fujairah", "Umm Al Quwain"] },
+    { name: "Uganda", flag: "🇺🇬", regions: ["Kampala", "Entebbe", "Jinja", "Gulu", "Mbarara", "Fort Portal", "Mbale", "Arua"] },
+    { name: "UK", flag: "🇬🇧", regions: ["London", "Manchester", "Birmingham", "Liverpool", "Edinburgh", "Glasgow", "Bristol", "Oxford", "Cardiff"] },
+    { name: "Ukraine", flag: "🇺🇦", regions: ["Kyiv", "Lviv", "Odesa", "Kharkiv", "Dnipro", "Zaporizhzhia", "Vinnytsia", "Chernihiv"] },
+    { name: "Uruguay", flag: "🇺🇾", regions: ["Montevideo", "Punta del Este", "Colonia", "Salto", "Rivera", "Maldonado", "Piriápolis"] },
+    { name: "USA", flag: "🇺🇸", regions: ["New York", "Los Angeles", "Chicago", "Houston", "Phoenix", "Miami", "San Francisco", "Boston", "Seattle"] },
+    { name: "Uzbekistan", flag: "🇺🇿", regions: ["Tashkent", "Samarkand", "Bukhara", "Khiva", "Namangan", "Andijan", "Fergana", "Nukus"] },
+    { name: "Vanuatu", flag: "🇻🇺", regions: ["Port Vila", "Luganville", "Sola", "Isangel", "Lakatoro", "Saratamata"] },
+    { name: "Vatican City", flag: "🇻🇦", regions: ["Vatican City"] },
+    { name: "Venezuela", flag: "🇻🇪", regions: ["Caracas", "Maracaibo", "Valencia", "Barquisimeto", "Maracay", "Ciudad Guayana", "Mérida"] },
+    { name: "Vietnam", flag: "🇻🇳", regions: ["Ho Chi Minh City", "Hanoi", "Da Nang", "Nha Trang", "Hue", "Hoi An", "Sapa", "Hai Phong", "Can Tho"] },
+    { name: "Yemen", flag: "🇾🇪", regions: ["Sana'a", "Aden", "Taiz", "Al Hudaydah", "Mukalla", "Ibb", "Dhamar"] },
+    { name: "Zambia", flag: "🇿🇲", regions: ["Lusaka", "Livingstone", "Ndola", "Kitwe", "Chipata", "Kabwe", "Mongu"] },
+    { name: "Zimbabwe", flag: "🇿🇼", regions: ["Harare", "Bulawayo", "Victoria Falls", "Mutare", "Gweru", "Masvingo", "Chinhoyi"] }
+];
+    // ==================== GLOBAL VARIABLES ====================
+    let GPASS = "DoubleMK2008", MPASS = "GlobalMK2008", TPASS = "DoubleMK2008";
 
-    let GPASS = "DoubleMK2008", MPASS = "GlobalMK2008", TPASS = "DoubleMK2008", countriesData = [];
-    function n(m, t = "success") { const e = document.getElementById("notif"); e.textContent = m; e.style.background = t === "success" ? "#2ecc71" : "#e74c3c"; e.style.display = "block"; setTimeout(() => e.style.display = "none", 3000); }
-    function showSub(id) { document.querySelectorAll('.data-card').forEach(c => c.classList.remove('sel')); event.target.closest('.data-card').classList.add('sel'); document.querySelectorAll('.sub-tab').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-    function togglePass(i, b) { const inp = document.getElementById(i), ic = b.querySelector('i'); if (inp.type === 'password') { inp.type = 'text'; ic.className = 'fas fa-eye-slash'; } else { inp.type = 'password'; ic.className = 'fas fa-eye'; } }
+    // ==================== TOAST NOTIFICATION ====================
+    function n(m, t = "success") {
+        const e = document.getElementById("notif");
+        e.textContent = m;
+        e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
+        e.style.display = "block";
+        setTimeout(() => e.style.display = "none", 3000);
+    }
+
+    // ==================== TAB SWITCHING ====================
+    function showSub(id) {
+        document.querySelectorAll('.data-card').forEach(c => c.classList.remove('sel'));
+        event.target.closest('.data-card').classList.add('sel');
+        document.querySelectorAll('.sub-tab').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    // ==================== PASSWORD TOGGLE ====================
+    function togglePass(i, b) {
+        const inp = document.getElementById(i);
+        const ic = b.querySelector('i');
+        if (inp.type === 'password') {
+            inp.type = 'text';
+            ic.className = 'fas fa-eye-slash';
+        } else {
+            inp.type = 'password';
+            ic.className = 'fas fa-eye';
+        }
+    }
+
+    // ==================== COUNTRY DROPDOWNS ====================
+    function populateCountries() {
+        const selects = ['gCountry', 'mCountry', 'tCountry'];
+        selects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            let html = '<option value="">🌍 Select Country...</option>';
+            COUNTRIES_DATA.forEach(country => {
+                html += `<option value="${country.name}">${country.flag} ${country.name}</option>`;
+            });
+            select.innerHTML = html;
+        });
+    }
+
+    function loadRegions(countryId, regionId) {
+        const countrySelect = document.getElementById(countryId);
+        const regionSelect = document.getElementById(regionId);
+        const countryName = countrySelect.value;
+
+        regionSelect.innerHTML = '<option value="">📍 Select Region...</option>';
+
+        if (!countryName) return;
+
+        const country = COUNTRIES_DATA.find(c => c.name === countryName);
+        if (country && country.regions) {
+            country.regions.forEach(region => {
+                regionSelect.innerHTML += `<option value="${region}">📍 ${region}</option>`;
+            });
+        }
+    }
+
+    // ==================== MODAL ====================
     function openDataInfo() { document.getElementById("dataInfoModal").classList.add("active"); }
     function closeDataInfo() { document.getElementById("dataInfoModal").classList.remove("active"); }
-    function copyPassText(t) { navigator.clipboard.writeText(t).then(() => n("✅ Password Copied!")); }
-    function unlockData(type) { const pass = document.getElementById('data' + type.charAt(0).toUpperCase() + type.slice(1) + 'Pass').value; const correct = type === 'gmail' ? GPASS : type === 'mlbb' ? MPASS : TPASS; if (pass !== correct) return n("Wrong password", "error"); document.getElementById(type + 'Form').style.display = 'block'; }
-    function addInput(listId, cls, type, ph) { const d = document.getElementById(listId); const div = document.createElement('div'); div.className = 'input-row'; div.innerHTML = `<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`; d.appendChild(div); }
-    function getValues(cls) { return Array.from(document.getElementsByClassName(cls)).map(i => i.value).filter(v => v); }
-    function addGmailEmail() { addInput('gmailEmailList', 'gmail-email', 'email', 'Enter email'); }
-    function addGmailPhone() { addInput('gmailPhoneList', 'gmail-phone', 'text', 'Enter phone'); }
-    function addMlbbEmail() { addInput('mlbbEmailList', 'mlbb-email', 'email', 'Enter Gmail'); }
-    function addTiktokEmail() { addInput('tiktokEmailList', 'tiktok-email', 'email', 'Enter email'); }
-    function addTiktokPhone() { addInput('tiktokPhoneList', 'tiktok-phone', 'text', 'Enter phone'); }
-    async function loadPw() { try { const r = await fetch("/api/get_passwords", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: localStorage.getItem("auth_token") }) }); const d = await r.json(); GPASS = d.gmail_password || 'DoubleMK2008'; MPASS = d.mlbb_password || 'GlobalMK2008'; TPASS = d.tiktok_password || 'DoubleMK2008'; } catch(e) {} }
-    async function loadCountries() { try { const r = await fetch("/api/countries"); countriesData = await r.json(); ['gCountry', 'mCountry', 'tCountry'].forEach(id => { const s = document.getElementById(id); if (s) { s.innerHTML = '<option value="">Select</option>'; countriesData.forEach(c => { s.innerHTML += `<option value="${c.name}">${c.name}</option>`; }); } }); } catch(e) {} }
-    function loadRegions(cid, rid) { const c = document.getElementById(cid).value; const r = document.getElementById(rid); r.innerHTML = '<option value="">Select</option>'; const f = countriesData.find(x => x.name === c); if (f) f.regions.forEach(reg => { r.innerHTML += `<option value="${reg}">${reg}</option>`; }); }
-    async function saveGmailData() { const n = document.getElementById("gName").value; if (!n) return n("Fill required", "error"); try { await fetch("/api/save_user_data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: localStorage.getItem("auth_token"), type: 'gmail', data: { name: n, emails: getValues('gmail-email'), phones: getValues('gmail-phone'), password: document.getElementById("gPw").value } }) }); n("Saved!"); document.getElementById("gmailForm").style.display = 'none'; } catch(e) { n("Error", "error"); } }
-    async function saveMlbbData() { const n = document.getElementById("mName").value; if (!n) return n("Fill required", "error"); try { await fetch("/api/save_user_data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: localStorage.getItem("auth_token"), type: 'mlbb', data: { ingameName: n, ingameId: document.getElementById("mId").value, serverId: document.getElementById("mServer").value, emails: getValues('mlbb-email'), password: document.getElementById("mPw").value } }) }); n("Saved!"); document.getElementById("mlbbForm").style.display = 'none'; } catch(e) { n("Error", "error"); } }
-    async function saveTiktokData() { const n = document.getElementById("tFullName").value; if (!n) return n("Fill required", "error"); try { await fetch("/api/save_user_data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: localStorage.getItem("auth_token"), type: 'tiktok', data: { fullName: n, lastName: document.getElementById("tLastName").value, emails: getValues('tiktok-email'), phones: getValues('tiktok-phone'), password: document.getElementById("tPw").value } }) }); n("Saved!"); document.getElementById("tiktokForm").style.display = 'none'; } catch(e) { n("Error", "error"); } }
-    loadPw();
-    loadCountries();
+    function copyPassText(t) {
+        navigator.clipboard.writeText(t).then(() => n("✅ Password Copied!", "success")).catch(() => n("❌ Copy Failed", "error"));
+    }
 
+    // ==================== UNLOCK DATA ====================
+    function unlockData(type) {
+        const passInput = document.getElementById('data' + type.charAt(0).toUpperCase() + type.slice(1) + 'Pass');
+        const pass = passInput.value;
+        const correct = type === 'gmail' ? GPASS : type === 'mlbb' ? MPASS : TPASS;
+        if (pass !== correct) return n("❌ Wrong password!", "error");
+        document.getElementById(type + 'Form').style.display = 'block';
+        passInput.value = '';
+        n("✅ Unlocked successfully!", "success");
+    }
+
+    // ==================== DYNAMIC INPUTS (ADD/REMOVE) ====================
+    function addInput(listId, cls, type, ph) {
+        const d = document.getElementById(listId);
+        const div = document.createElement('div');
+        div.className = 'input-row';
+        div.innerHTML = `<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`;
+        d.appendChild(div);
+        n("➕ Field added!", "success");
+    }
+    function getValues(cls) {
+        return Array.from(document.getElementsByClassName(cls)).map(i => i.value).filter(v => v.trim());
+    }
+    function addGmailEmail() { addInput('gmailEmailList', 'gmail-email', 'email', 'Enter email address'); }
+    function addGmailPhone() { addInput('gmailPhoneList', 'gmail-phone', 'text', 'Enter phone number'); }
+    function addMlbbEmail() { addInput('mlbbEmailList', 'mlbb-email', 'email', 'Enter Gmail address'); }
+    function addTiktokEmail() { addInput('tiktokEmailList', 'tiktok-email', 'email', 'Enter email address'); }
+    function addTiktokPhone() { addInput('tiktokPhoneList', 'tiktok-phone', 'text', 'Enter phone number'); }
+
+    // ==================== PASSWORD LOADING ====================
+    async function loadPw() {
+        try {
+            const r = await fetch("/api/get_passwords", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: localStorage.getItem("auth_token") })
+            });
+            const d = await r.json();
+            GPASS = d.gmail_password || 'DoubleMK2008';
+            MPASS = d.mlbb_password || 'GlobalMK2008';
+            TPASS = d.tiktok_password || 'DoubleMK2008';
+        } catch(e) {}
+    }
+
+    // ==================== SAVE FUNCTIONS ====================
+    async function saveGmailData() {
+        const name = document.getElementById("gName").value.trim();
+        if (!name) return n("❌ Name is required!", "error");
+        if (document.getElementById("gPw").value !== document.getElementById("gConfirmPw").value) return n("❌ Passwords don't match!", "error");
+        try {
+            await fetch("/api/save_user_data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    token: localStorage.getItem("auth_token"),
+                    type: 'gmail',
+                    data: {
+                        name: name,
+                        emails: getValues('gmail-email'),
+                        phones: getValues('gmail-phone'),
+                        password: document.getElementById("gPw").value,
+                        dob: document.getElementById("gAge").value,
+                        country: document.getElementById("gCountry").value,
+                        region: document.getElementById("gRegion").value
+                    }
+                })
+            });
+            n("✅ Gmail data saved!", "success");
+            document.getElementById("gmailForm").style.display = 'none';
+        } catch(e) { n("❌ Error saving data", "error"); }
+    }
+
+    async function saveMlbbData() {
+        const name = document.getElementById("mName").value.trim();
+        if (!name) return n("❌ In-Game Name is required!", "error");
+        if (document.getElementById("mPw").value !== document.getElementById("mConfirmPw").value) return n("❌ Passwords don't match!", "error");
+        try {
+            await fetch("/api/save_user_data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    token: localStorage.getItem("auth_token"),
+                    type: 'mlbb',
+                    data: {
+                        ingameName: name,
+                        ingameId: document.getElementById("mId").value,
+                        serverId: document.getElementById("mServer").value,
+                        emails: getValues('mlbb-email'),
+                        password: document.getElementById("mPw").value,
+                        dob: document.getElementById("mAge").value,
+                        country: document.getElementById("mCountry").value,
+                        region: document.getElementById("mRegion").value
+                    }
+                })
+            });
+            n("✅ MLBB data saved!", "success");
+            document.getElementById("mlbbForm").style.display = 'none';
+        } catch(e) { n("❌ Error saving data", "error"); }
+    }
+
+    async function saveTiktokData() {
+        const name = document.getElementById("tFullName").value.trim();
+        if (!name) return n("❌ Full Name is required!", "error");
+        if (document.getElementById("tPw").value !== document.getElementById("tConfirmPw").value) return n("❌ Passwords don't match!", "error");
+        try {
+            await fetch("/api/save_user_data", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    token: localStorage.getItem("auth_token"),
+                    type: 'tiktok',
+                    data: {
+                        fullName: name,
+                        lastName: document.getElementById("tLastName").value,
+                        emails: getValues('tiktok-email'),
+                        phones: getValues('tiktok-phone'),
+                        password: document.getElementById("tPw").value,
+                        dob: document.getElementById("tAge").value,
+                        country: document.getElementById("tCountry").value,
+                        region: document.getElementById("tRegion").value
+                    }
+                })
+            });
+            n("✅ TikTok data saved!", "success");
+            document.getElementById("tiktokForm").style.display = 'none';
+        } catch(e) { n("❌ Error saving data", "error"); }
+    }
+
+    // ==================== PAGE ACCESS CHECK ====================
+    async function checkPageAccess() {
+        try {
+            const r = await fetch('/api/admin/page_status');
+            const d = await r.json();
+            if (d.pages) {
+                const dp = d.pages.find(p => p.id === 'data');
+                if (dp && dp.status === 'off') {
+                    document.getElementById('maintenanceMessage').style.display = 'block';
+                    document.getElementById('dataContent').style.display = 'none';
+                    checkPageTimer();
+                    return false;
+                }
+            }
+            return true;
+        } catch(e) { return true; }
+    }
+
+    // ==================== PAGE TIMER COUNTDOWN ====================
+    async function checkPageTimer() {
+        try {
+            const saved = localStorage.getItem('pageTimers');
+            if (!saved) return;
+            const timers = JSON.parse(saved);
+            const timer = timers['data'];
+            if (!timer || timer <= Date.now()) return;
+            
+            document.getElementById('pageTimerBanner').style.display = 'block';
+            
+            const el = document.getElementById('pageTimerCountdown');
+            const update = () => {
+                const rem = timer - Date.now();
+                if (rem <= 0) {
+                    location.reload();
+                    return;
+                }
+                const s = Math.floor(rem / 1000);
+                const h = Math.floor(s / 3600);
+                const m = Math.floor((s % 3600) / 60);
+                const sec = s % 60;
+                el.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+            };
+            update();
+            setInterval(update, 1000);
+        } catch(e) {}
+    }
+
+    // ==================== BG MUSIC PLAYER ====================
+    (function() {
+        const a = document.getElementById('bgAudio');
+        if (!a) return;
+        let p = [], i = 0;
+        a.volume = 0.5;
+        a.loop = false;
+        const fl = !sessionStorage.getItem('mp');
+        if (fl) {
+            i = 0;
+            localStorage.setItem('bgi', '0');
+            localStorage.setItem('bgt0', '0');
+        } else {
+            i = parseInt(localStorage.getItem('bgi') || '0');
+        }
+        sessionStorage.setItem('mp', '1');
+        async function fp() {
+            try {
+                const r = await fetch('/api/bg_music?t=' + Date.now());
+                const d = await r.json();
+                if (d.playlist && d.playlist.length > 0) {
+                    p = d.playlist;
+                    return true;
+                }
+                return false;
+            } catch(e) { return false; }
+        }
+        function pl() {
+            if (!p.length) return;
+            if (i >= p.length) i = 0;
+            const u = p[i];
+            a.src = u;
+            a.load();
+            a.addEventListener('canplay', function h() {
+                a.play().catch(() => {});
+                a.removeEventListener('canplay', h);
+            });
+        }
+        a.addEventListener('ended', function() {
+            localStorage.setItem('bgt' + i, '0');
+            i = (i + 1) % p.length;
+            localStorage.setItem('bgi', i);
+            localStorage.setItem('bgt' + i, '0');
+            pl();
+        });
+        a.addEventListener('error', function() {
+            i = (i + 1) % p.length;
+            localStorage.setItem('bgi', i);
+            localStorage.setItem('bgt' + i, '0');
+            pl();
+        });
+        setInterval(() => {
+            if (!a.paused && p.length > 0 && a.currentTime > 0) {
+                localStorage.setItem('bgi', i);
+                localStorage.setItem('bgt' + i, a.currentTime);
+            }
+        }, 1000);
+        fp().then(h => { if (h) { if (fl) i = 0; pl(); } });
+        setInterval(fp, 3000);
+    })();
+
+    // ==================== INIT ====================
+    (async function init() {
+        const pageOn = await checkPageAccess();
+        if (!pageOn) return;
+        
+        document.getElementById('dataContent').style.display = 'block';
+        
+        populateCountries();
+        loadPw();
+    })();
 </script>
 </body>
 </html>
