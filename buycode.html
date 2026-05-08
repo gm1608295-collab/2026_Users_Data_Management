@@ -496,6 +496,51 @@ function checkNewCodes() {
             lastCodeId = d.latestId;
             localStorage.setItem('buycodeLastCodeId', lastCodeId);
             addNotiItem(d.message);
+            
+            // ====== CLEAR SOLD OUT STATUS ======
+            // Admin added new codes, so clear all sold out status
+            soldOutCategories = {};
+            localStorage.removeItem('buycodeSoldOut');
+            console.log('[NEW CODES] Sold out status cleared!');
+            
+            // ====== RELOAD DATA FROM SERVER ======
+            loadCategoriesFromServer();
+            
+            // Re-render game cards
+            setTimeout(function() {
+                renderGameCards();
+            }, 500);
+        }
+    })
+    .catch(function() {});
+}
+
+// ==================== LOAD FROM SERVER ====================
+function loadCategoriesFromServer() {
+    fetch('/api/redeem_codes')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success && d.categories) {
+            var cats = d.categories;
+            var hasData = false;
+            
+            // Update CATEGORIES with server data
+            Object.keys(cats).forEach(function(key) {
+                if (cats[key] && cats[key].codes && cats[key].codes.length > 0) {
+                    CATEGORIES[key].codes = cats[key].codes;
+                    hasData = true;
+                    
+                    // Clear sold out for this category since it has codes now
+                    if (isSoldOut(key)) {
+                        delete soldOutCategories[key];
+                        localStorage.setItem('buycodeSoldOut', JSON.stringify(soldOutCategories));
+                    }
+                }
+            });
+            
+            if (hasData) {
+                renderGameCards();
+            }
         }
     })
     .catch(function() {});
