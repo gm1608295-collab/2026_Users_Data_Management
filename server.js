@@ -174,8 +174,49 @@ app.get('/auth/tiktok/callback', async (req, res) => {
     } catch(e) { res.send('<script>alert("Failed");window.location.href="/";</script>'); }
 });
 
-// ==================== PASSWORDS / DATA ====================
-app.post('/api/get_passwords', (req, res) => { res.json({ gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' }); });
+// ==================== GET USER DATA PASSWORDS (FROM DB) ====================
+app.post('/api/get_passwords', async (req, res) => {
+    const { token } = req.body;
+    
+    // Default passwords as fallback
+    const defaults = { 
+        gmail_password: 'DoubleMK2008', 
+        mlbb_password: 'GlobalMK2008', 
+        tiktok_password: 'DoubleMK2008' 
+    };
+    
+    if (!token) {
+        return res.json(defaults);
+    }
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        if (isNaN(uid)) {
+            return res.json(defaults);
+        }
+        
+        const r = await p.query(
+            'SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id=$1', 
+            [uid]
+        );
+        
+        if (r.rows.length > 0) {
+            const u = r.rows[0];
+            res.json({
+                success: true,
+                gmail_password: u.gmail_pass || defaults.gmail_password,
+                mlbb_password: u.mlbb_pass || defaults.mlbb_password,
+                tiktok_password: u.tiktok_pass || defaults.tiktok_password
+            });
+        } else {
+            res.json(defaults);
+        }
+    } catch(e) {
+        res.json(defaults);
+    }
+});
 // ==================== ADMIN: GET USER DATA PASSWORDS ====================
 app.post('/api/admin/get_user_data_pass', async (req, res) => {
     const { userId } = req.body;
