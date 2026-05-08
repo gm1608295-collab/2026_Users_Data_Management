@@ -226,9 +226,28 @@ function renderGameCards(){
     cats.forEach(function(key){
         var cat=CATEGORIES[key];
         var cnt=cat.codes.length;
-        h+='<div class="game-card" onclick="openCategory(\''+key+'\')"><img src="'+cat.icon+'" alt="'+cat.name+'" onerror="this.style.display=\'none\'"><p>'+cat.name+'</p><div class="price-tag">💰 '+fm(cat.price)+' Ks</div><div class="code-count">📦 '+cnt+' codes</div></div>';
+        if(cnt===0){
+            // Sold Out
+            h+='<div class="game-card" style="opacity:0.5;cursor:not-allowed" onclick="soldOutAlert()">'+
+                '<img src="'+cat.icon+'" alt="'+cat.name+'" onerror="this.style.display=\'none\'" style="opacity:0.5">'+
+                '<p>'+cat.name+'</p>'+
+                '<div class="price-tag">💰 '+fm(cat.price)+' Ks</div>'+
+                '<div class="code-count" style="background:rgba(231,76,60,0.2);color:#e74c3c">❌ Sold Out</div>'+
+            '</div>';
+        }else{
+            h+='<div class="game-card" onclick="openCategory(\''+key+'\')">'+
+                '<img src="'+cat.icon+'" alt="'+cat.name+'" onerror="this.style.display=\'none\'">'+
+                '<p>'+cat.name+'</p>'+
+                '<div class="price-tag">💰 '+fm(cat.price)+' Ks</div>'+
+                '<div class="code-count">📦 '+cnt+' codes</div>'+
+            '</div>';
+        }
     });
     grid.innerHTML=h;
+}
+
+function soldOutAlert(){
+    n('❌ Code ရောင်းကုန်သွားပါပြီ၊ ဆက်လက်စောင့်ဆိုင်းပါ။', 'error');
 }
 
 // ==================== CATEGORY MODAL ====================
@@ -240,14 +259,24 @@ function openCategory(key){
     document.getElementById('modalTitle').textContent=cat.name;
     var codes=cat.codes;
     var h='';
-    codes.forEach(function(c){
-        h+='<div class="code-item"><span class="code-val">ဝယ်ယူပြီးပါက Code ပေါ်လာမည်</span><button class="btn-sm btn-buy" onclick="showConfirmBeforeBuy('+c.id+')">Buy ('+fm(cat.price)+' Ks)</button></div>';
-    });
+    if(codes.length===0){
+        // All sold out
+        h='<div style="text-align:center;padding:20px">'+
+            '<p style="font-size:24px;margin-bottom:10px">😢</p>'+
+            '<p style="color:#e74c3c;font-weight:bold;font-size:13px;margin-bottom:5px">❌ Code ရောင်းကုန်သွားပါပြီ</p>'+
+            '<p style="color:rgba(255,255,255,0.5);font-size:10px">ဆက်လက်စောင့်ဆိုင်းပါ</p>'+
+        '</div>';
+    }else{
+        codes.forEach(function(c){
+            h+='<div class="code-item">'+
+                '<span class="code-val">ဝယ်ယူပြီးပါက Code ပေါ်လာမည်</span>'+
+                '<button class="btn-sm btn-buy" onclick="showConfirmBeforeBuy('+c.id+')">Buy ('+fm(cat.price)+' Ks)</button>'+
+            '</div>';
+        });
+    }
     document.getElementById('codeList').innerHTML=h;
     document.getElementById('categoryModal').classList.add('active');
 }
-function closeCategoryModal(){document.getElementById('categoryModal').classList.remove('active')}
-
 // ==================== CONFIRM BEFORE BUY ====================
 function showConfirmBeforeBuy(codeId){
     var id=parseInt(codeId);
@@ -315,6 +344,26 @@ function loadNotice(){
     }).catch(function(){});
 }
 
+// ==================== CHECK FOR NEW CODES ====================
+var lastCodeId = parseInt(localStorage.getItem('buycodeLastCodeId') || '0');
+
+function checkNewCodes() {
+    fetch('/api/buycode_new_codes')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.success && d.hasNew && d.latestId > lastCodeId) {
+            // New codes available!
+            lastCodeId = d.latestId;
+            localStorage.setItem('buycodeLastCodeId', lastCodeId);
+            addNotiItem(d.message);
+        }
+    })
+    .catch(function() {});
+}
+
+// Check every 30 seconds
+setInterval(checkNewCodes, 30000);
+checkNewCodes(); // Initial check
 // ==================== PAGE ACCESS CHECK ====================
 function checkPageAccess(callback){
     fetch('/api/admin/page_status').then(function(r){return r.json()}).then(function(d){
