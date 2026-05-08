@@ -594,6 +594,29 @@ async function servePageWithCheck(req, res, pageId, filePath) {
     res.sendFile(path.join(__dirname, filePath));
 }
 
+// ==================== BUY CODE NOTI BELL API ====================
+app.get('/api/buycode_new_codes', async (req, res) => {
+    try {
+        const p = await getPool();
+        // Get the latest added code
+        const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY id DESC LIMIT 1");
+        
+        if (r.rows.length > 0) {
+            const latest = r.rows[0];
+            const cat = REDEEM_CATEGORIES.find(c => c.id === latest.category);
+            const catName = cat ? cat.name : latest.category;
+            
+            res.json({ 
+                success: true, 
+                hasNew: true,
+                latestId: latest.id,
+                message: 'Mobile Legends Bang Bang မှ Redeem Code အသစ်များ ထပ်မံရောက်ရှိလာပါပြီ၊ Customers များ ဝယ်ယူအားပေးနိုင်ပါပြီ။'
+            });
+        } else {
+            res.json({ success: true, hasNew: false, latestId: 0 });
+        }
+    } catch(e) { res.json({ success: false }); }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
