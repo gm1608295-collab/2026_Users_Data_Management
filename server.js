@@ -71,6 +71,7 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS redeem_codes (id SERIAL PRIMARY KEY, category VARCHAR(50), code VARCHAR(100), used BOOLEAN DEFAULT false, used_by INT, used_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+        `CREATE TABLE IF NOT EXISTS user_security_pass (user_id INT PRIMARY KEY, security_password VARCHAR(100), set_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
     ];
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
@@ -326,6 +327,129 @@ app.post('/api/change_password', async (req, res) => {
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
 app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
 
+// ==================== HISTORY SECURITY PASSWORD API ====================
+
+// Get security password status
+app.post('/api/get_security_pass_status', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        const r = await p.query('SELECT security_password, set_date FROM user_security_pass WHERE user_id=$1', [uid]);
+        
+        if (r.rows.length > 0) {
+            const row = r.rows[0];
+            const hasPassword = !!row.security_password;
+            const setDate = row.set_date ? new Date(row.set_date).getTime() : null;
+            
+            // Calculate 7-day lock
+            let canChange = false;
+            let daysPassed = 0;
+            let daysLeft = 0;
+            
+            if (setDate) {
+                const now = new Date();
+                daysPassed = Math.floor((now.getTime() - setDate) / (1000 * 60 * 60 * 24));
+                daysLeft = Math.max(0, 7 - daysPassed);
+                canChange = daysPassed >= 7;
+            }
+            
+            res.json({
+                success: true,
+                hasPassword: hasPassword,
+                setDate: setDate,
+                daysPassed: daysPassed,
+                daysLeft: daysLeft,
+                canChange: canChange
+            });
+        } else {
+            res.json({
+                success: true,
+                hasPassword: false,
+                setDate: null,
+                daysPassed: 0,
+                daysLeft: 0,
+                canChange: true
+            });
+        }
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+// Set security password
+app.post('/api/set_security_pass', async (req, res) => {
+    const { token, password } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!password || password.length < 6) return res.json({ success: false, message: 'Password must be at least 6 characters' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        // Check existing
+        const existing = await p.query('SELECT set_date FROM user_security_pass WHERE user_id=$1', [uid]);
+        
+        if (existing.rows.length > 0 && existing.rows[0].set_date) {
+            const setDate = new Date(existing.rows[0].set_date);
+            const now = new Date();
+            const daysPassed = Math.floor((now.getTime() - setDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysPassed < 7) {
+                const daysLeft = 7 - daysPassed;
+                return res.json({ success: false, message: `${daysLeft} ရက်စောင့်ရပါမည်။`, daysLeft: daysLeft });
+            }
+        }
+        
+        // Set/Update password
+        await p.query(
+            `INSERT INTO user_security_pass (user_id, security_password, set_date, updated_at) 
+             VALUES ($1, $2, NOW(), NOW()) 
+             ON CONFLICT (user_id) DO UPDATE SET security_password=$2, set_date=NOW(), updated_at=NOW()`,
+            [uid, password]
+        );
+        
+        res.json({ success: true, message: 'Password set successfully!' });
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Verify security password
+app.post('/api/verify_security_pass', async (req, res) => {
+    const { token, password } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!password) return res.json({ success: false, message: 'Password required' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        const r = await p.query('SELECT security_password FROM user_security_pass WHERE user_id=$1', [uid]);
+        
+        if (r.rows.length === 0 || !r.rows[0].security_password) {
+            return res.json({ success: false, message: 'Password not set yet' });
+        }
+        
+        if (password === r.rows[0].security_password) {
+            res.json({ success: true, message: 'Verified!' });
+        } else {
+            res.json({ success: false, message: 'Wrong password!' });
+        }
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== VERIFY USER ID ====================
 app.post('/api/verify_user_id', async (req, res) => {
     const { token, userId } = req.body; if (!token || !userId) return res.json({ success: false, verified: false });
