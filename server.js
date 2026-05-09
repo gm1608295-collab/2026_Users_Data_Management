@@ -1096,7 +1096,7 @@ app.get('/aboutredeem.html', (req, res) => servePageWithCheck(req, res, 'aboutre
 app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
-
+app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
