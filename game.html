@@ -3,834 +3,344 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>⚔️ SOLO ARENA</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        *{margin:0;padding:0;box-sizing:border-box}
+        html,body{
+            width:100%;height:100%;overflow:hidden;
+            background:#000;position:fixed;
+            touch-action:none;user-select:none;
+            -webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+            font-family:'Segoe UI',system-ui,sans-serif;
         }
-        body {
-            background: #0a0a1a;
-            overflow: hidden;
-            touch-action: none;
-            user-select: none;
-            -webkit-user-select: none;
-            -webkit-tap-highlight-color: transparent;
-            font-family: 'Segoe UI', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            position: fixed;
-        }
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        #startScreen, #gameOverScreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 20;
-            background: rgba(0,0,0,0.85);
-        }
-        #startScreen h1 {
-            color: #f39c12;
-            font-size: 42px;
-            text-shadow: 0 0 30px rgba(243,156,18,0.8);
-            margin-bottom: 5px;
-            letter-spacing: 3px;
-        }
-        #startScreen .subtitle {
-            color: #ccc;
-            font-size: 14px;
-            margin-bottom: 25px;
-        }
-        #startScreen button, #gameOverScreen button {
-            padding: 15px 45px;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            margin: 8px;
-            transition: all 0.3s;
-            letter-spacing: 1px;
-        }
-        .btn-play {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            color: #000;
-            font-size: 22px !important;
-            padding: 18px 55px !important;
-            box-shadow: 0 0 30px rgba(243,156,18,0.5);
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%,100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        .btn-back {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.3) !important;
-        }
-        #gameOverScreen h2 {
-            color: #f39c12;
-            font-size: 32px;
-            margin-bottom: 5px;
-        }
-        #gameOverScreen p {
-            color: #ccc;
-            font-size: 16px;
-            margin: 5px 0;
-        }
-        #gameOverScreen .score {
-            color: #2ecc71;
-            font-size: 28px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        #mobileControls {
-            position: fixed;
-            bottom: 15px;
-            left: 15px;
-            z-index: 15;
-            display: none;
-        }
-        #attackBtn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: rgba(231,76,60,0.7);
-            border: 3px solid #e74c3c;
-            color: #fff;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-            z-index: 15;
-            display: none;
-            touch-action: manipulation;
-        }
-        @media (pointer: coarse) {
-            #mobileControls { display: block; }
-            #attackBtn { display: flex; align-items: center; justify-content: center; }
-        }
-        @media (orientation: portrait) {
-            #rotateMsg {
-                display: flex !important;
-            }
-            #startScreen, #gameOverScreen, canvas {
-                display: none;
-            }
-        }
-        #rotateMsg {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: #000;
-            z-index: 999;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #f39c12;
-            font-size: 20px;
-            text-align: center;
-        }
-        #rotateMsg i {
-            font-size: 60px;
-            animation: rotatePhone 2s infinite;
-            margin-bottom: 15px;
-        }
-        @keyframes rotatePhone {
-            0%,100% { transform: rotate(0deg); }
-            50% { transform: rotate(90deg); }
-        }
+        canvas{display:block;width:100%;height:100%}
+        
+        #ui-overlay{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10}
+        #ui-overlay>*{pointer-events:auto}
+        
+        /* Start Screen */
+        #startScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:20;background:linear-gradient(135deg,rgba(10,10,30,0.95),rgba(20,30,70,0.95))}
+        #startScreen .logo{font-size:60px;margin-bottom:10px;animation:glow 2s infinite}
+        @keyframes glow{0%,100%{filter:drop-shadow(0 0 20px rgba(243,156,18,0.8))}50%{filter:drop-shadow(0 0 40px rgba(243,156,18,1))}}
+        #startScreen h1{color:#f39c12;font-size:48px;font-weight:900;letter-spacing:4px;text-shadow:0 0 30px rgba(243,156,18,0.6);margin-bottom:5px}
+        #startScreen .subtitle{color:#bdc3c7;font-size:16px;letter-spacing:2px;margin-bottom:30px}
+        #startScreen .hero-preview{font-size:80px;margin:10px 0;animation:float 2s ease-in-out infinite}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
+        .btn{display:inline-block;padding:16px 50px;font-size:18px;font-weight:bold;border:none;border-radius:12px;cursor:pointer;margin:8px;transition:all 0.3s;letter-spacing:1px;text-decoration:none;text-align:center}
+        .btn-play{background:linear-gradient(135deg,#f39c12,#e67e22);color:#000;font-size:22px!important;padding:20px 60px!important;box-shadow:0 0 40px rgba(243,156,18,0.5);animation:pulse-btn 2s infinite}
+        @keyframes pulse-btn{0%,100%{transform:scale(1);box-shadow:0 0 40px rgba(243,156,18,0.5)}50%{transform:scale(1.05);box-shadow:0 0 60px rgba(243,156,18,0.8)}}
+        .btn-back{background:rgba(255,255,255,0.08);color:#fff;border:1.5px solid rgba(255,255,255,0.25)}
+        .btn-back:hover{background:rgba(255,255,255,0.15);border-color:#f39c12}
+        .controls-info{color:#888;font-size:11px;margin-top:20px;text-align:center;line-height:1.8}
+        .controls-info span{color:#f39c12}
+        
+        /* Game Over Screen */
+        #gameOverScreen{position:fixed;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;justify-content:center;align-items:center;z-index:20;background:linear-gradient(135deg,rgba(10,10,30,0.95),rgba(20,30,70,0.95))}
+        #gameOverScreen .result-icon{font-size:60px;margin-bottom:10px}
+        #gameOverScreen h2{font-size:40px;font-weight:900;letter-spacing:3px;margin-bottom:15px}
+        .stat-row{display:flex;gap:30px;margin:10px 0;font-size:16px;color:#bdc3c7}
+        .stat-row .val{color:#f39c12;font-weight:bold}
+        .score-big{font-size:36px;font-weight:bold;color:#2ecc71;margin:10px 0;text-shadow:0 0 20px rgba(46,204,113,0.5)}
+        
+        /* Mobile Attack Button */
+        #mobileAttackBtn{position:fixed;bottom:40px;right:30px;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,rgba(231,76,60,0.8),rgba(192,57,43,0.8));border:3px solid #e74c3c;color:#fff;font-size:28px;font-weight:bold;cursor:pointer;z-index:15;display:none;align-items:center;justify-content:center;touch-action:manipulation;box-shadow:0 0 30px rgba(231,76,60,0.5);transition:transform 0.1s}
+        #mobileAttackBtn:active{transform:scale(0.9)}
+        @media(pointer:coarse){#mobileAttackBtn{display:flex}}
+        
+        /* Rotate Message */
+        #rotateMsg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#000;z-index:999;flex-direction:column;justify-content:center;align-items:center;color:#f39c12;font-size:18px;text-align:center}
+        #rotateMsg .icon{font-size:50px;animation:rotate-icon 2s infinite;margin-bottom:15px}
+        @keyframes rotate-icon{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
+        @media(orientation:portrait){#rotateMsg{display:flex!important}#startScreen,#gameOverScreen,canvas{display:none!important}}
     </style>
 </head>
 <body>
-    <!-- Rotate Phone Message -->
-    <div id="rotateMsg">
-        <i class="fas fa-mobile-alt">📱</i>
-        <p>Please rotate your phone<br>to landscape mode</p>
-        <p style="font-size:14px;color:#888;margin-top:10px">ဖုန်းကို အလျားလိုက် လှည့်ပါ</p>
-    </div>
+    <div id="rotateMsg"><div class="icon">📱</div>Please rotate your phone<br>to landscape mode<p style="font-size:13px;color:#888;margin-top:8px">ဖုန်းကို အလျားလိုက် လှည့်ပါ</p></div>
 
-    <!-- Game Canvas -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Start Screen -->
     <div id="startScreen">
-        <h1>⚔️ SOLO ARENA</h1>
-        <p class="subtitle">Mini MOBA Battle</p>
-        <button class="btn-play" onclick="startGame()">⚔️ START BATTLE</button>
-        <button class="btn-back" onclick="window.location.href='/dashboard'">← Back to Dashboard</button>
-        <p style="color:#888;font-size:11px;margin-top:15px">
-            🕹️ WASD/Arrows to Move | SPACE to Attack<br>
-            📱 Mobile: Touch screen to play
+        <div class="logo">⚔️</div>
+        <h1>SOLO ARENA</h1>
+        <p class="subtitle">MINI MOBA BATTLE</p>
+        <div class="hero-preview">🦸‍♂️</div>
+        <button class="btn btn-play" onclick="startGame()">⚔️ START BATTLE</button>
+        <a class="btn btn-back" href="/dashboard">← Back to Dashboard</a>
+        <p class="controls-info">
+            <span>WASD / Arrows</span> to Move &nbsp;|&nbsp;
+            <span>SPACE</span> to Attack<br>
+            📱 Mobile: Auto-detected
         </p>
     </div>
 
-    <!-- Game Over Screen -->
-    <div id="gameOverScreen" style="display:none">
-        <h2 id="resultTitle">🏆 VICTORY!</h2>
-        <p>Score: <span class="score" id="finalScore">0</span></p>
-        <p>Gold Earned: 💰 <span id="finalGold">0</span></p>
-        <p>Waves Completed: <span id="finalWaves">0</span></p>
-        <p>Enemies Killed: <span id="finalKills">0</span></p>
-        <button class="btn-play" onclick="restartGame()">🔄 PLAY AGAIN</button>
-        <button class="btn-back" onclick="window.location.href='/dashboard'">← Dashboard</button>
+    <div id="gameOverScreen">
+        <div class="result-icon" id="resultIcon">🏆</div>
+        <h2 id="resultTitle">VICTORY!</h2>
+        <div class="score-big">Score: <span id="finalScore">0</span></div>
+        <div class="stat-row">
+            <span>💰 Gold: <span class="val" id="finalGold">0</span></span>
+            <span>🌊 Waves: <span class="val" id="finalWaves">0</span></span>
+            <span>💀 Kills: <span class="val" id="finalKills">0</span></span>
+        </div>
+        <button class="btn btn-play" onclick="restartGame()">🔄 PLAY AGAIN</button>
+        <a class="btn btn-back" href="/dashboard">← Dashboard</a>
     </div>
 
-    <!-- Mobile Controls -->
-    <div id="mobileControls">
-        <canvas id="joystickCanvas" width="120" height="120"></canvas>
-    </div>
-    <button id="attackBtn" ontouchstart="attack()" onmousedown="attack()">⚔️</button>
+    <button id="mobileAttackBtn" ontouchstart="e=>{e.preventDefault();attack()}" onmousedown="attack()">⚔️</button>
 
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+<script>
+const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
 
-        // ==================== CANVAS SETUP ====================
-        const GAME_WIDTH = 960;
-        const GAME_HEIGHT = 540;
-        
-        function resizeCanvas() {
-            const ratio = GAME_WIDTH / GAME_HEIGHT;
-            const windowRatio = window.innerWidth / window.innerHeight;
-            
-            if (windowRatio > ratio) {
-                canvas.style.width = 'auto';
-                canvas.style.height = '100vh';
-            } else {
-                canvas.style.width = '100vw';
-                canvas.style.height = 'auto';
-            }
-            canvas.width = GAME_WIDTH;
-            canvas.height = GAME_HEIGHT;
+// ==================== FULL SCREEN CANVAS ====================
+let W,H;
+function resize(){W=window.innerWidth;H=window.innerHeight;canvas.width=W;canvas.height=H}
+resize();window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,200));
+
+// ==================== GAME STATE ====================
+let gameRunning=false,gameOver=false,score=0,gold=0,wave=1,kills=0,timer=180,waveTimer=0;
+let deviceId='guest_'+Math.random().toString(36).substr(2,9);
+try{const t=localStorage.getItem('auth_token');if(t&&t!=='guest')deviceId=t}catch(e){}
+
+// ==================== PLAYER ====================
+const player={x:W/2,y:H-80,w:28,h:38,speed:4.5,hp:100,maxHp:100,attackCd:0,attackRange:55,attackDmg:25,color:'#3498db',vx:0,vy:0};
+
+// ==================== ENEMIES & EFFECTS ====================
+let enemies=[],particles=[],floatingTexts=[];
+
+class Enemy{
+    constructor(x,y,type='minion'){
+        this.x=x;this.y=y;this.w=22;this.h=28;this.speed=1+Math.random()*0.8;
+        this.attackCd=0;this.type=type;
+        switch(type){
+            case'shield':this.hp=180;this.maxHp=180;this.color='#95a5a6';this.dmg=15;this.gold=75;this.w=26;break;
+            case'archer':this.hp=110;this.maxHp=110;this.color='#e91e75';this.dmg=22;this.gold=100;break;
+            case'boss':this.w=40;this.h=48;this.hp=800;this.maxHp=800;this.color='#c0392b';this.speed=0.9;this.dmg=45;this.gold=500;break;
+            default:this.hp=90;this.maxHp=90;this.color='#e74c3c';this.dmg=10;this.gold=50;
         }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 200));
+    }
+    update(){
+        const dx=player.x-this.x,dy=player.y-this.y,dist=Math.sqrt(dx*dx+dy*dy)||1;
+        if(dist>45){this.x+=(dx/dist)*this.speed;this.y+=(dy/dist)*this.speed}
+        else if(this.attackCd<=0){player.hp-=this.dmg;this.attackCd=60;spawnParticles(this.x,this.y,'#ff0000',5)}
+        this.attackCd--;
+    }
+    draw(c){
+        const s=c;
+        // Shadow
+        s.fillStyle='rgba(0,0,0,0.4)';s.fillRect(this.x-this.w/2+2,this.y-this.h/2+2,this.w,this.h);
+        // Body
+        const grad=s.createLinearGradient(this.x,this.y-this.h/2,this.x,this.y+this.h/2);
+        grad.addColorStop(0,this.color);grad.addColorStop(1,'#000');
+        s.fillStyle=grad;s.fillRect(this.x-this.w/2,this.y-this.h/2,this.w,this.h);
+        // Border
+        s.strokeStyle='rgba(0,0,0,0.6)';s.lineWidth=1.5;s.strokeRect(this.x-this.w/2,this.y-this.h/2,this.w,this.h);
+        // Eyes
+        s.fillStyle='#fff';s.fillRect(this.x-5,this.y-7,4,4);s.fillRect(this.x+1,this.y-7,4,4);
+        s.fillStyle='#000';s.fillRect(this.x-3,this.y-6,2,2);s.fillRect(this.x+3,this.y-6,2,2);
+        // HP Bar
+        const pct=this.hp/this.maxHp;
+        s.fillStyle='rgba(0,0,0,0.6)';s.fillRect(this.x-14,this.y-this.h/2-10,28,3);
+        s.fillStyle=pct>0.5?'#2ecc71':pct>0.25?'#f39c12':'#e74c3c';
+        s.fillRect(this.x-14,this.y-this.h/2-10,28*pct,3);
+    }
+    takeDamage(d){this.hp-=d;spawnParticles(this.x,this.y,'#ffff00',6);floatingTexts.push({x:this.x,y:this.y-18,text:'-'+d,life:30,color:'#ffff00'})}
+}
 
-        // ==================== GAME STATE ====================
-        let gameRunning = false;
-        let gameOver = false;
-        let score = 0;
-        let gold = 0;
-        let wave = 1;
-        let kills = 0;
-        let timer = 180; // 3 minutes
-        let waveTimer = 0;
-        let enemiesRemaining = 0;
-        let deviceId = 'guest_' + Math.random().toString(36).substr(2, 9);
+function spawnParticles(x,y,color,count){for(let i=0;i<count;i++)particles.push({x,y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:20+Math.random()*20,color,size:2+Math.random()*3})}
 
-        // Try SOLO M Shop token for device ID
-        try {
-            const token = localStorage.getItem('auth_token');
-            if (token && token !== 'guest') {
-                deviceId = token;
-            }
-        } catch(e) {}
+// ==================== INPUT ====================
+const keys={};
+window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '||e.key==='Spacebar'){e.preventDefault();attack()}});
+window.addEventListener('keyup',e=>{keys[e.key]=false});
 
-        // ==================== PLAYER ====================
-        const player = {
-            x: GAME_WIDTH / 2,
-            y: GAME_HEIGHT - 100,
-            w: 30,
-            h: 40,
-            speed: 4,
-            hp: 100,
-            maxHp: 100,
-            attackCooldown: 0,
-            attackRange: 50,
-            attackDamage: 25,
-            color: '#3498db',
-            vx: 0,
-            vy: 0
-        };
+// Mobile touch
+let touchX=null,touchY=null,touchActive=false;
+canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];touchX=t.clientX;touchY=t.clientY;touchActive=true});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];touchX=t.clientX;touchY=t.clientY});
+canvas.addEventListener('touchend',()=>{touchActive=false;player.vx=0;player.vy=0});
 
-        // ==================== ENEMIES ====================
-        let enemies = [];
-        let particles = [];
-        let floatingTexts = [];
+function attack(){
+    if(!gameRunning||gameOver||player.attackCd>0)return;
+    player.attackCd=20;
+    let closest=null,closestDist=player.attackRange;
+    for(const e of enemies){const dx=e.x-player.x,dy=e.y-player.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<closestDist){closestDist=dist;closest=e}}
+    if(closest){closest.takeDamage(player.attackDmg);spawnParticles(player.x,player.y-10,'#f39c12',8)}
+}
+document.getElementById('mobileAttackBtn').addEventListener('touchstart',e=>{e.preventDefault();attack()});
 
-        class Enemy {
-            constructor(x, y, type = 'minion') {
-                this.x = x;
-                this.y = y;
-                this.w = 24;
-                this.h = 30;
-                this.speed = 1.2 + Math.random() * 0.8;
-                this.targetX = player.x;
-                this.targetY = player.y;
-                this.attackCooldown = 0;
-                
-                if (type === 'shield') {
-                    this.hp = 200;
-                    this.maxHp = 200;
-                    this.color = '#95a5a6';
-                    this.damage = 15;
-                    this.gold = 75;
-                } else if (type === 'archer') {
-                    this.hp = 120;
-                    this.maxHp = 120;
-                    this.color = '#e91e75';
-                    this.damage = 25;
-                    this.gold = 100;
-                } else if (type === 'boss') {
-                    this.w = 45;
-                    this.h = 55;
-                    this.hp = 1000;
-                    this.maxHp = 1000;
-                    this.color = '#c0392b';
-                    this.speed = 1;
-                    this.damage = 50;
-                    this.gold = 500;
-                } else {
-                    this.hp = 100;
-                    this.maxHp = 100;
-                    this.color = '#e74c3c';
-                    this.damage = 10;
-                    this.gold = 50;
-                }
-                this.type = type;
-            }
+// ==================== SPAWN ====================
+function spawnWave(){
+    const count=2+wave;const types=['minion'];if(wave>=4)types.push('shield');if(wave>=7)types.push('archer');
+    for(let i=0;i<count;i++){const type=wave>=10&&i===0?'boss':types[Math.floor(Math.random()*types.length)];enemies.push(new Enemy(100+Math.random()*(W-200),50+Math.random()*150,type))}
+    waveTimer=300;
+}
 
-            update() {
-                // Move toward player
-                const dx = player.x - this.x;
-                const dy = player.y - this.y;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                
-                if (dist > 45) {
-                    this.x += (dx / dist) * this.speed;
-                    this.y += (dy / dist) * this.speed;
-                } else {
-                    // Attack player
-                    if (this.attackCooldown <= 0) {
-                        player.hp -= this.damage;
-                        this.attackCooldown = 60;
-                        spawnParticles(this.x, this.y, '#ff0000', 5);
-                    }
-                }
-                this.attackCooldown--;
-            }
-
-            draw(ctx) {
-                // Body
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x - this.w/2, this.y - this.h/2, this.w, this.h);
-                
-                // Eyes
-                ctx.fillStyle = '#fff';
-                ctx.fillRect(this.x - 6, this.y - 8, 5, 5);
-                ctx.fillRect(this.x + 1, this.y - 8, 5, 5);
-                
-                // HP Bar
-                const hpPercent = this.hp / this.maxHp;
-                ctx.fillStyle = '#333';
-                ctx.fillRect(this.x - 15, this.y - this.h/2 - 10, 30, 4);
-                ctx.fillStyle = hpPercent > 0.5 ? '#2ecc71' : hpPercent > 0.25 ? '#f39c12' : '#e74c3c';
-                ctx.fillRect(this.x - 15, this.y - this.h/2 - 10, 30 * hpPercent, 4);
-            }
-
-            takeDamage(dmg) {
-                this.hp -= dmg;
-                spawnParticles(this.x, this.y, '#ffff00', 8);
-                floatingTexts.push({
-                    x: this.x,
-                    y: this.y - 20,
-                    text: '-' + dmg,
-                    life: 30,
-                    color: '#ffff00'
-                });
-            }
+// ==================== GAME LOOP ====================
+function update(){
+    if(!gameRunning||gameOver)return;
+    
+    // Player input
+    player.vx=0;player.vy=0;
+    if(touchActive&&touchX!==null){
+        const dx=touchX-W/2,dy=touchY-H/2;
+        const dist=Math.sqrt(dx*dx+dy*dy)||1;
+        const speed=Math.min(dist/60,1);
+        player.vx=(dx/dist)*player.speed*speed;player.vy=(dy/dist)*player.speed*speed;
+    }
+    if(keys['w']||keys['W']||keys['ArrowUp'])player.vy=-player.speed;
+    if(keys['s']||keys['S']||keys['ArrowDown'])player.vy=player.speed;
+    if(keys['a']||keys['A']||keys['ArrowLeft'])player.vx=-player.speed;
+    if(keys['d']||keys['D']||keys['ArrowRight'])player.vx=player.speed;
+    
+    // Move player
+    player.x+=player.vx;player.y+=player.vy;
+    
+    // BOUNDARY CHECK - keep player inside game area
+    player.x=Math.max(player.w/2+5,Math.min(W-player.w/2-5,player.x));
+    player.y=Math.max(player.h/2+40,Math.min(H-player.h/2-5,player.y));
+    
+    player.attackCd=Math.max(0,player.attackCd-1);
+    if(timer>0)timer=Math.max(0,timer-1/60);
+    
+    // Wave spawn
+    if(enemies.length===0&&waveTimer<=0){
+        if(wave<10){spawnWave();wave++}else{endGame(true);return}
+    }
+    waveTimer=Math.max(0,waveTimer-1);
+    
+    // Update enemies
+    for(const e of enemies)e.update();
+    
+    // Check deaths
+    for(let i=enemies.length-1;i>=0;i--){
+        if(enemies[i].hp<=0){
+            const e=enemies[i];gold+=e.gold;score+=e.gold;kills++;
+            spawnParticles(e.x,e.y,'#ffdd00',12);
+            floatingTexts.push({x:e.x,y:e.y,text:'+'+e.gold+' 💰',life:35,color:'#ffdd00'});
+            enemies.splice(i,1);
         }
+    }
+    
+    // Particles
+    for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx;p.y+=p.vy;p.life--;if(p.life<=0)particles.splice(i,1)}
+    // Texts
+    for(let i=floatingTexts.length-1;i>=0;i--){const t=floatingTexts[i];t.y-=1;t.life--;if(t.life<=0)floatingTexts.splice(i,1)}
+    
+    if(player.hp<=0||timer<=0)endGame(false);
+}
 
-        // ==================== PARTICLES ====================
-        function spawnParticles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                particles.push({
-                    x, y,
-                    vx: (Math.random() - 0.5) * 6,
-                    vy: (Math.random() - 0.5) * 6,
-                    life: 20 + Math.random() * 20,
-                    color,
-                    size: 2 + Math.random() * 3
-                });
-            }
-        }
+function draw(){
+    // Sky gradient
+    const skyGrad=ctx.createLinearGradient(0,0,0,H);
+    skyGrad.addColorStop(0,'#1a2a3a');skyGrad.addColorStop(0.5,'#1a3a2a');skyGrad.addColorStop(1,'#0a1a1a');
+    ctx.fillStyle=skyGrad;ctx.fillRect(0,0,W,H);
+    
+    // Ground grid
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    for(let i=0;i<W;i+=50){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke()}
+    for(let i=0;i<H;i+=50){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke()}
+    
+    // Lane markers
+    ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=2;ctx.setLineDash([30,20]);
+    ctx.beginPath();ctx.moveTo(W/2,50);ctx.lineTo(W/2,H-50);ctx.stroke();ctx.setLineDash([]);
+    
+    // Enemy base
+    const baseW=80,baseH=45;
+    ctx.fillStyle='rgba(231,76,60,0.15)';ctx.fillRect(W/2-baseW/2,5,baseW,baseH);
+    ctx.strokeStyle='#e74c3c';ctx.lineWidth=2;ctx.strokeRect(W/2-baseW/2,5,baseW,baseH);
+    ctx.fillStyle='#fff';ctx.font='bold 10px Arial';ctx.textAlign='center';
+    ctx.fillText('👑 ENEMY BASE',W/2,32);
+    
+    // Player base
+    ctx.fillStyle='rgba(52,152,219,0.15)';ctx.fillRect(W/2-baseW/2,H-baseH-5,baseW,baseH);
+    ctx.strokeStyle='#3498db';ctx.lineWidth=2;ctx.strokeRect(W/2-baseW/2,H-baseH-5,baseW,baseH);
+    ctx.fillText('👑 YOUR BASE',W/2,H-baseH+20);
+    
+    // Draw enemies
+    for(const e of enemies)e.draw(ctx);
+    
+    // Draw player
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(player.x-player.w/2+3,player.y-player.h/2+3,player.w,player.h);
+    // Body gradient
+    const bodyGrad=ctx.createLinearGradient(player.x,player.y-player.h/2,player.x,player.y+player.h/2);
+    bodyGrad.addColorStop(0,'#5dade2');bodyGrad.addColorStop(1,'#1a5276');
+    ctx.fillStyle=bodyGrad;ctx.fillRect(player.x-player.w/2,player.y-player.h/2,player.w,player.h);
+    // Border
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(player.x-player.w/2,player.y-player.h/2,player.w,player.h);
+    // Helmet
+    ctx.fillStyle='#bdc3c7';ctx.beginPath();ctx.arc(player.x,player.y-player.h/2-6,11,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#7f8c8d';ctx.lineWidth=2;ctx.stroke();
+    // Sword
+    ctx.fillStyle='#bdc3c7';ctx.fillRect(player.x+player.w/2-2,player.y-15,4,18);
+    ctx.fillStyle='#f39c12';ctx.fillRect(player.x+player.w/2-3,player.y-18,6,8);
+    // HP Bar
+    const hpPct=player.hp/player.maxHp;
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(player.x-22,player.y-player.h/2-22,44,5);
+    ctx.fillStyle=hpPct>0.5?'#2ecc71':hpPct>0.25?'#f39c12':'#e74c3c';
+    ctx.fillRect(player.x-22,player.y-player.h/2-22,44*hpPct,5);
+    // Name
+    ctx.fillStyle='#fff';ctx.font='bold 9px Arial';ctx.textAlign='center';
+    ctx.fillText('WARRIOR',player.x,player.y-player.h/2-26);
+    
+    // Particles
+    for(const p of particles){ctx.fillStyle=p.color;ctx.globalAlpha=p.life/40;ctx.fillRect(p.x,p.y,p.size,p.size)}
+    ctx.globalAlpha=1;
+    // Floating texts
+    for(const t of floatingTexts){ctx.fillStyle=t.color;ctx.globalAlpha=t.life/35;ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.fillText(t.text,t.x,t.y)}
+    ctx.globalAlpha=1;
+    
+    // ===== HUD =====
+    const hudH=38;
+    // Top bar
+    ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(0,0,W,hudH);
+    ctx.fillStyle='#f39c12';ctx.font='bold 15px Arial';ctx.textAlign='left';ctx.fillText('⚔️ SOLO ARENA',12,26);
+    const mins=Math.floor(timer/60),secs=Math.floor(timer%60);
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText(`⏱️ ${mins}:${secs.toString().padStart(2,'0')}`,W/2,26);
+    ctx.fillStyle='#f39c12';ctx.textAlign='right';ctx.fillText(`🌊 WAVE ${wave}/10`,W-12,26);
+    
+    // Bottom bar
+    ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(0,H-hudH,W,hudH);
+    ctx.fillStyle='#ffdd00';ctx.font='bold 13px Arial';ctx.textAlign='left';ctx.fillText(`💰 ${gold}`,15,H-12);
+    ctx.fillStyle='#e74c3c';ctx.textAlign='center';ctx.fillText(`⚔️ Kills: ${kills}`,W/2,H-12);
+    ctx.fillStyle='#2ecc71';ctx.textAlign='right';ctx.fillText(`❤️ ${Math.max(0,Math.ceil(player.hp))}/${player.maxHp}`,W-15,H-12);
+    
+    // Mobile controls hint
+    if('ontouchstart' in window){
+        ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='10px Arial';ctx.textAlign='center';
+        ctx.fillText('Touch screen to move | Tap ⚔️ to attack',W/2,H-42);
+    }
+}
 
-        // ==================== INPUT ====================
-        const keys = {};
-        window.addEventListener('keydown', e => {
-            keys[e.key] = true;
-            if (e.key === ' ' || e.key === 'Spacebar') {
-                e.preventDefault();
-                attack();
-            }
-        });
-        window.addEventListener('keyup', e => { keys[e.key] = false; });
+function gameLoop(){update();draw();requestAnimationFrame(gameLoop)}
 
-        // Mobile joystick
-        const joystickCanvas = document.getElementById('joystickCanvas');
-        const joystickCtx = joystickCanvas ? joystickCanvas.getContext('2d') : null;
-        let joystickActive = false;
-        let joystickX = 0, joystickY = 0;
+// ==================== START / END ====================
+function startGame(){
+    document.getElementById('startScreen').style.display='none';
+    document.getElementById('gameOverScreen').style.display='none';
+    player.x=W/2;player.y=H-80;player.hp=player.maxHp;
+    score=0;gold=0;wave=1;kills=0;timer=180;waveTimer=60;
+    enemies=[];particles=[];floatingTexts=[];gameOver=false;gameRunning=true;
+    fetch('/api/game/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:deviceId,username:'Player'})}).catch(()=>{});
+}
+function restartGame(){startGame()}
+function endGame(won){
+    gameRunning=false;gameOver=true;
+    document.getElementById('gameOverScreen').style.display='flex';
+    document.getElementById('resultIcon').textContent=won?'🏆':'💀';
+    document.getElementById('resultTitle').textContent=won?'VICTORY!':'DEFEATED';
+    document.getElementById('resultTitle').style.color=won?'#f39c12':'#e74c3c';
+    document.getElementById('finalScore').textContent=score;
+    document.getElementById('finalGold').textContent=gold;
+    document.getElementById('finalWaves').textContent=wave;
+    document.getElementById('finalKills').textContent=kills;
+    fetch('/api/game/save_score',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({device_id:deviceId,score:score,gold_earned:gold,waves_completed:wave,kills:kills,deaths:player.hp<=0?1:0,hero_used:'Warrior'})}).catch(()=>{});
+}
 
-        if (joystickCanvas) {
-            joystickCanvas.addEventListener('touchstart', handleJoystickStart);
-            joystickCanvas.addEventListener('touchmove', handleJoystickMove);
-            joystickCanvas.addEventListener('touchend', () => {
-                joystickActive = false;
-                player.vx = 0;
-                player.vy = 0;
-                drawJoystick();
-            });
-        }
-
-        function handleJoystickStart(e) {
-            e.preventDefault();
-            const rect = joystickCanvas.getBoundingClientRect();
-            const tx = e.touches[0].clientX - rect.left;
-            const ty = e.touches[0].clientY - rect.top - 60;
-            joystickX = tx;
-            joystickY = ty;
-            joystickActive = true;
-        }
-
-        function handleJoystickMove(e) {
-            e.preventDefault();
-            const rect = joystickCanvas.getBoundingClientRect();
-            const tx = e.touches[0].clientX - rect.left;
-            const ty = e.touches[0].clientY - rect.top - 60;
-            joystickX = tx;
-            joystickY = ty;
-            joystickActive = true;
-        }
-
-        function drawJoystick() {
-            if (!joystickCtx) return;
-            joystickCtx.clearRect(0, 0, 120, 120);
-            joystickCtx.fillStyle = 'rgba(255,255,255,0.15)';
-            joystickCtx.beginPath();
-            joystickCtx.arc(60, 60, 40, 0, Math.PI * 2);
-            joystickCtx.fill();
-            joystickCtx.strokeStyle = 'rgba(255,255,255,0.4)';
-            joystickCtx.lineWidth = 2;
-            joystickCtx.stroke();
-            
-            if (joystickActive) {
-                joystickCtx.fillStyle = '#f39c12';
-                joystickCtx.beginPath();
-                joystickCtx.arc(joystickX, joystickY + 60, 18, 0, Math.PI * 2);
-                joystickCtx.fill();
-            }
-        }
-        if (joystickCtx) drawJoystick();
-
-        function attack() {
-            if (!gameRunning || gameOver) return;
-            if (player.attackCooldown > 0) return;
-            
-            player.attackCooldown = 20;
-            
-            // Find closest enemy in range
-            let closestEnemy = null;
-            let closestDist = player.attackRange;
-            
-            for (const enemy of enemies) {
-                const dx = enemy.x - player.x;
-                const dy = enemy.y - player.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closestEnemy = enemy;
-                }
-            }
-            
-            if (closestEnemy) {
-                closestEnemy.takeDamage(player.attackDamage);
-                spawnParticles(player.x, player.y - 10, '#f39c12', 10);
-            }
-        }
-
-        // ==================== SPAWN ENEMIES ====================
-        function spawnWave() {
-            enemiesRemaining = 2 + wave;
-            const types = ['minion'];
-            if (wave >= 4) types.push('shield');
-            if (wave >= 7) types.push('archer');
-            
-            for (let i = 0; i < enemiesRemaining; i++) {
-                const type = wave >= 10 && i === 0 ? 'boss' : types[Math.floor(Math.random() * types.length)];
-                enemies.push(new Enemy(
-                    100 + Math.random() * (GAME_WIDTH - 200),
-                    50 + Math.random() * 150,
-                    type
-                ));
-            }
-            
-            waveTimer = 300; // 5 seconds between waves
-        }
-
-        // ==================== GAME LOOP ====================
-        function update() {
-            if (!gameRunning || gameOver) return;
-            
-            // Player movement
-            player.vx = 0;
-            player.vy = 0;
-            
-            if (joystickActive) {
-                const dx = joystickX - 60;
-                const dy = joystickY;
-                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                const maxDist = 35;
-                const speed = Math.min(dist, maxDist) / maxDist;
-                player.vx = (dx / dist) * player.speed * speed;
-                player.vy = (dy / dist) * player.speed * speed;
-            }
-            
-            if (keys['w'] || keys['W'] || keys['ArrowUp']) player.vy = -player.speed;
-            if (keys['s'] || keys['S'] || keys['ArrowDown']) player.vy = player.speed;
-            if (keys['a'] || keys['A'] || keys['ArrowLeft']) player.vx = -player.speed;
-            if (keys['d'] || keys['D'] || keys['ArrowRight']) player.vx = player.speed;
-            
-            player.x += player.vx;
-            player.y += player.vy;
-            
-            // Clamp player
-            player.x = Math.max(20, Math.min(GAME_WIDTH - 20, player.x));
-            player.y = Math.max(50, Math.min(GAME_HEIGHT - 20, player.y));
-            
-            // Cooldown
-            player.attackCooldown = Math.max(0, player.attackCooldown - 1);
-            
-            // Timer
-            if (timer > 0) {
-                timer = Math.max(0, timer - 1/60);
-            }
-            
-            // Wave spawn
-            if (enemies.length === 0 && waveTimer <= 0) {
-                if (wave < 10) {
-                    spawnWave();
-                    wave++;
-                } else {
-                    // Victory!
-                    endGame(true);
-                    return;
-                }
-            }
-            waveTimer = Math.max(0, waveTimer - 1);
-            
-            // Update enemies
-            for (const enemy of enemies) {
-                enemy.update();
-            }
-            
-            // Check enemy deaths
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                if (enemies[i].hp <= 0) {
-                    const enemy = enemies[i];
-                    gold += enemy.gold;
-                    score += enemy.gold;
-                    kills++;
-                    spawnParticles(enemy.x, enemy.y, '#ffdd00', 15);
-                    floatingTexts.push({
-                        x: enemy.x,
-                        y: enemy.y,
-                        text: '+' + enemy.gold + ' 💰',
-                        life: 40,
-                        color: '#ffdd00'
-                    });
-                    enemies.splice(i, 1);
-                }
-            }
-            
-            // Update particles
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life--;
-                if (p.life <= 0) particles.splice(i, 1);
-            }
-            
-            // Update floating texts
-            for (let i = floatingTexts.length - 1; i >= 0; i--) {
-                const t = floatingTexts[i];
-                t.y -= 1;
-                t.life--;
-                if (t.life <= 0) floatingTexts.splice(i, 1);
-            }
-            
-            // Check player death or timer
-            if (player.hp <= 0 || timer <= 0) {
-                endGame(false);
-            }
-        }
-
-        function draw() {
-            // Clear
-            ctx.fillStyle = '#1a3a1a';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            
-            // Grid lines (lane)
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < GAME_WIDTH; i += 40) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, GAME_HEIGHT);
-                ctx.stroke();
-            }
-            for (let i = 0; i < GAME_HEIGHT; i += 40) {
-                ctx.beginPath();
-                ctx.moveTo(0, i);
-                ctx.lineTo(GAME_WIDTH, i);
-                ctx.stroke();
-            }
-            
-            // Mid lane
-            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(GAME_WIDTH/2, 0);
-            ctx.lineTo(GAME_WIDTH/2, GAME_HEIGHT);
-            ctx.stroke();
-            
-            // Enemy base (top)
-            ctx.fillStyle = 'rgba(231,76,60,0.2)';
-            ctx.fillRect(GAME_WIDTH/2 - 50, 10, 100, 60);
-            ctx.strokeStyle = '#e74c3c';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(GAME_WIDTH/2 - 50, 10, 100, 60);
-            ctx.fillStyle = '#fff';
-            ctx.font = '10px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('👑 ENEMY BASE', GAME_WIDTH/2, 45);
-            
-            // Player base (bottom)
-            ctx.fillStyle = 'rgba(52,152,219,0.2)';
-            ctx.fillRect(GAME_WIDTH/2 - 50, GAME_HEIGHT - 70, 100, 60);
-            ctx.strokeStyle = '#3498db';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(GAME_WIDTH/2 - 50, GAME_HEIGHT - 70, 100, 60);
-            ctx.fillStyle = '#fff';
-            ctx.fillText('👑 YOUR BASE', GAME_WIDTH/2, GAME_HEIGHT - 45);
-            
-            // Draw enemies
-            for (const enemy of enemies) {
-                enemy.draw(ctx);
-            }
-            
-            // Draw player
-            // Body
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x - player.w/2, player.y - player.h/2, player.w, player.h);
-            
-            // Head
-            ctx.fillStyle = '#ffcc80';
-            ctx.beginPath();
-            ctx.arc(player.x, player.y - player.h/2 - 8, 10, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Sword
-            ctx.fillStyle = '#bdc3c7';
-            ctx.fillRect(player.x + player.w/2, player.y - 15, 5, 20);
-            ctx.fillStyle = '#f39c12';
-            ctx.fillRect(player.x + player.w/2 - 2, player.y - 18, 9, 8);
-            
-            // HP Bar
-            const hpPercent = player.hp / player.maxHp;
-            ctx.fillStyle = '#333';
-            ctx.fillRect(player.x - 20, player.y - player.h/2 - 25, 40, 5);
-            ctx.fillStyle = hpPercent > 0.5 ? '#2ecc71' : hpPercent > 0.25 ? '#f39c12' : '#e74c3c';
-            ctx.fillRect(player.x - 20, player.y - player.h/2 - 25, 40 * hpPercent, 5);
-            
-            // Draw particles
-            for (const p of particles) {
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life / 40;
-                ctx.fillRect(p.x, p.y, p.size, p.size);
-            }
-            ctx.globalAlpha = 1;
-            
-            // Draw floating texts
-            for (const t of floatingTexts) {
-                ctx.fillStyle = t.color;
-                ctx.globalAlpha = t.life / 40;
-                ctx.font = 'bold 14px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(t.text, t.x, t.y);
-            }
-            ctx.globalAlpha = 1;
-            
-            // ==================== HUD ====================
-            // Top bar
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(0, 0, GAME_WIDTH, 35);
-            
-            // Title
-            ctx.fillStyle = '#f39c12';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText('⚔️ SOLO ARENA', 10, 24);
-            
-            // Timer
-            const mins = Math.floor(timer / 60);
-            const secs = Math.floor(timer % 60);
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'center';
-            ctx.fillText(`⏱️ ${mins}:${secs.toString().padStart(2,'0')}`, GAME_WIDTH/2, 24);
-            
-            // Wave
-            ctx.fillStyle = '#f39c12';
-            ctx.textAlign = 'right';
-            ctx.fillText(`WAVE ${wave}/10`, GAME_WIDTH - 10, 24);
-            
-            // Bottom bar
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(0, GAME_HEIGHT - 35, GAME_WIDTH, 35);
-            
-            ctx.fillStyle = '#ffdd00';
-            ctx.font = 'bold 14px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(`💰 ${gold}`, 15, GAME_HEIGHT - 12);
-            
-            ctx.fillStyle = '#e74c3c';
-            ctx.textAlign = 'center';
-            ctx.fillText(`⚔️ Kills: ${kills}`, GAME_WIDTH/2, GAME_HEIGHT - 12);
-            
-            ctx.fillStyle = '#3498db';
-            ctx.textAlign = 'right';
-            ctx.fillText(`❤️ ${Math.max(0,Math.ceil(player.hp))}/${player.maxHp}`, GAME_WIDTH - 15, GAME_HEIGHT - 12);
-            
-            // Attack cooldown indicator
-            if (player.attackCooldown > 0) {
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
-                ctx.fillRect(GAME_WIDTH - 55, GAME_HEIGHT - 65, 40, 25);
-            }
-            ctx.fillStyle = player.attackCooldown <= 0 ? '#2ecc71' : '#888';
-            ctx.font = '10px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('⚔️ ATK', GAME_WIDTH - 35, GAME_HEIGHT - 48);
-        }
-
-        function gameLoop() {
-            update();
-            draw();
-            if (joystickCtx) drawJoystick();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // ==================== START / END ====================
-        function startGame() {
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
-            
-            // Reset
-            player.x = GAME_WIDTH / 2;
-            player.y = GAME_HEIGHT - 100;
-            player.hp = player.maxHp;
-            score = 0;
-            gold = 0;
-            wave = 1;
-            kills = 0;
-            timer = 180;
-            waveTimer = 60;
-            enemies = [];
-            particles = [];
-            floatingTexts = [];
-            enemiesRemaining = 0;
-            gameOver = false;
-            gameRunning = true;
-            
-            // Login to game server
-            fetch('/api/game/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device_id: deviceId, username: 'Player' })
-            }).catch(() => {});
-        }
-
-        function restartGame() {
-            startGame();
-        }
-
-        function endGame(won) {
-            gameRunning = false;
-            gameOver = true;
-            
-            document.getElementById('gameOverScreen').style.display = 'flex';
-            document.getElementById('resultTitle').textContent = won ? '🏆 VICTORY!' : '💀 DEFEATED';
-            document.getElementById('resultTitle').style.color = won ? '#f39c12' : '#e74c3c';
-            document.getElementById('finalScore').textContent = score;
-            document.getElementById('finalGold').textContent = gold;
-            document.getElementById('finalWaves').textContent = wave;
-            document.getElementById('finalKills').textContent = kills;
-            
-            // Save score to server
-            fetch('/api/game/save_score', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    device_id: deviceId,
-                    score: score,
-                    gold_earned: gold,
-                    waves_completed: wave,
-                    kills: kills,
-                    deaths: player.hp <= 0 ? 1 : 0,
-                    hero_used: 'Warrior'
-                })
-            }).catch(() => {});
-        }
-
-        function attack() {
-            if (!gameRunning || gameOver) return;
-            if (player.attackCooldown > 0) return;
-            
-            player.attackCooldown = 20;
-            
-            let closestEnemy = null;
-            let closestDist = player.attackRange;
-            
-            for (const enemy of enemies) {
-                const dx = enemy.x - player.x;
-                const dy = enemy.y - player.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closestEnemy = enemy;
-                }
-            }
-            
-            if (closestEnemy) {
-                closestEnemy.takeDamage(player.attackDamage);
-                spawnParticles(player.x, player.y - 10, '#f39c12', 10);
-            }
-        }
-
-        // ==================== INIT ====================
-        document.getElementById('startScreen').style.display = 'flex';
-        gameLoop();
-    </script>
+// ==================== INIT ====================
+resize();document.getElementById('startScreen').style.display='flex';gameLoop();
+</script>
 </body>
 </html>
