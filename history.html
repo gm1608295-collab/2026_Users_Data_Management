@@ -434,46 +434,123 @@ async function unlockSecurityPassword() {
         } catch(e) { return true; }
     }
 
-    // ==================== PAGE TIMER COUNTDOWN (LIVE) ====================
+    // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
     async function checkPageTimer() {
-        const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
-        try {
-            const saved = localStorage.getItem('pageTimers');
-            if (!saved) return;
+    const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
+    
+    // Try localStorage first, then check server
+    let timer = null;
+    
+    try {
+        // Method 1: localStorage
+        const saved = localStorage.getItem('pageTimers');
+        if (saved) {
             const timers = JSON.parse(saved);
-            const timer = timers[pageId];
-            if (!timer || timer <= Date.now()) return;
-            
-            const maintMsg = document.getElementById('maintenanceMessage');
-            if (maintMsg) maintMsg.style.display = 'block';
-            
-            const pageBanner = document.getElementById('pageTimerBanner');
-            if (pageBanner) pageBanner.style.display = 'block';
-            
-            const maintTimer = document.getElementById('maintenanceCountdown');
-            const pageCountdown = document.getElementById('pageTimerCountdown');
-            
-            const update = () => {
-                const rem = timer - Date.now();
-                if (rem <= 0) {
+            timer = timers[pageId];
+        }
+        
+        // Method 2: If localStorage failed, get from session cookie
+        if (!timer) {
+            const cookieTimers = getCookie('pageTimers');
+            if (cookieTimers) {
+                const timers = JSON.parse(decodeURIComponent(cookieTimers));
+                timer = timers[pageId];
+            }
+        }
+        
+        // Method 3: If still no timer, check if page is OFF via API
+        if (!timer) {
+            const r = await fetch('/api/admin/page_status');
+            const d = await r.json();
+            if (d.pages) {
+                const tp = d.pages.find(p => p.id === pageId);
+                // If page is OFF but no timer found, create a default 5-min timer
+                if (tp && tp.status === 'off') {
+                    timer = Date.now() + (5 * 60 * 1000); // 5 min fallback
+                }
+            }
+        }
+    } catch(e) {
+        // Final fallback: 5 min timer
+        timer = Date.now() + (5 * 60 * 1000);
+    }
+    
+    if (!timer || timer <= Date.now()) return;
+    
+    // Show maintenance message
+    const maintMsg = document.getElementById('maintenanceMessage');
+    if (maintMsg) maintMsg.style.display = 'block';
+    
+    // Show page timer banner
+    const pageBanner = document.getElementById('pageTimerBanner');
+    if (pageBanner) pageBanner.style.display = 'block';
+    
+    // Hide normal content
+    const historyContent = document.getElementById('historyContent');
+    if (historyContent) historyContent.style.display = 'none';
+    
+    // Get timer elements
+    const maintTimer = document.getElementById('maintenanceCountdown');
+    const pageCountdown = document.getElementById('pageTimerCountdown');
+    
+    // LIVE COUNTDOWN
+    const update = () => {
+        const rem = timer - Date.now();
+        
+        if (rem <= 0) {
+            // Reload page
+            try {
+                // Clear timer from localStorage
+                const saved = localStorage.getItem('pageTimers');
+                if (saved) {
+                    const timers = JSON.parse(saved);
                     delete timers[pageId];
                     localStorage.setItem('pageTimers', JSON.stringify(timers));
-                    location.reload();
-                    return;
                 }
-                const s = Math.floor(rem / 1000);
-                const h = Math.floor(s / 3600);
-                const m = Math.floor((s % 3600) / 60);
-                const sec = s % 60;
-                const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-                if (maintTimer) maintTimer.textContent = timeStr;
-                if (pageCountdown) pageCountdown.textContent = timeStr;
-            };
-            update();
-            setInterval(update, 1000);
-        } catch(e) {}
-    }
+                // Clear cookie too
+                setCookie('pageTimers', '', -1);
+            } catch(e) {}
+            
+            location.reload();
+            return;
+        }
+        
+        const s = Math.floor(rem / 1000);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        
+        if (maintTimer) maintTimer.textContent = timeStr;
+        if (pageCountdown) pageCountdown.textContent = timeStr;
+    };
+    
+    update();
+    setInterval(update, 1000);
+}
 
+// Cookie helper functions
+function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
+}
+
+function getCookie(name) {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+    
     // ==================== BG MUSIC PLAYER ====================
     (function() {
         const a = document.getElementById('bgAudio');
