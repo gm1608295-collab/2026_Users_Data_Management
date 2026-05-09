@@ -6,86 +6,535 @@
     <title>History - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
-        .container{max-width:500px;margin:0 auto}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,var(--a),var(--p));padding:12px 15px;border-radius:10px;border-bottom:3px solid var(--w)}
-        .header a{color:var(--w);font-size:20px;text-decoration:none}
-        .header h2{color:var(--w);font-size:16px}
-        .user-row{display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(26,31,75,0.6);border-radius:6px;margin-bottom:5px;font-size:11px;border-left:3px solid var(--g)}
-        .user-row b{color:var(--w)}
-        .btn-sm{padding:4px 8px;font-size:10px;border:none;border-radius:4px;cursor:pointer;background:var(--a);color:var(--t)}
-        .back-btn{display:block;padding:10px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:10px}
+        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
+        .container{max-width:500px;margin:0 auto;padding-bottom:20px}
+        
+        /* ========== HEADER ========== */
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:12px;background:linear-gradient(to right,var(--a),var(--p));padding:14px 15px;border-radius:12px;border-bottom:3px solid var(--w)}
+        .header a{color:var(--w);font-size:20px;text-decoration:none;flex-shrink:0;transition:transform 0.2s}
+        .header a:hover{transform:scale(1.1)}
+        .header h2{color:var(--w);font-size:16px;font-weight:700}
+
+        /* ========== MAINTENANCE ========== */
+        .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;padding:20px}
+        .maintenance-icon{font-size:70px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
+        .maintenance-title{font-size:20px;font-weight:bold;color:var(--w);margin-bottom:10px}
+        .maintenance-subtitle{font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:8px}
+        .maintenance-timer{font-size:26px;font-weight:bold;color:var(--w);font-family:'Courier New',monospace;margin:15px 0}
+        .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px}
+
+        /* ========== PAGE TIMER BANNER ========== */
+        .page-timer-banner{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:10px;padding:12px 15px;display:none;text-align:center;margin-bottom:12px}
+        .page-timer-banner .timer-icon{font-size:22px;color:var(--r);margin-bottom:4px}
+        .page-timer-banner .timer-title{font-size:11px;color:var(--r);font-weight:bold;margin-bottom:4px}
+        .page-timer-banner .timer-countdown{font-size:18px;font-weight:bold;color:var(--w);font-family:'Courier New',monospace}
+
+        /* ========== SECURITY PASSWORD BUTTON ========== */
+        .security-btn-wrapper{text-align:center;margin-bottom:12px}
+        .security-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:rgba(74,28,122,0.4);border:1.5px solid rgba(243,156,18,0.5);border-radius:25px;color:var(--w);font-size:12px;cursor:pointer;transition:all 0.3s;font-weight:600}
+        .security-btn:hover{background:rgba(74,28,122,0.7);border-color:var(--w);transform:translateY(-2px);box-shadow:0 6px 20px rgba(243,156,18,0.2)}
+        .security-btn.locked{opacity:0.5;cursor:not-allowed;pointer-events:none}
+        .security-btn.locked:hover{transform:none;box-shadow:none}
+
+        /* ========== DATA CARDS ========== */
+        .data-section{margin-bottom:12px}
+        .data-section .section-title{color:var(--w);font-size:13px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(26,31,75,0.5);border-radius:8px;border-left:3px solid var(--w)}
+        .data-card{background:rgba(26,31,75,0.7);border-radius:10px;padding:14px;margin-bottom:6px;border:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:center;transition:all 0.3s}
+        .data-card:hover{background:rgba(74,28,122,0.3);border-color:rgba(243,156,18,0.3)}
+        .data-card .card-info{flex:1;min-width:0}
+        .data-card .card-name{font-size:13px;font-weight:700;color:var(--t);margin-bottom:3px}
+        .data-card .card-email{font-size:10px;color:rgba(255,255,255,0.5);word-break:break-all}
+        .data-card .card-btns{display:flex;gap:6px;flex-shrink:0;margin-left:10px}
+        .btn-micro{padding:7px 12px;font-size:10px;border:none;border-radius:6px;cursor:pointer;font-weight:bold;transition:all 0.2s;white-space:nowrap}
+        .btn-view{background:rgba(52,152,219,0.2);color:var(--b);border:1px solid rgba(52,152,219,0.3)}
+        .btn-view:hover{background:rgba(52,152,219,0.4)}
+        .btn-edit{background:rgba(243,156,18,0.2);color:var(--w);border:1px solid rgba(243,156,18,0.3)}
+        .btn-edit:hover{background:rgba(243,156,18,0.4)}
+        .no-data{text-align:center;padding:30px 15px;color:rgba(255,255,255,0.3);font-size:12px}
+
+        /* ========== MODAL ========== */
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
+        .modal.active{display:flex}
+        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:12px;padding:22px;width:90%;max-width:420px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,0.6)}
+        .modal-box h3{color:var(--w);margin-bottom:14px;text-align:center;font-size:16px;font-weight:700}
+        .modal-close{float:right;color:var(--r);cursor:pointer;font-size:22px;transition:transform 0.2s}
+        .modal-close:hover{transform:scale(1.2)}
+        .form-group{margin-bottom:12px}
+        .form-group label{display:block;font-size:11px;margin-bottom:4px;color:#ccc;font-weight:600}
+        .form-group input{width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.2);border-radius:8px;color:var(--t);font-size:13px}
+        .form-group input:focus{outline:none;border-color:var(--w)}
+        .btn{padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;width:100%;margin-top:6px}
+        .btn-g{background:linear-gradient(135deg,var(--g),#27ae60);color:#000}
+        .btn-w{background:linear-gradient(135deg,var(--w),#e67e22);color:#000}
+        .btn-r{background:var(--r);color:#fff}
+        .btn-b{background:var(--b);color:#fff;margin-top:4px}
+        .lock-info{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:8px;padding:10px;font-size:10px;color:var(--r);text-align:center;margin-top:8px}
+
+        /* ========== TOAST ========== */
+        .notif{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;z-index:10000;font-size:12px;font-weight:bold;box-shadow:0 6px 20px rgba(0,0,0,0.4);animation:slideIn 0.3s ease;display:none}
+        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
     </style>
 </head>
 <body>
     <audio id="bgAudio" loop style="display:none"></audio>
-    <div class="container">
-        <div class="header">
-            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h2><i class="fas fa-history"></i> History</h2>
+    <div class="notif" id="notif"></div>
+    
+    <div class="container" id="mainContainer">
+        <!-- Maintenance -->
+        <div id="maintenanceMessage" style="display:none">
+            <div class="maintenance-container">
+                <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+                <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+                <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+                <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
+                <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
+            </div>
         </div>
-        <div id="myGmailHistory" style="margin-bottom:8px"></div>
-        <div id="myMlbbHistory" style="margin-bottom:8px"></div>
-        <div id="myTiktokHistory"></div>
-        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
+        
+        <!-- History Content -->
+        <div id="historyContent">
+            <!-- Header -->
+            <div class="header">
+                <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+                <h2><i class="fas fa-history"></i> History</h2>
+            </div>
+            
+            <!-- Page Timer Banner -->
+            <div class="page-timer-banner" id="pageTimerBanner">
+                <div class="timer-icon"><i class="fas fa-clock"></i></div>
+                <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+                <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+                <div class="timer-title">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+                <div class="timer-countdown" id="pageTimerCountdown">--:--:--</div>
+            </div>
+            
+            <!-- Security Password Button -->
+            <div class="security-btn-wrapper">
+                <button class="security-btn" id="securityPassBtn" onclick="openSecurityPassModal()">
+                    <i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ
+                </button>
+            </div>
+            
+            <!-- Gmail Section -->
+            <div class="data-section">
+                <div class="section-title"><i class="fas fa-envelope" style="color:#e74c3c"></i> 📧 Gmail</div>
+                <div id="myGmailHistory"></div>
+            </div>
+            
+            <!-- MLBB Section -->
+            <div class="data-section">
+                <div class="section-title"><i class="fas fa-gamepad" style="color:#2ecc71"></i> 🎮 MLBB</div>
+                <div id="myMlbbHistory"></div>
+            </div>
+            
+            <!-- TikTok Section -->
+            <div class="data-section">
+                <div class="section-title"><i class="fab fa-tiktok" style="color:#e91e75"></i> 🎵 TikTok</div>
+                <div id="myTiktokHistory"></div>
+            </div>
+        </div>
     </div>
-<script>
-    // ==================== GLOBAL: BG Music Player ====================
-    const bgAudio = document.getElementById('bgAudio');
-    let musicPlaylist = [], musicCurrentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
-    bgAudio.volume = 0.6;
-    async function checkMusic() {
-        try {
-            const r = await fetch('/api/bg_music?t=' + Date.now());
-            const d = await r.json();
-            if (d.playlist && d.playlist.length > 0) {
-                const newList = JSON.stringify(d.playlist), oldList = JSON.stringify(musicPlaylist);
-                if (newList !== oldList) { musicPlaylist = d.playlist; musicCurrentIndex = 0; playMusic(); }
-                else if (bgAudio.paused && bgAudio.src) { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }
-            } else { bgAudio.pause(); bgAudio.src = ''; musicPlaylist = []; }
-        } catch(e) {}
-    }
-    function playMusic() {
-        if (!musicPlaylist.length) return;
-        if (musicCurrentIndex >= musicPlaylist.length) musicCurrentIndex = 0;
-        const url = musicPlaylist[musicCurrentIndex];
-        if (bgAudio.src !== url) {
-            bgAudio.src = url;
-            bgAudio.addEventListener('canplay', function() { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }, { once: true });
-        } else { bgAudio.play().catch(() => {}); }
-    }
-    bgAudio.addEventListener('ended', function() {
-        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime);
-        musicCurrentIndex = (musicCurrentIndex + 1) % musicPlaylist.length;
-        localStorage.setItem('bgMusicIndex', musicCurrentIndex);
-        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, '0');
-        playMusic();
-    });
-    setInterval(() => { if (!bgAudio.paused && musicPlaylist.length > 0) { localStorage.setItem('bgMusicIndex', musicCurrentIndex); localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime); } }, 500);
-    checkMusic();
-    setInterval(checkMusic, 2000);
 
-    async function loadMyHistory() {
+    <!-- Security Password Modal -->
+    <div class="modal" id="securityPassModal">
+        <div class="modal-box">
+            <span class="modal-close" onclick="closeSecurityPassModal()">&times;</span>
+            <h3><i class="fas fa-shield-alt"></i> Security Password</h3>
+            <p style="font-size:11px;color:rgba(255,255,255,0.6);text-align:center;margin-bottom:15px">
+                သင်၏ Data များကို ကြည့်ရှုရန် Password သတ်မှတ်ပါ။<br>
+                ⚠️ Password ပြောင်းလဲရန် ၇ ရက်စောင့်ရပါမည်။
+            </p>
+            <div id="securityPassForm">
+                <div class="form-group">
+                    <label>🔑 Create Password (min 6 characters)</label>
+                    <input type="password" id="secNewPass" placeholder="Enter new password">
+                </div>
+                <div class="form-group">
+                    <label>✅ Confirm Password</label>
+                    <input type="password" id="secConfirmPass" placeholder="Confirm password">
+                </div>
+                <button class="btn btn-g" onclick="setSecurityPassword()">
+                    <i class="fas fa-save"></i> Set Password
+                </button>
+            </div>
+            <div id="securityUnlockForm" style="display:none">
+                <div class="form-group">
+                    <label>🔐 Enter Password</label>
+                    <input type="password" id="secUnlockPass" placeholder="Enter your security password">
+                </div>
+                <button class="btn btn-w" onclick="unlockSecurityPassword()">
+                    <i class="fas fa-unlock"></i> Unlock
+                </button>
+            </div>
+            <div id="lockInfo" class="lock-info" style="display:none"></div>
+        </div>
+    </div>
+
+    <!-- View Data Modal -->
+    <div class="modal" id="viewDataModal">
+        <div class="modal-box">
+            <span class="modal-close" onclick="closeViewModal()">&times;</span>
+            <h3><i class="fas fa-eye"></i> View Data</h3>
+            <div id="viewDataContent" style="font-size:11px;line-height:2;color:rgba(255,255,255,0.85)"></div>
+            <button class="btn btn-b" onclick="closeViewModal()" style="margin-top:10px">Close</button>
+        </div>
+    </div>
+
+<script>
+    // ==================== TOAST ====================
+    function n(m, t = "success") {
+        const e = document.getElementById("notif");
+        e.textContent = m;
+        e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
+        e.style.display = "block";
+        setTimeout(() => e.style.display = "none", 3000);
+    }
+
+    // ==================== SECURITY PASSWORD SYSTEM ====================
+    let securityUnlocked = false;
+    let securityPassword = null;
+    let passwordSetDate = null;
+
+    function loadSecurityState() {
+        securityPassword = localStorage.getItem('historySecurityPass');
+        passwordSetDate = localStorage.getItem('historySecurityPassDate');
+        
+        if (securityPassword) {
+            // Password already set
+            const btn = document.getElementById('securityPassBtn');
+            btn.innerHTML = '<i class="fas fa-lock-open"></i> Security Password ထည့်ရန်နှိပ်ပါ';
+            
+            // Check 7-day lock
+            const setDate = new Date(parseInt(passwordSetDate));
+            const now = new Date();
+            const daysPassed = Math.floor((now - setDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysPassed < 7) {
+                const daysLeft = 7 - daysPassed;
+                document.getElementById('lockInfo').style.display = 'block';
+                document.getElementById('lockInfo').innerHTML = 
+                    `⏰ Password ပြောင်းလဲရန် <b>${daysLeft} ရက်</b> စောင့်ရပါမည်။<br>` +
+                    `<small>နောက်ဆုံးသတ်မှတ်ရက်: ${setDate.toLocaleDateString()}</small>`;
+                document.getElementById('securityPassForm').style.display = 'none';
+                document.getElementById('securityUnlockForm').style.display = 'block';
+            } else {
+                // 7 days passed, can change
+                document.getElementById('lockInfo').style.display = 'none';
+                document.getElementById('securityPassForm').style.display = 'block';
+                document.getElementById('securityUnlockForm').style.display = 'block';
+            }
+        }
+    }
+
+    function openSecurityPassModal() {
+        loadSecurityState();
+        
+        if (securityUnlocked) {
+            n("✅ Already unlocked!", "success");
+            return;
+        }
+        
+        // Reset fields
+        document.getElementById('secNewPass').value = '';
+        document.getElementById('secConfirmPass').value = '';
+        document.getElementById('secUnlockPass').value = '';
+        
+        if (!securityPassword) {
+            // First time - show set password form
+            document.getElementById('securityPassForm').style.display = 'block';
+            document.getElementById('securityUnlockForm').style.display = 'none';
+            document.getElementById('lockInfo').style.display = 'none';
+        } else {
+            // Already set - show unlock form
+            const setDate = new Date(parseInt(passwordSetDate));
+            const now = new Date();
+            const daysPassed = Math.floor((now - setDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysPassed >= 7) {
+                // Can change
+                document.getElementById('securityPassForm').style.display = 'block';
+                document.getElementById('securityUnlockForm').style.display = 'block';
+                document.getElementById('lockInfo').style.display = 'none';
+            } else {
+                // Locked
+                document.getElementById('securityPassForm').style.display = 'none';
+                document.getElementById('securityUnlockForm').style.display = 'block';
+                const daysLeft = 7 - daysPassed;
+                document.getElementById('lockInfo').style.display = 'block';
+                document.getElementById('lockInfo').innerHTML = 
+                    `⏰ Password ပြောင်းလဲရန် <b>${daysLeft} ရက်</b> စောင့်ရပါမည်။<br>` +
+                    `<small>နောက်ဆုံးသတ်မှတ်ရက်: ${setDate.toLocaleDateString()}</small>`;
+            }
+        }
+        
+        document.getElementById('securityPassModal').classList.add('active');
+    }
+
+    function closeSecurityPassModal() {
+        document.getElementById('securityPassModal').classList.remove('active');
+    }
+
+    function setSecurityPassword() {
+        const newPass = document.getElementById('secNewPass').value;
+        const confirmPass = document.getElementById('secConfirmPass').value;
+        
+        if (!newPass) return n("❌ Enter password!", "error");
+        if (newPass.length < 6) return n("❌ Password must be at least 6 characters!", "error");
+        if (newPass !== confirmPass) return n("❌ Passwords don't match!", "error");
+        
+        // Check 7-day lock
+        if (securityPassword && passwordSetDate) {
+            const setDate = new Date(parseInt(passwordSetDate));
+            const now = new Date();
+            const daysPassed = Math.floor((now - setDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysPassed < 7) {
+                const daysLeft = 7 - daysPassed;
+                return n(`❌ ${daysLeft} ရက်စောင့်ရပါမည်!`, "error");
+            }
+        }
+        
+        // Save password
+        localStorage.setItem('historySecurityPass', newPass);
+        localStorage.setItem('historySecurityPassDate', Date.now().toString());
+        
+        securityPassword = newPass;
+        passwordSetDate = Date.now().toString();
+        securityUnlocked = true;
+        
+        // Update button
+        document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
+        document.getElementById('securityPassBtn').classList.add('locked');
+        
+        closeSecurityPassModal();
+        n("✅ Password ထည့်သွင်းခြင်းအောင်မြင်ပါသည်၊ နောက်တစ်ကြိမ်ပြောင်းလဲရန်အချိန် ၇ ရက်စောင့်ရပါမည်", "success");
+        
+        // Reload data
+        loadMyHistory();
+        
+        // Auto-lock after 5 minutes
+        setTimeout(() => {
+            securityUnlocked = false;
+            document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
+            document.getElementById('securityPassBtn').classList.remove('locked');
+            loadMyHistory();
+        }, 300000);
+    }
+
+    function unlockSecurityPassword() {
+        const pass = document.getElementById('secUnlockPass').value;
+        
+        if (!pass) return n("❌ Enter password!", "error");
+        
+        if (pass === securityPassword) {
+            securityUnlocked = true;
+            closeSecurityPassModal();
+            n("✅ Unlocked!", "success");
+            document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
+            document.getElementById('securityPassBtn').classList.add('locked');
+            loadMyHistory();
+            
+            // Auto-lock after 5 minutes
+            setTimeout(() => {
+                securityUnlocked = false;
+                document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
+                document.getElementById('securityPassBtn').classList.remove('locked');
+                loadMyHistory();
+            }, 300000);
+        } else {
+            n("❌ Wrong password!", "error");
+        }
+    }
+
+    // ==================== VIEW/EDIT DATA ====================
+    function viewData(type, userId) {
+        if (!securityUnlocked) {
+            return n("🔐 Security Password ထည့်ပါ!", "error");
+        }
+        
+        // For now show basic info
+        document.getElementById('viewDataContent').innerHTML = 
+            `<p><b>Type:</b> ${type.toUpperCase()}</p>` +
+            `<p><b>User ID:</b> ${userId}</p>` +
+            `<p style="color:rgba(255,255,255,0.4);margin-top:10px">အသေးစိတ်ကြည့်ရှုရန် feature မကြာမီထည့်ပါမည်။</p>`;
+        
+        document.getElementById('viewDataModal').classList.add('active');
+    }
+
+    function editData(type, userId) {
+        if (!securityUnlocked) {
+            return n("🔐 Security Password ထည့်ပါ!", "error");
+        }
+        n("✏️ Edit feature coming soon!", "success");
+    }
+
+    function closeViewModal() {
+        document.getElementById('viewDataModal').classList.remove('active');
+    }
+
+    // ==================== LOAD HISTORY ====================
+    function loadMyHistory() {
+        if (!securityUnlocked) {
+            document.getElementById('myGmailHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
+            document.getElementById('myMlbbHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
+            document.getElementById('myTiktokHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
+            return;
+        }
+        
         const renderH = (list, type) => {
-            if (!list || list.length === 0) return '<p style="font-size:11px">No data</p>';
+            if (!list || list.length === 0) return '<div class="no-data"><i class="fas fa-inbox"></i><br>No data yet</div>';
             return list.map(item => {
                 const name = item.name || item.ingame_name || item.full_name || 'N/A';
-                const email = (item.email || item.gmail || '').replace(/[\[\]"]/g, '').replace(/,/g, ', ');
-                return `<div class="user-row"><div><b>${name}</b><br><small>${email}</small></div><div style="display:flex;gap:3px"><button class="btn-sm" onclick="viewEditMyData('${type}','${item.user_id}')">View/Edit</button></div></div>`;
+                const email = (item.email || item.gmail || item.emails || '').toString().replace(/[\[\]"]/g, '').replace(/,/g, ', ');
+                return `<div class="data-card">
+                    <div class="card-info">
+                        <div class="card-name">${name}</div>
+                        <div class="card-email">${email || 'No email'}</div>
+                    </div>
+                    <div class="card-btns">
+                        <button class="btn-micro btn-view" onclick="viewData('${type}','${item.user_id}')"><i class="fas fa-eye"></i> View</button>
+                        <button class="btn-micro btn-edit" onclick="editData('${type}','${item.user_id}')"><i class="fas fa-edit"></i> Edit</button>
+                    </div>
+                </div>`;
             }).join('');
         };
+        
+        fetch("/api/get_my_data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: localStorage.getItem("auth_token") })
+        })
+        .then(r => r.json())
+        .then(d => {
+            document.getElementById('myGmailHistory').innerHTML = renderH(d.gmail, 'gmail');
+            document.getElementById('myMlbbHistory').innerHTML = renderH(d.mlbb, 'mlbb');
+            document.getElementById('myTiktokHistory').innerHTML = renderH(d.tiktok, 'tiktok');
+        })
+        .catch(() => {
+            document.getElementById('myGmailHistory').innerHTML = '<div class="no-data">No data</div>';
+            document.getElementById('myMlbbHistory').innerHTML = '<div class="no-data">No data</div>';
+            document.getElementById('myTiktokHistory').innerHTML = '<div class="no-data">No data</div>';
+        });
+    }
+
+    // ==================== PAGE ACCESS CHECK ====================
+    async function checkPageAccess() {
         try {
-            const r = await fetch("/api/get_my_data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: localStorage.getItem("auth_token") }) });
+            const r = await fetch('/api/admin/page_status');
             const d = await r.json();
-            document.getElementById("myGmailHistory").innerHTML = '<b style="color:var(--w);font-size:12px">📧 Gmail</b><br>' + renderH(d.gmail, 'gmail');
-            document.getElementById("myMlbbHistory").innerHTML = '<b style="color:var(--w);font-size:12px">🎮 MLBB</b><br>' + renderH(d.mlbb, 'mlbb');
-            document.getElementById("myTiktokHistory").innerHTML = '<b style="color:var(--w);font-size:12px">🎵 TikTok</b><br>' + renderH(d.tiktok, 'tiktok');
+            if (d.pages) {
+                const hp = d.pages.find(p => p.id === 'history');
+                if (hp && hp.status === 'off') {
+                    document.getElementById('maintenanceMessage').style.display = 'block';
+                    document.getElementById('historyContent').style.display = 'none';
+                    checkPageTimer();
+                    return false;
+                }
+            }
+            return true;
+        } catch(e) { return true; }
+    }
+
+    // ==================== PAGE TIMER COUNTDOWN (LIVE) ====================
+    async function checkPageTimer() {
+        const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
+        try {
+            const saved = localStorage.getItem('pageTimers');
+            if (!saved) return;
+            const timers = JSON.parse(saved);
+            const timer = timers[pageId];
+            if (!timer || timer <= Date.now()) return;
+            
+            const maintMsg = document.getElementById('maintenanceMessage');
+            if (maintMsg) maintMsg.style.display = 'block';
+            
+            const pageBanner = document.getElementById('pageTimerBanner');
+            if (pageBanner) pageBanner.style.display = 'block';
+            
+            const maintTimer = document.getElementById('maintenanceCountdown');
+            const pageCountdown = document.getElementById('pageTimerCountdown');
+            
+            const update = () => {
+                const rem = timer - Date.now();
+                if (rem <= 0) {
+                    delete timers[pageId];
+                    localStorage.setItem('pageTimers', JSON.stringify(timers));
+                    location.reload();
+                    return;
+                }
+                const s = Math.floor(rem / 1000);
+                const h = Math.floor(s / 3600);
+                const m = Math.floor((s % 3600) / 60);
+                const sec = s % 60;
+                const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+                if (maintTimer) maintTimer.textContent = timeStr;
+                if (pageCountdown) pageCountdown.textContent = timeStr;
+            };
+            update();
+            setInterval(update, 1000);
         } catch(e) {}
     }
-    loadMyHistory();
-    
+
+    // ==================== BG MUSIC PLAYER ====================
+    (function() {
+        const a = document.getElementById('bgAudio');
+        if (!a) return;
+        let p = [], i = 0;
+        a.volume = 0.5;
+        a.loop = false;
+        const fl = !sessionStorage.getItem('mp');
+        if (fl) { i = 0; localStorage.setItem('bgi','0'); localStorage.setItem('bgt0','0'); }
+        else { i = parseInt(localStorage.getItem('bgi')||'0'); }
+        sessionStorage.setItem('mp','1');
+        async function fp() {
+            try {
+                const r = await fetch('/api/bg_music?t='+Date.now());
+                const d = await r.json();
+                if (d.playlist && d.playlist.length>0) { p = d.playlist; return true; }
+                return false;
+            } catch(e) { return false; }
+        }
+        function pl() {
+            if (!p.length) return;
+            if (i >= p.length) i = 0;
+            const u = p[i]; a.src = u; a.load();
+            a.addEventListener('canplay', function h() { a.play().catch(()=>{}); a.removeEventListener('canplay',h); });
+        }
+        a.addEventListener('ended', function() {
+            localStorage.setItem('bgt'+i,'0');
+            i = (i+1) % p.length;
+            localStorage.setItem('bgi',i);
+            localStorage.setItem('bgt'+i,'0');
+            pl();
+        });
+        a.addEventListener('error', function() {
+            i = (i+1) % p.length;
+            localStorage.setItem('bgi',i);
+            localStorage.setItem('bgt'+i,'0');
+            pl();
+        });
+        setInterval(() => {
+            if (!a.paused && p.length>0 && a.currentTime>0) {
+                localStorage.setItem('bgi',i);
+                localStorage.setItem('bgt'+i, a.currentTime);
+            }
+        }, 1000);
+        fp().then(h => { if(h) { if(fl) i=0; pl(); } });
+        setInterval(fp, 3000);
+    })();
+
+    // ==================== INIT ====================
+    (async function init() {
+        const pageOn = await checkPageAccess();
+        if (!pageOn) return;
+        document.getElementById('historyContent').style.display = 'block';
+        loadSecurityState();
+        loadMyHistory();
+    })();
 </script>
 </body>
 </html>
