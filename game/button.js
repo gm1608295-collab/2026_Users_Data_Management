@@ -1,8 +1,10 @@
-
 // ==================== MOBILE TOUCH CONTROLS ====================
-(function() {
+function setupMobileControls() {
     const mobileControls = document.getElementById('mobileControls');
     if (!mobileControls) return;
+    
+    // Clear existing content
+    mobileControls.innerHTML = '';
     
     // Build controls HTML
     mobileControls.innerHTML = `
@@ -62,6 +64,7 @@
             this.style.borderColor = 'rgba(255,255,255,0.4)';
         });
     });
-    
-    console.log('✅ Mobile Controls Ready');
-})();
+}
+
+// Initialize on first load
+setupMobileControls();
