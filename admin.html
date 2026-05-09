@@ -302,6 +302,17 @@ function setPageTimerCookie() {
         document.cookie = 'pageTimers=' + encodeURIComponent(timers) + '; expires=' + date.toUTCString() + '; path=/';
     }
 }
+    // Save to localStorage
+pageTimers[id] = turnOnTime;
+localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
+
+// Also save to cookie (for Median WebView)
+const date = new Date();
+date.setTime(date.getTime() + (7 * 24 * 60 * 60 * 1000));
+document.cookie = 'pageTimers=' + encodeURIComponent(JSON.stringify(pageTimers)) + '; expires=' + date.toUTCString() + '; path=/';
+
+// Also save to sessionStorage
+sessionStorage.setItem('pageTimers', JSON.stringify(pageTimers));
     function cancelTimer(id){delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles();n('Cancelled')}
     async function turnOffPage(id){if(!confirm(`Turn OFF "${id}"?`))return;await togglePage(id,false);n(`✅ OFF`)}
     async function togglePage(id,on){try{await fetch('/api/admin/toggle_page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_id:id,status:on?'on':'off'})});loadPageToggles()}catch(e){n('Error','error')}}
