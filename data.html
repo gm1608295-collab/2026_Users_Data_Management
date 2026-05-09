@@ -1180,81 +1180,102 @@ const COUNTRIES_DATA = [
         } catch(e) { n("❌ Error saving data", "error"); }
     }
 
-      // ==================== PAGE ACCESS CHECK ====================
-async function checkPageAccess() {
-    try {
-        const r = await fetch('/api/admin/page_status');
-        const d = await r.json();
-        if (d.pages) {
-            const dp = d.pages.find(p => p.id === 'data');
-            if (dp && dp.status === 'off') {
-                document.getElementById('maintenanceMessage').style.display = 'block';
-                document.getElementById('dataContent').style.display = 'none';
-                checkPageTimer();
-                return false;
-            }
-        }
-        return true;
-    } catch(e) { return true; }
-}
-    
-     // ==================== PAGE TIMER COUNTDOWN (LIVE) ====================
+    // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
 async function checkPageTimer() {
-    // Auto-detect page ID from URL
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
     
+    let timer = null;
+    
     try {
+        // Method 1: localStorage
         const saved = localStorage.getItem('pageTimers');
-        if (!saved) return;
+        if (saved) {
+            const timers = JSON.parse(saved);
+            timer = timers[pageId];
+        }
         
-        const timers = JSON.parse(saved);
-        const timer = timers[pageId];
-        
-        if (!timer || timer <= Date.now()) return;
-        
-        // Show maintenance message
-        const maintMsg = document.getElementById('maintenanceMessage');
-        if (maintMsg) maintMsg.style.display = 'block';
-        
-        // Show page timer banner
-        const pageBanner = document.getElementById('pageTimerBanner');
-        if (pageBanner) pageBanner.style.display = 'block';
-        
-        // Get timer display elements
-        const maintTimer = document.getElementById('maintenanceCountdown');
-        const pageCountdown = document.getElementById('pageTimerCountdown');
-        
-        // LIVE COUNTDOWN - update every 1 second
-        const update = () => {
-            const rem = timer - Date.now();
-            
-            if (rem <= 0) {
-                // Timer expired - cleanup and reload
-                delete timers[pageId];
-                localStorage.setItem('pageTimers', JSON.stringify(timers));
-                location.reload();
-                return;
+        // Method 2: Cookie (for Median WebView)
+        if (!timer) {
+            const cookieTimers = getCookie('pageTimers');
+            if (cookieTimers) {
+                const timers = JSON.parse(decodeURIComponent(cookieTimers));
+                timer = timers[pageId];
             }
-            
-            // Calculate time
-            const s = Math.floor(rem / 1000);
-            const h = Math.floor(s / 3600);
-            const m = Math.floor((s % 3600) / 60);
-            const sec = s % 60;
-            const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-            
-            // Update both timer displays
-            if (maintTimer) maintTimer.textContent = timeStr;
-            if (pageCountdown) pageCountdown.textContent = timeStr;
-        };
+        }
         
-        // Run immediately (no delay)
-        update();
-        
-        // Update every 1 second
-        setInterval(update, 1000);
-        
+        // Method 3: SessionStorage
+        if (!timer) {
+            const sessionTimers = sessionStorage.getItem('pageTimers');
+            if (sessionTimers) {
+                const timers = JSON.parse(sessionTimers);
+                timer = timers[pageId];
+            }
+        }
     } catch(e) {}
+    
+    if (!timer || timer <= Date.now()) return;
+    
+    const maintMsg = document.getElementById('maintenanceMessage');
+    if (maintMsg) maintMsg.style.display = 'block';
+    
+    const pageBanner = document.getElementById('pageTimerBanner');
+    if (pageBanner) pageBanner.style.display = 'block';
+    
+    const maintTimer = document.getElementById('maintenanceCountdown');
+    const pageCountdown = document.getElementById('pageTimerCountdown');
+    
+    const update = () => {
+        const rem = timer - Date.now();
+        
+        if (rem <= 0) {
+            try {
+                const saved = localStorage.getItem('pageTimers');
+                if (saved) {
+                    const timers = JSON.parse(saved);
+                    delete timers[pageId];
+                    localStorage.setItem('pageTimers', JSON.stringify(timers));
+                }
+                setCookie('pageTimers', '', -1);
+                sessionStorage.removeItem('pageTimers');
+            } catch(e) {}
+            
+            location.reload();
+            return;
+        }
+        
+        const s = Math.floor(rem / 1000);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        
+        if (maintTimer) maintTimer.textContent = timeStr;
+        if (pageCountdown) pageCountdown.textContent = timeStr;
+    };
+    
+    update();
+    setInterval(update, 1000);
+}
+
+function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
+}
+
+function getCookie(name) {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
 }
     // ==================== BG MUSIC PLAYER ====================
     (function() {
