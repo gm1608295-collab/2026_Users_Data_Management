@@ -435,10 +435,9 @@ async function unlockSecurityPassword() {
     }
 
     // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
-    async function checkPageTimer() {
+async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
     
-    // Try localStorage first, then check server
     let timer = null;
     
     try {
@@ -449,7 +448,7 @@ async function unlockSecurityPassword() {
             timer = timers[pageId];
         }
         
-        // Method 2: If localStorage failed, get from session cookie
+        // Method 2: Cookie (for Median WebView)
         if (!timer) {
             const cookieTimers = getCookie('pageTimers');
             if (cookieTimers) {
@@ -458,57 +457,40 @@ async function unlockSecurityPassword() {
             }
         }
         
-        // Method 3: If still no timer, check if page is OFF via API
+        // Method 3: SessionStorage
         if (!timer) {
-            const r = await fetch('/api/admin/page_status');
-            const d = await r.json();
-            if (d.pages) {
-                const tp = d.pages.find(p => p.id === pageId);
-                // If page is OFF but no timer found, create a default 5-min timer
-                if (tp && tp.status === 'off') {
-                    timer = Date.now() + (5 * 60 * 1000); // 5 min fallback
-                }
+            const sessionTimers = sessionStorage.getItem('pageTimers');
+            if (sessionTimers) {
+                const timers = JSON.parse(sessionTimers);
+                timer = timers[pageId];
             }
         }
-    } catch(e) {
-        // Final fallback: 5 min timer
-        timer = Date.now() + (5 * 60 * 1000);
-    }
+    } catch(e) {}
     
     if (!timer || timer <= Date.now()) return;
     
-    // Show maintenance message
     const maintMsg = document.getElementById('maintenanceMessage');
     if (maintMsg) maintMsg.style.display = 'block';
     
-    // Show page timer banner
     const pageBanner = document.getElementById('pageTimerBanner');
     if (pageBanner) pageBanner.style.display = 'block';
     
-    // Hide normal content
-    const historyContent = document.getElementById('historyContent');
-    if (historyContent) historyContent.style.display = 'none';
-    
-    // Get timer elements
     const maintTimer = document.getElementById('maintenanceCountdown');
     const pageCountdown = document.getElementById('pageTimerCountdown');
     
-    // LIVE COUNTDOWN
     const update = () => {
         const rem = timer - Date.now();
         
         if (rem <= 0) {
-            // Reload page
             try {
-                // Clear timer from localStorage
                 const saved = localStorage.getItem('pageTimers');
                 if (saved) {
                     const timers = JSON.parse(saved);
                     delete timers[pageId];
                     localStorage.setItem('pageTimers', JSON.stringify(timers));
                 }
-                // Clear cookie too
                 setCookie('pageTimers', '', -1);
+                sessionStorage.removeItem('pageTimers');
             } catch(e) {}
             
             location.reload();
@@ -529,7 +511,6 @@ async function unlockSecurityPassword() {
     setInterval(update, 1000);
 }
 
-// Cookie helper functions
 function setCookie(name, value, days) {
     let expires = '';
     if (days) {
