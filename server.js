@@ -71,7 +71,10 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS redeem_codes (id SERIAL PRIMARY KEY, category VARCHAR(50), code VARCHAR(100), used BOOLEAN DEFAULT false, used_by INT, used_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS user_security_pass (user_id INT PRIMARY KEY, security_password VARCHAR(100), set_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+        `CREATE TABLE IF NOT EXISTS user_security_pass (user_id INT PRIMARY KEY, security_password VARCHAR(100), set_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS game_players (id SERIAL PRIMARY KEY, username VARCHAR(100) DEFAULT 'Player', device_id VARCHAR(200), level INT DEFAULT 1, total_score BIGINT DEFAULT 0, total_gold BIGINT DEFAULT 0, games_played INT DEFAULT 0, highest_score INT DEFAULT 0, highest_wave INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_played TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS game_scores (id SERIAL PRIMARY KEY, player_id INT, score INT DEFAULT 0, gold_earned INT DEFAULT 0, waves_completed INT DEFAULT 0, kills INT DEFAULT 0, deaths INT DEFAULT 0, hero_used VARCHAR(50) DEFAULT 'Warrior', played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS game_leaderboard (id SERIAL PRIMARY KEY, player_id INT, username VARCHAR(100), score INT, wave INT, season VARCHAR(20) DEFAULT 'S1', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
     ];
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
@@ -907,6 +910,176 @@ app.get('/api/buycode_new_codes', async (req, res) => {
             res.json({ success: true, hasNew: false, latestId: 0 });
         }
     } catch(e) { res.json({ success: false }); }
+});
+
+// ==================== GAME API ====================
+
+// Register/Login with device ID
+app.post('/api/game/login', async (req, res) => {
+    const { device_id, username } = req.body;
+    if (!device_id) return res.json({ success: false, message: 'Device ID required' });
+    
+    try {
+        const p = await getPool();
+        
+        // Check if player exists
+        let player = await p.query('SELECT * FROM game_players WHERE device_id=$1', [device_id]);
+        
+        if (player.rows.length === 0) {
+            // Create new player
+            const newPlayer = await p.query(
+                'INSERT INTO game_players (device_id, username) VALUES ($1, $2) RETURNING *',
+                [device_id, username || 'Player']
+            );
+            player = newPlayer;
+        } else {
+            // Update last played
+            await p.query('UPDATE game_players SET last_played=NOW() WHERE id=$1', [player.rows[0].id]);
+        }
+        
+        const pData = player.rows[0];
+        res.json({
+            success: true,
+            player: {
+                id: pData.id,
+                username: pData.username,
+                level: pData.level,
+                total_score: pData.total_score,
+                total_gold: pData.total_gold,
+                games_played: pData.games_played,
+                highest_score: pData.highest_score,
+                highest_wave: pData.highest_wave
+            }
+        });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Save Score
+app.post('/api/game/save_score', async (req, res) => {
+    const { device_id, score, gold_earned, waves_completed, kills, deaths, hero_used } = req.body;
+    
+    if (!device_id) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        
+        // Find player
+        const player = await p.query('SELECT * FROM game_players WHERE device_id=$1', [device_id]);
+        if (player.rows.length === 0) return res.json({ success: false, message: 'Player not found' });
+        
+        const pid = player.rows[0].id;
+        const pData = player.rows[0];
+        
+        // Save score
+        await p.query(
+            'INSERT INTO game_scores (player_id, score, gold_earned, waves_completed, kills, deaths, hero_used) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+            [pid, score, gold_earned, waves_completed, kills, deaths, hero_used]
+        );
+        
+        // Update player stats
+        const newTotalScore = parseInt(pData.total_score) + parseInt(score);
+        const newTotalGold = parseInt(pData.total_gold) + parseInt(gold_earned);
+        const newGamesPlayed = parseInt(pData.games_played) + 1;
+        const newHighestScore = Math.max(parseInt(pData.highest_score), parseInt(score));
+        const newHighestWave = Math.max(parseInt(pData.highest_wave), parseInt(waves_completed));
+        
+        await p.query(
+            'UPDATE game_players SET total_score=$1, total_gold=$2, games_played=$3, highest_score=$4, highest_wave=$5, last_played=NOW() WHERE id=$6',
+            [newTotalScore, newTotalGold, newGamesPlayed, newHighestScore, newHighestWave, pid]
+        );
+        
+        // Update leaderboard
+        await p.query(
+            'INSERT INTO game_leaderboard (player_id, username, score, wave) VALUES ($1,$2,$3,$4)',
+            [pid, pData.username, score, waves_completed]
+        );
+        
+        // Clean old leaderboard (keep top 100)
+        await p.query(
+            'DELETE FROM game_leaderboard WHERE id NOT IN (SELECT id FROM game_leaderboard ORDER BY score DESC LIMIT 100)'
+        );
+        
+        res.json({
+            success: true,
+            player: {
+                level: pData.level,
+                total_score: newTotalScore,
+                total_gold: newTotalGold,
+                games_played: newGamesPlayed,
+                highest_score: newHighestScore,
+                highest_wave: newHighestWave
+            }
+        });
+        
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+// Get Leaderboard
+app.get('/api/game/leaderboard', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            'SELECT DISTINCT ON (player_id) player_id, username, score, wave, created_at FROM game_leaderboard ORDER BY player_id, score DESC LIMIT 50'
+        );
+        
+        // Sort by score
+        const sorted = r.rows.sort((a, b) => b.score - a.score).slice(0, 20);
+        
+        res.json({ success: true, leaderboard: sorted });
+    } catch(e) {
+        res.json({ success: false, leaderboard: [] });
+    }
+});
+
+// Get Player Stats
+app.get('/api/game/stats', async (req, res) => {
+    const { device_id } = req.query;
+    if (!device_id) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM game_players WHERE device_id=$1', [device_id]);
+        
+        if (r.rows.length === 0) {
+            return res.json({ success: false, message: 'Player not found' });
+        }
+        
+        const pData = r.rows[0];
+        
+        // Get recent scores
+        const scores = await p.query(
+            'SELECT * FROM game_scores WHERE player_id=$1 ORDER BY played_at DESC LIMIT 10',
+            [pData.id]
+        );
+        
+        res.json({
+            success: true,
+            player: pData,
+            recent_scores: scores.rows
+        });
+        
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+// Update Username
+app.post('/api/game/update_username', async (req, res) => {
+    const { device_id, username } = req.body;
+    if (!device_id || !username) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        await p.query('UPDATE game_players SET username=$1 WHERE device_id=$2', [username, device_id]);
+        await p.query('UPDATE game_leaderboard SET username=$1 WHERE player_id=(SELECT id FROM game_players WHERE device_id=$2)', [username, device_id]);
+        res.json({ success: true });
+    } catch(e) {
+        res.json({ success: false });
+    }
 });
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
