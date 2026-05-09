@@ -7,99 +7,390 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--b:#3498db;--t:#fff;--r:#e74c3c;--g:#2ecc71;--pk:#e91e75}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff;--pk:#e91e75;--or:#e67e22}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
-        .container{max-width:500px;margin:0 auto}
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,var(--a),var(--p));padding:12px 15px;border-radius:10px;border-bottom:3px solid var(--w)}
-        .header a{color:var(--w);font-size:20px;text-decoration:none}
-        .header h2{color:var(--w);font-size:16px}
-        .contact-table{width:100%;border-collapse:collapse;font-size:12px;background:rgba(26,31,75,0.6);border-radius:10px;overflow:hidden}
-        .contact-table th{background:rgba(0,0,0,0.3);color:var(--w);padding:10px;text-align:left}
-        .contact-table td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.05)}
-        .ct-gmail{color:var(--r)}.ct-phone{color:var(--g)}.ct-telegram{color:var(--b)}.ct-tiktok{color:var(--pk)}
-        .contact-table button{padding:6px 12px;border:none;border-radius:4px;font-size:11px;cursor:pointer;background:var(--a);color:#fff}
-        .email-link{font-size:12px;color:var(--b);text-align:center;cursor:pointer;text-decoration:underline;margin-top:15px;display:block}
-        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;justify-content:center;align-items:center}
-        .modal.active{display:flex}
-        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:10px;padding:20px;width:90%;max-width:400px}
-        .modal-box h3{color:var(--w);margin-bottom:12px;text-align:center}
-        .modal-close{float:right;color:var(--r);cursor:pointer;font-size:20px}
+        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
+        .container{max-width:500px;margin:0 auto;padding-bottom:20px}
+        
+        /* ========== HEADER ========== */
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:12px;background:linear-gradient(to right,var(--a),var(--p));padding:14px 15px;border-radius:12px;border-bottom:3px solid var(--w)}
+        .header a{color:var(--w);font-size:20px;text-decoration:none;flex-shrink:0;transition:transform 0.2s}
+        .header a:hover{transform:scale(1.1)}
+        .header h2{color:var(--w);font-size:16px;font-weight:700}
+
+        /* ========== MAINTENANCE ========== */
+        .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;padding:20px}
+        .maintenance-icon{font-size:70px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
+        .maintenance-title{font-size:20px;font-weight:bold;color:var(--w);margin-bottom:10px}
+        .maintenance-subtitle{font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:8px}
+        .maintenance-timer{font-size:26px;font-weight:bold;color:var(--w);font-family:'Courier New',monospace;margin:15px 0}
+        .maintenance-btn{display:inline-block;padding:12px 30px;background:var(--w);color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px}
+
+        /* ========== PAGE TIMER BANNER ========== */
+        .page-timer-banner{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:10px;padding:12px 15px;display:none;text-align:center;margin-bottom:12px}
+        .page-timer-banner .timer-icon{font-size:22px;color:var(--r);margin-bottom:4px}
+        .page-timer-banner .timer-title{font-size:11px;color:var(--r);font-weight:bold;margin-bottom:4px}
+        .page-timer-banner .timer-countdown{font-size:18px;font-weight:bold;color:var(--w);font-family:'Courier New',monospace}
+
+        /* ========== SECTION PANEL ========== */
+        .section-panel{background:rgba(26,31,75,0.7);border-radius:12px;padding:18px;margin-bottom:12px;border:1px solid rgba(74,28,122,0.5);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+        .section-panel h3{color:var(--w);font-size:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid rgba(74,28,122,0.5);display:flex;align-items:center;gap:8px}
+
+        /* ========== CONTACT TABLE ========== */
+        .contact-table{width:100%;border-collapse:separate;border-spacing:0 6px}
+        .contact-table td{padding:12px 14px;background:rgba(0,0,0,0.25);font-size:12px;transition:all 0.2s}
+        .contact-table td:first-child{border-radius:8px 0 0 8px;width:30px;text-align:center}
+        .contact-table td:nth-child(2){font-weight:600;letter-spacing:0.3px}
+        .contact-table td:last-child{border-radius:0 8px 8px 0;text-align:center;width:70px}
+        .contact-table tr:hover td{background:rgba(74,28,122,0.3)}
+        .contact-table .icon-cell{font-size:18px}
+        .contact-table .btn-contact{padding:7px 14px;border:none;border-radius:5px;font-size:10px;font-weight:bold;cursor:pointer;color:#fff;transition:all 0.2s;width:100%}
+        .btn-gmail{background:rgba(234,67,53,0.7)}.btn-gmail:hover{background:#ea4335}
+        .btn-phone{background:rgba(46,204,113,0.7)}.btn-phone:hover{background:#27ae60}
+        .btn-telegram{background:rgba(0,136,204,0.7)}.btn-telegram:hover{background:#0088cc}
+        .btn-tiktok{background:rgba(233,30,117,0.7)}.btn-tiktok:hover{background:#c2185b}
+
+        /* ========== SOCIAL MEDIA GRID ========== */
+        .social-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+        .social-item{background:rgba(0,0,0,0.3);border-radius:10px;padding:14px 8px;text-align:center;cursor:pointer;border:1.5px solid rgba(255,255,255,0.1);transition:all 0.3s;text-decoration:none;color:var(--t)}
+        .social-item:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,0,0,0.4)}
+        .social-item img{width:40px;height:40px;border-radius:50%;object-fit:cover;margin-bottom:6px;border:2px solid rgba(255,255,255,0.2)}
+        .social-item .social-name{font-size:9px;font-weight:600;color:rgba(255,255,255,0.8)}
+
+        /* ========== FORM ========== */
         .form-group{margin-bottom:10px}
-        .form-group label{display:block;font-size:12px;margin-bottom:4px;color:#ccc}
-        .form-group input,.form-group textarea{width:100%;padding:10px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);border-radius:6px;color:var(--t);font-size:13px}
-        .btn{padding:10px 20px;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer;background:var(--g);color:#000}
-        .notif{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:5px;display:none;z-index:1000;font-size:12px}
-        .back-btn{display:block;padding:10px;background:rgba(255,255,255,0.1);color:var(--t);text-align:center;border-radius:6px;text-decoration:none;font-size:13px;margin-top:15px}
+        .form-group label{display:block;font-size:11px;margin-bottom:4px;color:#ccc;font-weight:600}
+        .form-group input,.form-group textarea{width:100%;padding:10px 12px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.2);border-radius:8px;color:var(--t);font-size:13px;transition:all 0.3s}
+        .form-group input:focus,.form-group textarea:focus{outline:none;border-color:var(--w);box-shadow:0 0 12px rgba(243,156,18,0.15)}
+        .form-group textarea{resize:vertical;min-height:80px}
+        .btn{width:100%;padding:12px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;transition:all 0.3s;display:flex;align-items:center;justify-content:center;gap:8px}
+        .btn-send{background:linear-gradient(135deg,var(--b),#2980b9);color:#fff}
+        .btn-send:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(52,152,219,0.3)}
+        .btn-send:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+
+        /* ========== TOAST ========== */
+        .notif{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;z-index:10000;font-size:12px;font-weight:bold;box-shadow:0 6px 20px rgba(0,0,0,0.4);animation:slideIn 0.3s ease;display:none}
+        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
     </style>
 </head>
 <body>
     <audio id="bgAudio" loop style="display:none"></audio>
     <div class="notif" id="notif"></div>
-    <div class="container">
-        <div class="header">
-            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h2><i class="fas fa-address-book"></i> Contact</h2>
-        </div>
-        <table class="contact-table">
-            <tr><th>Type</th><th>Info</th><th>Action</th></tr>
-            <tr onclick="contactG('gm1608295@gmail.com')"><td><i class="fas fa-envelope"></i> Gmail</td><td class="ct-gmail">gm1608295@gmail.com</td><td style="text-align:center"><button>Open</button></td></tr>
-            <tr onclick="contactP('09672093790')"><td><i class="fas fa-phone"></i> Phone</td><td class="ct-phone">09672093790</td><td style="text-align:center"><button>Call</button></td></tr>
-            <tr onclick="contactT('@Solo_m28')"><td><i class="fab fa-telegram"></i> Telegram</td><td class="ct-telegram">@Solo_m28</td><td style="text-align:center"><button>Chat</button></td></tr>
-            <tr onclick="contactTik('sologamer149')"><td><i class="fab fa-tiktok"></i> TikTok</td><td class="ct-tiktok">@sologamer149</td><td style="text-align:center"><button>View</button></td></tr>
-        </table>
-        <div class="email-link" onclick="openEmail()"><i class="fas fa-envelope"></i> Send us a message via Email</div>
-        <a href="/dashboard" class="back-btn"><i class="fas fa-home"></i> Back to Dashboard</a>
-    </div>
     
-    <div class="modal" id="emailModal"><div class="modal-box"><span class="modal-close" onclick="closeEmail()">&times;</span><h3>Send Message</h3><div class="form-group"><label>Name</label><input type="text" id="emName"></div><div class="form-group"><label>Email</label><input type="email" id="emEmail"></div><div class="form-group"><label>Message</label><textarea id="emMsg" rows="3"></textarea></div><button class="btn" onclick="sendEmail()"><i class="fas fa-paper-plane"></i> Send</button></div></div>
+    <div class="container" id="mainContainer">
+        <!-- Maintenance -->
+        <div id="maintenanceMessage" style="display:none">
+            <div class="maintenance-container">
+                <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+                <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+                <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+                <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
+                <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
+            </div>
+        </div>
+        
+        <!-- Contact Content -->
+        <div id="contactContent">
+            <!-- Header -->
+            <div class="header">
+                <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+                <h2><i class="fas fa-address-book"></i> Contact</h2>
+            </div>
+            
+            <!-- Page Timer Banner -->
+            <div class="page-timer-banner" id="pageTimerBanner">
+                <div class="timer-icon"><i class="fas fa-clock"></i></div>
+                <div class="timer-title">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+                <div class="timer-countdown" id="pageTimerCountdown">--:--:--</div>
+            </div>
+            
+            <!-- Contact Info Table -->
+            <div class="section-panel">
+                <h3><i class="fas fa-address-card"></i> Contact Info</h3>
+                <table class="contact-table">
+                    <tr>
+                        <td class="icon-cell"><i class="fas fa-envelope" style="color:#ea4335"></i></td>
+                        <td style="color:#ea4335">gm1608295@gmail.com</td>
+                        <td><button class="btn-contact btn-gmail" onclick="contactG('gm1608295@gmail.com')">Open</button></td>
+                    </tr>
+                    <tr>
+                        <td class="icon-cell"><i class="fas fa-phone" style="color:#2ecc71"></i></td>
+                        <td style="color:#2ecc71">09672093790</td>
+                        <td><button class="btn-contact btn-phone" onclick="contactP('09672093790')">Call</button></td>
+                    </tr>
+                    <tr>
+                        <td class="icon-cell"><i class="fab fa-telegram" style="color:#0088cc"></i></td>
+                        <td style="color:#0088cc">@Solo_m28</td>
+                        <td><button class="btn-contact btn-telegram" onclick="contactT('@Solo_m28')">Chat</button></td>
+                    </tr>
+                    <tr>
+                        <td class="icon-cell"><i class="fab fa-tiktok" style="color:#e91e75"></i></td>
+                        <td style="color:#e91e75">@sologamer149</td>
+                        <td><button class="btn-contact btn-tiktok" onclick="contactTik('sologamer149')">View</button></td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Send Message Form -->
+            <div class="section-panel">
+                <h3><i class="fas fa-paper-plane"></i> Send Message</h3>
+                <div class="form-group">
+                    <label>👤 Name</label>
+                    <input type="text" id="emName" placeholder="Enter your name">
+                </div>
+                <div class="form-group">
+                    <label>📧 Email</label>
+                    <input type="email" id="emEmail" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>📱 Phone Number</label>
+                    <input type="tel" id="emPhone" placeholder="Enter your phone number">
+                </div>
+                <div class="form-group">
+                    <label>💬 Message</label>
+                    <textarea id="emMsg" placeholder="Type your message here..."></textarea>
+                </div>
+                <button class="btn btn-send" id="sendBtn" onclick="sendEmail()">
+                    <i class="fas fa-paper-plane"></i> Send Message
+                </button>
+            </div>
+            
+            <!-- Social Media -->
+            <div class="section-panel">
+                <h3><i class="fas fa-share-alt"></i> Follow Us</h3>
+                <div class="social-grid">
+                    <a href="https://t.me/Solo_m28" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/CLSDXzs/5713846d630704ce892f9c93944ba451.jpg" alt="Telegram">
+                        <div class="social-name">Telegram</div>
+                    </a>
+                    <a href="https://www.tiktok.com/@sologamer149" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok">
+                        <div class="social-name">TikTok</div>
+                    </a>
+                    <a href="https://www.facebook.com/" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/KVjYf3X/facebook-icon.png" alt="Facebook">
+                        <div class="social-name">Facebook</div>
+                    </a>
+                    <a href="https://www.instagram.com/" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/FYPLmL8/instagram-icon.jpg" alt="Instagram">
+                        <div class="social-name">Instagram</div>
+                    </a>
+                    <a href="https://wa.me/959672093790" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/0jQvRnL/whatsapp-icon.png" alt="WhatsApp">
+                        <div class="social-name">WhatsApp</div>
+                    </a>
+                    <a href="https://discord.gg/" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/4Z3mT1K/discord-icon.png" alt="Discord">
+                        <div class="social-name">Discord</div>
+                    </a>
+                    <a href="https://www.snapchat.com/add/" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/rGfWwWX/snapchat-icon.png" alt="Snapchat">
+                        <div class="social-name">Snapchat</div>
+                    </a>
+                    <a href="viber://chat?number=+959672093790" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/WxVGPz0/viber-icon.png" alt="Viber">
+                        <div class="social-name">Viber</div>
+                    </a>
+                    <a href="https://m.me/" target="_blank" class="social-item">
+                        <img src="https://i.ibb.co/twnNLR2/messenger-icon.png" alt="Messenger">
+                        <div class="social-name">Messenger</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script>
-    // ==================== GLOBAL: BG Music Player ====================
-    const bgAudio = document.getElementById('bgAudio');
-    let musicPlaylist = [], musicCurrentIndex = parseInt(localStorage.getItem('bgMusicIndex') || '0');
-    bgAudio.volume = 0.6;
-    async function checkMusic() {
-        try {
-            const r = await fetch('/api/bg_music?t=' + Date.now());
-            const d = await r.json();
-            if (d.playlist && d.playlist.length > 0) {
-                const newList = JSON.stringify(d.playlist), oldList = JSON.stringify(musicPlaylist);
-                if (newList !== oldList) { musicPlaylist = d.playlist; musicCurrentIndex = 0; playMusic(); }
-                else if (bgAudio.paused && bgAudio.src) { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }
-            } else { bgAudio.pause(); bgAudio.src = ''; musicPlaylist = []; }
-        } catch(e) {}
-    }
-    function playMusic() {
-        if (!musicPlaylist.length) return;
-        if (musicCurrentIndex >= musicPlaylist.length) musicCurrentIndex = 0;
-        const url = musicPlaylist[musicCurrentIndex];
-        if (bgAudio.src !== url) {
-            bgAudio.src = url;
-            bgAudio.addEventListener('canplay', function() { const t = localStorage.getItem('bgMusicTime_' + musicCurrentIndex); if (t) bgAudio.currentTime = parseFloat(t); bgAudio.play().catch(() => {}); }, { once: true });
-        } else { bgAudio.play().catch(() => {}); }
-    }
-    bgAudio.addEventListener('ended', function() {
-        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime);
-        musicCurrentIndex = (musicCurrentIndex + 1) % musicPlaylist.length;
-        localStorage.setItem('bgMusicIndex', musicCurrentIndex);
-        localStorage.setItem('bgMusicTime_' + musicCurrentIndex, '0');
-        playMusic();
-    });
-    setInterval(() => { if (!bgAudio.paused && musicPlaylist.length > 0) { localStorage.setItem('bgMusicIndex', musicCurrentIndex); localStorage.setItem('bgMusicTime_' + musicCurrentIndex, bgAudio.currentTime); } }, 500);
-    checkMusic();
-    setInterval(checkMusic, 2000);
-
+    // ==================== EMAILJS INIT ====================
     emailjs.init("tsKN2j9o6RYK4KeEp");
-    function n(m, t = "success") { const e = document.getElementById("notif"); e.textContent = m; e.style.background = t === "success" ? "#2ecc71" : "#e74c3c"; e.style.display = "block"; setTimeout(() => e.style.display = "none", 3000); }
+    
+    // ==================== TOAST ====================
+    function n(m, t = "success") {
+        const e = document.getElementById("notif");
+        e.textContent = m;
+        e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
+        e.style.display = "block";
+        setTimeout(() => e.style.display = "none", 3000);
+    }
+
+    // ==================== CONTACT ACTIONS ====================
     function contactG(e) { window.open('mailto:' + e); }
     function contactP(p) { window.open('tel:' + p); }
     function contactT(u) { window.open('https://t.me/' + u.replace('@', '')); }
     function contactTik(u) { window.open("https://www.tiktok.com/@" + u); }
-    function openEmail() { document.getElementById("emailModal").classList.add("active"); }
-    function closeEmail() { document.getElementById("emailModal").classList.remove("active"); }
-    function sendEmail() { const na = document.getElementById("emName").value, em = document.getElementById("emEmail").value, ms = document.getElementById("emMsg").value; if (!na || !em || !ms) return n("Fill required", "error"); emailjs.send("service_3akzfls", "template_xqygsga", { from_name: na, from_email: em, message: ms }).then(() => { n("Sent!"); closeEmail(); }).catch(() => n("Error", "error")); }
-    
+
+    // ==================== SEND EMAIL ====================
+    async function sendEmail() {
+        const na = document.getElementById("emName").value.trim();
+        const em = document.getElementById("emEmail").value.trim();
+        const ph = document.getElementById("emPhone").value.trim();
+        const ms = document.getElementById("emMsg").value.trim();
+        const btn = document.getElementById("sendBtn");
+        
+        if (!na) return n("❌ Name is required!", "error");
+        if (!em) return n("❌ Email is required!", "error");
+        if (!ms) return n("❌ Message is required!", "error");
+        
+        // Loading state
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        
+        try {
+            await emailjs.send("service_3akzfls", "template_xqygsga", {
+                from_name: na,
+                from_email: em,
+                phone_number: ph || 'N/A',
+                message: ms,
+                submitted_at: new Date().toLocaleString()
+            });
+            
+            n("✅ Message sent successfully!", "success");
+            document.getElementById("emName").value = '';
+            document.getElementById("emEmail").value = '';
+            document.getElementById("emPhone").value = '';
+            document.getElementById("emMsg").value = '';
+        } catch(e) {
+            n("❌ Failed to send. Please try again.", "error");
+        }
+        
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+    }
+
+    // ==================== PAGE ACCESS CHECK ====================
+    async function checkPageAccess() {
+        try {
+            const r = await fetch('/api/admin/page_status');
+            const d = await r.json();
+            if (d.pages) {
+                const cp = d.pages.find(p => p.id === 'contact');
+                if (cp && cp.status === 'off') {
+                    document.getElementById('maintenanceMessage').style.display = 'block';
+                    document.getElementById('contactContent').style.display = 'none';
+                    checkPageTimer();
+                    return false;
+                }
+            }
+            return true;
+        } catch(e) { return true; }
+    }
+
+    // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
+    async function checkPageTimer() {
+        const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
+        let timer = null;
+        try {
+            const saved = localStorage.getItem('pageTimers');
+            if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
+            if (!timer) {
+                const cookieTimers = getCookie('pageTimers');
+                if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; }
+            }
+            if (!timer) {
+                const sessionTimers = sessionStorage.getItem('pageTimers');
+                if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; }
+            }
+        } catch(e) {}
+        if (!timer || timer <= Date.now()) return;
+        
+        const maintMsg = document.getElementById('maintenanceMessage');
+        if (maintMsg) maintMsg.style.display = 'block';
+        const pageBanner = document.getElementById('pageTimerBanner');
+        if (pageBanner) pageBanner.style.display = 'block';
+        const maintTimer = document.getElementById('maintenanceCountdown');
+        const pageCountdown = document.getElementById('pageTimerCountdown');
+        
+        const update = () => {
+            const rem = timer - Date.now();
+            if (rem <= 0) {
+                try {
+                    const saved = localStorage.getItem('pageTimers');
+                    if (saved) { const timers = JSON.parse(saved); delete timers[pageId]; localStorage.setItem('pageTimers', JSON.stringify(timers)); }
+                    setCookie('pageTimers', '', -1);
+                    sessionStorage.removeItem('pageTimers');
+                } catch(e) {}
+                location.reload();
+                return;
+            }
+            const s = Math.floor(rem / 1000);
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+            if (maintTimer) maintTimer.textContent = timeStr;
+            if (pageCountdown) pageCountdown.textContent = timeStr;
+        };
+        update();
+        setInterval(update, 1000);
+    }
+    function setCookie(name, value, days) {
+        let expires = '';
+        if (days) { const date = new Date(); date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000)); expires = '; expires=' + date.toUTCString(); }
+        document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
+    }
+    function getCookie(name) {
+        const nameEQ = name + '=';
+        const ca = document.cookie.split(';');
+        for (let i = 0; i < ca.length; i++) { let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
+        return null;
+    }
+
+    // ==================== BG MUSIC PLAYER ====================
+    (function() {
+        const a = document.getElementById('bgAudio');
+        if (!a) return;
+        let p = [], i = 0;
+        a.volume = 0.5;
+        a.loop = false;
+        const fl = !sessionStorage.getItem('mp');
+        if (fl) { i = 0; localStorage.setItem('bgi','0'); localStorage.setItem('bgt0','0'); }
+        else { i = parseInt(localStorage.getItem('bgi')||'0'); }
+        sessionStorage.setItem('mp','1');
+        async function fp() {
+            try {
+                const r = await fetch('/api/bg_music?t='+Date.now());
+                const d = await r.json();
+                if (d.playlist && d.playlist.length>0) { p = d.playlist; return true; }
+                return false;
+            } catch(e) { return false; }
+        }
+        function pl() {
+            if (!p.length) return;
+            if (i >= p.length) i = 0;
+            const u = p[i]; a.src = u; a.load();
+            a.addEventListener('canplay', function h() { a.play().catch(()=>{}); a.removeEventListener('canplay',h); });
+        }
+        a.addEventListener('ended', function() {
+            localStorage.setItem('bgt'+i,'0');
+            i = (i+1) % p.length;
+            localStorage.setItem('bgi',i);
+            localStorage.setItem('bgt'+i,'0');
+            pl();
+        });
+        a.addEventListener('error', function() {
+            i = (i+1) % p.length;
+            localStorage.setItem('bgi',i);
+            localStorage.setItem('bgt'+i,'0');
+            pl();
+        });
+        setInterval(() => {
+            if (!a.paused && p.length>0 && a.currentTime>0) {
+                localStorage.setItem('bgi',i);
+                localStorage.setItem('bgt'+i, a.currentTime);
+            }
+        }, 1000);
+        fp().then(h => { if(h) { if(fl) i=0; pl(); } });
+        setInterval(fp, 3000);
+    })();
+
+    // ==================== INIT ====================
+    (async function init() {
+        const pageOn = await checkPageAccess();
+        if (!pageOn) return;
+        document.getElementById('contactContent').style.display = 'block';
+    })();
 </script>
 </body>
 </html>
