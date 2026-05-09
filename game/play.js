@@ -239,31 +239,48 @@
     };
     
     // ==================== GAME FLOW ====================
-    function startGame() {
-        resizeCanvas();
-        checkOrientation();
-        score = 0; coins = 0; diamonds = 0; playerLives = 3; enemyKills = 0; currentLevel = 0;
-        startScreen.style.display = 'none';
-        gameOverScreen.style.display = 'none';
-        winScreen.style.display = 'none';
-        portraitWarning.style.display = 'none';
-        generateLevel(0);
-        gameRunning = true;
-        gamePaused = false;
-        
-        document.getElementById('mobileControls').style.display = (window.innerWidth <= 768) ? 'block' : 'none';
-        
-        updateHUD();
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-            if (gameRunning && !gamePaused) {
-                timeLeft--;
-                hudTime.textContent = timeLeft;
-                if (timeLeft <= 0) playerDie();
-            }
-        }, 1000);
+     function startGame() {
+    resizeCanvas();
+    checkOrientation();
+    
+    score = 0;
+    coins = 0;
+    diamonds = 0;
+    playerLives = 3;
+    enemyKills = 0;
+    currentLevel = 0;
+    
+    startScreen.style.display = 'none';
+    gameOverScreen.style.display = 'none';
+    winScreen.style.display = 'none';
+    portraitWarning.style.display = 'none';
+    
+    generateLevel(0);
+    gameRunning = true;
+    gamePaused = false;
+    
+    // ✅ FIX: Rebuild mobile controls on restart
+    const mobileCtrl = document.getElementById('mobileControls');
+    if (mobileCtrl && window.innerWidth <= 768) {
+        mobileCtrl.style.display = 'block';
+        // Re-attach touch events
+        if (typeof setupMobileControls === 'function') {
+            setupMobileControls();
+        }
     }
     
+    updateHUD();
+    
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        if (gameRunning && !gamePaused) {
+            timeLeft--;
+            hudTime.textContent = timeLeft;
+            if (timeLeft <= 0) playerDie();
+        }
+    }, 1000);
+    }
+        
     function restartGame() { startGame(); }
     
     function playerDie() {
