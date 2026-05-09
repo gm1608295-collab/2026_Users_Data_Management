@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>USD Exchange - SOLO M Game Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff;--usd:#85bb65}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px}
+        .container{max-width:500px;margin:0 auto;padding-bottom:20px}
+        
+        /* Header */
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:12px;background:linear-gradient(to right,var(--a),var(--p));padding:14px 15px;border-radius:12px;border-bottom:3px solid var(--w);position:relative}
+        .header a{color:var(--w);font-size:20px;text-decoration:none}
+        .header h2{color:var(--w);font-size:16px;font-weight:700;flex:1}
+        
+        /* Noti Bell */
+        .noti-bell{position:relative;cursor:pointer;font-size:20px;color:var(--w);flex-shrink:0}
+        .noti-bell .badge{position:absolute;top:-6px;right:-6px;background:var(--r);color:#fff;font-size:8px;width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;font-weight:bold}
+        .noti-bell .badge.show{display:flex}
+        .noti-dropdown{display:none;position:absolute;right:0;top:35px;width:280px;max-height:250px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px}
+        .noti-dropdown.active{display:block}
+        .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:5px;font-size:10px;border-left:3px solid var(--g);color:var(--t)}
+        .noti-item .noti-time{font-size:8px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right}
+        
+        /* Rate Banner */
+        .rate-banner{background:rgba(26,31,75,0.7);border-radius:12px;padding:15px;margin-bottom:12px;text-align:center;border:1px solid rgba(74,28,122,0.5)}
+        .rate-banner .rate-title{font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
+        .rate-banner .rate-value{font-size:24px;font-weight:bold;color:var(--w);margin:5px 0}
+        .rate-banner .rate-sub{font-size:9px;color:rgba(255,255,255,0.4)}
+        
+        /* Balance Cards */
+        .balance-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+        .bal-card{background:rgba(26,31,75,0.7);border-radius:12px;padding:18px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
+        .bal-card.usd{border-color:rgba(133,187,101,0.5);background:rgba(133,187,101,0.05)}
+        .bal-card .bal-icon{font-size:30px;margin-bottom:8px}
+        .bal-card .bal-label{font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
+        .bal-card .bal-value{font-size:24px;font-weight:bold;color:var(--w)}
+        .bal-card.usd .bal-value{color:var(--usd)}
+        
+        /* Exchange Box */
+        .exchange-box{background:rgba(26,31,75,0.7);border-radius:12px;padding:20px;border:1px solid rgba(74,28,122,0.5);margin-bottom:12px}
+        .exchange-box h3{color:var(--w);font-size:14px;margin-bottom:15px;text-align:center}
+        .input-group{margin-bottom:12px}
+        .input-group label{display:block;font-size:11px;margin-bottom:5px;color:#ccc;font-weight:600}
+        .input-wrapper{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.2);border-radius:8px;padding:8px 12px}
+        .input-wrapper input{flex:1;background:none;border:none;color:var(--t);font-size:18px;font-weight:bold;outline:none;width:100%}
+        .input-wrapper .currency{color:var(--usd);font-weight:bold;font-size:14px;flex-shrink:0}
+        .exchange-arrow{text-align:center;font-size:24px;color:var(--w);margin:8px 0}
+        .conversion-text{font-size:11px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:8px}
+        .btn-exchange{width:100%;padding:14px;border:none;border-radius:25px;font-size:16px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,var(--usd),#27ae60);color:#000;letter-spacing:1px;transition:all 0.3s}
+        .btn-exchange:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(46,204,113,0.3)}
+        .btn-exchange:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+        
+        /* Toast */
+        .toast{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;z-index:9999;font-size:12px;font-weight:bold;animation:slideIn 0.3s ease;display:none}
+        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast"></div>
+    
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+            <h2>💱 USD Exchange</h2>
+            <div class="noti-bell" onclick="toggleNoti()">
+                <i class="fas fa-bell"></i>
+                <span class="badge" id="notiBadge">0</span>
+                <div class="noti-dropdown" id="notiDropdown">
+                    <div id="notiList" style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No notifications</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rate Banner -->
+        <div class="rate-banner">
+            <div class="rate-title">📊 Today's Exchange Rate</div>
+            <div class="rate-value">1 USD = 3,500 Ks</div>
+            <div class="rate-sub">Fixed Rate • Instant Exchange</div>
+        </div>
+        
+        <!-- Balance Cards -->
+        <div class="balance-grid">
+            <div class="bal-card usd">
+                <div class="bal-icon">💵</div>
+                <div class="bal-label">USD Balance</div>
+                <div class="bal-value" id="usdBalance">$0.00</div>
+            </div>
+            <div class="bal-card">
+                <div class="bal-icon">💰</div>
+                <div class="bal-label">MMK Balance</div>
+                <div class="bal-value" id="mmkBalance">0 Ks</div>
+            </div>
+        </div>
+        
+        <!-- Exchange Box -->
+        <div class="exchange-box">
+            <h3>💱 USD → MMK Exchange</h3>
+            
+            <div class="input-group">
+                <label>💵 You Send (USD)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="usdInput" value="1" min="1" step="0.25" oninput="updateConversion()" placeholder="0.00">
+                    <span class="currency">USD</span>
+                </div>
+            </div>
+            
+            <div class="exchange-arrow">⬇️</div>
+            <div class="conversion-text" id="conversionText">1 USD = 3,500 Ks</div>
+            
+            <div class="input-group">
+                <label>💰 You Receive (MMK)</label>
+                <div class="input-wrapper">
+                    <input type="text" id="mmkOutput" value="3,500" readonly>
+                    <span class="currency" style="color:#f39c12">MMK</span>
+                </div>
+            </div>
+            
+            <button class="btn-exchange" id="exchangeBtn" onclick="executeExchange()">
+                🔄 Exchange Now
+            </button>
+        </div>
+    </div>
+
+<script>
+    const EXCHANGE_RATE = 3500; // 1 USD = 3,500 Ks
+    let notiCount = 0;
+    let notiItems = [];
+    
+    // Load saved noti items
+    try {
+        const saved = localStorage.getItem('exchangeNotiItems');
+        if (saved) notiItems = JSON.parse(saved);
+        notiCount = parseInt(localStorage.getItem('exchangeNotiUnread') || '0');
+    } catch(e) {}
+    
+    function toast(msg, type = 'success') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.style.background = type === 'success' ? '#2ecc71' : '#e74c3c';
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+    
+    function updateConversion() {
+        const usd = parseFloat(document.getElementById('usdInput').value) || 0;
+        const mmk = usd * EXCHANGE_RATE;
+        document.getElementById('mmkOutput').value = mmk.toLocaleString();
+        document.getElementById('conversionText').textContent = `${usd} USD = ${mmk.toLocaleString()} Ks`;
+    }
+    
+    async function executeExchange() {
+        const usdAmount = parseFloat(document.getElementById('usdInput').value) || 0;
+        
+        if (usdAmount < 1) return toast('❌ Minimum 1 USD required!', 'error');
+        
+        const token = localStorage.getItem('auth_token');
+        if (!token || token === 'guest') return toast('❌ Please login!', 'error');
+        
+        const btn = document.getElementById('exchangeBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Processing...';
+        
+        try {
+            const r = await fetch('/api/exchange_usd_to_mmk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, usd_amount: usdAmount })
+            });
+            const d = await r.json();
+            
+            if (d.success) {
+                toast('✅ Exchange successful!');
+                document.getElementById('usdInput').value = 1;
+                updateConversion();
+                loadBalances();
+                addNoti('✅ ဒေါ်လာငွေမှ မြန်မာငွေသို့ လဲလှယ်ခြင်းအောင်မြင်ပါသည်၊ ကျေးဇူးတင်ပါသည်');
+            } else {
+                toast('❌ ' + (d.message || 'Exchange failed'), 'error');
+            }
+        } catch(e) {
+            toast('❌ Connection error', 'error');
+        }
+        
+        btn.disabled = false;
+        btn.textContent = '🔄 Exchange Now';
+    }
+    
+    async function loadBalances() {
+        const token = localStorage.getItem('auth_token');
+        if (!token || token === 'guest') return;
+        
+        try {
+            // MMK Balance
+            const r = await fetch('/api/get_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const d = await r.json();
+            document.getElementById('mmkBalance').textContent = (d.balance || 0).toLocaleString() + ' Ks';
+            
+            // USD Balance
+            const ur = await fetch('/api/get_usd_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const ud = await ur.json();
+            document.getElementById('usdBalance').textContent = '$' + (ud.usd_balance || 0).toFixed(2);
+        } catch(e) {}
+    }
+    
+    // ==================== NOTIFICATION BELL ====================
+    function addNoti(msg) {
+        notiItems.unshift({ msg, time: new Date().toISOString() });
+        notiCount++;
+        if (notiItems.length > 20) notiItems.pop();
+        localStorage.setItem('exchangeNotiItems', JSON.stringify(notiItems));
+        localStorage.setItem('exchangeNotiUnread', notiCount.toString());
+        updateNotiBadge();
+        renderNotiList();
+    }
+    
+    function updateNotiBadge() {
+        const badge = document.getElementById('notiBadge');
+        if (notiCount > 0) {
+            badge.textContent = notiCount > 9 ? '9+' : notiCount;
+            badge.classList.add('show');
+        } else {
+            badge.classList.remove('show');
+        }
+    }
+    
+    function toggleNoti() {
+        const dd = document.getElementById('notiDropdown');
+        dd.classList.toggle('active');
+        if (dd.classList.contains('active')) {
+            notiCount = 0;
+            localStorage.setItem('exchangeNotiUnread', '0');
+            updateNotiBadge();
+            renderNotiList();
+        }
+    }
+    
+    function renderNotiList() {
+        const list = document.getElementById('notiList');
+        if (notiItems.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.4);padding:15px;font-size:10px">No notifications</div>';
+            return;
+        }
+        list.innerHTML = notiItems.map(n => `
+            <div class="noti-item">
+                ${n.msg}
+                <div class="noti-time">${new Date(n.time).toLocaleString()}</div>
+            </div>
+        `).join('');
+    }
+    
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+        const bell = document.querySelector('.noti-bell');
+        const dd = document.getElementById('notiDropdown');
+        if (bell && !bell.contains(e.target) && dd.classList.contains('active')) {
+            dd.classList.remove('active');
+        }
+    });
+    
+    // Init
+    loadBalances();
+    updateNotiBadge();
+    renderNotiList();
+    updateConversion();
+    setInterval(loadBalances, 30000);
+</script>
+</body>
+</html>
