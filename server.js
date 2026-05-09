@@ -61,6 +61,7 @@ const REDEEM_CATEGORIES = [
 async function initTables(p) {
     const queries = [
         `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
+        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL DEFAULT 0`,
         `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), notice_type VARCHAR(20) DEFAULT 'dashboard', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
@@ -74,7 +75,8 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS user_security_pass (user_id INT PRIMARY KEY, security_password VARCHAR(100), set_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS game_players (id SERIAL PRIMARY KEY, username VARCHAR(100) DEFAULT 'Player', device_id VARCHAR(200), level INT DEFAULT 1, total_score BIGINT DEFAULT 0, total_gold BIGINT DEFAULT 0, games_played INT DEFAULT 0, highest_score INT DEFAULT 0, highest_wave INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_played TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS game_scores (id SERIAL PRIMARY KEY, player_id INT, score INT DEFAULT 0, gold_earned INT DEFAULT 0, waves_completed INT DEFAULT 0, kills INT DEFAULT 0, deaths INT DEFAULT 0, hero_used VARCHAR(50) DEFAULT 'Warrior', played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS game_leaderboard (id SERIAL PRIMARY KEY, player_id INT, username VARCHAR(100), score INT, wave INT, season VARCHAR(20) DEFAULT 'S1', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+        `CREATE TABLE IF NOT EXISTS game_leaderboard (id SERIAL PRIMARY KEY, player_id INT, username VARCHAR(100), score INT, wave INT, season VARCHAR(20) DEFAULT 'S1', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS spin_history (id SERIAL PRIMARY KEY, user_id INT, reward_type VARCHAR(50), reward_amount DECIMAL DEFAULT 0, segment_label VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
     ];
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
@@ -1097,6 +1099,7 @@ app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.ht
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
+app.get('/exchange.html', (req, res) => res.sendFile(path.join(__dirname, 'exchange.html')));
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
