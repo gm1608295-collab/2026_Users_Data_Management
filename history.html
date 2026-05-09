@@ -194,151 +194,110 @@
         setTimeout(() => e.style.display = "none", 3000);
     }
 
-    // ==================== SECURITY PASSWORD SYSTEM ====================
-    let securityUnlocked = false;
-    let securityPassword = null;
-    let passwordSetDate = null;
+    // ==================== SECURITY PASSWORD SYSTEM (SERVER-SIDE) ====================
+let securityUnlocked = false;
+let hasPassword = false;
+let canChange = true;
+let daysLeft = 0;
 
-    function loadSecurityState() {
-        securityPassword = localStorage.getItem('historySecurityPass');
-        passwordSetDate = localStorage.getItem('historySecurityPassDate');
+async function loadSecurityState() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        if (!token || token === 'guest') return;
         
-        if (securityPassword) {
-            // Password already set
+        const r = await fetch('/api/get_security_pass_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            hasPassword = d.hasPassword;
+            canChange = d.canChange;
+            daysLeft = d.daysLeft;
+            
             const btn = document.getElementById('securityPassBtn');
-            btn.innerHTML = '<i class="fas fa-lock-open"></i> Security Password ထည့်ရန်နှိပ်ပါ';
-            
-            // Check 7-day lock
-            const setDate = new Date(parseInt(passwordSetDate));
-            const now = new Date();
-            const daysPassed = Math.floor((now - setDate) / (1000 * 60 * 60 * 24));
-            
-            if (daysPassed < 7) {
-                const daysLeft = 7 - daysPassed;
-                document.getElementById('lockInfo').style.display = 'block';
-                document.getElementById('lockInfo').innerHTML = 
-                    `⏰ Password ပြောင်းလဲရန် <b>${daysLeft} ရက်</b> စောင့်ရပါမည်။<br>` +
-                    `<small>နောက်ဆုံးသတ်မှတ်ရက်: ${setDate.toLocaleDateString()}</small>`;
-                document.getElementById('securityPassForm').style.display = 'none';
-                document.getElementById('securityUnlockForm').style.display = 'block';
+            if (hasPassword) {
+                btn.innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
             } else {
-                // 7 days passed, can change
-                document.getElementById('lockInfo').style.display = 'none';
-                document.getElementById('securityPassForm').style.display = 'block';
-                document.getElementById('securityUnlockForm').style.display = 'block';
+                btn.innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
             }
         }
-    }
+    } catch(e) {}
+}
 
-    function openSecurityPassModal() {
-        loadSecurityState();
-        
-        if (securityUnlocked) {
-            n("✅ Already unlocked!", "success");
-            return;
-        }
-        
-        // Reset fields
-        document.getElementById('secNewPass').value = '';
-        document.getElementById('secConfirmPass').value = '';
-        document.getElementById('secUnlockPass').value = '';
-        
-        if (!securityPassword) {
-            // First time - show set password form
-            document.getElementById('securityPassForm').style.display = 'block';
-            document.getElementById('securityUnlockForm').style.display = 'none';
-            document.getElementById('lockInfo').style.display = 'none';
-        } else {
-            // Already set - show unlock form
-            const setDate = new Date(parseInt(passwordSetDate));
-            const now = new Date();
-            const daysPassed = Math.floor((now - setDate) / (1000 * 60 * 60 * 24));
-            
-            if (daysPassed >= 7) {
-                // Can change
-                document.getElementById('securityPassForm').style.display = 'block';
-                document.getElementById('securityUnlockForm').style.display = 'block';
-                document.getElementById('lockInfo').style.display = 'none';
-            } else {
-                // Locked
-                document.getElementById('securityPassForm').style.display = 'none';
-                document.getElementById('securityUnlockForm').style.display = 'block';
-                const daysLeft = 7 - daysPassed;
-                document.getElementById('lockInfo').style.display = 'block';
-                document.getElementById('lockInfo').innerHTML = 
-                    `⏰ Password ပြောင်းလဲရန် <b>${daysLeft} ရက်</b> စောင့်ရပါမည်။<br>` +
-                    `<small>နောက်ဆုံးသတ်မှတ်ရက်: ${setDate.toLocaleDateString()}</small>`;
-            }
-        }
-        
-        document.getElementById('securityPassModal').classList.add('active');
+async function openSecurityPassModal() {
+    await loadSecurityState();
+    
+    if (securityUnlocked) {
+        n("✅ Already unlocked!", "success");
+        return;
     }
-
-    function closeSecurityPassModal() {
-        document.getElementById('securityPassModal').classList.remove('active');
+    
+    // Reset fields
+    document.getElementById('secNewPass').value = '';
+    document.getElementById('secConfirmPass').value = '';
+    document.getElementById('secUnlockPass').value = '';
+    
+    // Load lock info
+    const lockInfo = document.getElementById('lockInfo');
+    
+    if (!hasPassword) {
+        // No password set - show create form
+        document.getElementById('securityPassForm').style.display = 'block';
+        document.getElementById('securityUnlockForm').style.display = 'none';
+        lockInfo.style.display = 'none';
+    } else if (canChange) {
+        // 7 days passed - can change
+        document.getElementById('securityPassForm').style.display = 'block';
+        document.getElementById('securityUnlockForm').style.display = 'block';
+        lockInfo.style.display = 'none';
+    } else {
+        // Locked - 7 days not passed
+        document.getElementById('securityPassForm').style.display = 'none';
+        document.getElementById('securityUnlockForm').style.display = 'block';
+        lockInfo.style.display = 'block';
+        lockInfo.innerHTML = `⏰ Password ပြောင်းလဲရန် <b>${daysLeft} ရက်</b> စောင့်ရပါမည်။`;
     }
+    
+    document.getElementById('securityPassModal').classList.add('active');
+}
 
-    function setSecurityPassword() {
-        const newPass = document.getElementById('secNewPass').value;
-        const confirmPass = document.getElementById('secConfirmPass').value;
-        
-        if (!newPass) return n("❌ Enter password!", "error");
-        if (newPass.length < 6) return n("❌ Password must be at least 6 characters!", "error");
-        if (newPass !== confirmPass) return n("❌ Passwords don't match!", "error");
-        
-        // Check 7-day lock
-        if (securityPassword && passwordSetDate) {
-            const setDate = new Date(parseInt(passwordSetDate));
-            const now = new Date();
-            const daysPassed = Math.floor((now - setDate) / (1000 * 60 * 60 * 24));
-            
-            if (daysPassed < 7) {
-                const daysLeft = 7 - daysPassed;
-                return n(`❌ ${daysLeft} ရက်စောင့်ရပါမည်!`, "error");
-            }
-        }
-        
-        // Save password
-        localStorage.setItem('historySecurityPass', newPass);
-        localStorage.setItem('historySecurityPassDate', Date.now().toString());
-        
-        securityPassword = newPass;
-        passwordSetDate = Date.now().toString();
-        securityUnlocked = true;
-        
-        // Update button
-        document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
-        document.getElementById('securityPassBtn').classList.add('locked');
-        
-        closeSecurityPassModal();
-        n("✅ Password ထည့်သွင်းခြင်းအောင်မြင်ပါသည်၊ နောက်တစ်ကြိမ်ပြောင်းလဲရန်အချိန် ၇ ရက်စောင့်ရပါမည်", "success");
-        
-        // Reload data
-        loadMyHistory();
-        
-        // Auto-lock after 5 minutes
-        setTimeout(() => {
-            securityUnlocked = false;
-            document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
-            document.getElementById('securityPassBtn').classList.remove('locked');
-            loadMyHistory();
-        }, 300000);
-    }
+function closeSecurityPassModal() {
+    document.getElementById('securityPassModal').classList.remove('active');
+}
 
-    function unlockSecurityPassword() {
-        const pass = document.getElementById('secUnlockPass').value;
+async function setSecurityPassword() {
+    const newPass = document.getElementById('secNewPass').value;
+    const confirmPass = document.getElementById('secConfirmPass').value;
+    
+    if (!newPass) return n("❌ Enter password!", "error");
+    if (newPass.length < 6) return n("❌ Password must be at least 6 characters!", "error");
+    if (newPass !== confirmPass) return n("❌ Passwords don't match!", "error");
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/set_security_pass', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token, password: newPass })
+        });
+        const d = await r.json();
         
-        if (!pass) return n("❌ Enter password!", "error");
-        
-        if (pass === securityPassword) {
+        if (d.success) {
+            hasPassword = true;
             securityUnlocked = true;
-            closeSecurityPassModal();
-            n("✅ Unlocked!", "success");
+            canChange = false;
+            
             document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
             document.getElementById('securityPassBtn').classList.add('locked');
+            
+            closeSecurityPassModal();
+            n("✅ Password ထည့်သွင်းခြင်းအောင်မြင်ပါသည်၊ နောက်တစ်ကြိမ်ပြောင်းလဲရန်အချိန် ၇ ရက်စောင့်ရပါမည်", "success");
+            
             loadMyHistory();
             
-            // Auto-lock after 5 minutes
             setTimeout(() => {
                 securityUnlocked = false;
                 document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
@@ -346,10 +305,48 @@
                 loadMyHistory();
             }, 300000);
         } else {
-            n("❌ Wrong password!", "error");
+            n("❌ " + d.message, "error");
         }
+    } catch(e) {
+        n("❌ Connection error!", "error");
     }
+}
 
+async function unlockSecurityPassword() {
+    const pass = document.getElementById('secUnlockPass').value;
+    if (!pass) return n("❌ Enter password!", "error");
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/verify_security_pass', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token, password: pass })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            securityUnlocked = true;
+            closeSecurityPassModal();
+            n("✅ Unlocked!", "success");
+            document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
+            document.getElementById('securityPassBtn').classList.add('locked');
+            loadMyHistory();
+            
+            setTimeout(() => {
+                securityUnlocked = false;
+                document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
+                document.getElementById('securityPassBtn').classList.remove('locked');
+                loadMyHistory();
+            }, 300000);
+        } else {
+            n("❌ " + d.message, "error");
+        }
+    } catch(e) {
+        n("❌ Connection error!", "error");
+    }
+}
+    
     // ==================== VIEW/EDIT DATA ====================
     function viewData(type, userId) {
         if (!securityUnlocked) {
