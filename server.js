@@ -1083,6 +1083,80 @@ app.post('/api/game/update_username', async (req, res) => {
         res.json({ success: false });
     }
 });
+// ==================== SPIN & USD API ====================
+
+// Get USD Balance
+app.post('/api/get_usd_balance', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ usd_balance: 0 });
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ usd_balance: 0 });
+        const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
+        res.json({ usd_balance: parseFloat(r.rows[0]?.usd_balance || 0) });
+    } catch(e) { res.json({ usd_balance: 0 }); }
+});
+
+// Save Spin Result
+app.post('/api/spin/save', async (req, res) => {
+    const { token, reward_type, reward_amount, segment_label } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        // Save history
+        await p.query(
+            'INSERT INTO spin_history (user_id, reward_type, reward_amount, segment_label) VALUES ($1,$2,$3,$4)',
+            [uid, reward_type || 'thanks', reward_amount || 0, segment_label || 'Unknown']
+        );
+        
+        // Add reward to balance
+        if (reward_type === 'usd' && reward_amount > 0) {
+            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
+        } else if (reward_type === 'mmk' && reward_amount > 0) {
+            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
+        }
+        
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Exchange USD to MMK
+app.post('/api/exchange_usd_to_mmk', async (req, res) => {
+    const { token, usd_amount } = req.body;
+    const EXCHANGE_RATE = 3500;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!usd_amount || usd_amount < 1) return res.json({ success: false, message: 'Minimum 1 USD required' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
+        // Check USD balance
+        const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
+        const usdBalance = parseFloat(r.rows[0]?.usd_balance || 0);
+        
+        if (usdBalance < usd_amount) {
+            return res.json({ success: false, message: 'Insufficient USD balance' });
+        }
+        
+        const mmkAmount = usd_amount * EXCHANGE_RATE;
+        
+        // Deduct USD, Add MMK
+        await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id=$2', [usd_amount, uid]);
+        await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [mmkAmount, uid]);
+        
+        res.json({ success: true, mmk_received: mmkAmount, rate: EXCHANGE_RATE });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
