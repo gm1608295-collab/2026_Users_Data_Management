@@ -218,7 +218,7 @@ function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function closeConfirm() { closeModal('confirmOverlay'); }
 
-// ==================== BALANCE ====================
+// ==================== BALANCE (Always fetch from Server) ====================
 async function loadBalance() {
     const token = localStorage.getItem('auth_token');
     if (!token || token==='guest') return;
@@ -235,19 +235,36 @@ async function loadBalance() {
     } catch(e) {}
 }
 
-// ==================== PREMIUM STATUS ====================
-async function checkPremiumStatus() {
+// ==================== FETCH ALL STATE FROM SERVER (SURVIVES REFRESH) ====================
+async function fetchServerState() {
     const token = localStorage.getItem('auth_token');
     if (!token || token==='guest') return;
+
     try {
+        // 1. Get Premium Status & Free Draws
         const r = await fetch('/api/get_premium_status', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
         const d = await r.json();
         premiumActive = d.success && d.premium_active;
         freeDrawsRemaining = premiumActive ? (d.daily_draws_remaining || 3) : 1;
+        
+        // 2. Get Paid Spins Remaining
+        const spinRes = await fetch('/api/get_paid_spins', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
+        const spinData = await spinRes.json();
+        paidSpinsRemaining = spinData.paid_spins || 0;
+
+        // 3. Update UI
         applyPremiumUI();
         updateFreeDrawDisplay();
         drawWheel(0);
-    } catch(e) {}
+        await loadBalance();
+
+        // 4. Check if timer needed
+        if (freeDrawsRemaining === 0 && paidSpinsRemaining === 0) {
+            scheduleResetTimer();
+        }
+    } catch(e) {
+        console.error('Failed to fetch server state', e);
+    }
 }
 
 function applyPremiumUI() {
@@ -268,27 +285,25 @@ function updateSpinButton() {
     const status = document.getElementById('spinStatus');
     if (paidSpinsRemaining > 0) { status.textContent = `💳 Paid spins: ${paidSpinsRemaining}`; btn.disabled = false; }
     else if (freeDrawsRemaining > 0) { status.textContent = `🎰 Free draws: ${freeDrawsRemaining}`; btn.disabled = false; }
-    else { status.textContent = '⏰ No spins left'; btn.disabled = true; }
+    else { status.textContent = '⏰ No spins left'; btn.disabled = true; scheduleResetTimer(); }
 }
 
-// ==================== TIMER (SERVER-BASED, SURVIVES REFRESH) ====================
+// ==================== TIMER (SURVIVES REFRESH) ====================
 function scheduleResetTimer() {
-    // Use midnight as reset point - always consistent
     const now = new Date();
     const midnight = new Date(now);
     midnight.setDate(midnight.getDate() + 1);
     midnight.setHours(0, 0, 0, 0);
     
     const countdownEl = document.getElementById('resetCountdown');
+    if (window._resetInterval) clearInterval(window._resetInterval);
     
     function updateCountdown() {
         const remaining = midnight.getTime() - Date.now();
         if (remaining <= 0) {
-            freeDrawsRemaining = premiumActive ? 3 : 1;
-            updateFreeDrawDisplay();
-            countdownEl.textContent = '';
-            // Schedule next reset
-            scheduleResetTimer();
+            clearInterval(window._resetInterval);
+            // Refetch state from server at midnight
+            fetchServerState();
             return;
         }
         const h = Math.floor(remaining / 3600000);
@@ -298,8 +313,6 @@ function scheduleResetTimer() {
     }
     
     updateCountdown();
-    // Use a single interval, clear old one
-    if (window._resetInterval) clearInterval(window._resetInterval);
     window._resetInterval = setInterval(updateCountdown, 1000);
 }
 
@@ -326,7 +339,6 @@ function drawWheel(angle = 0) {
         ctx.font = 'bold 14px "Segoe UI"'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
         ctx.fillText(s.label, r * 0.65, 5); ctx.restore();
     });
-    // Center
     ctx.beginPath(); ctx.arc(cx, cy, 28, 0, 2 * Math.PI);
     ctx.fillStyle = premiumActive ? '#2d1b4e' : '#1a1f4b'; ctx.fill();
     ctx.strokeStyle = premiumActive ? '#ffd700' : '#f39c12'; ctx.lineWidth = 3; ctx.stroke();
@@ -340,7 +352,7 @@ function lightenColor(hex, p) {
     return `rgb(${Math.min(255,(num>>16)+p)},${Math.min(255,((num>>8)&0xFF)+p)},${Math.min(255,(num&0xFF)+p)})`;
 }
 
-// ==================== SPIN LOGIC (ARROW FIX) ====================
+// ==================== SPIN LOGIC ====================
 function getWinningIndex() {
     const segs = getActiveSegments();
     const total = segs.reduce((a, b) => a + b.weight, 0);
@@ -352,7 +364,7 @@ function getWinningIndex() {
 function handleSpinClick() {
     if (isSpinning) return;
     if (paidSpinsRemaining > 0) { paidSpinsRemaining--; updateSpinButton(); executeSpin(); }
-    else if (freeDrawsRemaining > 0) { freeDrawsRemaining--; updateFreeDrawDisplay(); executeSpin(); if (premiumActive) { fetch('/api/track_premium_draw', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); } if (freeDrawsRemaining === 0 && paidSpinsRemaining === 0) scheduleResetTimer(); }
+    else if (freeDrawsRemaining > 0) { freeDrawsRemaining--; updateFreeDrawDisplay(); executeSpin(); if (premiumActive) { fetch('/api/track_premium_draw', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); } }
     else { toast('❌ No spins left!', 'error'); }
 }
 
@@ -362,20 +374,8 @@ function executeSpin() {
     const winIdx = getWinningIndex();
     const seg = getActiveSegments()[winIdx];
     
-    // ✅ FIXED ARROW ALIGNMENT:
-    // Arrow is at TOP (12 o'clock = -PI/2)
-    // Segment 0 starts at angle 0 (3 o'clock), goes counter-clockwise
-    // Segment i center = i*ARC + ARC/2
-    // For arrow to point to segment i, wheel must rotate so that
-    // segment i's center aligns with top (-PI/2)
-    // Required rotation = -(i*ARC + ARC/2) - PI/2 + PI  (adjusted)
-    
     const segmentCenterAngle = winIdx * ARC + ARC / 2;
-    // The wheel is drawn with segment 0 starting at angle 0 (right/3 o'clock)
-    // Arrow is at -PI/2 (top/12 o'clock)
-    // To bring segment i to the arrow: rotate wheel by -(segmentCenterAngle + PI/2)
     let targetAngle = -(segmentCenterAngle - Math.PI / 2);
-    // Normalize
     while (targetAngle < 0) targetAngle += 2 * Math.PI;
     targetAngle = targetAngle % (2 * Math.PI);
     
@@ -399,7 +399,6 @@ function executeSpin() {
             saveSpinResult(seg);
             showResult(seg);
             updateSpinButton();
-            if (freeDrawsRemaining === 0 && paidSpinsRemaining === 0) scheduleResetTimer();
         }
     }
     requestAnimationFrame(animate);
@@ -414,7 +413,7 @@ async function saveSpinResult(seg) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, reward_type: seg.type, reward_amount: seg.reward, segment_label: seg.label })
         });
-        // ✅ Immediately reload balance after saving
+        // Force reload balance from server
         await loadBalance();
     } catch(e) {}
 }
@@ -424,37 +423,24 @@ function showResult(seg) {
     const text = document.getElementById('resultText');
     const amount = document.getElementById('resultAmount');
     const extra = document.getElementById('resultExtra');
-    
-    // ✅ Clear everything first
     extra.innerHTML = '';
     
     if (seg.type === 'super') {
-        // ✅ SUPER: Only show link button, no OK button
-        icon.textContent = '👑';
-        text.textContent = '🏆 SUPER PRIZE!';
-        amount.textContent = 'Congratulations!';
-        amount.style.color = '#e91e63';
-        extra.innerHTML = `<a class="super-link-btn" href="${SUPER_FORM_URL}" target="_blank">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>
-                          <br><button class="btn-yes" onclick="closeResult()" style="margin-top:10px;font-size:12px;">Close</button>`;
-    } else if (seg.type === 'usd') {
-        icon.textContent = '💵'; text.textContent = '🎉 You Won!';
-        amount.textContent = `$${seg.reward.toFixed(2)} USD`; amount.style.color = '#2ecc71';
-        extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
-    } else if (seg.type === 'mmk') {
-        icon.textContent = '💰'; text.textContent = '🎉 You Won!';
-        amount.textContent = `${seg.reward} Ks`; amount.style.color = '#f39c12';
-        extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
-    } else if (seg.type === 'free') {
-        icon.textContent = '🔄'; text.textContent = 'Free Spin!';
-        amount.textContent = '+1 Extra Draw'; amount.style.color = '#1abc9c';
-        freeDrawsRemaining++; updateFreeDrawDisplay();
-        extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
+        icon.textContent = '👑'; text.textContent = '🏆 SUPER PRIZE!';
+        amount.textContent = 'Congratulations!'; amount.style.color = '#e91e63';
+        // ONLY LINK BUTTON, NO CLOSE/CANCEL
+        extra.innerHTML = `<a class="super-link-btn" href="${SUPER_FORM_URL}" target="_blank">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>`;
     } else {
-        icon.textContent = '😊'; text.textContent = 'Thank You!';
-        amount.textContent = 'Better luck next time'; amount.style.color = '#7f8c8d';
+        // All other results have an OK button
+        let resultHTML = '';
+        switch(seg.type) {
+            case 'usd': icon.textContent='💵'; text.textContent='🎉 You Won!'; amount.textContent=`$${seg.reward.toFixed(2)} USD`; amount.style.color='#2ecc71'; break;
+            case 'mmk': icon.textContent='💰'; text.textContent='🎉 You Won!'; amount.textContent=`${seg.reward} Ks`; amount.style.color='#f39c12'; break;
+            case 'free': icon.textContent='🔄'; text.textContent='Free Spin!'; amount.textContent='+1 Extra Draw'; amount.style.color='#1abc9c'; freeDrawsRemaining++; updateFreeDrawDisplay(); break;
+            default: icon.textContent='😊'; text.textContent='Thank You!'; amount.textContent='Better luck next time'; amount.style.color='#7f8c8d';
+        }
         extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
     }
-    
     openModal('resultOverlay');
 }
 
@@ -475,7 +461,8 @@ async function buyPremium(months, cost) {
     try {
         const r = await fetch('/api/buy_premium', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,months,cost})});
         const d = await r.json();
-        d.success ? (toast('✅ Premium activated!'), loadBalance(), checkPremiumStatus()) : toast('❌ '+d.message, 'error');
+        if (d.success) { toast('✅ Premium activated!'); await fetchServerState(); } 
+        else toast('❌ '+d.message, 'error');
     } catch(e) { toast('❌ Connection error', 'error'); }
 }
 
@@ -492,18 +479,19 @@ async function buySpins(spins, cost) {
     try {
         const r = await fetch('/api/deduct_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,amount:cost,reason:`Buy ${spins} spins`})});
         const d = await r.json();
-        if (d.success) { mmkBalance = d.new_balance; document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString() + ' Ks'; paidSpinsRemaining += spins; updateSpinButton(); toast(`✅ ${spins} spins added!`); }
-        else toast('❌ '+d.message, 'error');
+        if (d.success) { 
+            mmkBalance = d.new_balance; 
+            document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString() + ' Ks'; 
+            paidSpinsRemaining += spins; 
+            updateSpinButton(); 
+            toast(`✅ ${spins} spins added!`); 
+        } else toast('❌ '+d.message, 'error');
     } catch(e) { toast('❌ Connection error', 'error'); }
 }
 
 // ==================== INIT ====================
 async function init() {
-    drawWheel(0);
-    await loadBalance();
-    await checkPremiumStatus();
-    updateFreeDrawDisplay();
-    if (freeDrawsRemaining === 0) scheduleResetTimer();
+    await fetchServerState(); // Always start by fetching state from server
     // Weekly bonus
     if (premiumActive) {
         const lastBonus = localStorage.getItem('weeklyBonusDate');
