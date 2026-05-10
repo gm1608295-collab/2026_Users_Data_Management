@@ -62,6 +62,7 @@ async function initTables(p) {
     const queries = [
         `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
         `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL DEFAULT 0`,
+        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_expiry TIMESTAMP`,
         `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), notice_type VARCHAR(20) DEFAULT 'dashboard', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
@@ -76,7 +77,9 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS game_players (id SERIAL PRIMARY KEY, username VARCHAR(100) DEFAULT 'Player', device_id VARCHAR(200), level INT DEFAULT 1, total_score BIGINT DEFAULT 0, total_gold BIGINT DEFAULT 0, games_played INT DEFAULT 0, highest_score INT DEFAULT 0, highest_wave INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_played TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS game_scores (id SERIAL PRIMARY KEY, player_id INT, score INT DEFAULT 0, gold_earned INT DEFAULT 0, waves_completed INT DEFAULT 0, kills INT DEFAULT 0, deaths INT DEFAULT 0, hero_used VARCHAR(50) DEFAULT 'Warrior', played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS game_leaderboard (id SERIAL PRIMARY KEY, player_id INT, username VARCHAR(100), score INT, wave INT, season VARCHAR(20) DEFAULT 'S1', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS spin_history (id SERIAL PRIMARY KEY, user_id INT, reward_type VARCHAR(50), reward_amount DECIMAL DEFAULT 0, segment_label VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+        `CREATE TABLE IF NOT EXISTS spin_history (id SERIAL PRIMARY KEY, user_id INT, reward_type VARCHAR(50), reward_amount DECIMAL DEFAULT 0, segment_label VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS premium_draws (user_id INT, draw_date DATE, draw_count INT DEFAULT 1, PRIMARY KEY(user_id, draw_date))`,
+        `CREATE TABLE IF NOT EXISTS weekly_bonus (id SERIAL PRIMARY KEY, user_id INT, claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
     ];
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
@@ -1020,6 +1023,151 @@ app.post('/api/deduct_balance', async (req, res) => {
         res.json({ success: true, new_balance: newBalance });
     } catch(e) {
         res.json({ success: false, message: 'Server error' });
+    }
+});
+// ==================== PREMIUM API ====================
+
+// Get Premium Status
+app.post('/api/get_premium_status', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        const r = await p.query(
+            'SELECT premium_expiry FROM auth_users WHERE id=$1', [uid]
+        );
+        
+        if (r.rows.length > 0 && r.rows[0].premium_expiry) {
+            const expiry = new Date(r.rows[0].premium_expiry);
+            const now = new Date();
+            
+            if (expiry > now) {
+                // Premium active
+                const lastDrawDate = await p.query(
+                    'SELECT draw_date, draw_count FROM premium_draws WHERE user_id=$1 AND draw_date=CURRENT_DATE',
+                    [uid]
+                );
+                
+                const dailyLimit = 3;
+                const usedToday = lastDrawDate.rows.length > 0 ? lastDrawDate.rows[0].draw_count : 0;
+                const remaining = Math.max(0, dailyLimit - usedToday);
+                
+                res.json({
+                    success: true,
+                    premium_active: true,
+                    expires_at: expiry.toISOString(),
+                    daily_draws_remaining: remaining,
+                    max_daily_draws: dailyLimit
+                });
+            } else {
+                res.json({ success: true, premium_active: false });
+            }
+        } else {
+            res.json({ success: true, premium_active: false });
+        }
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+// Buy Premium
+app.post('/api/buy_premium', async (req, res) => {
+    const { token, months, cost } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!months || !cost) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
+        // Check balance
+        const bal = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        const balance = parseFloat(bal.rows[0]?.balance || 0);
+        
+        if (balance < cost) {
+            return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ!' });
+        }
+        
+        // Calculate expiry
+        const expiry = new Date();
+        expiry.setMonth(expiry.getMonth() + months);
+        
+        // Deduct balance & set premium
+        await p.query('UPDATE auth_users SET balance=balance-$1, premium_expiry=$2 WHERE id=$3', [cost, expiry, uid]);
+        
+        // Log order
+        await p.query(
+            "INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')",
+            [uid, -cost]
+        );
+        
+        res.json({ success: true, expires_at: expiry.toISOString() });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Track Premium Draw
+app.post('/api/track_premium_draw', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        // Insert or update today's draw count
+        await p.query(
+            `INSERT INTO premium_draws (user_id, draw_date, draw_count) 
+             VALUES ($1, CURRENT_DATE, 1) 
+             ON CONFLICT (user_id, draw_date) 
+             DO UPDATE SET draw_count = premium_draws.draw_count + 1`,
+            [uid]
+        );
+        
+        res.json({ success: true });
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+// Claim Weekly Bonus
+app.post('/api/claim_weekly_bonus', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        // Check last claim
+        const last = await p.query(
+            'SELECT claimed_at FROM weekly_bonus WHERE user_id=$1 ORDER BY claimed_at DESC LIMIT 1',
+            [uid]
+        );
+        
+        if (last.rows.length > 0) {
+            const lastClaim = new Date(last.rows[0].claimed_at);
+            const daysSince = Math.floor((Date.now() - lastClaim.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysSince < 7) {
+                return res.json({ success: false, message: 'Already claimed this week' });
+            }
+        }
+        
+        // Record claim
+        await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
+        
+        res.json({ success: true });
+    } catch(e) {
+        res.json({ success: false });
     }
 });
 // ==================== PAGE ROUTES ====================
