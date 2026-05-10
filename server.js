@@ -63,6 +63,7 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
         `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL DEFAULT 0`,
         `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_expiry TIMESTAMP`,
+        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0`,
         `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), notice_type VARCHAR(20) DEFAULT 'dashboard', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
@@ -1024,6 +1025,21 @@ app.post('/api/deduct_balance', async (req, res) => {
     } catch(e) {
         res.json({ success: false, message: 'Server error' });
     }
+});
+// Get Paid Spins Remaining
+app.post('/api/get_paid_spins', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ paid_spins: 0 });
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ paid_spins: 0 });
+        
+        // Assuming you have a column 'paid_spins' in auth_users table. 
+        // If not, you should add it: ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0;
+        const r = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
+        res.json({ paid_spins: parseInt(r.rows[0]?.paid_spins || 0) });
+    } catch(e) { res.json({ paid_spins: 0 }); }
 });
 // ==================== PREMIUM API ====================
 
