@@ -6,53 +6,77 @@
     <title>Lucky Spin - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff;--usd:#85bb65}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff;--usd:#85bb65;--pink:#e91e63}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        html,body{height:100%;overflow:hidden;position:fixed;width:100%}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);display:flex;justify-content:center;align-items:center;padding:10px}
-        .container{width:100%;max-width:450px;display:flex;flex-direction:column;align-items:center;gap:10px}
+        html,body{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:10px}
+        .container{max-width:450px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:20px}
         
         /* Header */
         .header{display:flex;align-items:center;gap:10px;width:100%;background:linear-gradient(to right,var(--a),var(--p));padding:10px 15px;border-radius:12px;border-bottom:3px solid var(--w)}
         .header a{color:var(--w);font-size:20px;text-decoration:none;flex-shrink:0}
         .header h2{color:var(--w);font-size:15px;font-weight:700;flex:1;text-align:center}
         
-        /* Balance Bar */
+        /* Balance */
         .balance-bar{display:flex;gap:8px;width:100%}
         .bal-card{flex:1;background:rgba(26,31,75,0.7);border-radius:8px;padding:8px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
         .bal-card .bal-label{font-size:8px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
-        .bal-card .bal-value{font-size:16px;font-weight:bold;color:var(--w)}
+        .bal-card .bal-value{font-size:15px;font-weight:bold;color:var(--w)}
         .bal-card.usd .bal-value{color:var(--usd)}
         
         /* Wheel */
-        .wheel-wrapper{position:relative;width:260px;height:260px;margin:0 auto}
-        .wheel-pointer{position:absolute;top:-12px;left:50%;transform:translateX(-50%);z-index:10;font-size:28px;color:var(--w);filter:drop-shadow(0 0 5px rgba(0,0,0,0.5))}
-        canvas#wheelCanvas{width:260px;height:260px;border-radius:50%;box-shadow:0 0 25px rgba(243,156,18,0.3),0 0 50px rgba(74,28,122,0.5),inset 0 0 15px rgba(0,0,0,0.3);border:4px solid var(--w)}
+        .wheel-wrapper{position:relative;width:240px;height:240px;margin:0 auto}
+        .wheel-pointer{position:absolute;top:-14px;left:50%;transform:translateX(-50%);z-index:10;font-size:30px;color:var(--w);filter:drop-shadow(0 0 6px rgba(0,0,0,0.5));animation:bounce 1s infinite}
+        @keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(-6px)}}
+        canvas#wheelCanvas{width:240px;height:240px;border-radius:50%;box-shadow:0 0 30px rgba(243,156,18,0.3),0 0 60px rgba(74,28,122,0.5),inset 0 0 20px rgba(0,0,0,0.3);border:4px solid var(--w)}
+        
+        /* Remaining Spins */
+        .spins-remaining{font-size:11px;color:var(--w);text-align:center;background:rgba(26,31,75,0.7);padding:6px 15px;border-radius:20px;border:1px solid rgba(243,156,18,0.3);display:inline-block}
+        .spins-remaining span{font-weight:bold;font-size:16px}
+        
+        /* Spin Packages */
+        .section-title{font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;text-align:center;width:100%}
+        .spin-packages{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+        .pkg-card{background:rgba(26,31,75,0.7);border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;border:1.5px solid rgba(255,255,255,0.15);transition:all 0.3s;position:relative}
+        .pkg-card:hover{border-color:var(--w);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.3)}
+        .pkg-card.free{border-color:rgba(46,204,113,0.5);background:rgba(46,204,113,0.05)}
+        .pkg-card.free.used{opacity:0.5;cursor:not-allowed;pointer-events:none;border-color:rgba(255,255,255,0.1)}
+        .pkg-card.free.used:hover{transform:none;box-shadow:none}
+        .pkg-card .pkg-icon{font-size:22px;margin-bottom:3px}
+        .pkg-card .pkg-spins{font-size:20px;font-weight:bold;color:var(--w)}
+        .pkg-card .pkg-price{font-size:11px;color:rgba(255,255,255,0.7);margin-top:2px}
+        .pkg-card .pkg-save{font-size:8px;color:var(--g);margin-top:1px}
+        .pkg-card .pkg-badge{position:absolute;top:-8px;right:-8px;background:var(--r);color:#fff;font-size:8px;padding:3px 6px;border-radius:10px;font-weight:bold}
         
         /* Timer */
         .timer-display{font-size:11px;color:rgba(255,255,255,0.6);text-align:center;font-family:'Courier New',monospace;min-height:16px}
-        .timer-display.spinning{color:var(--w);animation:pulse 0.5s infinite}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        .timer-display.spinning{color:var(--w)}
         
-        /* Spin Button */
-        .spin-btn{padding:10px 40px;border:none;border-radius:25px;font-size:14px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,var(--w),#e67e22);color:#000;letter-spacing:1px;transition:all 0.3s;text-transform:uppercase;box-shadow:0 4px 15px rgba(243,156,18,0.3)}
-        .spin-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(243,156,18,0.5)}
-        .spin-btn:active{transform:scale(0.95)}
-        .spin-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none;background:rgba(255,255,255,0.2);color:rgba(255,255,255,0.5)}
-        .spin-info{font-size:9px;color:rgba(255,255,255,0.4);text-align:center;margin-top:2px}
+        /* Confirm Modal */
+        .confirm-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:900;justify-content:center;align-items:center}
+        .confirm-overlay.active{display:flex}
+        .confirm-box{background:var(--p);border:2px solid var(--w);border-radius:15px;padding:20px;text-align:center;width:90%;max-width:320px}
+        .confirm-box h3{color:var(--w);font-size:14px;margin-bottom:10px}
+        .confirm-box p{font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:15px}
+        .confirm-btns{display:flex;gap:8px;justify-content:center}
+        .confirm-btns button{padding:10px 20px;border:none;border-radius:20px;font-size:12px;font-weight:bold;cursor:pointer}
+        .btn-yes{background:var(--g);color:#000}
+        .btn-no{background:rgba(255,255,255,0.2);color:#fff}
         
         /* Result Modal */
-        .result-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;justify-content:center;align-items:center}
+        .result-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:1000;justify-content:center;align-items:center}
         .result-overlay.active{display:flex}
         .result-box{background:var(--p);border:3px solid var(--w);border-radius:20px;padding:25px;text-align:center;width:90%;max-width:330px;animation:popIn 0.5s ease}
         @keyframes popIn{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
         .result-box .result-icon{font-size:50px;margin-bottom:8px}
         .result-box .result-text{font-size:18px;font-weight:bold;color:var(--w);margin-bottom:5px}
         .result-box .result-amount{font-size:26px;font-weight:bold;color:var(--g);margin-bottom:12px}
-        .btn-close{padding:10px 30px;border:none;border-radius:25px;font-size:14px;font-weight:bold;cursor:pointer;background:var(--g);color:#000}
+        .btn-close-result{padding:10px 30px;border:none;border-radius:25px;font-size:14px;font-weight:bold;cursor:pointer;background:var(--g);color:#000}
+        .btn-claim-super{padding:12px 25px;border:none;border-radius:25px;font-size:13px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,var(--pink),#9b59b6);color:#fff;margin-top:8px;display:inline-block;text-decoration:none;transition:all 0.3s;letter-spacing:0.5px}
+        .btn-claim-super:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(233,30,99,0.4)}
         
         /* Toast */
-        .toast{position:fixed;top:15px;right:15px;padding:10px 15px;border-radius:6px;z-index:9999;font-size:11px;font-weight:bold;animation:slideIn 0.3s ease;display:none}
+        .toast{position:fixed;top:15px;right:15px;padding:10px 15px;border-radius:6px;z-index:9999;font-size:11px;font-weight:bold;animation:slideIn 0.3s ease;display:none;max-width:250px}
         @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
     </style>
 </head>
@@ -78,18 +102,66 @@
             </div>
         </div>
         
+        <!-- Remaining Spins -->
+        <div class="spins-remaining" id="spinsRemaining" style="display:none">
+            🎰 Remaining: <span id="spinCount">0</span> spins
+        </div>
+        
         <!-- Wheel -->
         <div class="wheel-wrapper">
             <div class="wheel-pointer"><i class="fas fa-caret-down"></i></div>
-            <canvas id="wheelCanvas" width="520" height="520"></canvas>
+            <canvas id="wheelCanvas" width="480" height="480"></canvas>
         </div>
         
         <!-- Timer -->
         <div class="timer-display" id="timerDisplay">🎰 Ready to spin!</div>
         
-        <!-- Spin Button -->
-        <button class="spin-btn" id="spinBtn" onclick="startSpin()">🎰 SPIN</button>
-        <div class="spin-info" id="spinInfo">1 free spin daily • Resets at midnight</div>
+        <!-- Spin Packages -->
+        <div class="section-title">💳 Spin Packages</div>
+        <div class="spin-packages" id="spinPackages">
+            <div class="pkg-card free" id="freeSpinCard" onclick="buyPackage('free')">
+                <div class="pkg-icon">🆓</div>
+                <div class="pkg-spins">1 Spin</div>
+                <div class="pkg-price">Free</div>
+                <div class="pkg-save">Daily Reward</div>
+            </div>
+            <div class="pkg-card" onclick="buyPackage(1, 100)">
+                <div class="pkg-icon">🎯</div>
+                <div class="pkg-spins">1 Spin</div>
+                <div class="pkg-price">100 Ks</div>
+            </div>
+            <div class="pkg-card" onclick="buyPackage(3, 250)">
+                <div class="pkg-icon">⭐</div>
+                <div class="pkg-spins">3 Spins</div>
+                <div class="pkg-price">250 Ks</div>
+                <div class="pkg-save">Save 50 Ks</div>
+            </div>
+            <div class="pkg-card" onclick="buyPackage(5, 400)">
+                <div class="pkg-icon">🌟</div>
+                <div class="pkg-spins">5 Spins</div>
+                <div class="pkg-price">400 Ks</div>
+                <div class="pkg-save">Save 100 Ks</div>
+            </div>
+            <div class="pkg-card" onclick="buyPackage(10, 700)">
+                <div class="pkg-icon">💎</div>
+                <div class="pkg-spins">10 Spins</div>
+                <div class="pkg-price">700 Ks</div>
+                <div class="pkg-save">Save 300 Ks</div>
+                <span class="pkg-badge">BEST</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirm Purchase Modal -->
+    <div class="confirm-overlay" id="confirmOverlay">
+        <div class="confirm-box">
+            <h3 id="confirmTitle">Confirm Purchase</h3>
+            <p id="confirmMsg"></p>
+            <div class="confirm-btns">
+                <button class="btn-no" onclick="closeConfirm()">Cancel</button>
+                <button class="btn-yes" id="confirmYesBtn" onclick="confirmPurchase()">Buy</button>
+            </div>
+        </div>
     </div>
     
     <!-- Result Modal -->
@@ -98,22 +170,26 @@
             <div class="result-icon" id="resultIcon">🎉</div>
             <div class="result-text" id="resultText"></div>
             <div class="result-amount" id="resultAmount"></div>
-            <button class="btn-close" onclick="closeResult()">OK</button>
+            <a class="btn-claim-super" id="btnClaimSuper" href="#" target="_blank" style="display:none">
+                🏆 ဆုရယူရန် ဝင်ရောက်ပါ
+            </a>
+            <button class="btn-close-result" onclick="closeResult()" style="margin-top:10px">OK</button>
         </div>
     </div>
 
 <script>
     // ==================== CONFIG ====================
-    // Segments with probabilities (weights)
+    const SUPER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform?usp=sharing';
+    
     const SEGMENTS = [
-        { label: '$0.25',  color: '#e74c3c', reward: 0.25, type: 'usd',   weight: 15 },    // 15%
-        { label: '$0.75',  color: '#3498db', reward: 0.75, type: 'usd',   weight: 13 },    // 13%
-        { label: '$1.00',  color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 10 },    // 10%
-        { label: '$2.00',  color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 6.5 },   // 6.5%
-        { label: '500 Ks', color: '#f39c12', reward: 500,  type: 'mmk',   weight: 55 },    // 55%
-        { label: 'Thanks!',color: '#7f8c8d', reward: 0,    type: 'thanks', weight: 50 },    // 50%
-        { label: 'FREE',   color: '#1abc9c', reward: 0,    type: 'free',   weight: 60 },    // 60%
-        { label: 'SUPER',  color: '#e91e63', reward: 0,    type: 'super',  weight: 2.5 }   // 2.5%
+        { label: '$0.25',  color: '#e74c3c', reward: 0.25, type: 'usd',   weight: 15 },
+        { label: '$0.75',  color: '#3498db', reward: 0.75, type: 'usd',   weight: 13 },
+        { label: '$1.00',  color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 10 },
+        { label: '$2.00',  color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 6.5 },
+        { label: '500 Ks', color: '#f39c12', reward: 500,  type: 'mmk',   weight: 55 },
+        { label: 'Thanks!',color: '#7f8c8d', reward: 0,    type: 'thanks', weight: 50 },
+        { label: 'FREE',   color: '#1abc9c', reward: 0,    type: 'free',   weight: 60 },
+        { label: 'SUPER',  color: '#e91e63', reward: 0,    type: 'super',  weight: 2.5 }
     ];
     const SEG_COUNT = 8;
     const ARC = (2 * Math.PI) / SEG_COUNT;
@@ -121,16 +197,116 @@
     // ==================== STATE ====================
     let isSpinning = false;
     let currentAngle = 0;
-    let spinAvailable = true;
+    let freeSpinAvailable = true;
+    let paidSpinsRemaining = 0;
+    let mmkBalance = 0;
+    let pendingPackage = null;
     let countdownInterval = null;
     
     // ==================== TOAST ====================
     function toast(msg, type = 'success') {
         const el = document.getElementById('toast');
         el.textContent = msg;
-        el.style.background = type === 'success' ? '#2ecc71' : '#e74c3c';
+        el.style.background = type === 'success' ? '#2ecc71' : type === 'error' ? '#e74c3c' : '#3498db';
         el.style.display = 'block';
-        setTimeout(() => el.style.display = 'none', 2500);
+        setTimeout(() => el.style.display = 'none', 3000);
+    }
+    
+    // ==================== CONFIRM MODAL ====================
+    function showConfirm(title, msg, callback) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMsg').textContent = msg;
+        document.getElementById('confirmOverlay').classList.add('active');
+        document.getElementById('confirmYesBtn').onclick = callback;
+    }
+    
+    function closeConfirm() {
+        document.getElementById('confirmOverlay').classList.remove('active');
+        pendingPackage = null;
+    }
+    
+    // ==================== BUY PACKAGE ====================
+    async function buyPackage(spins, cost) {
+        if (isSpinning) return toast('⏳ Please wait...', 'error');
+        
+        const token = localStorage.getItem('auth_token');
+        if (!token || token === 'guest') return toast('❌ Please login first!', 'error');
+        
+        // Free spin
+        if (spins === 'free') {
+            if (!freeSpinAvailable) return toast('❌ Free spin already used today!', 'error');
+            pendingPackage = { spins: 1, cost: 0, type: 'free' };
+            showConfirm('🆓 Free Spin', 'Use your daily free spin?', () => {
+                closeConfirm();
+                startSpinning(1, 'free');
+            });
+            return;
+        }
+        
+        // Paid spin - check balance first
+        await loadBalance();
+        
+        if (mmkBalance < cost) {
+            return toast('❌ ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ!', 'error');
+        }
+        
+        pendingPackage = { spins, cost, type: 'paid' };
+        showConfirm('💳 Confirm Purchase', `Buy ${spins} spins for ${cost} Ks?\n\nYour Balance: ${mmkBalance.toLocaleString()} Ks\nAfter: ${(mmkBalance - cost).toLocaleString()} Ks`, () => {
+            closeConfirm();
+            deductAndSpin(spins, cost);
+        });
+    }
+    
+    async function deductAndSpin(spins, cost) {
+        const token = localStorage.getItem('auth_token');
+        
+        try {
+            // Deduct from MMK balance
+            const r = await fetch('/api/deduct_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, amount: cost, reason: `Buy ${spins} spins` })
+            });
+            const d = await r.json();
+            
+            if (d.success) {
+                mmkBalance = d.new_balance;
+                document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString() + ' Ks';
+                toast(`✅ Purchased ${spins} spins!`);
+                startSpinning(spins, 'paid');
+            } else {
+                toast('❌ ' + (d.message || 'Payment failed'), 'error');
+            }
+        } catch(e) {
+            toast('❌ Connection error', 'error');
+        }
+    }
+    
+    // ==================== START SPINNING ====================
+    function startSpinning(totalSpins, type) {
+        paidSpinsRemaining = totalSpins;
+        
+        if (type === 'free') {
+            freeSpinAvailable = false;
+            const today = new Date().toDateString();
+            localStorage.setItem('lastSpinDate', today);
+            document.getElementById('freeSpinCard').classList.add('used');
+        }
+        
+        updateSpinsDisplay();
+        doSpin();
+    }
+    
+    function updateSpinsDisplay() {
+        const el = document.getElementById('spinsRemaining');
+        const countEl = document.getElementById('spinCount');
+        
+        if (paidSpinsRemaining > 0) {
+            el.style.display = 'inline-block';
+            countEl.textContent = paidSpinsRemaining;
+        } else {
+            el.style.display = 'none';
+        }
     }
     
     // ==================== DRAW WHEEL ====================
@@ -148,7 +324,6 @@
             const startAngle = i * ARC + rotationAngle;
             const endAngle = startAngle + ARC;
             
-            // Segment fill with gradient
             ctx.beginPath();
             ctx.moveTo(cx, cy);
             ctx.arc(cx, cy, radius, startAngle, endAngle);
@@ -160,56 +335,42 @@
             ctx.fillStyle = grad;
             ctx.fill();
             
-            // Gold border between segments
             ctx.strokeStyle = 'rgba(255,215,0,0.4)';
             ctx.lineWidth = 2;
             ctx.stroke();
             
-            // Label
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(startAngle + ARC / 2);
             ctx.textAlign = 'center';
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 16px Segoe UI';
+            ctx.font = 'bold 15px Segoe UI';
             ctx.shadowColor = 'rgba(0,0,0,0.7)';
             ctx.shadowBlur = 5;
-            ctx.fillText(seg.label, radius * 0.65, 6);
+            ctx.fillText(seg.label, radius * 0.65, 5);
             ctx.shadowBlur = 0;
             ctx.restore();
         });
         
-        // Gold dots on border
-        for (let i = 0; i < SEG_COUNT; i++) {
-            const dotAngle = i * ARC + rotationAngle;
-            const dotX = cx + Math.cos(dotAngle) * (radius - 2);
-            const dotY = cy + Math.sin(dotAngle) * (radius - 2);
-            ctx.beginPath();
-            ctx.arc(dotX, dotY, 4, 0, 2 * Math.PI);
-            ctx.fillStyle = '#ffd700';
-            ctx.fill();
-        }
-        
-        // Center circle
+        // Center
         ctx.beginPath();
-        ctx.arc(cx, cy, 30, 0, 2 * Math.PI);
-        const centerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
-        centerGrad.addColorStop(0, '#2c3e50');
-        centerGrad.addColorStop(1, '#1a1f4b');
-        ctx.fillStyle = centerGrad;
+        ctx.arc(cx, cy, 28, 0, 2 * Math.PI);
+        const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, 28);
+        cg.addColorStop(0, '#2c3e50');
+        cg.addColorStop(1, '#1a1f4b');
+        ctx.fillStyle = cg;
         ctx.fill();
         ctx.strokeStyle = '#f39c12';
         ctx.lineWidth = 3;
         ctx.stroke();
         
-        // Center text
         ctx.fillStyle = '#f39c12';
-        ctx.font = 'bold 12px Segoe UI';
+        ctx.font = 'bold 11px Segoe UI';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('SPIN', cx, cy);
         
-        // Outer glow ring
+        // Outer ring
         ctx.beginPath();
         ctx.arc(cx, cy, radius + 2, 0, 2 * Math.PI);
         ctx.strokeStyle = 'rgba(243,156,18,0.5)';
@@ -225,44 +386,21 @@
         return `rgb(${r},${g},${b})`;
     }
     
-    // ==================== SPIN LOGIC (FIXED) ====================
+    // ==================== SPIN LOGIC ====================
     function getWinningIndex() {
-        // Weighted random selection
         const totalWeight = SEGMENTS.reduce((sum, seg) => sum + seg.weight, 0);
         let random = Math.random() * totalWeight;
-        
         for (let i = 0; i < SEGMENTS.length; i++) {
             random -= SEGMENTS[i].weight;
             if (random <= 0) return i;
         }
-        return SEGMENTS.length - 1; // fallback
+        return SEGMENTS.length - 1;
     }
     
     function getTargetAngleForIndex(winningIndex) {
-        // Arrow is at TOP (angle = -PI/2 or 3*PI/2)
-        // We need the CENTER of the winning segment to align with the arrow
-        // Segment i spans from i*ARC to (i+1)*ARC
-        // Center of segment i = i*ARC + ARC/2
-        
-        const segmentCenter = winningIndex * ARC + ARC / 2;
-        
-        // Arrow points UP (-PI/2). We need the segment center to be at PI/2 (bottom)
-        // Because the wheel rotates, the segment at angle "segmentCenter" appears at top
-        // when wheel rotation = 2*PI - segmentCenter + PI
-        
-        // Actually simpler: arrow at top (-PI/2)
-        // Segment i center at angle = i*ARC + ARC/2 (from 0)
-        // For this segment to be at top (arrow), wheel must be rotated by:
-        // rotation = -(i*ARC + ARC/2) - PI/2
-        //         = -(i*ARC + ARC/2 + PI/2)
-        
         let targetRotation = -(winningIndex * ARC + ARC / 2) - Math.PI / 2;
-        
-        // Normalize to positive
         while (targetRotation < 0) targetRotation += 2 * Math.PI;
-        targetRotation = targetRotation % (2 * Math.PI);
-        
-        return targetRotation;
+        return targetRotation % (2 * Math.PI);
     }
     
     function startCountdown() {
@@ -284,89 +422,61 @@
         countdownInterval = setInterval(update, 1000);
     }
     
-    async function startSpin() {
+    function doSpin() {
         if (isSpinning) return;
-        if (!spinAvailable) return toast('❌ Today\'s spin already used!', 'error');
-        
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') return toast('❌ Please login first!', 'error');
+        if (paidSpinsRemaining <= 0) {
+            updateSpinsDisplay();
+            return;
+        }
         
         isSpinning = true;
-        const btn = document.getElementById('spinBtn');
-        btn.disabled = true;
-        btn.textContent = '🎰 SPINNING...';
+        paidSpinsRemaining--;
+        updateSpinsDisplay();
         
-        // Start countdown timer
         startCountdown();
         
-        // Determine winning segment (weighted random)
         const winningIndex = getWinningIndex();
         const seg = SEGMENTS[winningIndex];
-        
-        // Calculate target angle so arrow points to winning segment
         const targetRotation = getTargetAngleForIndex(winningIndex);
-        
-        // Add multiple full spins for visual effect
-        const extraSpins = 6 + Math.floor(Math.random() * 4); // 6-9 full rotations
+        const extraSpins = 6 + Math.floor(Math.random() * 4);
         const totalRotation = extraSpins * 2 * Math.PI + targetRotation;
         
-        // Animate
-        const duration = 4000 + Math.random() * 500; // 4-4.5 seconds
+        const duration = 4000 + Math.random() * 500;
         const startAngle = currentAngle;
         const startTime = Date.now();
         
         function animate() {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            
-            // Ease-out (deceleration)
             const eased = 1 - Math.pow(1 - progress, 3);
-            const angle = startAngle + (totalRotation - startAngle % (2 * Math.PI) + startAngle) * eased;
+            const angle = startAngle + totalRotation * eased;
             
-            // Simpler calculation:
-            const simpleAngle = startAngle + (totalRotation) * eased;
-            
-            drawWheel(simpleAngle % (2 * Math.PI));
-            currentAngle = simpleAngle;
+            drawWheel(angle % (2 * Math.PI));
+            currentAngle = angle;
             
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                // Spin complete
                 if (countdownInterval) clearInterval(countdownInterval);
                 
                 const timerEl = document.getElementById('timerDisplay');
                 timerEl.classList.remove('spinning');
-                timerEl.textContent = '✅ Spin complete!';
-                
-                // Verify arrow points to correct segment
-                // At final angle, arrow at top should point to winningIndex
-                const normalizedAngle = ((currentAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-                // Arrow is at top = -PI/2 = 3*PI/2 in normalized
-                const arrowAngle = (2 * Math.PI - normalizedAngle + Math.PI / 2) % (2 * Math.PI);
-                const actualIndex = Math.floor(arrowAngle / ARC) % SEG_COUNT;
-                
-                console.log('Winning index:', winningIndex, 'Actual index:', actualIndex, 'Match:', winningIndex === actualIndex);
                 
                 // Save to DB
                 saveSpinResult(seg);
                 
-                // Update state
-                spinAvailable = false;
-                const today = new Date().toDateString();
-                localStorage.setItem('lastSpinDate', today);
-                
-                // Update button
-                btn.disabled = false;
-                btn.textContent = '🎰 SPIN';
-                document.getElementById('spinInfo').textContent = 'Come back tomorrow!';
-                isSpinning = false;
-                
                 // Show result
                 showResult(seg);
                 
-                // Schedule reset
-                scheduleReset();
+                isSpinning = false;
+                
+                // Check if more spins
+                if (paidSpinsRemaining > 0) {
+                    timerEl.textContent = `🎰 ${paidSpinsRemaining} spins remaining!`;
+                } else {
+                    timerEl.textContent = '🎰 Buy more spins to play!';
+                    updateSpinsDisplay();
+                }
             }
         }
         
@@ -395,6 +505,10 @@
         const icon = document.getElementById('resultIcon');
         const text = document.getElementById('resultText');
         const amount = document.getElementById('resultAmount');
+        const superBtn = document.getElementById('btnClaimSuper');
+        
+        // Hide super button by default
+        superBtn.style.display = 'none';
         
         switch(seg.type) {
             case 'usd':
@@ -412,45 +526,47 @@
             case 'free':
                 icon.textContent = '🔄';
                 text.textContent = 'Free Spin!';
-                amount.textContent = 'Extra spin granted';
+                amount.textContent = 'Extra spin added';
                 amount.style.color = '#1abc9c';
+                paidSpinsRemaining++;
+                updateSpinsDisplay();
                 break;
             case 'super':
                 icon.textContent = '👑';
                 text.textContent = '🏆 SUPER PRIZE!';
-                amount.textContent = 'Coming Soon...';
+                amount.textContent = 'Congratulations!';
                 amount.style.color = '#e91e63';
+                // Show Google Form button
+                superBtn.style.display = 'inline-block';
+                superBtn.href = SUPER_FORM_URL;
                 break;
             default:
                 icon.textContent = '😊';
                 text.textContent = 'Thank You!';
-                amount.textContent = 'Better luck tomorrow';
+                amount.textContent = 'Better luck next time';
                 amount.style.color = '#7f8c8d';
         }
         
         overlay.classList.add('active');
+        
+        // Auto-close after 5 seconds, then continue spinning if more
+        setTimeout(() => {
+            if (overlay.classList.contains('active')) {
+                overlay.classList.remove('active');
+                if (paidSpinsRemaining > 0 && !isSpinning) {
+                    setTimeout(() => doSpin(), 500);
+                }
+            }
+        }, 5000);
     }
     
     function closeResult() {
         document.getElementById('resultOverlay').classList.remove('active');
-    }
-    
-    // ==================== RESET SYSTEM ====================
-    function scheduleReset() {
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        const msUntilReset = tomorrow.getTime() - now.getTime();
         
-        setTimeout(() => {
-            spinAvailable = true;
-            localStorage.removeItem('lastSpinDate');
-            document.getElementById('spinBtn').disabled = false;
-            document.getElementById('spinBtn').textContent = '🎰 SPIN';
-            document.getElementById('spinInfo').textContent = '1 free spin daily • Resets at midnight';
-            document.getElementById('timerDisplay').textContent = '🎰 Ready to spin!';
-        }, msUntilReset);
+        // Continue spinning if more spins
+        if (paidSpinsRemaining > 0 && !isSpinning) {
+            setTimeout(() => doSpin(), 500);
+        }
     }
     
     // ==================== BALANCE ====================
@@ -463,7 +579,8 @@
                 body: JSON.stringify({ token })
             });
             const d = await r.json();
-            document.getElementById('mmkBalance').textContent = (d.balance || 0).toLocaleString() + ' Ks';
+            mmkBalance = parseFloat(d.balance || 0);
+            document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString() + ' Ks';
             
             const ur = await fetch('/api/get_usd_balance', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -474,23 +591,36 @@
         } catch(e) {}
     }
     
+    // ==================== RESET ====================
+    function scheduleReset() {
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        const msUntilReset = tomorrow.getTime() - now.getTime();
+        
+        setTimeout(() => {
+            freeSpinAvailable = true;
+            localStorage.removeItem('lastSpinDate');
+            document.getElementById('freeSpinCard').classList.remove('used');
+            document.getElementById('timerDisplay').textContent = '🎰 Free spin available!';
+        }, msUntilReset);
+    }
+    
     // ==================== INIT ====================
     function init() {
         const lastSpinDate = localStorage.getItem('lastSpinDate');
         const today = new Date().toDateString();
         
         if (lastSpinDate === today) {
-            spinAvailable = false;
-            document.getElementById('spinBtn').disabled = true;
-            document.getElementById('spinInfo').textContent = 'Already spun today • Come back tomorrow!';
-            document.getElementById('timerDisplay').textContent = '⏰ Already used today';
-        } else {
-            spinAvailable = true;
+            freeSpinAvailable = false;
+            document.getElementById('freeSpinCard').classList.add('used');
+            document.getElementById('timerDisplay').textContent = '⏰ Free spin used today';
         }
         
         drawWheel(0);
         loadBalance();
-        if (!spinAvailable) scheduleReset();
+        if (!freeSpinAvailable) scheduleReset();
         setInterval(loadBalance, 30000);
     }
     
