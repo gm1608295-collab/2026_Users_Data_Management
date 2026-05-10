@@ -292,8 +292,24 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     let sliderImages=[],currentSlide=0,slideInterval=null;
     function renderSlider(){const c=document.getElementById('sliderContainer'),w=document.getElementById('sliderWrapper'),d=document.getElementById('sliderDots');const ca=localStorage.getItem('sliderImagesCache');if(ca){try{sliderImages=JSON.parse(ca)}catch(e){sliderImages=[]}}if(!sliderImages||sliderImages.length===0){c.style.display='none';return}c.style.display='block';w.innerHTML=sliderImages.map(u=>`<div class="slider-slide"><img src="${u}" onerror="this.parentElement.remove()"></div>`).join('');d.innerHTML=sliderImages.map((_,i)=>`<div class="slider-dot ${i===currentSlide?'active':''}"></div>`).join('');goToSlide(currentSlide);if(sliderImages.length>1){if(slideInterval)clearInterval(slideInterval);slideInterval=setInterval(()=>{currentSlide=(currentSlide+1)%sliderImages.length;goToSlide(currentSlide)},5000)}}
     function goToSlide(i){currentSlide=i;document.getElementById('sliderWrapper').style.transform=`translateX(-${i*100}%)`;document.querySelectorAll('.slider-dot').forEach((d,j)=>{d.classList.toggle('active',j===i)})}
-    async function loadSliderImages(){renderSlider();try{const r=await fetch('/api/slider_images');const d=await r.json();if(d.success&&d.images&&d.images.length>0){localStorage.setItem('sliderImagesCache',JSON.stringify(d.images));if(JSON.stringify(sliderImages)!==JSON.stringify(d.images)){sliderImages=d.images;renderSlider()}}else{localStorage.removeItem('sliderImagesCache');document.getElementById('sliderContainer').style.display='none'}}catch(e){}}
-
+    async function loadSliderImages(){
+    try{
+        const r=await fetch('/api/slider_images');
+        const d=await r.json();
+        
+        if(d.success && d.images && d.images.length>0){
+            // ✅ Always update cache
+            localStorage.setItem('sliderImagesCache', JSON.stringify(d.images));
+            
+            // ✅ Always update sliderImages array and re-render
+            sliderImages = d.images;
+            renderSlider();
+        } else {
+            localStorage.removeItem('sliderImagesCache');
+            document.getElementById('sliderContainer').style.display='none';
+        }
+    }catch(e){}
+    }
     // ==================== NOTICE ====================
     function renderNotice(d){const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
     async function loadNotice(){const ca=localStorage.getItem('noticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderNotice(d)}catch(e){}}try{const r=await fetch("/api/notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('noticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('noticeCache',JSON.stringify(cn));renderNotice(cn)}}else{localStorage.removeItem('noticeCache')}}catch(e){}}
