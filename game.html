@@ -7,197 +7,114 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root{
-            --bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff;
-            --prem-gold:#ffd700;--prem-dark:#1a0a2e;--prem-accent:#c9a84c;
+            --bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--t:#fff;
+            --prem-gold:#ffd700;--prem-dark:#1a0a2e;
         }
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         html,body{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
         body{
             background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);
             color:var(--t);min-height:100vh;padding:10px;
-            transition: background 0.6s ease;
+            transition:background 0.6s ease;
         }
-        body.premium-active{background:linear-gradient(135deg,#0a0015,#1a0a2e,#2d1050);}
+        body.premium-active{background:linear-gradient(135deg,#0a0015,#1a0a2e,#2d1050)}
         .container{max-width:450px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:20px}
-
-        /* Header */
-        .header{
-            display:flex;align-items:center;gap:10px;width:100%;
-            background:linear-gradient(to right,var(--a),var(--p));
-            padding:10px 15px;border-radius:12px;border-bottom:3px solid var(--w);
-            transition:all 0.5s ease;
-        }
-        body.premium-active .header{
-            background:linear-gradient(to right,#2d1b4e,#4a1c7a);
-            border-bottom-color:var(--prem-gold);
-        }
-        .header a{color:var(--w);font-size:20px;text-decoration:none;flex-shrink:0}
+        
+        .header{display:flex;align-items:center;gap:10px;width:100%;background:linear-gradient(to right,var(--a),var(--p));padding:10px 15px;border-radius:12px;border-bottom:3px solid var(--w);transition:all 0.5s}
+        body.premium-active .header{background:linear-gradient(to right,#2d1b4e,#4a1c7a);border-bottom-color:var(--prem-gold)}
+        .header a{color:var(--w);font-size:20px;text-decoration:none}
         .header h2{color:var(--w);font-size:15px;font-weight:700;flex:1;text-align:center}
         body.premium-active .header h2{color:var(--prem-gold)}
-
-        .prem-badge{
-            display:none;background:linear-gradient(135deg,var(--prem-gold),#b8860b);
-            color:#000;font-size:9px;padding:4px 10px;border-radius:15px;font-weight:bold;
-            animation:glow 2s infinite;
-        }
+        .prem-badge{display:none;background:linear-gradient(135deg,var(--prem-gold),#b8860b);color:#000;font-size:9px;padding:4px 10px;border-radius:15px;font-weight:bold;animation:glow 2s infinite}
         body.premium-active .prem-badge{display:inline-block}
         @keyframes glow{0%,100%{box-shadow:0 0 10px rgba(255,215,0,0.5)}50%{box-shadow:0 0 20px rgba(255,215,0,0.8)}}
-
-        /* Balance */
+        
         .balance-bar{display:flex;gap:6px;width:100%}
-        .bal-card{
-            flex:1;background:rgba(26,31,75,0.7);border-radius:8px;padding:7px;
-            text-align:center;border:1px solid rgba(255,255,255,0.1);transition:all 0.5s;
-        }
+        .bal-card{flex:1;background:rgba(26,31,75,0.7);border-radius:8px;padding:7px;text-align:center;border:1px solid rgba(255,255,255,0.1);transition:all 0.5s}
         body.premium-active .bal-card{background:rgba(45,27,78,0.7);border-color:rgba(201,168,76,0.3)}
         .bal-card .bal-label{font-size:8px;color:rgba(255,255,255,0.5);text-transform:uppercase}
         .bal-card .bal-value{font-size:15px;font-weight:bold;color:var(--w)}
         .bal-card.usd .bal-value{color:#85bb65}
-
-        /* Free Draw Timer */
-        .free-timer-box{
-            width:100%;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.3);
-            border-radius:8px;padding:8px 12px;text-align:center;font-size:11px;color:var(--g);
-            transition:all 0.5s;
-        }
-        body.premium-active .free-timer-box{
-            background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.3);
-            color:var(--prem-gold);
-        }
+        
+        .free-timer-box{width:100%;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.3);border-radius:8px;padding:8px 12px;text-align:center;font-size:11px;color:var(--g);transition:all 0.5s}
+        body.premium-active .free-timer-box{background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.3);color:var(--prem-gold)}
         .timer-count{font-weight:bold;font-size:14px;font-family:'Courier New',monospace}
-
-        /* Wheel */
+        
         .wheel-wrapper{position:relative;width:230px;height:230px;margin:0 auto}
-        .wheel-pointer{
-            position:absolute;top:-14px;left:50%;transform:translateX(-50%);
-            z-index:10;font-size:30px;color:var(--w);filter:drop-shadow(0 0 6px rgba(0,0,0,0.5));
-        }
-        canvas#wheelCanvas{
-            width:230px;height:230px;border-radius:50%;
-            border:4px solid var(--w);box-shadow:0 0 30px rgba(243,156,18,0.3);
-            transition:border-color 0.5s, box-shadow 0.5s;
-        }
-        body.premium-active canvas#wheelCanvas{
-            border-color:var(--prem-gold);box-shadow:0 0 35px rgba(255,215,0,0.4);
-        }
-
-        /* Buttons */
+        .wheel-pointer{position:absolute;top:-14px;left:50%;transform:translateX(-50%);z-index:10;font-size:30px;color:var(--w);filter:drop-shadow(0 0 6px rgba(0,0,0,0.5))}
+        canvas#wheelCanvas{width:230px;height:230px;border-radius:50%;border:4px solid var(--w);box-shadow:0 0 30px rgba(243,156,18,0.3);transition:all 0.5s}
+        body.premium-active canvas#wheelCanvas{border-color:var(--prem-gold);box-shadow:0 0 35px rgba(255,215,0,0.4)}
+        
         .btn-row{display:flex;gap:8px;width:100%}
-        .btn-spin,.btn-premium{
-            flex:1;padding:10px;border:none;border-radius:25px;
-            font-size:14px;font-weight:bold;cursor:pointer;letter-spacing:1px;
-            transition:all 0.3s;
-        }
-        .btn-spin{
-            background:linear-gradient(135deg,var(--w),#e67e22);color:#000;
-        }
-        body.premium-active .btn-spin{
-            background:linear-gradient(135deg,var(--prem-gold),#b8860b);
-            box-shadow:0 4px 15px rgba(255,215,0,0.3);
-        }
-        .btn-premium{
-            background:rgba(255,255,255,0.1);color:var(--t);
-            border:1px solid var(--gold);
-        }
-        body.premium-active .btn-premium{
-            background:var(--prem-gold);color:#000;
-            border-color:var(--prem-gold);
-            box-shadow:0 4px 15px rgba(255,215,0,0.4);
-        }
+        .btn-spin,.btn-premium{flex:1;padding:10px;border:none;border-radius:25px;font-size:14px;font-weight:bold;cursor:pointer;letter-spacing:1px;transition:all 0.3s}
+        .btn-spin{background:linear-gradient(135deg,var(--w),#e67e22);color:#000}
+        body.premium-active .btn-spin{background:linear-gradient(135deg,var(--prem-gold),#b8860b);box-shadow:0 4px 15px rgba(255,215,0,0.3)}
+        .btn-premium{background:rgba(255,255,255,0.1);color:var(--t);border:1px solid var(--w)}
+        body.premium-active .btn-premium{background:var(--prem-gold);color:#000;border-color:var(--prem-gold);box-shadow:0 4px 15px rgba(255,215,0,0.4)}
         .btn-spin:disabled,.btn-premium:disabled{opacity:0.5;cursor:not-allowed}
-
-        /* Buy Table */
-        .buy-table{
-            width:100%;background:rgba(26,31,75,0.7);border-radius:10px;
-            overflow:hidden;border:1px solid rgba(255,255,255,0.1);transition:all 0.5s;
-        }
+        
+        .buy-table{width:100%;background:rgba(26,31,75,0.7);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);transition:all 0.5s}
         body.premium-active .buy-table{background:rgba(45,27,78,0.7)}
         .buy-table .table-title{text-align:center;padding:10px;font-size:11px;font-weight:bold;background:rgba(0,0,0,0.3)}
         table{width:100%;border-collapse:collapse;font-size:10px}
         th{background:rgba(0,0,0,0.3);padding:8px 6px;font-size:9px;text-transform:uppercase}
         td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.05)}
-        .btn-buy{
-            padding:5px 12px;border:none;border-radius:12px;font-size:9px;
-            font-weight:bold;cursor:pointer;background:var(--w);color:#000;
-        }
-
-        /* Modals */
-        .modal-overlay{
-            display:none;position:fixed;top:0;left:0;width:100%;height:100%;
-            background:rgba(0,0,0,0.85);z-index:500;justify-content:center;align-items:center;
-        }
+        .btn-buy{padding:5px 12px;border:none;border-radius:12px;font-size:9px;font-weight:bold;cursor:pointer;background:var(--w);color:#000}
+        
+        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:500;justify-content:center;align-items:center}
         .modal-overlay.active{display:flex}
-        .modal-box{
-            background:var(--p);border:2px solid var(--w);border-radius:15px;padding:20px;
-            width:90%;max-width:380px;max-height:80vh;overflow-y:auto;
-        }
+        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:15px;padding:20px;width:90%;max-width:380px;max-height:80vh;overflow-y:auto}
         body.premium-active .modal-box{background:var(--prem-dark);border-color:var(--prem-gold)}
         .modal-box h3{text-align:center;margin-bottom:12px}
         .modal-close{float:right;color:var(--r);cursor:pointer;font-size:22px}
-        .prem-feature{
-            display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,0.3);
-            border-radius:8px;margin-bottom:6px;font-size:11px;
-        }
+        .prem-feature{display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:6px;font-size:11px}
         .prem-packages{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:10px 0}
-        .prem-pkg{
-            background:rgba(0,0,0,0.3);border:1.5px solid rgba(255,255,255,0.15);
-            border-radius:10px;padding:12px;text-align:center;cursor:pointer;
-        }
+        .prem-pkg{background:rgba(0,0,0,0.3);border:1.5px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px;text-align:center;cursor:pointer}
         .prem-pkg:hover{border-color:var(--prem-gold)}
         .prem-pkg.best{border-color:var(--prem-gold);position:relative}
-        .best-badge{
-            position:absolute;top:-8px;right:-8px;background:var(--r);
-            color:#fff;font-size:7px;padding:2px 6px;border-radius:8px;
-        }
+        .best-badge{position:absolute;top:-8px;right:-8px;background:var(--r);color:#fff;font-size:7px;padding:2px 6px;border-radius:8px}
         .confirm-btns{display:flex;gap:8px;justify-content:center}
         .btn-yes{background:var(--g);color:#000;border:none;padding:10px 20px;border-radius:20px;font-weight:bold;cursor:pointer}
         .btn-no{background:rgba(255,255,255,0.2);color:#fff;border:none;padding:10px 20px;border-radius:20px;font-weight:bold;cursor:pointer}
-
-        .toast{
-            position:fixed;top:15px;right:15px;padding:10px 15px;border-radius:6px;
-            z-index:9999;font-size:11px;font-weight:bold;display:none;
+        
+        /* SUPER Result - only link button */
+        .super-link-btn{
+            display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#e91e63,#9b59b6);
+            color:#fff;border:none;border-radius:30px;font-size:15px;font-weight:bold;
+            cursor:pointer;text-decoration:none;letter-spacing:1px;margin-top:10px;
+            box-shadow:0 6px 25px rgba(233,30,99,0.4);transition:all 0.3s;
         }
+        .super-link-btn:hover{transform:translateY(-2px);box-shadow:0 10px 35px rgba(233,30,99,0.6)}
+        
+        .toast{position:fixed;top:15px;right:15px;padding:10px 15px;border-radius:6px;z-index:9999;font-size:11px;font-weight:bold;display:none}
         @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
     </style>
 </head>
 <body id="mainBody">
     <div class="toast" id="toast"></div>
     <div class="container">
-        <!-- Header -->
         <div class="header">
             <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
             <h2>🎰 Lucky Spin</h2>
             <span class="prem-badge">👑 PREMIUM</span>
         </div>
-
-        <!-- Balance -->
         <div class="balance-bar">
             <div class="bal-card usd"><div class="bal-label">💵 USD</div><div class="bal-value" id="usdBalance">$0.00</div></div>
             <div class="bal-card"><div class="bal-label">💰 MMK</div><div class="bal-value" id="mmkBalance">0 Ks</div></div>
         </div>
-
-        <!-- Free Draw Timer -->
         <div class="free-timer-box" id="freeTimerBox">
             🎰 <span id="freeTimerText">Free Draws: <span class="timer-count" id="freeTimerCount">1</span></span>
             <div style="font-size:9px;margin-top:2px" id="resetCountdown"></div>
         </div>
-
-        <!-- Wheel -->
         <div class="wheel-wrapper">
             <div class="wheel-pointer"><i class="fas fa-caret-down"></i></div>
             <canvas id="wheelCanvas" width="460" height="460"></canvas>
         </div>
-
-        <!-- Spin Status -->
         <div style="font-size:11px;color:#aaa;min-height:18px" id="spinStatus"></div>
-
-        <!-- Buttons -->
         <div class="btn-row">
             <button class="btn-spin" id="btnSpin" onclick="handleSpinClick()">🎰 SPIN</button>
             <button class="btn-premium" id="btnPremium" onclick="togglePremium()">👑 PREMIUM</button>
         </div>
-
-        <!-- Buy Spins Table -->
         <div class="buy-table">
             <div class="table-title">💳 Buy Spins</div>
             <table>
@@ -244,11 +161,10 @@
     <!-- Result Modal -->
     <div class="modal-overlay" id="resultOverlay">
         <div class="modal-box" style="text-align:center">
-            <div class="result-icon" id="resultIcon"></div>
-            <div id="resultText" style="font-size:18px;font-weight:bold;color:var(--w)"></div>
+            <div id="resultIcon" style="font-size:50px;margin-bottom:8px"></div>
+            <div id="resultText" style="font-size:18px;font-weight:bold;color:var(--w);margin-bottom:5px"></div>
             <div id="resultAmount" style="font-size:26px;font-weight:bold;margin:10px 0"></div>
-            <a class="btn-claim-super" id="btnClaimSuper" style="display:none" target="_blank">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>
-            <button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>
+            <div id="resultExtra"></div>
         </div>
     </div>
 
@@ -278,7 +194,8 @@ const PREMIUM_SEGMENTS = [
     { label:'SUPER', color:'#e91e63', reward:0, type:'super', weight:10 }
 ];
 
-const ARC = (2 * Math.PI) / 8;
+const SEG_COUNT = 8;
+const ARC = (2 * Math.PI) / SEG_COUNT;
 
 // ==================== STATE ====================
 let premiumActive = false;
@@ -288,7 +205,7 @@ let mmkBalance = 0;
 let isSpinning = false;
 let currentAngle = 0;
 
-// ==================== UI HELPERS ====================
+// ==================== TOAST ====================
 function toast(msg, type='success') {
     const el = document.getElementById('toast');
     el.textContent = msg;
@@ -296,6 +213,7 @@ function toast(msg, type='success') {
     el.style.display = 'block';
     setTimeout(()=> el.style.display='none', 3000);
 }
+
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function closeConfirm() { closeModal('confirmOverlay'); }
@@ -322,18 +240,10 @@ async function checkPremiumStatus() {
     const token = localStorage.getItem('auth_token');
     if (!token || token==='guest') return;
     try {
-        const r = await fetch('/api/get_premium_status', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({token})
-        });
+        const r = await fetch('/api/get_premium_status', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
         const d = await r.json();
         premiumActive = d.success && d.premium_active;
-        if (premiumActive) {
-            freeDrawsRemaining = d.daily_draws_remaining || 3;
-        } else {
-            freeDrawsRemaining = 1;
-        }
+        freeDrawsRemaining = premiumActive ? (d.daily_draws_remaining || 3) : 1;
         applyPremiumUI();
         updateFreeDrawDisplay();
         drawWheel(0);
@@ -343,17 +253,8 @@ async function checkPremiumStatus() {
 function applyPremiumUI() {
     const body = document.getElementById('mainBody');
     const btn = document.getElementById('btnPremium');
-    if (premiumActive) {
-        body.classList.add('premium-active');
-        btn.textContent = '👑 ACTIVE';
-        btn.classList.add('active');
-        document.getElementById('premTimerInfo').style.display = 'block';
-    } else {
-        body.classList.remove('premium-active');
-        btn.textContent = '👑 PREMIUM';
-        btn.classList.remove('active');
-        document.getElementById('premTimerInfo').style.display = 'none';
-    }
+    if (premiumActive) { body.classList.add('premium-active'); btn.textContent = '👑 ACTIVE'; }
+    else { body.classList.remove('premium-active'); btn.textContent = '👑 PREMIUM'; }
 }
 
 // ==================== FREE DRAW DISPLAY ====================
@@ -365,93 +266,94 @@ function updateFreeDrawDisplay() {
 function updateSpinButton() {
     const btn = document.getElementById('btnSpin');
     const status = document.getElementById('spinStatus');
-    if (paidSpinsRemaining > 0) {
-        status.textContent = `💳 Paid spins: ${paidSpinsRemaining}`;
-        btn.disabled = false;
-    } else if (freeDrawsRemaining > 0) {
-        status.textContent = `🎰 Free draws: ${freeDrawsRemaining}`;
-        btn.disabled = false;
-    } else {
-        status.textContent = '⏰ No spins left';
-        btn.disabled = true;
+    if (paidSpinsRemaining > 0) { status.textContent = `💳 Paid spins: ${paidSpinsRemaining}`; btn.disabled = false; }
+    else if (freeDrawsRemaining > 0) { status.textContent = `🎰 Free draws: ${freeDrawsRemaining}`; btn.disabled = false; }
+    else { status.textContent = '⏰ No spins left'; btn.disabled = true; }
+}
+
+// ==================== TIMER (SERVER-BASED, SURVIVES REFRESH) ====================
+function scheduleResetTimer() {
+    // Use midnight as reset point - always consistent
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setDate(midnight.getDate() + 1);
+    midnight.setHours(0, 0, 0, 0);
+    
+    const countdownEl = document.getElementById('resetCountdown');
+    
+    function updateCountdown() {
+        const remaining = midnight.getTime() - Date.now();
+        if (remaining <= 0) {
+            freeDrawsRemaining = premiumActive ? 3 : 1;
+            updateFreeDrawDisplay();
+            countdownEl.textContent = '';
+            // Schedule next reset
+            scheduleResetTimer();
+            return;
+        }
+        const h = Math.floor(remaining / 3600000);
+        const m = Math.floor((remaining % 3600000) / 60000);
+        const s = Math.floor((remaining % 60000) / 1000);
+        countdownEl.textContent = `🔄 Reset in: ${h}h ${m}m ${s}s`;
     }
+    
+    updateCountdown();
+    // Use a single interval, clear old one
+    if (window._resetInterval) clearInterval(window._resetInterval);
+    window._resetInterval = setInterval(updateCountdown, 1000);
 }
 
 // ==================== WHEEL DRAWING ====================
 const canvas = document.getElementById('wheelCanvas');
 const ctx = canvas.getContext('2d');
 
-function getActiveSegments() {
-    return premiumActive ? PREMIUM_SEGMENTS : NORMAL_SEGMENTS;
-}
+function getActiveSegments() { return premiumActive ? PREMIUM_SEGMENTS : NORMAL_SEGMENTS; }
 
 function drawWheel(angle = 0) {
     const segs = getActiveSegments();
     const cx = 230, cy = 230, r = 210;
-    ctx.clearRect(0,0,460,460);
-    segs.forEach((s,i) => {
-        const start = i*ARC + angle, end = start+ARC;
-        ctx.beginPath();
-        ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, start, end); ctx.closePath();
-        const grad = ctx.createRadialGradient(cx, cy, r*0.2, cx, cy, r);
-        grad.addColorStop(0, lightenColor(s.color,40));
-        grad.addColorStop(1, s.color);
+    ctx.clearRect(0, 0, 460, 460);
+    segs.forEach((s, i) => {
+        const start = i * ARC + angle, end = start + ARC;
+        ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, start, end); ctx.closePath();
+        const grad = ctx.createRadialGradient(cx, cy, r * 0.2, cx, cy, r);
+        grad.addColorStop(0, lightenColor(s.color, 40)); grad.addColorStop(1, s.color);
         ctx.fillStyle = grad; ctx.fill();
         ctx.strokeStyle = premiumActive ? 'rgba(255,215,0,0.6)' : 'rgba(255,215,0,0.3)';
         ctx.lineWidth = 2; ctx.stroke();
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(start + ARC/2);
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + ARC / 2);
         ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
         ctx.font = 'bold 14px "Segoe UI"'; ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
-        ctx.fillText(s.label, r*0.65, 5);
-        ctx.restore();
+        ctx.fillText(s.label, r * 0.65, 5); ctx.restore();
     });
-    // center
-    ctx.beginPath(); ctx.arc(cx, cy, 28, 0, 2*Math.PI);
+    // Center
+    ctx.beginPath(); ctx.arc(cx, cy, 28, 0, 2 * Math.PI);
     ctx.fillStyle = premiumActive ? '#2d1b4e' : '#1a1f4b'; ctx.fill();
     ctx.strokeStyle = premiumActive ? '#ffd700' : '#f39c12'; ctx.lineWidth = 3; ctx.stroke();
     ctx.fillStyle = premiumActive ? '#ffd700' : '#f39c12';
     ctx.font = 'bold 11px "Segoe UI"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(premiumActive?'PREMIUM':'SPIN', cx, cy);
+    ctx.fillText(premiumActive ? 'PREMIUM' : 'SPIN', cx, cy);
 }
 
 function lightenColor(hex, p) {
-    const num = parseInt(hex.slice(1),16);
-    const r = Math.min(255, (num>>16)+p); const g = Math.min(255, ((num>>8)&0xFF)+p);
-    const b = Math.min(255, (num&0xFF)+p); return `rgb(${r},${g},${b})`;
+    const num = parseInt(hex.slice(1), 16);
+    return `rgb(${Math.min(255,(num>>16)+p)},${Math.min(255,((num>>8)&0xFF)+p)},${Math.min(255,(num&0xFF)+p)})`;
 }
 
-// ==================== SPIN LOGIC ====================
+// ==================== SPIN LOGIC (ARROW FIX) ====================
 function getWinningIndex() {
     const segs = getActiveSegments();
-    const total = segs.reduce((a,b)=>a+b.weight,0);
+    const total = segs.reduce((a, b) => a + b.weight, 0);
     let rand = Math.random() * total;
-    for (let i=0; i<segs.length; i++) { rand -= segs[i].weight; if (rand <= 0) return i; }
-    return segs.length-1;
+    for (let i = 0; i < segs.length; i++) { rand -= segs[i].weight; if (rand <= 0) return i; }
+    return segs.length - 1;
 }
 
 function handleSpinClick() {
     if (isSpinning) return;
-    if (paidSpinsRemaining > 0) {
-        paidSpinsRemaining--;
-        updateSpinButton();
-        executeSpin();
-    } else if (freeDrawsRemaining > 0) {
-        freeDrawsRemaining--;
-        updateFreeDrawDisplay();
-        executeSpin();
-        if (premiumActive) {
-            fetch('/api/track_premium_draw', {
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({token: localStorage.getItem('auth_token')})
-            }).catch(()=>{});
-        }
-        if (freeDrawsRemaining === 0) scheduleResetTimer();
-    } else {
-        toast('❌ No spins left! Buy or wait for reset.', 'error');
-    }
+    if (paidSpinsRemaining > 0) { paidSpinsRemaining--; updateSpinButton(); executeSpin(); }
+    else if (freeDrawsRemaining > 0) { freeDrawsRemaining--; updateFreeDrawDisplay(); executeSpin(); if (premiumActive) { fetch('/api/track_premium_draw', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); } if (freeDrawsRemaining === 0 && paidSpinsRemaining === 0) scheduleResetTimer(); }
+    else { toast('❌ No spins left!', 'error'); }
 }
 
 function executeSpin() {
@@ -459,18 +361,38 @@ function executeSpin() {
     document.getElementById('btnSpin').disabled = true;
     const winIdx = getWinningIndex();
     const seg = getActiveSegments()[winIdx];
-    const targetAngle = -(winIdx*ARC + ARC/2) - Math.PI/2;
-    const fullRotations = 6 + Math.floor(Math.random()*4);
-    const totalRotation = fullRotations*2*Math.PI + ((targetAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
-    const duration = 4000 + Math.random()*500;
-    const start = currentAngle;
+    
+    // ✅ FIXED ARROW ALIGNMENT:
+    // Arrow is at TOP (12 o'clock = -PI/2)
+    // Segment 0 starts at angle 0 (3 o'clock), goes counter-clockwise
+    // Segment i center = i*ARC + ARC/2
+    // For arrow to point to segment i, wheel must rotate so that
+    // segment i's center aligns with top (-PI/2)
+    // Required rotation = -(i*ARC + ARC/2) - PI/2 + PI  (adjusted)
+    
+    const segmentCenterAngle = winIdx * ARC + ARC / 2;
+    // The wheel is drawn with segment 0 starting at angle 0 (right/3 o'clock)
+    // Arrow is at -PI/2 (top/12 o'clock)
+    // To bring segment i to the arrow: rotate wheel by -(segmentCenterAngle + PI/2)
+    let targetAngle = -(segmentCenterAngle - Math.PI / 2);
+    // Normalize
+    while (targetAngle < 0) targetAngle += 2 * Math.PI;
+    targetAngle = targetAngle % (2 * Math.PI);
+    
+    const fullRotations = 6 + Math.floor(Math.random() * 4);
+    const totalRotation = fullRotations * 2 * Math.PI + targetAngle;
+    
+    const duration = 4000 + Math.random() * 500;
+    const startAngle = currentAngle;
     const startTime = Date.now();
+    
     function animate() {
         const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed/duration, 1);
-        const eased = 1 - Math.pow(1-progress, 3);
-        currentAngle = start + totalRotation * eased;
-        drawWheel(currentAngle % (2*Math.PI));
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const angle = startAngle + totalRotation * eased;
+        drawWheel(angle % (2 * Math.PI));
+        currentAngle = angle;
         if (progress < 1) requestAnimationFrame(animate);
         else {
             isSpinning = false;
@@ -483,114 +405,96 @@ function executeSpin() {
     requestAnimationFrame(animate);
 }
 
-function saveSpinResult(seg) {
+// ==================== SAVE & SHOW RESULT ====================
+async function saveSpinResult(seg) {
     const token = localStorage.getItem('auth_token');
-    fetch('/api/spin/save', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({token, reward_type:seg.type, reward_amount:seg.reward, segment_label:seg.label})
-    }).finally(()=> loadBalance());
+    try {
+        await fetch('/api/spin/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, reward_type: seg.type, reward_amount: seg.reward, segment_label: seg.label })
+        });
+        // ✅ Immediately reload balance after saving
+        await loadBalance();
+    } catch(e) {}
 }
 
 function showResult(seg) {
     const icon = document.getElementById('resultIcon');
     const text = document.getElementById('resultText');
     const amount = document.getElementById('resultAmount');
-    const superBtn = document.getElementById('btnClaimSuper');
-    superBtn.style.display = 'none';
-    switch(seg.type) {
-        case 'usd': icon.textContent='💵'; text.textContent='You Won!'; amount.textContent=`$${seg.reward.toFixed(2)} USD`; amount.style.color='#2ecc71'; break;
-        case 'mmk': icon.textContent='💰'; text.textContent='You Won!'; amount.textContent=`${seg.reward} Ks`; amount.style.color='#f39c12'; break;
-        case 'free': icon.textContent='🔄'; text.textContent='Free Spin!'; amount.textContent='+1 Draw'; freeDrawsRemaining++; updateFreeDrawDisplay(); break;
-        case 'super': icon.textContent='👑'; text.textContent='SUPER PRIZE!'; amount.textContent='Congratulations!'; superBtn.style.display='inline-block'; superBtn.href=SUPER_FORM_URL; break;
-        default: icon.textContent='😊'; text.textContent='Thank You'; amount.textContent='Good luck next time';
+    const extra = document.getElementById('resultExtra');
+    
+    // ✅ Clear everything first
+    extra.innerHTML = '';
+    
+    if (seg.type === 'super') {
+        // ✅ SUPER: Only show link button, no OK button
+        icon.textContent = '👑';
+        text.textContent = '🏆 SUPER PRIZE!';
+        amount.textContent = 'Congratulations!';
+        amount.style.color = '#e91e63';
+        extra.innerHTML = `<a class="super-link-btn" href="${SUPER_FORM_URL}" target="_blank">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>
+                          <br><button class="btn-yes" onclick="closeResult()" style="margin-top:10px;font-size:12px;">Close</button>`;
+    } else if (seg.type === 'usd') {
+        icon.textContent = '💵'; text.textContent = '🎉 You Won!';
+        amount.textContent = `$${seg.reward.toFixed(2)} USD`; amount.style.color = '#2ecc71';
+        extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
+    } else if (seg.type === 'mmk') {
+        icon.textContent = '💰'; text.textContent = '🎉 You Won!';
+        amount.textContent = `${seg.reward} Ks`; amount.style.color = '#f39c12';
+        extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
+    } else if (seg.type === 'free') {
+        icon.textContent = '🔄'; text.textContent = 'Free Spin!';
+        amount.textContent = '+1 Extra Draw'; amount.style.color = '#1abc9c';
+        freeDrawsRemaining++; updateFreeDrawDisplay();
+        extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
+    } else {
+        icon.textContent = '😊'; text.textContent = 'Thank You!';
+        amount.textContent = 'Better luck next time'; amount.style.color = '#7f8c8d';
+        extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
     }
+    
     openModal('resultOverlay');
 }
 
 function closeResult() { closeModal('resultOverlay'); }
 
 // ==================== PREMIUM PURCHASE ====================
-function togglePremium() {
-    if (premiumActive) toast('👑 Premium is active!', 'success');
-    else openModal('premInfoModal');
-}
-
+function togglePremium() { premiumActive ? toast('👑 Premium active!', 'success') : openModal('premInfoModal'); }
 function confirmBuyPremium(months, cost) {
     closeModal('premInfoModal');
-    document.getElementById('confirmTitle').textContent = '👑 Premium Purchase';
-    document.getElementById('confirmMsg').innerHTML = `${months} Month(s)<br>Cost: <b>${cost.toLocaleString()} Ks</b><br>Balance: ${mmkBalance.toLocaleString()} Ks`;
+    document.getElementById('confirmTitle').textContent = '👑 Premium';
+    document.getElementById('confirmMsg').innerHTML = `${months} Month(s)<br>Cost: <b>${cost.toLocaleString()} Ks</b>`;
     document.getElementById('confirmYesBtn').onclick = () => { closeConfirm(); buyPremium(months, cost); };
     openModal('confirmOverlay');
 }
-
 async function buyPremium(months, cost) {
     const token = localStorage.getItem('auth_token');
-    if (!token) return toast('❌ Login required','error');
-    if (mmkBalance < cost) return toast('❌ ငွေမလုံလောက်ပါ','error');
+    if (mmkBalance < cost) return toast('❌ ငွေမလုံလောက်ပါ', 'error');
     try {
-        const r = await fetch('/api/buy_premium', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({token, months, cost})
-        });
+        const r = await fetch('/api/buy_premium', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,months,cost})});
         const d = await r.json();
-        if (d.success) {
-            toast('✅ Premium activated!','success');
-            loadBalance();
-            checkPremiumStatus();
-        } else toast('❌ '+d.message,'error');
-    } catch(e) { toast('❌ Connection error','error'); }
+        d.success ? (toast('✅ Premium activated!'), loadBalance(), checkPremiumStatus()) : toast('❌ '+d.message, 'error');
+    } catch(e) { toast('❌ Connection error', 'error'); }
 }
 
 // ==================== BUY SPINS ====================
 function confirmBuySpin(spins, cost) {
-    if (mmkBalance < cost) return toast('❌ ငွေမလုံလောက်ပါ','error');
+    if (mmkBalance < cost) return toast('❌ ငွေမလုံလောက်ပါ', 'error');
     document.getElementById('confirmTitle').textContent = '💳 Buy Spins';
     document.getElementById('confirmMsg').innerHTML = `${spins} Spin(s)<br>Cost: <b>${cost} Ks</b>`;
     document.getElementById('confirmYesBtn').onclick = () => { closeConfirm(); buySpins(spins, cost); };
     openModal('confirmOverlay');
 }
-
 async function buySpins(spins, cost) {
     const token = localStorage.getItem('auth_token');
     try {
-        const r = await fetch('/api/deduct_balance', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({token, amount:cost, reason:`Buy ${spins} spins`})
-        });
+        const r = await fetch('/api/deduct_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,amount:cost,reason:`Buy ${spins} spins`})});
         const d = await r.json();
-        if (d.success) {
-            mmkBalance = d.new_balance;
-            document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString()+' Ks';
-            paidSpinsRemaining += spins;
-            updateSpinButton();
-            toast(`✅ ${spins} spins added! Click SPIN to use.`);
-        } else toast('❌ '+d.message,'error');
-    } catch(e) { toast('❌ Connection error','error'); }
-}
-
-// ==================== RESET TIMER ====================
-function scheduleResetTimer() {
-    const now = new Date();
-    const midnight = new Date(now); midnight.setDate(midnight.getDate()+1); midnight.setHours(0,0,0,0);
-    const ms = midnight - now;
-    const countdownEl = document.getElementById('resetCountdown');
-    const interval = setInterval(() => {
-        const remaining = midnight - Date.now();
-        if (remaining <= 0) {
-            clearInterval(interval);
-            freeDrawsRemaining = premiumActive ? 3 : 1;
-            updateFreeDrawDisplay();
-            countdownEl.textContent = '';
-            return;
-        }
-        const h = Math.floor(remaining/3600000);
-        const m = Math.floor((remaining%3600000)/60000);
-        const s = Math.floor((remaining%60000)/1000);
-        countdownEl.textContent = `Reset in ${h}h ${m}m ${s}s`;
-    }, 1000);
+        if (d.success) { mmkBalance = d.new_balance; document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString() + ' Ks'; paidSpinsRemaining += spins; updateSpinButton(); toast(`✅ ${spins} spins added!`); }
+        else toast('❌ '+d.message, 'error');
+    } catch(e) { toast('❌ Connection error', 'error'); }
 }
 
 // ==================== INIT ====================
@@ -599,29 +503,18 @@ async function init() {
     await loadBalance();
     await checkPremiumStatus();
     updateFreeDrawDisplay();
-    // Weekly bonus check for premium
+    if (freeDrawsRemaining === 0) scheduleResetTimer();
+    // Weekly bonus
     if (premiumActive) {
         const lastBonus = localStorage.getItem('weeklyBonusDate');
         const today = new Date().toDateString();
         if (lastBonus !== today) {
             const diff = lastBonus ? Math.floor((Date.now() - new Date(lastBonus))/86400000) : 7;
-            if (diff >= 7) {
-                freeDrawsRemaining += 5;
-                localStorage.setItem('weeklyBonusDate', today);
-                toast('🎁 Weekly Bonus: +5 Free Draws!','success');
-                updateFreeDrawDisplay();
-                fetch('/api/claim_weekly_bonus', {
-                    method:'POST',
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({token: localStorage.getItem('auth_token')})
-                }).catch(()=>{});
-            }
+            if (diff >= 7) { freeDrawsRemaining += 5; localStorage.setItem('weeklyBonusDate', today); toast('🎁 Weekly Bonus: +5 Free Draws!'); updateFreeDrawDisplay(); fetch('/api/claim_weekly_bonus', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); }
         }
     }
-    if (freeDrawsRemaining === 0) scheduleResetTimer();
     setInterval(loadBalance, 30000);
 }
-
 init();
 </script>
 </body>
