@@ -913,176 +913,6 @@ app.get('/api/buycode_new_codes', async (req, res) => {
         }
     } catch(e) { res.json({ success: false }); }
 });
-
-// ==================== GAME API ====================
-
-// Register/Login with device ID
-app.post('/api/game/login', async (req, res) => {
-    const { device_id, username } = req.body;
-    if (!device_id) return res.json({ success: false, message: 'Device ID required' });
-    
-    try {
-        const p = await getPool();
-        
-        // Check if player exists
-        let player = await p.query('SELECT * FROM game_players WHERE device_id=$1', [device_id]);
-        
-        if (player.rows.length === 0) {
-            // Create new player
-            const newPlayer = await p.query(
-                'INSERT INTO game_players (device_id, username) VALUES ($1, $2) RETURNING *',
-                [device_id, username || 'Player']
-            );
-            player = newPlayer;
-        } else {
-            // Update last played
-            await p.query('UPDATE game_players SET last_played=NOW() WHERE id=$1', [player.rows[0].id]);
-        }
-        
-        const pData = player.rows[0];
-        res.json({
-            success: true,
-            player: {
-                id: pData.id,
-                username: pData.username,
-                level: pData.level,
-                total_score: pData.total_score,
-                total_gold: pData.total_gold,
-                games_played: pData.games_played,
-                highest_score: pData.highest_score,
-                highest_wave: pData.highest_wave
-            }
-        });
-    } catch(e) {
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-
-// Save Score
-app.post('/api/game/save_score', async (req, res) => {
-    const { device_id, score, gold_earned, waves_completed, kills, deaths, hero_used } = req.body;
-    
-    if (!device_id) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        
-        // Find player
-        const player = await p.query('SELECT * FROM game_players WHERE device_id=$1', [device_id]);
-        if (player.rows.length === 0) return res.json({ success: false, message: 'Player not found' });
-        
-        const pid = player.rows[0].id;
-        const pData = player.rows[0];
-        
-        // Save score
-        await p.query(
-            'INSERT INTO game_scores (player_id, score, gold_earned, waves_completed, kills, deaths, hero_used) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-            [pid, score, gold_earned, waves_completed, kills, deaths, hero_used]
-        );
-        
-        // Update player stats
-        const newTotalScore = parseInt(pData.total_score) + parseInt(score);
-        const newTotalGold = parseInt(pData.total_gold) + parseInt(gold_earned);
-        const newGamesPlayed = parseInt(pData.games_played) + 1;
-        const newHighestScore = Math.max(parseInt(pData.highest_score), parseInt(score));
-        const newHighestWave = Math.max(parseInt(pData.highest_wave), parseInt(waves_completed));
-        
-        await p.query(
-            'UPDATE game_players SET total_score=$1, total_gold=$2, games_played=$3, highest_score=$4, highest_wave=$5, last_played=NOW() WHERE id=$6',
-            [newTotalScore, newTotalGold, newGamesPlayed, newHighestScore, newHighestWave, pid]
-        );
-        
-        // Update leaderboard
-        await p.query(
-            'INSERT INTO game_leaderboard (player_id, username, score, wave) VALUES ($1,$2,$3,$4)',
-            [pid, pData.username, score, waves_completed]
-        );
-        
-        // Clean old leaderboard (keep top 100)
-        await p.query(
-            'DELETE FROM game_leaderboard WHERE id NOT IN (SELECT id FROM game_leaderboard ORDER BY score DESC LIMIT 100)'
-        );
-        
-        res.json({
-            success: true,
-            player: {
-                level: pData.level,
-                total_score: newTotalScore,
-                total_gold: newTotalGold,
-                games_played: newGamesPlayed,
-                highest_score: newHighestScore,
-                highest_wave: newHighestWave
-            }
-        });
-        
-    } catch(e) {
-        res.json({ success: false });
-    }
-});
-
-// Get Leaderboard
-app.get('/api/game/leaderboard', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query(
-            'SELECT DISTINCT ON (player_id) player_id, username, score, wave, created_at FROM game_leaderboard ORDER BY player_id, score DESC LIMIT 50'
-        );
-        
-        // Sort by score
-        const sorted = r.rows.sort((a, b) => b.score - a.score).slice(0, 20);
-        
-        res.json({ success: true, leaderboard: sorted });
-    } catch(e) {
-        res.json({ success: false, leaderboard: [] });
-    }
-});
-
-// Get Player Stats
-app.get('/api/game/stats', async (req, res) => {
-    const { device_id } = req.query;
-    if (!device_id) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const r = await p.query('SELECT * FROM game_players WHERE device_id=$1', [device_id]);
-        
-        if (r.rows.length === 0) {
-            return res.json({ success: false, message: 'Player not found' });
-        }
-        
-        const pData = r.rows[0];
-        
-        // Get recent scores
-        const scores = await p.query(
-            'SELECT * FROM game_scores WHERE player_id=$1 ORDER BY played_at DESC LIMIT 10',
-            [pData.id]
-        );
-        
-        res.json({
-            success: true,
-            player: pData,
-            recent_scores: scores.rows
-        });
-        
-    } catch(e) {
-        res.json({ success: false });
-    }
-});
-
-// Update Username
-app.post('/api/game/update_username', async (req, res) => {
-    const { device_id, username } = req.body;
-    if (!device_id || !username) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        await p.query('UPDATE game_players SET username=$1 WHERE device_id=$2', [username, device_id]);
-        await p.query('UPDATE game_leaderboard SET username=$1 WHERE player_id=(SELECT id FROM game_players WHERE device_id=$2)', [username, device_id]);
-        res.json({ success: true });
-    } catch(e) {
-        res.json({ success: false });
-    }
-});
 // ==================== SPIN & USD API ====================
 
 // Get USD Balance
@@ -1153,6 +983,41 @@ app.post('/api/exchange_usd_to_mmk', async (req, res) => {
         await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [mmkAmount, uid]);
         
         res.json({ success: true, mmk_received: mmkAmount, rate: EXCHANGE_RATE });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// Deduct Balance (for spin purchases)
+app.post('/api/deduct_balance', async (req, res) => {
+    const { token, amount, reason } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!amount || amount <= 0) return res.json({ success: false, message: 'Invalid amount' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
+        // Check balance
+        const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        const balance = parseFloat(r.rows[0]?.balance || 0);
+        
+        if (balance < amount) {
+            return res.json({ success: false, message: 'Insufficient balance. Please top up.' });
+        }
+        
+        // Deduct
+        await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id=$2', [amount, uid]);
+        
+        // Log order
+        await p.query(
+            'INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, $3, $4)',
+            [uid, -amount, reason || 'Spin Purchase', 'approved']
+        );
+        
+        const newBalance = balance - amount;
+        res.json({ success: true, new_balance: newBalance });
     } catch(e) {
         res.json({ success: false, message: 'Server error' });
     }
