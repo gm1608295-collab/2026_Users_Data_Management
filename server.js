@@ -125,16 +125,23 @@ async function createSpinHistoryV2Table() {
 createSpinHistoryV2Table();
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
-    { id: 'topup', name: 'Top Up' }, { id: 'buycode', name: 'Buy Code MLBB' }, { id: 'dashboard', name: 'Dashboard' },
-    { id: 'data', name: 'Data' }, { id: 'history', name: 'History' }, { id: 'password', name: 'Password' },
-    { id: 'recovery', name: 'Recovery' }, { id: 'contact', name: 'Contact' }, { id: 'aboutredeem', name: 'About Redeem' }
+    { id: 'topup', name: 'Top Up' },
+    { id: 'buycode', name: 'Buy Code MLBB' },
+    { id: 'dashboard', name: 'Dashboard' },
+    { id: 'data', name: 'Data' },
+    { id: 'history', name: 'History' },
+    { id: 'password', name: 'Password' },
+    { id: 'recovery', name: 'Recovery' },
+    { id: 'contact', name: 'Contact' },
+    { id: 'aboutredeem', name: 'About Redeem' },
+    { id: 'game', name: 'Lucky Spin' },        // ✅ ထည့်ပါ
+    { id: 'exchange', name: 'Exchange' }         // ✅ ထည့်ပါ
 ];
 
 ALL_PAGES.forEach(async (pg) => {
     await pool1.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
     await pool2.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
 });
-
 // ==================== IMAGE UPLOAD ====================
 app.post('/api/upload_image', async (req, res) => {
     const { base64 } = req.body;
@@ -1558,7 +1565,7 @@ app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.ht
 app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
-app.get('/exchange.html', (req, res) => res.sendFile(path.join(__dirname, 'exchange.html')));
+app.get('/exchange.html', (req, res) => servePageWithCheck(req, res, 'exchange', 'exchange.html'));
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`âœ… Server running on port ${PORT}`);
