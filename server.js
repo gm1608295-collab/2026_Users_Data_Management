@@ -1505,6 +1505,28 @@ if (!isPremium) {
         default: segments = SPIN_CONFIG.PREMIUM_TIER1_SEGMENTS;
     }
 }
+
+// ✅✅✅ ဒါကိုထည့်ပါ - Weighted Random Logic ✅✅✅
+const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
+let rand = Math.random() * totalWeight;
+let winIndex = 0;
+
+for (let i = 0; i < segments.length; i++) {
+    rand -= segments[i].weight;
+    if (rand <= 0) {
+        winIndex = i;
+        break;
+    }
+}
+
+const reward = segments[winIndex];
+// ✅✅✅ ဒီအထိ ထည့်ပါ ✅✅✅
+
+// ========== GET BALANCES BEFORE ==========
+const balBefore = {
+    mmk: parseFloat(u.balance || 0),
+    usd: parseFloat(u.usd_balance || 0)
+};
         
         // ========== GET BALANCES BEFORE ==========
         const balBefore = {
