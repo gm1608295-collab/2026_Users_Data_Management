@@ -921,7 +921,7 @@ app.get('/api/buycode_new_codes', async (req, res) => {
                 success: true, 
                 hasNew: true,
                 latestId: latest.id,
-                message: 'New MLBB Redeem Codes are now available! Visit Buy Code page to purchase.'
+                message: 'Mobile Legends Bang Bang မှ Redeem Code အသစ်များ ထပ်မံရောက်ရှိလာပါပြီ၊ Customers များ ဝယ်ယူအားပေးနိုင်ပါပြီ။'
             });
         } else {
             res.json({ success: true, hasNew: false, latestId: 0 });
