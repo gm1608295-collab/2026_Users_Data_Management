@@ -1528,12 +1528,6 @@ const balBefore = {
     usd: parseFloat(u.usd_balance || 0)
 };
         
-        // ========== GET BALANCES BEFORE ==========
-        const balBefore = {
-            mmk: parseFloat(u.balance || 0),
-            usd: parseFloat(u.usd_balance || 0)
-        };
-        
         let balAfter = { mmk: balBefore.mmk, usd: balBefore.usd };
         
         // ========== ADD REWARD ==========
