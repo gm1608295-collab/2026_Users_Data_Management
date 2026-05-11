@@ -910,7 +910,6 @@ async function servePageWithCheck(req, res, pageId, filePath) {
 app.get('/api/buycode_new_codes', async (req, res) => {
     try {
         const p = await getPool();
-        // Get the latest added code
         const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY id DESC LIMIT 1");
         
         if (r.rows.length > 0) {
@@ -922,7 +921,7 @@ app.get('/api/buycode_new_codes', async (req, res) => {
                 success: true, 
                 hasNew: true,
                 latestId: latest.id,
-                message: 'Mobile Legends Bang Bang á€™á€¾ Redeem Code á€¡á€žá€…á€ºá€™á€»á€¬á€¸ á€‘á€•á€ºá€™á€¶á€›á€±á€¬á€€á€ºá€›á€¾á€­á€œá€¬á€•á€«á€•á€¼á€®áŠ Customers á€™á€»á€¬á€¸ á€á€šá€ºá€šá€°á€¡á€¬á€¸á€•á€±á€¸á€”á€­á€¯á€„á€ºá€•á€«á€•á€¼á€®á‹'
+                message: 'New MLBB Redeem Codes are now available! Visit Buy Code page to purchase.'
             });
         } else {
             res.json({ success: true, hasNew: false, latestId: 0 });
