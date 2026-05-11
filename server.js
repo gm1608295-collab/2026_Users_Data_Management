@@ -87,10 +87,11 @@ async function initTables(p) {
     
     // Then safely add missing columns (won't error if table doesn't exist)
     const alterQueries = [
-        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL DEFAULT 0`,
-        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_expiry TIMESTAMP`,
-        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0`
-    ];
+    `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL DEFAULT 0`,
+    `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_expiry TIMESTAMP`,
+    `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0`,     // ✅ Comma ထည့်ပါ
+    `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_tier INT DEFAULT 1`
+];
     
     for (const q of alterQueries) { 
         await p.query(q).catch(() => {}); 
