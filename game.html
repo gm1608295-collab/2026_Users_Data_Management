@@ -451,30 +451,36 @@
             </div>
             
             <!-- Premium Plans -->
-            <div class="premium-plans">
-                <h4 class="feature-title">💳 Premium အစီအစဉ်များ</h4>
-                <div class="prem-packages">
-                    <div class="prem-pkg" onclick="handlePremiumPurchase(1, 8000, 'tier1')">
-                        <div class="pkg-duration">🥉 ၁ လ</div>
-                        <div class="pkg-price">၈၀၀၀ ကျပ်</div>
-                        <div class="pkg-per-day">၂၆၇ ကျပ်/ရက်</div>
-                    </div>
-                    <div class="prem-pkg best tier2" onclick="handlePremiumPurchase(2, 15000, 'tier2')">
-                        <div class="best-badge">⭐ ၅၀% လျှော့ဈေး</div>
-                        <div class="pkg-duration">🥈 ၂ လ</div>
-                        <div class="pkg-price"><s style="color:#888;font-size:11px">၁၅၀၀၀</s> ၇၅၀၀ ကျပ်</div>
-                        <div class="pkg-per-day">၁၂၅ ကျပ်/ရက်</div>
-                        <div class="pkg-discount">Tier 1 ရှိသူများ ၅၀% လျှော့ဈေး</div>
-                    </div>
-                    <div class="prem-pkg tier3" onclick="handlePremiumPurchase(3, 22000, 'tier3')">
-                        <div class="best-badge">⭐ ၅၀% လျှော့ဈေး</div>
-                        <div class="pkg-duration">🥇 ၃ လ</div>
-                        <div class="pkg-price"><s style="color:#888;font-size:11px">၂၂၀၀၀</s> ၁၁၀၀၀ ကျပ်</div>
-                        <div class="pkg-per-day">၁၂၂ ကျပ်/ရက်</div>
-                        <div class="pkg-discount">Tier 1/2 ရှိသူများ ၅၀% လျှော့ဈေး</div>
-                    </div>
-                </div>
-            </div>
+<div class="premium-plans">
+    <h4 class="feature-title">💳 Premium အစီအစဉ်များ</h4>
+    <div class="prem-packages" id="premPackages">
+        <!-- Tier 1 -->
+        <div class="prem-pkg" id="pkgTier1" onclick="handlePremiumPurchase(1, 8000, 'tier1')">
+            <div class="pkg-duration">🥉 ၁ လ</div>
+            <div class="pkg-price" id="priceTier1">၈၀၀၀ ကျပ်</div>
+            <div class="pkg-per-day">၂၆၇ ကျပ်/ရက်</div>
+            <div class="pkg-status" id="statusTier1"></div>
+        </div>
+        <!-- Tier 2 -->
+        <div class="prem-pkg best tier2" id="pkgTier2" onclick="handlePremiumPurchase(2, 15000, 'tier2')">
+            <div class="best-badge" id="badgeTier2">⭐ ၅၀% လျှော့ဈေး</div>
+            <div class="pkg-duration">🥈 ၂ လ</div>
+            <div class="pkg-price" id="priceTier2"><s style="color:#888;font-size:11px">၁၅၀၀၀</s> ၇၅၀၀ ကျပ်</div>
+            <div class="pkg-per-day">၁၂၅ ကျပ်/ရက်</div>
+            <div class="pkg-discount">Tier 1 ရှိသူများ ၅၀% လျှော့ဈေး</div>
+            <div class="pkg-status" id="statusTier2"></div>
+        </div>
+        <!-- Tier 3 -->
+        <div class="prem-pkg tier3" id="pkgTier3" onclick="handlePremiumPurchase(3, 22000, 'tier3')">
+            <div class="best-badge" id="badgeTier3">⭐ ၅၀% လျှော့ဈေး</div>
+            <div class="pkg-duration">🥇 ၃ လ</div>
+            <div class="pkg-price" id="priceTier3"><s style="color:#888;font-size:11px">၂၂၀၀၀</s> ၁၁၀၀၀ ကျပ်</div>
+            <div class="pkg-per-day">၁၂၂ ကျပ်/ရက်</div>
+            <div class="pkg-discount">Tier 1/2 ရှိသူများ ၅၀% လျှော့ဈေး</div>
+            <div class="pkg-status" id="statusTier3"></div>
+        </div>
+    </div>
+</div>
             
             <div class="premium-notice">
                 <i class="fas fa-info-circle"></i>
@@ -1130,31 +1136,91 @@ async function handleBuySpins(spins, cost, drawType) {
     };
     openModal('confirmModal');
 }
-
 // ====================================
 // PREMIUM FUNCTIONS
 // ====================================
-// ✅ ဒါနဲ့ အစားထိုးပါ
 function handlePremiumClick() {
+    updatePremiumPackages(); // ✅ Package Status Update
     openModal('premiumModal');
 }
 
+// ✅ Premium Package Status Update
+function updatePremiumPackages() {
+    const currentTier = State.premiumTier;
+    
+    // Reset all packages
+    document.querySelectorAll('.prem-pkg').forEach(pkg => {
+        pkg.style.opacity = '1';
+        pkg.style.pointerEvents = 'auto';
+        pkg.style.cursor = 'pointer';
+    });
+    
+    // Clear all status
+    document.querySelectorAll('.pkg-status').forEach(s => s.innerHTML = '');
+    
+    // Lock purchased tiers
+    if (currentTier >= 1) {
+        const pkg1 = document.getElementById('pkgTier1');
+        pkg1.style.opacity = '0.5';
+        pkg1.style.pointerEvents = 'none';
+        pkg1.style.cursor = 'not-allowed';
+        document.getElementById('statusTier1').innerHTML = '<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';
+        
+        // Update Tier 2 price (50% off)
+        document.getElementById('badgeTier2').textContent = '⭐ ၅၀% လျှော့ဈေး';
+        document.getElementById('priceTier2').innerHTML = '<s style="color:#888;font-size:11px">၁၅၀၀၀</s> ၇၅၀၀ ကျပ်';
+    }
+    
+    if (currentTier >= 2) {
+        const pkg2 = document.getElementById('pkgTier2');
+        pkg2.style.opacity = '0.5';
+        pkg2.style.pointerEvents = 'none';
+        pkg2.style.cursor = 'not-allowed';
+        document.getElementById('statusTier2').innerHTML = '<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';
+        
+        // Update Tier 3 price (50% off)
+        document.getElementById('badgeTier3').textContent = '⭐ ၅၀% လျှော့ဈေး';
+        document.getElementById('priceTier3').innerHTML = '<s style="color:#888;font-size:11px">၂၂၀၀၀</s> ၁၁၀၀၀ ကျပ်';
+    }
+    
+    if (currentTier >= 3) {
+        const pkg3 = document.getElementById('pkgTier3');
+        pkg3.style.opacity = '0.5';
+        pkg3.style.pointerEvents = 'none';
+        pkg3.style.cursor = 'not-allowed';
+        document.getElementById('statusTier3').innerHTML = '<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';
+    }
+    
+    // If all tiers purchased
+    if (currentTier >= 3) {
+        document.getElementById('statusTier3').innerHTML = '<span style="color:#ffd700;font-size:10px;font-weight:bold">👑 MAX LEVEL</span>';
+    }
+}
+
+// ✅ Handle Premium Purchase - ဝယ်ပြီးသား Tier ဆိုရင် Block
 async function handlePremiumPurchase(months, cost, tier) {
+    const newTier = parseInt(tier.replace('tier',''));
+    
+    // Check if already purchased this tier
+    if (State.isPremium && newTier <= State.premiumTier) {
+        UI.showToast('ဤ Premium အစီအစဉ်ကို ဝယ်ယူပြီးပါပြီ။ အဆင့်မြင့် Tier ကိုသာ ဝယ်ယူနိုင်ပါသည်။', 'info');
+        return;
+    }
+    
     closeModal('premiumModal');
     
     // Calculate 50% discount if user already has a lower tier
     let actualCost = cost;
     let discountApplied = false;
     
-    if(State.isPremium && State.premiumTier > 0) {
-        const newTier = parseInt(tier.replace('tier',''));
-        if(newTier > State.premiumTier) {
+    if (State.isPremium && State.premiumTier > 0) {
+        if (newTier > State.premiumTier) {
             actualCost = Math.floor(cost / 2);
             discountApplied = true;
         }
     }
     
-    if(State.mmkBalance < actualCost) {
+    if (State.mmkBalance < actualCost) {
         UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။', 'error');
         return;
     }
@@ -1164,7 +1230,7 @@ async function handlePremiumPurchase(months, cost, tier) {
     
     let confirmMsg = months + ' Month(s) - ' + tierName + '<br>';
     confirmMsg += 'Cost: <b>' + actualCost.toLocaleString() + ' Ks</b>';
-    if(discountApplied) {
+    if (discountApplied) {
         confirmMsg += '<br><span style="color:#2ecc71">✅ ၅၀% လျှော့ဈေး ရရှိထားပါသည်</span>';
         confirmMsg += '<br><span style="color:#888;text-decoration:line-through">မူရင်း: '+cost.toLocaleString()+' Ks</span>';
     }
@@ -1176,12 +1242,11 @@ async function handlePremiumPurchase(months, cost, tier) {
     confirmBtn.onclick = async () => {
         closeModal('confirmModal');
         
-        const result = await UI.showProcessing(months, actualCost, parseInt(tier.replace('tier','')), async () => {
-            return await API.buyPremium(months, actualCost, parseInt(tier.replace('tier','')));
+        const result = await UI.showProcessing(months, actualCost, newTier, async () => {
+            return await API.buyPremium(months, actualCost, newTier);
         });
         
-        if(result && result.success) {
-            const newTier = parseInt(tier.replace('tier',''));
+        if (result && result.success) {
             State.isPremium = true;
             State.premiumTier = newTier;
             
@@ -1202,13 +1267,15 @@ async function handlePremiumPurchase(months, cost, tier) {
             UI.applyPremiumTheme();
             UI.showPremiumTransition(newTier);
             UI.showToast('Premium '+tierName+' Activated! 👑', 'gold');
+            
+            // Update package status
+            updatePremiumPackages();
         } else {
             UI.showToast(result && result.message ? result.message : 'Purchase failed', 'error');
         }
     };
     openModal('confirmModal');
 }
-
 // ====================================
 // PREMIUM EXPIRY CHECK
 // ====================================
