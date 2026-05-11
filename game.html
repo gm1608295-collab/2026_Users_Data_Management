@@ -77,7 +77,6 @@
         .btn-yes{background:var(--g);color:#000;border:none;padding:10px 20px;border-radius:20px;font-weight:bold;cursor:pointer}
         .btn-no{background:rgba(255,255,255,0.2);color:#fff;border:none;padding:10px 20px;border-radius:20px;font-weight:bold;cursor:pointer}
         
-        /* SUPER Result - only link button */
         .super-link-btn{
             display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#e91e63,#9b59b6);
             color:#fff;border:none;border-radius:30px;font-size:15px;font-weight:bold;
@@ -218,47 +217,38 @@ function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 function closeConfirm() { closeModal('confirmOverlay'); }
 
-// ==================== BALANCE (Always fetch from Server) ====================
-async function loadBalance() {
-    const token = localStorage.getItem('auth_token');
-    if (!token || token==='guest') return;
-    try {
-        const [r1, r2] = await Promise.all([
-            fetch('/api/get_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}),
-            fetch('/api/get_usd_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})
-        ]);
-        const d1 = await r1.json();
-        const d2 = await r2.json();
-        mmkBalance = parseFloat(d1.balance||0);
-        document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString() + ' Ks';
-        document.getElementById('usdBalance').textContent = '$' + (d2.usd_balance||0).toFixed(2);
-    } catch(e) {}
-}
-
-// ==================== FETCH ALL STATE FROM SERVER (SURVIVES REFRESH) ====================
+// ==================== FETCH ALL STATE FROM SERVER ====================
 async function fetchServerState() {
     const token = localStorage.getItem('auth_token');
     if (!token || token==='guest') return;
 
     try {
-        // 1. Get Premium Status & Free Draws
-        const r = await fetch('/api/get_premium_status', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
-        const d = await r.json();
-        premiumActive = d.success && d.premium_active;
-        freeDrawsRemaining = premiumActive ? (d.daily_draws_remaining || 3) : 1;
-        
-        // 2. Get Paid Spins Remaining
-        const spinRes = await fetch('/api/get_paid_spins', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
-        const spinData = await spinRes.json();
-        paidSpinsRemaining = spinData.paid_spins || 0;
+        const [premRes, spinRes, balRes, usdRes] = await Promise.all([
+            fetch('/api/get_premium_status', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}),
+            fetch('/api/get_paid_spins', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}),
+            fetch('/api/get_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}),
+            fetch('/api/get_usd_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})
+        ]);
 
-        // 3. Update UI
+        const premData = await premRes.json();
+        const spinData = await spinRes.json();
+        const balData = await balRes.json();
+        const usdData = await usdRes.json();
+
+        // Update State
+        premiumActive = premData.success && premData.premium_active;
+        freeDrawsRemaining = premiumActive ? (premData.daily_draws_remaining || 3) : 1;
+        paidSpinsRemaining = spinData.paid_spins || 0;
+        mmkBalance = parseFloat(balData.balance || 0);
+        
+        // Update UI
+        document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString() + ' Ks';
+        document.getElementById('usdBalance').textContent = '$' + (usdData.usd_balance || 0).toFixed(2);
+        
         applyPremiumUI();
         updateFreeDrawDisplay();
         drawWheel(0);
-        await loadBalance();
 
-        // 4. Check if timer needed
         if (freeDrawsRemaining === 0 && paidSpinsRemaining === 0) {
             scheduleResetTimer();
         }
@@ -285,10 +275,10 @@ function updateSpinButton() {
     const status = document.getElementById('spinStatus');
     if (paidSpinsRemaining > 0) { status.textContent = `💳 Paid spins: ${paidSpinsRemaining}`; btn.disabled = false; }
     else if (freeDrawsRemaining > 0) { status.textContent = `🎰 Free draws: ${freeDrawsRemaining}`; btn.disabled = false; }
-    else { status.textContent = '⏰ No spins left'; btn.disabled = true; scheduleResetTimer(); }
+    else { status.textContent = '⏰ No spins left'; btn.disabled = true; }
 }
 
-// ==================== TIMER (SURVIVES REFRESH) ====================
+// ==================== TIMER ====================
 function scheduleResetTimer() {
     const now = new Date();
     const midnight = new Date(now);
@@ -302,7 +292,6 @@ function scheduleResetTimer() {
         const remaining = midnight.getTime() - Date.now();
         if (remaining <= 0) {
             clearInterval(window._resetInterval);
-            // Refetch state from server at midnight
             fetchServerState();
             return;
         }
@@ -363,8 +352,19 @@ function getWinningIndex() {
 
 function handleSpinClick() {
     if (isSpinning) return;
-    if (paidSpinsRemaining > 0) { paidSpinsRemaining--; updateSpinButton(); executeSpin(); }
-    else if (freeDrawsRemaining > 0) { freeDrawsRemaining--; updateFreeDrawDisplay(); executeSpin(); if (premiumActive) { fetch('/api/track_premium_draw', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); } }
+    if (paidSpinsRemaining > 0) { 
+        paidSpinsRemaining--; 
+        // Update server state for paid spins
+        fetch('/api/spin/use_paid_spin', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{});
+        updateSpinButton(); 
+        executeSpin(); 
+    }
+    else if (freeDrawsRemaining > 0) { 
+        freeDrawsRemaining--; 
+        updateFreeDrawDisplay(); 
+        executeSpin(); 
+        if (premiumActive) { fetch('/api/track_premium_draw', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); } 
+    }
     else { toast('❌ No spins left!', 'error'); }
 }
 
@@ -413,8 +413,16 @@ async function saveSpinResult(seg) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, reward_type: seg.type, reward_amount: seg.reward, segment_label: seg.label })
         });
-        // Force reload balance from server
-        await loadBalance();
+        // Refresh balance from server to show updated amount
+        const [balRes, usdRes] = await Promise.all([
+            fetch('/api/get_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}),
+            fetch('/api/get_usd_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})
+        ]);
+        const balData = await balRes.json();
+        const usdData = await usdRes.json();
+        mmkBalance = parseFloat(balData.balance || 0);
+        document.getElementById('mmkBalance').textContent = mmkBalance.toLocaleString() + ' Ks';
+        document.getElementById('usdBalance').textContent = '$' + (usdData.usd_balance || 0).toFixed(2);
     } catch(e) {}
 }
 
@@ -428,11 +436,8 @@ function showResult(seg) {
     if (seg.type === 'super') {
         icon.textContent = '👑'; text.textContent = '🏆 SUPER PRIZE!';
         amount.textContent = 'Congratulations!'; amount.style.color = '#e91e63';
-        // ONLY LINK BUTTON, NO CLOSE/CANCEL
         extra.innerHTML = `<a class="super-link-btn" href="${SUPER_FORM_URL}" target="_blank">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>`;
     } else {
-        // All other results have an OK button
-        let resultHTML = '';
         switch(seg.type) {
             case 'usd': icon.textContent='💵'; text.textContent='🎉 You Won!'; amount.textContent=`$${seg.reward.toFixed(2)} USD`; amount.style.color='#2ecc71'; break;
             case 'mmk': icon.textContent='💰'; text.textContent='🎉 You Won!'; amount.textContent=`${seg.reward} Ks`; amount.style.color='#f39c12'; break;
@@ -491,8 +496,7 @@ async function buySpins(spins, cost) {
 
 // ==================== INIT ====================
 async function init() {
-    await fetchServerState(); // Always start by fetching state from server
-    // Weekly bonus
+    await fetchServerState();
     if (premiumActive) {
         const lastBonus = localStorage.getItem('weeklyBonusDate');
         const today = new Date().toDateString();
@@ -501,7 +505,7 @@ async function init() {
             if (diff >= 7) { freeDrawsRemaining += 5; localStorage.setItem('weeklyBonusDate', today); toast('🎁 Weekly Bonus: +5 Free Draws!'); updateFreeDrawDisplay(); fetch('/api/claim_weekly_bonus', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); }
         }
     }
-    setInterval(loadBalance, 30000);
+    setInterval(fetchServerState, 30000);
 }
 init();
 </script>
