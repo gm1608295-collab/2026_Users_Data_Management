@@ -59,7 +59,8 @@ const REDEEM_CATEGORIES = [
 
 // ==================== INIT TABLES ====================
 async function initTables(p) {
-    const queries = [
+    // First create base tables
+    const createQueries = [
         `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, usd_balance DECIMAL DEFAULT 0, premium_expiry TIMESTAMP, paid_spins INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), notice_type VARCHAR(20) DEFAULT 'dashboard', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
@@ -72,27 +73,26 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS redeem_codes (id SERIAL PRIMARY KEY, category VARCHAR(50), code VARCHAR(100), used BOOLEAN DEFAULT false, used_by INT, used_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS user_security_pass (user_id INT PRIMARY KEY, security_password VARCHAR(100), set_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS spin_history (id SERIAL PRIMARY KEY, user_id INT, reward_type VARCHAR(50), reward_amount DECIMAL DEFAULT 0, segment_label VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS game_players (id SERIAL PRIMARY KEY, username VARCHAR(100) DEFAULT 'Player', device_id VARCHAR(200), level INT DEFAULT 1, total_score BIGINT DEFAULT 0, total_gold BIGINT DEFAULT 0, games_played INT DEFAULT 0, highest_score INT DEFAULT 0, highest_wave INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_played TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS game_scores (id SERIAL PRIMARY KEY, player_id INT, score INT DEFAULT 0, gold_earned INT DEFAULT 0, waves_completed INT DEFAULT 0, kills INT DEFAULT 0, deaths INT DEFAULT 0, hero_used VARCHAR(50) DEFAULT 'Warrior', played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS game_leaderboard (id SERIAL PRIMARY KEY, player_id INT, username VARCHAR(100), score INT, wave INT, season VARCHAR(20) DEFAULT 'S1', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS spin_history (id SERIAL PRIMARY KEY, user_id INT, reward_type VARCHAR(50), reward_amount DECIMAL DEFAULT 0, segment_label VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS premium_draws (user_id INT, draw_date DATE, draw_count INT DEFAULT 1, PRIMARY KEY(user_id, draw_date))`,
         `CREATE TABLE IF NOT EXISTS weekly_bonus (id SERIAL PRIMARY KEY, user_id INT, claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
     ];
     
-    // First create all tables
-    for (const q of queries) { 
-        await p.query(q).catch(e => console.log('Table init error:', e.message)); 
+    for (const q of createQueries) { 
+        await p.query(q).catch(e => console.log('Table create:', e.message)); 
     }
     
-    // Then alter existing tables (safe - won't break if table doesn't exist)
-    const alters = [
+    // Then safely add missing columns (won't error if table doesn't exist)
+    const alterQueries = [
         `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL DEFAULT 0`,
         `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_expiry TIMESTAMP`,
         `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0`
     ];
     
-    for (const q of alters) { 
+    for (const q of alterQueries) { 
         await p.query(q).catch(() => {}); 
     }
 }
@@ -401,7 +401,7 @@ app.post('/api/get_security_pass_status', async (req, res) => {
     }
 });
 
-// Set security password
+// Set security password - FIXED
 app.post('/api/set_security_pass', async (req, res) => {
     const { token, password } = req.body;
     
@@ -423,7 +423,7 @@ app.post('/api/set_security_pass', async (req, res) => {
             
             if (daysPassed < 7) {
                 const daysLeft = 7 - daysPassed;
-                return res.json({ success: false, message: `${daysLeft} á€›á€€á€ºá€…á€±á€¬á€„á€·á€ºá€›á€•á€«á€™á€Šá€ºá‹`, daysLeft: daysLeft });
+                return res.json({ success: false, message: daysLeft + ' days remaining before you can change password', daysLeft: daysLeft });
             }
         }
         
