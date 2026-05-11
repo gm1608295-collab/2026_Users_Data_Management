@@ -341,7 +341,7 @@ function lightenColor(hex, p) {
     return `rgb(${Math.min(255,(num>>16)+p)},${Math.min(255,((num>>8)&0xFF)+p)},${Math.min(255,(num&0xFF)+p)})`;
 }
 
-// ==================== SPIN LOGIC ====================
+// ==================== SPIN LOGIC (FIXED ARROW) ====================
 function getWinningIndex() {
     const segs = getActiveSegments();
     const total = segs.reduce((a, b) => a + b.weight, 0);
@@ -354,9 +354,8 @@ function handleSpinClick() {
     if (isSpinning) return;
     if (paidSpinsRemaining > 0) { 
         paidSpinsRemaining--; 
-        // Update server state for paid spins
-        fetch('/api/spin/use_paid_spin', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{});
         updateSpinButton(); 
+        fetch('/api/spin/use_paid_spin', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{});
         executeSpin(); 
     }
     else if (freeDrawsRemaining > 0) { 
@@ -374,8 +373,10 @@ function executeSpin() {
     const winIdx = getWinningIndex();
     const seg = getActiveSegments()[winIdx];
     
-    const segmentCenterAngle = winIdx * ARC + ARC / 2;
-    let targetAngle = -(segmentCenterAngle - Math.PI / 2);
+    // FIXED ARROW ALIGNMENT:
+    // Arrow is at TOP (-PI/2). Segment i center = i*ARC + ARC/2
+    // To bring segment i to arrow: rotate wheel by -(i*ARC + ARC/2 - PI/2)
+    let targetAngle = -(winIdx * ARC + ARC / 2 - Math.PI / 2);
     while (targetAngle < 0) targetAngle += 2 * Math.PI;
     targetAngle = targetAngle % (2 * Math.PI);
     
@@ -502,7 +503,13 @@ async function init() {
         const today = new Date().toDateString();
         if (lastBonus !== today) {
             const diff = lastBonus ? Math.floor((Date.now() - new Date(lastBonus))/86400000) : 7;
-            if (diff >= 7) { freeDrawsRemaining += 5; localStorage.setItem('weeklyBonusDate', today); toast('🎁 Weekly Bonus: +5 Free Draws!'); updateFreeDrawDisplay(); fetch('/api/claim_weekly_bonus', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); }
+            if (diff >= 7) { 
+                freeDrawsRemaining += 5; 
+                localStorage.setItem('weeklyBonusDate', today); 
+                toast('🎁 Weekly Bonus: +5 Free Draws!'); 
+                updateFreeDrawDisplay(); 
+                fetch('/api/claim_weekly_bonus', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).catch(()=>{}); 
+            }
         }
     }
     setInterval(fetchServerState, 30000);
