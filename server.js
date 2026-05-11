@@ -596,8 +596,7 @@ app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { co
 
 // ==================== BOT MESSAGE ====================
 app.post('/api/admin/bot_message', async (req, res) => { const { message } = req.body; if (!message) return res.json({ success: false }); try { const p = await getPool(); const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'"); let count = 0; for (const user of users.rows) { const tid = user.google_id.replace('tg_', ''); try { await fetch(`${TELEGRAM_API}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: tid, text: `ðŸ“¢ ${message}`, parse_mode: 'HTML' }) }); count++; } catch(e) {} } res.json({ success: true, count }); } catch(e) { res.json({ success: false }); } });
-
-// ==================== TELEGRAM BOT (ENHANCED) ====================
+// ==================== TELEGRAM BOT (မြန်မာလို) ====================
 let lastUpdateId = 0;
 
 function sendTelegramMessage(chatId, text, replyMarkup = null) {
@@ -627,7 +626,7 @@ async function createTelegramUser(userId, firstName) {
             [displayName, email, tgId, 'telegram', 0]
         );
         
-        tgSend(`ðŸ†• New Telegram User\nðŸ‘¤ ${displayName}\nðŸ†” ${tgId}`);
+        tgSend(`🆕 Telegram User အသစ်\n👤 ${displayName}\n🆔 ${tgId}`);
         
         return { id: nu.rows[0].id, isNew: true, balance: 0 };
     } catch(e) { return null; }
@@ -651,24 +650,24 @@ async function createOTP(userId) {
 }
 
 function startLongPolling() {
-    console.log('ðŸ¤– Enhanced Bot Started');
+    console.log('🤖 Telegram Bot စတင်ပါပြီ');
     
     const mainKeyboard = {
         inline_keyboard: [
-            [{ text: 'ðŸ  Login Now', url: 'https://two026-users-data-management.onrender.com' }],
-            [{ text: 'ðŸ’° Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
-            [{ text: 'ðŸ›’ Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
-            [{ text: 'ðŸ“ž Contact Admin', url: 'https://t.me/Solo_m28' }]
+            [{ text: '🏠 အကောင့်ဝင်ရန်', url: 'https://two026-users-data-management.onrender.com' }],
+            [{ text: '💰 ငွေဖြည့်ရန်', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
+            [{ text: '🛒 Code ဝယ်ရန်', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
+            [{ text: '📞 Admin ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }]
         ]
     };
     
     const quickKeyboard = {
         inline_keyboard: [
-            [{ text: 'ðŸ’³ Check Balance', callback_data: 'balance' }],
-            [{ text: 'ðŸ” Get OTP', callback_data: 'otp' }],
-            [{ text: 'ðŸ“‹ Order Status', callback_data: 'status' }],
-            [{ text: 'ðŸ›’ Buy Code', callback_data: 'buycode' }],
-            [{ text: 'ðŸ“ž Contact', url: 'https://t.me/Solo_m28' }]
+            [{ text: '💳 လက်ကျန်ကြည့်ရန်', callback_data: 'balance' }],
+            [{ text: '🔐 OTP ရယူရန်', callback_data: 'otp' }],
+            [{ text: '📋 Order စစ်ရန်', callback_data: 'status' }],
+            [{ text: '🛒 Code ဝယ်ရန်', callback_data: 'buycode' }],
+            [{ text: '📞 ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }]
         ]
     };
     
@@ -682,7 +681,7 @@ function startLongPolling() {
                 for (const update of result.result) {
                     lastUpdateId = update.update_id;
                     
-                    // Handle Callback Query (Inline Button Press)
+                    // ========== ခလုတ်နှိပ်ခြင်းများ ==========
                     if (update.callback_query) {
                         const cq = update.callback_query;
                         const chatId = cq.message.chat.id;
@@ -690,38 +689,53 @@ function startLongPolling() {
                         const firstName = cq.from.first_name || 'User';
                         
                         const user = await createTelegramUser(cq.from.id, firstName);
-                        if (!user) { sendTelegramMessage(chatId, 'âŒ Error. Try /start'); continue; }
+                        if (!user) { sendTelegramMessage(chatId, '❌ Error ရှိနေပါသည်။ /start ကိုနှိပ်ပါ'); continue; }
                         
                         if (data === 'balance') {
                             const balance = user.balance || 0;
-                            sendTelegramMessage(chatId, `ðŸ’³ <b>Your Balance</b>\n\nðŸ’° <b>${balance.toLocaleString()} Ks</b>\nðŸ’µ â‰ˆ $${(balance/2100).toFixed(2)} USD\n\ná€„á€½á€±á€–á€¼á€Šá€·á€ºá€œá€­á€¯á€•á€«á€€ Top Up á€á€œá€¯á€á€ºá€€á€­á€¯á€”á€¾á€­á€•á€ºá€•á€«á‹`, quickKeyboard);
+                            sendTelegramMessage(chatId, 
+                                `💳 <b>သင့်လက်ကျန်</b>\n\n` +
+                                `💰 <b>${balance.toLocaleString()} ကျပ်</b>\n` +
+                                `💵 ≈ $${(balance/2100).toFixed(2)} USD\n\n` +
+                                `ငွေဖြည့်ရန် Top Up ခလုတ်ကိုနှိပ်ပါ။`, 
+                                quickKeyboard
+                            );
                         }
                         else if (data === 'otp') {
                             const otp = await createOTP(user.id);
-                            sendTelegramMessage(chatId, `ðŸ” <b>Your OTP Code</b>\n\nðŸ”¢ <b>${otp}</b>\n\nâ° á†á€ á€…á€€á€¹á€€á€”á€·á€ºá€¡á€á€½á€„á€ºá€¸ á€¡á€žá€¯á€¶á€¸á€•á€¼á€¯á€•á€«á‹\nâš ï¸ á€™á€Šá€ºá€žá€°á€·á€€á€­á€¯á€™á€»á€¾ á€™á€•á€±á€¸á€•á€«á€”á€¾á€„á€·á€ºá‹`, quickKeyboard);
+                            sendTelegramMessage(chatId, 
+                                `🔐 <b>သင့် OTP ကုဒ်</b>\n\n` +
+                                `🔢 <b>${otp}</b>\n\n` +
+                                `⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n` +
+                                `⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်။`, 
+                                quickKeyboard
+                            );
                         }
                         else if (data === 'status') {
                             const orders = await getUserOrders(cq.from.id);
                             if (orders.length === 0) {
-                                sendTelegramMessage(chatId, 'ðŸ“‹ No orders yet.', quickKeyboard);
+                                sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။', quickKeyboard);
                             } else {
-                                let msg = 'ðŸ“‹ <b>á€”á€±á€¬á€€á€ºá€†á€¯á€¶á€¸ Orders</b>\n\n';
+                                let msg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
                                 orders.forEach(o => {
-                                    const st = o.status === 'approved' ? 'âœ…' : o.status === 'rejected' ? 'âŒ' : 'â³';
-                                    msg += `${st} #${o.id} | ðŸ’° ${o.amount} Ks | ðŸ’³ ${o.payment_method}\nðŸ“… ${new Date(o.created_at).toLocaleDateString()}\n\n`;
+                                    const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+                                    msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
                                 });
                                 sendTelegramMessage(chatId, msg, quickKeyboard);
                             }
                         }
                         else if (data === 'buycode') {
-                            sendTelegramMessage(chatId, 'ðŸ›’ <b>Code á€á€šá€ºá€šá€°á€›á€”á€º</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard);
+                            sendTelegramMessage(chatId, 
+                                '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', 
+                                mainKeyboard
+                            );
                         }
                         
                         try { await fetch(`${TELEGRAM_API}/answerCallbackQuery`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: cq.id }) }); } catch(e) {}
                         continue;
                     }
                     
-                    // Handle Regular Message
+                    // ========== စာတိုပေးပို့ခြင်းများ ==========
                     const msg = update.message;
                     if (!msg) continue;
                     
@@ -732,67 +746,77 @@ function startLongPolling() {
                     if (text === '/start' || text === '/login') {
                         const user = await createTelegramUser(msg.from.id, firstName);
                         const welcomeMsg = user.isNew ? 
-                            `ðŸŽ‰ <b>Welcome to SOLO M Game Shop!</b>\n\ná€™á€„á€ºá€¹á€‚á€œá€¬á€•á€« ${firstName}!\n\ná€žá€„á€ºáá€¡á€€á€±á€¬á€„á€·á€ºá€€á€­á€¯ á€¡á€œá€­á€¯á€¡á€œá€»á€±á€¬á€€á€º á€–á€½á€„á€·á€ºá€•á€±á€¸á€•á€¼á€®á€¸á€•á€«á€•á€¼á€®á‹` :
-                            `ðŸ‘‹ á€•á€¼á€”á€ºá€œá€Šá€ºá€€á€¼á€­á€¯á€†á€­á€¯á€•á€«á€á€šá€º ${firstName}!`;
+                            `🎉 <b>SOLO M Game Shop မှ ကြိုဆိုပါတယ်!</b>\n\nမင်္ဂလာပါ ${firstName}!\n\nသင့်အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ။` :
+                            `👋 ပြန်လည်ကြိုဆိုပါတယ် ${firstName}!`;
                         
                         sendTelegramMessage(chatId, 
                             welcomeMsg + '\n\n' +
-                            'ðŸ’³ Balance: <b>' + (user.balance || 0).toLocaleString() + ' Ks</b>\n\n' +
-                            'á€¡á€±á€¬á€€á€ºá€•á€« á€á€œá€¯á€á€ºá€™á€»á€¬á€¸á€€á€­á€¯ á€”á€¾á€­á€•á€ºá á€¡á€žá€¯á€¶á€¸á€•á€¼á€¯á€”á€­á€¯á€„á€ºá€•á€«á€žá€Šá€ºá‹',
+                            '💳 လက်ကျန်: <b>' + (user.balance || 0).toLocaleString() + ' ကျပ်</b>\n\n' +
+                            'အောက်ပါ ခလုတ်များကို အသုံးပြုနိုင်ပါသည်။',
                             quickKeyboard
                         );
                     }
                     else if (text === '/help') {
                         sendTelegramMessage(chatId,
-                            `ðŸ“– <b>SOLO M Game Shop</b>\n\n` +
-                            `<b>Commands:</b>\n` +
-                            `/start - Login/Register\n` +
-                            `/help - á€¡á€€á€°á€¡á€Šá€®\n` +
-                            `/balance - á€œá€€á€ºá€€á€»á€”á€ºá€„á€½á€±\n` +
+                            `📖 <b>SOLO M Game Shop</b>\n\n` +
+                            `<b>Commands များ:</b>\n` +
+                            `/start - အကောင့်ဝင်ရန်\n` +
+                            `/help - အကူအညီ\n` +
+                            `/balance - လက်ကျန်ကြည့်ရန်\n` +
                             `/otp - OTP Code\n` +
-                            `/status - Order Status\n` +
-                            `/buy - Code á€á€šá€ºá€šá€°\n\n` +
-                            `<b>á€†á€€á€ºá€žá€½á€šá€ºá€›á€”á€º:</b> @Solo_m28`,
+                            `/status - Order စစ်ရန်\n` +
+                            `/buy - Code ဝယ်ရန်\n\n` +
+                            `<b>ဆက်သွယ်ရန်:</b> @Solo_m28`,
                             quickKeyboard
                         );
                     }
                     else if (text === '/balance') {
                         const user = await createTelegramUser(msg.from.id, firstName);
                         const balance = user ? (user.balance || 0) : 0;
-                        sendTelegramMessage(chatId, `ðŸ’³ <b>Your Balance</b>\n\nðŸ’° <b>${balance.toLocaleString()} Ks</b>\nðŸ’µ â‰ˆ $${(balance/2100).toFixed(2)} USD`, quickKeyboard);
+                        sendTelegramMessage(chatId, 
+                            `💳 <b>သင့်လက်ကျန်</b>\n\n` +
+                            `💰 <b>${balance.toLocaleString()} ကျပ်</b>\n` +
+                            `💵 ≈ $${(balance/2100).toFixed(2)} USD`, 
+                            quickKeyboard
+                        );
                     }
                     else if (text === '/otp') {
                         const user = await createTelegramUser(msg.from.id, firstName);
                         if (user) {
                             const otp = await createOTP(user.id);
-                            sendTelegramMessage(chatId, `ðŸ” <b>Your OTP Code</b>\n\nðŸ”¢ <b>${otp}</b>\n\nâ° á†á€ á€…á€€á€¹á€€á€”á€·á€ºá€¡á€á€½á€„á€ºá€¸ á€¡á€žá€¯á€¶á€¸á€•á€¼á€¯á€•á€«á‹`);
+                            sendTelegramMessage(chatId, 
+                                `🔐 <b>သင့် OTP ကုဒ်</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။`
+                            );
                         }
                     }
                     else if (text === '/status') {
                         const orders = await getUserOrders(msg.from.id);
                         if (orders.length === 0) {
-                            sendTelegramMessage(chatId, 'ðŸ“‹ No orders yet.');
+                            sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။');
                         } else {
-                            let msg = 'ðŸ“‹ <b>á€”á€±á€¬á€€á€ºá€†á€¯á€¶á€¸ Orders</b>\n\n';
+                            let msg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
                             orders.forEach(o => {
-                                const st = o.status === 'approved' ? 'âœ…' : o.status === 'rejected' ? 'âŒ' : 'â³';
-                                msg += `${st} #${o.id} | ðŸ’° ${o.amount} Ks | ðŸ’³ ${o.payment_method}\nðŸ“… ${new Date(o.created_at).toLocaleDateString()}\n\n`;
+                                const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+                                msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
                             });
                             sendTelegramMessage(chatId, msg);
                         }
                     }
                     else if (text === '/buy') {
-                        sendTelegramMessage(chatId, 'ðŸ›’ <b>Code á€á€šá€ºá€šá€°á€›á€”á€º</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard);
+                        sendTelegramMessage(chatId, 
+                            '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', 
+                            mainKeyboard
+                        );
                     }
                     else {
                         sendTelegramMessage(chatId, 
-                            `á€¡á€±á€¬á€€á€ºá€•á€« Commands á€™á€»á€¬á€¸á€€á€­á€¯ á€¡á€žá€¯á€¶á€¸á€•á€¼á€¯á€•á€«á‹\n\n` +
-                            `/start - á€…á€á€„á€ºá€›á€”á€º\n` +
-                            `/help - á€¡á€€á€°á€¡á€Šá€®\n` +
-                            `/balance - á€œá€€á€ºá€€á€»á€”á€ºá€„á€½á€±\n` +
+                            `အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n` +
+                            `/start - စတင်ရန်\n` +
+                            `/help - အကူအညီ\n` +
+                            `/balance - လက်ကျန်ကြည့်ရန်\n` +
                             `/otp - OTP Code\n` +
-                            `/status - Order á€™á€¾á€á€ºá€á€™á€ºá€¸\n` +
-                            `/buy - Code á€á€šá€ºá€šá€°á€›á€”á€º`,
+                            `/status - Order မှတ်တမ်း\n` +
+                            `/buy - Code ဝယ်ယူရန်`,
                             quickKeyboard
                         );
                     }
@@ -805,11 +829,10 @@ function startLongPolling() {
     }
     
     getUpdates();
-    console.log('âœ… Bot Long Polling Active');
+    console.log('✅ Bot Long Polling Active');
 }
 
 startLongPolling();
-
 // ==================== VIDEO SYSTEM ====================
 function getEmbedUrl(url) {
     if (!url) return '';
