@@ -5,666 +5,234 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lucky Spin - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --bg: #0a0a1a;
-            --panel: #1a1f4b;
-            --gold: #f39c12;
-            --green: #2ecc71;
-            --red: #e74c3c;
-            --blue: #3498db;
-            --text: #fff;
-            --wheel-size: 300px;
-            --canvas-size: 600px;
-            
-            /* Premium Colors */
-            --prem-bg: #1a0a2e;
-            --prem-panel: #2d1b4e;
-            --prem-gold: #ffd700;
-            --prem-accent: #c9a84c;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
-            color: var(--text);
-            min-height: 100vh;
-            padding: 10px;
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow-x: hidden;
-        }
-        
-        body.premium-mode {
-            background: linear-gradient(135deg, #0a0015, #1a0a2e, #2d1050);
-        }
-        
-        .container {
-            max-width: 450px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            padding-bottom: 30px;
-        }
-        
-        /* Header */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            background: linear-gradient(to right, #4a1c7a, #1a1f4b);
-            padding: 12px 15px;
-            border-radius: 12px;
-            border: 2px solid var(--gold);
-            transition: all 0.6s ease;
-        }
-        
-        body.premium-mode .header {
-            background: linear-gradient(to right, #6b2fa0, #2d1b4e);
-            border-color: var(--prem-gold);
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
-        }
-        
-        .header h2 {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--gold);
-            transition: color 0.6s;
-        }
-        
-        body.premium-mode .header h2 {
-            color: var(--prem-gold);
-            text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
-        
-        .premium-badge {
-            display: none;
-            background: linear-gradient(135deg, #ffd700, #b8860b);
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 10px;
-            font-weight: bold;
-            animation: badgeGlow 2s infinite;
-        }
-        
-        body.premium-mode .premium-badge {
-            display: inline-block;
-        }
-        
-        @keyframes badgeGlow {
-            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
-            50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.9); }
-        }
-        
-        /* Balance Bar */
-        .balance-bar {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-        }
-        
-        .bal-card {
-            flex: 1;
-            background: rgba(26, 31, 75, 0.8);
-            border-radius: 10px;
-            padding: 10px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.6s ease;
-        }
-        
-        body.premium-mode .bal-card {
-            background: rgba(45, 27, 78, 0.9);
-            border-color: rgba(201, 168, 76, 0.3);
-        }
-        
-        .bal-label {
-            font-size: 9px;
-            color: rgba(255, 255, 255, 0.6);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .bal-value {
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 4px;
-        }
-        
-        .bal-value.usd {
-            color: #85bb65;
-        }
-        
-        .bal-value.mmk {
-            color: var(--gold);
-        }
-        
-        /* Draws Status */
-        .draws-container {
-            width: 100%;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
-        
-        body.premium-mode .draws-container {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-        
-        .draw-card {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 10px;
-            padding: 10px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.6s ease;
-        }
-        
-        body.premium-mode .draw-card {
-            background: rgba(45, 27, 78, 0.6);
-        }
-        
-        .draw-card.weekly-bonus {
-            display: none;
-        }
-        
-        body.premium-mode .draw-card.weekly-bonus {
-            display: block;
-        }
-        
-        .draw-icon {
-            font-size: 20px;
-            margin-bottom: 4px;
-        }
-        
-        .draw-label {
-            font-size: 9px;
-            color: rgba(255, 255, 255, 0.5);
-            text-transform: uppercase;
-        }
-        
-        .draw-count {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--gold);
-            margin-top: 2px;
-        }
-        
-        .draw-card.bought .draw-count {
-            color: #3498db;
-        }
-        
-        /* Wheel Container */
-        .wheel-container {
-            position: relative;
-            width: var(--wheel-size);
-            height: var(--wheel-size);
-            margin: 10px auto;
-            transition: all 0.6s ease;
-        }
-        
-        body.premium-mode .wheel-container {
-            filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.4));
-        }
-        
-        .wheel-pointer {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            font-size: 35px;
-            color: #ff4444;
-            filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.6));
-            transition: color 0.6s;
-        }
-        
-        body.premium-mode .wheel-pointer {
-            color: #ffd700;
-            filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
-        }
-        
-        canvas#wheelCanvas {
-            width: var(--wheel-size);
-            height: var(--wheel-size);
-            border-radius: 50%;
-            border: 4px solid var(--gold);
-            box-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
-            transition: all 0.6s ease;
-        }
-        
-        body.premium-mode canvas#wheelCanvas {
-            border-color: var(--prem-gold);
-            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
-        }
-        
-        /* Status Text */
-        .spin-status {
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.6);
-            min-height: 20px;
-            text-align: center;
-            font-family: 'Courier New', monospace;
-        }
-        
-        /* Buttons */
-        .btn-row {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-        }
-        
-        .btn-spin {
-            flex: 2;
-            padding: 14px 20px;
-            border: none;
-            border-radius: 30px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            color: #000;
-            box-shadow: 0 5px 20px rgba(243, 156, 18, 0.4);
-            text-transform: uppercase;
-        }
-        
-        body.premium-mode .btn-spin {
-            background: linear-gradient(135deg, #ffd700, #b8860b);
-            box-shadow: 0 5px 30px rgba(255, 215, 0, 0.6);
-            animation: spinBtnGlow 2s infinite;
-        }
-        
-        @keyframes spinBtnGlow {
-            0%, 100% { box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4); }
-            50% { box-shadow: 0 5px 40px rgba(255, 215, 0, 0.8); }
-        }
-        
-        .btn-spin:hover:not(:disabled) {
-            transform: translateY(-3px);
-        }
-        
-        .btn-spin:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-            animation: none;
-        }
-        
-        .btn-premium {
-            flex: 1;
-            padding: 14px 10px;
-            border: 2px solid var(--gold);
-            border-radius: 30px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--gold);
-            text-transform: uppercase;
-        }
-        
-        body.premium-mode .btn-premium {
-            background: linear-gradient(135deg, #ffd700, #b8860b);
-            color: #000;
-            border-color: transparent;
-            box-shadow: 0 5px 25px rgba(255, 215, 0, 0.5);
-        }
-        
-        /* Buy Table */
-        .buy-table {
-            width: 100%;
-            background: rgba(26, 31, 75, 0.5);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.6s ease;
-        }
-        
-        body.premium-mode .buy-table {
-            background: rgba(45, 27, 78, 0.6);
-        }
-        
-        .table-title {
-            text-align: center;
-            padding: 10px;
-            font-size: 12px;
-            font-weight: bold;
-            color: var(--gold);
-            background: rgba(0, 0, 0, 0.4);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 11px;
-        }
-        
-        th {
-            background: rgba(0, 0, 0, 0.3);
-            color: var(--gold);
-            padding: 8px 5px;
-            font-size: 9px;
-            text-transform: uppercase;
-        }
-        
-        td {
-            padding: 8px 5px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        }
-        
-        .btn-buy {
-            padding: 6px 14px;
-            border: none;
-            border-radius: 15px;
-            font-size: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            background: var(--gold);
-            color: #000;
-            transition: all 0.3s;
-        }
-        
-        .btn-buy:hover {
-            transform: scale(1.05);
-            box-shadow: 0 3px 10px rgba(243, 156, 18, 0.3);
-        }
-        
-        .btn-buy:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        /* Modals */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(3px);
-        }
-        
-        .modal-overlay.active {
-            display: flex;
-        }
-        
-        .modal-box {
-            background: #1a1f4b;
-            border: 2px solid var(--gold);
-            border-radius: 16px;
-            padding: 20px;
-            width: 90%;
-            max-width: 380px;
-            max-height: 85vh;
-            overflow-y: auto;
-            animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        body.premium-mode .modal-box {
-            background: #1a0a2e;
-            border-color: var(--prem-gold);
-        }
-        
-        @keyframes modalSlideIn {
-            from { opacity: 0; transform: translateY(-40px) scale(0.9); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        
-        .modal-box h3 {
-            color: var(--gold);
-            text-align: center;
-            margin-bottom: 15px;
-            font-size: 16px;
-        }
-        
-        .modal-close {
-            float: right;
-            color: var(--red);
-            cursor: pointer;
-            font-size: 24px;
-            line-height: 1;
-        }
-        
-        /* Result Modal */
-        .result-icon {
-            font-size: 60px;
-            text-align: center;
-            margin: 10px 0;
-        }
-        
-        .result-text {
-            text-align: center;
-            font-size: 18px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        
-        .result-amount {
-            text-align: center;
-            font-size: 28px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        
-        /* Premium Features */
-        .prem-features {
-            margin: 15px 0;
-        }
-        
-        .prem-feature {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            margin-bottom: 6px;
-            font-size: 12px;
-            border-left: 3px solid var(--prem-gold);
-        }
-        
-        .prem-feature i {
-            color: var(--prem-gold);
-            width: 20px;
-            text-align: center;
-            font-size: 14px;
-        }
-        
-        .prem-packages {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-            margin: 15px 0;
-        }
-        
-        .prem-pkg {
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 12px 6px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 10px;
-        }
-        
-        .prem-pkg:hover {
-            border-color: var(--prem-gold);
-            transform: translateY(-2px);
-        }
-        
-        .prem-pkg.best {
-            border-color: var(--prem-gold);
-            position: relative;
-        }
-        
-        .best-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: #e74c3c;
-            color: #fff;
-            font-size: 8px;
-            padding: 3px 7px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-        
-        .confirm-btns {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 15px;
-        }
-        
-        .btn-confirm {
-            padding: 10px 25px;
-            border: none;
-            border-radius: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .btn-yes {
-            background: #2ecc71;
-            color: #000;
-        }
-        
-        .btn-no {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-        }
-        
-        .btn-close {
-            display: block;
-            margin: 15px auto 0;
-            padding: 10px 30px;
-            background: var(--gold);
-            color: #000;
-            border: none;
-            border-radius: 20px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        /* Super Prize Link */
-        .super-link {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #e91e63, #9b59b6);
-            color: #fff;
-            border-radius: 25px;
-            font-size: 13px;
-            font-weight: bold;
-            text-decoration: none;
-            margin-top: 10px;
-            box-shadow: 0 5px 20px rgba(233, 30, 99, 0.5);
-            animation: superGlow 1.5s infinite;
-        }
-        
-        @keyframes superGlow {
-            0%, 100% { box-shadow: 0 5px 20px rgba(233, 30, 99, 0.4); }
-            50% { box-shadow: 0 8px 35px rgba(233, 30, 99, 0.8); }
-        }
-        
-        /* Toast */
-        .toast {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            padding: 12px 18px;
-            border-radius: 8px;
-            z-index: 9999;
-            font-size: 12px;
-            font-weight: bold;
-            display: none;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
-            animation: toastSlide 0.3s ease;
-            max-width: 300px;
-        }
-        
-        @keyframes toastSlide {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        /* Premium Transition Overlay */
-        .transition-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(255, 215, 0, 0.3), rgba(0, 0, 0, 0.95));
-            z-index: 999;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .transition-overlay.active {
-            display: flex;
-            animation: fadeIn 0.5s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        .transition-text {
-            font-size: 32px;
-            font-weight: bold;
-            color: #ffd700;
-            text-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
-            animation: scaleIn 0.8s ease;
-            text-align: center;
-        }
-        
-        @keyframes scaleIn {
-            from { transform: scale(0.3); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-        
-        /* Responsive */
-        @media (max-width: 380px) {
-            :root {
-                --wheel-size: 250px;
-                --canvas-size: 500px;
-            }
-        }
-    </style>
-</head>
-<body id="mainBody">
+   <style>
+    :root {
+        --bg: #0a0a1a;
+        --panel: #1a1f4b;
+        --gold: #f39c12;
+        --green: #2ecc71;
+        --red: #e74c3c;
+        --blue: #3498db;
+        --text: #fff;
+        --wheel-size: 300px;
+        --canvas-size: 600px;
+        
+        /* Premium Colors */
+        --prem-bg: #1a0a2e;
+        --prem-panel: #2d1b4e;
+        --prem-gold: #ffd700;
+        --prem-accent: #c9a84c;
+        
+        /* Premium Tier Colors */
+        --tier1: #cd7f32; /* Bronze */
+        --tier2: #c0c0c0; /* Silver */
+        --tier3: #ffd700; /* Gold */
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+    
+    body {
+        background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 10px;
+        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-x: hidden;
+    }
+    
+    body.premium-mode { background: linear-gradient(135deg, #0a0015, #1a0a2e, #2d1050); }
+    body.premium-mode.tier2 { background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #2d2d50); }
+    body.premium-mode.tier3 { background: linear-gradient(135deg, #0a0a00, #1a1a00, #2d2d00); }
+    
+    .container { max-width: 450px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 30px; }
+    
+    /* Header */
+    .header {
+        display: flex; align-items: center; justify-content: space-between; width: 100%;
+        background: linear-gradient(to right, #4a1c7a, #1a1f4b); padding: 12px 15px;
+        border-radius: 12px; border: 2px solid var(--gold); transition: all 0.6s ease;
+    }
+    body.premium-mode .header { background: linear-gradient(to right, #6b2fa0, #2d1b4e); border-color: var(--prem-gold); box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); }
+    body.premium-mode.tier2 .header { background: linear-gradient(to right, #8b4fc0, #4d2b6e); border-color: #c0c0c0; box-shadow: 0 0 35px rgba(192,192,192,0.3); }
+    body.premium-mode.tier3 .header { background: linear-gradient(to right, #ab6fe0, #6d3b8e); border-color: #ffd700; box-shadow: 0 0 45px rgba(255,215,0,0.4); animation: headerGlowT3 2s infinite; }
+    @keyframes headerGlowT3 { 0%,100%{box-shadow:0 0 30px rgba(255,215,0,0.3)} 50%{box-shadow:0 0 60px rgba(255,215,0,0.7)} }
+    
+    .header h2 { font-size: 16px; font-weight: bold; color: var(--gold); transition: color 0.6s; }
+    body.premium-mode .header h2 { color: var(--prem-gold); text-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+    
+    .premium-badge { display: none; background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: bold; animation: badgeGlow 2s infinite; }
+    body.premium-mode .premium-badge { display: inline-block; }
+    body.premium-mode.tier2 .premium-badge { background: linear-gradient(135deg, #c0c0c0, #808080); animation: badgeGlowT2 2s infinite; }
+    body.premium-mode.tier3 .premium-badge { background: linear-gradient(135deg, #ffd700, #ff8c00); animation: badgeGlowT3 1.5s infinite; }
+    @keyframes badgeGlow { 0%,100%{box-shadow:0 0 10px rgba(255,215,0,0.4)} 50%{box-shadow:0 0 25px rgba(255,215,0,0.9)} }
+    @keyframes badgeGlowT2 { 0%,100%{box-shadow:0 0 12px rgba(192,192,192,0.4)} 50%{box-shadow:0 0 30px rgba(192,192,192,0.9)} }
+    @keyframes badgeGlowT3 { 0%,100%{box-shadow:0 0 15px rgba(255,215,0,0.5)} 50%{box-shadow:0 0 40px rgba(255,215,0,1)} }
+    
+    /* Balance Bar */
+    .balance-bar { display: flex; gap: 8px; width: 100%; }
+    .bal-card { flex: 1; background: rgba(26, 31, 75, 0.8); border-radius: 10px; padding: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.6s ease; }
+    body.premium-mode .bal-card { background: rgba(45, 27, 78, 0.9); border-color: rgba(201, 168, 76, 0.3); }
+    .bal-label { font-size: 9px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .bal-value { font-size: 18px; font-weight: bold; margin-top: 4px; }
+    .bal-value.usd { color: #85bb65; }
+    .bal-value.mmk { color: var(--gold); }
+    
+    /* Draws Status */
+    .draws-container { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    body.premium-mode .draws-container { grid-template-columns: 1fr 1fr 1fr; }
+    .draw-card { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); transition: all 0.6s ease; }
+    body.premium-mode .draw-card { background: rgba(45,27,78,0.6); }
+    .draw-card.weekly-bonus { display: none; }
+    body.premium-mode .draw-card.weekly-bonus { display: block; }
+    .draw-icon { font-size: 20px; margin-bottom: 4px; }
+    .draw-label { font-size: 9px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+    .draw-count { font-size: 16px; font-weight: bold; color: var(--gold); margin-top: 2px; }
+    .draw-card.bought .draw-count { color: #3498db; }
+    
+    /* Wheel */
+    .wheel-container { position: relative; width: var(--wheel-size); height: var(--wheel-size); margin: 10px auto; transition: all 0.6s ease; }
+    body.premium-mode .wheel-container { filter: drop-shadow(0 0 25px rgba(255,215,0,0.4)); }
+    .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 35px; color: #ff4444; filter: drop-shadow(0 0 8px rgba(255,0,0,0.6)); transition: color 0.6s; }
+    body.premium-mode .wheel-pointer { color: #ffd700; filter: drop-shadow(0 0 12px rgba(255,215,0,0.8)); }
+    canvas#wheelCanvas { width: var(--wheel-size); height: var(--wheel-size); border-radius: 50%; border: 4px solid var(--gold); box-shadow: 0 0 30px rgba(243,156,18,0.3); transition: all 0.6s ease; }
+    body.premium-mode canvas#wheelCanvas { border-color: var(--prem-gold); box-shadow: 0 0 50px rgba(255,215,0,0.5); }
+    .spin-status { font-size: 11px; color: rgba(255,255,255,0.6); min-height: 20px; text-align: center; font-family: 'Courier New', monospace; }
+    
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; width: 100%; }
+    .btn-spin { flex: 2; padding: 14px 20px; border: none; border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer; letter-spacing: 1px; transition: all 0.3s ease; background: linear-gradient(135deg, #f39c12, #e67e22); color: #000; box-shadow: 0 5px 20px rgba(243,156,18,0.4); text-transform: uppercase; }
+    body.premium-mode .btn-spin { background: linear-gradient(135deg, #ffd700, #b8860b); box-shadow: 0 5px 30px rgba(255,215,0,0.6); animation: spinBtnGlow 2s infinite; }
+    @keyframes spinBtnGlow { 0%,100%{box-shadow:0 5px 20px rgba(255,215,0,0.4)} 50%{box-shadow:0 5px 40px rgba(255,215,0,0.8)} }
+    .btn-spin:hover:not(:disabled) { transform: translateY(-3px); }
+    .btn-spin:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; animation: none; }
+    .btn-premium { flex: 1; padding: 14px 10px; border: 2px solid var(--gold); border-radius: 30px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; background: rgba(255,255,255,0.05); color: var(--gold); text-transform: uppercase; }
+    body.premium-mode .btn-premium { background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; border-color: transparent; box-shadow: 0 5px 25px rgba(255,215,0,0.5); }
+    
+    /* Buy Table */
+    .buy-table { width: 100%; background: rgba(26,31,75,0.5); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); transition: all 0.6s ease; margin-bottom: 10px; }
+    body.premium-mode .buy-table { background: rgba(45,27,78,0.6); }
+    .buy-table.premium-draw-table { border: 1px solid rgba(255,215,0,0.3); }
+    .table-title { text-align: center; padding: 10px; font-size: 12px; font-weight: bold; color: var(--gold); background: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .table-title.premium-title { color: var(--prem-gold); }
+    table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    th { background: rgba(0,0,0,0.3); color: var(--gold); padding: 8px 5px; font-size: 8px; text-transform: uppercase; }
+    td { padding: 8px 5px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .btn-buy { padding: 6px 14px; border: none; border-radius: 15px; font-size: 10px; font-weight: bold; cursor: pointer; background: var(--gold); color: #000; transition: all 0.3s; }
+    .btn-buy:hover { transform: scale(1.05); box-shadow: 0 3px 10px rgba(243,156,18,0.3); }
+    .btn-buy:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .save-text { color: #2ecc71; font-size: 9px; font-weight: bold; }
+    .rate-info { font-size: 8px; color: rgba(255,255,255,0.4); }
+    
+    /* Modals */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+    .modal-overlay.active { display: flex; }
+    .modal-box { background: #1a1f4b; border: 2px solid var(--gold); border-radius: 16px; padding: 20px; width: 90%; max-width: 420px; max-height: 85vh; overflow-y: auto; animation: modalSlideIn 0.4s ease; }
+    body.premium-mode .modal-box { background: #1a0a2e; border-color: var(--prem-gold); }
+    @keyframes modalSlideIn { from{opacity:0;transform:translateY(-40px) scale(0.9)} to{opacity:1;transform:translateY(0) scale(1)} }
+    .modal-box h3 { color: var(--gold); text-align: center; margin-bottom: 15px; font-size: 16px; }
+    .modal-close { float: right; color: var(--red); cursor: pointer; font-size: 24px; line-height: 1; }
+    
+    /* Result Modal */
+    .result-icon { font-size: 60px; text-align: center; margin: 10px 0; }
+    .result-text { text-align: center; font-size: 18px; font-weight: bold; margin: 10px 0; }
+    .result-amount { text-align: center; font-size: 28px; font-weight: bold; margin: 10px 0; }
+    
+    /* Premium Modal */
+    .premium-modal { background: linear-gradient(180deg, #1a0a2e, #0d0d1f) !important; border: 2px solid var(--prem-gold) !important; }
+    .premium-header { text-align: center; margin-bottom: 15px; }
+    .premium-crown { font-size: 50px; animation: crownBounce 2s infinite; }
+    @keyframes crownBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    .premium-header h3 { color: var(--prem-gold) !important; font-size: 20px !important; margin: 5px 0 !important; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+    .premium-subtitle { color: rgba(255,215,0,0.6); font-size: 12px; }
+    
+    .feature-title { color: var(--prem-gold); font-size: 13px; margin-bottom: 10px; text-align: center; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 8px; }
+    .prem-features { margin: 15px 0; }
+    .prem-feature { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: rgba(255,215,0,0.05); border-radius: 10px; margin-bottom: 6px; border-left: 3px solid var(--prem-gold); transition: all 0.3s; }
+    .prem-feature:hover { background: rgba(255,215,0,0.1); }
+    .prem-feature i { color: var(--prem-gold); font-size: 16px; width: 20px; text-align: center; margin-top: 2px; }
+    .prem-feature b { font-size: 12px; color: #fff; display: block; }
+    .prem-feature small { font-size: 9px; color: rgba(255,255,255,0.5); display: block; margin-top: 2px; }
+    
+    /* Compare Table */
+    .win-rate-compare { margin: 15px 0; }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    .compare-table th { background: rgba(255,215,0,0.1); color: var(--prem-gold); padding: 6px 4px; font-size: 9px; text-align: center; }
+    .compare-table td { padding: 5px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center; color: #ccc; }
+    .compare-table .highlight-row { background: rgba(233,30,99,0.1); }
+    .compare-table .highlight-row td { color: #e91e63; font-weight: bold; }
+    .compare-table .total-row { background: rgba(255,215,0,0.1); }
+    .compare-table .total-row td { color: var(--prem-gold); font-weight: bold; font-size: 11px; }
+    
+    /* Premium Packages */
+    .premium-plans { margin: 15px 0; }
+    .prem-packages { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .prem-pkg { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 6px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; }
+    .prem-pkg:hover { border-color: var(--prem-gold); transform: translateY(-3px); box-shadow: 0 5px 20px rgba(255,215,0,0.2); }
+    .prem-pkg.best { border-color: var(--prem-gold); background: rgba(255,215,0,0.08); }
+    .prem-pkg.tier2 { border-color: #c0c0c0; }
+    .prem-pkg.tier3 { border-color: #ffd700; animation: tier3Glow 2s infinite; }
+    @keyframes tier3Glow { 0%,100%{box-shadow:0 0 10px rgba(255,215,0,0.3)} 50%{box-shadow:0 0 25px rgba(255,215,0,0.6)} }
+    .best-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; font-size: 8px; padding: 3px 10px; border-radius: 10px; font-weight: bold; white-space: nowrap; }
+    .pkg-duration { font-size: 14px; font-weight: bold; color: var(--prem-gold); margin-top: 5px; }
+    .pkg-price { font-size: 16px; font-weight: bold; color: #fff; margin: 5px 0; }
+    .pkg-per-day { font-size: 9px; color: rgba(255,255,255,0.4); }
+    .pkg-save { font-size: 9px; color: #2ecc71; margin-top: 3px; font-weight: bold; }
+    .pkg-discount { font-size: 9px; color: #e74c3c; margin-top: 2px; font-weight: bold; }
+    .premium-notice { background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px; font-size: 10px; color: rgba(255,255,255,0.6); display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; border: 1px solid rgba(255,255,255,0.08); }
+    .premium-notice i { color: var(--prem-gold); font-size: 12px; margin-top: 1px; }
+    
+    /* Super Prize */
+    .super-link { display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #e91e63, #9b59b6); color: #fff; border-radius: 25px; font-size: 13px; font-weight: bold; text-decoration: none; margin-top: 10px; box-shadow: 0 5px 20px rgba(233,30,99,0.5); animation: superGlow 1.5s infinite; }
+    @keyframes superGlow { 0%,100%{box-shadow:0 5px 20px rgba(233,30,99,0.4)} 50%{box-shadow:0 8px 35px rgba(233,30,99,0.8)} }
+    
+    /* Toast */
+    .toast { position: fixed; top: 15px; right: 15px; padding: 12px 18px; border-radius: 8px; z-index: 9999; font-size: 12px; font-weight: bold; display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.4); animation: toastSlide 0.3s ease; max-width: 300px; }
+    @keyframes toastSlide { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+    
+    /* Transition Overlay */
+    .transition-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, rgba(255,215,0,0.3), rgba(0,0,0,0.95)); z-index: 999; justify-content: center; align-items: center; flex-direction: column; }
+    .transition-overlay.active { display: flex; animation: fadeIn 0.5s ease; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .transition-text { font-size: 32px; font-weight: bold; color: #ffd700; text-shadow: 0 0 40px rgba(255,215,0,0.8); animation: scaleIn 0.8s ease; text-align: center; }
+    @keyframes scaleIn { from{transform:scale(0.3);opacity:0} to{transform:scale(1);opacity:1} }
+    
+    /* Processing Modal */
+    .processing-modal { text-align: center; }
+    .processing-icon { font-size: 50px; animation: procBounce 1s infinite; }
+    @keyframes procBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+    .processing-title { font-size: 16px; color: var(--prem-gold); margin: 10px 0; font-weight: bold; }
+    .progress-bar-container { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin: 15px 0; }
+    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ff8c00); border-radius: 10px; transition: width 0.1s ease; width: 0%; }
+    .progress-text { font-size: 14px; color: #fff; font-weight: bold; }
+    .progress-subtext { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 5px; }
+    
+    /* Responsive */
+    @media (max-width: 380px) {
+        :root { --wheel-size: 250px; --canvas-size: 500px; }
+        .prem-packages { grid-template-columns: 1fr; }
+    }
+</style>
+    <body>
+      <body id="mainBody">
     <!-- Toast -->
     <div class="toast" id="toast"></div>
     
     <!-- Premium Transition -->
     <div class="transition-overlay" id="transitionOverlay">
-        <div class="transition-text">👑<br>PREMIUM<br>UNLOCKED!</div>
+        <div class="transition-text" id="transitionText">👑<br>PREMIUM<br>UNLOCKED!</div>
+    </div>
+    
+    <!-- Processing Modal -->
+    <div class="modal-overlay" id="processingModal">
+        <div class="modal-box processing-modal">
+            <div class="processing-icon">👑</div>
+            <div class="processing-title" id="processingTitle">Processing Premium...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0%</div>
+            <div class="progress-subtext">Please wait while we activate your premium features...</div>
+        </div>
     </div>
     
     <!-- Main Container -->
@@ -675,7 +243,7 @@
                 <i class="fas fa-arrow-left"></i>
             </a>
             <h2 id="headerTitle">🎰 Lucky Spin</h2>
-            <span class="premium-badge">👑 PREMIUM</span>
+            <span class="premium-badge" id="premiumBadge">👑 PREMIUM</span>
         </div>
         
         <!-- Balance -->
@@ -695,7 +263,7 @@
             <div class="draw-card" id="dailyDrawCard">
                 <div class="draw-icon">🔄</div>
                 <div class="draw-label">Daily Free</div>
-                <div class="draw-count" id="dailyCount">1</div>
+                <div class="draw-count" id="dailyCount">0</div>
             </div>
             <div class="draw-card bought" id="boughtDrawCard">
                 <div class="draw-icon">💳</div>
@@ -711,9 +279,7 @@
         
         <!-- Wheel -->
         <div class="wheel-container">
-            <div class="wheel-pointer">
-                <i class="fas fa-caret-down"></i>
-            </div>
+            <div class="wheel-pointer"><i class="fas fa-caret-down"></i></div>
             <canvas id="wheelCanvas" width="600" height="600"></canvas>
         </div>
         
@@ -729,42 +295,83 @@
             <button class="btn-premium" id="btnPremium">👑 PREMIUM</button>
         </div>
         
-        <!-- Buy Table -->
-        <div class="buy-table">
-            <div class="table-title">💳 Buy Spins</div>
+        <!-- Normal Draw Buy Table -->
+        <div class="buy-table" id="normalBuyTable">
+            <div class="table-title">💳 Buy Normal Draws</div>
             <table>
                 <thead>
-                    <tr>
-                        <th>Spins</th>
-                        <th>Price</th>
-                        <th>Save</th>
-                        <th></th>
-                    </tr>
+                    <tr><th>Spins</th><th>Price</th><th>Save</th><th>Rate</th><th></th></tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td>1 Spin</td>
-                        <td>100 Ks</td>
-                        <td>-</td>
-                        <td><button class="btn-buy" data-spins="1" data-cost="100">Buy</button></td>
+                        <td>1 Spin</td><td>250 Ks</td><td>-</td>
+                        <td class="rate-info">USD 35% | MMK 28%</td>
+                        <td><button class="btn-buy" data-spins="1" data-cost="250" data-type="normal">Buy</button></td>
                     </tr>
                     <tr>
-                        <td>3 Spins</td>
-                        <td>250 Ks</td>
-                        <td style="color:#2ecc71">50 Ks</td>
-                        <td><button class="btn-buy" data-spins="3" data-cost="250">Buy</button></td>
+                        <td>3 Spins</td><td>700 Ks</td>
+                        <td class="save-text">Save 50 Ks</td>
+                        <td class="rate-info">USD 35% | MMK 28%</td>
+                        <td><button class="btn-buy" data-spins="3" data-cost="700" data-type="normal">Buy</button></td>
                     </tr>
                     <tr>
-                        <td>5 Spins</td>
-                        <td>400 Ks</td>
-                        <td style="color:#2ecc71">100 Ks</td>
-                        <td><button class="btn-buy" data-spins="5" data-cost="400">Buy</button></td>
+                        <td>5 Spins</td><td>1,200 Ks</td>
+                        <td class="save-text">Save 50 Ks</td>
+                        <td class="rate-info">USD 35% | MMK 28%</td>
+                        <td><button class="btn-buy" data-spins="5" data-cost="1200" data-type="normal">Buy</button></td>
                     </tr>
                     <tr>
-                        <td>10 Spins</td>
-                        <td>700 Ks</td>
-                        <td style="color:#2ecc71">300 Ks</td>
-                        <td><button class="btn-buy" data-spins="10" data-cost="700">Buy</button></td>
+                        <td>10 Spins</td><td>2,300 Ks</td>
+                        <td class="save-text">Save 200 Ks</td>
+                        <td class="rate-info">USD 35% | MMK 28%</td>
+                        <td><button class="btn-buy" data-spins="10" data-cost="2300" data-type="normal">Buy</button></td>
+                    </tr>
+                    <tr>
+                        <td>20 Spins</td><td>4,500 Ks</td>
+                        <td class="save-text">Save 500 Ks</td>
+                        <td class="rate-info">USD 35% | MMK 28%</td>
+                        <td><button class="btn-buy" data-spins="20" data-cost="4500" data-type="normal">Buy</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Premium Draw Buy Table -->
+        <div class="buy-table premium-draw-table" id="premiumBuyTable">
+            <div class="table-title premium-title">👑 Buy Premium Draws (2X Win Rate)</div>
+            <table>
+                <thead>
+                    <tr><th>Spins</th><th>Price</th><th>Save</th><th>Rate</th><th></th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1 Spin</td><td>450 Ks</td><td>-</td>
+                        <td class="rate-info">USD 57% | MMK 39%</td>
+                        <td><button class="btn-buy" data-spins="1" data-cost="450" data-type="premium">Buy</button></td>
+                    </tr>
+                    <tr>
+                        <td>3 Spins</td><td>1,300 Ks</td>
+                        <td class="save-text">Save 50 Ks</td>
+                        <td class="rate-info">USD 57% | MMK 39%</td>
+                        <td><button class="btn-buy" data-spins="3" data-cost="1300" data-type="premium">Buy</button></td>
+                    </tr>
+                    <tr>
+                        <td>5 Spins</td><td>2,200 Ks</td>
+                        <td class="save-text">Save 50 Ks</td>
+                        <td class="rate-info">USD 57% | MMK 39%</td>
+                        <td><button class="btn-buy" data-spins="5" data-cost="2200" data-type="premium">Buy</button></td>
+                    </tr>
+                    <tr>
+                        <td>10 Spins</td><td>4,000 Ks</td>
+                        <td class="save-text">Save 500 Ks</td>
+                        <td class="rate-info">USD 57% | MMK 39%</td>
+                        <td><button class="btn-buy" data-spins="10" data-cost="4000" data-type="premium">Buy</button></td>
+                    </tr>
+                    <tr>
+                        <td>20 Spins</td><td>8,000 Ks</td>
+                        <td class="save-text">Save 1,000 Ks</td>
+                        <td class="rate-info">USD 57% | MMK 39%</td>
+                        <td><button class="btn-buy" data-spins="20" data-cost="8000" data-type="premium">Buy</button></td>
                     </tr>
                 </tbody>
             </table>
@@ -773,52 +380,105 @@
     
     <!-- Modal: Premium Info -->
     <div class="modal-overlay" id="premiumModal">
-        <div class="modal-box">
+        <div class="modal-box premium-modal">
             <span class="modal-close" onclick="closeModal('premiumModal')">&times;</span>
-            <h3>👑 Premium Lucky Spin</h3>
-            <div class="prem-features">
-                <div class="prem-feature">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>3 Daily Free Draws</span>
-                </div>
-                <div class="prem-feature">
-                    <i class="fas fa-gift"></i>
-                    <span>Weekly +5 Bonus Draws</span>
-                </div>
-                <div class="prem-feature">
-                    <i class="fas fa-percent"></i>
-                    <span>Better Win Rates</span>
-                </div>
-                <div class="prem-feature">
-                    <i class="fas fa-coins"></i>
-                    <span>$3.00 + 1,000 Ks Prizes</span>
-                </div>
-                <div class="prem-feature">
-                    <i class="fas fa-palette"></i>
-                    <span>Premium Gold Theme</span>
-                </div>
-                <div class="prem-feature">
-                    <i class="fas fa-crown"></i>
-                    <span>Exclusive Rewards</span>
+            
+            <div class="premium-header">
+                <div class="premium-crown">👑</div>
+                <h3>Premium Lucky Spin</h3>
+                <p class="premium-subtitle">စွမ်းအားမြင့် ကံစမ်းမဲဘူး</p>
+            </div>
+            
+            <!-- Tier 1 Features -->
+            <div class="prem-features" id="tier1Features">
+                <h4 class="feature-title">🥉 Premium ၁ လ (Bronze)</h4>
+                <div class="prem-feature"><i class="fas fa-calendar-check"></i><div><b>နေ့စဉ် အခမဲ့ ၃ ကြိမ်</b><small>သာမန် ၁ ကြိမ်သာ</small></div></div>
+                <div class="prem-feature"><i class="fas fa-gift"></i><div><b>အပတ်စဉ် ဘောနပ်စ် +၅ ကြိမ်</b><small>အပတ်တိုင်း အခမဲ့ ၅ ကြိမ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-chart-line"></i><div><b>ဆုရနိုင်ခြေ ၂ဆ</b><small>USD ၅၇.၂% | MMK ၃၉.၃%</small></div></div>
+                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>အမြင့်ဆုံးဆု $၃.၀၀ + ၁၀၀၀ ကျပ်</b><small>သာမန် $၂.၀၀ + ၅၀၀ ကျပ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-crown"></i><div><b>SUPER Prize</b><small>Premium သီးသန့် အထူးဆုကြီး</small></div></div>
+                <div class="prem-feature"><i class="fas fa-palette"></i><div><b>Bronze Theme</b><small>အထူးဒီဇိုင်းဖြင့် ကံစမ်းနိုင်</small></div></div>
+            </div>
+            
+            <!-- Tier 2 Features -->
+            <div class="prem-features" id="tier2Features">
+                <h4 class="feature-title">🥈 Premium ၂ လ (Silver) - ၅၀% လျှော့ဈေး</h4>
+                <div class="prem-feature"><i class="fas fa-calendar-check"></i><div><b>နေ့စဉ် အခမဲ့ ၅ ကြိမ်</b><small>Tier 1 ထက် ၂ ကြိမ်ပိုသည်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-gift"></i><div><b>အပတ်စဉ် ဘောနပ်စ် +၇ ကြိမ်</b><small>Tier 1 ထက် ၂ ကြိမ်ပိုသည်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-chart-line"></i><div><b>ဆုရနိုင်ခြေ ၂ဆ</b><small>USD ၅၇.၂% | MMK ၃၉.၃%</small></div></div>
+                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>ဆုအသစ်များ</b><small>$၃.၅၀ + $၄.၀၀ + ၂၀၀၀ ကျပ် + ၃၀၀၀ ကျပ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-crown"></i><div><b>SUPER Prize</b><small>Premium သီးသန့် အထူးဆုကြီး</small></div></div>
+                <div class="prem-feature"><i class="fas fa-palette"></i><div><b>Silver Theme</b><small>ငွေရောင်အထူးဒီဇိုင်း</small></div></div>
+            </div>
+            
+            <!-- Tier 3 Features -->
+            <div class="prem-features" id="tier3Features">
+                <h4 class="feature-title">🥇 Premium ၃ လ (Gold) - ၅၀% လျှော့ဈေး</h4>
+                <div class="prem-feature"><i class="fas fa-calendar-check"></i><div><b>နေ့စဉ် အခမဲ့ ၇ ကြိမ်</b><small>အများဆုံးလှည့်ခွင့်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-gift"></i><div><b>အပတ်စဉ် ဘောနပ်စ် +၁၀ ကြိမ်</b><small>အများဆုံးဘောနပ်စ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-chart-line"></i><div><b>ဆုရနိုင်ခြေ ၃ဆ</b><small>USD ၈၅.၈% | MMK ၅၈.၉%</small></div></div>
+                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>ဆုအသစ်များ</b><small>$၄.၅၀ + $၅.၀၀ + ၅၀၀၀ ကျပ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-crown"></i><div><b>SUPER Prize (၃.၆%)</b><small>အမြင့်ဆုံးပေါက်နိုင်ခြေ</small></div></div>
+                <div class="prem-feature"><i class="fas fa-palette"></i><div><b>Gold Theme + Animation</b><small>ရွှေရောင်အထူးဒီဇိုင်းနှင့် Animation များ</small></div></div>
+            </div>
+            
+            <!-- Compare Table -->
+            <div class="win-rate-compare">
+                <h4 class="feature-title">📊 ဆုရနိုင်ခြေ နှိုင်းယှဉ်ဇယား</h4>
+                <table class="compare-table">
+                    <thead><tr><th>ဆုအမျိုးအစား</th><th>Normal</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th></tr></thead>
+                    <tbody>
+                        <tr><td>💵 $0.25</td><td>10.6%</td><td>-</td><td>-</td><td>-</td></tr>
+                        <tr><td>💵 $0.50</td><td>8.5%</td><td>17.9%</td><td>15%</td><td>12%</td></tr>
+                        <tr><td>💵 $0.75</td><td>7.0%</td><td>14.3%</td><td>12%</td><td>10%</td></tr>
+                        <tr><td>💵 $1.00</td><td>5.6%</td><td>12.9%</td><td>10%</td><td>8%</td></tr>
+                        <tr><td>💵 $2.00</td><td>3.5%</td><td>7.1%</td><td>6%</td><td>5%</td></tr>
+                        <tr><td>💵 $3.00</td><td>-</td><td>5.0%</td><td>4%</td><td>3%</td></tr>
+                        <tr><td>💵 $3.50</td><td>-</td><td>-</td><td>3%</td><td>-</td></tr>
+                        <tr><td>💵 $4.00</td><td>-</td><td>-</td><td>2%</td><td>-</td></tr>
+                        <tr><td>💵 $4.50</td><td>-</td><td>-</td><td>-</td><td>2%</td></tr>
+                        <tr><td>💵 $5.00</td><td>-</td><td>-</td><td>-</td><td>1.5%</td></tr>
+                        <tr><td>💰 500 Ks</td><td>28.2%</td><td>21.4%</td><td>-</td><td>-</td></tr>
+                        <tr><td>💰 1000 Ks</td><td>-</td><td>17.9%</td><td>15%</td><td>12%</td></tr>
+                        <tr><td>💰 2000 Ks</td><td>-</td><td>-</td><td>12%</td><td>10%</td></tr>
+                        <tr><td>💰 3000 Ks</td><td>-</td><td>-</td><td>8%</td><td>7%</td></tr>
+                        <tr><td>💰 5000 Ks</td><td>-</td><td>-</td><td>-</td><td>5%</td></tr>
+                        <tr><td>🔄 FREE</td><td>35.2%</td><td>-</td><td>-</td><td>-</td></tr>
+                        <tr class="highlight-row"><td>👑 SUPER</td><td>-</td><td>3.6%</td><td>3.6%</td><td>3.6%</td></tr>
+                        <tr class="total-row"><td><b>စုစုပေါင်း USD</b></td><td>35.2%</td><td>57.2%</td><td>57.2%</td><td>85.8%</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Premium Plans -->
+            <div class="premium-plans">
+                <h4 class="feature-title">💳 Premium အစီအစဉ်များ</h4>
+                <div class="prem-packages">
+                    <div class="prem-pkg" onclick="handlePremiumPurchase(1, 8000, 'tier1')">
+                        <div class="pkg-duration">🥉 ၁ လ</div>
+                        <div class="pkg-price">၈၀၀၀ ကျပ်</div>
+                        <div class="pkg-per-day">၂၆၇ ကျပ်/ရက်</div>
+                    </div>
+                    <div class="prem-pkg best tier2" onclick="handlePremiumPurchase(2, 15000, 'tier2')">
+                        <div class="best-badge">⭐ ၅၀% လျှော့ဈေး</div>
+                        <div class="pkg-duration">🥈 ၂ လ</div>
+                        <div class="pkg-price"><s style="color:#888;font-size:11px">၁၅၀၀၀</s> ၇၅၀၀ ကျပ်</div>
+                        <div class="pkg-per-day">၁၂၅ ကျပ်/ရက်</div>
+                        <div class="pkg-discount">Tier 1 ရှိသူများ ၅၀% လျှော့ဈေး</div>
+                    </div>
+                    <div class="prem-pkg tier3" onclick="handlePremiumPurchase(3, 22000, 'tier3')">
+                        <div class="best-badge">⭐ ၅၀% လျှော့ဈေး</div>
+                        <div class="pkg-duration">🥇 ၃ လ</div>
+                        <div class="pkg-price"><s style="color:#888;font-size:11px">၂၂၀၀၀</s> ၁၁၀၀၀ ကျပ်</div>
+                        <div class="pkg-per-day">၁၂၂ ကျပ်/ရက်</div>
+                        <div class="pkg-discount">Tier 1/2 ရှိသူများ ၅၀% လျှော့ဈေး</div>
+                    </div>
                 </div>
             </div>
-            <h3>💳 Choose Plan</h3>
-            <div class="prem-packages">
-                <div class="prem-pkg" onclick="buyPremium(1, 8000)">
-                    <div>1 Month</div>
-                    <div style="font-weight:bold; margin-top:5px;">8,000 Ks</div>
-                </div>
-                <div class="prem-pkg best" onclick="buyPremium(2, 15000)">
-                    <div class="best-badge">BEST</div>
-                    <div>2 Months</div>
-                    <div style="font-weight:bold; margin-top:5px;">15,000 Ks</div>
-                    <div style="font-size:8px; color:#2ecc71;">Save 1,000</div>
-                </div>
-                <div class="prem-pkg" onclick="buyPremium(3, 22000)">
-                    <div>3 Months</div>
-                    <div style="font-weight:bold; margin-top:5px;">22,000 Ks</div>
-                    <div style="font-size:8px; color:#2ecc71;">Save 2,000</div>
-                </div>
+            
+            <div class="premium-notice">
+                <i class="fas fa-info-circle"></i>
+                <span>Premium သက်တမ်းကုန်ဆုံးပါက သာမန်အသုံးပြုသူအဖြစ် အလိုအလျောက် ပြန်လည်ရောက်ရှိမည်။ Tier 1 ရှိပြီးသားသူများ Tier 2/3 သို့ ၅၀% လျှော့ဈေးဖြင့် အဆင့်မြှင့်နိုင်သည်။</span>
             </div>
         </div>
     </div>
@@ -828,9 +488,9 @@
         <div class="modal-box" style="text-align:center;">
             <h3 id="confirmTitle"></h3>
             <p id="confirmMsg" style="margin:15px 0; font-size:13px;"></p>
-            <div class="confirm-btns">
-                <button class="btn-confirm btn-no" onclick="closeModal('confirmModal')">Cancel</button>
-                <button class="btn-confirm btn-yes" id="confirmYesBtn">Confirm</button>
+            <div class="confirm-btns" style="display:flex;gap:10px;justify-content:center;margin-top:15px;">
+                <button class="btn-confirm btn-no" onclick="closeModal('confirmModal')" style="background:rgba(255,255,255,0.15);color:#fff;padding:10px 25px;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">Cancel</button>
+                <button class="btn-confirm btn-yes" id="confirmYesBtn" style="background:#2ecc71;color:#000;padding:10px 25px;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">Confirm</button>
             </div>
         </div>
     </div>
@@ -842,39 +502,68 @@
             <div class="result-text" id="resultText"></div>
             <div class="result-amount" id="resultAmount"></div>
             <div id="resultExtra"></div>
-            <button class="btn-close" onclick="closeModal('resultModal')">OK</button>
+            <button class="btn-close" onclick="closeModal('resultModal')" style="display:block;margin:15px auto 0;padding:10px 30px;background:var(--gold);color:#000;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">OK</button>
         </div>
-    </div>
-
-<script>
+    </div>  
+    <script>
 // ====================================
 // CONFIGURATION
 // ====================================
 const CONFIG = {
     SUPER_FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform',
     
-    // Normal Mode Segments
+    // Normal Mode Segments (7 segments, no SUPER)
     NORMAL_SEGMENTS: [
-        { label: '$0.25', color: '#e74c3c', reward: 0.25, type: 'usd', weight: 15 },
-        { label: '$0.50', color: '#e67e22', reward: 0.50, type: 'usd', weight: 12 },
-        { label: '$0.75', color: '#3498db', reward: 0.75, type: 'usd', weight: 10 },
-        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 8 },
-        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 5 },
-        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 40 },
-        { label: 'FREE', color: '#1abc9c', reward: 0, type: 'free', weight: 50 },
-        { label: 'SUPER', color: '#e91e63', reward: 0, type: 'super', weight: 2 }
+        { label: 'FREE',   color: '#1abc9c', reward: 0,    type: 'free',  weight: 50 },
+        { label: '500 Ks', color: '#f39c12', reward: 500,  type: 'mmk',   weight: 40 },
+        { label: '$0.25',  color: '#e74c3c', reward: 0.25, type: 'usd',   weight: 15 },
+        { label: '$0.50',  color: '#e67e22', reward: 0.50, type: 'usd',   weight: 12 },
+        { label: '$0.75',  color: '#3498db', reward: 0.75, type: 'usd',   weight: 10 },
+        { label: '$1.00',  color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 8  },
+        { label: '$2.00',  color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 5  }
     ],
     
-    // Premium Mode Segments
-    PREMIUM_SEGMENTS: [
-        { label: '$0.50', color: '#e74c3c', reward: 0.50, type: 'usd', weight: 25 },
-        { label: '$0.75', color: '#e67e22', reward: 0.75, type: 'usd', weight: 20 },
-        { label: '$1.00', color: '#3498db', reward: 1.00, type: 'usd', weight: 18 },
-        { label: '$2.00', color: '#2ecc71', reward: 2.00, type: 'usd', weight: 10 },
-        { label: '$3.00', color: '#9b59b6', reward: 3.00, type: 'usd', weight: 7 },
-        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 30 },
-        { label: '1000 Ks', color: '#c9a84c', reward: 1000, type: 'mmk', weight: 25 },
-        { label: 'SUPER', color: '#e91e63', reward: 0, type: 'super', weight: 5 }
+    // Premium Tier 1 Segments (8 segments, with SUPER)
+    PREMIUM_TIER1_SEGMENTS: [
+        { label: '500 Ks',   color: '#f39c12', reward: 500,  type: 'mmk',   weight: 30 },
+        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 25 },
+        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 25 },
+        { label: '$0.75',    color: '#e67e22', reward: 0.75, type: 'usd',   weight: 20 },
+        { label: '$1.00',    color: '#3498db', reward: 1.00, type: 'usd',   weight: 18 },
+        { label: '$2.00',    color: '#2ecc71', reward: 2.00, type: 'usd',   weight: 10 },
+        { label: '$3.00',    color: '#9b59b6', reward: 3.00, type: 'usd',   weight: 7  },
+        { label: 'SUPER',    color: '#e91e63', reward: 0,    type: 'super', weight: 5  }
+    ],
+    
+    // Premium Tier 2 Segments (10 segments)
+    PREMIUM_TIER2_SEGMENTS: [
+        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 20 },
+        { label: '2000 Ks',  color: '#ff9800', reward: 2000, type: 'mmk',   weight: 15 },
+        { label: '3000 Ks',  color: '#ff5722', reward: 3000, type: 'mmk',   weight: 10 },
+        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 20 },
+        { label: '$1.00',    color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 18 },
+        { label: '$2.00',    color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 12 },
+        { label: '$3.00',    color: '#e91e63', reward: 3.00, type: 'usd',   weight: 8  },
+        { label: '$3.50',    color: '#00bcd4', reward: 3.50, type: 'usd',   weight: 5  },
+        { label: '$4.00',    color: '#4caf50', reward: 4.00, type: 'usd',   weight: 3  },
+        { label: 'SUPER',    color: '#ff1744', reward: 0,    type: 'super', weight: 5  }
+    ],
+    
+    // Premium Tier 3 Segments (12 segments)
+    PREMIUM_TIER3_SEGMENTS: [
+        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 18 },
+        { label: '2000 Ks',  color: '#ff9800', reward: 2000, type: 'mmk',   weight: 14 },
+        { label: '3000 Ks',  color: '#ff5722', reward: 3000, type: 'mmk',   weight: 10 },
+        { label: '5000 Ks',  color: '#d32f2f', reward: 5000, type: 'mmk',   weight: 5  },
+        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 15 },
+        { label: '$1.00',    color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 14 },
+        { label: '$2.00',    color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 10 },
+        { label: '$3.00',    color: '#e91e63', reward: 3.00, type: 'usd',   weight: 8  },
+        { label: '$3.50',    color: '#00bcd4', reward: 3.50, type: 'usd',   weight: 5  },
+        { label: '$4.00',    color: '#4caf50', reward: 4.00, type: 'usd',   weight: 3  },
+        { label: '$4.50',    color: '#2196f3', reward: 4.50, type: 'usd',   weight: 2  },
+        { label: '$5.00',    color: '#ffd700', reward: 5.00, type: 'usd',   weight: 1  },
+        { label: 'SUPER',    color: '#ff1744', reward: 0,    type: 'super', weight: 5  }
     ]
 };
 
@@ -883,70 +572,69 @@ const CONFIG = {
 // ====================================
 const State = {
     isPremium: false,
+    premiumTier: 0, // 0=none, 1=tier1, 2=tier2, 3=tier3
     isSpinning: false,
     wheelAngle: 0,
-    
-    // Draws (separate tracking)
     dailyDraws: 0,
     boughtDraws: 0,
+    premiumBoughtDraws: 0,
     weeklyBonusDraws: 0,
-    
-    // Balances
     mmkBalance: 0,
     usdBalance: 0,
-    
-    // Data
     premiumExpiry: null,
     maxDailyDraws: 1,
     
     getTotalDraws() {
-        return this.dailyDraws + this.boughtDraws + this.weeklyBonusDraws;
+        return this.dailyDraws + this.boughtDraws + this.premiumBoughtDraws + this.weeklyBonusDraws;
     },
     
     getDrawSource() {
-        // Priority order: Daily > Weekly Bonus > Bought
         if (this.dailyDraws > 0) return 'daily';
         if (this.isPremium && this.weeklyBonusDraws > 0) return 'weekly_bonus';
+        if (this.premiumBoughtDraws > 0) return 'premium_bought';
         if (this.boughtDraws > 0) return 'bought';
         return null;
     },
     
     consumeDraw(source) {
         switch(source) {
-            case 'daily':
-                if (this.dailyDraws > 0) this.dailyDraws--;
-                break;
-            case 'weekly_bonus':
-                if (this.weeklyBonusDraws > 0) this.weeklyBonusDraws--;
-                break;
-            case 'bought':
-                if (this.boughtDraws > 0) this.boughtDraws--;
-                break;
+            case 'daily': if(this.dailyDraws>0) this.dailyDraws--; break;
+            case 'weekly_bonus': if(this.weeklyBonusDraws>0) this.weeklyBonusDraws--; break;
+            case 'bought': if(this.boughtDraws>0) this.boughtDraws--; break;
+            case 'premium_bought': if(this.premiumBoughtDraws>0) this.premiumBoughtDraws--; break;
         }
         this.save();
     },
     
+    getPremiumSegments() {
+        switch(this.premiumTier) {
+            case 1: return CONFIG.PREMIUM_TIER1_SEGMENTS;
+            case 2: return CONFIG.PREMIUM_TIER2_SEGMENTS;
+            case 3: return CONFIG.PREMIUM_TIER3_SEGMENTS;
+            default: return CONFIG.PREMIUM_TIER1_SEGMENTS;
+        }
+    },
+    
     save() {
         try {
-            localStorage.setItem('spinStateV3', JSON.stringify({
-                isPremium: this.isPremium,
-                dailyDraws: this.dailyDraws,
-                boughtDraws: this.boughtDraws,
-                weeklyBonusDraws: this.weeklyBonusDraws,
-                wheelAngle: this.wheelAngle,
-                maxDailyDraws: this.maxDailyDraws,
-                timestamp: Date.now()
+            localStorage.setItem('spinStateV4', JSON.stringify({
+                isPremium: this.isPremium, premiumTier: this.premiumTier,
+                dailyDraws: this.dailyDraws, boughtDraws: this.boughtDraws,
+                premiumBoughtDraws: this.premiumBoughtDraws, weeklyBonusDraws: this.weeklyBonusDraws,
+                wheelAngle: this.wheelAngle, maxDailyDraws: this.maxDailyDraws, timestamp: Date.now()
             }));
         } catch(e) {}
     },
     
     load() {
         try {
-            const data = JSON.parse(localStorage.getItem('spinStateV3'));
-            if (data) {
+            const data = JSON.parse(localStorage.getItem('spinStateV4'));
+            if(data) {
                 this.isPremium = data.isPremium || false;
+                this.premiumTier = data.premiumTier || 0;
                 this.dailyDraws = data.dailyDraws || 0;
                 this.boughtDraws = data.boughtDraws || 0;
+                this.premiumBoughtDraws = data.premiumBoughtDraws || 0;
                 this.weeklyBonusDraws = data.weeklyBonusDraws || 0;
                 this.wheelAngle = data.wheelAngle || 0;
                 this.maxDailyDraws = data.maxDailyDraws || 1;
@@ -959,142 +647,85 @@ const State = {
 // API CALLS
 // ====================================
 const API = {
-    getToken() {
-        return localStorage.getItem('auth_token');
-    },
-    
-    isGuest() {
-        const t = this.getToken();
-        return !t || t === 'guest';
-    },
-    
-    headers() {
-        return { 'Content-Type': 'application/json' };
-    },
+    getToken() { return localStorage.getItem('auth_token'); },
+    isGuest() { const t = this.getToken(); return !t || t === 'guest'; },
+    headers() { return { 'Content-Type': 'application/json' }; },
     
     async syncAll() {
-        if (this.isGuest()) return null;
-        
+        if(this.isGuest()) return null;
         const token = this.getToken();
         try {
             const [balRes, usdRes, premRes] = await Promise.all([
-                fetch('/api/get_balance', {
-                    method: 'POST',
-                    headers: this.headers(),
-                    body: JSON.stringify({ token })
-                }).then(r => r.json()),
-                fetch('/api/get_usd_balance', {
-                    method: 'POST',
-                    headers: this.headers(),
-                    body: JSON.stringify({ token })
-                }).then(r => r.json()),
-                fetch('/api/get_premium_status', {
-                    method: 'POST',
-                    headers: this.headers(),
-                    body: JSON.stringify({ token })
-                }).then(r => r.json())
+                fetch('/api/get_balance', { method:'POST', headers:this.headers(), body:JSON.stringify({token}) }).then(r=>r.json()),
+                fetch('/api/get_usd_balance', { method:'POST', headers:this.headers(), body:JSON.stringify({token}) }).then(r=>r.json()),
+                fetch('/api/get_premium_status', { method:'POST', headers:this.headers(), body:JSON.stringify({token}) }).then(r=>r.json())
             ]);
-            
             return {
-                mmkBalance: parseFloat(balRes.balance || 0),
-                usdBalance: parseFloat(usdRes.usd_balance || 0),
+                mmkBalance: parseFloat(balRes.balance||0),
+                usdBalance: parseFloat(usdRes.usd_balance||0),
                 isPremium: !!(premRes.success && premRes.premium_active),
+                premiumTier: premRes.premium_tier || 1,
                 premiumExpiry: premRes.expires_at || null,
                 dailyDrawsRemaining: premRes.daily_draws_remaining || 0,
                 maxDailyDraws: premRes.max_daily_draws || 1
             };
-        } catch(e) {
-            console.error('Sync error:', e);
-            return null;
-        }
+        } catch(e) { console.error('Sync error:', e); return null; }
     },
     
     async executeSpin(source) {
-        if (this.isGuest()) {
-            // Guest mode - client-side random (testing only)
-            return this._guestSpin();
-        }
-        
+        if(this.isGuest()) return this._guestSpin();
         const token = this.getToken();
         try {
             const response = await fetch('/api/spin/execute', {
-                method: 'POST',
-                headers: this.headers(),
-                body: JSON.stringify({ token, spin_source: source })
+                method:'POST', headers:this.headers(),
+                body:JSON.stringify({ token, spin_source: source })
             });
             return await response.json();
-        } catch(e) {
-            console.error('Spin error:', e);
-            return null;
-        }
+        } catch(e) { console.error('Spin error:', e); return null; }
     },
     
     _guestSpin() {
-        // For guest/testing - uses current mode's segments
-        const segments = State.isPremium ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS;
+        const segments = State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS;
         const totalWeight = segments.reduce((s, seg) => s + seg.weight, 0);
         let rand = Math.random() * totalWeight;
         let winIndex = 0;
-        
-        for (let i = 0; i < segments.length; i++) {
+        for(let i = 0; i < segments.length; i++) {
             rand -= segments[i].weight;
-            if (rand <= 0) {
-                winIndex = i;
-                break;
-            }
+            if(rand <= 0) { winIndex = i; break; }
         }
-        
-        return {
-            success: true,
-            winIndex: winIndex,
-            reward: segments[winIndex],
-            mmkBalance: State.mmkBalance,
-            usdBalance: State.usdBalance
-        };
+        return { success:true, winIndex:winIndex, reward:segments[winIndex], mmkBalance:State.mmkBalance, usdBalance:State.usdBalance };
     },
     
-    async buySpins(spins, cost) {
-        if (this.isGuest()) return { success: false, message: 'Login required' };
-        
+    async buySpins(spins, cost, drawType) {
+        if(this.isGuest()) return { success:false, message:'Login required' };
         try {
             const response = await fetch('/api/deduct_balance', {
-                method: 'POST',
-                headers: this.headers(),
-                body: JSON.stringify({
-                    token: this.getToken(),
-                    amount: cost,
-                    reason: `Buy ${spins} spins`
-                })
+                method:'POST', headers:this.headers(),
+                body:JSON.stringify({ token:this.getToken(), amount:cost, reason:`Buy ${spins} ${drawType} spins` })
             });
             const result = await response.json();
-            if (result.success) {
-                State.boughtDraws += spins;
+            if(result.success) {
+                if(drawType === 'premium') {
+                    State.premiumBoughtDraws += spins;
+                } else {
+                    State.boughtDraws += spins;
+                }
                 State.mmkBalance = result.new_balance;
                 State.save();
             }
             return result;
-        } catch(e) {
-            return { success: false, message: 'Network error' };
-        }
+        } catch(e) { return { success:false, message:'Network error' }; }
     },
     
-    async buyPremium(months, cost) {
-        if (this.isGuest()) return { success: false, message: 'Login required' };
-        
+    async buyPremium(months, cost, tier) {
+        if(this.isGuest()) return { success:false, message:'Login required' };
         try {
             const response = await fetch('/api/buy_premium', {
-                method: 'POST',
-                headers: this.headers(),
-                body: JSON.stringify({
-                    token: this.getToken(),
-                    months: months,
-                    cost: cost
-                })
+                method:'POST', headers:this.headers(),
+                body:JSON.stringify({ token:this.getToken(), months:months, cost:cost, tier:tier })
             });
             return await response.json();
-        } catch(e) {
-            return { success: false, message: 'Network error' };
-        }
+        } catch(e) { return { success:false, message:'Network error' }; }
     }
 };
 
@@ -1104,10 +735,9 @@ const API = {
 const WheelEngine = {
     canvas: document.getElementById('wheelCanvas'),
     ctx: document.getElementById('wheelCanvas').getContext('2d'),
-    SEGMENT_COUNT: 8,
     
     getSegments() {
-        return State.isPremium ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS;
+        return State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS;
     },
     
     getArcSize() {
@@ -1118,68 +748,54 @@ const WheelEngine = {
         const segments = this.getSegments();
         const cx = 300, cy = 300, radius = 270;
         const arcSize = this.getArcSize();
-        
         this.ctx.clearRect(0, 0, 600, 600);
         
-        // Draw outer glow
         this.ctx.beginPath();
         this.ctx.arc(cx, cy, radius + 8, 0, 2 * Math.PI);
         this.ctx.fillStyle = State.isPremium ? 'rgba(255,215,0,0.15)' : 'rgba(243,156,18,0.08)';
         this.ctx.fill();
         
-        // Draw segments
         segments.forEach((seg, i) => {
             const startAngle = i * arcSize + rotationAngle;
             const endAngle = startAngle + arcSize;
-            
-            // Segment fill
             this.ctx.beginPath();
             this.ctx.moveTo(cx, cy);
             this.ctx.arc(cx, cy, radius, startAngle, endAngle);
             this.ctx.closePath();
-            
-            // Gradient fill
-            const grad = this.ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius);
+            const grad = this.ctx.createRadialGradient(cx, cy, radius*0.3, cx, cy, radius);
             grad.addColorStop(0, this._lightenColor(seg.color, 60));
             grad.addColorStop(1, seg.color);
             this.ctx.fillStyle = grad;
             this.ctx.fill();
-            
-            // Segment border
             this.ctx.strokeStyle = State.isPremium ? 'rgba(255,215,0,0.8)' : 'rgba(255,215,100,0.4)';
             this.ctx.lineWidth = 2.5;
             this.ctx.stroke();
-            
-            // Text
             this.ctx.save();
             this.ctx.translate(cx, cy);
-            this.ctx.rotate(startAngle + arcSize / 2);
+            this.ctx.rotate(startAngle + arcSize/2);
             this.ctx.textAlign = 'center';
             this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = 'bold 14px "Segoe UI", sans-serif';
+            this.ctx.font = 'bold 13px "Segoe UI", sans-serif';
             this.ctx.shadowColor = 'rgba(0,0,0,0.8)';
             this.ctx.shadowBlur = 6;
-            this.ctx.fillText(seg.label, radius * 0.65, 5);
+            this.ctx.fillText(seg.label, radius*0.62, 5);
             this.ctx.restore();
         });
         
-        // Outer ring
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, radius + 3, 0, 2 * Math.PI);
+        this.ctx.arc(cx, cy, radius+3, 0, 2*Math.PI);
         this.ctx.strokeStyle = State.isPremium ? '#ffd700' : '#f39c12';
         this.ctx.lineWidth = 4;
         this.ctx.stroke();
         
-        // Inner ring
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, radius - 2, 0, 2 * Math.PI);
+        this.ctx.arc(cx, cy, radius-2, 0, 2*Math.PI);
         this.ctx.strokeStyle = State.isPremium ? 'rgba(255,215,0,0.5)' : 'rgba(243,156,18,0.3)';
         this.ctx.lineWidth = 2;
         this.ctx.stroke();
         
-        // Center hub
         this.ctx.beginPath();
-        this.ctx.arc(cx, cy, 35, 0, 2 * Math.PI);
+        this.ctx.arc(cx, cy, 35, 0, 2*Math.PI);
         const hubGrad = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, 35);
         hubGrad.addColorStop(0, State.isPremium ? '#4a1c7a' : '#2c3e50');
         hubGrad.addColorStop(1, State.isPremium ? '#1a0a2e' : '#1a1f4b');
@@ -1188,70 +804,51 @@ const WheelEngine = {
         this.ctx.strokeStyle = State.isPremium ? '#ffd700' : '#f39c12';
         this.ctx.lineWidth = 3;
         this.ctx.stroke();
-        
-        // Center text
         this.ctx.fillStyle = State.isPremium ? '#ffd700' : '#f39c12';
         this.ctx.font = 'bold 11px "Segoe UI", sans-serif';
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.shadowBlur = 0;
-        this.ctx.fillText(State.isPremium ? 'PREMIUM' : 'SPIN', cx, cy);
+        const tierText = State.premiumTier >= 2 ? 'T'+State.premiumTier : '';
+        this.ctx.fillText(State.isPremium ? 'PREMIUM '+tierText : 'SPIN', cx, cy);
     },
     
     _lightenColor(hex, percent) {
-        const num = parseInt(hex.replace('#', ''), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = Math.min(255, (num >> 16) + amt);
-        const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-        const B = Math.min(255, (num & 0x0000FF) + amt);
+        const num = parseInt(hex.replace('#',''),16);
+        const amt = Math.round(2.55*percent);
+        const R = Math.min(255,(num>>16)+amt);
+        const G = Math.min(255,((num>>8)&0x00FF)+amt);
+        const B = Math.min(255,(num&0x0000FF)+amt);
         return `rgb(${R},${G},${B})`;
     },
     
     getTargetRotation(winIndex) {
         const segments = this.getSegments();
-        const arcSize = (2 * Math.PI) / segments.length;
-        
-        // Arrow is at TOP (12 o'clock = -π/2 or 3π/2)
-        // We want the winning segment's CENTER to align with arrow
-        const segmentCenterAngle = winIndex * arcSize + arcSize / 2;
-        
-        // Calculate rotation to bring segment center to TOP
-        const targetAngle = -segmentCenterAngle - Math.PI / 2;
-        
-        // Normalize to positive
+        const arcSize = (2*Math.PI)/segments.length;
+        const segmentCenterAngle = winIndex*arcSize + arcSize/2;
+        const targetAngle = -segmentCenterAngle - Math.PI/2;
         let normalized = targetAngle;
-        while (normalized < 0) normalized += 2 * Math.PI;
-        
+        while(normalized < 0) normalized += 2*Math.PI;
         return normalized;
     },
     
     async spin(winIndex) {
         const targetAngle = this.getTargetRotation(winIndex);
-        const fullSpins = 6 + Math.floor(Math.random() * 3);
-        const totalRotation = targetAngle + fullSpins * 2 * Math.PI;
+        const fullSpins = 6 + Math.floor(Math.random()*3);
+        const totalRotation = targetAngle + fullSpins*2*Math.PI;
         const startAngle = State.wheelAngle;
-        const duration = 4000 + Math.random() * 500;
+        const duration = 4000 + Math.random()*500;
         const startTime = Date.now();
-        
         return new Promise((resolve) => {
             const animate = () => {
                 const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed / duration, 1);
-                
-                // Easing function (cubic ease-out)
-                const eased = 1 - Math.pow(1 - progress, 3);
-                const currentAngle = startAngle + totalRotation * eased;
-                
-                this.draw(currentAngle % (2 * Math.PI));
+                const progress = Math.min(elapsed/duration, 1);
+                const eased = 1 - Math.pow(1-progress, 3);
+                const currentAngle = startAngle + totalRotation*eased;
+                this.draw(currentAngle % (2*Math.PI));
                 State.wheelAngle = currentAngle;
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animate);
-                } else {
-                    resolve();
-                }
+                if(progress < 1) { requestAnimationFrame(animate); } else { resolve(); }
             };
-            
             requestAnimationFrame(animate);
         });
     }
@@ -1262,48 +859,35 @@ const WheelEngine = {
 // ====================================
 const UI = {
     updateBalances() {
-        document.getElementById('mmkBalance').textContent = 
-            State.mmkBalance.toLocaleString() + ' Ks';
-        document.getElementById('usdBalance').textContent = 
-            '$' + State.usdBalance.toFixed(2);
+        document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString() + ' Ks';
+        document.getElementById('usdBalance').textContent = '$' + State.usdBalance.toFixed(2);
     },
     
     updateDraws() {
         document.getElementById('dailyCount').textContent = State.dailyDraws;
-        document.getElementById('boughtCount').textContent = State.boughtDraws;
+        document.getElementById('boughtCount').textContent = State.boughtDraws + State.premiumBoughtDraws;
         document.getElementById('weeklyCount').textContent = State.weeklyBonusDraws;
-        
-        // Update daily card label
         const dailyLabel = document.querySelector('#dailyDrawCard .draw-label');
-        if (dailyLabel) {
-            dailyLabel.textContent = State.isPremium ? 'Daily (Premium)' : 'Daily Free';
-        }
-        
+        if(dailyLabel) dailyLabel.textContent = State.isPremium ? 'Daily (T'+State.premiumTier+')' : 'Daily Free';
         this.updateSpinButton();
     },
     
     updateSpinButton() {
         const btn = document.getElementById('btnSpin');
         const status = document.getElementById('spinStatus');
-        
-        if (State.isSpinning) {
-            btn.disabled = true;
-            status.textContent = '⏳ Spinning...';
-            return;
-        }
-        
+        if(State.isSpinning) { btn.disabled = true; status.textContent = '⏳ Spinning...'; return; }
         const total = State.getTotalDraws();
         const source = State.getDrawSource();
-        
-        if (total > 0) {
+        if(total > 0) {
             btn.disabled = false;
             let sourceText = '';
             switch(source) {
                 case 'daily': sourceText = '🔄 Daily'; break;
                 case 'weekly_bonus': sourceText = '🎁 Weekly Bonus'; break;
-                case 'bought': sourceText = '💳 Bought'; break;
+                case 'bought': sourceText = '💳 Normal Draw'; break;
+                case 'premium_bought': sourceText = '👑 Premium Draw'; break;
             }
-            status.textContent = `${sourceText} · ${total} draw(s) left`;
+            status.textContent = sourceText + ' · ' + total + ' draw(s) left';
         } else {
             btn.disabled = true;
             status.textContent = '⏰ No draws available';
@@ -1316,155 +900,136 @@ const UI = {
         const btnPremium = document.getElementById('btnPremium');
         const weeklyCard = document.getElementById('weeklyDrawCard');
         const drawsContainer = document.getElementById('drawsContainer');
+        const badge = document.getElementById('premiumBadge');
         
-        if (State.isPremium) {
+        body.classList.remove('premium-mode', 'tier2', 'tier3');
+        
+        if(State.isPremium) {
             body.classList.add('premium-mode');
-            headerTitle.textContent = '👑 Premium Lucky Spin';
+            if(State.premiumTier >= 2) body.classList.add('tier2');
+            if(State.premiumTier >= 3) body.classList.add('tier3');
+            
+            const tierNames = ['','Bronze','Silver','Gold'];
+            headerTitle.textContent = '👑 Premium Lucky Spin ('+tierNames[State.premiumTier]+')';
             btnPremium.textContent = '👑 ACTIVE';
             weeklyCard.style.display = 'block';
             drawsContainer.style.gridTemplateColumns = '1fr 1fr 1fr';
+            
+            const tierSymbols = ['','🥉','🥈','🥇'];
+            badge.textContent = tierSymbols[State.premiumTier] + ' PREMIUM '+tierNames[State.premiumTier].toUpperCase();
         } else {
-            body.classList.remove('premium-mode');
             headerTitle.textContent = '🎰 Lucky Spin';
             btnPremium.textContent = '👑 PREMIUM';
             weeklyCard.style.display = 'none';
             drawsContainer.style.gridTemplateColumns = '1fr 1fr';
         }
         
-        WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
+        WheelEngine.draw(State.wheelAngle % (2*Math.PI));
         this.updateDraws();
     },
     
-    showToast(message, type = 'success') {
+    showToast(message, type) {
+        type = type || 'success';
         const toast = document.getElementById('toast');
         toast.textContent = message;
         toast.style.display = 'block';
-        
         switch(type) {
-            case 'success':
-                toast.style.background = '#2ecc71';
-                toast.style.color = '#fff';
-                break;
-            case 'error':
-                toast.style.background = '#e74c3c';
-                toast.style.color = '#fff';
-                break;
-            case 'info':
-                toast.style.background = '#3498db';
-                toast.style.color = '#fff';
-                break;
-            case 'gold':
-                toast.style.background = 'linear-gradient(135deg, #ffd700, #f39c12)';
-                toast.style.color = '#000';
-                break;
+            case 'success': toast.style.background = '#2ecc71'; toast.style.color = '#fff'; break;
+            case 'error': toast.style.background = '#e74c3c'; toast.style.color = '#fff'; break;
+            case 'info': toast.style.background = '#3498db'; toast.style.color = '#fff'; break;
+            case 'gold': toast.style.background = 'linear-gradient(135deg, #ffd700, #f39c12)'; toast.style.color = '#000'; break;
         }
-        
         clearTimeout(this._toastTimer);
-        this._toastTimer = setTimeout(() => {
-            toast.style.display = 'none';
-        }, 3000);
+        this._toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3000);
     },
     
-    showPremiumTransition() {
+    showPremiumTransition(tier) {
         const overlay = document.getElementById('transitionOverlay');
+        const text = document.getElementById('transitionText');
+        const tierNames = ['','BRONZE','SILVER','GOLD'];
+        const tierEmojis = ['','🥉','🥈','🥇'];
+        text.innerHTML = '👑<br>PREMIUM '+tierNames[tier]+'<br>'+tierEmojis[tier]+'<br>UNLOCKED!';
         overlay.classList.add('active');
-        
-        // Particle effect
         this._createParticles();
-        
-        setTimeout(() => {
-            overlay.classList.remove('active');
-        }, 2000);
+        setTimeout(() => { overlay.classList.remove('active'); }, 2500);
     },
     
     _createParticles() {
         const overlay = document.getElementById('transitionOverlay');
-        for (let i = 0; i < 50; i++) {
+        for(let i = 0; i < 50; i++) {
             const particle = document.createElement('div');
-            particle.style.cssText = `
-                position: absolute;
-                width: ${Math.random() * 8 + 3}px;
-                height: ${Math.random() * 8 + 3}px;
-                background: #ffd700;
-                border-radius: 50%;
-                left: ${Math.random() * 100}%;
-                top: ${Math.random() * 100}%;
-                animation: particleFloat ${Math.random() * 2 + 1}s ease-out forwards;
-                opacity: ${Math.random()};
-            `;
+            particle.style.cssText = 'position:absolute;width:'+(Math.random()*8+3)+'px;height:'+(Math.random()*8+3)+'px;background:#ffd700;border-radius:50%;left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;animation:particleFloat '+(Math.random()*2+1)+'s ease-out forwards;opacity:'+Math.random();
             overlay.appendChild(particle);
-            
             setTimeout(() => particle.remove(), 2000);
         }
     },
     
-    showResult(winIndex) {
-        const segments = State.isPremium ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS;
-        const reward = segments[winIndex];
+    async showProcessing(months, cost, tier, callback) {
+        const modal = document.getElementById('processingModal');
+        const title = document.getElementById('processingTitle');
+        const bar = document.getElementById('progressBarFill');
+        const text = document.getElementById('progressText');
+        const tierNames = ['','Bronze','Silver','Gold'];
         
+        title.textContent = 'Activating Premium '+tierNames[tier]+'...';
+        bar.style.width = '0%';
+        text.textContent = '0%';
+        modal.classList.add('active');
+        
+        // Animate progress
+        for(let i = 0; i <= 100; i++) {
+            await new Promise(r => setTimeout(r, 20 + Math.random()*15));
+            bar.style.width = i + '%';
+            text.textContent = i + '%';
+        }
+        
+        // Execute callback
+        const result = await callback();
+        
+        // Complete
+        await new Promise(r => setTimeout(r, 500));
+        modal.classList.remove('active');
+        
+        return result;
+    },
+    
+    showResult(winIndex) {
+        const segments = State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS;
+        const reward = segments[winIndex];
         const icon = document.getElementById('resultIcon');
         const text = document.getElementById('resultText');
         const amount = document.getElementById('resultAmount');
         const extra = document.getElementById('resultExtra');
-        
         extra.innerHTML = '';
         
-        if (reward.type === 'super') {
-            icon.textContent = '👑';
-            text.textContent = '🏆 SUPER PRIZE!';
-            amount.textContent = 'Congratulations!';
-            amount.style.color = '#e91e63';
-            extra.innerHTML = `
-                <a href="${CONFIG.SUPER_FORM_URL}" target="_blank" class="super-link">
-                    🏆 ဆုရယူရန် ဝင်ရောက်ပါ
-                </a>
-            `;
-        } else if (reward.type === 'free') {
-            icon.textContent = '🔄';
-            text.textContent = 'Free Spin!';
-            amount.textContent = '+1 Extra Draw';
-            amount.style.color = '#1abc9c';
-        } else if (reward.type === 'usd') {
-            icon.textContent = '💵';
-            text.textContent = '🎉 You Won!';
-            amount.textContent = `$${reward.reward.toFixed(2)} USD`;
-            amount.style.color = '#2ecc71';
-        } else if (reward.type === 'mmk') {
-            icon.textContent = '💰';
-            text.textContent = '🎉 You Won!';
-            amount.textContent = `${reward.reward.toLocaleString()} Ks`;
-            amount.style.color = '#f39c12';
+        if(reward.type === 'super') {
+            icon.textContent = '👑'; text.textContent = '🏆 SUPER PRIZE!';
+            amount.textContent = 'Congratulations!'; amount.style.color = '#e91e63';
+            extra.innerHTML = '<a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>';
+        } else if(reward.type === 'free') {
+            icon.textContent = '🔄'; text.textContent = 'Free Spin!';
+            amount.textContent = '+1 Extra Draw'; amount.style.color = '#1abc9c';
+        } else if(reward.type === 'usd') {
+            icon.textContent = '💵'; text.textContent = '🎉 You Won!';
+            amount.textContent = '$'+reward.reward.toFixed(2)+' USD'; amount.style.color = '#2ecc71';
+        } else if(reward.type === 'mmk') {
+            icon.textContent = '💰'; text.textContent = '🎉 You Won!';
+            amount.textContent = reward.reward.toLocaleString()+' Ks'; amount.style.color = '#f39c12';
         }
-        
         openModal('resultModal');
     },
     
     scheduleResetTimer() {
-        if (this._resetInterval) clearInterval(this._resetInterval);
-        
+        if(this._resetInterval) clearInterval(this._resetInterval);
         const el = document.getElementById('resetCountdown');
-        
         const update = () => {
             const now = new Date();
-            const midnight = new Date(now);
-            midnight.setDate(midnight.getDate() + 1);
-            midnight.setHours(0, 0, 0, 0);
-            
+            const midnight = new Date(now); midnight.setDate(midnight.getDate()+1); midnight.setHours(0,0,0,0);
             const remaining = midnight.getTime() - now.getTime();
-            
-            if (remaining <= 0) {
-                el.textContent = '';
-                this._resetDailyDraws();
-                return;
-            }
-            
-            const h = Math.floor(remaining / 3600000);
-            const m = Math.floor((remaining % 3600000) / 60000);
-            const s = Math.floor((remaining % 60000) / 1000);
-            
-            el.textContent = `🔄 Reset in ${h}h ${m}m ${s}s`;
+            if(remaining <= 0) { el.textContent = ''; this._resetDailyDraws(); return; }
+            const h = Math.floor(remaining/3600000), m = Math.floor((remaining%3600000)/60000), s = Math.floor((remaining%60000)/1000);
+            el.textContent = '🔄 Reset in '+h+'h '+m+'m '+s+'s';
         };
-        
         update();
         this._resetInterval = setInterval(update, 1000);
     },
@@ -1474,59 +1039,41 @@ const UI = {
         State.save();
         this.updateDraws();
         this.showToast('Daily draws reset! 🎉', 'success');
-        
-        // If draws were 0, restart timer
-        if (State.getTotalDraws() > 0) {
+        if(State.getTotalDraws() > 0) {
             document.getElementById('resetCountdown').textContent = '';
             clearInterval(this._resetInterval);
-        } else {
-            this.scheduleResetTimer();
-        }
+        } else { this.scheduleResetTimer(); }
     }
 };
 
 // ====================================
 // MODAL FUNCTIONS
 // ====================================
-function openModal(id) {
-    document.getElementById(id).classList.add('active');
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.remove('active');
-}
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 // ====================================
 // SPIN CONTROLLER
 // ====================================
 async function handleSpin() {
-    if (State.isSpinning) return;
-    
+    if(State.isSpinning) return;
     const source = State.getDrawSource();
+    if(!source) { UI.showToast('No draws available! Buy spins or wait for reset.', 'error'); return; }
     
-    if (!source) {
-        UI.showToast('No draws available! Buy spins or wait for reset.', 'error');
-        return;
-    }
-    
-    // Disable button
     State.isSpinning = true;
     document.getElementById('btnSpin').disabled = true;
     document.getElementById('spinStatus').textContent = '⏳ Spinning...';
-    
-    // Consume draw IMMEDIATELY (before server call)
     State.consumeDraw(source);
     UI.updateDraws();
     
-    // Request spin from server
     const result = await API.executeSpin(source);
     
-    if (!result || !result.success) {
-        // Refund draw if failed
+    if(!result || !result.success) {
         switch(source) {
             case 'daily': State.dailyDraws++; break;
             case 'weekly_bonus': State.weeklyBonusDraws++; break;
             case 'bought': State.boughtDraws++; break;
+            case 'premium_bought': State.premiumBoughtDraws++; break;
         }
         State.save();
         UI.updateDraws();
@@ -1536,75 +1083,51 @@ async function handleSpin() {
         return;
     }
     
-    // Update balances from server
-    if (result.mmkBalance !== undefined) {
-        State.mmkBalance = result.mmkBalance;
-    }
-    if (result.usdBalance !== undefined) {
-        State.usdBalance = result.usdBalance;
-    }
+    if(result.mmkBalance !== undefined) State.mmkBalance = result.mmkBalance;
+    if(result.usdBalance !== undefined) State.usdBalance = result.usdBalance;
     
-    // For free spin reward, add it back
-    if (result.reward && result.reward.type === 'free') {
+    if(result.reward && result.reward.type === 'free') {
         switch(source) {
             case 'daily': State.dailyDraws++; break;
             case 'weekly_bonus': State.weeklyBonusDraws++; break;
             case 'bought': State.boughtDraws++; break;
+            case 'premium_bought': State.premiumBoughtDraws++; break;
         }
     }
     
     State.save();
     UI.updateBalances();
-    
-    // Animate wheel to EXACT winIndex
     await WheelEngine.spin(result.winIndex);
-    
-    // Show result
     UI.showResult(result.winIndex);
-    
-    // Update state
     State.isSpinning = false;
     UI.updateDraws();
     UI.updateSpinButton();
-    
-    // Schedule reset timer if no draws left
-    if (State.getTotalDraws() === 0) {
-        UI.scheduleResetTimer();
-    }
+    if(State.getTotalDraws() === 0) UI.scheduleResetTimer();
 }
 
 // ====================================
 // BUY SPINS
 // ====================================
-async function handleBuySpins(spins, cost) {
-    if (State.mmkBalance < cost) {
-        UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။', 'error');
-        return;
-    }
+async function handleBuySpins(spins, cost, drawType) {
+    if(State.mmkBalance < cost) { UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။', 'error'); return; }
     
-    // Show confirm
-    document.getElementById('confirmTitle').textContent = '💳 Buy Spins';
-    document.getElementById('confirmMsg').textContent = 
-        `${spins} Spins - ${cost.toLocaleString()} Ks`;
+    const typeName = drawType === 'premium' ? 'Premium Draw' : 'Normal Draw';
+    document.getElementById('confirmTitle').textContent = '💳 Buy ' + typeName;
+    document.getElementById('confirmMsg').textContent = spins + ' Spins - ' + cost.toLocaleString() + ' Ks';
     
     const confirmBtn = document.getElementById('confirmYesBtn');
     confirmBtn.onclick = async () => {
         closeModal('confirmModal');
-        
-        const result = await API.buySpins(spins, cost);
-        
-        if (result.success) {
+        const result = await API.buySpins(spins, cost, drawType);
+        if(result.success) {
             UI.updateBalances();
             UI.updateDraws();
-            UI.showToast(`${spins} spins added! ✅`, 'success');
-            
-            // Clear reset timer if we now have draws
+            UI.showToast(spins + ' '+typeName+' spins added! ✅', 'success');
             document.getElementById('resetCountdown').textContent = '';
         } else {
             UI.showToast(result.message || 'Purchase failed', 'error');
         }
     };
-    
     openModal('confirmModal');
 }
 
@@ -1612,54 +1135,102 @@ async function handleBuySpins(spins, cost) {
 // PREMIUM FUNCTIONS
 // ====================================
 function handlePremiumClick() {
-    if (State.isPremium) {
-        UI.showToast('You are already Premium! 👑', 'gold');
-        return;
-    }
+    if(State.isPremium) { UI.showToast('You are already Premium! 👑', 'gold'); return; }
     openModal('premiumModal');
 }
 
-async function buyPremium(months, cost) {
+async function handlePremiumPurchase(months, cost, tier) {
     closeModal('premiumModal');
     
-    if (State.mmkBalance < cost) {
+    // Calculate 50% discount if user already has a lower tier
+    let actualCost = cost;
+    let discountApplied = false;
+    
+    if(State.isPremium && State.premiumTier > 0) {
+        const newTier = parseInt(tier.replace('tier',''));
+        if(newTier > State.premiumTier) {
+            actualCost = Math.floor(cost / 2);
+            discountApplied = true;
+        }
+    }
+    
+    if(State.mmkBalance < actualCost) {
         UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။', 'error');
         return;
     }
     
-    // Show confirm
-    document.getElementById('confirmTitle').textContent = '👑 Buy Premium';
-    document.getElementById('confirmMsg').innerHTML = `
-        ${months} Month(s)<br>
-        Cost: <b>${cost.toLocaleString()} Ks</b>
-    `;
+    const tierNames = {'tier1':'Bronze','tier2':'Silver','tier3':'Gold'};
+    const tierName = tierNames[tier] || 'Unknown';
+    
+    let confirmMsg = months + ' Month(s) - ' + tierName + '<br>';
+    confirmMsg += 'Cost: <b>' + actualCost.toLocaleString() + ' Ks</b>';
+    if(discountApplied) {
+        confirmMsg += '<br><span style="color:#2ecc71">✅ ၅၀% လျှော့ဈေး ရရှိထားပါသည်</span>';
+        confirmMsg += '<br><span style="color:#888;text-decoration:line-through">မူရင်း: '+cost.toLocaleString()+' Ks</span>';
+    }
+    
+    document.getElementById('confirmTitle').textContent = '👑 Buy Premium ' + tierName;
+    document.getElementById('confirmMsg').innerHTML = confirmMsg;
     
     const confirmBtn = document.getElementById('confirmYesBtn');
     confirmBtn.onclick = async () => {
         closeModal('confirmModal');
         
-        const result = await API.buyPremium(months, cost);
+        const result = await UI.showProcessing(months, actualCost, parseInt(tier.replace('tier','')), async () => {
+            return await API.buyPremium(months, actualCost, parseInt(tier.replace('tier','')));
+        });
         
-        if (result.success) {
-            // Activate premium
+        if(result && result.success) {
+            const newTier = parseInt(tier.replace('tier',''));
             State.isPremium = true;
-            State.maxDailyDraws = 3;
-            State.dailyDraws = 3; // Reset daily draws for premium
-            State.weeklyBonusDraws += 5; // Give weekly bonus
-            State.mmkBalance -= cost;
+            State.premiumTier = newTier;
+            
+            switch(newTier) {
+                case 1: State.maxDailyDraws = 3; break;
+                case 2: State.maxDailyDraws = 5; break;
+                case 3: State.maxDailyDraws = 7; break;
+                default: State.maxDailyDraws = 3;
+            }
+            
+            State.dailyDraws = State.maxDailyDraws;
+            State.weeklyBonusDraws += State.premiumTier === 3 ? 10 : State.premiumTier === 2 ? 7 : 5;
+            State.mmkBalance -= actualCost;
             State.premiumExpiry = result.expires_at;
             State.save();
             
             UI.updateBalances();
             UI.applyPremiumTheme();
-            UI.showPremiumTransition();
-            UI.showToast('Premium Activated! 👑', 'gold');
+            UI.showPremiumTransition(newTier);
+            UI.showToast('Premium '+tierName+' Activated! 👑', 'gold');
         } else {
-            UI.showToast(result.message || 'Purchase failed', 'error');
+            UI.showToast(result && result.message ? result.message : 'Purchase failed', 'error');
         }
     };
-    
     openModal('confirmModal');
+}
+
+// ====================================
+// PREMIUM EXPIRY CHECK
+// ====================================
+async function checkPremiumExpiry() {
+    if(!State.isPremium) return;
+    const serverData = await API.syncAll();
+    if(serverData) {
+        if(!serverData.isPremium) {
+            State.isPremium = false;
+            State.premiumTier = 0;
+            State.maxDailyDraws = 1;
+            State.dailyDraws = Math.min(State.dailyDraws, 1);
+            State.weeklyBonusDraws = 0;
+            State.save();
+            UI.applyPremiumTheme();
+            UI.updateDraws();
+            UI.showToast('⚠️ Premium သက်တမ်းကုန်ဆုံးသွားပါပြီ။ Normal Mode သို့ ပြန်လည်ရောက်ရှိပါသည်။', 'info');
+        } else {
+            State.premiumExpiry = serverData.premiumExpiry;
+            State.premiumTier = serverData.premiumTier || 1;
+        }
+    }
 }
 
 // ====================================
@@ -1668,21 +1239,18 @@ async function buyPremium(months, cost) {
 document.getElementById('btnSpin').addEventListener('click', handleSpin);
 document.getElementById('btnPremium').addEventListener('click', handlePremiumClick);
 
-// Buy spin buttons
 document.querySelectorAll('.btn-buy').forEach(btn => {
     btn.addEventListener('click', () => {
         const spins = parseInt(btn.dataset.spins);
         const cost = parseInt(btn.dataset.cost);
-        handleBuySpins(spins, cost);
+        const drawType = btn.dataset.type || 'normal';
+        handleBuySpins(spins, cost, drawType);
     });
 });
 
-// Close modals when clicking overlay
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            overlay.classList.remove('active');
-        }
+        if(e.target === overlay) overlay.classList.remove('active');
     });
 });
 
@@ -1690,88 +1258,61 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // INITIALIZATION
 // ====================================
 async function init() {
-    console.log('🎰 Initializing Spin System...');
-    
-    // Load local state first
+    console.log('🎰 Initializing Spin System V4...');
     State.load();
-    
-    // Sync with server
     const serverData = await API.syncAll();
     
-    if (serverData) {
+    if(serverData) {
         console.log('✅ Server data loaded:', serverData);
         State.isPremium = serverData.isPremium;
+        State.premiumTier = serverData.premiumTier || 1;
         State.mmkBalance = serverData.mmkBalance;
         State.usdBalance = serverData.usdBalance;
         State.maxDailyDraws = serverData.maxDailyDraws;
         State.dailyDraws = serverData.dailyDrawsRemaining;
         State.premiumExpiry = serverData.premiumExpiry;
         
-        // Check if daily reset needed
         const today = new Date().toDateString();
         const lastResetDate = localStorage.getItem('spinLastResetDate');
-        
-        if (lastResetDate !== today) {
-            // New day - reset daily draws
+        if(lastResetDate !== today) {
             State.dailyDraws = serverData.maxDailyDraws || 1;
             localStorage.setItem('spinLastResetDate', today);
-            console.log('🔄 Daily draws reset:', State.dailyDraws);
         }
-        
         State.save();
-    } else {
-        console.log('⚠️ Using local state (guest mode)');
     }
     
-    // Update all UI
     UI.updateBalances();
     UI.applyPremiumTheme();
     UI.updateDraws();
-    WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
+    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
     
-    // Schedule reset timer if no draws
-    if (State.getTotalDraws() === 0) {
-        UI.scheduleResetTimer();
-    }
+    if(State.getTotalDraws() === 0) UI.scheduleResetTimer();
     
-    // Periodic sync (every 30 seconds)
     setInterval(async () => {
         const data = await API.syncAll();
-        if (data) {
+        if(data) {
             State.isPremium = data.isPremium;
+            State.premiumTier = data.premiumTier || 1;
             State.mmkBalance = data.mmkBalance;
             State.usdBalance = data.usdBalance;
             State.maxDailyDraws = data.maxDailyDraws;
-            
-            // Don't override daily draws from server if we've used some today
-            // Server tracks it properly now
-            
             UI.updateBalances();
             UI.applyPremiumTheme();
             UI.updateDraws();
         }
     }, 30000);
     
-    console.log('✅ Spin System Ready!');
-    console.log('Mode:', State.isPremium ? 'PREMIUM' : 'NORMAL');
-    console.log('Draws:', {
-        daily: State.dailyDraws,
-        bought: State.boughtDraws,
-        weekly: State.weeklyBonusDraws
-    });
+    // Check premium expiry
+    checkPremiumExpiry();
+    setInterval(checkPremiumExpiry, 60000);
+    
+    console.log('✅ Spin System V4 Ready!');
 }
 
-// Add particle animation style
 const particleStyle = document.createElement('style');
-particleStyle.textContent = `
-    @keyframes particleFloat {
-        0% { transform: translateY(0) scale(1); opacity: 1; }
-        100% { transform: translateY(-200px) scale(0); opacity: 0; }
-    }
-`;
+particleStyle.textContent = '@keyframes particleFloat{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-200px) scale(0);opacity:0}}';
 document.head.appendChild(particleStyle);
 
-// Start the system
 init();
 </script>
 </body>
