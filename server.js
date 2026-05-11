@@ -1418,9 +1418,9 @@ app.post('/api/spin/execute', async (req, res) => {
     }
     
     // Validate spin source
-    if (!spin_source || !['daily', 'bought', 'weekly_bonus'].includes(spin_source)) {
-        return res.json({ success: false, message: 'Invalid spin source' });
-    }
+if (!spin_source || !['daily', 'bought', 'weekly_bonus', 'premium_bought'].includes(spin_source)) {
+    return res.json({ success: false, message: 'Invalid spin source' });
+}
     
     try {
         const p = await getPool();
@@ -1608,9 +1608,9 @@ app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html
 app.get('/exchange.html', (req, res) => servePageWithCheck(req, res, 'exchange', 'exchange.html'));
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`âœ… Server running on port ${PORT}`);
-    console.log(`ðŸ—„ï¸ DB: DB1 + DB2 Auto-Switch`);
-    console.log(`ðŸ“„ Page Control: ${ALL_PAGES.length} pages`);
-    console.log(`ðŸ¤– Bot: Enhanced Long Polling`);
-    console.log(`ðŸŽ® Redeem Codes: ${REDEEM_CATEGORIES.length} categories`);
+    console.log(`Server running on port ${PORT}`);     // ✅ Server စပြီ
+    console.log(`DB: DB1 + DB2 Auto-Switch`);           // ဒေတာဘေ့စ် ၂ခု
+    console.log(`Page Control: ${ALL_PAGES.length} pages`); // စာမျက်နှာ ၁၁ ခု
+    console.log(`Bot: Enhanced Long Polling`);           // Telegram Bot
+    console.log(`Redeem Codes: ${REDEEM_CATEGORIES.length} categories`); // Code ၅ မျိုး
 });
