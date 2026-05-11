@@ -1199,41 +1199,102 @@ app.post('/api/claim_weekly_bonus', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-
 // ==================== EXCHANGE USD TO MMK ====================
 app.post('/api/exchange_usd_to_mmk', async (req, res) => {
     const { token, usd_amount } = req.body;
-    const EXCHANGE_RATE = 3500;
     
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!usd_amount || usd_amount < 1) return res.json({ success: false, message: 'Minimum 1 USD required' });
+    // Exchange Rate Configuration
+    const BASE_RATE = 3000;          // Base rate per 1 USD
+    const TRANSPORT_FEE = 300;       // သယ်ယူပို့ဆောင်ခ (per USD)
+    const INTERNET_FEE = 300;        // အင်တာနက်ကုန်ကျခ (per USD)
+    const DATA_TRANSFER_FEE = 400;   // ဒေတာလွှဲပြောင်းခ (per USD)
+    const TOTAL_FEE = TRANSPORT_FEE + INTERNET_FEE + DATA_TRANSFER_FEE; // 1,000 Ks
+    const FINAL_RATE = BASE_RATE - TOTAL_FEE; // 2,000 Ks per USD
+    
+    if (!token || token === 'guest') {
+        return res.json({ 
+            success: false, 
+            message: 'Login required' 
+        });
+    }
+    
+    if (!usd_amount || usd_amount < 1) {
+        return res.json({ 
+            success: false, 
+            message: 'Minimum 1 USD required' 
+        });
+    }
     
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        if (isNaN(uid)) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
         
         // Check USD balance
         const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
         const usdBalance = parseFloat(r.rows[0]?.usd_balance || 0);
         
         if (usdBalance < usd_amount) {
-            return res.json({ success: false, message: 'Insufficient USD balance' });
+            return res.json({ 
+                success: false, 
+                message: 'Insufficient USD balance' 
+            });
         }
         
-        const mmkAmount = Math.floor(usd_amount * EXCHANGE_RATE);
+        // Calculate amounts
+        const totalServiceFee = TOTAL_FEE * usd_amount;
+        const mmkAmount = FINAL_RATE * usd_amount;
         
         // Deduct USD, Add MMK
         await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id=$2', [usd_amount, uid]);
         await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [mmkAmount, uid]);
         
-        console.log('[EXCHANGE] User:', uid, 'USD:', usd_amount, 'MMK:', mmkAmount);
+        console.log('[EXCHANGE] User:', uid, 'USD:', usd_amount, 'Fee:', totalServiceFee, 'MMK Received:', mmkAmount);
         
-        res.json({ success: true, mmk_received: mmkAmount, rate: EXCHANGE_RATE });
+        res.json({ 
+            success: true, 
+            mmk_received: mmkAmount,
+            service_fee: totalServiceFee,
+            exchange_details: {
+                base_rate: BASE_RATE,
+                transport_fee: TRANSPORT_FEE,
+                internet_fee: INTERNET_FEE,
+                data_transfer_fee: DATA_TRANSFER_FEE,
+                total_fee_per_usd: TOTAL_FEE,
+                final_rate: FINAL_RATE
+            }
+        });
+        
     } catch(e) {
         console.error('[exchange_usd_to_mmk]', e.message);
         res.json({ success: false, message: 'Server error' });
     }
+});
+
+// ==================== GET EXCHANGE RATE INFO ====================
+app.get('/api/exchange_rate_info', async (req, res) => {
+    const BASE_RATE = 3000;
+    const TRANSPORT_FEE = 300;
+    const INTERNET_FEE = 300;
+    const DATA_TRANSFER_FEE = 400;
+    const TOTAL_FEE = TRANSPORT_FEE + INTERNET_FEE + DATA_TRANSFER_FEE;
+    const FINAL_RATE = BASE_RATE - TOTAL_FEE;
+    
+    res.json({
+        success: true,
+        base_rate: BASE_RATE,
+        fees: {
+            transport: TRANSPORT_FEE,
+            internet: INTERNET_FEE,
+            data_transfer: DATA_TRANSFER_FEE,
+            total: TOTAL_FEE
+        },
+        final_rate: FINAL_RATE,
+        min_exchange: 1,
+        max_exchange: 100
+    });
 });
 
 // ==================== SAVE SPIN HISTORY (Legacy) ====================
