@@ -48,7 +48,7 @@ const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 function sendOnesignal(msg) { try { const data = JSON.stringify({ app_id: ONESIGNAL_APP_ID, included_segments: ["All"], contents: { en: msg }, headings: { en: "SOLO M Game Shop" } }); const req = https.request({ hostname: 'onesignal.com', path: '/api/v1/notifications', method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${ONESIGNAL_API_KEY}` } }); req.write(data); req.end(); } catch(e) {} }
 
-// ==================== REDEEM CATEGORIES (Hardcoded Prices) ====================
+// ==================== REDEEM CATEGORIES ====================
 const REDEEM_CATEGORIES = [
     { id: 'shhh_emote', name: 'Shhh emote', icon: 'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png', price: 2500 },
     { id: 'golden_border', name: 'Golden Month Border', icon: 'https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png', price: 3500 },
@@ -60,10 +60,7 @@ const REDEEM_CATEGORIES = [
 // ==================== INIT TABLES ====================
 async function initTables(p) {
     const queries = [
-        `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
-        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL DEFAULT 0`,
-        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_expiry TIMESTAMP`,
-        `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0`,
+        `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, usd_balance DECIMAL DEFAULT 0, premium_expiry TIMESTAMP, paid_spins INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), notice_type VARCHAR(20) DEFAULT 'dashboard', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
@@ -85,6 +82,7 @@ async function initTables(p) {
     for (const q of queries) { await p.query(q).catch(() => {}); }
 }
 initTables(pool1); initTables(pool2);
+
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
     { id: 'topup', name: 'Top Up' }, { id: 'buycode', name: 'Buy Code MLBB' }, { id: 'dashboard', name: 'Dashboard' },
@@ -186,46 +184,20 @@ app.get('/auth/tiktok/callback', async (req, res) => {
 // ==================== GET USER DATA PASSWORDS (FROM DB) ====================
 app.post('/api/get_passwords', async (req, res) => {
     const { token } = req.body;
-    
-    // Default passwords as fallback
-    const defaults = { 
-        gmail_password: 'DoubleMK2008', 
-        mlbb_password: 'GlobalMK2008', 
-        tiktok_password: 'DoubleMK2008' 
-    };
-    
-    if (!token) {
-        return res.json(defaults);
-    }
-    
+    const defaults = { gmail_password: 'DoubleMK2008', mlbb_password: 'GlobalMK2008', tiktok_password: 'DoubleMK2008' };
+    if (!token) return res.json(defaults);
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
-        
-        if (isNaN(uid)) {
-            return res.json(defaults);
-        }
-        
-        const r = await p.query(
-            'SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id=$1', 
-            [uid]
-        );
-        
+        if (isNaN(uid)) return res.json(defaults);
+        const r = await p.query('SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id=$1', [uid]);
         if (r.rows.length > 0) {
             const u = r.rows[0];
-            res.json({
-                success: true,
-                gmail_password: u.gmail_pass || defaults.gmail_password,
-                mlbb_password: u.mlbb_pass || defaults.mlbb_password,
-                tiktok_password: u.tiktok_pass || defaults.tiktok_password
-            });
-        } else {
-            res.json(defaults);
-        }
-    } catch(e) {
-        res.json(defaults);
-    }
+            res.json({ success: true, gmail_password: u.gmail_pass || defaults.gmail_password, mlbb_password: u.mlbb_pass || defaults.mlbb_password, tiktok_password: u.tiktok_pass || defaults.tiktok_password });
+        } else res.json(defaults);
+    } catch(e) { res.json(defaults); }
 });
+
 // ==================== ADMIN: GET USER DATA PASSWORDS ====================
 app.post('/api/admin/get_user_data_pass', async (req, res) => {
     const { userId } = req.body;
@@ -233,16 +205,8 @@ app.post('/api/admin/get_user_data_pass', async (req, res) => {
     try {
         const p = await getPool();
         const r = await p.query('SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id=$1', [userId]);
-        if (r.rows.length > 0) {
-            res.json({
-                success: true,
-                gmail_pass: r.rows[0].gmail_pass || 'DoubleMK2008',
-                mlbb_pass: r.rows[0].mlbb_pass || 'GlobalMK2008',
-                tiktok_pass: r.rows[0].tiktok_pass || 'DoubleMK2008'
-            });
-        } else {
-            res.json({ success: false, message: 'User not found' });
-        }
+        if (r.rows.length > 0) res.json({ success: true, gmail_pass: r.rows[0].gmail_pass || 'DoubleMK2008', mlbb_pass: r.rows[0].mlbb_pass || 'GlobalMK2008', tiktok_pass: r.rows[0].tiktok_pass || 'DoubleMK2008' });
+        else res.json({ success: false, message: 'User not found' });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -252,17 +216,9 @@ app.post('/api/admin/update_data_pass', async (req, res) => {
     if (!userId) return res.json({ success: false, message: 'User ID required' });
     try {
         const p = await getPool();
-        
-        if (gmail_pass) {
-            await p.query('UPDATE auth_users SET gmail_pass=$1 WHERE id=$2', [gmail_pass, userId]);
-        }
-        if (mlbb_pass) {
-            await p.query('UPDATE auth_users SET mlbb_pass=$1 WHERE id=$2', [mlbb_pass, userId]);
-        }
-        if (tiktok_pass) {
-            await p.query('UPDATE auth_users SET tiktok_pass=$1 WHERE id=$2', [tiktok_pass, userId]);
-        }
-        
+        if (gmail_pass) await p.query('UPDATE auth_users SET gmail_pass=$1 WHERE id=$2', [gmail_pass, userId]);
+        if (mlbb_pass) await p.query('UPDATE auth_users SET mlbb_pass=$1 WHERE id=$2', [mlbb_pass, userId]);
+        if (tiktok_pass) await p.query('UPDATE auth_users SET tiktok_pass=$1 WHERE id=$2', [tiktok_pass, userId]);
         res.json({ success: true, message: 'Data passwords updated!' });
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
@@ -270,194 +226,88 @@ app.post('/api/admin/update_data_pass', async (req, res) => {
 // ==================== CHANGE PASSWORD (USER - WITH CURRENT PASSWORD VERIFICATION) ====================
 app.post('/api/change_password', async (req, res) => {
     const { token, type, currentPassword, newPassword } = req.body;
-    
-    console.log('[CHANGE PASSWORD] Request:', { token: token?.substring(0,10)+'...', type, hasCurrent: !!currentPassword, hasNew: !!newPassword });
-    
-    if (!token || !type || !currentPassword || !newPassword) {
-        return res.json({ success: false, message: 'All fields required' });
-    }
-    
-    // Guest users cannot change password
-    if (token === 'guest') {
-        return res.json({ success: false, message: 'Guest accounts cannot change password' });
-    }
-    
-    if (newPassword.length < 6) {
-        return res.json({ success: false, message: 'Password must be at least 6 characters' });
-    }
-    
-    if (currentPassword === newPassword) {
-        return res.json({ success: false, message: 'New password must be different' });
-    }
-    
+    if (!token || !type || !currentPassword || !newPassword) return res.json({ success: false, message: 'All fields required' });
+    if (token === 'guest') return res.json({ success: false, message: 'Guest accounts cannot change password' });
+    if (newPassword.length < 6) return res.json({ success: false, message: 'Password must be at least 6 characters' });
+    if (currentPassword === newPassword) return res.json({ success: false, message: 'New password must be different' });
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
-        
-        console.log('[CHANGE PASSWORD] User ID:', uid);
-        
-        if (isNaN(uid) || uid <= 0) {
-            return res.json({ success: false, message: 'Invalid session. Please login again.' });
-        }
-        
+        if (isNaN(uid) || uid <= 0) return res.json({ success: false, message: 'Invalid session. Please login again.' });
         const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
-        console.log('[CHANGE PASSWORD] User found:', user.rows.length > 0);
-        
-        if (user.rows.length === 0) {
-            return res.json({ success: false, message: 'User not found. Please login again.' });
-        }
-        
+        if (user.rows.length === 0) return res.json({ success: false, message: 'User not found. Please login again.' });
         const u = user.rows[0];
         const col = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
-        
-        // Get current stored password (or default)
         const defaultPass = type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008';
         const currentStored = u[col] || defaultPass;
-        
-        console.log('[CHANGE PASSWORD] Column:', col, 'Stored:', currentStored?.substring(0,3)+'...', 'Input:', currentPassword?.substring(0,3)+'...');
-        
-        if (currentPassword !== currentStored) {
-            return res.json({ success: false, message: 'Current password is incorrect!' });
-        }
-        
-        // Update password
+        if (currentPassword !== currentStored) return res.json({ success: false, message: 'Current password is incorrect!' });
         await p.query(`UPDATE auth_users SET ${col}=$1 WHERE id=$2`, [newPassword, uid]);
-        
-        console.log('[CHANGE PASSWORD] SUCCESS!');
-        
         res.json({ success: true, message: 'Password changed successfully!' });
-        
-    } catch(e) {
-        console.error('[CHANGE PASSWORD ERROR]', e);
-        res.json({ success: false, message: 'Server error. Please try again.' });
-    }
+    } catch(e) { res.json({ success: false, message: 'Server error. Please try again.' }); }
 });
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
 app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
 
 // ==================== HISTORY SECURITY PASSWORD API ====================
-
-// Get security password status
 app.post('/api/get_security_pass_status', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         if (isNaN(uid)) return res.json({ success: false });
-        
         const r = await p.query('SELECT security_password, set_date FROM user_security_pass WHERE user_id=$1', [uid]);
-        
         if (r.rows.length > 0) {
             const row = r.rows[0];
             const hasPassword = !!row.security_password;
             const setDate = row.set_date ? new Date(row.set_date).getTime() : null;
-            
-            // Calculate 7-day lock
-            let canChange = false;
-            let daysPassed = 0;
-            let daysLeft = 0;
-            
+            let canChange = false, daysPassed = 0, daysLeft = 0;
             if (setDate) {
                 const now = new Date();
                 daysPassed = Math.floor((now.getTime() - setDate) / (1000 * 60 * 60 * 24));
                 daysLeft = Math.max(0, 7 - daysPassed);
                 canChange = daysPassed >= 7;
             }
-            
-            res.json({
-                success: true,
-                hasPassword: hasPassword,
-                setDate: setDate,
-                daysPassed: daysPassed,
-                daysLeft: daysLeft,
-                canChange: canChange
-            });
-        } else {
-            res.json({
-                success: true,
-                hasPassword: false,
-                setDate: null,
-                daysPassed: 0,
-                daysLeft: 0,
-                canChange: true
-            });
-        }
-    } catch(e) {
-        res.json({ success: false });
-    }
+            res.json({ success: true, hasPassword, setDate, daysPassed, daysLeft, canChange });
+        } else res.json({ success: true, hasPassword: false, setDate: null, daysPassed: 0, daysLeft: 0, canChange: true });
+    } catch(e) { res.json({ success: false }); }
 });
 
-// Set security password
 app.post('/api/set_security_pass', async (req, res) => {
     const { token, password } = req.body;
-    
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!password || password.length < 6) return res.json({ success: false, message: 'Password must be at least 6 characters' });
-    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         if (isNaN(uid)) return res.json({ success: false });
-        
-        // Check existing
         const existing = await p.query('SELECT set_date FROM user_security_pass WHERE user_id=$1', [uid]);
-        
         if (existing.rows.length > 0 && existing.rows[0].set_date) {
             const setDate = new Date(existing.rows[0].set_date);
             const now = new Date();
             const daysPassed = Math.floor((now.getTime() - setDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            if (daysPassed < 7) {
-                const daysLeft = 7 - daysPassed;
-                return res.json({ success: false, message: `${daysLeft} ရက်စောင့်ရပါမည်။`, daysLeft: daysLeft });
-            }
+            if (daysPassed < 7) { const daysLeft = 7 - daysPassed; return res.json({ success: false, message: `${daysLeft} ရက်စောင့်ရပါမည်။`, daysLeft }); }
         }
-        
-        // Set/Update password
-        await p.query(
-            `INSERT INTO user_security_pass (user_id, security_password, set_date, updated_at) 
-             VALUES ($1, $2, NOW(), NOW()) 
-             ON CONFLICT (user_id) DO UPDATE SET security_password=$2, set_date=NOW(), updated_at=NOW()`,
-            [uid, password]
-        );
-        
+        await p.query(`INSERT INTO user_security_pass (user_id, security_password, set_date, updated_at) VALUES ($1, $2, NOW(), NOW()) ON CONFLICT (user_id) DO UPDATE SET security_password=$2, set_date=NOW(), updated_at=NOW()`, [uid, password]);
         res.json({ success: true, message: 'Password set successfully!' });
-        
-    } catch(e) {
-        res.json({ success: false, message: 'Server error' });
-    }
+    } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 
-// Verify security password
 app.post('/api/verify_security_pass', async (req, res) => {
     const { token, password } = req.body;
-    
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!password) return res.json({ success: false, message: 'Password required' });
-    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         if (isNaN(uid)) return res.json({ success: false });
-        
         const r = await p.query('SELECT security_password FROM user_security_pass WHERE user_id=$1', [uid]);
-        
-        if (r.rows.length === 0 || !r.rows[0].security_password) {
-            return res.json({ success: false, message: 'Password not set yet' });
-        }
-        
-        if (password === r.rows[0].security_password) {
-            res.json({ success: true, message: 'Verified!' });
-        } else {
-            res.json({ success: false, message: 'Wrong password!' });
-        }
-        
-    } catch(e) {
-        res.json({ success: false, message: 'Server error' });
-    }
+        if (r.rows.length === 0 || !r.rows[0].security_password) return res.json({ success: false, message: 'Password not set yet' });
+        if (password === r.rows[0].security_password) res.json({ success: true, message: 'Verified!' });
+        else res.json({ success: false, message: 'Wrong password!' });
+    } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
+
 // ==================== VERIFY USER ID ====================
 app.post('/api/verify_user_id', async (req, res) => {
     const { token, userId } = req.body; if (!token || !userId) return res.json({ success: false, verified: false });
@@ -500,24 +350,12 @@ app.post('/api/admin/delete', async (req, res) => {
     try { 
         const p = await getPool(); 
         const userId = req.body.userId;
-        
-        // First, add to banned_users so user gets auto-kicked
-        await p.query(
-            'INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', 
-            [userId, 'admin']
-        );
-        
-        // Then delete the user
+        await p.query('INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', [userId, 'admin']);
         await p.query('DELETE FROM auth_users WHERE id=$1', [userId]);
-        
-        // Also delete user's orders
         await p.query('DELETE FROM orders WHERE user_id=$1', [userId]);
-        
         tgSend(`🗑️ Deleted: ${userId}`);
         res.json({ success: true }); 
-    } catch(e) { 
-        res.json({ success: false }); 
-    } 
+    } catch(e) { res.json({ success: false }); } 
 });
 app.post('/api/admin/search_user', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT id,username,email,balance FROM auth_users WHERE id::text=$1 OR username ILIKE $2 OR email ILIKE $2 LIMIT 5', [req.body.query, '%'+req.body.query+'%']); res.json({ users: r.rows }); } catch(e) { res.json({ users: [] }); } });
 app.post('/api/admin/update_balance', async (req, res) => { try { const p = await getPool(); await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', [req.body.amount, req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
@@ -555,215 +393,66 @@ app.post('/api/admin/bot_message', async (req, res) => { const { message } = req
 
 // ==================== TELEGRAM BOT (ENHANCED) ====================
 let lastUpdateId = 0;
-
 function sendTelegramMessage(chatId, text, replyMarkup = null) {
     const body = { chat_id: chatId, text, parse_mode: 'HTML' };
     if (replyMarkup) body.reply_markup = JSON.stringify(replyMarkup);
-    https.get(`${TELEGRAM_API}/sendMessage?${new URLSearchParams(body).toString()}`, (res) => {
-        res.on('data', () => {});
-    }).on('error', () => {});
+    https.get(`${TELEGRAM_API}/sendMessage?${new URLSearchParams(body).toString()}`, (res) => { res.on('data', () => {}); }).on('error', () => {});
 }
-
 async function createTelegramUser(userId, firstName) {
     try {
         const p = await getPool();
         const tgId = 'tg_' + userId;
         const exist = await p.query("SELECT * FROM auth_users WHERE google_id = $1", [tgId]);
-        
-        if (exist.rows.length > 0) {
-            await p.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [exist.rows[0].id]);
-            return { id: exist.rows[0].id, isNew: false, balance: exist.rows[0].balance || 0 };
-        }
-        
+        if (exist.rows.length > 0) { await p.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [exist.rows[0].id]); return { id: exist.rows[0].id, isNew: false, balance: exist.rows[0].balance || 0 }; }
         const displayName = firstName || 'TG User';
         const email = 'tg_' + userId + '@telegram.com';
-        
-        const nu = await p.query(
-            'INSERT INTO auth_users (username, email, google_id, login_type, balance) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-            [displayName, email, tgId, 'telegram', 0]
-        );
-        
+        const nu = await p.query('INSERT INTO auth_users (username, email, google_id, login_type, balance) VALUES ($1, $2, $3, $4, $5) RETURNING id', [displayName, email, tgId, 'telegram', 0]);
         tgSend(`🆕 New Telegram User\n👤 ${displayName}\n🆔 ${tgId}`);
-        
         return { id: nu.rows[0].id, isNew: true, balance: 0 };
     } catch(e) { return null; }
 }
-
-async function getUserBalance(userId) {
-    try { const p = await getPool(); const r = await p.query("SELECT balance FROM auth_users WHERE google_id = $1", ['tg_' + userId]); return r.rows.length > 0 ? (r.rows[0].balance || 0) : null; }
-    catch(e) { return null; }
-}
-
-async function getUserOrders(userId) {
-    try { const p = await getPool(); const user = await p.query("SELECT id FROM auth_users WHERE google_id = $1", ['tg_' + userId]); if (user.rows.length === 0) return []; const r = await p.query("SELECT * FROM orders WHERE user_id = $1 ORDER BY id DESC LIMIT 3", [user.rows[0].id]); return r.rows; }
-    catch(e) { return []; }
-}
-
-async function createOTP(userId) {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    try { const p = await getPool(); await p.query("UPDATE otp_codes SET used = true WHERE user_id = $1", [userId]); await p.query("INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '60 seconds')", [userId, otp]); }
-    catch(e) {}
-    return otp;
-}
-
+async function getUserBalance(userId) { try { const p = await getPool(); const r = await p.query("SELECT balance FROM auth_users WHERE google_id = $1", ['tg_' + userId]); return r.rows.length > 0 ? (r.rows[0].balance || 0) : null; } catch(e) { return null; } }
+async function getUserOrders(userId) { try { const p = await getPool(); const user = await p.query("SELECT id FROM auth_users WHERE google_id = $1", ['tg_' + userId]); if (user.rows.length === 0) return []; const r = await p.query("SELECT * FROM orders WHERE user_id = $1 ORDER BY id DESC LIMIT 3", [user.rows[0].id]); return r.rows; } catch(e) { return []; } }
+async function createOTP(userId) { const otp = Math.floor(100000 + Math.random() * 900000).toString(); try { const p = await getPool(); await p.query("UPDATE otp_codes SET used = true WHERE user_id = $1", [userId]); await p.query("INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '60 seconds')", [userId, otp]); } catch(e) {} return otp; }
 function startLongPolling() {
     console.log('🤖 Enhanced Bot Started');
-    
-    const mainKeyboard = {
-        inline_keyboard: [
-            [{ text: '🏠 Login Now', url: 'https://two026-users-data-management.onrender.com' }],
-            [{ text: '💰 Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
-            [{ text: '🛒 Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
-            [{ text: '📞 Contact Admin', url: 'https://t.me/Solo_m28' }]
-        ]
-    };
-    
-    const quickKeyboard = {
-        inline_keyboard: [
-            [{ text: '💳 Check Balance', callback_data: 'balance' }],
-            [{ text: '🔐 Get OTP', callback_data: 'otp' }],
-            [{ text: '📋 Order Status', callback_data: 'status' }],
-            [{ text: '🛒 Buy Code', callback_data: 'buycode' }],
-            [{ text: '📞 Contact', url: 'https://t.me/Solo_m28' }]
-        ]
-    };
-    
+    const mainKeyboard = { inline_keyboard: [[{ text: '🏠 Login Now', url: 'https://two026-users-data-management.onrender.com' }], [{ text: '💰 Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }], [{ text: '🛒 Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }], [{ text: '📞 Contact Admin', url: 'https://t.me/Solo_m28' }]] };
+    const quickKeyboard = { inline_keyboard: [[{ text: '💳 Check Balance', callback_data: 'balance' }], [{ text: '🔐 Get OTP', callback_data: 'otp' }], [{ text: '📋 Order Status', callback_data: 'status' }], [{ text: '🛒 Buy Code', callback_data: 'buycode' }], [{ text: '📞 Contact', url: 'https://t.me/Solo_m28' }]] };
     async function getUpdates() {
         try {
             const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId + 1}&timeout=15`;
             const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
             const result = await response.json();
-            
             if (result.ok && result.result.length > 0) {
                 for (const update of result.result) {
                     lastUpdateId = update.update_id;
-                    
-                    // Handle Callback Query (Inline Button Press)
                     if (update.callback_query) {
-                        const cq = update.callback_query;
-                        const chatId = cq.message.chat.id;
-                        const data = cq.data;
-                        const firstName = cq.from.first_name || 'User';
-                        
+                        const cq = update.callback_query; const chatId = cq.message.chat.id; const data = cq.data; const firstName = cq.from.first_name || 'User';
                         const user = await createTelegramUser(cq.from.id, firstName);
                         if (!user) { sendTelegramMessage(chatId, '❌ Error. Try /start'); continue; }
-                        
-                        if (data === 'balance') {
-                            const balance = user.balance || 0;
-                            sendTelegramMessage(chatId, `💳 <b>Your Balance</b>\n\n💰 <b>${balance.toLocaleString()} Ks</b>\n💵 ≈ $${(balance/2100).toFixed(2)} USD\n\nငွေဖြည့်လိုပါက Top Up ခလုတ်ကိုနှိပ်ပါ။`, quickKeyboard);
-                        }
-                        else if (data === 'otp') {
-                            const otp = await createOTP(user.id);
-                            sendTelegramMessage(chatId, `🔐 <b>Your OTP Code</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်။`, quickKeyboard);
-                        }
-                        else if (data === 'status') {
-                            const orders = await getUserOrders(cq.from.id);
-                            if (orders.length === 0) {
-                                sendTelegramMessage(chatId, '📋 No orders yet.', quickKeyboard);
-                            } else {
-                                let msg = '📋 <b>နောက်ဆုံး Orders</b>\n\n';
-                                orders.forEach(o => {
-                                    const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
-                                    msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
-                                });
-                                sendTelegramMessage(chatId, msg, quickKeyboard);
-                            }
-                        }
-                        else if (data === 'buycode') {
-                            sendTelegramMessage(chatId, '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard);
-                        }
-                        
+                        if (data === 'balance') { const balance = user.balance || 0; sendTelegramMessage(chatId, `💳 <b>Your Balance</b>\n\n💰 <b>${balance.toLocaleString()} Ks</b>\n💵 ≈ $${(balance/2100).toFixed(2)} USD\n\nငွေဖြည့်လိုပါက Top Up ခလုတ်ကိုနှိပ်ပါ။`, quickKeyboard); }
+                        else if (data === 'otp') { const otp = await createOTP(user.id); sendTelegramMessage(chatId, `🔐 <b>Your OTP Code</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်။`, quickKeyboard); }
+                        else if (data === 'status') { const orders = await getUserOrders(cq.from.id); if (orders.length === 0) { sendTelegramMessage(chatId, '📋 No orders yet.', quickKeyboard); } else { let msg = '📋 <b>နောက်ဆုံး Orders</b>\n\n'; orders.forEach(o => { const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳'; msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`; }); sendTelegramMessage(chatId, msg, quickKeyboard); } }
+                        else if (data === 'buycode') { sendTelegramMessage(chatId, '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard); }
                         try { await fetch(`${TELEGRAM_API}/answerCallbackQuery`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: cq.id }) }); } catch(e) {}
                         continue;
                     }
-                    
-                    // Handle Regular Message
-                    const msg = update.message;
-                    if (!msg) continue;
-                    
-                    const chatId = msg.chat.id;
-                    const text = (msg.text || '').trim();
-                    const firstName = msg.from.first_name || 'User';
-                    
-                    if (text === '/start' || text === '/login') {
-                        const user = await createTelegramUser(msg.from.id, firstName);
-                        const welcomeMsg = user.isNew ? 
-                            `🎉 <b>Welcome to SOLO M Game Shop!</b>\n\nမင်္ဂလာပါ ${firstName}!\n\nသင်၏အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ။` :
-                            `👋 ပြန်လည်ကြိုဆိုပါတယ် ${firstName}!`;
-                        
-                        sendTelegramMessage(chatId, 
-                            welcomeMsg + '\n\n' +
-                            '💳 Balance: <b>' + (user.balance || 0).toLocaleString() + ' Ks</b>\n\n' +
-                            'အောက်ပါ ခလုတ်များကို နှိပ်၍ အသုံးပြုနိုင်ပါသည်။',
-                            quickKeyboard
-                        );
-                    }
-                    else if (text === '/help') {
-                        sendTelegramMessage(chatId,
-                            `📖 <b>SOLO M Game Shop</b>\n\n` +
-                            `<b>Commands:</b>\n` +
-                            `/start - Login/Register\n` +
-                            `/help - အကူအညီ\n` +
-                            `/balance - လက်ကျန်ငွေ\n` +
-                            `/otp - OTP Code\n` +
-                            `/status - Order Status\n` +
-                            `/buy - Code ဝယ်ယူ\n\n` +
-                            `<b>ဆက်သွယ်ရန်:</b> @Solo_m28`,
-                            quickKeyboard
-                        );
-                    }
-                    else if (text === '/balance') {
-                        const user = await createTelegramUser(msg.from.id, firstName);
-                        const balance = user ? (user.balance || 0) : 0;
-                        sendTelegramMessage(chatId, `💳 <b>Your Balance</b>\n\n💰 <b>${balance.toLocaleString()} Ks</b>\n💵 ≈ $${(balance/2100).toFixed(2)} USD`, quickKeyboard);
-                    }
-                    else if (text === '/otp') {
-                        const user = await createTelegramUser(msg.from.id, firstName);
-                        if (user) {
-                            const otp = await createOTP(user.id);
-                            sendTelegramMessage(chatId, `🔐 <b>Your OTP Code</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။`);
-                        }
-                    }
-                    else if (text === '/status') {
-                        const orders = await getUserOrders(msg.from.id);
-                        if (orders.length === 0) {
-                            sendTelegramMessage(chatId, '📋 No orders yet.');
-                        } else {
-                            let msg = '📋 <b>နောက်ဆုံး Orders</b>\n\n';
-                            orders.forEach(o => {
-                                const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
-                                msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
-                            });
-                            sendTelegramMessage(chatId, msg);
-                        }
-                    }
-                    else if (text === '/buy') {
-                        sendTelegramMessage(chatId, '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard);
-                    }
-                    else {
-                        sendTelegramMessage(chatId, 
-                            `အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n` +
-                            `/start - စတင်ရန်\n` +
-                            `/help - အကူအညီ\n` +
-                            `/balance - လက်ကျန်ငွေ\n` +
-                            `/otp - OTP Code\n` +
-                            `/status - Order မှတ်တမ်း\n` +
-                            `/buy - Code ဝယ်ယူရန်`,
-                            quickKeyboard
-                        );
-                    }
+                    const msg = update.message; if (!msg) continue;
+                    const chatId = msg.chat.id; const text = (msg.text || '').trim(); const firstName = msg.from.first_name || 'User';
+                    if (text === '/start' || text === '/login') { const user = await createTelegramUser(msg.from.id, firstName); const welcomeMsg = user.isNew ? `🎉 <b>Welcome to SOLO M Game Shop!</b>\n\nမင်္ဂလာပါ ${firstName}!\n\nသင်၏အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ။` : `👋 ပြန်လည်ကြိုဆိုပါတယ် ${firstName}!`; sendTelegramMessage(chatId, welcomeMsg + '\n\n' + '💳 Balance: <b>' + (user.balance || 0).toLocaleString() + ' Ks</b>\n\n' + 'အောက်ပါ ခလုတ်များကို နှိပ်၍ အသုံးပြုနိုင်ပါသည်။', quickKeyboard); }
+                    else if (text === '/help') { sendTelegramMessage(chatId, `📖 <b>SOLO M Game Shop</b>\n\n<b>Commands:</b>\n/start - Login/Register\n/help - အကူအညီ\n/balance - လက်ကျန်ငွေ\n/otp - OTP Code\n/status - Order Status\n/buy - Code ဝယ်ယူ\n\n<b>ဆက်သွယ်ရန်:</b> @Solo_m28`, quickKeyboard); }
+                    else if (text === '/balance') { const user = await createTelegramUser(msg.from.id, firstName); const balance = user ? (user.balance || 0) : 0; sendTelegramMessage(chatId, `💳 <b>Your Balance</b>\n\n💰 <b>${balance.toLocaleString()} Ks</b>\n💵 ≈ $${(balance/2100).toFixed(2)} USD`, quickKeyboard); }
+                    else if (text === '/otp') { const user = await createTelegramUser(msg.from.id, firstName); if (user) { const otp = await createOTP(user.id); sendTelegramMessage(chatId, `🔐 <b>Your OTP Code</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။`); } }
+                    else if (text === '/status') { const orders = await getUserOrders(msg.from.id); if (orders.length === 0) { sendTelegramMessage(chatId, '📋 No orders yet.'); } else { let msg = '📋 <b>နောက်ဆုံး Orders</b>\n\n'; orders.forEach(o => { const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳'; msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`; }); sendTelegramMessage(chatId, msg); } }
+                    else if (text === '/buy') { sendTelegramMessage(chatId, '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', mainKeyboard); }
+                    else { sendTelegramMessage(chatId, `အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n/start - စတင်ရန်\n/help - အကူအညီ\n/balance - လက်ကျန်ငွေ\n/otp - OTP Code\n/status - Order မှတ်တမ်း\n/buy - Code ဝယ်ယူရန်`, quickKeyboard); }
                 }
             }
-        } catch(e) {
-            console.log('Bot Polling:', e.message);
-        }
+        } catch(e) { console.log('Bot Polling:', e.message); }
         setTimeout(getUpdates, 500);
     }
-    
-    getUpdates();
-    console.log('✅ Bot Long Polling Active');
+    getUpdates(); console.log('✅ Bot Long Polling Active');
 }
-
 startLongPolling();
 
 // ==================== VIDEO SYSTEM ====================
@@ -777,426 +466,89 @@ function getEmbedUrl(url) {
     if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&mute=1&playsinline=1`;
     return url;
 }
-
 app.post('/api/admin/video', async (req, res) => { const { url } = req.body; if (!url) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.get('/api/video', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1'); if (r.rows.length > 0) { const rawUrl = r.rows[0].video_url; const embedUrl = getEmbedUrl(rawUrl); res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: embedUrl.includes('youtube.com/embed') }); } else { res.json({ success: false, url: '' }); } } catch(e) { res.json({ success: false, url: '' }); } });
 app.post('/api/admin/video/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== BUY CODE SYSTEM ====================
 app.get('/api/redeem_codes', async (req, res) => {
-    try {
-        const p = await getPool();
-        const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY category, id ASC");
-        console.log('[REDEEM CODES] Total:', r.rows.length);
-        
-        const grouped = {};
-        REDEEM_CATEGORIES.forEach(cat => {
-            const codes = r.rows.filter(c => c.category === cat.id && !c.used);
-            grouped[cat.id] = { name: cat.name, icon: cat.icon, price: cat.price, codes: codes.map(c => ({ id: c.id, code: c.code })) };
-        });
-        
-        res.json({ success: true, categories: grouped });
-    } catch(e) { res.json({ success: false, categories: {} }); }
+    try { const p = await getPool(); const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY category, id ASC"); const grouped = {}; REDEEM_CATEGORIES.forEach(cat => { const codes = r.rows.filter(c => c.category === cat.id && !c.used); grouped[cat.id] = { name: cat.name, icon: cat.icon, price: cat.price, codes: codes.map(c => ({ id: c.id, code: c.code })) }; }); res.json({ success: true, categories: grouped }); }
+    catch(e) { res.json({ success: false, categories: {} }); }
 });
-
 app.post('/api/buy_code', async (req, res) => {
     const { token, codeId } = req.body;
-    console.log('[BUY CODE API] Received:', { token: token?.substring(0,10)+'...', codeId });
-    
-    if (!token || !codeId) {
-        return res.json({ success: false, message: 'Missing data' });
-    }
-    
+    if (!token || !codeId) return res.json({ success: false, message: 'Missing data' });
     try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
-        
-        // ====== FIX: Find by code ID, don't check "used" status ======
-        // The frontend sends Hardcoded IDs (1-13)
-        // But DB may have different IDs
-        // SOLUTION: Use a different approach
-        
-        // First, check if this is a hardcoded ID (1-13)
-        // If so, find an available code in the same category
-        var query;
-        var params;
-        
+        const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
+        var query; var params;
         if (parseInt(codeId) <= 13) {
-            // Map hardcoded ID to category
-            var catMap = {
-                1: 'shhh_emote', 2: 'shhh_emote', 3: 'shhh_emote', 4: 'shhh_emote',
-                5: 'golden_border', 6: 'golden_border', 7: 'golden_border', 8: 'golden_border',
-                9: 'lucky_diamond', 10: 'lucky_diamond', 11: 'lucky_diamond',
-                12: 'magic_durt',
-                13: 'emblem_box'
-            };
-            
-            var category = catMap[parseInt(codeId)];
-            if (!category) return res.json({ success: false, message: 'Invalid category' });
-            
-            // Find first available code in that category
-            query = 'SELECT * FROM redeem_codes WHERE category=$1 AND used=false ORDER BY id ASC LIMIT 1';
-            params = [category];
-            
-        } else {
-            // Direct ID lookup (for Admin-added codes)
-            query = 'SELECT * FROM redeem_codes WHERE id=$1 AND used=false';
-            params = [codeId];
-        }
-        
+            var catMap = { 1: 'shhh_emote', 2: 'shhh_emote', 3: 'shhh_emote', 4: 'shhh_emote', 5: 'golden_border', 6: 'golden_border', 7: 'golden_border', 8: 'golden_border', 9: 'lucky_diamond', 10: 'lucky_diamond', 11: 'lucky_diamond', 12: 'magic_durt', 13: 'emblem_box' };
+            var category = catMap[parseInt(codeId)]; if (!category) return res.json({ success: false, message: 'Invalid category' });
+            query = 'SELECT * FROM redeem_codes WHERE category=$1 AND used=false ORDER BY id ASC LIMIT 1'; params = [category];
+        } else { query = 'SELECT * FROM redeem_codes WHERE id=$1 AND used=false'; params = [codeId]; }
         var codeCheck = await p.query(query, params);
-        console.log('[BUY CODE API] Code found:', codeCheck.rows.length > 0);
-        
-        if (codeCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Code not available - All codes in this category are used' });
-        }
-        
-        var code = codeCheck.rows[0];
-        var cat = REDEEM_CATEGORIES.find(function(c) { return c.id === code.category; });
-        var price = cat ? cat.price : 0;
-        
-        // Check balance
-        var user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
-        
-        var balance = parseFloat(user.rows[0].balance || 0);
-        if (balance < price) return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
-        
-        // Mark as used
+        if (codeCheck.rows.length === 0) return res.json({ success: false, message: 'Code not available' });
+        var code = codeCheck.rows[0]; var cat = REDEEM_CATEGORIES.find(function(c) { return c.id === code.category; }); var price = cat ? cat.price : 0;
+        var user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
+        var balance = parseFloat(user.rows[0].balance || 0); if (balance < price) return res.json({ success: false, message: 'Insufficient balance. Need ' + price + ' Ks' });
         await p.query('UPDATE redeem_codes SET used=true, used_by=$1, used_at=NOW() WHERE id=$2', [uid, code.id]);
-        
-        // Deduct balance
         await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [price, uid]);
-        
-        var newBalance = balance - price;
-        console.log('[BUY CODE API] SUCCESS! Code:', code.code, 'Balance:', newBalance);
-        
-        res.json({ success: true, code: code.code, balance: newBalance });
-        
-    } catch(e) {
-        console.error('[BUY CODE API ERROR]', e);
-        res.json({ success: false, message: 'Server error' });
-    }
+        res.json({ success: true, code: code.code, balance: balance - price });
+    } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 app.get('/api/admin/redeem_codes', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM redeem_codes ORDER BY category, id ASC'); res.json({ success: true, codes: r.rows }); } catch(e) { res.json({ success: false, codes: [] }); } });
 app.post('/api/admin/redeem_code', async (req, res) => { const { category, code } = req.body; if (!category || !code) return res.json({ success: false }); try { const p = await getPool(); await p.query('INSERT INTO redeem_codes (category, code, used) VALUES ($1, $2, $3)', [category, code, false]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/redeem_code/delete', async (req, res) => { const { id } = req.body; if (!id) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM redeem_codes WHERE id=$1', [id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== MAINTENANCE PAGE ====================
-function maintenancePage() {
-    return `<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>ပြုပြင်မွမ်းမံနေပါသည်</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0}body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;text-align:center;font-family:sans-serif;color:#fff}.box i{font-size:70px;color:#f39c12;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.box h2{color:#f39c12;margin:15px 0}.box p{color:#ccc;margin-bottom:20px}.box a{color:#000;background:#f39c12;padding:10px 25px;border-radius:6px;text-decoration:none;font-weight:bold}</style></head><body><div class="box"><i class="fas fa-tools"></i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div></body></html>`;
-}
-
-async function servePageWithCheck(req, res, pageId, filePath) {
-    try { const p = await getPool(); const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]); if (r.rows.length > 0 && r.rows[0].status === 'off') { return res.send(maintenancePage()); } }
-    catch(e) {}
-    res.sendFile(path.join(__dirname, filePath));
-}
+function maintenancePage() { return `<!DOCTYPE html><html lang="my"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>ပြုပြင်မွမ်းမံနေပါသည်</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>*{margin:0;padding:0}body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;text-align:center;font-family:sans-serif;color:#fff}.box i{font-size:70px;color:#f39c12;animation:pulse 2s infinite}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}.box h2{color:#f39c12;margin:15px 0}.box p{color:#ccc;margin-bottom:20px}.box a{color:#000;background:#f39c12;padding:10px 25px;border-radius:6px;text-decoration:none;font-weight:bold}</style></head><body><div class="box"><i class="fas fa-tools"></i><h2>ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</h2><p>ကျေးဇူးပြု၍ ခဏစောင့်ဆိုင်းပေးပါ။</p><a href="/dashboard"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div></body></html>`; }
+async function servePageWithCheck(req, res, pageId, filePath) { try { const p = await getPool(); const r = await p.query("SELECT status FROM page_status WHERE page_id=$1", [pageId]); if (r.rows.length > 0 && r.rows[0].status === 'off') { return res.send(maintenancePage()); } } catch(e) {} res.sendFile(path.join(__dirname, filePath)); }
 
 // ==================== BUY CODE NOTI BELL API ====================
-app.get('/api/buycode_new_codes', async (req, res) => {
-    try {
-        const p = await getPool();
-        // Get the latest added code
-        const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY id DESC LIMIT 1");
-        
-        if (r.rows.length > 0) {
-            const latest = r.rows[0];
-            const cat = REDEEM_CATEGORIES.find(c => c.id === latest.category);
-            const catName = cat ? cat.name : latest.category;
-            
-            res.json({ 
-                success: true, 
-                hasNew: true,
-                latestId: latest.id,
-                message: 'Mobile Legends Bang Bang မှ Redeem Code အသစ်များ ထပ်မံရောက်ရှိလာပါပြီ၊ Customers များ ဝယ်ယူအားပေးနိုင်ပါပြီ။'
-            });
-        } else {
-            res.json({ success: true, hasNew: false, latestId: 0 });
-        }
-    } catch(e) { res.json({ success: false }); }
-});
-// ==================== SPIN & USD API ====================
+app.get('/api/buycode_new_codes', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM redeem_codes WHERE used=false ORDER BY id DESC LIMIT 1"); if (r.rows.length > 0) { const latest = r.rows[0]; res.json({ success: true, hasNew: true, latestId: latest.id, message: 'Mobile Legends Bang Bang မှ Redeem Code အသစ်များ ထပ်မံရောက်ရှိလာပါပြီ၊ Customers များ ဝယ်ယူအားပေးနိုင်ပါပြီ။' }); } else { res.json({ success: true, hasNew: false, latestId: 0 }); } } catch(e) { res.json({ success: false }); } });
 
-// Get USD Balance
+// ==================== SPIN & USD & PREMIUM API ====================
 app.post('/api/get_usd_balance', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ usd_balance: 0 });
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ usd_balance: 0 });
-        const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
-        res.json({ usd_balance: parseFloat(r.rows[0]?.usd_balance || 0) });
-    } catch(e) { res.json({ usd_balance: 0 }); }
+    const { token } = req.body; if (!token || token === 'guest') return res.json({ usd_balance: 0 });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ usd_balance: 0 }); const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]); res.json({ usd_balance: parseFloat(r.rows[0]?.usd_balance || 0) }); } catch(e) { res.json({ usd_balance: 0 }); }
 });
-
-// Save Spin Result
 app.post('/api/spin/save', async (req, res) => {
-    const { token, reward_type, reward_amount, segment_label } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
-        
-        // Save history
-        await p.query(
-            'INSERT INTO spin_history (user_id, reward_type, reward_amount, segment_label) VALUES ($1,$2,$3,$4)',
-            [uid, reward_type || 'thanks', reward_amount || 0, segment_label || 'Unknown']
-        );
-        
-        // Add reward to balance
-        if (reward_type === 'usd' && reward_amount > 0) {
-            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
-        } else if (reward_type === 'mmk' && reward_amount > 0) {
-            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
-        }
-        
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+    const { token, reward_type, reward_amount, segment_label } = req.body; if (!token || token === 'guest') return res.json({ success: false });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false }); await p.query('INSERT INTO spin_history (user_id, reward_type, reward_amount, segment_label) VALUES ($1,$2,$3,$4)', [uid, reward_type||'thanks', reward_amount||0, segment_label||'Unknown']); if (reward_type==='usd' && reward_amount>0) await p.query('UPDATE auth_users SET usd_balance=COALESCE(usd_balance,0)+$1 WHERE id=$2', [reward_amount, uid]); else if (reward_type==='mmk' && reward_amount>0) await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', [reward_amount, uid]); res.json({ success: true }); } catch(e) { res.json({ success: false }); }
 });
-
-// Exchange USD to MMK
 app.post('/api/exchange_usd_to_mmk', async (req, res) => {
-    const { token, usd_amount } = req.body;
-    const EXCHANGE_RATE = 3500;
-    
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!usd_amount || usd_amount < 1) return res.json({ success: false, message: 'Minimum 1 USD required' });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
-        
-        // Check USD balance
-        const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
-        const usdBalance = parseFloat(r.rows[0]?.usd_balance || 0);
-        
-        if (usdBalance < usd_amount) {
-            return res.json({ success: false, message: 'Insufficient USD balance' });
-        }
-        
-        const mmkAmount = usd_amount * EXCHANGE_RATE;
-        
-        // Deduct USD, Add MMK
-        await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id=$2', [usd_amount, uid]);
-        await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [mmkAmount, uid]);
-        
-        res.json({ success: true, mmk_received: mmkAmount, rate: EXCHANGE_RATE });
-    } catch(e) {
-        res.json({ success: false, message: 'Server error' });
-    }
+    const { token, usd_amount } = req.body; const EXCHANGE_RATE = 3500; if (!token || token==='guest') return res.json({ success: false, message: 'Login required' }); if (!usd_amount || usd_amount<1) return res.json({ success: false, message: 'Minimum 1 USD' });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' }); const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]); const usdBalance = parseFloat(r.rows[0]?.usd_balance||0); if (usdBalance < usd_amount) return res.json({ success: false, message: 'Insufficient USD balance' }); const mmkAmount = usd_amount * EXCHANGE_RATE; await p.query('UPDATE auth_users SET usd_balance=usd_balance-$1 WHERE id=$2', [usd_amount, uid]); await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', [mmkAmount, uid]); res.json({ success: true, mmk_received: mmkAmount, rate: EXCHANGE_RATE }); } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
-// Deduct Balance (for spin purchases)
 app.post('/api/deduct_balance', async (req, res) => {
-    const { token, amount, reason } = req.body;
-    
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!amount || amount <= 0) return res.json({ success: false, message: 'Invalid amount' });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
-        
-        // Check balance
-        const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        const balance = parseFloat(r.rows[0]?.balance || 0);
-        
-        if (balance < amount) {
-            return res.json({ success: false, message: 'Insufficient balance. Please top up.' });
-        }
-        
-        // Deduct
-        await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id=$2', [amount, uid]);
-        
-        // Log order
-        await p.query(
-            'INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, $3, $4)',
-            [uid, -amount, reason || 'Spin Purchase', 'approved']
-        );
-        
-        const newBalance = balance - amount;
-        res.json({ success: true, new_balance: newBalance });
-    } catch(e) {
-        res.json({ success: false, message: 'Server error' });
-    }
+    const { token, amount, reason } = req.body; if (!token || token==='guest') return res.json({ success: false, message: 'Login required' }); if (!amount || amount<=0) return res.json({ success: false, message: 'Invalid amount' });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' }); const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); const balance = parseFloat(r.rows[0]?.balance||0); if (balance < amount) return res.json({ success: false, message: 'Insufficient balance. Please top up.' }); await p.query('UPDATE auth_users SET balance=balance-$1 WHERE id=$2', [amount, uid]); await p.query("INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, $3, 'approved')", [uid, -amount, reason||'Spin Purchase']); res.json({ success: true, new_balance: balance - amount }); } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
-// Get Paid Spins Remaining
 app.post('/api/get_paid_spins', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ paid_spins: 0 });
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ paid_spins: 0 });
-        
-        // Assuming you have a column 'paid_spins' in auth_users table. 
-        // If not, you should add it: ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0;
-        const r = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
-        res.json({ paid_spins: parseInt(r.rows[0]?.paid_spins || 0) });
-    } catch(e) { res.json({ paid_spins: 0 }); }
+    const { token } = req.body; if (!token || token==='guest') return res.json({ paid_spins: 0 });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ paid_spins: 0 }); const r = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]); res.json({ paid_spins: parseInt(r.rows[0]?.paid_spins||0) }); } catch(e) { res.json({ paid_spins: 0 }); }
 });
 app.post('/api/spin/use_paid_spin', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
-        await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, COALESCE(paid_spins, 0) - 1) WHERE id=$1', [uid]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+    const { token } = req.body; if (!token || token==='guest') return res.json({ success: false });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false }); await p.query('UPDATE auth_users SET paid_spins=GREATEST(0, COALESCE(paid_spins,0)-1) WHERE id=$1', [uid]); res.json({ success: true }); } catch(e) { res.json({ success: false }); }
 });
-// ==================== PREMIUM API ====================
-
-// Get Premium Status
 app.post('/api/get_premium_status', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
-        
-        const r = await p.query(
-            'SELECT premium_expiry FROM auth_users WHERE id=$1', [uid]
-        );
-        
-        if (r.rows.length > 0 && r.rows[0].premium_expiry) {
-            const expiry = new Date(r.rows[0].premium_expiry);
-            const now = new Date();
-            
-            if (expiry > now) {
-                // Premium active
-                const lastDrawDate = await p.query(
-                    'SELECT draw_date, draw_count FROM premium_draws WHERE user_id=$1 AND draw_date=CURRENT_DATE',
-                    [uid]
-                );
-                
-                const dailyLimit = 3;
-                const usedToday = lastDrawDate.rows.length > 0 ? lastDrawDate.rows[0].draw_count : 0;
-                const remaining = Math.max(0, dailyLimit - usedToday);
-                
-                res.json({
-                    success: true,
-                    premium_active: true,
-                    expires_at: expiry.toISOString(),
-                    daily_draws_remaining: remaining,
-                    max_daily_draws: dailyLimit
-                });
-            } else {
-                res.json({ success: true, premium_active: false });
-            }
-        } else {
-            res.json({ success: true, premium_active: false });
-        }
-    } catch(e) {
-        res.json({ success: false });
-    }
+    const { token } = req.body; if (!token || token==='guest') return res.json({ success: false });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false }); const r = await p.query('SELECT premium_expiry FROM auth_users WHERE id=$1', [uid]); if (r.rows.length>0 && r.rows[0].premium_expiry) { const expiry = new Date(r.rows[0].premium_expiry); if (expiry > new Date()) { const lastDraw = await p.query('SELECT draw_count FROM premium_draws WHERE user_id=$1 AND draw_date=CURRENT_DATE', [uid]); const usedToday = lastDraw.rows.length>0 ? lastDraw.rows[0].draw_count : 0; const remaining = Math.max(0, 3 - usedToday); return res.json({ success: true, premium_active: true, expires_at: expiry.toISOString(), daily_draws_remaining: remaining, max_daily_draws: 3 }); } } res.json({ success: true, premium_active: false }); } catch(e) { res.json({ success: false }); }
 });
-
-// Buy Premium
 app.post('/api/buy_premium', async (req, res) => {
-    const { token, months, cost } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!months || !cost) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
-        
-        // Check balance
-        const bal = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        const balance = parseFloat(bal.rows[0]?.balance || 0);
-        
-        if (balance < cost) {
-            return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ!' });
-        }
-        
-        // Calculate expiry
-        const expiry = new Date();
-        expiry.setMonth(expiry.getMonth() + months);
-        
-        // Deduct balance & set premium
-        await p.query('UPDATE auth_users SET balance=balance-$1, premium_expiry=$2 WHERE id=$3', [cost, expiry, uid]);
-        
-        // Log order
-        await p.query(
-            "INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')",
-            [uid, -cost]
-        );
-        
-        res.json({ success: true, expires_at: expiry.toISOString() });
-    } catch(e) {
-        res.json({ success: false, message: 'Server error' });
-    }
+    const { token, months, cost } = req.body; if (!token || token==='guest') return res.json({ success: false, message: 'Login required' }); if (!months || !cost) return res.json({ success: false });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' }); const bal = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]); const balance = parseFloat(bal.rows[0]?.balance||0); if (balance < cost) return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ!' }); const expiry = new Date(); expiry.setMonth(expiry.getMonth()+months); await p.query('UPDATE auth_users SET balance=balance-$1, premium_expiry=$2 WHERE id=$3', [cost, expiry, uid]); await p.query("INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')", [uid, -cost]); res.json({ success: true, expires_at: expiry.toISOString() }); } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
-
-// Track Premium Draw
 app.post('/api/track_premium_draw', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
-        
-        // Insert or update today's draw count
-        await p.query(
-            `INSERT INTO premium_draws (user_id, draw_date, draw_count) 
-             VALUES ($1, CURRENT_DATE, 1) 
-             ON CONFLICT (user_id, draw_date) 
-             DO UPDATE SET draw_count = premium_draws.draw_count + 1`,
-            [uid]
-        );
-        
-        res.json({ success: true });
-    } catch(e) {
-        res.json({ success: false });
-    }
+    const { token } = req.body; if (!token || token==='guest') return res.json({ success: false });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false }); await p.query(`INSERT INTO premium_draws (user_id, draw_date, draw_count) VALUES ($1, CURRENT_DATE, 1) ON CONFLICT (user_id, draw_date) DO UPDATE SET draw_count = premium_draws.draw_count + 1`, [uid]); res.json({ success: true }); } catch(e) { res.json({ success: false }); }
+});
+app.post('/api/claim_weekly_bonus', async (req, res) => {
+    const { token } = req.body; if (!token || token==='guest') return res.json({ success: false });
+    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false }); const last = await p.query('SELECT claimed_at FROM weekly_bonus WHERE user_id=$1 ORDER BY claimed_at DESC LIMIT 1', [uid]); if (last.rows.length>0 && (Date.now()-new Date(last.rows[0].claimed_at).getTime())/(1000*60*60*24) < 7) return res.json({ success: false, message: 'Already claimed' }); await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]); res.json({ success: true }); } catch(e) { res.json({ success: false }); }
 });
 
-// Claim Weekly Bonus
-app.post('/api/claim_weekly_bonus', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
-        
-        // Check last claim
-        const last = await p.query(
-            'SELECT claimed_at FROM weekly_bonus WHERE user_id=$1 ORDER BY claimed_at DESC LIMIT 1',
-            [uid]
-        );
-        
-        if (last.rows.length > 0) {
-            const lastClaim = new Date(last.rows[0].claimed_at);
-            const daysSince = Math.floor((Date.now() - lastClaim.getTime()) / (1000 * 60 * 60 * 24));
-            
-            if (daysSince < 7) {
-                return res.json({ success: false, message: 'Already claimed this week' });
-            }
-        }
-        
-        // Record claim
-        await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
-        
-        res.json({ success: true });
-    } catch(e) {
-        res.json({ success: false });
-    }
-});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
@@ -1214,6 +566,7 @@ app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privac
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
 app.get('/exchange.html', (req, res) => res.sendFile(path.join(__dirname, 'exchange.html')));
+
 // ==================== START SERVER ====================
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
