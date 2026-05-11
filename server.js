@@ -954,49 +954,254 @@ app.get('/api/buycode_new_codes', async (req, res) => {
         }
     } catch(e) { res.json({ success: false }); }
 });
-// ==================== SPIN & USD API ====================
+// ╔══════════════════════════════════════════════════════════════╗
+// ║              SPIN & USD API (COMPLETE REWRITE)              ║
+// ╚══════════════════════════════════════════════════════════════╝
 
-// Get USD Balance
+// ==================== SPIN CONFIG (SERVER-SIDE) ====================
+const SPIN_CONFIG = {
+    NORMAL_SEGMENTS: [
+        { label: '$0.25',  color: '#e74c3c', reward: 0.25, type: 'usd',   weight: 15 },
+        { label: '$0.50',  color: '#e67e22', reward: 0.50, type: 'usd',   weight: 12 },
+        { label: '$0.75',  color: '#3498db', reward: 0.75, type: 'usd',   weight: 10 },
+        { label: '$1.00',  color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 8  },
+        { label: '$2.00',  color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 5  },
+        { label: '500 Ks', color: '#f39c12', reward: 500,  type: 'mmk',   weight: 40 },
+        { label: 'FREE',   color: '#1abc9c', reward: 0,    type: 'free',  weight: 50 },
+        { label: 'SUPER',  color: '#e91e63', reward: 0,    type: 'super', weight: 2  }
+    ],
+    PREMIUM_SEGMENTS: [
+        { label: '$0.50',   color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 25 },
+        { label: '$0.75',   color: '#e67e22', reward: 0.75, type: 'usd',   weight: 20 },
+        { label: '$1.00',   color: '#3498db', reward: 1.00, type: 'usd',   weight: 18 },
+        { label: '$2.00',   color: '#2ecc71', reward: 2.00, type: 'usd',   weight: 10 },
+        { label: '$3.00',   color: '#9b59b6', reward: 3.00, type: 'usd',   weight: 7  },
+        { label: '500 Ks',  color: '#f39c12', reward: 500,  type: 'mmk',   weight: 30 },
+        { label: '1000 Ks', color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 25 },
+        { label: 'SUPER',   color: '#e91e63', reward: 0,    type: 'super', weight: 5  }
+    ]
+};
+
+// ==================== GET USD BALANCE ====================
 app.post('/api/get_usd_balance', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ usd_balance: 0 });
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ usd_balance: 0 });
-        const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
-        res.json({ usd_balance: parseFloat(r.rows[0]?.usd_balance || 0) });
-    } catch(e) { res.json({ usd_balance: 0 }); }
-});
-
-// Save Spin Result
-app.post('/api/spin/save', async (req, res) => {
-    const { token, reward_type, reward_amount, segment_label } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
     
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
+        if (isNaN(uid)) return res.json({ usd_balance: 0 });
         
-        // Save history
-        await p.query(
-            'INSERT INTO spin_history (user_id, reward_type, reward_amount, segment_label) VALUES ($1,$2,$3,$4)',
-            [uid, reward_type || 'thanks', reward_amount || 0, segment_label || 'Unknown']
-        );
-        
-        // Add reward to balance
-        if (reward_type === 'usd' && reward_amount > 0) {
-            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
-        } else if (reward_type === 'mmk' && reward_amount > 0) {
-            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
-        }
-        
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+        const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
+        res.json({ usd_balance: parseFloat(r.rows[0]?.usd_balance || 0) });
+    } catch(e) {
+        console.error('[get_usd_balance]', e.message);
+        res.json({ usd_balance: 0 });
+    }
 });
 
-// Exchange USD to MMK
+// ==================== GET BALANCE ====================
+app.post('/api/get_balance', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ balance: 0 });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ balance: 0 });
+        
+        const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        res.json({ balance: parseFloat(r.rows[0]?.balance || 0) });
+    } catch(e) {
+        console.error('[get_balance]', e.message);
+        res.json({ balance: 0 });
+    }
+});
+
+// ==================== GET PAID SPINS ====================
+app.post('/api/get_paid_spins', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ paid_spins: 0 });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ paid_spins: 0 });
+        
+        const r = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
+        res.json({ paid_spins: parseInt(r.rows[0]?.paid_spins || 0) });
+    } catch(e) {
+        console.error('[get_paid_spins]', e.message);
+        res.json({ paid_spins: 0 });
+    }
+});
+
+// ==================== GET PREMIUM STATUS ====================
+app.post('/api/get_premium_status', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, premium_active: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, premium_active: false });
+        
+        const r = await p.query('SELECT premium_expiry FROM auth_users WHERE id=$1', [uid]);
+        const isPremium = r.rows.length > 0 && r.rows[0].premium_expiry && new Date(r.rows[0].premium_expiry) > new Date();
+        const maxDaily = isPremium ? 3 : 1;
+        
+        // Count today's daily draws from spin_history_v2
+        const todayDraws = await p.query(
+            "SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND DATE(created_at)=CURRENT_DATE AND spin_source='daily'",
+            [uid]
+        );
+        const usedToday = parseInt(todayDraws.rows[0]?.cnt || 0);
+        const remaining = Math.max(0, maxDaily - usedToday);
+        
+        console.log('[PREMIUM STATUS] User:', uid, 'Premium:', isPremium, 'DailyUsed:', usedToday, 'Remaining:', remaining);
+        
+        res.json({
+            success: true,
+            premium_active: isPremium,
+            expires_at: isPremium ? r.rows[0].premium_expiry.toISOString() : null,
+            daily_draws_remaining: remaining,
+            max_daily_draws: maxDaily
+        });
+    } catch(e) {
+        console.error('[get_premium_status]', e.message);
+        res.json({ success: false, premium_active: false });
+    }
+});
+
+// ==================== DEDUCT BALANCE (Buy Spins) ====================
+app.post('/api/deduct_balance', async (req, res) => {
+    const { token, amount, reason } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!amount || amount <= 0) return res.json({ success: false, message: 'Invalid amount' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
+        // Check balance
+        const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        const balance = parseFloat(r.rows[0]?.balance || 0);
+        
+        if (balance < amount) {
+            return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။' });
+        }
+        
+        // Deduct balance
+        await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id=$2', [amount, uid]);
+        
+        // If buying spins, add to paid_spins
+        if (reason && reason.includes('Buy') && reason.includes('spins')) {
+            const spinsMatch = reason.match(/Buy (\d+) spins/);
+            if (spinsMatch) {
+                const spinsToAdd = parseInt(spinsMatch[1]);
+                await p.query('UPDATE auth_users SET paid_spins = COALESCE(paid_spins, 0) + $1 WHERE id=$2', [spinsToAdd, uid]);
+            }
+        }
+        
+        // Log order
+        await p.query(
+            "INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, $3, 'approved')",
+            [uid, -amount, reason || 'Spin Purchase']
+        );
+        
+        const newBalance = balance - amount;
+        console.log('[DEDUCT] User:', uid, 'Amount:', amount, 'New Balance:', newBalance);
+        
+        res.json({ success: true, new_balance: newBalance });
+    } catch(e) {
+        console.error('[deduct_balance]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ==================== BUY PREMIUM ====================
+app.post('/api/buy_premium', async (req, res) => {
+    const { token, months, cost } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!months || !cost) return res.json({ success: false, message: 'Missing data' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
+        // Check balance
+        const bal = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        const balance = parseFloat(bal.rows[0]?.balance || 0);
+        
+        if (balance < cost) {
+            return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။' });
+        }
+        
+        // Calculate expiry
+        const expiry = new Date();
+        expiry.setMonth(expiry.getMonth() + months);
+        
+        // Deduct balance & set premium
+        await p.query('UPDATE auth_users SET balance = balance - $1, premium_expiry = $2 WHERE id = $3', [cost, expiry, uid]);
+        
+        // Log order
+        await p.query(
+            "INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')",
+            [uid, -cost]
+        );
+        
+        // Give weekly bonus on first premium purchase
+        await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
+        
+        console.log('[PREMIUM PURCHASE] User:', uid, 'Months:', months, 'Expiry:', expiry);
+        
+        res.json({ success: true, expires_at: expiry.toISOString() });
+    } catch(e) {
+        console.error('[buy_premium]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ==================== CLAIM WEEKLY BONUS ====================
+app.post('/api/claim_weekly_bonus', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
+        // Check last claim
+        const last = await p.query(
+            'SELECT claimed_at FROM weekly_bonus WHERE user_id=$1 ORDER BY claimed_at DESC LIMIT 1',
+            [uid]
+        );
+        
+        if (last.rows.length > 0) {
+            const lastClaim = new Date(last.rows[0].claimed_at);
+            const daysSince = Math.floor((Date.now() - lastClaim.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysSince < 7) {
+                return res.json({ success: false, message: 'Already claimed this week' });
+            }
+        }
+        
+        // Record claim
+        await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
+        
+        console.log('[WEEKLY BONUS] User:', uid, 'Claimed');
+        res.json({ success: true, message: 'Weekly bonus claimed!' });
+    } catch(e) {
+        console.error('[claim_weekly_bonus]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ==================== EXCHANGE USD TO MMK ====================
 app.post('/api/exchange_usd_to_mmk', async (req, res) => {
     const { token, usd_amount } = req.body;
     const EXCHANGE_RATE = 3500;
@@ -1017,89 +1222,110 @@ app.post('/api/exchange_usd_to_mmk', async (req, res) => {
             return res.json({ success: false, message: 'Insufficient USD balance' });
         }
         
-        const mmkAmount = usd_amount * EXCHANGE_RATE;
+        const mmkAmount = Math.floor(usd_amount * EXCHANGE_RATE);
         
         // Deduct USD, Add MMK
         await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id=$2', [usd_amount, uid]);
         await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [mmkAmount, uid]);
         
+        console.log('[EXCHANGE] User:', uid, 'USD:', usd_amount, 'MMK:', mmkAmount);
+        
         res.json({ success: true, mmk_received: mmkAmount, rate: EXCHANGE_RATE });
     } catch(e) {
+        console.error('[exchange_usd_to_mmk]', e.message);
         res.json({ success: false, message: 'Server error' });
     }
 });
-// Deduct Balance (for spin purchases)
-app.post('/api/deduct_balance', async (req, res) => {
-    const { token, amount, reason } = req.body;
-    
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!amount || amount <= 0) return res.json({ success: false, message: 'Invalid amount' });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
-        
-        // Check balance
-        const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        const balance = parseFloat(r.rows[0]?.balance || 0);
-        
-        if (balance < amount) {
-            return res.json({ success: false, message: 'Insufficient balance. Please top up.' });
-        }
-        
-        // Deduct
-        await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id=$2', [amount, uid]);
-        
-        // Log order
-        await p.query(
-            'INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, $3, $4)',
-            [uid, -amount, reason || 'Spin Purchase', 'approved']
-        );
-        
-        const newBalance = balance - amount;
-        res.json({ success: true, new_balance: newBalance });
-    } catch(e) {
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-// Get Paid Spins Remaining
-app.post('/api/get_paid_spins', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ paid_spins: 0 });
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ paid_spins: 0 });
-        
-        // Assuming you have a column 'paid_spins' in auth_users table. 
-        // If not, you should add it: ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0;
-        const r = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
-        res.json({ paid_spins: parseInt(r.rows[0]?.paid_spins || 0) });
-    } catch(e) { res.json({ paid_spins: 0 }); }
-});
-app.post('/api/spin/use_paid_spin', async (req, res) => {
-    const { token } = req.body;
+
+// ==================== SAVE SPIN HISTORY (Legacy) ====================
+app.post('/api/spin/save', async (req, res) => {
+    const { token, reward_type, reward_amount, segment_label } = req.body;
     if (!token || token === 'guest') return res.json({ success: false });
+    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         if (isNaN(uid)) return res.json({ success: false });
+        
+        // Save to OLD table for backward compatibility
+        await p.query(
+            'INSERT INTO spin_history (user_id, reward_type, reward_amount, segment_label) VALUES ($1,$2,$3,$4)',
+            [uid, reward_type || 'thanks', reward_amount || 0, segment_label || 'Unknown']
+        );
+        
+        // Add reward to balance
+        if (reward_type === 'usd' && reward_amount > 0) {
+            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
+        } else if (reward_type === 'mmk' && reward_amount > 0) {
+            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
+        }
+        
+        res.json({ success: true });
+    } catch(e) {
+        console.error('[spin/save]', e.message);
+        res.json({ success: false });
+    }
+});
+
+// ==================== USE PAID SPIN (Legacy) ====================
+app.post('/api/spin/use_paid_spin', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
         await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, COALESCE(paid_spins, 0) - 1) WHERE id=$1', [uid]);
         res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+    } catch(e) {
+        console.error('[spin/use_paid_spin]', e.message);
+        res.json({ success: false });
+    }
 });
-// ==================== SPIN EXECUTE API ====================
+
+// ==================== TRACK PREMIUM DRAW ====================
+app.post('/api/track_premium_draw', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        await p.query(
+            `INSERT INTO premium_draws (user_id, draw_date, draw_count) 
+             VALUES ($1, CURRENT_DATE, 1) 
+             ON CONFLICT (user_id, draw_date) 
+             DO UPDATE SET draw_count = premium_draws.draw_count + 1`,
+            [uid]
+        );
+        
+        res.json({ success: true });
+    } catch(e) {
+        console.error('[track_premium_draw]', e.message);
+        res.json({ success: false });
+    }
+});
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║           SPIN EXECUTE API (MAIN SPIN LOGIC)                ║
+// ║           ⚠️ ONE ROUTE ONLY - NO DUPLICATES!               ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 app.post('/api/spin/execute', async (req, res) => {
     const { token, spin_source } = req.body;
     
-    console.log('[SPIN EXECUTE] Source:', spin_source);
+    console.log('[SPIN EXECUTE] Source:', spin_source, 'Token:', token ? token.substring(0,10)+'...' : 'guest');
     
+    // Guest check
     if (!token || token === 'guest') {
-        // Guest spin - client handled
-        return res.json({ success: false, message: 'Login required' });
+        return res.json({ success: false, message: 'Login required for real spins' });
     }
     
+    // Validate spin source
     if (!spin_source || !['daily', 'bought', 'weekly_bonus'].includes(spin_source)) {
         return res.json({ success: false, message: 'Invalid spin source' });
     }
@@ -1112,7 +1338,7 @@ app.post('/api/spin/execute', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        // Check if user exists
+        // ========== GET USER DATA ==========
         const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
         if (user.rows.length === 0) {
             return res.json({ success: false, message: 'User not found' });
@@ -1120,21 +1346,20 @@ app.post('/api/spin/execute', async (req, res) => {
         
         const u = user.rows[0];
         const isPremium = u.premium_expiry && new Date(u.premium_expiry) > new Date();
+        const maxDaily = isPremium ? 3 : 1;
         
-        // Get today's spin count
+        // ========== COUNT DAILY DRAWS USED TODAY ==========
         const todayDraws = await p.query(
             "SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND DATE(created_at)=CURRENT_DATE AND spin_source='daily'",
             [uid]
         );
-        
         const dailyUsed = parseInt(todayDraws.rows[0]?.cnt || 0);
-        const maxDaily = isPremium ? 3 : 1;
         const dailyRemaining = Math.max(0, maxDaily - dailyUsed);
         
-        // Get bought spins
+        // ========== GET BOUGHT SPINS ==========
         const boughtSpins = parseInt(u.paid_spins || 0);
         
-        // Get weekly bonus (from weekly_bonus table)
+        // ========== COUNT WEEKLY BONUS USAGE ==========
         const weekStart = new Date();
         weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Sunday
         
@@ -1151,35 +1376,31 @@ app.post('/api/spin/execute', async (req, res) => {
         const weeklyTotal = weeklyClaimed.rows[0]?.cnt > 0 ? 5 : 0;
         const weeklyRemaining = Math.max(0, weeklyTotal - parseInt(weeklyBonusUsed.rows[0]?.cnt || 0));
         
-        // Verify source has draws
+        console.log('[SPIN CHECK] Daily:', dailyRemaining, 'Bought:', boughtSpins, 'Weekly:', weeklyRemaining);
+        
+        // ========== VERIFY & DEDUCT DRAW ==========
         let canSpin = false;
         
         if (spin_source === 'daily' && dailyRemaining > 0) {
             canSpin = true;
         } else if (spin_source === 'bought' && boughtSpins > 0) {
             canSpin = true;
-            // Deduct bought spin
+            // Deduct bought spin NOW
             await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, paid_spins - 1) WHERE id=$1', [uid]);
-        } else if (spin_source === 'weekly_bonus' && weeklyRemaining > 0) {
+        } else if (spin_source === 'weekly_bonus' && isPremium && weeklyRemaining > 0) {
             canSpin = true;
         }
         
         if (!canSpin) {
             return res.json({ 
                 success: false, 
-                message: 'No draws remaining for this source',
-                draws: {
-                    daily: dailyRemaining,
-                    bought: boughtSpins,
-                    weekly: weeklyRemaining
-                }
+                message: 'No draws remaining',
+                draws: { daily: dailyRemaining, bought: boughtSpins, weekly: weeklyRemaining }
             });
         }
         
-        // Get segments based on mode
-        const segments = isPremium ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS;
-        
-        // WEIGHTED RANDOM - Server side
+        // ========== WEIGHTED RANDOM (SERVER-SIDE) ==========
+        const segments = isPremium ? SPIN_CONFIG.PREMIUM_SEGMENTS : SPIN_CONFIG.NORMAL_SEGMENTS;
         const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
         let rand = Math.random() * totalWeight;
         let winIndex = 0;
@@ -1194,185 +1415,7 @@ app.post('/api/spin/execute', async (req, res) => {
         
         const reward = segments[winIndex];
         
-        // Get balances BEFORE
-        const balBefore = {
-            mmk: parseFloat(u.balance || 0),
-            usd: parseFloat(u.usd_balance || 0)
-        };
-        
-        // Add reward
-        let balAfter = { ...balBefore };
-        
-        if (reward.type === 'usd' && reward.reward > 0) {
-            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward.reward, uid]);
-            balAfter.usd += reward.reward;
-        } else if (reward.type === 'mmk' && reward.reward > 0) {
-            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward.reward, uid]);
-            balAfter.mmk += reward.reward;
-        } else if (reward.type === 'free') {
-            // Refund the draw
-            if (spin_source === 'bought') {
-                await p.query('UPDATE auth_users SET paid_spins = paid_spins + 1 WHERE id=$1', [uid]);
-            }
-        }
-        
-        // Log spin history
-        await p.query(
-            `INSERT INTO spin_history_v2 
-             (user_id, spin_source, reward_type, reward_amount, balance_before_mmk, balance_after_mmk, balance_before_usd, balance_after_usd) 
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-            [uid, spin_source, reward.type, reward.reward, balBefore.mmk, balAfter.mmk, balBefore.usd, balAfter.usd]
-        );
-        
-        // Get updated draws
-        const updatedBought = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
-        
-        console.log('[SPIN RESULT]', {
-            user: uid,
-            source: spin_source,
-            winIndex,
-            reward: reward.label,
-            mode: isPremium ? 'PREMIUM' : 'NORMAL'
-        });
-        
-        res.json({
-            success: true,
-            winIndex: winIndex,
-            reward: reward,
-            mmkBalance: balAfter.mmk,
-            usdBalance: balAfter.usd,
-            draws: {
-                daily: spin_source === 'daily' ? dailyRemaining - 1 : dailyRemaining,
-                bought: parseInt(updatedBought.rows[0]?.paid_spins || 0),
-                weekly: spin_source === 'weekly_bonus' ? weeklyRemaining - 1 : weeklyRemaining
-            }
-        });
-        
-    } catch(e) {
-        console.error('[SPIN ERROR]', e);
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-
-// ==================== SPIN CONFIG (SERVER-SIDE) ====================
-const SPIN_CONFIG = {
-    NORMAL_SEGMENTS: [
-        { label: '$0.25', color: '#e74c3c', reward: 0.25, type: 'usd', weight: 15 },
-        { label: '$0.50', color: '#e67e22', reward: 0.50, type: 'usd', weight: 12 },
-        { label: '$0.75', color: '#3498db', reward: 0.75, type: 'usd', weight: 10 },
-        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 8 },
-        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 5 },
-        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 40 },
-        { label: 'FREE', color: '#1abc9c', reward: 0, type: 'free', weight: 50 },
-        { label: 'SUPER', color: '#e91e63', reward: 0, type: 'super', weight: 2 }
-    ],
-    PREMIUM_SEGMENTS: [
-        { label: '$0.50', color: '#e74c3c', reward: 0.50, type: 'usd', weight: 25 },
-        { label: '$0.75', color: '#e67e22', reward: 0.75, type: 'usd', weight: 20 },
-        { label: '$1.00', color: '#3498db', reward: 1.00, type: 'usd', weight: 18 },
-        { label: '$2.00', color: '#2ecc71', reward: 2.00, type: 'usd', weight: 10 },
-        { label: '$3.00', color: '#9b59b6', reward: 3.00, type: 'usd', weight: 7 },
-        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 30 },
-        { label: '1000 Ks', color: '#c9a84c', reward: 1000, type: 'mmk', weight: 25 },
-        { label: 'SUPER', color: '#e91e63', reward: 0, type: 'super', weight: 5 }
-    ]
-};
-
-// ==================== SPIN EXECUTE API ====================
-app.post('/api/spin/execute', async (req, res) => {
-    const { token, spin_source } = req.body;
-    
-    console.log('[SPIN EXECUTE] Source:', spin_source, 'Token:', token ? token.substring(0,10)+'...' : 'guest');
-    
-    // Guest user - allow with client-side handling
-    if (!token || token === 'guest') {
-        return res.json({ success: false, message: 'Login required for real spins' });
-    }
-    
-    if (!spin_source || !['daily', 'bought', 'weekly_bonus'].includes(spin_source)) {
-        return res.json({ success: false, message: 'Invalid spin source' });
-    }
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        
-        if (isNaN(uid)) {
-            return res.json({ success: false, message: 'Invalid session' });
-        }
-        
-        // Get user data
-        const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
-        if (user.rows.length === 0) {
-            return res.json({ success: false, message: 'User not found' });
-        }
-        
-        const u = user.rows[0];
-        const isPremium = u.premium_expiry && new Date(u.premium_expiry) > new Date();
-        const maxDaily = isPremium ? 3 : 1;
-        
-        // Count today's spin history
-        const todayDraws = await p.query(
-            "SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND DATE(created_at)=CURRENT_DATE AND spin_source='daily'",
-            [uid]
-        );
-        const dailyUsed = parseInt(todayDraws.rows[0]?.cnt || 0);
-        const dailyRemaining = Math.max(0, maxDaily - dailyUsed);
-        
-        // Get bought spins
-        const boughtSpins = parseInt(u.paid_spins || 0);
-        
-        // Count weekly bonus used
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        
-        const weeklyBonusUsed = await p.query(
-            "SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND spin_source='weekly_bonus' AND created_at >= $2",
-            [uid, weekStart]
-        );
-        
-        const weeklyClaimed = await p.query(
-            "SELECT COUNT(*) as cnt FROM weekly_bonus WHERE user_id=$1 AND claimed_at >= $2",
-            [uid, weekStart]
-        );
-        
-        const weeklyTotal = weeklyClaimed.rows[0]?.cnt > 0 ? 5 : 0;
-        const weeklyRemaining = Math.max(0, weeklyTotal - parseInt(weeklyBonusUsed.rows[0]?.cnt || 0));
-        
-        // Verify source has draws
-        let canSpin = false;
-        
-        if (spin_source === 'daily' && dailyRemaining > 0) {
-            canSpin = true;
-        } else if (spin_source === 'bought' && boughtSpins > 0) {
-            canSpin = true;
-            await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, paid_spins - 1) WHERE id=$1', [uid]);
-        } else if (spin_source === 'weekly_bonus' && isPremium && weeklyRemaining > 0) {
-            canSpin = true;
-        }
-        
-        if (!canSpin) {
-            return res.json({ 
-                success: false, 
-                message: 'No draws remaining',
-                draws: { daily: dailyRemaining, bought: boughtSpins, weekly: weeklyRemaining }
-            });
-        }
-        
-        // WEIGHTED RANDOM - Server-side
-        const segments = isPremium ? SPIN_CONFIG.PREMIUM_SEGMENTS : SPIN_CONFIG.NORMAL_SEGMENTS;
-        const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
-        let rand = Math.random() * totalWeight;
-        let winIndex = 0;
-        
-        for (let i = 0; i < segments.length; i++) {
-            rand -= segments[i].weight;
-            if (rand <= 0) { winIndex = i; break; }
-        }
-        
-        const reward = segments[winIndex];
-        
-        // Get balances BEFORE
+        // ========== GET BALANCES BEFORE ==========
         const balBefore = {
             mmk: parseFloat(u.balance || 0),
             usd: parseFloat(u.usd_balance || 0)
@@ -1380,7 +1423,7 @@ app.post('/api/spin/execute', async (req, res) => {
         
         let balAfter = { mmk: balBefore.mmk, usd: balBefore.usd };
         
-        // Add reward
+        // ========== ADD REWARD ==========
         if (reward.type === 'usd' && reward.reward > 0) {
             await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward.reward, uid]);
             balAfter.usd += reward.reward;
@@ -1388,25 +1431,36 @@ app.post('/api/spin/execute', async (req, res) => {
             await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward.reward, uid]);
             balAfter.mmk += reward.reward;
         } else if (reward.type === 'free') {
-            // Refund if bought
+            // Refund draw if bought
             if (spin_source === 'bought') {
                 await p.query('UPDATE auth_users SET paid_spins = paid_spins + 1 WHERE id=$1', [uid]);
             }
         }
+        // SUPER prize = no balance change (external form)
         
-        // Log history
+        // ========== LOG TO spin_history_v2 ==========
         await p.query(
-            `INSERT INTO spin_history_v2 (user_id, spin_source, reward_type, reward_amount, balance_before_mmk, balance_after_mmk, balance_before_usd, balance_after_usd) 
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            `INSERT INTO spin_history_v2 
+             (user_id, spin_source, reward_type, reward_amount, balance_before_mmk, balance_after_mmk, balance_before_usd, balance_after_usd) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
             [uid, spin_source, reward.type, reward.reward, balBefore.mmk, balAfter.mmk, balBefore.usd, balAfter.usd]
         );
         
-        // Get updated bought spins
+        // ========== GET UPDATED BOUGHT SPINS ==========
         const updatedUser = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
         const updatedBought = parseInt(updatedUser.rows[0]?.paid_spins || 0);
         
-        console.log('[SPIN RESULT] User:', uid, 'Mode:', isPremium?'PREMIUM':'NORMAL', 'Source:', spin_source, 'Reward:', reward.label, 'WinIndex:', winIndex);
+        console.log('[SPIN RESULT] ✅', {
+            user: uid,
+            mode: isPremium ? 'PREMIUM' : 'NORMAL',
+            source: spin_source,
+            reward: reward.label,
+            amount: reward.reward,
+            winIndex: winIndex,
+            balanceAfter: balAfter
+        });
         
+        // ========== RETURN RESULT ==========
         res.json({
             success: true,
             winIndex: winIndex,
@@ -1421,144 +1475,13 @@ app.post('/api/spin/execute', async (req, res) => {
         });
         
     } catch(e) {
-        console.error('[SPIN ERROR]', e.message);
+        console.error('[SPIN EXECUTE ERROR] ❌', e.message);
+        console.error(e.stack);
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
-console.log('✅ Spin Execute API ready');
-// ==================== PREMIUM API ====================
-app.post('/api/get_premium_status', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
-        
-        const r = await p.query('SELECT premium_expiry FROM auth_users WHERE id=$1', [uid]);
-        
-        const isPremium = r.rows.length > 0 && r.rows[0].premium_expiry && new Date(r.rows[0].premium_expiry) > new Date();
-        const dailyLimit = isPremium ? 3 : 1;
-        
-        // ✅ Count today's draws from spin_history table (ALL draws, not just premium)
-        const todayDraws = await p.query(
-            "SELECT COUNT(*) as cnt FROM spin_history WHERE user_id=$1 AND DATE(created_at)=CURRENT_DATE",
-            [uid]
-        );
-        const usedToday = parseInt(todayDraws.rows[0]?.cnt || 0);
-        const remaining = Math.max(0, dailyLimit - usedToday);
-        
-        res.json({
-            success: true,
-            premium_active: isPremium,
-            expires_at: isPremium ? r.rows[0].premium_expiry.toISOString() : null,
-            daily_draws_remaining: remaining,
-            max_daily_draws: dailyLimit
-        });
-        
-    } catch(e) {
-        res.json({ success: false });
-    }
-});
-
-// Buy Premium
-app.post('/api/buy_premium', async (req, res) => {
-    const { token, months, cost } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!months || !cost) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
-        
-        // Check balance
-        const bal = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        const balance = parseFloat(bal.rows[0]?.balance || 0);
-        
-        if (balance < cost) {
-            return res.json({ success: false, message: 'á€„á€½á€±á€™á€œá€¯á€¶á€œá€±á€¬á€€á€ºá€•á€«á‹ á€„á€½á€±á€–á€¼á€Šá€·á€ºá€•á€«!' });
-        }
-        
-        // Calculate expiry
-        const expiry = new Date();
-        expiry.setMonth(expiry.getMonth() + months);
-        
-        // Deduct balance & set premium
-        await p.query('UPDATE auth_users SET balance=balance-$1, premium_expiry=$2 WHERE id=$3', [cost, expiry, uid]);
-        
-        // Log order
-        await p.query(
-            "INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')",
-            [uid, -cost]
-        );
-        
-        res.json({ success: true, expires_at: expiry.toISOString() });
-    } catch(e) {
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-
-// Track Premium Draw
-app.post('/api/track_premium_draw', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
-        
-        // Insert or update today's draw count
-        await p.query(
-            `INSERT INTO premium_draws (user_id, draw_date, draw_count) 
-             VALUES ($1, CURRENT_DATE, 1) 
-             ON CONFLICT (user_id, draw_date) 
-             DO UPDATE SET draw_count = premium_draws.draw_count + 1`,
-            [uid]
-        );
-        
-        res.json({ success: true });
-    } catch(e) {
-        res.json({ success: false });
-    }
-});
-
-// Claim Weekly Bonus
-app.post('/api/claim_weekly_bonus', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
-        
-        // Check last claim
-        const last = await p.query(
-            'SELECT claimed_at FROM weekly_bonus WHERE user_id=$1 ORDER BY claimed_at DESC LIMIT 1',
-            [uid]
-        );
-        
-        if (last.rows.length > 0) {
-            const lastClaim = new Date(last.rows[0].claimed_at);
-            const daysSince = Math.floor((Date.now() - lastClaim.getTime()) / (1000 * 60 * 60 * 24));
-            
-            if (daysSince < 7) {
-                return res.json({ success: false, message: 'Already claimed this week' });
-            }
-        }
-        
-        // Record claim
-        await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
-        
-        res.json({ success: true });
-    } catch(e) {
-        res.json({ success: false });
-    }
-});
+console.log('✅ SPIN & USD API Section Ready');
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
