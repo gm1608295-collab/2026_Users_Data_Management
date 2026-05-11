@@ -1494,25 +1494,29 @@ if (!spin_source || !['daily', 'bought', 'weekly_bonus', 'premium_bought'].inclu
         console.log('[SPIN CHECK] Daily:', dailyRemaining, 'Bought:', boughtSpins, 'Weekly:', weeklyRemaining);
         
         // ========== VERIFY & DEDUCT DRAW ==========
-        let canSpin = false;
-        
-        if (spin_source === 'daily' && dailyRemaining > 0) {
-            canSpin = true;
-        } else if (spin_source === 'bought' && boughtSpins > 0) {
-            canSpin = true;
-            // Deduct bought spin NOW
-            await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, paid_spins - 1) WHERE id=$1', [uid]);
-        } else if (spin_source === 'weekly_bonus' && isPremium && weeklyRemaining > 0) {
-            canSpin = true;
-        }
-        
-        if (!canSpin) {
-            return res.json({ 
-                success: false, 
-                message: 'No draws remaining',
-                draws: { daily: dailyRemaining, bought: boughtSpins, weekly: weeklyRemaining }
-            });
-        }
+let canSpin = false;
+
+if (spin_source === 'daily' && dailyRemaining > 0) {
+    canSpin = true;
+} else if (spin_source === 'bought' && boughtSpins > 0) {
+    canSpin = true;
+    // Deduct bought spin NOW
+    await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, paid_spins - 1) WHERE id=$1', [uid]);
+} else if (spin_source === 'premium_bought' && boughtSpins > 0) {
+    canSpin = true;
+    // Deduct bought spin NOW (same pool)
+    await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, paid_spins - 1) WHERE id=$1', [uid]);
+} else if (spin_source === 'weekly_bonus' && isPremium && weeklyRemaining > 0) {
+    canSpin = true;
+}
+
+if (!canSpin) {
+    return res.json({ 
+        success: false, 
+        message: 'No draws remaining',
+        draws: { daily: dailyRemaining, bought: boughtSpins, weekly: weeklyRemaining }
+    });
+}
         
         // ========== WEIGHTED RANDOM (SERVER-SIDE) ==========
 // ✅ Tier အလိုက် Segment ရွေးပါ
@@ -1599,7 +1603,7 @@ const balBefore = {
             usdBalance: balAfter.usd,
             draws: {
                 daily: spin_source === 'daily' ? dailyRemaining - 1 : dailyRemaining,
-                bought: updatedBought,
+                bought: (spin_source === 'bought' || spin_source === 'premium_bought') ? updatedBought : boughtSpins,
                 weekly: spin_source === 'weekly_bonus' ? weeklyRemaining - 1 : weeklyRemaining
             }
         });
