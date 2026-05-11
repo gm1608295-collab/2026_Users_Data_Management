@@ -579,36 +579,55 @@ document.querySelectorAll('.prem-pkg').forEach(pkg => {
 
 // ==================== INIT ====================
 async function init() {
-    State.load();
-    
+    // ✅ STEP 1: ALWAYS sync with server FIRST
     const data = await API.syncAll();
-    if (data) { State.applyServerData(data); }
     
+    if (data) {
+        // ✅ Server data ALWAYS wins (most accurate)
+        State.applyServerData(data);
+    } else {
+        // ✅ Only if server fails, use localStorage as fallback
+        State.load();
+    }
+    
+    // ✅ STEP 2: Update all UI
     UI.updateBalances();
     UI.applyPremiumTheme();
     UI.updateFreeDraws();
-    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
+    WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
     
-    if (State.freeDraws === 0 && State.paidSpins === 0) UI.scheduleResetTimer();
+    // ✅ STEP 3: Schedule timer if needed
+    if (State.freeDraws === 0 && State.paidSpins === 0) {
+        UI.scheduleResetTimer();
+    }
     
-    // Weekly bonus
+    // ✅ STEP 4: Weekly bonus check (only if premium)
     if (State.premiumActive) {
         const lastBonus = localStorage.getItem('weeklyBonusDateV2');
         const today = new Date().toDateString();
         if (lastBonus !== today) {
             const diff = lastBonus ? Math.floor((Date.now() - new Date(lastBonus).getTime())/86400000) : 7;
             if (diff >= 7) {
-                State.freeDraws += 5; State.save(); localStorage.setItem('weeklyBonusDateV2', today);
-                UI.updateFreeDraws(); UI.toast('🎁 Weekly Bonus: +5 Draws!');
+                State.freeDraws += 5; 
+                State.save(); 
+                localStorage.setItem('weeklyBonusDateV2', today);
+                UI.updateFreeDraws(); 
+                UI.toast('🎁 Weekly Bonus: +5 Draws!');
                 API.claimWeeklyBonus();
             }
         }
     }
     
+    // ✅ STEP 5: Periodic sync every 15 seconds
     setInterval(async () => {
         const d = await API.syncAll();
-        if (d) { State.applyServerData(d); UI.updateBalances(); UI.updateFreeDraws(); }
-    }, 30000);
+        if (d) { 
+            State.applyServerData(d); 
+            UI.updateBalances(); 
+            UI.applyPremiumTheme();
+            UI.updateFreeDraws(); 
+        }
+    }, 15000);
 }
 
 init();
