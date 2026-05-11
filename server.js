@@ -967,27 +967,52 @@ app.get('/api/buycode_new_codes', async (req, res) => {
 // ==================== SPIN CONFIG (SERVER-SIDE) ====================
 const SPIN_CONFIG = {
     NORMAL_SEGMENTS: [
+        { label: 'FREE',   color: '#1abc9c', reward: 0,    type: 'free',  weight: 50 },
+        { label: '500 Ks', color: '#f39c12', reward: 500,  type: 'mmk',   weight: 40 },
         { label: '$0.25',  color: '#e74c3c', reward: 0.25, type: 'usd',   weight: 15 },
         { label: '$0.50',  color: '#e67e22', reward: 0.50, type: 'usd',   weight: 12 },
         { label: '$0.75',  color: '#3498db', reward: 0.75, type: 'usd',   weight: 10 },
         { label: '$1.00',  color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 8  },
-        { label: '$2.00',  color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 5  },
-        { label: '500 Ks', color: '#f39c12', reward: 500,  type: 'mmk',   weight: 40 },
-        { label: 'FREE',   color: '#1abc9c', reward: 0,    type: 'free',  weight: 50 },
-        { label: 'SUPER',  color: '#e91e63', reward: 0,    type: 'super', weight: 2  }
+        { label: '$2.00',  color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 5  }
     ],
-    PREMIUM_SEGMENTS: [
-        { label: '$0.50',   color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 25 },
-        { label: '$0.75',   color: '#e67e22', reward: 0.75, type: 'usd',   weight: 20 },
-        { label: '$1.00',   color: '#3498db', reward: 1.00, type: 'usd',   weight: 18 },
-        { label: '$2.00',   color: '#2ecc71', reward: 2.00, type: 'usd',   weight: 10 },
-        { label: '$3.00',   color: '#9b59b6', reward: 3.00, type: 'usd',   weight: 7  },
-        { label: '500 Ks',  color: '#f39c12', reward: 500,  type: 'mmk',   weight: 30 },
-        { label: '1000 Ks', color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 25 },
-        { label: 'SUPER',   color: '#e91e63', reward: 0,    type: 'super', weight: 5  }
+    PREMIUM_TIER1_SEGMENTS: [
+        { label: '500 Ks',   color: '#f39c12', reward: 500,  type: 'mmk',   weight: 30 },
+        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 25 },
+        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 25 },
+        { label: '$0.75',    color: '#e67e22', reward: 0.75, type: 'usd',   weight: 20 },
+        { label: '$1.00',    color: '#3498db', reward: 1.00, type: 'usd',   weight: 18 },
+        { label: '$2.00',    color: '#2ecc71', reward: 2.00, type: 'usd',   weight: 10 },
+        { label: '$3.00',    color: '#9b59b6', reward: 3.00, type: 'usd',   weight: 7  },
+        { label: 'SUPER',    color: '#e91e63', reward: 0,    type: 'super', weight: 5  }
+    ],
+    PREMIUM_TIER2_SEGMENTS: [
+        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 20 },
+        { label: '2000 Ks',  color: '#ff9800', reward: 2000, type: 'mmk',   weight: 15 },
+        { label: '3000 Ks',  color: '#ff5722', reward: 3000, type: 'mmk',   weight: 10 },
+        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 20 },
+        { label: '$1.00',    color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 18 },
+        { label: '$2.00',    color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 12 },
+        { label: '$3.00',    color: '#e91e63', reward: 3.00, type: 'usd',   weight: 8  },
+        { label: '$3.50',    color: '#00bcd4', reward: 3.50, type: 'usd',   weight: 5  },
+        { label: '$4.00',    color: '#4caf50', reward: 4.00, type: 'usd',   weight: 3  },
+        { label: 'SUPER',    color: '#ff1744', reward: 0,    type: 'super', weight: 5  }
+    ],
+    PREMIUM_TIER3_SEGMENTS: [
+        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 18 },
+        { label: '2000 Ks',  color: '#ff9800', reward: 2000, type: 'mmk',   weight: 14 },
+        { label: '3000 Ks',  color: '#ff5722', reward: 3000, type: 'mmk',   weight: 10 },
+        { label: '5000 Ks',  color: '#d32f2f', reward: 5000, type: 'mmk',   weight: 5  },
+        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 15 },
+        { label: '$1.00',    color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 14 },
+        { label: '$2.00',    color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 10 },
+        { label: '$3.00',    color: '#e91e63', reward: 3.00, type: 'usd',   weight: 8  },
+        { label: '$3.50',    color: '#00bcd4', reward: 3.50, type: 'usd',   weight: 5  },
+        { label: '$4.00',    color: '#4caf50', reward: 4.00, type: 'usd',   weight: 3  },
+        { label: '$4.50',    color: '#2196f3', reward: 4.50, type: 'usd',   weight: 2  },
+        { label: '$5.00',    color: '#ffd700', reward: 5.00, type: 'usd',   weight: 1  },
+        { label: 'SUPER',    color: '#ff1744', reward: 0,    type: 'super', weight: 5  }
     ]
 };
-
 // ==================== GET USD BALANCE ====================
 app.post('/api/get_usd_balance', async (req, res) => {
     const { token } = req.body;
@@ -1467,20 +1492,19 @@ app.post('/api/spin/execute', async (req, res) => {
         }
         
         // ========== WEIGHTED RANDOM (SERVER-SIDE) ==========
-        const segments = isPremium ? SPIN_CONFIG.PREMIUM_SEGMENTS : SPIN_CONFIG.NORMAL_SEGMENTS;
-        const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
-        let rand = Math.random() * totalWeight;
-        let winIndex = 0;
-        
-        for (let i = 0; i < segments.length; i++) {
-            rand -= segments[i].weight;
-            if (rand <= 0) {
-                winIndex = i;
-                break;
-            }
-        }
-        
-        const reward = segments[winIndex];
+// ✅ Tier အလိုက် Segment ရွေးပါ
+let segments;
+if (!isPremium) {
+    segments = SPIN_CONFIG.NORMAL_SEGMENTS;
+} else {
+    const tier = u.premium_tier || 1;
+    switch(tier) {
+        case 1: segments = SPIN_CONFIG.PREMIUM_TIER1_SEGMENTS; break;
+        case 2: segments = SPIN_CONFIG.PREMIUM_TIER2_SEGMENTS; break;
+        case 3: segments = SPIN_CONFIG.PREMIUM_TIER3_SEGMENTS; break;
+        default: segments = SPIN_CONFIG.PREMIUM_TIER1_SEGMENTS;
+    }
+}
         
         // ========== GET BALANCES BEFORE ==========
         const balBefore = {
