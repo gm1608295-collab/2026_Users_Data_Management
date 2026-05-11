@@ -249,9 +249,8 @@
 
 <script>
     const ADMIN="MK2008";
-    const ADMIN="MMK2008";
     let currentOrderFilter='all',pendingRestoreData=null;
-    const pageIcons={'topup':'💰','buycode':'🛒','dashboard':'🏠','data':'📊','history':'📋','password':'🔑','recovery':'🔧','contact':'📞','aboutredeem':'ℹ️'};
+    const pageIcons={'topup':'💰','buycode':'🛒','dashboard':'🏠','data':'📊','history':'📋','password':'🔑','recovery':'🔧','contact':'📞','aboutredeem':'ℹ️','exchange':'💱'};
     let autoRefreshInterval=null;
     let pageTimers={};
     
@@ -329,6 +328,35 @@
     const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
     n(`✅ Timer set! Page will auto-ON in ${timeStr}`);
     }
+    function cancelTimer(id){
+    delete pageTimers[id];
+    localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
+    // Also clear cookie
+    document.cookie = 'pageTimers=' + encodeURIComponent(JSON.stringify(pageTimers)) + '; expires=' + new Date(Date.now() + 7*24*60*60*1000).toUTCString() + '; path=/';
+    sessionStorage.setItem('pageTimers', JSON.stringify(pageTimers));
+    loadPageToggles();
+    n('✅ Timer cancelled');
+}
+
+async function turnOffPage(id){
+    if(!confirm(`Turn OFF "${id}" page?`)) return;
+    await togglePage(id, false);
+    n('✅ Page turned OFF');
+}
+
+async function togglePage(id, on){
+    try {
+        await fetch('/api/admin/toggle_page', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ page_id: id, status: on ? 'on' : 'off' })
+        });
+        loadPageToggles();
+    } catch(e) {
+        n('Error', 'error');
+    }
+}
+    
     // ==================== VIDEO ====================
     async function saveVideoUrl(){const url=document.getElementById('videoUrl').value.trim();if(!url)return n('Enter URL','error');try{await fetch('/api/admin/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});n('✅ Saved!');document.getElementById('videoUrl').value='';loadCurrentVideo()}catch(e){n('Error','error')}}
     async function loadCurrentVideo(){try{const r=await fetch('/api/video');const d=await r.json();const info=document.getElementById('currentVideoInfo');if(d.success&&d.url){info.innerHTML=`📹 <a href="${d.originalUrl||d.url}" target="_blank" style="color:var(--b)">${(d.originalUrl||d.url).substring(0,40)}...</a>`}else{info.innerHTML='<span style="color:rgba(255,255,255,0.5)">📹 No video</span>'}}catch(e){}}
