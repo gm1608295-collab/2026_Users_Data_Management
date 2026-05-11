@@ -1254,8 +1254,8 @@ app.post('/api/spin/execute', async (req, res) => {
     }
 });
 
-// Need to add CONFIG to server scope
-const CONFIG_SERVER = {
+// ==================== SPIN CONFIG (SERVER-SIDE) ====================
+const SPIN_CONFIG = {
     NORMAL_SEGMENTS: [
         { label: '$0.25', color: '#e74c3c', reward: 0.25, type: 'usd', weight: 15 },
         { label: '$0.50', color: '#e67e22', reward: 0.50, type: 'usd', weight: 12 },
@@ -1277,6 +1277,156 @@ const CONFIG_SERVER = {
         { label: 'SUPER', color: '#e91e63', reward: 0, type: 'super', weight: 5 }
     ]
 };
+
+// ==================== SPIN EXECUTE API ====================
+app.post('/api/spin/execute', async (req, res) => {
+    const { token, spin_source } = req.body;
+    
+    console.log('[SPIN EXECUTE] Source:', spin_source, 'Token:', token ? token.substring(0,10)+'...' : 'guest');
+    
+    // Guest user - allow with client-side handling
+    if (!token || token === 'guest') {
+        return res.json({ success: false, message: 'Login required for real spins' });
+    }
+    
+    if (!spin_source || !['daily', 'bought', 'weekly_bonus'].includes(spin_source)) {
+        return res.json({ success: false, message: 'Invalid spin source' });
+    }
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        if (isNaN(uid)) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        // Get user data
+        const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        const u = user.rows[0];
+        const isPremium = u.premium_expiry && new Date(u.premium_expiry) > new Date();
+        const maxDaily = isPremium ? 3 : 1;
+        
+        // Count today's spin history
+        const todayDraws = await p.query(
+            "SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND DATE(created_at)=CURRENT_DATE AND spin_source='daily'",
+            [uid]
+        );
+        const dailyUsed = parseInt(todayDraws.rows[0]?.cnt || 0);
+        const dailyRemaining = Math.max(0, maxDaily - dailyUsed);
+        
+        // Get bought spins
+        const boughtSpins = parseInt(u.paid_spins || 0);
+        
+        // Count weekly bonus used
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        
+        const weeklyBonusUsed = await p.query(
+            "SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND spin_source='weekly_bonus' AND created_at >= $2",
+            [uid, weekStart]
+        );
+        
+        const weeklyClaimed = await p.query(
+            "SELECT COUNT(*) as cnt FROM weekly_bonus WHERE user_id=$1 AND claimed_at >= $2",
+            [uid, weekStart]
+        );
+        
+        const weeklyTotal = weeklyClaimed.rows[0]?.cnt > 0 ? 5 : 0;
+        const weeklyRemaining = Math.max(0, weeklyTotal - parseInt(weeklyBonusUsed.rows[0]?.cnt || 0));
+        
+        // Verify source has draws
+        let canSpin = false;
+        
+        if (spin_source === 'daily' && dailyRemaining > 0) {
+            canSpin = true;
+        } else if (spin_source === 'bought' && boughtSpins > 0) {
+            canSpin = true;
+            await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, paid_spins - 1) WHERE id=$1', [uid]);
+        } else if (spin_source === 'weekly_bonus' && isPremium && weeklyRemaining > 0) {
+            canSpin = true;
+        }
+        
+        if (!canSpin) {
+            return res.json({ 
+                success: false, 
+                message: 'No draws remaining',
+                draws: { daily: dailyRemaining, bought: boughtSpins, weekly: weeklyRemaining }
+            });
+        }
+        
+        // WEIGHTED RANDOM - Server-side
+        const segments = isPremium ? SPIN_CONFIG.PREMIUM_SEGMENTS : SPIN_CONFIG.NORMAL_SEGMENTS;
+        const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
+        let rand = Math.random() * totalWeight;
+        let winIndex = 0;
+        
+        for (let i = 0; i < segments.length; i++) {
+            rand -= segments[i].weight;
+            if (rand <= 0) { winIndex = i; break; }
+        }
+        
+        const reward = segments[winIndex];
+        
+        // Get balances BEFORE
+        const balBefore = {
+            mmk: parseFloat(u.balance || 0),
+            usd: parseFloat(u.usd_balance || 0)
+        };
+        
+        let balAfter = { mmk: balBefore.mmk, usd: balBefore.usd };
+        
+        // Add reward
+        if (reward.type === 'usd' && reward.reward > 0) {
+            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward.reward, uid]);
+            balAfter.usd += reward.reward;
+        } else if (reward.type === 'mmk' && reward.reward > 0) {
+            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward.reward, uid]);
+            balAfter.mmk += reward.reward;
+        } else if (reward.type === 'free') {
+            // Refund if bought
+            if (spin_source === 'bought') {
+                await p.query('UPDATE auth_users SET paid_spins = paid_spins + 1 WHERE id=$1', [uid]);
+            }
+        }
+        
+        // Log history
+        await p.query(
+            `INSERT INTO spin_history_v2 (user_id, spin_source, reward_type, reward_amount, balance_before_mmk, balance_after_mmk, balance_before_usd, balance_after_usd) 
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+            [uid, spin_source, reward.type, reward.reward, balBefore.mmk, balAfter.mmk, balBefore.usd, balAfter.usd]
+        );
+        
+        // Get updated bought spins
+        const updatedUser = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
+        const updatedBought = parseInt(updatedUser.rows[0]?.paid_spins || 0);
+        
+        console.log('[SPIN RESULT] User:', uid, 'Mode:', isPremium?'PREMIUM':'NORMAL', 'Source:', spin_source, 'Reward:', reward.label, 'WinIndex:', winIndex);
+        
+        res.json({
+            success: true,
+            winIndex: winIndex,
+            reward: reward,
+            mmkBalance: balAfter.mmk,
+            usdBalance: balAfter.usd,
+            draws: {
+                daily: spin_source === 'daily' ? dailyRemaining - 1 : dailyRemaining,
+                bought: updatedBought,
+                weekly: spin_source === 'weekly_bonus' ? weeklyRemaining - 1 : weeklyRemaining
+            }
+        });
+        
+    } catch(e) {
+        console.error('[SPIN ERROR]', e.message);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
+console.log('✅ Spin Execute API ready');
 // ==================== PREMIUM API ====================
 app.post('/api/get_premium_status', async (req, res) => {
     const { token } = req.body;
