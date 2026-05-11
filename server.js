@@ -1041,6 +1041,17 @@ app.post('/api/get_paid_spins', async (req, res) => {
         res.json({ paid_spins: parseInt(r.rows[0]?.paid_spins || 0) });
     } catch(e) { res.json({ paid_spins: 0 }); }
 });
+app.post('/api/spin/use_paid_spin', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false });
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, COALESCE(paid_spins, 0) - 1) WHERE id=$1', [uid]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
 // ==================== PREMIUM API ====================
 
 // Get Premium Status
