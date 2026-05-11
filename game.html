@@ -523,7 +523,6 @@
 const CONFIG = {
     SUPER_FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform',
     
-    // Normal Mode Segments (7 segments, no SUPER)
     NORMAL_SEGMENTS: [
         { label: 'FREE',   color: '#1abc9c', reward: 0,    type: 'free',  weight: 50 },
         { label: '500 Ks', color: '#f39c12', reward: 500,  type: 'mmk',   weight: 40 },
@@ -534,7 +533,6 @@ const CONFIG = {
         { label: '$2.00',  color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 5  }
     ],
     
-    // Premium Tier 1 Segments (8 segments, with SUPER)
     PREMIUM_TIER1_SEGMENTS: [
         { label: '500 Ks',   color: '#f39c12', reward: 500,  type: 'mmk',   weight: 30 },
         { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 25 },
@@ -546,7 +544,6 @@ const CONFIG = {
         { label: 'SUPER',    color: '#e91e63', reward: 0,    type: 'super', weight: 5  }
     ],
     
-    // Premium Tier 2 Segments (10 segments)
     PREMIUM_TIER2_SEGMENTS: [
         { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 20 },
         { label: '2000 Ks',  color: '#ff9800', reward: 2000, type: 'mmk',   weight: 15 },
@@ -560,7 +557,6 @@ const CONFIG = {
         { label: 'SUPER',    color: '#ff1744', reward: 0,    type: 'super', weight: 5  }
     ],
     
-    // Premium Tier 3 Segments (12 segments)
     PREMIUM_TIER3_SEGMENTS: [
         { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 18 },
         { label: '2000 Ks',  color: '#ff9800', reward: 2000, type: 'mmk',   weight: 14 },
@@ -583,12 +579,11 @@ const CONFIG = {
 // ====================================
 const State = {
     isPremium: false,
-    premiumTier: 0, // 0=none, 1=tier1, 2=tier2, 3=tier3
+    premiumTier: 0,
     isSpinning: false,
     wheelAngle: 0,
     dailyDraws: 0,
     boughtDraws: 0,
-    premiumBoughtDraws: 0,
     weeklyBonusDraws: 0,
     mmkBalance: 0,
     usdBalance: 0,
@@ -596,22 +591,21 @@ const State = {
     maxDailyDraws: 1,
     
     getTotalDraws() {
-        return this.dailyDraws + this.boughtDraws + this.premiumBoughtDraws + this.weeklyBonusDraws;
+        return this.dailyDraws + this.boughtDraws + this.weeklyBonusDraws;
     },
     
     getDrawSource() {
-    if (this.dailyDraws > 0) return 'daily';
-    if (this.isPremium && this.weeklyBonusDraws > 0) return 'weekly_bonus';
-    if (this.boughtDraws > 0) return 'bought';   // ✅ Normal + Premium အားလုံး bought နဲ့ပို့
-    return null;
-},
+        if (this.dailyDraws > 0) return 'daily';
+        if (this.isPremium && this.weeklyBonusDraws > 0) return 'weekly_bonus';
+        if (this.boughtDraws > 0) return 'bought';
+        return null;
+    },
     
     consumeDraw(source) {
         switch(source) {
             case 'daily': if(this.dailyDraws>0) this.dailyDraws--; break;
             case 'weekly_bonus': if(this.weeklyBonusDraws>0) this.weeklyBonusDraws--; break;
             case 'bought': if(this.boughtDraws>0) this.boughtDraws--; break;
-            case 'premium_bought': if(this.premiumBoughtDraws>0) this.premiumBoughtDraws--; break;
         }
         this.save();
     },
@@ -627,10 +621,10 @@ const State = {
     
     save() {
         try {
-            localStorage.setItem('spinStateV4', JSON.stringify({
+            localStorage.setItem('spinStateV5', JSON.stringify({
                 isPremium: this.isPremium, premiumTier: this.premiumTier,
                 dailyDraws: this.dailyDraws, boughtDraws: this.boughtDraws,
-                premiumBoughtDraws: this.premiumBoughtDraws, weeklyBonusDraws: this.weeklyBonusDraws,
+                weeklyBonusDraws: this.weeklyBonusDraws,
                 wheelAngle: this.wheelAngle, maxDailyDraws: this.maxDailyDraws, timestamp: Date.now()
             }));
         } catch(e) {}
@@ -638,13 +632,12 @@ const State = {
     
     load() {
         try {
-            const data = JSON.parse(localStorage.getItem('spinStateV4'));
+            const data = JSON.parse(localStorage.getItem('spinStateV5'));
             if(data) {
                 this.isPremium = data.isPremium || false;
                 this.premiumTier = data.premiumTier || 0;
                 this.dailyDraws = data.dailyDraws || 0;
                 this.boughtDraws = data.boughtDraws || 0;
-                this.premiumBoughtDraws = data.premiumBoughtDraws || 0;
                 this.weeklyBonusDraws = data.weeklyBonusDraws || 0;
                 this.wheelAngle = data.wheelAngle || 0;
                 this.maxDailyDraws = data.maxDailyDraws || 1;
@@ -697,29 +690,21 @@ const API = {
     _guestSpin() {
         const segments = State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS;
         const totalWeight = segments.reduce((s, seg) => s + seg.weight, 0);
-        let rand = Math.random() * totalWeight;
-        let winIndex = 0;
-        for(let i = 0; i < segments.length; i++) {
-            rand -= segments[i].weight;
-            if(rand <= 0) { winIndex = i; break; }
-        }
-        return { success:true, winIndex:winIndex, reward:segments[winIndex], mmkBalance:State.mmkBalance, usdBalance:State.usdBalance };
+        let rand = Math.random() * totalWeight, winIndex = 0;
+        for(let i = 0; i < segments.length; i++) { rand -= segments[i].weight; if(rand <= 0) { winIndex = i; break; } }
+        return { success:true, winIndex, reward:segments[winIndex], mmkBalance:State.mmkBalance, usdBalance:State.usdBalance };
     },
     
-    async buySpins(spins, cost, drawType) {
+    async buySpins(spins, cost) {
         if(this.isGuest()) return { success:false, message:'Login required' };
         try {
             const response = await fetch('/api/deduct_balance', {
                 method:'POST', headers:this.headers(),
-                body:JSON.stringify({ token:this.getToken(), amount:cost, reason:`Buy ${spins} ${drawType} spins` })
+                body:JSON.stringify({ token:this.getToken(), amount:cost, reason:'Buy '+spins+' spins' })
             });
             const result = await response.json();
             if(result.success) {
-                if(drawType === 'premium') {
-                    State.premiumBoughtDraws += spins;
-                } else {
-                    State.boughtDraws += spins;
-                }
+                State.boughtDraws += spins;
                 State.mmkBalance = result.new_balance;
                 State.save();
             }
@@ -732,7 +717,7 @@ const API = {
         try {
             const response = await fetch('/api/buy_premium', {
                 method:'POST', headers:this.headers(),
-                body:JSON.stringify({ token:this.getToken(), months:months, cost:cost, tier:tier })
+                body:JSON.stringify({ token:this.getToken(), months, cost, tier })
             });
             return await response.json();
         } catch(e) { return { success:false, message:'Network error' }; }
@@ -740,127 +725,53 @@ const API = {
 };
 
 // ====================================
-// WHEEL ENGINE
+// WHEEL ENGINE (အတိုချုံး)
 // ====================================
 const WheelEngine = {
     canvas: document.getElementById('wheelCanvas'),
     ctx: document.getElementById('wheelCanvas').getContext('2d'),
     
-    getSegments() {
-        return State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS;
-    },
+    getSegments() { return State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS; },
+    getArcSize() { return (2*Math.PI)/this.getSegments().length; },
     
-    getArcSize() {
-        return (2 * Math.PI) / this.getSegments().length;
-    },
-    
-    draw(rotationAngle = 0) {
-        const segments = this.getSegments();
-        const cx = 300, cy = 300, radius = 270;
-        const arcSize = this.getArcSize();
-        this.ctx.clearRect(0, 0, 600, 600);
+    draw(angle=0) {
+        const segs=this.getSegments(), cx=300, cy=300, r=270, arc=this.getArcSize();
+        this.ctx.clearRect(0,0,600,600);
+        this.ctx.beginPath(); this.ctx.arc(cx,cy,r+8,0,2*Math.PI);
+        this.ctx.fillStyle=State.isPremium?'rgba(255,215,0,0.15)':'rgba(243,156,18,0.08)'; this.ctx.fill();
         
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, radius + 8, 0, 2 * Math.PI);
-        this.ctx.fillStyle = State.isPremium ? 'rgba(255,215,0,0.15)' : 'rgba(243,156,18,0.08)';
-        this.ctx.fill();
-        
-        segments.forEach((seg, i) => {
-            const startAngle = i * arcSize + rotationAngle;
-            const endAngle = startAngle + arcSize;
-            this.ctx.beginPath();
-            this.ctx.moveTo(cx, cy);
-            this.ctx.arc(cx, cy, radius, startAngle, endAngle);
-            this.ctx.closePath();
-            const grad = this.ctx.createRadialGradient(cx, cy, radius*0.3, cx, cy, radius);
-            grad.addColorStop(0, this._lightenColor(seg.color, 60));
-            grad.addColorStop(1, seg.color);
-            this.ctx.fillStyle = grad;
-            this.ctx.fill();
-            this.ctx.strokeStyle = State.isPremium ? 'rgba(255,215,0,0.8)' : 'rgba(255,215,100,0.4)';
-            this.ctx.lineWidth = 2.5;
-            this.ctx.stroke();
-            this.ctx.save();
-            this.ctx.translate(cx, cy);
-            this.ctx.rotate(startAngle + arcSize/2);
-            this.ctx.textAlign = 'center';
-            this.ctx.fillStyle = '#ffffff';
-            this.ctx.font = 'bold 13px "Segoe UI", sans-serif';
-            this.ctx.shadowColor = 'rgba(0,0,0,0.8)';
-            this.ctx.shadowBlur = 6;
-            this.ctx.fillText(seg.label, radius*0.62, 5);
-            this.ctx.restore();
+        segs.forEach((s,i)=>{
+            const sa=i*arc+angle, ea=sa+arc;
+            this.ctx.beginPath(); this.ctx.moveTo(cx,cy); this.ctx.arc(cx,cy,r,sa,ea); this.ctx.closePath();
+            const g=this.ctx.createRadialGradient(cx,cy,r*0.3,cx,cy,r);
+            g.addColorStop(0,this._light(s.color,60)); g.addColorStop(1,s.color);
+            this.ctx.fillStyle=g; this.ctx.fill();
+            this.ctx.strokeStyle=State.isPremium?'rgba(255,215,0,0.8)':'rgba(255,215,100,0.4)'; this.ctx.lineWidth=2.5; this.ctx.stroke();
+            this.ctx.save(); this.ctx.translate(cx,cy); this.ctx.rotate(sa+arc/2);
+            this.ctx.fillStyle='#fff'; this.ctx.font='bold 13px Segoe UI'; this.ctx.shadowColor='rgba(0,0,0,0.8)'; this.ctx.shadowBlur=6;
+            this.ctx.fillText(s.label,r*0.62,5); this.ctx.restore();
         });
         
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, radius+3, 0, 2*Math.PI);
-        this.ctx.strokeStyle = State.isPremium ? '#ffd700' : '#f39c12';
-        this.ctx.lineWidth = 4;
-        this.ctx.stroke();
-        
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, radius-2, 0, 2*Math.PI);
-        this.ctx.strokeStyle = State.isPremium ? 'rgba(255,215,0,0.5)' : 'rgba(243,156,18,0.3)';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-        
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, 35, 0, 2*Math.PI);
-        const hubGrad = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, 35);
-        hubGrad.addColorStop(0, State.isPremium ? '#4a1c7a' : '#2c3e50');
-        hubGrad.addColorStop(1, State.isPremium ? '#1a0a2e' : '#1a1f4b');
-        this.ctx.fillStyle = hubGrad;
-        this.ctx.fill();
-        this.ctx.strokeStyle = State.isPremium ? '#ffd700' : '#f39c12';
-        this.ctx.lineWidth = 3;
-        this.ctx.stroke();
-        this.ctx.fillStyle = State.isPremium ? '#ffd700' : '#f39c12';
-        this.ctx.font = 'bold 11px "Segoe UI", sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.shadowBlur = 0;
-        const tierText = State.premiumTier >= 2 ? 'T'+State.premiumTier : '';
-        this.ctx.fillText(State.isPremium ? 'PREMIUM '+tierText : 'SPIN', cx, cy);
+        this.ctx.beginPath(); this.ctx.arc(cx,cy,r+3,0,2*Math.PI);
+        this.ctx.strokeStyle=State.isPremium?'#ffd700':'#f39c12'; this.ctx.lineWidth=4; this.ctx.stroke();
+        this.ctx.beginPath(); this.ctx.arc(cx,cy,35,0,2*Math.PI);
+        const hg=this.ctx.createRadialGradient(cx,cy,0,cx,cy,35);
+        hg.addColorStop(0,State.isPremium?'#4a1c7a':'#2c3e50'); hg.addColorStop(1,State.isPremium?'#1a0a2e':'#1a1f4b');
+        this.ctx.fillStyle=hg; this.ctx.fill();
+        this.ctx.strokeStyle=State.isPremium?'#ffd700':'#f39c12'; this.ctx.lineWidth=3; this.ctx.stroke();
+        this.ctx.fillStyle=State.isPremium?'#ffd700':'#f39c12'; this.ctx.font='bold 11px Segoe UI';
+        this.ctx.textAlign='center'; this.ctx.textBaseline='middle'; this.ctx.shadowBlur=0;
+        const tt=State.premiumTier>=2?' T'+State.premiumTier:'';
+        this.ctx.fillText(State.isPremium?'PREMIUM'+tt:'SPIN',cx,cy);
     },
     
-    _lightenColor(hex, percent) {
-        const num = parseInt(hex.replace('#',''),16);
-        const amt = Math.round(2.55*percent);
-        const R = Math.min(255,(num>>16)+amt);
-        const G = Math.min(255,((num>>8)&0x00FF)+amt);
-        const B = Math.min(255,(num&0x0000FF)+amt);
-        return `rgb(${R},${G},${B})`;
-    },
+    _light(hex,p){const n=parseInt(hex.replace('#',''),16),a=Math.round(2.55*p);return`rgb(${Math.min(255,(n>>16)+a)},${Math.min(255,((n>>8)&0xFF)+a)},${Math.min(255,(n&0xFF)+a)})`},
     
-    getTargetRotation(winIndex) {
-        const segments = this.getSegments();
-        const arcSize = (2*Math.PI)/segments.length;
-        const segmentCenterAngle = winIndex*arcSize + arcSize/2;
-        const targetAngle = -segmentCenterAngle - Math.PI/2;
-        let normalized = targetAngle;
-        while(normalized < 0) normalized += 2*Math.PI;
-        return normalized;
-    },
-    
-    async spin(winIndex) {
-        const targetAngle = this.getTargetRotation(winIndex);
-        const fullSpins = 6 + Math.floor(Math.random()*3);
-        const totalRotation = targetAngle + fullSpins*2*Math.PI;
-        const startAngle = State.wheelAngle;
-        const duration = 4000 + Math.random()*500;
-        const startTime = Date.now();
-        return new Promise((resolve) => {
-            const animate = () => {
-                const elapsed = Date.now() - startTime;
-                const progress = Math.min(elapsed/duration, 1);
-                const eased = 1 - Math.pow(1-progress, 3);
-                const currentAngle = startAngle + totalRotation*eased;
-                this.draw(currentAngle % (2*Math.PI));
-                State.wheelAngle = currentAngle;
-                if(progress < 1) { requestAnimationFrame(animate); } else { resolve(); }
-            };
-            requestAnimationFrame(animate);
-        });
+    async spin(wi){
+        const segs=this.getSegments(),arc=(2*Math.PI)/segs.length;
+        const ta=-(wi*arc+arc/2)-Math.PI/2; let n=ta; while(n<0)n+=2*Math.PI;
+        const tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI,sa=State.wheelAngle,d=4000+Math.random()*500,st=Date.now();
+        return new Promise(r=>{const a=()=>{const e=Math.min((Date.now()-st)/d,1),c=1-Math.pow(1-e,3),ca=sa+tr*c;this.draw(ca%(2*Math.PI));State.wheelAngle=ca;e<1?requestAnimationFrame(a):r();};requestAnimationFrame(a);});
     }
 };
 
@@ -868,522 +779,214 @@ const WheelEngine = {
 // UI FUNCTIONS
 // ====================================
 const UI = {
-    updateBalances() {
-        document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString() + ' Ks';
-        document.getElementById('usdBalance').textContent = '$' + State.usdBalance.toFixed(2);
+    updateBalances(){
+        document.getElementById('mmkBalance').textContent=State.mmkBalance.toLocaleString()+' Ks';
+        document.getElementById('usdBalance').textContent='$'+State.usdBalance.toFixed(2);
     },
     
-    updateDraws() {
-        document.getElementById('dailyCount').textContent = State.dailyDraws;
-        document.getElementById('boughtCount').textContent = State.boughtDraws + State.premiumBoughtDraws;
-        document.getElementById('weeklyCount').textContent = State.weeklyBonusDraws;
-        const dailyLabel = document.querySelector('#dailyDrawCard .draw-label');
-        if(dailyLabel) dailyLabel.textContent = State.isPremium ? 'Daily (T'+State.premiumTier+')' : 'Daily Free';
+    updateDraws(){
+        document.getElementById('dailyCount').textContent=State.dailyDraws;
+        document.getElementById('boughtCount').textContent=State.boughtDraws;
+        document.getElementById('weeklyCount').textContent=State.weeklyBonusDraws;
+        const dl=document.querySelector('#dailyDrawCard .draw-label');
+        if(dl)dl.textContent=State.isPremium?'Daily (T'+State.premiumTier+')':'Daily Free';
         this.updateSpinButton();
     },
     
-    updateSpinButton() {
-        const btn = document.getElementById('btnSpin');
-        const status = document.getElementById('spinStatus');
-        if(State.isSpinning) { btn.disabled = true; status.textContent = '⏳ Spinning...'; return; }
-        const total = State.getTotalDraws();
-        const source = State.getDrawSource();
-        if(total > 0) {
-            btn.disabled = false;
-            let sourceText = '';
-            switch(source) {
-                case 'daily': sourceText = '🔄 Daily'; break;
-                case 'weekly_bonus': sourceText = '🎁 Weekly Bonus'; break;
-                case 'bought': sourceText = '💳 Normal Draw'; break;
-                case 'premium_bought': sourceText = '👑 Premium Draw'; break;
-            }
-            status.textContent = sourceText + ' · ' + total + ' draw(s) left';
-        } else {
-            btn.disabled = true;
-            status.textContent = '⏰ No draws available';
-        }
+    updateSpinButton(){
+        const b=document.getElementById('btnSpin'),s=document.getElementById('spinStatus');
+        if(State.isSpinning){b.disabled=true;s.textContent='⏳ Spinning...';return;}
+        const t=State.getTotalDraws(),src=State.getDrawSource();
+        if(t>0){b.disabled=false;let st='';switch(src){case'daily':st='🔄 Daily';break;case'weekly_bonus':st='🎁 Weekly Bonus';break;case'bought':st='💳 Bought Draw';break;}s.textContent=st+' · '+t+' draw(s) left';}
+        else{b.disabled=true;s.textContent='⏰ No draws available';}
     },
     
-    applyPremiumTheme() {
-        const body = document.getElementById('mainBody');
-        const headerTitle = document.getElementById('headerTitle');
-        const btnPremium = document.getElementById('btnPremium');
-        const weeklyCard = document.getElementById('weeklyDrawCard');
-        const drawsContainer = document.getElementById('drawsContainer');
-        const badge = document.getElementById('premiumBadge');
-        
-        body.classList.remove('premium-mode', 'tier2', 'tier3');
-        
-        if(State.isPremium) {
+    applyPremiumTheme(){
+        const body=document.getElementById('mainBody'),ht=document.getElementById('headerTitle');
+        const bp=document.getElementById('btnPremium'),wc=document.getElementById('weeklyDrawCard');
+        const dc=document.getElementById('drawsContainer'),badge=document.getElementById('premiumBadge');
+        body.classList.remove('premium-mode','tier2','tier3');
+        if(State.isPremium){
             body.classList.add('premium-mode');
-            if(State.premiumTier >= 2) body.classList.add('tier2');
-            if(State.premiumTier >= 3) body.classList.add('tier3');
-            
-            const tierNames = ['','Bronze','Silver','Gold'];
-            headerTitle.textContent = '👑 Premium Lucky Spin ('+tierNames[State.premiumTier]+')';
-            btnPremium.textContent = '👑 ACTIVE';
-            weeklyCard.style.display = 'block';
-            drawsContainer.style.gridTemplateColumns = '1fr 1fr 1fr';
-            
-            const tierSymbols = ['','🥉','🥈','🥇'];
-            badge.textContent = tierSymbols[State.premiumTier] + ' PREMIUM '+tierNames[State.premiumTier].toUpperCase();
-        } else {
-            headerTitle.textContent = '🎰 Lucky Spin';
-            btnPremium.textContent = '👑 PREMIUM';
-            weeklyCard.style.display = 'none';
-            drawsContainer.style.gridTemplateColumns = '1fr 1fr';
-        }
-        
-        WheelEngine.draw(State.wheelAngle % (2*Math.PI));
-        this.updateDraws();
+            if(State.premiumTier>=2)body.classList.add('tier2');
+            if(State.premiumTier>=3)body.classList.add('tier3');
+            const tn=['','Bronze','Silver','Gold'];ht.textContent='👑 Premium Lucky Spin ('+tn[State.premiumTier]+')';
+            bp.textContent='👑 ACTIVE';wc.style.display='block';dc.style.gridTemplateColumns='1fr 1fr 1fr';
+            const ts=['','🥉','🥈','🥇'];badge.textContent=ts[State.premiumTier]+' PREMIUM '+tn[State.premiumTier].toUpperCase();
+        }else{ht.textContent='🎰 Lucky Spin';bp.textContent='👑 PREMIUM';wc.style.display='none';dc.style.gridTemplateColumns='1fr 1fr';}
+        WheelEngine.draw(State.wheelAngle%(2*Math.PI));this.updateDraws();
     },
     
-    showToast(message, type) {
-        type = type || 'success';
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.style.display = 'block';
-        switch(type) {
-            case 'success': toast.style.background = '#2ecc71'; toast.style.color = '#fff'; break;
-            case 'error': toast.style.background = '#e74c3c'; toast.style.color = '#fff'; break;
-            case 'info': toast.style.background = '#3498db'; toast.style.color = '#fff'; break;
-            case 'gold': toast.style.background = 'linear-gradient(135deg, #ffd700, #f39c12)'; toast.style.color = '#000'; break;
-        }
-        clearTimeout(this._toastTimer);
-        this._toastTimer = setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    showToast(m,t){
+        t=t||'success';const toast=document.getElementById('toast');toast.textContent=m;toast.style.display='block';
+        switch(t){case'success':toast.style.background='#2ecc71';toast.style.color='#fff';break;case'error':toast.style.background='#e74c3c';toast.style.color='#fff';break;case'info':toast.style.background='#3498db';toast.style.color='#fff';break;case'gold':toast.style.background='linear-gradient(135deg,#ffd700,#f39c12)';toast.style.color='#000';break;}
+        clearTimeout(this._tt);this._tt=setTimeout(()=>{toast.style.display='none';},3000);
     },
     
-    showPremiumTransition(tier) {
-        const overlay = document.getElementById('transitionOverlay');
-        const text = document.getElementById('transitionText');
-        const tierNames = ['','BRONZE','SILVER','GOLD'];
-        const tierEmojis = ['','🥉','🥈','🥇'];
-        text.innerHTML = '👑<br>PREMIUM '+tierNames[tier]+'<br>'+tierEmojis[tier]+'<br>UNLOCKED!';
-        overlay.classList.add('active');
-        this._createParticles();
-        setTimeout(() => { overlay.classList.remove('active'); }, 2500);
+    showPremiumTransition(tier){
+        const o=document.getElementById('transitionOverlay'),tx=document.getElementById('transitionText');
+        const tn=['','BRONZE','SILVER','GOLD'],te=['','🥉','🥈','🥇'];
+        tx.innerHTML='👑<br>PREMIUM '+tn[tier]+'<br>'+te[tier]+'<br>UNLOCKED!';
+        o.classList.add('active');this._cp();setTimeout(()=>{o.classList.remove('active');},2500);
     },
     
-    _createParticles() {
-        const overlay = document.getElementById('transitionOverlay');
-        for(let i = 0; i < 50; i++) {
-            const particle = document.createElement('div');
-            particle.style.cssText = 'position:absolute;width:'+(Math.random()*8+3)+'px;height:'+(Math.random()*8+3)+'px;background:#ffd700;border-radius:50%;left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;animation:particleFloat '+(Math.random()*2+1)+'s ease-out forwards;opacity:'+Math.random();
-            overlay.appendChild(particle);
-            setTimeout(() => particle.remove(), 2000);
-        }
+    _cp(){const o=document.getElementById('transitionOverlay');for(let i=0;i<50;i++){const p=document.createElement('div');p.style.cssText='position:absolute;width:'+(Math.random()*8+3)+'px;height:'+(Math.random()*8+3)+'px;background:#ffd700;border-radius:50%;left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;animation:particleFloat '+(Math.random()*2+1)+'s ease-out forwards;opacity:'+Math.random();o.appendChild(p);setTimeout(()=>p.remove(),2000);}},
+    
+    async showProcessing(tier,cb){
+        const m=document.getElementById('processingModal'),t=document.getElementById('processingTitle');
+        const b=document.getElementById('progressBarFill'),tx=document.getElementById('progressText');
+        const tn=['','Bronze','Silver','Gold'];t.textContent='Activating Premium '+tn[tier]+'...';
+        b.style.width='0%';tx.textContent='0%';m.classList.add('active');
+        for(let i=0;i<=100;i++){await new Promise(r=>setTimeout(r,20+Math.random()*15));b.style.width=i+'%';tx.textContent=i+'%';}
+        const result=await cb();await new Promise(r=>setTimeout(r,500));m.classList.remove('active');return result;
     },
     
-    async showProcessing(months, cost, tier, callback) {
-        const modal = document.getElementById('processingModal');
-        const title = document.getElementById('processingTitle');
-        const bar = document.getElementById('progressBarFill');
-        const text = document.getElementById('progressText');
-        const tierNames = ['','Bronze','Silver','Gold'];
-        
-        title.textContent = 'Activating Premium '+tierNames[tier]+'...';
-        bar.style.width = '0%';
-        text.textContent = '0%';
-        modal.classList.add('active');
-        
-        // Animate progress
-        for(let i = 0; i <= 100; i++) {
-            await new Promise(r => setTimeout(r, 20 + Math.random()*15));
-            bar.style.width = i + '%';
-            text.textContent = i + '%';
-        }
-        
-        // Execute callback
-        const result = await callback();
-        
-        // Complete
-        await new Promise(r => setTimeout(r, 500));
-        modal.classList.remove('active');
-        
-        return result;
-    },
-    
-    showResult(winIndex) {
-        const segments = State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS;
-        const reward = segments[winIndex];
-        const icon = document.getElementById('resultIcon');
-        const text = document.getElementById('resultText');
-        const amount = document.getElementById('resultAmount');
-        const extra = document.getElementById('resultExtra');
-        extra.innerHTML = '';
-        
-        if(reward.type === 'super') {
-            icon.textContent = '👑'; text.textContent = '🏆 SUPER PRIZE!';
-            amount.textContent = 'Congratulations!'; amount.style.color = '#e91e63';
-            extra.innerHTML = '<a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>';
-        } else if(reward.type === 'free') {
-            icon.textContent = '🔄'; text.textContent = 'Free Spin!';
-            amount.textContent = '+1 Extra Draw'; amount.style.color = '#1abc9c';
-        } else if(reward.type === 'usd') {
-            icon.textContent = '💵'; text.textContent = '🎉 You Won!';
-            amount.textContent = '$'+reward.reward.toFixed(2)+' USD'; amount.style.color = '#2ecc71';
-        } else if(reward.type === 'mmk') {
-            icon.textContent = '💰'; text.textContent = '🎉 You Won!';
-            amount.textContent = reward.reward.toLocaleString()+' Ks'; amount.style.color = '#f39c12';
-        }
+    showResult(wi){
+        const segs=State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS,rw=segs[wi];
+        const ic=document.getElementById('resultIcon'),tx=document.getElementById('resultText');
+        const am=document.getElementById('resultAmount'),ex=document.getElementById('resultExtra');ex.innerHTML='';
+        if(rw.type==='super'){ic.textContent='👑';tx.textContent='🏆 SUPER PRIZE!';am.textContent='Congratulations!';am.style.color='#e91e63';ex.innerHTML='<a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>';}
+        else if(rw.type==='free'){ic.textContent='🔄';tx.textContent='Free Spin!';am.textContent='+1 Extra Draw';am.style.color='#1abc9c';}
+        else if(rw.type==='usd'){ic.textContent='💵';tx.textContent='🎉 You Won!';am.textContent='$'+rw.reward.toFixed(2)+' USD';am.style.color='#2ecc71';}
+        else if(rw.type==='mmk'){ic.textContent='💰';tx.textContent='🎉 You Won!';am.textContent=rw.reward.toLocaleString()+' Ks';am.style.color='#f39c12';}
         openModal('resultModal');
     },
     
-    scheduleResetTimer() {
-        if(this._resetInterval) clearInterval(this._resetInterval);
-        const el = document.getElementById('resetCountdown');
-        const update = () => {
-            const now = new Date();
-            const midnight = new Date(now); midnight.setDate(midnight.getDate()+1); midnight.setHours(0,0,0,0);
-            const remaining = midnight.getTime() - now.getTime();
-            if(remaining <= 0) { el.textContent = ''; this._resetDailyDraws(); return; }
-            const h = Math.floor(remaining/3600000), m = Math.floor((remaining%3600000)/60000), s = Math.floor((remaining%60000)/1000);
-            el.textContent = '🔄 Reset in '+h+'h '+m+'m '+s+'s';
-        };
-        update();
-        this._resetInterval = setInterval(update, 1000);
+    scheduleResetTimer(){
+        if(this._ri)clearInterval(this._ri);const el=document.getElementById('resetCountdown');
+        const u=()=>{const n=new Date(),m=new Date(n);m.setDate(m.getDate()+1);m.setHours(0,0,0,0);const r=m.getTime()-n.getTime();
+        if(r<=0){el.textContent='';this._rd();return;}const h=Math.floor(r/3600000),mi=Math.floor((r%3600000)/60000),s=Math.floor((r%60000)/1000);el.textContent='🔄 Reset in '+h+'h '+mi+'m '+s+'s';};
+        u();this._ri=setInterval(u,1000);
     },
     
-    _resetDailyDraws() {
-        State.dailyDraws = State.maxDailyDraws;
-        State.save();
-        this.updateDraws();
-        this.showToast('Daily draws reset! 🎉', 'success');
-        if(State.getTotalDraws() > 0) {
-            document.getElementById('resetCountdown').textContent = '';
-            clearInterval(this._resetInterval);
-        } else { this.scheduleResetTimer(); }
-    }
+    _rd(){State.dailyDraws=State.maxDailyDraws;State.save();this.updateDraws();this.showToast('Daily draws reset! 🎉','success');if(State.getTotalDraws()>0){document.getElementById('resetCountdown').textContent='';clearInterval(this._ri);}else{this.scheduleResetTimer();}}
 };
 
 // ====================================
 // MODAL FUNCTIONS
 // ====================================
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
 
 // ====================================
 // SPIN CONTROLLER
 // ====================================
-async function handleSpin() {
-    if(State.isSpinning) return;
-    const source = State.getDrawSource();
-    if(!source) { UI.showToast('No draws available! Buy spins or wait for reset.', 'error'); return; }
+async function handleSpin(){
+    if(State.isSpinning)return;
+    const source=State.getDrawSource();
+    if(!source){UI.showToast('No draws available! Buy spins or wait for reset.','error');return;}
     
-    State.isSpinning = true;
-    document.getElementById('btnSpin').disabled = true;
-    document.getElementById('spinStatus').textContent = '⏳ Spinning...';
-    State.consumeDraw(source);
-    UI.updateDraws();
+    State.isSpinning=true;document.getElementById('btnSpin').disabled=true;
+    document.getElementById('spinStatus').textContent='⏳ Spinning...';
+    State.consumeDraw(source);UI.updateDraws();
     
-    const result = await API.executeSpin(source);
+    const result=await API.executeSpin(source);
     
-    if(!result || !result.success) {
-        switch(source) {
-            case 'daily': State.dailyDraws++; break;
-            case 'weekly_bonus': State.weeklyBonusDraws++; break;
-            case 'bought': State.boughtDraws++; break;
-            case 'premium_bought': State.premiumBoughtDraws++; break;
-        }
-        State.save();
-        UI.updateDraws();
-        UI.showToast('Spin failed! Please try again.', 'error');
-        State.isSpinning = false;
-        UI.updateSpinButton();
-        return;
+    if(!result||!result.success){
+        switch(source){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}
+        State.save();UI.updateDraws();UI.showToast('Spin failed! Please try again.','error');
+        State.isSpinning=false;UI.updateSpinButton();return;
     }
     
-    if(result.mmkBalance !== undefined) State.mmkBalance = result.mmkBalance;
-    if(result.usdBalance !== undefined) State.usdBalance = result.usdBalance;
+    if(result.mmkBalance!==undefined)State.mmkBalance=result.mmkBalance;
+    if(result.usdBalance!==undefined)State.usdBalance=result.usdBalance;
     
-    if(result.reward && result.reward.type === 'free') {
-        switch(source) {
-            case 'daily': State.dailyDraws++; break;
-            case 'weekly_bonus': State.weeklyBonusDraws++; break;
-            case 'bought': State.boughtDraws++; break;
-            case 'premium_bought': State.premiumBoughtDraws++; break;
-        }
+    if(result.reward&&result.reward.type==='free'){
+        switch(source){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}
     }
     
-    State.save();
-    UI.updateBalances();
-    await WheelEngine.spin(result.winIndex);
-    UI.showResult(result.winIndex);
-    State.isSpinning = false;
-    UI.updateDraws();
-    UI.updateSpinButton();
-    if(State.getTotalDraws() === 0) UI.scheduleResetTimer();
+    State.save();UI.updateBalances();await WheelEngine.spin(result.winIndex);
+    UI.showResult(result.winIndex);State.isSpinning=false;UI.updateDraws();UI.updateSpinButton();
+    if(State.getTotalDraws()===0)UI.scheduleResetTimer();
 }
 
 // ====================================
-// BUY SPINS
+// BUY SPINS (အားလုံး Normal Draw ထဲကိုပဲ ထည့်မယ်)
 // ====================================
-async function handleBuySpins(spins, cost, drawType) {
-    if(State.mmkBalance < cost) { UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။', 'error'); return; }
-    
-    const typeName = drawType === 'premium' ? 'Premium Draw' : 'Normal Draw';
-    document.getElementById('confirmTitle').textContent = '💳 Buy ' + typeName;
-    document.getElementById('confirmMsg').textContent = spins + ' Spins - ' + cost.toLocaleString() + ' Ks';
-    
-    const confirmBtn = document.getElementById('confirmYesBtn');
-    confirmBtn.onclick = async () => {
-        closeModal('confirmModal');
-        const result = await API.buySpins(spins, cost, drawType);
-        if(result.success) {
-            UI.updateBalances();
-            UI.updateDraws();
-            UI.showToast(spins + ' '+typeName+' spins added! ✅', 'success');
-            document.getElementById('resetCountdown').textContent = '';
-        } else {
-            UI.showToast(result.message || 'Purchase failed', 'error');
-        }
-    };
+async function handleBuySpins(spins,cost){
+    if(State.mmkBalance<cost){UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။','error');return;}
+    document.getElementById('confirmTitle').textContent='💳 Buy Spins';
+    document.getElementById('confirmMsg').textContent=spins+' Spins - '+cost.toLocaleString()+' Ks';
+    const cb=document.getElementById('confirmYesBtn');
+    cb.onclick=async()=>{closeModal('confirmModal');const r=await API.buySpins(spins,cost);if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added! ✅','success');document.getElementById('resetCountdown').textContent='';}else{UI.showToast(r.message||'Purchase failed','error');}};
     openModal('confirmModal');
 }
+
 // ====================================
 // PREMIUM FUNCTIONS
 // ====================================
-function handlePremiumClick() {
-    updatePremiumPackages(); // ✅ Package Status Update
-    openModal('premiumModal');
+function handlePremiumClick(){updatePremiumPackages();openModal('premiumModal');}
+
+function updatePremiumPackages(){
+    const ct=State.premiumTier;
+    document.querySelectorAll('.prem-pkg').forEach(p=>{p.style.opacity='1';p.style.pointerEvents='auto';p.style.cursor='pointer';});
+    document.querySelectorAll('.pkg-status').forEach(s=>s.innerHTML='');
+    
+    if(ct>=1){const p1=document.getElementById('pkgTier1');p1.style.opacity='0.5';p1.style.pointerEvents='none';p1.style.cursor='not-allowed';document.getElementById('statusTier1').innerHTML='<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';document.getElementById('badgeTier2').textContent='⭐ ၅၀% လျှော့ဈေး';document.getElementById('priceTier2').innerHTML='<s style="color:#888;font-size:11px">၁၅၀၀၀</s> ၇၅၀၀ ကျပ်';}
+    if(ct>=2){const p2=document.getElementById('pkgTier2');p2.style.opacity='0.5';p2.style.pointerEvents='none';p2.style.cursor='not-allowed';document.getElementById('statusTier2').innerHTML='<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';document.getElementById('badgeTier3').textContent='⭐ ၅၀% လျှော့ဈေး';document.getElementById('priceTier3').innerHTML='<s style="color:#888;font-size:11px">၂၂၀၀၀</s> ၁၁၀၀၀ ကျပ်';}
+    if(ct>=3){document.getElementById('pkgTier3').style.opacity='0.5';document.getElementById('pkgTier3').style.pointerEvents='none';document.getElementById('pkgTier3').style.cursor='not-allowed';document.getElementById('statusTier3').innerHTML='<span style="color:#ffd700;font-size:10px;font-weight:bold">👑 MAX LEVEL</span>';}
 }
 
-// ✅ Premium Package Status Update
-function updatePremiumPackages() {
-    const currentTier = State.premiumTier;
-    
-    // Reset all packages
-    document.querySelectorAll('.prem-pkg').forEach(pkg => {
-        pkg.style.opacity = '1';
-        pkg.style.pointerEvents = 'auto';
-        pkg.style.cursor = 'pointer';
-    });
-    
-    // Clear all status
-    document.querySelectorAll('.pkg-status').forEach(s => s.innerHTML = '');
-    
-    // Lock purchased tiers
-    if (currentTier >= 1) {
-        const pkg1 = document.getElementById('pkgTier1');
-        pkg1.style.opacity = '0.5';
-        pkg1.style.pointerEvents = 'none';
-        pkg1.style.cursor = 'not-allowed';
-        document.getElementById('statusTier1').innerHTML = '<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';
-        
-        // Update Tier 2 price (50% off)
-        document.getElementById('badgeTier2').textContent = '⭐ ၅၀% လျှော့ဈေး';
-        document.getElementById('priceTier2').innerHTML = '<s style="color:#888;font-size:11px">၁၅၀၀၀</s> ၇၅၀၀ ကျပ်';
-    }
-    
-    if (currentTier >= 2) {
-        const pkg2 = document.getElementById('pkgTier2');
-        pkg2.style.opacity = '0.5';
-        pkg2.style.pointerEvents = 'none';
-        pkg2.style.cursor = 'not-allowed';
-        document.getElementById('statusTier2').innerHTML = '<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';
-        
-        // Update Tier 3 price (50% off)
-        document.getElementById('badgeTier3').textContent = '⭐ ၅၀% လျှော့ဈေး';
-        document.getElementById('priceTier3').innerHTML = '<s style="color:#888;font-size:11px">၂၂၀၀၀</s> ၁၁၀၀၀ ကျပ်';
-    }
-    
-    if (currentTier >= 3) {
-        const pkg3 = document.getElementById('pkgTier3');
-        pkg3.style.opacity = '0.5';
-        pkg3.style.pointerEvents = 'none';
-        pkg3.style.cursor = 'not-allowed';
-        document.getElementById('statusTier3').innerHTML = '<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';
-    }
-    
-    // If all tiers purchased
-    if (currentTier >= 3) {
-        document.getElementById('statusTier3').innerHTML = '<span style="color:#ffd700;font-size:10px;font-weight:bold">👑 MAX LEVEL</span>';
-    }
-}
-
-// ✅ Handle Premium Purchase - ဝယ်ပြီးသား Tier ဆိုရင် Block
-async function handlePremiumPurchase(months, cost, tier) {
-    const newTier = parseInt(tier.replace('tier',''));
-    
-    // Check if already purchased this tier
-    if (State.isPremium && newTier <= State.premiumTier) {
-        UI.showToast('ဤ Premium အစီအစဉ်ကို ဝယ်ယူပြီးပါပြီ။ အဆင့်မြင့် Tier ကိုသာ ဝယ်ယူနိုင်ပါသည်။', 'info');
-        return;
-    }
-    
+async function handlePremiumPurchase(months,cost,tier){
+    const nt=parseInt(tier.replace('tier',''));
+    if(State.isPremium&&nt<=State.premiumTier){UI.showToast('ဤ Premium အစီအစဉ်ကို ဝယ်ယူပြီးပါပြီ။ အဆင့်မြင့် Tier ကိုသာ ဝယ်ယူနိုင်ပါသည်။','info');return;}
     closeModal('premiumModal');
-    
-    // Calculate 50% discount if user already has a lower tier
-    let actualCost = cost;
-    let discountApplied = false;
-    
-    if (State.isPremium && State.premiumTier > 0) {
-        if (newTier > State.premiumTier) {
-            actualCost = Math.floor(cost / 2);
-            discountApplied = true;
-        }
-    }
-    
-    if (State.mmkBalance < actualCost) {
-        UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။', 'error');
-        return;
-    }
-    
-    const tierNames = {'tier1':'Bronze','tier2':'Silver','tier3':'Gold'};
-    const tierName = tierNames[tier] || 'Unknown';
-    
-    let confirmMsg = months + ' Month(s) - ' + tierName + '<br>';
-    confirmMsg += 'Cost: <b>' + actualCost.toLocaleString() + ' Ks</b>';
-    if (discountApplied) {
-        confirmMsg += '<br><span style="color:#2ecc71">✅ ၅၀% လျှော့ဈေး ရရှိထားပါသည်</span>';
-        confirmMsg += '<br><span style="color:#888;text-decoration:line-through">မူရင်း: '+cost.toLocaleString()+' Ks</span>';
-    }
-    
-    document.getElementById('confirmTitle').textContent = '👑 Buy Premium ' + tierName;
-    document.getElementById('confirmMsg').innerHTML = confirmMsg;
-    
-    const confirmBtn = document.getElementById('confirmYesBtn');
-    confirmBtn.onclick = async () => {
-        closeModal('confirmModal');
-        
-        const result = await UI.showProcessing(months, actualCost, newTier, async () => {
-            return await API.buyPremium(months, actualCost, newTier);
-        });
-        
-        if (result && result.success) {
-            State.isPremium = true;
-            State.premiumTier = newTier;
-            
-            switch(newTier) {
-                case 1: State.maxDailyDraws = 3; break;
-                case 2: State.maxDailyDraws = 5; break;
-                case 3: State.maxDailyDraws = 7; break;
-                default: State.maxDailyDraws = 3;
-            }
-            
-            State.dailyDraws = State.maxDailyDraws;
-            State.weeklyBonusDraws += State.premiumTier === 3 ? 10 : State.premiumTier === 2 ? 7 : 5;
-            State.mmkBalance -= actualCost;
-            State.premiumExpiry = result.expires_at;
-            State.save();
-            
-            UI.updateBalances();
-            UI.applyPremiumTheme();
-            UI.showPremiumTransition(newTier);
-            UI.showToast('Premium '+tierName+' Activated! 👑', 'gold');
-            
-            // Update package status
-            updatePremiumPackages();
-        } else {
-            UI.showToast(result && result.message ? result.message : 'Purchase failed', 'error');
-        }
-    };
+    let ac=cost,da=false;
+    if(State.isPremium&&State.premiumTier>0&&nt>State.premiumTier){ac=Math.floor(cost/2);da=true;}
+    if(State.mmkBalance<ac){UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။','error');return;}
+    const tn={'tier1':'Bronze','tier2':'Silver','tier3':'Gold'},tname=tn[tier]||'Unknown';
+    let cm=months+' Month(s) - '+tname+'<br>Cost: <b>'+ac.toLocaleString()+' Ks</b>';
+    if(da){cm+='<br><span style="color:#2ecc71">✅ ၅၀% လျှော့ဈေး ရရှိထားပါသည်</span>';cm+='<br><span style="color:#888;text-decoration:line-through">မူရင်း: '+cost.toLocaleString()+' Ks</span>';}
+    document.getElementById('confirmTitle').textContent='👑 Buy Premium '+tname;
+    document.getElementById('confirmMsg').innerHTML=cm;
+    const cb=document.getElementById('confirmYesBtn');
+    cb.onclick=async()=>{closeModal('confirmModal');
+        const r=await UI.showProcessing(nt,async()=>{return await API.buyPremium(months,ac,nt);});
+        if(r&&r.success){State.isPremium=true;State.premiumTier=nt;
+            switch(nt){case 1:State.maxDailyDraws=3;break;case 2:State.maxDailyDraws=5;break;case 3:State.maxDailyDraws=7;break;default:State.maxDailyDraws=3;}
+            State.dailyDraws=State.maxDailyDraws;State.weeklyBonusDraws+=nt===3?10:nt===2?7:5;
+            State.mmkBalance-=ac;State.premiumExpiry=r.expires_at;State.save();
+            UI.updateBalances();UI.applyPremiumTheme();UI.showPremiumTransition(nt);
+            UI.showToast('Premium '+tname+' Activated! 👑','gold');updatePremiumPackages();
+        }else{UI.showToast(r&&r.message?r.message:'Purchase failed','error');}};
     openModal('confirmModal');
 }
+
 // ====================================
 // PREMIUM EXPIRY CHECK
 // ====================================
-async function checkPremiumExpiry() {
-    if(!State.isPremium) return;
-    const serverData = await API.syncAll();
-    if(serverData) {
-        if(!serverData.isPremium) {
-            State.isPremium = false;
-            State.premiumTier = 0;
-            State.maxDailyDraws = 1;
-            State.dailyDraws = Math.min(State.dailyDraws, 1);
-            State.weeklyBonusDraws = 0;
-            State.save();
-            UI.applyPremiumTheme();
-            UI.updateDraws();
-            UI.showToast('⚠️ Premium သက်တမ်းကုန်ဆုံးသွားပါပြီ။ Normal Mode သို့ ပြန်လည်ရောက်ရှိပါသည်။', 'info');
-        } else {
-            State.premiumExpiry = serverData.premiumExpiry;
-            State.premiumTier = serverData.premiumTier || 1;
-        }
-    }
+async function checkPremiumExpiry(){
+    if(!State.isPremium)return;
+    const d=await API.syncAll();
+    if(d&&!d.isPremium){State.isPremium=false;State.premiumTier=0;State.maxDailyDraws=1;State.dailyDraws=Math.min(State.dailyDraws,1);State.weeklyBonusDraws=0;State.save();UI.applyPremiumTheme();UI.updateDraws();UI.showToast('⚠️ Premium သက်တမ်းကုန်ဆုံးသွားပါပြီ။ Normal Mode သို့ ပြန်လည်ရောက်ရှိပါသည်။','info');}
+    else if(d){State.premiumExpiry=d.premiumExpiry;State.premiumTier=d.premiumTier||1;}
 }
 
 // ====================================
 // EVENT LISTENERS
 // ====================================
-document.getElementById('btnSpin').addEventListener('click', handleSpin);
-document.getElementById('btnPremium').addEventListener('click', handlePremiumClick);
-
-document.querySelectorAll('.btn-buy').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const spins = parseInt(btn.dataset.spins);
-        const cost = parseInt(btn.dataset.cost);
-        const drawType = btn.dataset.type || 'normal';
-        handleBuySpins(spins, cost, drawType);
-    });
-});
-
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-        if(e.target === overlay) overlay.classList.remove('active');
-    });
-});
+document.getElementById('btnSpin').addEventListener('click',handleSpin);
+document.getElementById('btnPremium').addEventListener('click',handlePremiumClick);
+document.querySelectorAll('.btn-buy').forEach(btn=>{btn.addEventListener('click',()=>{const s=parseInt(btn.dataset.spins),c=parseInt(btn.dataset.cost);handleBuySpins(s,c);});});
+document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',(e)=>{if(e.target===o)o.classList.remove('active');});});
 
 // ====================================
 // INITIALIZATION
 // ====================================
-async function init() {
-    console.log('🎰 Initializing Spin System V4...');
+async function init(){
+    console.log('🎰 Initializing Spin System V5...');
     State.load();
-    const serverData = await API.syncAll();
-    
-    if(serverData) {
-        console.log('✅ Server data loaded:', serverData);
-        State.isPremium = serverData.isPremium;
-        State.premiumTier = serverData.premiumTier || 1;
-        State.mmkBalance = serverData.mmkBalance;
-        State.usdBalance = serverData.usdBalance;
-        State.maxDailyDraws = serverData.maxDailyDraws;
-        State.dailyDraws = serverData.dailyDrawsRemaining;
-        State.premiumExpiry = serverData.premiumExpiry;
-        
-        const today = new Date().toDateString();
-        const lastResetDate = localStorage.getItem('spinLastResetDate');
-        if(lastResetDate !== today) {
-            State.dailyDraws = serverData.maxDailyDraws || 1;
-            localStorage.setItem('spinLastResetDate', today);
-        }
-        State.save();
-    }
-    
-    UI.updateBalances();
-    UI.applyPremiumTheme();
-    UI.updateDraws();
-    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
-    
-    if(State.getTotalDraws() === 0) UI.scheduleResetTimer();
-    
-    setInterval(async () => {
-        const data = await API.syncAll();
-        if(data) {
-            State.isPremium = data.isPremium;
-            State.premiumTier = data.premiumTier || 1;
-            State.mmkBalance = data.mmkBalance;
-            State.usdBalance = data.usdBalance;
-            State.maxDailyDraws = data.maxDailyDraws;
-            UI.updateBalances();
-            UI.applyPremiumTheme();
-            UI.updateDraws();
-        }
-    }, 30000);
-    
-    // Check premium expiry
-    checkPremiumExpiry();
-    setInterval(checkPremiumExpiry, 60000);
-    
-    console.log('✅ Spin System V4 Ready!');
+    const d=await API.syncAll();
+    if(d){State.isPremium=d.isPremium;State.premiumTier=d.premiumTier||1;State.mmkBalance=d.mmkBalance;State.usdBalance=d.usdBalance;State.maxDailyDraws=d.maxDailyDraws;State.dailyDraws=d.dailyDrawsRemaining;State.premiumExpiry=d.premiumExpiry;
+        const today=new Date().toDateString(),lr=localStorage.getItem('spinLastResetDate');
+        if(lr!==today){State.dailyDraws=d.maxDailyDraws||1;localStorage.setItem('spinLastResetDate',today);}State.save();}
+    UI.updateBalances();UI.applyPremiumTheme();UI.updateDraws();WheelEngine.draw(State.wheelAngle%(2*Math.PI));
+    if(State.getTotalDraws()===0)UI.scheduleResetTimer();
+    setInterval(async()=>{const data=await API.syncAll();if(data){State.mmkBalance=data.mmkBalance;State.usdBalance=data.usdBalance;State.isPremium=data.isPremium;State.premiumTier=data.premiumTier||1;State.maxDailyDraws=data.maxDailyDraws;State.dailyDraws=data.dailyDrawsRemaining;UI.updateBalances();UI.applyPremiumTheme();UI.updateDraws();}},30000);
+    checkPremiumExpiry();setInterval(checkPremiumExpiry,60000);
+    console.log('✅ Spin System V5 Ready!');
 }
-
-const particleStyle = document.createElement('style');
-particleStyle.textContent = '@keyframes particleFloat{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-200px) scale(0);opacity:0}}';
-document.head.appendChild(particleStyle);
-
+const ps=document.createElement('style');ps.textContent='@keyframes particleFloat{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-200px) scale(0);opacity:0}}';document.head.appendChild(ps);
 init();
 </script>
 </body>
