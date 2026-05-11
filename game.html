@@ -7,268 +7,934 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg: #0a0a1a; --panel: #1a1f4b; --accent: #4a1c7a;
-            --red: #e74c3c; --green: #2ecc71; --gold: #f39c12;
-            --blue: #3498db; --text: #fff; --usd: #85bb65;
-            --prem-gold: #ffd700; --prem-dark: #1a0a2e; --prem-accent: #c9a84c;
-            --wheel-size: 280px; --canvas-size: 560px;
+            --bg: #0a0a1a;
+            --panel: #1a1f4b;
+            --gold: #f39c12;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --blue: #3498db;
+            --text: #fff;
+            --wheel-size: 300px;
+            --canvas-size: 600px;
+            
+            /* Premium Colors */
+            --prem-bg: #1a0a2e;
+            --prem-panel: #2d1b4e;
+            --prem-gold: #ffd700;
+            --prem-accent: #c9a84c;
         }
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
-        html,body{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--text);min-height:100vh;padding:10px;transition:background 0.8s cubic-bezier(0.4,0,0.2,1)}
-        body.premium-active{background:linear-gradient(135deg,#0a0015,#1a0a2e,#2d1050)}
-        .container{max-width:450px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:20px}
         
-        .header{display:flex;align-items:center;gap:10px;width:100%;background:linear-gradient(to right,var(--accent),var(--panel));padding:10px 15px;border-radius:12px;border-bottom:3px solid var(--gold);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
-        body.premium-active .header{background:linear-gradient(to right,#2d1b4e,#4a1c7a);border-bottom-color:var(--prem-gold);box-shadow:0 0 30px rgba(255,215,0,0.15)}
-        .header a{color:var(--gold);font-size:20px;text-decoration:none;transition:color 0.3s}
-        body.premium-active .header a{color:var(--prem-gold)}
-        .header h2{color:var(--gold);font-size:15px;font-weight:700;flex:1;text-align:center;transition:color 0.3s}
-        body.premium-active .header h2{color:var(--prem-gold);text-shadow:0 0 15px rgba(255,215,0,0.4)}
-        .prem-badge{display:none;background:linear-gradient(135deg,var(--prem-gold),#b8860b);color:#000;font-size:9px;padding:4px 10px;border-radius:15px;font-weight:bold;animation:glowPulse 2s infinite}
-        body.premium-active .prem-badge{display:inline-block}
-        @keyframes glowPulse{0%,100%{box-shadow:0 0 8px rgba(255,215,0,0.4)}50%{box-shadow:0 0 20px rgba(255,215,0,0.9)}}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
         
-        .balance-bar{display:flex;gap:6px;width:100%}
-        .bal-card{flex:1;background:rgba(26,31,75,0.7);border-radius:8px;padding:8px;text-align:center;border:1px solid rgba(255,255,255,0.1);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
-        body.premium-active .bal-card{background:rgba(45,27,78,0.8);border-color:rgba(201,168,76,0.3)}
-        .bal-label{font-size:8px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
-        .bal-value{font-size:16px;font-weight:bold;color:var(--gold)}
-        .bal-card.usd .bal-value{color:var(--usd)}
+        body {
+            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 10px;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden;
+        }
         
-        .free-timer-box{width:100%;background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.25);border-radius:8px;padding:10px 12px;text-align:center;font-size:11px;color:var(--green);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
-        body.premium-active .free-timer-box{background:rgba(255,215,0,0.06);border-color:rgba(255,215,0,0.3);color:var(--prem-gold)}
-        .timer-count{font-weight:bold;font-size:15px;font-family:'Courier New',monospace}
+        body.premium-mode {
+            background: linear-gradient(135deg, #0a0015, #1a0a2e, #2d1050);
+        }
         
-        .wheel-wrapper{position:relative;width:var(--wheel-size);height:var(--wheel-size);margin:0 auto;transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
-        body.premium-active .wheel-wrapper{filter:drop-shadow(0 0 20px rgba(255,215,0,0.3))}
-        .wheel-pointer{position:absolute;top:-16px;left:50%;transform:translateX(-50%);z-index:10;font-size:32px;color:var(--gold);filter:drop-shadow(0 0 6px rgba(0,0,0,0.6))}
-        body.premium-active .wheel-pointer{color:var(--prem-gold)}
-        canvas#wheelCanvas{width:var(--wheel-size);height:var(--wheel-size);border-radius:50%;border:4px solid var(--gold);box-shadow:0 0 25px rgba(243,156,18,0.25);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
-        body.premium-active canvas#wheelCanvas{border-color:var(--prem-gold);box-shadow:0 0 40px rgba(255,215,0,0.4)}
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 30px;
+        }
         
-        .spin-status{font-size:10px;color:rgba(255,255,255,0.5);min-height:16px;text-align:center;font-family:'Courier New',monospace}
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            background: linear-gradient(to right, #4a1c7a, #1a1f4b);
+            padding: 12px 15px;
+            border-radius: 12px;
+            border: 2px solid var(--gold);
+            transition: all 0.6s ease;
+        }
         
-        .btn-row{display:flex;gap:8px;width:100%}
-        .btn-spin,.btn-premium{flex:1;padding:12px 10px;border:none;border-radius:25px;font-size:14px;font-weight:bold;cursor:pointer;letter-spacing:0.5px;transition:all 0.3s ease}
-        .btn-spin{background:linear-gradient(135deg,var(--gold),#e67e22);color:#000;box-shadow:0 4px 15px rgba(243,156,18,0.3)}
-        body.premium-active .btn-spin{background:linear-gradient(135deg,var(--prem-gold),#b8860b);box-shadow:0 4px 20px rgba(255,215,0,0.4)}
-        .btn-spin:hover{transform:translateY(-2px)}
-        .btn-spin:disabled{opacity:0.45;cursor:not-allowed;pointer-events:none;transform:none;box-shadow:none}
-        .btn-premium{background:rgba(255,255,255,0.08);color:var(--text);border:1.5px solid var(--gold)}
-        body.premium-active .btn-premium{background:linear-gradient(135deg,var(--prem-gold),#b8860b);color:#000;border-color:var(--prem-gold);box-shadow:0 4px 20px rgba(255,215,0,0.5);animation:premiumBtnGlow 2s infinite}
-        @keyframes premiumBtnGlow{0%,100%{box-shadow:0 4px 20px rgba(255,215,0,0.4)}50%{box-shadow:0 4px 35px rgba(255,215,0,0.8)}}
+        body.premium-mode .header {
+            background: linear-gradient(to right, #6b2fa0, #2d1b4e);
+            border-color: var(--prem-gold);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+        }
         
-        .buy-table{width:100%;background:rgba(26,31,75,0.6);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
-        body.premium-active .buy-table{background:rgba(45,27,78,0.7)}
-        .table-title{text-align:center;padding:10px;font-size:11px;font-weight:bold;color:var(--gold);background:rgba(0,0,0,0.3);text-transform:uppercase}
-        table{width:100%;border-collapse:collapse;font-size:10px}
-        th{background:rgba(0,0,0,0.3);color:var(--gold);padding:8px 6px;font-size:9px;text-transform:uppercase}
-        td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.04)}
-        .btn-buy{padding:6px 14px;border:none;border-radius:12px;font-size:9px;font-weight:bold;cursor:pointer;background:var(--gold);color:#000}
+        .header h2 {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--gold);
+            transition: color 0.6s;
+        }
         
-        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:500;justify-content:center;align-items:center;backdrop-filter:blur(2px)}
-        .modal-overlay.active{display:flex}
-        .modal-box{background:var(--panel);border:2px solid var(--gold);border-radius:16px;padding:22px;width:90%;max-width:380px;max-height:80vh;overflow-y:auto;animation:modalSlideIn 0.35s cubic-bezier(0.4,0,0.2,1)}
-        body.premium-active .modal-box{background:var(--prem-dark);border-color:var(--prem-gold)}
-        @keyframes modalSlideIn{from{opacity:0;transform:translateY(-30px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
-        .modal-box h3{color:var(--gold);text-align:center;margin-bottom:12px;font-size:15px}
-        .modal-close{float:right;color:var(--red);cursor:pointer;font-size:22px}
-        .prem-feature{display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:6px;font-size:11px;border-left:3px solid var(--prem-gold)}
-        .prem-feature i{color:var(--prem-gold);width:18px;text-align:center}
-        .prem-packages{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:10px 0}
-        .prem-pkg{background:rgba(0,0,0,0.3);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;font-size:10px;transition:all 0.3s}
-        .prem-pkg:hover{border-color:var(--prem-gold)}
-        .prem-pkg.best{border-color:var(--prem-gold);position:relative}
-        .best-badge{position:absolute;top:-8px;right:-8px;background:var(--red);color:#fff;font-size:8px;padding:3px 7px;border-radius:10px}
-        .confirm-btns{display:flex;gap:8px;justify-content:center;margin-top:10px}
-        .btn-yes{background:var(--green);color:#000;border:none;padding:10px 24px;border-radius:20px;font-weight:bold;cursor:pointer}
-        .btn-no{background:rgba(255,255,255,0.15);color:#fff;border:none;padding:10px 24px;border-radius:20px;font-weight:bold;cursor:pointer}
-        .super-link-btn{display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#e91e63,#9b59b6);color:#fff;border-radius:30px;font-size:14px;font-weight:bold;text-decoration:none;margin-top:10px;box-shadow:0 6px 25px rgba(233,30,99,0.5);animation:superPulse 1.5s infinite}
-        @keyframes superPulse{0%,100%{box-shadow:0 6px 25px rgba(233,30,99,0.4)}50%{box-shadow:0 8px 40px rgba(233,30,99,0.8)}}
+        body.premium-mode .header h2 {
+            color: var(--prem-gold);
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
         
-        .toast{position:fixed;top:15px;right:15px;padding:10px 16px;border-radius:6px;z-index:9999;font-size:11px;font-weight:bold;display:none;box-shadow:0 4px 15px rgba(0,0,0,0.4);animation:toastIn 0.3s ease;max-width:260px}
-        @keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+        .premium-badge {
+            display: none;
+            background: linear-gradient(135deg, #ffd700, #b8860b);
+            color: #000;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            animation: badgeGlow 2s infinite;
+        }
         
-        .premium-transition-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle,rgba(255,215,0,0.25),rgba(0,0,0,0.95));z-index:999;justify-content:center;align-items:center}
-        .premium-transition-overlay.active{display:flex;animation:fadeInOverlay 0.5s ease}
-        @keyframes fadeInOverlay{from{opacity:0}to{opacity:1}}
-        .premium-unlock-text{font-size:28px;font-weight:bold;color:var(--prem-gold);text-shadow:0 0 30px rgba(255,215,0,0.8);animation:unlockReveal 1s ease}
-        @keyframes unlockReveal{from{transform:scale(0.3);opacity:0}to{transform:scale(1);opacity:1}}
+        body.premium-mode .premium-badge {
+            display: inline-block;
+        }
+        
+        @keyframes badgeGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.9); }
+        }
+        
+        /* Balance Bar */
+        .balance-bar {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+        
+        .bal-card {
+            flex: 1;
+            background: rgba(26, 31, 75, 0.8);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.6s ease;
+        }
+        
+        body.premium-mode .bal-card {
+            background: rgba(45, 27, 78, 0.9);
+            border-color: rgba(201, 168, 76, 0.3);
+        }
+        
+        .bal-label {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .bal-value {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+        
+        .bal-value.usd {
+            color: #85bb65;
+        }
+        
+        .bal-value.mmk {
+            color: var(--gold);
+        }
+        
+        /* Draws Status */
+        .draws-container {
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        body.premium-mode .draws-container {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+        
+        .draw-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.6s ease;
+        }
+        
+        body.premium-mode .draw-card {
+            background: rgba(45, 27, 78, 0.6);
+        }
+        
+        .draw-card.weekly-bonus {
+            display: none;
+        }
+        
+        body.premium-mode .draw-card.weekly-bonus {
+            display: block;
+        }
+        
+        .draw-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        
+        .draw-label {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+        }
+        
+        .draw-count {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--gold);
+            margin-top: 2px;
+        }
+        
+        .draw-card.bought .draw-count {
+            color: #3498db;
+        }
+        
+        /* Wheel Container */
+        .wheel-container {
+            position: relative;
+            width: var(--wheel-size);
+            height: var(--wheel-size);
+            margin: 10px auto;
+            transition: all 0.6s ease;
+        }
+        
+        body.premium-mode .wheel-container {
+            filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.4));
+        }
+        
+        .wheel-pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            font-size: 35px;
+            color: #ff4444;
+            filter: drop-shadow(0 0 8px rgba(255, 0, 0, 0.6));
+            transition: color 0.6s;
+        }
+        
+        body.premium-mode .wheel-pointer {
+            color: #ffd700;
+            filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
+        }
+        
+        canvas#wheelCanvas {
+            width: var(--wheel-size);
+            height: var(--wheel-size);
+            border-radius: 50%;
+            border: 4px solid var(--gold);
+            box-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
+            transition: all 0.6s ease;
+        }
+        
+        body.premium-mode canvas#wheelCanvas {
+            border-color: var(--prem-gold);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
+        }
+        
+        /* Status Text */
+        .spin-status {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+            min-height: 20px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Buttons */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+        
+        .btn-spin {
+            flex: 2;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: #000;
+            box-shadow: 0 5px 20px rgba(243, 156, 18, 0.4);
+            text-transform: uppercase;
+        }
+        
+        body.premium-mode .btn-spin {
+            background: linear-gradient(135deg, #ffd700, #b8860b);
+            box-shadow: 0 5px 30px rgba(255, 215, 0, 0.6);
+            animation: spinBtnGlow 2s infinite;
+        }
+        
+        @keyframes spinBtnGlow {
+            0%, 100% { box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4); }
+            50% { box-shadow: 0 5px 40px rgba(255, 215, 0, 0.8); }
+        }
+        
+        .btn-spin:hover:not(:disabled) {
+            transform: translateY(-3px);
+        }
+        
+        .btn-spin:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            animation: none;
+        }
+        
+        .btn-premium {
+            flex: 1;
+            padding: 14px 10px;
+            border: 2px solid var(--gold);
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--gold);
+            text-transform: uppercase;
+        }
+        
+        body.premium-mode .btn-premium {
+            background: linear-gradient(135deg, #ffd700, #b8860b);
+            color: #000;
+            border-color: transparent;
+            box-shadow: 0 5px 25px rgba(255, 215, 0, 0.5);
+        }
+        
+        /* Buy Table */
+        .buy-table {
+            width: 100%;
+            background: rgba(26, 31, 75, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.6s ease;
+        }
+        
+        body.premium-mode .buy-table {
+            background: rgba(45, 27, 78, 0.6);
+        }
+        
+        .table-title {
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--gold);
+            background: rgba(0, 0, 0, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        
+        th {
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--gold);
+            padding: 8px 5px;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+        
+        td {
+            padding: 8px 5px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        
+        .btn-buy {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 15px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            background: var(--gold);
+            color: #000;
+            transition: all 0.3s;
+        }
+        
+        .btn-buy:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(243, 156, 18, 0.3);
+        }
+        
+        .btn-buy:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* Modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(3px);
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+        }
+        
+        .modal-box {
+            background: #1a1f4b;
+            border: 2px solid var(--gold);
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 380px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        body.premium-mode .modal-box {
+            background: #1a0a2e;
+            border-color: var(--prem-gold);
+        }
+        
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-40px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .modal-box h3 {
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .modal-close {
+            float: right;
+            color: var(--red);
+            cursor: pointer;
+            font-size: 24px;
+            line-height: 1;
+        }
+        
+        /* Result Modal */
+        .result-icon {
+            font-size: 60px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .result-text {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .result-amount {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        /* Premium Features */
+        .prem-features {
+            margin: 15px 0;
+        }
+        
+        .prem-feature {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 12px;
+            border-left: 3px solid var(--prem-gold);
+        }
+        
+        .prem-feature i {
+            color: var(--prem-gold);
+            width: 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .prem-packages {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin: 15px 0;
+        }
+        
+        .prem-pkg {
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 6px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 10px;
+        }
+        
+        .prem-pkg:hover {
+            border-color: var(--prem-gold);
+            transform: translateY(-2px);
+        }
+        
+        .prem-pkg.best {
+            border-color: var(--prem-gold);
+            position: relative;
+        }
+        
+        .best-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e74c3c;
+            color: #fff;
+            font-size: 8px;
+            padding: 3px 7px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        
+        .confirm-btns {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .btn-confirm {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-yes {
+            background: #2ecc71;
+            color: #000;
+        }
+        
+        .btn-no {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+        
+        .btn-close {
+            display: block;
+            margin: 15px auto 0;
+            padding: 10px 30px;
+            background: var(--gold);
+            color: #000;
+            border: none;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        /* Super Prize Link */
+        .super-link {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #e91e63, #9b59b6);
+            color: #fff;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: bold;
+            text-decoration: none;
+            margin-top: 10px;
+            box-shadow: 0 5px 20px rgba(233, 30, 99, 0.5);
+            animation: superGlow 1.5s infinite;
+        }
+        
+        @keyframes superGlow {
+            0%, 100% { box-shadow: 0 5px 20px rgba(233, 30, 99, 0.4); }
+            50% { box-shadow: 0 8px 35px rgba(233, 30, 99, 0.8); }
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            z-index: 9999;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
+            animation: toastSlide 0.3s ease;
+            max-width: 300px;
+        }
+        
+        @keyframes toastSlide {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        /* Premium Transition Overlay */
+        .transition-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 215, 0, 0.3), rgba(0, 0, 0, 0.95));
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .transition-overlay.active {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .transition-text {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+            animation: scaleIn 0.8s ease;
+            text-align: center;
+        }
+        
+        @keyframes scaleIn {
+            from { transform: scale(0.3); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Responsive */
+        @media (max-width: 380px) {
+            :root {
+                --wheel-size: 250px;
+                --canvas-size: 500px;
+            }
+        }
     </style>
 </head>
 <body id="mainBody">
+    <!-- Toast -->
     <div class="toast" id="toast"></div>
-    <div class="premium-transition-overlay" id="premiumTransition"><div class="premium-unlock-text">👑 PREMIUM<br>UNLOCKED!</div></div>
     
+    <!-- Premium Transition -->
+    <div class="transition-overlay" id="transitionOverlay">
+        <div class="transition-text">👑<br>PREMIUM<br>UNLOCKED!</div>
+    </div>
+    
+    <!-- Main Container -->
     <div class="container">
-        <div class="header"><a href="/dashboard"><i class="fas fa-arrow-left"></i></a><h2>🎰 Lucky Spin</h2><span class="prem-badge">👑 PREMIUM</span></div>
-        <div class="balance-bar">
-            <div class="bal-card usd"><div class="bal-label">💵 USD</div><div class="bal-value" id="usdBalance">$0.00</div></div>
-            <div class="bal-card"><div class="bal-label">💰 MMK</div><div class="bal-value" id="mmkBalance">0 Ks</div></div>
+        <!-- Header -->
+        <div class="header">
+            <a href="/dashboard" style="color: inherit; text-decoration: none;">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h2 id="headerTitle">🎰 Lucky Spin</h2>
+            <span class="premium-badge">👑 PREMIUM</span>
         </div>
-        <div class="free-timer-box">🎰 <span>Free Draws: <span class="timer-count" id="freeTimerCount">1</span></span><div style="font-size:9px;margin-top:3px" id="resetCountdown"></div></div>
-        <div class="wheel-wrapper"><div class="wheel-pointer"><i class="fas fa-caret-down"></i></div><canvas id="wheelCanvas" width="560" height="560"></canvas></div>
-        <div class="spin-status" id="spinStatus"></div>
+        
+        <!-- Balance -->
+        <div class="balance-bar">
+            <div class="bal-card">
+                <div class="bal-label">💵 USD</div>
+                <div class="bal-value usd" id="usdBalance">$0.00</div>
+            </div>
+            <div class="bal-card">
+                <div class="bal-label">💰 MMK</div>
+                <div class="bal-value mmk" id="mmkBalance">0 Ks</div>
+            </div>
+        </div>
+        
+        <!-- Draws Status -->
+        <div class="draws-container" id="drawsContainer">
+            <div class="draw-card" id="dailyDrawCard">
+                <div class="draw-icon">🔄</div>
+                <div class="draw-label">Daily Free</div>
+                <div class="draw-count" id="dailyCount">1</div>
+            </div>
+            <div class="draw-card bought" id="boughtDrawCard">
+                <div class="draw-icon">💳</div>
+                <div class="draw-label">Bought</div>
+                <div class="draw-count" id="boughtCount">0</div>
+            </div>
+            <div class="draw-card weekly-bonus" id="weeklyDrawCard">
+                <div class="draw-icon">🎁</div>
+                <div class="draw-label">Weekly Bonus</div>
+                <div class="draw-count" id="weeklyCount">0</div>
+            </div>
+        </div>
+        
+        <!-- Wheel -->
+        <div class="wheel-container">
+            <div class="wheel-pointer">
+                <i class="fas fa-caret-down"></i>
+            </div>
+            <canvas id="wheelCanvas" width="600" height="600"></canvas>
+        </div>
+        
+        <!-- Status -->
+        <div class="spin-status" id="spinStatus">Ready to spin!</div>
+        
+        <!-- Reset Countdown -->
+        <div style="font-size: 10px; color: rgba(255,255,255,0.4); text-align: center;" id="resetCountdown"></div>
+        
+        <!-- Buttons -->
         <div class="btn-row">
             <button class="btn-spin" id="btnSpin">🎰 SPIN</button>
             <button class="btn-premium" id="btnPremium">👑 PREMIUM</button>
         </div>
-        <div class="buy-table"><div class="table-title">💳 Buy Spins</div>
+        
+        <!-- Buy Table -->
+        <div class="buy-table">
+            <div class="table-title">💳 Buy Spins</div>
             <table>
-                <tr><th>Spins</th><th>Price</th><th>Save</th><th></th></tr>
-                <tr><td>1 Spin</td><td>100 Ks</td><td>-</td><td><button class="btn-buy" data-spins="1" data-cost="100">Buy</button></td></tr>
-                <tr><td>3 Spins</td><td>250 Ks</td><td style="color:#2ecc71">50 Ks</td><td><button class="btn-buy" data-spins="3" data-cost="250">Buy</button></td></tr>
-                <tr><td>5 Spins</td><td>400 Ks</td><td style="color:#2ecc71">100 Ks</td><td><button class="btn-buy" data-spins="5" data-cost="400">Buy</button></td></tr>
-                <tr><td>10 Spins</td><td>700 Ks</td><td style="color:#2ecc71">300 Ks</td><td><button class="btn-buy" data-spins="10" data-cost="700">Buy</button></td></tr>
+                <thead>
+                    <tr>
+                        <th>Spins</th>
+                        <th>Price</th>
+                        <th>Save</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1 Spin</td>
+                        <td>100 Ks</td>
+                        <td>-</td>
+                        <td><button class="btn-buy" data-spins="1" data-cost="100">Buy</button></td>
+                    </tr>
+                    <tr>
+                        <td>3 Spins</td>
+                        <td>250 Ks</td>
+                        <td style="color:#2ecc71">50 Ks</td>
+                        <td><button class="btn-buy" data-spins="3" data-cost="250">Buy</button></td>
+                    </tr>
+                    <tr>
+                        <td>5 Spins</td>
+                        <td>400 Ks</td>
+                        <td style="color:#2ecc71">100 Ks</td>
+                        <td><button class="btn-buy" data-spins="5" data-cost="400">Buy</button></td>
+                    </tr>
+                    <tr>
+                        <td>10 Spins</td>
+                        <td>700 Ks</td>
+                        <td style="color:#2ecc71">300 Ks</td>
+                        <td><button class="btn-buy" data-spins="10" data-cost="700">Buy</button></td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>
-
-    <div class="modal-overlay" id="premInfoModal"><div class="modal-box">
-        <span class="modal-close" onclick="Modal.close('premInfoModal')">&times;</span><h3>👑 Premium</h3>
-        <div class="prem-feature"><i class="fas fa-calendar-check"></i> 3 Free Draws / Day</div>
-        <div class="prem-feature"><i class="fas fa-gift"></i> Weekly +5 Bonus</div>
-        <div class="prem-feature"><i class="fas fa-percent"></i> Better Win Rates</div>
-        <div class="prem-feature"><i class="fas fa-coins"></i> $3 + 1,000 Ks Prizes</div>
-        <div class="prem-feature"><i class="fas fa-palette"></i> Premium Theme</div>
-        <h3 style="margin-top:15px">💳 Plans</h3>
-        <div class="prem-packages">
-            <div class="prem-pkg" data-months="1" data-cost="8000">1 Month<br>8,000 Ks</div>
-            <div class="prem-pkg best" data-months="2" data-cost="15000">2 Months<br>15,000 Ks<span class="best-badge">BEST</span></div>
-            <div class="prem-pkg" data-months="3" data-cost="22000">3 Months<br>22,000 Ks</div>
+    
+    <!-- Modal: Premium Info -->
+    <div class="modal-overlay" id="premiumModal">
+        <div class="modal-box">
+            <span class="modal-close" onclick="closeModal('premiumModal')">&times;</span>
+            <h3>👑 Premium Lucky Spin</h3>
+            <div class="prem-features">
+                <div class="prem-feature">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>3 Daily Free Draws</span>
+                </div>
+                <div class="prem-feature">
+                    <i class="fas fa-gift"></i>
+                    <span>Weekly +5 Bonus Draws</span>
+                </div>
+                <div class="prem-feature">
+                    <i class="fas fa-percent"></i>
+                    <span>Better Win Rates</span>
+                </div>
+                <div class="prem-feature">
+                    <i class="fas fa-coins"></i>
+                    <span>$3.00 + 1,000 Ks Prizes</span>
+                </div>
+                <div class="prem-feature">
+                    <i class="fas fa-palette"></i>
+                    <span>Premium Gold Theme</span>
+                </div>
+                <div class="prem-feature">
+                    <i class="fas fa-crown"></i>
+                    <span>Exclusive Rewards</span>
+                </div>
+            </div>
+            <h3>💳 Choose Plan</h3>
+            <div class="prem-packages">
+                <div class="prem-pkg" onclick="buyPremium(1, 8000)">
+                    <div>1 Month</div>
+                    <div style="font-weight:bold; margin-top:5px;">8,000 Ks</div>
+                </div>
+                <div class="prem-pkg best" onclick="buyPremium(2, 15000)">
+                    <div class="best-badge">BEST</div>
+                    <div>2 Months</div>
+                    <div style="font-weight:bold; margin-top:5px;">15,000 Ks</div>
+                    <div style="font-size:8px; color:#2ecc71;">Save 1,000</div>
+                </div>
+                <div class="prem-pkg" onclick="buyPremium(3, 22000)">
+                    <div>3 Months</div>
+                    <div style="font-weight:bold; margin-top:5px;">22,000 Ks</div>
+                    <div style="font-size:8px; color:#2ecc71;">Save 2,000</div>
+                </div>
+            </div>
         </div>
-    </div></div>
-
-    <div class="modal-overlay" id="confirmOverlay"><div class="modal-box">
-        <h3 id="confirmTitle"></h3><p id="confirmMsg" style="font-size:12px;margin:10px 0;text-align:center"></p>
-        <div class="confirm-btns"><button class="btn-no" onclick="Modal.close('confirmOverlay')">Cancel</button><button class="btn-yes" id="confirmYesBtn">Confirm</button></div>
-    </div></div>
-
-    <div class="modal-overlay" id="resultOverlay"><div class="modal-box" style="text-align:center">
-        <div id="resultIcon" style="font-size:50px;margin-bottom:8px"></div>
-        <div id="resultText" style="font-size:18px;font-weight:bold;color:var(--gold)"></div>
-        <div id="resultAmount" style="font-size:26px;font-weight:bold;margin:10px 0"></div>
-        <div id="resultExtra"></div>
-    </div></div>
+    </div>
+    
+    <!-- Modal: Confirm -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-box" style="text-align:center;">
+            <h3 id="confirmTitle"></h3>
+            <p id="confirmMsg" style="margin:15px 0; font-size:13px;"></p>
+            <div class="confirm-btns">
+                <button class="btn-confirm btn-no" onclick="closeModal('confirmModal')">Cancel</button>
+                <button class="btn-confirm btn-yes" id="confirmYesBtn">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Result -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-box" style="text-align:center;">
+            <div class="result-icon" id="resultIcon"></div>
+            <div class="result-text" id="resultText"></div>
+            <div class="result-amount" id="resultAmount"></div>
+            <div id="resultExtra"></div>
+            <button class="btn-close" onclick="closeModal('resultModal')">OK</button>
+        </div>
+    </div>
 
 <script>
-// ==================== MODULE: Config ====================
+// ====================================
+// CONFIGURATION
+// ====================================
 const CONFIG = {
     SUPER_FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform',
-    SEG_COUNT: 8,
-    ARC: (2 * Math.PI) / 8,
-    EXCHANGE_RATE: 3500,
-    PREMIUM_DAILY_DRAWS: 3,
-    NORMAL_DAILY_DRAWS: 1,
     
+    // Normal Mode Segments
     NORMAL_SEGMENTS: [
-        { label:'$0.25',color:'#e74c3c',reward:0.25,type:'usd',weight:15 },
-        { label:'$0.75',color:'#3498db',reward:0.75,type:'usd',weight:13 },
-        { label:'$1.00',color:'#2ecc71',reward:1.00,type:'usd',weight:10 },
-        { label:'$2.00',color:'#9b59b6',reward:2.00,type:'usd',weight:6.5 },
-        { label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:55 },
-        { label:'Thanks!',color:'#7f8c8d',reward:0,type:'thanks',weight:50 },
-        { label:'FREE',color:'#1abc9c',reward:0,type:'free',weight:60 },
-        { label:'SUPER',color:'#e91e63',reward:0,type:'super',weight:2.5 }
+        { label: '$0.25', color: '#e74c3c', reward: 0.25, type: 'usd', weight: 15 },
+        { label: '$0.50', color: '#e67e22', reward: 0.50, type: 'usd', weight: 12 },
+        { label: '$0.75', color: '#3498db', reward: 0.75, type: 'usd', weight: 10 },
+        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 8 },
+        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 5 },
+        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 40 },
+        { label: 'FREE', color: '#1abc9c', reward: 0, type: 'free', weight: 50 },
+        { label: 'SUPER', color: '#e91e63', reward: 0, type: 'super', weight: 2 }
     ],
+    
+    // Premium Mode Segments
     PREMIUM_SEGMENTS: [
-        { label:'$0.25',color:'#e74c3c',reward:0.25,type:'usd',weight:40 },
-        { label:'$0.75',color:'#3498db',reward:0.75,type:'usd',weight:25 },
-        { label:'$1.00',color:'#2ecc71',reward:1.00,type:'usd',weight:20 },
-        { label:'$2.00',color:'#9b59b6',reward:2.00,type:'usd',weight:8.5 },
-        { label:'$3.00',color:'#e67e22',reward:3.00,type:'usd',weight:7.05 },
-        { label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:50 },
-        { label:'1000 Ks',color:'#c9a84c',reward:1000,type:'mmk',weight:40 },
-        { label:'SUPER',color:'#e91e63',reward:0,type:'super',weight:10 }
+        { label: '$0.50', color: '#e74c3c', reward: 0.50, type: 'usd', weight: 25 },
+        { label: '$0.75', color: '#e67e22', reward: 0.75, type: 'usd', weight: 20 },
+        { label: '$1.00', color: '#3498db', reward: 1.00, type: 'usd', weight: 18 },
+        { label: '$2.00', color: '#2ecc71', reward: 2.00, type: 'usd', weight: 10 },
+        { label: '$3.00', color: '#9b59b6', reward: 3.00, type: 'usd', weight: 7 },
+        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 30 },
+        { label: '1000 Ks', color: '#c9a84c', reward: 1000, type: 'mmk', weight: 25 },
+        { label: 'SUPER', color: '#e91e63', reward: 0, type: 'super', weight: 5 }
     ]
 };
 
-// ==================== MODULE: API ====================
-const API = {
-    token() { return localStorage.getItem('auth_token'); },
-    isGuest() { const t = this.token(); return !t || t === 'guest'; },
-    headers() { return { 'Content-Type': 'application/json' }; },
-    
-    async getBalance() {
-        if (this.isGuest()) return { balance: 0 };
-        const r = await fetch('/api/get_balance', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
-        return r.json();
-    },
-    async getUsdBalance() {
-        if (this.isGuest()) return { usd_balance: 0 };
-        const r = await fetch('/api/get_usd_balance', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
-        return r.json();
-    },
-    async getPremiumStatus() {
-        if (this.isGuest()) return { success: false };
-        const r = await fetch('/api/get_premium_status', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
-        return r.json();
-    },
-    async getPaidSpins() {
-        if (this.isGuest()) return { paid_spins: 0 };
-        const r = await fetch('/api/get_paid_spins', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
-        return r.json();
-    },
-    async saveSpin(seg) {
-        if (this.isGuest()) return;
-        await fetch('/api/spin/save', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token(), reward_type:seg.type, reward_amount:seg.reward, segment_label:seg.label }) });
-    },
-    async usePaidSpin() {
-        if (this.isGuest()) return;
-        await fetch('/api/spin/use_paid_spin', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
-    },
-    async deductBalance(amount, reason) {
-        const r = await fetch('/api/deduct_balance', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token(), amount, reason }) });
-        return r.json();
-    },
-    async buyPremium(months, cost) {
-        const r = await fetch('/api/buy_premium', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token(), months, cost }) });
-        return r.json();
-    },
-    async trackPremiumDraw() {
-        if (this.isGuest()) return;
-        await fetch('/api/track_premium_draw', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
-    },
-    async claimWeeklyBonus() {
-        if (this.isGuest()) return;
-        await fetch('/api/claim_weekly_bonus', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
-    },
-    
-    async syncAll() {
-        if (this.isGuest()) return null;
-        const [bal, usd, prem, paid] = await Promise.all([
-            this.getBalance(), this.getUsdBalance(), this.getPremiumStatus(), this.getPaidSpins()
-        ]);
-        return {
-            mmkBalance: parseFloat(bal.balance || 0),
-            usdBalance: parseFloat(usd.usd_balance || 0),
-            premiumActive: !!(prem.success && prem.premium_active),
-            premiumExpiry: prem.expires_at || null,
-            dailyDrawsRemaining: prem.daily_draws_remaining ?? (prem.success && prem.premium_active ? 3 : 1),
-            maxDailyDraws: prem.max_daily_draws ?? (prem.success && prem.premium_active ? 3 : 1),
-            paidSpins: parseInt(paid.paid_spins || 0)
-        };
-    }
-};
-
-// ==================== MODULE: State ====================
+// ====================================
+// STATE MANAGEMENT
+// ====================================
 const State = {
-    premiumActive: false,
-    freeDraws: 1,
-    paidSpins: 0,
-    mmkBalance: 0,
-    usdBalance: 0,
+    isPremium: false,
     isSpinning: false,
     wheelAngle: 0,
     
+    // Draws (separate tracking)
+    dailyDraws: 0,
+    boughtDraws: 0,
+    weeklyBonusDraws: 0,
+    
+    // Balances
+    mmkBalance: 0,
+    usdBalance: 0,
+    
+    // Data
+    premiumExpiry: null,
+    maxDailyDraws: 1,
+    
+    getTotalDraws() {
+        return this.dailyDraws + this.boughtDraws + this.weeklyBonusDraws;
+    },
+    
+    getDrawSource() {
+        // Priority order: Daily > Weekly Bonus > Bought
+        if (this.dailyDraws > 0) return 'daily';
+        if (this.isPremium && this.weeklyBonusDraws > 0) return 'weekly_bonus';
+        if (this.boughtDraws > 0) return 'bought';
+        return null;
+    },
+    
+    consumeDraw(source) {
+        switch(source) {
+            case 'daily':
+                if (this.dailyDraws > 0) this.dailyDraws--;
+                break;
+            case 'weekly_bonus':
+                if (this.weeklyBonusDraws > 0) this.weeklyBonusDraws--;
+                break;
+            case 'bought':
+                if (this.boughtDraws > 0) this.boughtDraws--;
+                break;
+        }
+        this.save();
+    },
+    
     save() {
         try {
-            localStorage.setItem('spinStateV2', JSON.stringify({
-                premiumActive: this.premiumActive,
-                freeDraws: this.freeDraws,
-                paidSpins: this.paidSpins,
+            localStorage.setItem('spinStateV3', JSON.stringify({
+                isPremium: this.isPremium,
+                dailyDraws: this.dailyDraws,
+                boughtDraws: this.boughtDraws,
+                weeklyBonusDraws: this.weeklyBonusDraws,
                 wheelAngle: this.wheelAngle,
+                maxDailyDraws: this.maxDailyDraws,
                 timestamp: Date.now()
             }));
         } catch(e) {}
@@ -276,360 +942,836 @@ const State = {
     
     load() {
         try {
-            const raw = localStorage.getItem('spinStateV2');
-            if (raw) {
-                const d = JSON.parse(raw);
-                this.premiumActive = !!d.premiumActive;
-                this.freeDraws = d.freeDraws ?? 1;
-                this.paidSpins = d.paidSpins ?? 0;
-                this.wheelAngle = d.wheelAngle ?? 0;
+            const data = JSON.parse(localStorage.getItem('spinStateV3'));
+            if (data) {
+                this.isPremium = data.isPremium || false;
+                this.dailyDraws = data.dailyDraws || 0;
+                this.boughtDraws = data.boughtDraws || 0;
+                this.weeklyBonusDraws = data.weeklyBonusDraws || 0;
+                this.wheelAngle = data.wheelAngle || 0;
+                this.maxDailyDraws = data.maxDailyDraws || 1;
             }
         } catch(e) {}
-    },
-    
-    applyServerData(data) {
-        if (!data) return;
-        this.mmkBalance = data.mmkBalance;
-        this.usdBalance = data.usdBalance;
-        this.premiumActive = data.premiumActive;
-        this.freeDraws = data.dailyDrawsRemaining;
-        this.paidSpins = data.paidSpins;
-        this.save();
     }
 };
 
-// ==================== MODULE: UI ====================
+// ====================================
+// API CALLS
+// ====================================
+const API = {
+    getToken() {
+        return localStorage.getItem('auth_token');
+    },
+    
+    isGuest() {
+        const t = this.getToken();
+        return !t || t === 'guest';
+    },
+    
+    headers() {
+        return { 'Content-Type': 'application/json' };
+    },
+    
+    async syncAll() {
+        if (this.isGuest()) return null;
+        
+        const token = this.getToken();
+        try {
+            const [balRes, usdRes, premRes] = await Promise.all([
+                fetch('/api/get_balance', {
+                    method: 'POST',
+                    headers: this.headers(),
+                    body: JSON.stringify({ token })
+                }).then(r => r.json()),
+                fetch('/api/get_usd_balance', {
+                    method: 'POST',
+                    headers: this.headers(),
+                    body: JSON.stringify({ token })
+                }).then(r => r.json()),
+                fetch('/api/get_premium_status', {
+                    method: 'POST',
+                    headers: this.headers(),
+                    body: JSON.stringify({ token })
+                }).then(r => r.json())
+            ]);
+            
+            return {
+                mmkBalance: parseFloat(balRes.balance || 0),
+                usdBalance: parseFloat(usdRes.usd_balance || 0),
+                isPremium: !!(premRes.success && premRes.premium_active),
+                premiumExpiry: premRes.expires_at || null,
+                dailyDrawsRemaining: premRes.daily_draws_remaining || 0,
+                maxDailyDraws: premRes.max_daily_draws || 1
+            };
+        } catch(e) {
+            console.error('Sync error:', e);
+            return null;
+        }
+    },
+    
+    async executeSpin(source) {
+        if (this.isGuest()) {
+            // Guest mode - client-side random (testing only)
+            return this._guestSpin();
+        }
+        
+        const token = this.getToken();
+        try {
+            const response = await fetch('/api/spin/execute', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token, spin_source: source })
+            });
+            return await response.json();
+        } catch(e) {
+            console.error('Spin error:', e);
+            return null;
+        }
+    },
+    
+    _guestSpin() {
+        // For guest/testing - uses current mode's segments
+        const segments = State.isPremium ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS;
+        const totalWeight = segments.reduce((s, seg) => s + seg.weight, 0);
+        let rand = Math.random() * totalWeight;
+        let winIndex = 0;
+        
+        for (let i = 0; i < segments.length; i++) {
+            rand -= segments[i].weight;
+            if (rand <= 0) {
+                winIndex = i;
+                break;
+            }
+        }
+        
+        return {
+            success: true,
+            winIndex: winIndex,
+            reward: segments[winIndex],
+            mmkBalance: State.mmkBalance,
+            usdBalance: State.usdBalance
+        };
+    },
+    
+    async buySpins(spins, cost) {
+        if (this.isGuest()) return { success: false, message: 'Login required' };
+        
+        try {
+            const response = await fetch('/api/deduct_balance', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({
+                    token: this.getToken(),
+                    amount: cost,
+                    reason: `Buy ${spins} spins`
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                State.boughtDraws += spins;
+                State.mmkBalance = result.new_balance;
+                State.save();
+            }
+            return result;
+        } catch(e) {
+            return { success: false, message: 'Network error' };
+        }
+    },
+    
+    async buyPremium(months, cost) {
+        if (this.isGuest()) return { success: false, message: 'Login required' };
+        
+        try {
+            const response = await fetch('/api/buy_premium', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({
+                    token: this.getToken(),
+                    months: months,
+                    cost: cost
+                })
+            });
+            return await response.json();
+        } catch(e) {
+            return { success: false, message: 'Network error' };
+        }
+    }
+};
+
+// ====================================
+// WHEEL ENGINE
+// ====================================
+const WheelEngine = {
+    canvas: document.getElementById('wheelCanvas'),
+    ctx: document.getElementById('wheelCanvas').getContext('2d'),
+    SEGMENT_COUNT: 8,
+    
+    getSegments() {
+        return State.isPremium ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS;
+    },
+    
+    getArcSize() {
+        return (2 * Math.PI) / this.getSegments().length;
+    },
+    
+    draw(rotationAngle = 0) {
+        const segments = this.getSegments();
+        const cx = 300, cy = 300, radius = 270;
+        const arcSize = this.getArcSize();
+        
+        this.ctx.clearRect(0, 0, 600, 600);
+        
+        // Draw outer glow
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius + 8, 0, 2 * Math.PI);
+        this.ctx.fillStyle = State.isPremium ? 'rgba(255,215,0,0.15)' : 'rgba(243,156,18,0.08)';
+        this.ctx.fill();
+        
+        // Draw segments
+        segments.forEach((seg, i) => {
+            const startAngle = i * arcSize + rotationAngle;
+            const endAngle = startAngle + arcSize;
+            
+            // Segment fill
+            this.ctx.beginPath();
+            this.ctx.moveTo(cx, cy);
+            this.ctx.arc(cx, cy, radius, startAngle, endAngle);
+            this.ctx.closePath();
+            
+            // Gradient fill
+            const grad = this.ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius);
+            grad.addColorStop(0, this._lightenColor(seg.color, 60));
+            grad.addColorStop(1, seg.color);
+            this.ctx.fillStyle = grad;
+            this.ctx.fill();
+            
+            // Segment border
+            this.ctx.strokeStyle = State.isPremium ? 'rgba(255,215,0,0.8)' : 'rgba(255,215,100,0.4)';
+            this.ctx.lineWidth = 2.5;
+            this.ctx.stroke();
+            
+            // Text
+            this.ctx.save();
+            this.ctx.translate(cx, cy);
+            this.ctx.rotate(startAngle + arcSize / 2);
+            this.ctx.textAlign = 'center';
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.font = 'bold 14px "Segoe UI", sans-serif';
+            this.ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            this.ctx.shadowBlur = 6;
+            this.ctx.fillText(seg.label, radius * 0.65, 5);
+            this.ctx.restore();
+        });
+        
+        // Outer ring
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius + 3, 0, 2 * Math.PI);
+        this.ctx.strokeStyle = State.isPremium ? '#ffd700' : '#f39c12';
+        this.ctx.lineWidth = 4;
+        this.ctx.stroke();
+        
+        // Inner ring
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius - 2, 0, 2 * Math.PI);
+        this.ctx.strokeStyle = State.isPremium ? 'rgba(255,215,0,0.5)' : 'rgba(243,156,18,0.3)';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        
+        // Center hub
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, 35, 0, 2 * Math.PI);
+        const hubGrad = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, 35);
+        hubGrad.addColorStop(0, State.isPremium ? '#4a1c7a' : '#2c3e50');
+        hubGrad.addColorStop(1, State.isPremium ? '#1a0a2e' : '#1a1f4b');
+        this.ctx.fillStyle = hubGrad;
+        this.ctx.fill();
+        this.ctx.strokeStyle = State.isPremium ? '#ffd700' : '#f39c12';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+        
+        // Center text
+        this.ctx.fillStyle = State.isPremium ? '#ffd700' : '#f39c12';
+        this.ctx.font = 'bold 11px "Segoe UI", sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.shadowBlur = 0;
+        this.ctx.fillText(State.isPremium ? 'PREMIUM' : 'SPIN', cx, cy);
+    },
+    
+    _lightenColor(hex, percent) {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = Math.min(255, (num >> 16) + amt);
+        const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
+        const B = Math.min(255, (num & 0x0000FF) + amt);
+        return `rgb(${R},${G},${B})`;
+    },
+    
+    getTargetRotation(winIndex) {
+        const segments = this.getSegments();
+        const arcSize = (2 * Math.PI) / segments.length;
+        
+        // Arrow is at TOP (12 o'clock = -π/2 or 3π/2)
+        // We want the winning segment's CENTER to align with arrow
+        const segmentCenterAngle = winIndex * arcSize + arcSize / 2;
+        
+        // Calculate rotation to bring segment center to TOP
+        const targetAngle = -segmentCenterAngle - Math.PI / 2;
+        
+        // Normalize to positive
+        let normalized = targetAngle;
+        while (normalized < 0) normalized += 2 * Math.PI;
+        
+        return normalized;
+    },
+    
+    async spin(winIndex) {
+        const targetAngle = this.getTargetRotation(winIndex);
+        const fullSpins = 6 + Math.floor(Math.random() * 3);
+        const totalRotation = targetAngle + fullSpins * 2 * Math.PI;
+        const startAngle = State.wheelAngle;
+        const duration = 4000 + Math.random() * 500;
+        const startTime = Date.now();
+        
+        return new Promise((resolve) => {
+            const animate = () => {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Easing function (cubic ease-out)
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const currentAngle = startAngle + totalRotation * eased;
+                
+                this.draw(currentAngle % (2 * Math.PI));
+                State.wheelAngle = currentAngle;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    resolve();
+                }
+            };
+            
+            requestAnimationFrame(animate);
+        });
+    }
+};
+
+// ====================================
+// UI FUNCTIONS
+// ====================================
 const UI = {
-    toast(msg, type='success') {
-        const el = document.getElementById('toast');
-        el.textContent = msg;
-        el.style.background = type==='success'?'#2ecc71':type==='error'?'#e74c3c':'#3498db';
-        el.style.display = 'block';
-        clearTimeout(this._timer);
-        this._timer = setTimeout(() => el.style.display='none', 3000);
-    },
-    
     updateBalances() {
-        document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString() + ' Ks';
-        document.getElementById('usdBalance').textContent = '$' + State.usdBalance.toFixed(2);
+        document.getElementById('mmkBalance').textContent = 
+            State.mmkBalance.toLocaleString() + ' Ks';
+        document.getElementById('usdBalance').textContent = 
+            '$' + State.usdBalance.toFixed(2);
     },
     
-    updateFreeDraws() {
-        document.getElementById('freeTimerCount').textContent = State.freeDraws;
+    updateDraws() {
+        document.getElementById('dailyCount').textContent = State.dailyDraws;
+        document.getElementById('boughtCount').textContent = State.boughtDraws;
+        document.getElementById('weeklyCount').textContent = State.weeklyBonusDraws;
+        
+        // Update daily card label
+        const dailyLabel = document.querySelector('#dailyDrawCard .draw-label');
+        if (dailyLabel) {
+            dailyLabel.textContent = State.isPremium ? 'Daily (Premium)' : 'Daily Free';
+        }
+        
         this.updateSpinButton();
     },
     
     updateSpinButton() {
         const btn = document.getElementById('btnSpin');
         const status = document.getElementById('spinStatus');
+        
         if (State.isSpinning) {
-            btn.disabled = true; status.textContent = '⏱️ Spinning...'; return;
+            btn.disabled = true;
+            status.textContent = '⏳ Spinning...';
+            return;
         }
-        if (State.paidSpins > 0) { btn.disabled = false; status.textContent = `💳 Paid: ${State.paidSpins}`; }
-        else if (State.freeDraws > 0) { btn.disabled = false; status.textContent = `🎰 Free: ${State.freeDraws}`; }
-        else { btn.disabled = true; status.textContent = '⏰ No spins'; }
+        
+        const total = State.getTotalDraws();
+        const source = State.getDrawSource();
+        
+        if (total > 0) {
+            btn.disabled = false;
+            let sourceText = '';
+            switch(source) {
+                case 'daily': sourceText = '🔄 Daily'; break;
+                case 'weekly_bonus': sourceText = '🎁 Weekly Bonus'; break;
+                case 'bought': sourceText = '💳 Bought'; break;
+            }
+            status.textContent = `${sourceText} · ${total} draw(s) left`;
+        } else {
+            btn.disabled = true;
+            status.textContent = '⏰ No draws available';
+        }
     },
     
     applyPremiumTheme() {
         const body = document.getElementById('mainBody');
-        const btn = document.getElementById('btnPremium');
-        if (State.premiumActive) { body.classList.add('premium-active'); btn.textContent = '👑 ACTIVE'; }
-        else { body.classList.remove('premium-active'); btn.textContent = '👑 PREMIUM'; }
+        const headerTitle = document.getElementById('headerTitle');
+        const btnPremium = document.getElementById('btnPremium');
+        const weeklyCard = document.getElementById('weeklyDrawCard');
+        const drawsContainer = document.getElementById('drawsContainer');
+        
+        if (State.isPremium) {
+            body.classList.add('premium-mode');
+            headerTitle.textContent = '👑 Premium Lucky Spin';
+            btnPremium.textContent = '👑 ACTIVE';
+            weeklyCard.style.display = 'block';
+            drawsContainer.style.gridTemplateColumns = '1fr 1fr 1fr';
+        } else {
+            body.classList.remove('premium-mode');
+            headerTitle.textContent = '🎰 Lucky Spin';
+            btnPremium.textContent = '👑 PREMIUM';
+            weeklyCard.style.display = 'none';
+            drawsContainer.style.gridTemplateColumns = '1fr 1fr';
+        }
+        
+        WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
+        this.updateDraws();
+    },
+    
+    showToast(message, type = 'success') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.style.display = 'block';
+        
+        switch(type) {
+            case 'success':
+                toast.style.background = '#2ecc71';
+                toast.style.color = '#fff';
+                break;
+            case 'error':
+                toast.style.background = '#e74c3c';
+                toast.style.color = '#fff';
+                break;
+            case 'info':
+                toast.style.background = '#3498db';
+                toast.style.color = '#fff';
+                break;
+            case 'gold':
+                toast.style.background = 'linear-gradient(135deg, #ffd700, #f39c12)';
+                toast.style.color = '#000';
+                break;
+        }
+        
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
     },
     
     showPremiumTransition() {
-        const overlay = document.getElementById('premiumTransition');
+        const overlay = document.getElementById('transitionOverlay');
         overlay.classList.add('active');
-        setTimeout(() => overlay.classList.remove('active'), 1800);
+        
+        // Particle effect
+        this._createParticles();
+        
+        setTimeout(() => {
+            overlay.classList.remove('active');
+        }, 2000);
     },
     
-    scheduleResetTimer() {
-        if (window._resetInterval) clearInterval(window._resetInterval);
-        const el = document.getElementById('resetCountdown');
-        const update = () => {
-            const now = new Date();
-            const midnight = new Date(now); midnight.setDate(midnight.getDate()+1); midnight.setHours(0,0,0,0);
-            const rem = midnight.getTime() - now.getTime();
-            if (rem <= 0) { el.textContent = ''; State.freeDraws = State.premiumActive ? 3 : 1; State.save(); UI.updateFreeDraws(); this.scheduleResetTimer(); return; }
-            const h=Math.floor(rem/3600000), m=Math.floor((rem%3600000)/60000), s=Math.floor((rem%60000)/1000);
-            el.textContent = `🔄 Reset in: ${h}h ${m}m ${s}s`;
-        };
-        update();
-        window._resetInterval = setInterval(update, 1000);
-    }
-};
-
-// ==================== MODULE: Modal ====================
-const Modal = {
-    open(id) { document.getElementById(id).classList.add('active'); },
-    close(id) { document.getElementById(id).classList.remove('active'); },
+    _createParticles() {
+        const overlay = document.getElementById('transitionOverlay');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.style.cssText = `
+                position: absolute;
+                width: ${Math.random() * 8 + 3}px;
+                height: ${Math.random() * 8 + 3}px;
+                background: #ffd700;
+                border-radius: 50%;
+                left: ${Math.random() * 100}%;
+                top: ${Math.random() * 100}%;
+                animation: particleFloat ${Math.random() * 2 + 1}s ease-out forwards;
+                opacity: ${Math.random()};
+            `;
+            overlay.appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 2000);
+        }
+    },
     
-    showResult(seg) {
+    showResult(winIndex) {
+        const segments = State.isPremium ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS;
+        const reward = segments[winIndex];
+        
         const icon = document.getElementById('resultIcon');
         const text = document.getElementById('resultText');
         const amount = document.getElementById('resultAmount');
         const extra = document.getElementById('resultExtra');
+        
         extra.innerHTML = '';
         
-        if (seg.type === 'super') {
-            icon.textContent = '👑'; text.textContent = '🏆 SUPER PRIZE!'; amount.textContent = 'Congratulations!'; amount.style.color = '#e91e63';
-            extra.innerHTML = `<a class="super-link-btn" href="${CONFIG.SUPER_FORM_URL}" target="_blank">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>`;
-        } else {
-            switch(seg.type) {
-                case 'usd': icon.textContent='💵'; text.textContent='🎉 You Won!'; amount.textContent=`$${seg.reward.toFixed(2)} USD`; amount.style.color='#2ecc71'; break;
-                case 'mmk': icon.textContent='💰'; text.textContent='🎉 You Won!'; amount.textContent=`${seg.reward} Ks`; amount.style.color='#f39c12'; break;
-                case 'free': icon.textContent='🔄'; text.textContent='Free Spin!'; amount.textContent='+1 Extra Draw'; amount.style.color='#1abc9c'; State.freeDraws++; State.save(); UI.updateFreeDraws(); break;
-                default: icon.textContent='😊'; text.textContent='Thank You!'; amount.textContent='Better luck next time'; amount.style.color='#7f8c8d';
-            }
-            extra.innerHTML = '<button class="btn-yes" onclick="Modal.close(\'resultOverlay\')" style="margin-top:10px">OK</button>';
+        if (reward.type === 'super') {
+            icon.textContent = '👑';
+            text.textContent = '🏆 SUPER PRIZE!';
+            amount.textContent = 'Congratulations!';
+            amount.style.color = '#e91e63';
+            extra.innerHTML = `
+                <a href="${CONFIG.SUPER_FORM_URL}" target="_blank" class="super-link">
+                    🏆 ဆုရယူရန် ဝင်ရောက်ပါ
+                </a>
+            `;
+        } else if (reward.type === 'free') {
+            icon.textContent = '🔄';
+            text.textContent = 'Free Spin!';
+            amount.textContent = '+1 Extra Draw';
+            amount.style.color = '#1abc9c';
+        } else if (reward.type === 'usd') {
+            icon.textContent = '💵';
+            text.textContent = '🎉 You Won!';
+            amount.textContent = `$${reward.reward.toFixed(2)} USD`;
+            amount.style.color = '#2ecc71';
+        } else if (reward.type === 'mmk') {
+            icon.textContent = '💰';
+            text.textContent = '🎉 You Won!';
+            amount.textContent = `${reward.reward.toLocaleString()} Ks`;
+            amount.style.color = '#f39c12';
         }
-        this.open('resultOverlay');
-    },
-    
-    showConfirm(title, msg, callback) {
-        document.getElementById('confirmTitle').textContent = title;
-        document.getElementById('confirmMsg').innerHTML = msg;
-        document.getElementById('confirmYesBtn').onclick = () => { this.close('confirmOverlay'); callback(); };
-        this.open('confirmOverlay');
-    }
-};
-
-// ==================== MODULE: Wheel Engine ====================
-const WheelEngine = {
-    canvas: document.getElementById('wheelCanvas'),
-    ctx: document.getElementById('wheelCanvas').getContext('2d'),
-    
-    getSegments() { return State.premiumActive ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS; },
-    
-    getWinningIndex() {
-        const segs = this.getSegments();
-        const total = segs.reduce((a,b) => a + b.weight, 0);
-        let rand = Math.random() * total;
-        for (let i = 0; i < segs.length; i++) { rand -= segs[i].weight; if (rand <= 0) return i; }
-        return segs.length - 1;
-    },
-    
-    getTargetAngle(winIdx) {
-        const segmentCenter = winIdx * CONFIG.ARC + CONFIG.ARC / 2;
-        let target = -segmentCenter + Math.PI / 2;
-        while (target < 0) target += 2 * Math.PI;
-        return target % (2 * Math.PI);
-    },
-    
-    draw(angle = 0) {
-        const segs = this.getSegments();
-        const cx = 280, cy = 280, r = 260;
-        this.ctx.clearRect(0, 0, 560, 560);
         
-        segs.forEach((s, i) => {
-            const start = i * CONFIG.ARC + angle, end = start + CONFIG.ARC;
-            this.ctx.beginPath(); this.ctx.moveTo(cx, cy); this.ctx.arc(cx, cy, r, start, end); this.ctx.closePath();
-            const grad = this.ctx.createRadialGradient(cx, cy, r*0.25, cx, cy, r);
-            grad.addColorStop(0, this._lighten(s.color, 50)); grad.addColorStop(1, s.color);
-            this.ctx.fillStyle = grad; this.ctx.fill();
-            this.ctx.strokeStyle = State.premiumActive ? 'rgba(255,215,0,0.7)' : 'rgba(255,215,0,0.35)';
-            this.ctx.lineWidth = 2.5; this.ctx.stroke();
-            this.ctx.save(); this.ctx.translate(cx, cy); this.ctx.rotate(start + CONFIG.ARC/2);
-            this.ctx.textAlign = 'center'; this.ctx.fillStyle = '#fff'; this.ctx.font = 'bold 15px "Segoe UI"';
-            this.ctx.shadowColor = 'rgba(0,0,0,0.8)'; this.ctx.shadowBlur = 6;
-            this.ctx.fillText(s.label, r*0.67, 6); this.ctx.restore();
-        });
-        
-        this.ctx.beginPath(); this.ctx.arc(cx, cy, r+4, 0, 2*Math.PI);
-        this.ctx.strokeStyle = State.premiumActive ? 'rgba(255,215,0,0.9)' : 'rgba(243,156,18,0.6)';
-        this.ctx.lineWidth = 5; this.ctx.stroke();
-        
-        this.ctx.beginPath(); this.ctx.arc(cx, cy, 32, 0, 2*Math.PI);
-        const hub = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, 32);
-        hub.addColorStop(0, '#2c3e50'); hub.addColorStop(1, State.premiumActive?'#2d1b4e':'#1a1f4b');
-        this.ctx.fillStyle = hub; this.ctx.fill();
-        this.ctx.strokeStyle = State.premiumActive?'#ffd700':'#f39c12'; this.ctx.lineWidth=3; this.ctx.stroke();
-        this.ctx.fillStyle = State.premiumActive?'#ffd700':'#f39c12';
-        this.ctx.font='bold 12px "Segoe UI"'; this.ctx.textAlign='center'; this.ctx.textBaseline='middle';
-        this.ctx.fillText(State.premiumActive?'PREMIUM':'SPIN', cx, cy);
+        openModal('resultModal');
     },
     
-    _lighten(hex, p) {
-        const n = parseInt(hex.slice(1), 16);
-        return `rgb(${Math.min(255,(n>>16)+p)},${Math.min(255,((n>>8)&0xFF)+p)},${Math.min(255,(n&0xFF)+p)})`;
-    },
-    
-    spin(winIdx) {
-        const targetAngle = this.getTargetAngle(winIdx);
-        const fullRotations = 7 + Math.floor(Math.random()*4);
-        const totalRotation = fullRotations * 2 * Math.PI + targetAngle;
-        const duration = 4000 + Math.random()*600;
-        const startAngle = State.wheelAngle;
-        const startTime = Date.now();
+    scheduleResetTimer() {
+        if (this._resetInterval) clearInterval(this._resetInterval);
         
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed/duration, 1);
-            const eased = 1 - Math.pow(1-progress, 3);
-            const angle = startAngle + totalRotation * eased;
-            this.draw(angle % (2*Math.PI));
-            State.wheelAngle = angle;
+        const el = document.getElementById('resetCountdown');
+        
+        const update = () => {
+            const now = new Date();
+            const midnight = new Date(now);
+            midnight.setDate(midnight.getDate() + 1);
+            midnight.setHours(0, 0, 0, 0);
             
-            if (progress < 1) requestAnimationFrame(animate);
-            else {
-                State.isSpinning = false;
-                State.save();
-                UI.updateSpinButton();
-                const seg = this.getSegments()[winIdx];
-                API.saveSpin(seg).then(() => API.syncAll().then(d => { if(d) { State.applyServerData(d); UI.updateBalances(); } }));
-                Modal.showResult(seg);
-                if (State.freeDraws === 0 && State.paidSpins === 0) UI.scheduleResetTimer();
+            const remaining = midnight.getTime() - now.getTime();
+            
+            if (remaining <= 0) {
+                el.textContent = '';
+                this._resetDailyDraws();
+                return;
             }
+            
+            const h = Math.floor(remaining / 3600000);
+            const m = Math.floor((remaining % 3600000) / 60000);
+            const s = Math.floor((remaining % 60000) / 1000);
+            
+            el.textContent = `🔄 Reset in ${h}h ${m}m ${s}s`;
         };
-        requestAnimationFrame(animate);
-    }
-};
-
-// ==================== MODULE: Spin Controller ====================
-const SpinController = {
-    handleClick() {
-        if (State.isSpinning) return;
         
-        if (State.paidSpins > 0) {
-            State.paidSpins--;
-            State.save();
-            API.usePaidSpin();
-            UI.updateSpinButton();
-            this._execute();
-        } else if (State.freeDraws > 0) {
-            State.freeDraws--;
-            State.save();
-            UI.updateFreeDraws();
-            if (State.premiumActive) API.trackPremiumDraw();
-            this._execute();
-            if (State.freeDraws === 0 && State.paidSpins === 0) UI.scheduleResetTimer();
+        update();
+        this._resetInterval = setInterval(update, 1000);
+    },
+    
+    _resetDailyDraws() {
+        State.dailyDraws = State.maxDailyDraws;
+        State.save();
+        this.updateDraws();
+        this.showToast('Daily draws reset! 🎉', 'success');
+        
+        // If draws were 0, restart timer
+        if (State.getTotalDraws() > 0) {
+            document.getElementById('resetCountdown').textContent = '';
+            clearInterval(this._resetInterval);
         } else {
-            UI.toast('No spins left!', 'error');
+            this.scheduleResetTimer();
         }
-    },
+    }
+};
+
+// ====================================
+// MODAL FUNCTIONS
+// ====================================
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+// ====================================
+// SPIN CONTROLLER
+// ====================================
+async function handleSpin() {
+    if (State.isSpinning) return;
     
-    _execute() {
-        State.isSpinning = true;
+    const source = State.getDrawSource();
+    
+    if (!source) {
+        UI.showToast('No draws available! Buy spins or wait for reset.', 'error');
+        return;
+    }
+    
+    // Disable button
+    State.isSpinning = true;
+    document.getElementById('btnSpin').disabled = true;
+    document.getElementById('spinStatus').textContent = '⏳ Spinning...';
+    
+    // Consume draw IMMEDIATELY (before server call)
+    State.consumeDraw(source);
+    UI.updateDraws();
+    
+    // Request spin from server
+    const result = await API.executeSpin(source);
+    
+    if (!result || !result.success) {
+        // Refund draw if failed
+        switch(source) {
+            case 'daily': State.dailyDraws++; break;
+            case 'weekly_bonus': State.weeklyBonusDraws++; break;
+            case 'bought': State.boughtDraws++; break;
+        }
+        State.save();
+        UI.updateDraws();
+        UI.showToast('Spin failed! Please try again.', 'error');
+        State.isSpinning = false;
         UI.updateSpinButton();
-        const winIdx = WheelEngine.getWinningIndex();
-        WheelEngine.spin(winIdx);
+        return;
     }
-};
-
-// ==================== MODULE: Premium Controller ====================
-const PremiumController = {
-    toggle() {
-        if (State.premiumActive) { UI.toast('Premium active!', 'success'); return; }
-        Modal.open('premInfoModal');
-    },
     
-    confirmBuy(months, cost) {
-        if (State.mmkBalance < cost) { UI.toast('ငွေမလုံလောက်ပါ', 'error'); return; }
-        Modal.close('premInfoModal');
-        Modal.showConfirm('👑 Premium', `${months} Month(s)<br>Cost: <b>${cost.toLocaleString()} Ks</b>`, () => {
-            API.buyPremium(months, cost).then(r => {
-                if (r.success) {
-                    UI.toast('Premium activated!');
-                    UI.showPremiumTransition();
-                    API.syncAll().then(d => { if(d) { State.applyServerData(d); UI.updateBalances(); UI.applyPremiumTheme(); UI.updateFreeDraws(); WheelEngine.draw(0); } });
-                } else { UI.toast(r.message || 'Failed', 'error'); }
-            });
-        });
+    // Update balances from server
+    if (result.mmkBalance !== undefined) {
+        State.mmkBalance = result.mmkBalance;
     }
-};
-
-// ==================== MODULE: Buy Controller ====================
-const BuyController = {
-    confirm(spins, cost) {
-        if (State.mmkBalance < cost) { UI.toast('ငွေမလုံလောက်ပါ', 'error'); return; }
-        Modal.showConfirm('💳 Buy Spins', `${spins} Spin(s)<br>Cost: <b>${cost.toLocaleString()} Ks</b>`, () => {
-            API.deductBalance(cost, `Buy ${spins} spins`).then(r => {
-                if (r.success) {
-                    State.paidSpins += spins;
-                    State.mmkBalance = r.new_balance;
-                    State.save();
-                    UI.updateBalances();
-                    UI.updateSpinButton();
-                    UI.toast(`${spins} spins added!`);
-                } else { UI.toast(r.message || 'Failed', 'error'); }
-            });
-        });
+    if (result.usdBalance !== undefined) {
+        State.usdBalance = result.usdBalance;
     }
-};
+    
+    // For free spin reward, add it back
+    if (result.reward && result.reward.type === 'free') {
+        switch(source) {
+            case 'daily': State.dailyDraws++; break;
+            case 'weekly_bonus': State.weeklyBonusDraws++; break;
+            case 'bought': State.boughtDraws++; break;
+        }
+    }
+    
+    State.save();
+    UI.updateBalances();
+    
+    // Animate wheel to EXACT winIndex
+    await WheelEngine.spin(result.winIndex);
+    
+    // Show result
+    UI.showResult(result.winIndex);
+    
+    // Update state
+    State.isSpinning = false;
+    UI.updateDraws();
+    UI.updateSpinButton();
+    
+    // Schedule reset timer if no draws left
+    if (State.getTotalDraws() === 0) {
+        UI.scheduleResetTimer();
+    }
+}
 
-// ==================== EVENT BINDINGS ====================
-document.getElementById('btnSpin').addEventListener('click', () => SpinController.handleClick());
-document.getElementById('btnPremium').addEventListener('click', () => PremiumController.toggle());
+// ====================================
+// BUY SPINS
+// ====================================
+async function handleBuySpins(spins, cost) {
+    if (State.mmkBalance < cost) {
+        UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။', 'error');
+        return;
+    }
+    
+    // Show confirm
+    document.getElementById('confirmTitle').textContent = '💳 Buy Spins';
+    document.getElementById('confirmMsg').textContent = 
+        `${spins} Spins - ${cost.toLocaleString()} Ks`;
+    
+    const confirmBtn = document.getElementById('confirmYesBtn');
+    confirmBtn.onclick = async () => {
+        closeModal('confirmModal');
+        
+        const result = await API.buySpins(spins, cost);
+        
+        if (result.success) {
+            UI.updateBalances();
+            UI.updateDraws();
+            UI.showToast(`${spins} spins added! ✅`, 'success');
+            
+            // Clear reset timer if we now have draws
+            document.getElementById('resetCountdown').textContent = '';
+        } else {
+            UI.showToast(result.message || 'Purchase failed', 'error');
+        }
+    };
+    
+    openModal('confirmModal');
+}
 
+// ====================================
+// PREMIUM FUNCTIONS
+// ====================================
+function handlePremiumClick() {
+    if (State.isPremium) {
+        UI.showToast('You are already Premium! 👑', 'gold');
+        return;
+    }
+    openModal('premiumModal');
+}
+
+async function buyPremium(months, cost) {
+    closeModal('premiumModal');
+    
+    if (State.mmkBalance < cost) {
+        UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။', 'error');
+        return;
+    }
+    
+    // Show confirm
+    document.getElementById('confirmTitle').textContent = '👑 Buy Premium';
+    document.getElementById('confirmMsg').innerHTML = `
+        ${months} Month(s)<br>
+        Cost: <b>${cost.toLocaleString()} Ks</b>
+    `;
+    
+    const confirmBtn = document.getElementById('confirmYesBtn');
+    confirmBtn.onclick = async () => {
+        closeModal('confirmModal');
+        
+        const result = await API.buyPremium(months, cost);
+        
+        if (result.success) {
+            // Activate premium
+            State.isPremium = true;
+            State.maxDailyDraws = 3;
+            State.dailyDraws = 3; // Reset daily draws for premium
+            State.weeklyBonusDraws += 5; // Give weekly bonus
+            State.mmkBalance -= cost;
+            State.premiumExpiry = result.expires_at;
+            State.save();
+            
+            UI.updateBalances();
+            UI.applyPremiumTheme();
+            UI.showPremiumTransition();
+            UI.showToast('Premium Activated! 👑', 'gold');
+        } else {
+            UI.showToast(result.message || 'Purchase failed', 'error');
+        }
+    };
+    
+    openModal('confirmModal');
+}
+
+// ====================================
+// EVENT LISTENERS
+// ====================================
+document.getElementById('btnSpin').addEventListener('click', handleSpin);
+document.getElementById('btnPremium').addEventListener('click', handlePremiumClick);
+
+// Buy spin buttons
 document.querySelectorAll('.btn-buy').forEach(btn => {
     btn.addEventListener('click', () => {
         const spins = parseInt(btn.dataset.spins);
         const cost = parseInt(btn.dataset.cost);
-        BuyController.confirm(spins, cost);
+        handleBuySpins(spins, cost);
     });
 });
 
-document.querySelectorAll('.prem-pkg').forEach(pkg => {
-    pkg.addEventListener('click', () => {
-        const months = parseInt(pkg.dataset.months);
-        const cost = parseInt(pkg.dataset.cost);
-        PremiumController.confirmBuy(months, cost);
+// Close modals when clicking overlay
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            overlay.classList.remove('active');
+        }
     });
 });
 
-// ==================== INIT ====================
+// ====================================
+// INITIALIZATION
+// ====================================
 async function init() {
-    // ✅ STEP 1: ALWAYS sync with server FIRST
-    const data = await API.syncAll();
+    console.log('🎰 Initializing Spin System...');
     
-    if (data) {
-        // ✅ Server data ALWAYS wins (most accurate)
-        State.applyServerData(data);
+    // Load local state first
+    State.load();
+    
+    // Sync with server
+    const serverData = await API.syncAll();
+    
+    if (serverData) {
+        console.log('✅ Server data loaded:', serverData);
+        State.isPremium = serverData.isPremium;
+        State.mmkBalance = serverData.mmkBalance;
+        State.usdBalance = serverData.usdBalance;
+        State.maxDailyDraws = serverData.maxDailyDraws;
+        State.dailyDraws = serverData.dailyDrawsRemaining;
+        State.premiumExpiry = serverData.premiumExpiry;
+        
+        // Check if daily reset needed
+        const today = new Date().toDateString();
+        const lastResetDate = localStorage.getItem('spinLastResetDate');
+        
+        if (lastResetDate !== today) {
+            // New day - reset daily draws
+            State.dailyDraws = serverData.maxDailyDraws || 1;
+            localStorage.setItem('spinLastResetDate', today);
+            console.log('🔄 Daily draws reset:', State.dailyDraws);
+        }
+        
+        State.save();
     } else {
-        // ✅ Only if server fails, use localStorage as fallback
-        State.load();
+        console.log('⚠️ Using local state (guest mode)');
     }
     
-    // ✅ STEP 2: Update all UI
+    // Update all UI
     UI.updateBalances();
     UI.applyPremiumTheme();
-    UI.updateFreeDraws();
+    UI.updateDraws();
     WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
     
-    // ✅ STEP 3: Schedule timer if needed
-    if (State.freeDraws === 0 && State.paidSpins === 0) {
+    // Schedule reset timer if no draws
+    if (State.getTotalDraws() === 0) {
         UI.scheduleResetTimer();
     }
     
-    // ✅ STEP 4: Weekly bonus check (only if premium)
-    if (State.premiumActive) {
-        const lastBonus = localStorage.getItem('weeklyBonusDateV2');
-        const today = new Date().toDateString();
-        if (lastBonus !== today) {
-            const diff = lastBonus ? Math.floor((Date.now() - new Date(lastBonus).getTime())/86400000) : 7;
-            if (diff >= 7) {
-                State.freeDraws += 5; 
-                State.save(); 
-                localStorage.setItem('weeklyBonusDateV2', today);
-                UI.updateFreeDraws(); 
-                UI.toast('🎁 Weekly Bonus: +5 Draws!');
-                API.claimWeeklyBonus();
-            }
-        }
-    }
-    
-    // ✅ STEP 5: Periodic sync every 15 seconds
+    // Periodic sync (every 30 seconds)
     setInterval(async () => {
-        const d = await API.syncAll();
-        if (d) { 
-            State.applyServerData(d); 
-            UI.updateBalances(); 
+        const data = await API.syncAll();
+        if (data) {
+            State.isPremium = data.isPremium;
+            State.mmkBalance = data.mmkBalance;
+            State.usdBalance = data.usdBalance;
+            State.maxDailyDraws = data.maxDailyDraws;
+            
+            // Don't override daily draws from server if we've used some today
+            // Server tracks it properly now
+            
+            UI.updateBalances();
             UI.applyPremiumTheme();
-            UI.updateFreeDraws(); 
+            UI.updateDraws();
         }
-    }, 15000);
+    }, 30000);
+    
+    console.log('✅ Spin System Ready!');
+    console.log('Mode:', State.isPremium ? 'PREMIUM' : 'NORMAL');
+    console.log('Draws:', {
+        daily: State.dailyDraws,
+        bought: State.boughtDraws,
+        weekly: State.weeklyBonusDraws
+    });
 }
 
+// Add particle animation style
+const particleStyle = document.createElement('style');
+particleStyle.textContent = `
+    @keyframes particleFloat {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-200px) scale(0); opacity: 0; }
+    }
+`;
+document.head.appendChild(particleStyle);
+
+// Start the system
 init();
 </script>
 </body>
