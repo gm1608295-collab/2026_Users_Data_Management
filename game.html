@@ -7,1327 +7,608 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg: #0a0a1a;
-            --panel: #1a1f4b;
-            --accent: #4a1c7a;
-            --red: #e74c3c;
-            --green: #2ecc71;
-            --gold: #f39c12;
-            --blue: #3498db;
-            --text: #fff;
-            --usd: #85bb65;
-            --prem-gold: #ffd700;
-            --prem-dark: #1a0a2e;
-            --prem-accent: #c9a84c;
-            --wheel-size: 280px;
-            --canvas-size: 560px;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
-
-        html, body {
-            height: 100%;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        body {
-            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
-            color: var(--text);
-            min-height: 100vh;
-            padding: 10px;
-            transition: background 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.premium-active {
-            background: linear-gradient(135deg, #0a0015, #1a0a2e, #2d1050);
-        }
-
-        .container {
-            max-width: 450px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-            padding-bottom: 20px;
-        }
-
-        /* ========== HEADER ========== */
-        .header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            width: 100%;
-            background: linear-gradient(to right, var(--accent), var(--panel));
-            padding: 10px 15px;
-            border-radius: 12px;
-            border-bottom: 3px solid var(--gold);
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        body.premium-active .header {
-            background: linear-gradient(to right, #2d1b4e, #4a1c7a);
-            border-bottom-color: var(--prem-gold);
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
-        }
-
-        .header a {
-            color: var(--gold);
-            font-size: 20px;
-            text-decoration: none;
-            flex-shrink: 0;
-            transition: color 0.3s;
-        }
-
-        body.premium-active .header a {
-            color: var(--prem-gold);
-        }
-
-        .header h2 {
-            color: var(--gold);
-            font-size: 15px;
-            font-weight: 700;
-            flex: 1;
-            text-align: center;
-            transition: color 0.3s;
-        }
-
-        body.premium-active .header h2 {
-            color: var(--prem-gold);
-            text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-        }
-
-        .prem-badge {
-            display: none;
-            background: linear-gradient(135deg, var(--prem-gold), #b8860b);
-            color: #000;
-            font-size: 9px;
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            animation: glowPulse 2s ease-in-out infinite;
-        }
-
-        body.premium-active .prem-badge {
-            display: inline-block;
-        }
-
-        @keyframes glowPulse {
-            0%, 100% {
-                box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
-            }
-            50% {
-                box-shadow: 0 0 20px rgba(255, 215, 0, 0.9), 0 0 40px rgba(255, 215, 0, 0.3);
-            }
-        }
-
-        /* ========== BALANCE BAR ========== */
-        .balance-bar {
-            display: flex;
-            gap: 6px;
-            width: 100%;
-        }
-
-        .bal-card {
-            flex: 1;
-            background: rgba(26, 31, 75, 0.7);
-            border-radius: 8px;
-            padding: 8px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.premium-active .bal-card {
-            background: rgba(45, 27, 78, 0.8);
-            border-color: rgba(201, 168, 76, 0.3);
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.05);
-        }
-
-        .bal-card .bal-label {
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.5);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .bal-card .bal-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--gold);
-            transition: color 0.3s;
-        }
-
-        .bal-card.usd .bal-value {
-            color: var(--usd);
-        }
-
-        /* ========== FREE DRAW TIMER ========== */
-        .free-timer-box {
-            width: 100%;
-            background: rgba(46, 204, 113, 0.06);
-            border: 1px solid rgba(46, 204, 113, 0.25);
-            border-radius: 8px;
-            padding: 10px 12px;
-            text-align: center;
-            font-size: 11px;
-            color: var(--green);
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.premium-active .free-timer-box {
-            background: rgba(255, 215, 0, 0.06);
-            border-color: rgba(255, 215, 0, 0.3);
-            color: var(--prem-gold);
-        }
-
-        .timer-count {
-            font-weight: bold;
-            font-size: 15px;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* ========== WHEEL ========== */
-        .wheel-wrapper {
-            position: relative;
-            width: var(--wheel-size);
-            height: var(--wheel-size);
-            margin: 0 auto;
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.premium-active .wheel-wrapper {
-            filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.3));
-        }
-
-        .wheel-pointer {
-            position: absolute;
-            top: -16px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            font-size: 32px;
-            color: var(--gold);
-            filter: drop-shadow(0 0 6px rgba(0, 0, 0, 0.6));
-            transition: color 0.3s;
-        }
-
-        body.premium-active .wheel-pointer {
-            color: var(--prem-gold);
-        }
-
-        canvas#wheelCanvas {
-            width: var(--wheel-size);
-            height: var(--wheel-size);
-            border-radius: 50%;
-            border: 4px solid var(--gold);
-            box-shadow: 0 0 25px rgba(243, 156, 18, 0.25);
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.premium-active canvas#wheelCanvas {
-            border-color: var(--prem-gold);
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.4), 0 0 80px rgba(201, 168, 76, 0.2);
-        }
-
-        /* ========== BUTTONS ========== */
-        .btn-row {
-            display: flex;
-            gap: 8px;
-            width: 100%;
-        }
-
-        .btn-spin, .btn-premium {
-            flex: 1;
-            padding: 12px 10px;
-            border: none;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-spin {
-            background: linear-gradient(135deg, var(--gold), #e67e22);
-            color: #000;
-            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
-        }
-
-        body.premium-active .btn-spin {
-            background: linear-gradient(135deg, var(--prem-gold), #b8860b);
-            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
-        }
-
-        .btn-spin:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(243, 156, 18, 0.4);
-        }
-
-        body.premium-active .btn-spin:hover {
-            box-shadow: 0 6px 30px rgba(255, 215, 0, 0.6);
-        }
-
-        .btn-spin:active {
-            transform: scale(0.96);
-        }
-
-        .btn-spin:disabled {
-            opacity: 0.45;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-            pointer-events: none;
-        }
-
-        .btn-premium {
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text);
-            border: 1.5px solid var(--gold);
-            transition: all 0.4s ease;
-        }
-
-        body.premium-active .btn-premium {
-            background: linear-gradient(135deg, var(--prem-gold), #b8860b);
-            color: #000;
-            border-color: var(--prem-gold);
-            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.5);
-            animation: premiumBtnGlow 2s ease-in-out infinite;
-        }
-
-        @keyframes premiumBtnGlow {
-            0%, 100% {
-                box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
-            }
-            50% {
-                box-shadow: 0 4px 35px rgba(255, 215, 0, 0.8), 0 0 50px rgba(255, 215, 0, 0.3);
-            }
-        }
-
-        .btn-premium:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: var(--prem-gold);
-        }
-
-        /* ========== BUY TABLE ========== */
-        .buy-table {
-            width: 100%;
-            background: rgba(26, 31, 75, 0.6);
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.premium-active .buy-table {
-            background: rgba(45, 27, 78, 0.7);
-            border-color: rgba(201, 168, 76, 0.2);
-        }
-
-        .buy-table .table-title {
-            text-align: center;
-            padding: 10px;
-            font-size: 11px;
-            font-weight: bold;
-            color: var(--gold);
-            background: rgba(0, 0, 0, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10px;
-        }
-
-        th {
-            background: rgba(0, 0, 0, 0.3);
-            color: var(--gold);
-            padding: 8px 6px;
-            font-size: 9px;
-            text-transform: uppercase;
-        }
-
-        td {
-            padding: 8px 6px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        }
-
-        tr:hover td {
-            background: rgba(74, 28, 122, 0.15);
-        }
-
-        .btn-buy {
-            padding: 6px 14px;
-            border: none;
-            border-radius: 12px;
-            font-size: 9px;
-            font-weight: bold;
-            cursor: pointer;
-            background: var(--gold);
-            color: #000;
-            transition: all 0.2s;
-        }
-
-        .btn-buy:hover {
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(243, 156, 18, 0.3);
-        }
-
-        /* ========== STATUS ========== */
-        .spin-status {
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.5);
-            min-height: 16px;
-            text-align: center;
-            font-family: 'Courier New', monospace;
-        }
-
-        /* ========== MODALS ========== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.88);
-            z-index: 500;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(2px);
-        }
-
-        .modal-overlay.active {
-            display: flex;
-        }
-
-        .modal-box {
-            background: var(--panel);
-            border: 2px solid var(--gold);
-            border-radius: 16px;
-            padding: 22px;
-            width: 90%;
-            max-width: 380px;
-            max-height: 80vh;
-            overflow-y: auto;
-            animation: modalSlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        body.premium-active .modal-box {
-            background: var(--prem-dark);
-            border-color: var(--prem-gold);
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.15);
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-30px) scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .modal-box h3 {
-            color: var(--gold);
-            text-align: center;
-            margin-bottom: 12px;
-            font-size: 15px;
-        }
-
-        .modal-close {
-            float: right;
-            color: var(--red);
-            cursor: pointer;
-            font-size: 22px;
-            transition: transform 0.2s;
-        }
-
-        .modal-close:hover {
-            transform: scale(1.2);
-        }
-
-        .prem-feature {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            margin-bottom: 6px;
-            font-size: 11px;
-            border-left: 3px solid var(--prem-gold);
-        }
-
-        .prem-feature i {
-            color: var(--prem-gold);
-            width: 18px;
-            text-align: center;
-        }
-
-        .prem-packages {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 6px;
-            margin: 10px 0;
-        }
-
-        .prem-pkg {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1.5px solid rgba(255, 255, 255, 0.12);
-            border-radius: 10px;
-            padding: 12px 6px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 10px;
-        }
-
-        .prem-pkg:hover {
-            border-color: var(--prem-gold);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.15);
-        }
-
-        .prem-pkg.best {
-            border-color: var(--prem-gold);
-            position: relative;
-        }
-
-        .best-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            background: var(--red);
-            color: #fff;
-            font-size: 8px;
-            padding: 3px 7px;
-            border-radius: 10px;
-            font-weight: bold;
-        }
-
-        .confirm-btns {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .btn-yes {
-            background: var(--green);
-            color: #000;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-
-        .btn-yes:hover {
-            transform: scale(1.03);
-        }
-
-        .btn-no {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        /* SUPER link button */
-        .super-link-btn {
-            display: inline-block;
-            padding: 14px 28px;
-            background: linear-gradient(135deg, #e91e63, #9b59b6);
-            color: #fff;
-            border: none;
-            border-radius: 30px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            letter-spacing: 0.5px;
-            margin-top: 10px;
-            box-shadow: 0 6px 25px rgba(233, 30, 99, 0.5);
-            transition: all 0.3s;
-            animation: superPulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes superPulse {
-            0%, 100% {
-                box-shadow: 0 6px 25px rgba(233, 30, 99, 0.4);
-            }
-            50% {
-                box-shadow: 0 8px 40px rgba(233, 30, 99, 0.8);
-            }
-        }
-
-        .super-link-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 40px rgba(233, 30, 99, 0.7);
-        }
-
-        /* Toast */
-        .toast {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            padding: 10px 16px;
-            border-radius: 6px;
-            z-index: 9999;
-            font-size: 11px;
-            font-weight: bold;
-            display: none;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            animation: toastIn 0.3s ease;
-            max-width: 260px;
-        }
-
-        @keyframes toastIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        /* Cinematic premium overlay */
-        .premium-transition-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(255, 215, 0, 0.25), rgba(0, 0, 0, 0.95));
-            z-index: 999;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        .premium-transition-overlay.active {
-            display: flex;
-            animation: fadeInOverlay 0.5s ease;
-        }
-
-        @keyframes fadeInOverlay {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        .premium-unlock-text {
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--prem-gold);
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
-            animation: unlockReveal 1s ease;
-        }
-
-        @keyframes unlockReveal {
-            from {
-                transform: scale(0.3);
-                opacity: 0;
-            }
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
+            --bg: #0a0a1a; --panel: #1a1f4b; --accent: #4a1c7a;
+            --red: #e74c3c; --green: #2ecc71; --gold: #f39c12;
+            --blue: #3498db; --text: #fff; --usd: #85bb65;
+            --prem-gold: #ffd700; --prem-dark: #1a0a2e; --prem-accent: #c9a84c;
+            --wheel-size: 280px; --canvas-size: 560px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+        html,body{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--text);min-height:100vh;padding:10px;transition:background 0.8s cubic-bezier(0.4,0,0.2,1)}
+        body.premium-active{background:linear-gradient(135deg,#0a0015,#1a0a2e,#2d1050)}
+        .container{max-width:450px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:20px}
+        
+        .header{display:flex;align-items:center;gap:10px;width:100%;background:linear-gradient(to right,var(--accent),var(--panel));padding:10px 15px;border-radius:12px;border-bottom:3px solid var(--gold);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
+        body.premium-active .header{background:linear-gradient(to right,#2d1b4e,#4a1c7a);border-bottom-color:var(--prem-gold);box-shadow:0 0 30px rgba(255,215,0,0.15)}
+        .header a{color:var(--gold);font-size:20px;text-decoration:none;transition:color 0.3s}
+        body.premium-active .header a{color:var(--prem-gold)}
+        .header h2{color:var(--gold);font-size:15px;font-weight:700;flex:1;text-align:center;transition:color 0.3s}
+        body.premium-active .header h2{color:var(--prem-gold);text-shadow:0 0 15px rgba(255,215,0,0.4)}
+        .prem-badge{display:none;background:linear-gradient(135deg,var(--prem-gold),#b8860b);color:#000;font-size:9px;padding:4px 10px;border-radius:15px;font-weight:bold;animation:glowPulse 2s infinite}
+        body.premium-active .prem-badge{display:inline-block}
+        @keyframes glowPulse{0%,100%{box-shadow:0 0 8px rgba(255,215,0,0.4)}50%{box-shadow:0 0 20px rgba(255,215,0,0.9)}}
+        
+        .balance-bar{display:flex;gap:6px;width:100%}
+        .bal-card{flex:1;background:rgba(26,31,75,0.7);border-radius:8px;padding:8px;text-align:center;border:1px solid rgba(255,255,255,0.1);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
+        body.premium-active .bal-card{background:rgba(45,27,78,0.8);border-color:rgba(201,168,76,0.3)}
+        .bal-label{font-size:8px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
+        .bal-value{font-size:16px;font-weight:bold;color:var(--gold)}
+        .bal-card.usd .bal-value{color:var(--usd)}
+        
+        .free-timer-box{width:100%;background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.25);border-radius:8px;padding:10px 12px;text-align:center;font-size:11px;color:var(--green);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
+        body.premium-active .free-timer-box{background:rgba(255,215,0,0.06);border-color:rgba(255,215,0,0.3);color:var(--prem-gold)}
+        .timer-count{font-weight:bold;font-size:15px;font-family:'Courier New',monospace}
+        
+        .wheel-wrapper{position:relative;width:var(--wheel-size);height:var(--wheel-size);margin:0 auto;transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
+        body.premium-active .wheel-wrapper{filter:drop-shadow(0 0 20px rgba(255,215,0,0.3))}
+        .wheel-pointer{position:absolute;top:-16px;left:50%;transform:translateX(-50%);z-index:10;font-size:32px;color:var(--gold);filter:drop-shadow(0 0 6px rgba(0,0,0,0.6))}
+        body.premium-active .wheel-pointer{color:var(--prem-gold)}
+        canvas#wheelCanvas{width:var(--wheel-size);height:var(--wheel-size);border-radius:50%;border:4px solid var(--gold);box-shadow:0 0 25px rgba(243,156,18,0.25);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
+        body.premium-active canvas#wheelCanvas{border-color:var(--prem-gold);box-shadow:0 0 40px rgba(255,215,0,0.4)}
+        
+        .spin-status{font-size:10px;color:rgba(255,255,255,0.5);min-height:16px;text-align:center;font-family:'Courier New',monospace}
+        
+        .btn-row{display:flex;gap:8px;width:100%}
+        .btn-spin,.btn-premium{flex:1;padding:12px 10px;border:none;border-radius:25px;font-size:14px;font-weight:bold;cursor:pointer;letter-spacing:0.5px;transition:all 0.3s ease}
+        .btn-spin{background:linear-gradient(135deg,var(--gold),#e67e22);color:#000;box-shadow:0 4px 15px rgba(243,156,18,0.3)}
+        body.premium-active .btn-spin{background:linear-gradient(135deg,var(--prem-gold),#b8860b);box-shadow:0 4px 20px rgba(255,215,0,0.4)}
+        .btn-spin:hover{transform:translateY(-2px)}
+        .btn-spin:disabled{opacity:0.45;cursor:not-allowed;pointer-events:none;transform:none;box-shadow:none}
+        .btn-premium{background:rgba(255,255,255,0.08);color:var(--text);border:1.5px solid var(--gold)}
+        body.premium-active .btn-premium{background:linear-gradient(135deg,var(--prem-gold),#b8860b);color:#000;border-color:var(--prem-gold);box-shadow:0 4px 20px rgba(255,215,0,0.5);animation:premiumBtnGlow 2s infinite}
+        @keyframes premiumBtnGlow{0%,100%{box-shadow:0 4px 20px rgba(255,215,0,0.4)}50%{box-shadow:0 4px 35px rgba(255,215,0,0.8)}}
+        
+        .buy-table{width:100%;background:rgba(26,31,75,0.6);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);transition:all 0.6s cubic-bezier(0.4,0,0.2,1)}
+        body.premium-active .buy-table{background:rgba(45,27,78,0.7)}
+        .table-title{text-align:center;padding:10px;font-size:11px;font-weight:bold;color:var(--gold);background:rgba(0,0,0,0.3);text-transform:uppercase}
+        table{width:100%;border-collapse:collapse;font-size:10px}
+        th{background:rgba(0,0,0,0.3);color:var(--gold);padding:8px 6px;font-size:9px;text-transform:uppercase}
+        td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,0.04)}
+        .btn-buy{padding:6px 14px;border:none;border-radius:12px;font-size:9px;font-weight:bold;cursor:pointer;background:var(--gold);color:#000}
+        
+        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:500;justify-content:center;align-items:center;backdrop-filter:blur(2px)}
+        .modal-overlay.active{display:flex}
+        .modal-box{background:var(--panel);border:2px solid var(--gold);border-radius:16px;padding:22px;width:90%;max-width:380px;max-height:80vh;overflow-y:auto;animation:modalSlideIn 0.35s cubic-bezier(0.4,0,0.2,1)}
+        body.premium-active .modal-box{background:var(--prem-dark);border-color:var(--prem-gold)}
+        @keyframes modalSlideIn{from{opacity:0;transform:translateY(-30px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+        .modal-box h3{color:var(--gold);text-align:center;margin-bottom:12px;font-size:15px}
+        .modal-close{float:right;color:var(--red);cursor:pointer;font-size:22px}
+        .prem-feature{display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:6px;font-size:11px;border-left:3px solid var(--prem-gold)}
+        .prem-feature i{color:var(--prem-gold);width:18px;text-align:center}
+        .prem-packages{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:10px 0}
+        .prem-pkg{background:rgba(0,0,0,0.3);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 6px;text-align:center;cursor:pointer;font-size:10px;transition:all 0.3s}
+        .prem-pkg:hover{border-color:var(--prem-gold)}
+        .prem-pkg.best{border-color:var(--prem-gold);position:relative}
+        .best-badge{position:absolute;top:-8px;right:-8px;background:var(--red);color:#fff;font-size:8px;padding:3px 7px;border-radius:10px}
+        .confirm-btns{display:flex;gap:8px;justify-content:center;margin-top:10px}
+        .btn-yes{background:var(--green);color:#000;border:none;padding:10px 24px;border-radius:20px;font-weight:bold;cursor:pointer}
+        .btn-no{background:rgba(255,255,255,0.15);color:#fff;border:none;padding:10px 24px;border-radius:20px;font-weight:bold;cursor:pointer}
+        .super-link-btn{display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#e91e63,#9b59b6);color:#fff;border-radius:30px;font-size:14px;font-weight:bold;text-decoration:none;margin-top:10px;box-shadow:0 6px 25px rgba(233,30,99,0.5);animation:superPulse 1.5s infinite}
+        @keyframes superPulse{0%,100%{box-shadow:0 6px 25px rgba(233,30,99,0.4)}50%{box-shadow:0 8px 40px rgba(233,30,99,0.8)}}
+        
+        .toast{position:fixed;top:15px;right:15px;padding:10px 16px;border-radius:6px;z-index:9999;font-size:11px;font-weight:bold;display:none;box-shadow:0 4px 15px rgba(0,0,0,0.4);animation:toastIn 0.3s ease;max-width:260px}
+        @keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+        
+        .premium-transition-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle,rgba(255,215,0,0.25),rgba(0,0,0,0.95));z-index:999;justify-content:center;align-items:center}
+        .premium-transition-overlay.active{display:flex;animation:fadeInOverlay 0.5s ease}
+        @keyframes fadeInOverlay{from{opacity:0}to{opacity:1}}
+        .premium-unlock-text{font-size:28px;font-weight:bold;color:var(--prem-gold);text-shadow:0 0 30px rgba(255,215,0,0.8);animation:unlockReveal 1s ease}
+        @keyframes unlockReveal{from{transform:scale(0.3);opacity:0}to{transform:scale(1);opacity:1}}
     </style>
 </head>
 <body id="mainBody">
     <div class="toast" id="toast"></div>
-
-    <!-- Premium Cinematic Transition -->
-    <div class="premium-transition-overlay" id="premiumTransition">
-        <div class="premium-unlock-text">👑 PREMIUM<br>UNLOCKED!</div>
-    </div>
-
+    <div class="premium-transition-overlay" id="premiumTransition"><div class="premium-unlock-text">👑 PREMIUM<br>UNLOCKED!</div></div>
+    
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h2>🎰 Lucky Spin</h2>
-            <span class="prem-badge">👑 PREMIUM</span>
-        </div>
-
-        <!-- Balance -->
+        <div class="header"><a href="/dashboard"><i class="fas fa-arrow-left"></i></a><h2>🎰 Lucky Spin</h2><span class="prem-badge">👑 PREMIUM</span></div>
         <div class="balance-bar">
             <div class="bal-card usd"><div class="bal-label">💵 USD</div><div class="bal-value" id="usdBalance">$0.00</div></div>
             <div class="bal-card"><div class="bal-label">💰 MMK</div><div class="bal-value" id="mmkBalance">0 Ks</div></div>
         </div>
-
-        <!-- Free Draw Timer -->
-        <div class="free-timer-box" id="freeTimerBox">
-            🎰 <span id="freeTimerText">Free Draws: <span class="timer-count" id="freeTimerCount">1</span></span>
-            <div style="font-size:9px;margin-top:3px" id="resetCountdown"></div>
-        </div>
-
-        <!-- Wheel -->
-        <div class="wheel-wrapper" id="wheelWrapper">
-            <div class="wheel-pointer" id="wheelPointer"><i class="fas fa-caret-down"></i></div>
-            <canvas id="wheelCanvas" width="560" height="560"></canvas>
-        </div>
-
-        <!-- Status -->
+        <div class="free-timer-box">🎰 <span>Free Draws: <span class="timer-count" id="freeTimerCount">1</span></span><div style="font-size:9px;margin-top:3px" id="resetCountdown"></div></div>
+        <div class="wheel-wrapper"><div class="wheel-pointer"><i class="fas fa-caret-down"></i></div><canvas id="wheelCanvas" width="560" height="560"></canvas></div>
         <div class="spin-status" id="spinStatus"></div>
-
-        <!-- Buttons -->
         <div class="btn-row">
-            <button class="btn-spin" id="btnSpin" onclick="handleSpinClick()">🎰 SPIN</button>
-            <button class="btn-premium" id="btnPremium" onclick="togglePremium()">👑 PREMIUM</button>
+            <button class="btn-spin" id="btnSpin">🎰 SPIN</button>
+            <button class="btn-premium" id="btnPremium">👑 PREMIUM</button>
         </div>
-
-        <!-- Buy Table -->
-        <div class="buy-table">
-            <div class="table-title">💳 Buy Spins</div>
+        <div class="buy-table"><div class="table-title">💳 Buy Spins</div>
             <table>
                 <tr><th>Spins</th><th>Price</th><th>Save</th><th></th></tr>
-                <tr><td>1 Spin</td><td>100 Ks</td><td>-</td><td><button class="btn-buy" onclick="confirmBuySpin(1,100)">Buy</button></td></tr>
-                <tr><td>3 Spins</td><td>250 Ks</td><td style="color:#2ecc71">50 Ks</td><td><button class="btn-buy" onclick="confirmBuySpin(3,250)">Buy</button></td></tr>
-                <tr><td>5 Spins</td><td>400 Ks</td><td style="color:#2ecc71">100 Ks</td><td><button class="btn-buy" onclick="confirmBuySpin(5,400)">Buy</button></td></tr>
-                <tr><td>10 Spins</td><td>700 Ks</td><td style="color:#2ecc71">300 Ks</td><td><button class="btn-buy" onclick="confirmBuySpin(10,700)">Buy</button></td></tr>
+                <tr><td>1 Spin</td><td>100 Ks</td><td>-</td><td><button class="btn-buy" data-spins="1" data-cost="100">Buy</button></td></tr>
+                <tr><td>3 Spins</td><td>250 Ks</td><td style="color:#2ecc71">50 Ks</td><td><button class="btn-buy" data-spins="3" data-cost="250">Buy</button></td></tr>
+                <tr><td>5 Spins</td><td>400 Ks</td><td style="color:#2ecc71">100 Ks</td><td><button class="btn-buy" data-spins="5" data-cost="400">Buy</button></td></tr>
+                <tr><td>10 Spins</td><td>700 Ks</td><td style="color:#2ecc71">300 Ks</td><td><button class="btn-buy" data-spins="10" data-cost="700">Buy</button></td></tr>
             </table>
         </div>
     </div>
 
-    <!-- Premium Info Modal -->
-    <div class="modal-overlay" id="premInfoModal">
-        <div class="modal-box">
-            <span class="modal-close" onclick="closeModal('premInfoModal')">&times;</span>
-            <h3>👑 Premium Benefits</h3>
-            <div class="prem-feature"><i class="fas fa-calendar-check"></i> 3 Free Draws / Day</div>
-            <div class="prem-feature"><i class="fas fa-gift"></i> Weekly +5 Bonus Draws</div>
-            <div class="prem-feature"><i class="fas fa-percent"></i> Better Win Rates</div>
-            <div class="prem-feature"><i class="fas fa-coins"></i> New Prizes: $3, 1,000 Ks</div>
-            <div class="prem-feature"><i class="fas fa-palette"></i> Premium Theme & Effects</div>
-            <h3 style="margin-top:15px">💳 Choose Plan</h3>
-            <div class="prem-packages">
-                <div class="prem-pkg" onclick="confirmBuyPremium(1,8000)">1 Month<br>8,000 Ks</div>
-                <div class="prem-pkg best" onclick="confirmBuyPremium(2,15000)">2 Months<br>15,000 Ks<span class="best-badge">BEST</span></div>
-                <div class="prem-pkg" onclick="confirmBuyPremium(3,22000)">3 Months<br>22,000 Ks</div>
-            </div>
+    <div class="modal-overlay" id="premInfoModal"><div class="modal-box">
+        <span class="modal-close" onclick="Modal.close('premInfoModal')">&times;</span><h3>👑 Premium</h3>
+        <div class="prem-feature"><i class="fas fa-calendar-check"></i> 3 Free Draws / Day</div>
+        <div class="prem-feature"><i class="fas fa-gift"></i> Weekly +5 Bonus</div>
+        <div class="prem-feature"><i class="fas fa-percent"></i> Better Win Rates</div>
+        <div class="prem-feature"><i class="fas fa-coins"></i> $3 + 1,000 Ks Prizes</div>
+        <div class="prem-feature"><i class="fas fa-palette"></i> Premium Theme</div>
+        <h3 style="margin-top:15px">💳 Plans</h3>
+        <div class="prem-packages">
+            <div class="prem-pkg" data-months="1" data-cost="8000">1 Month<br>8,000 Ks</div>
+            <div class="prem-pkg best" data-months="2" data-cost="15000">2 Months<br>15,000 Ks<span class="best-badge">BEST</span></div>
+            <div class="prem-pkg" data-months="3" data-cost="22000">3 Months<br>22,000 Ks</div>
         </div>
-    </div>
+    </div></div>
 
-    <!-- Confirm Modal -->
-    <div class="modal-overlay" id="confirmOverlay">
-        <div class="modal-box">
-            <h3 id="confirmTitle"></h3>
-            <p id="confirmMsg" style="font-size:12px;margin:10px 0;text-align:center"></p>
-            <div class="confirm-btns">
-                <button class="btn-no" onclick="closeConfirm()">Cancel</button>
-                <button class="btn-yes" id="confirmYesBtn">Confirm</button>
-            </div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="confirmOverlay"><div class="modal-box">
+        <h3 id="confirmTitle"></h3><p id="confirmMsg" style="font-size:12px;margin:10px 0;text-align:center"></p>
+        <div class="confirm-btns"><button class="btn-no" onclick="Modal.close('confirmOverlay')">Cancel</button><button class="btn-yes" id="confirmYesBtn">Confirm</button></div>
+    </div></div>
 
-    <!-- Result Modal -->
-    <div class="modal-overlay" id="resultOverlay">
-        <div class="modal-box" style="text-align:center">
-            <div id="resultIcon" style="font-size:50px;margin-bottom:8px"></div>
-            <div id="resultText" style="font-size:18px;font-weight:bold;color:var(--gold);margin-bottom:5px"></div>
-            <div id="resultAmount" style="font-size:26px;font-weight:bold;margin:10px 0"></div>
-            <div id="resultExtra"></div>
-        </div>
-    </div>
+    <div class="modal-overlay" id="resultOverlay"><div class="modal-box" style="text-align:center">
+        <div id="resultIcon" style="font-size:50px;margin-bottom:8px"></div>
+        <div id="resultText" style="font-size:18px;font-weight:bold;color:var(--gold)"></div>
+        <div id="resultAmount" style="font-size:26px;font-weight:bold;margin:10px 0"></div>
+        <div id="resultExtra"></div>
+    </div></div>
 
 <script>
-// ==================== STATE MANAGER ====================
-const State = {
-    _premiumActive: false,
-    _freeDraws: 1,
-    _paidSpins: 0,
-    _mmkBalance: 0,
-    _usdBalance: 0,
-    _isSpinning: false,
-    _wheelAngle: 0,
-    _lastDrawDate: null,
-
-    get premiumActive() { return this._premiumActive; },
-    set premiumActive(v) {
-        this._premiumActive = v;
-        this.save();
-    },
-    get freeDraws() { return this._freeDraws; },
-    set freeDraws(v) {
-        this._freeDraws = Math.max(0, v);
-        this.save();
-    },
-    get paidSpins() { return this._paidSpins; },
-    set paidSpins(v) {
-        this._paidSpins = Math.max(0, v);
-        this.save();
-    },
-    get isSpinning() { return this._isSpinning; },
-    set isSpinning(v) { this._isSpinning = v; },
-    get wheelAngle() { return this._wheelAngle; },
-    set wheelAngle(v) { this._wheelAngle = v; this.save(); },
-
-    save() {
-        try {
-            const data = {
-                premiumActive: this._premiumActive,
-                freeDraws: this._freeDraws,
-                paidSpins: this._paidSpins,
-                wheelAngle: this._wheelAngle,
-                lastDrawDate: this._lastDrawDate,
-                timestamp: Date.now()
-            };
-            localStorage.setItem('spinState', JSON.stringify(data));
-        } catch(e) {}
-    },
-
-    load() {
-        try {
-            const raw = localStorage.getItem('spinState');
-            if (raw) {
-                const data = JSON.parse(raw);
-                this._premiumActive = !!data.premiumActive;
-                this._freeDraws = data.freeDraws || 1;
-                this._paidSpins = data.paidSpins || 0;
-                this._wheelAngle = data.wheelAngle || 0;
-                this._lastDrawDate = data.lastDrawDate || null;
-            }
-        } catch(e) {}
-    },
-
-    clearPersisted() {
-        localStorage.removeItem('spinState');
-    }
+// ==================== MODULE: Config ====================
+const CONFIG = {
+    SUPER_FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform',
+    SEG_COUNT: 8,
+    ARC: (2 * Math.PI) / 8,
+    EXCHANGE_RATE: 3500,
+    PREMIUM_DAILY_DRAWS: 3,
+    NORMAL_DAILY_DRAWS: 1,
+    
+    NORMAL_SEGMENTS: [
+        { label:'$0.25',color:'#e74c3c',reward:0.25,type:'usd',weight:15 },
+        { label:'$0.75',color:'#3498db',reward:0.75,type:'usd',weight:13 },
+        { label:'$1.00',color:'#2ecc71',reward:1.00,type:'usd',weight:10 },
+        { label:'$2.00',color:'#9b59b6',reward:2.00,type:'usd',weight:6.5 },
+        { label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:55 },
+        { label:'Thanks!',color:'#7f8c8d',reward:0,type:'thanks',weight:50 },
+        { label:'FREE',color:'#1abc9c',reward:0,type:'free',weight:60 },
+        { label:'SUPER',color:'#e91e63',reward:0,type:'super',weight:2.5 }
+    ],
+    PREMIUM_SEGMENTS: [
+        { label:'$0.25',color:'#e74c3c',reward:0.25,type:'usd',weight:40 },
+        { label:'$0.75',color:'#3498db',reward:0.75,type:'usd',weight:25 },
+        { label:'$1.00',color:'#2ecc71',reward:1.00,type:'usd',weight:20 },
+        { label:'$2.00',color:'#9b59b6',reward:2.00,type:'usd',weight:8.5 },
+        { label:'$3.00',color:'#e67e22',reward:3.00,type:'usd',weight:7.05 },
+        { label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:50 },
+        { label:'1000 Ks',color:'#c9a84c',reward:1000,type:'mmk',weight:40 },
+        { label:'SUPER',color:'#e91e63',reward:0,type:'super',weight:10 }
+    ]
 };
 
-// ==================== CONFIG ====================
-const SUPER_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform';
-
-const NORMAL_SEGMENTS = [
-    { label:'$0.25',  color:'#e74c3c', reward:0.25, type:'usd',   weight:15 },
-    { label:'$0.75',  color:'#3498db', reward:0.75, type:'usd',   weight:13 },
-    { label:'$1.00',  color:'#2ecc71', reward:1.00, type:'usd',   weight:10 },
-    { label:'$2.00',  color:'#9b59b6', reward:2.00, type:'usd',   weight:6.5 },
-    { label:'500 Ks', color:'#f39c12', reward:500,  type:'mmk',   weight:55 },
-    { label:'Thanks!',color:'#7f8c8d', reward:0,    type:'thanks', weight:50 },
-    { label:'FREE',   color:'#1abc9c', reward:0,    type:'free',   weight:60 },
-    { label:'SUPER',  color:'#e91e63', reward:0,    type:'super',  weight:2.5 }
-];
-
-const PREMIUM_SEGMENTS = [
-    { label:'$0.25',  color:'#e74c3c', reward:0.25, type:'usd',   weight:40 },
-    { label:'$0.75',  color:'#3498db', reward:0.75, type:'usd',   weight:25 },
-    { label:'$1.00',  color:'#2ecc71', reward:1.00, type:'usd',   weight:20 },
-    { label:'$2.00',  color:'#9b59b6', reward:2.00, type:'usd',   weight:8.5 },
-    { label:'$3.00',  color:'#e67e22', reward:3.00, type:'usd',   weight:7.05 },
-    { label:'500 Ks', color:'#f39c12', reward:500,  type:'mmk',   weight:50 },
-    { label:'1000 Ks',color:'#c9a84c', reward:1000, type:'mmk',   weight:40 },
-    { label:'SUPER',  color:'#e91e63', reward:0,    type:'super',  weight:10 }
-];
-
-const SEG_COUNT = 8;
-const ARC = (2 * Math.PI) / SEG_COUNT;
-
-// ==================== TOAST ====================
-function toast(msg, type='success') {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.style.background = type==='success'?'#2ecc71':type==='error'?'#e74c3c':'#3498db';
-    el.style.display = 'block';
-    clearTimeout(window._toastTimer);
-    window._toastTimer = setTimeout(() => el.style.display='none', 3000);
-}
-
-// ==================== MODALS ====================
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-function closeConfirm() { closeModal('confirmOverlay'); }
-
-// ==================== BACKEND SYNC ====================
-async function fetchFromBackend() {
-    const token = localStorage.getItem('auth_token');
-    if (!token || token==='guest') return null;
-    try {
-        const [balR, usdR, premR, paidR] = await Promise.all([
-            fetch('/api/get_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}),
-            fetch('/api/get_usd_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}),
-            fetch('/api/get_premium_status', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})}),
-            fetch('/api/get_paid_spins', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})})
+// ==================== MODULE: API ====================
+const API = {
+    token() { return localStorage.getItem('auth_token'); },
+    isGuest() { const t = this.token(); return !t || t === 'guest'; },
+    headers() { return { 'Content-Type': 'application/json' }; },
+    
+    async getBalance() {
+        if (this.isGuest()) return { balance: 0 };
+        const r = await fetch('/api/get_balance', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
+        return r.json();
+    },
+    async getUsdBalance() {
+        if (this.isGuest()) return { usd_balance: 0 };
+        const r = await fetch('/api/get_usd_balance', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
+        return r.json();
+    },
+    async getPremiumStatus() {
+        if (this.isGuest()) return { success: false };
+        const r = await fetch('/api/get_premium_status', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
+        return r.json();
+    },
+    async getPaidSpins() {
+        if (this.isGuest()) return { paid_spins: 0 };
+        const r = await fetch('/api/get_paid_spins', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
+        return r.json();
+    },
+    async saveSpin(seg) {
+        if (this.isGuest()) return;
+        await fetch('/api/spin/save', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token(), reward_type:seg.type, reward_amount:seg.reward, segment_label:seg.label }) });
+    },
+    async usePaidSpin() {
+        if (this.isGuest()) return;
+        await fetch('/api/spin/use_paid_spin', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
+    },
+    async deductBalance(amount, reason) {
+        const r = await fetch('/api/deduct_balance', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token(), amount, reason }) });
+        return r.json();
+    },
+    async buyPremium(months, cost) {
+        const r = await fetch('/api/buy_premium', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token(), months, cost }) });
+        return r.json();
+    },
+    async trackPremiumDraw() {
+        if (this.isGuest()) return;
+        await fetch('/api/track_premium_draw', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
+    },
+    async claimWeeklyBonus() {
+        if (this.isGuest()) return;
+        await fetch('/api/claim_weekly_bonus', { method:'POST', headers:this.headers(), body:JSON.stringify({ token:this.token() }) });
+    },
+    
+    async syncAll() {
+        if (this.isGuest()) return null;
+        const [bal, usd, prem, paid] = await Promise.all([
+            this.getBalance(), this.getUsdBalance(), this.getPremiumStatus(), this.getPaidSpins()
         ]);
-        const [bal, usd, prem, paid] = await Promise.all([balR.json(), usdR.json(), premR.json(), paidR.json()]);
         return {
             mmkBalance: parseFloat(bal.balance || 0),
             usdBalance: parseFloat(usd.usd_balance || 0),
             premiumActive: !!(prem.success && prem.premium_active),
             premiumExpiry: prem.expires_at || null,
-            dailyDrawsRemaining: prem.daily_draws_remaining || 1,
-            maxDailyDraws: prem.max_daily_draws || 1,
+            dailyDrawsRemaining: prem.daily_draws_remaining ?? (prem.success && prem.premium_active ? 3 : 1),
+            maxDailyDraws: prem.max_daily_draws ?? (prem.success && prem.premium_active ? 3 : 1),
             paidSpins: parseInt(paid.paid_spins || 0)
         };
-    } catch(e) {
-        return null;
     }
-}
+};
 
-async function syncWithBackend() {
-    const data = await fetchFromBackend();
-    if (!data) return;
-
-    State._mmkBalance = data.mmkBalance;
-    State._usdBalance = data.usdBalance;
-    State._premiumActive = data.premiumActive;
-    State._freeDraws = data.dailyDrawsRemaining;
-    State._paidSpins = data.paidSpins;
-
-    document.getElementById('mmkBalance').textContent = data.mmkBalance.toLocaleString() + ' Ks';
-    document.getElementById('usdBalance').textContent = '$' + data.usdBalance.toFixed(2);
-    applyPremiumUI();
-    updateFreeDrawDisplay();
-    drawWheel(0);
-}
-
-async function deductBalance(amount, reason) {
-    const token = localStorage.getItem('auth_token');
-    const r = await fetch('/api/deduct_balance', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,amount,reason})});
-    const d = await r.json();
-    if (d.success) {
-        State._mmkBalance = d.new_balance;
-        document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
+// ==================== MODULE: State ====================
+const State = {
+    premiumActive: false,
+    freeDraws: 1,
+    paidSpins: 0,
+    mmkBalance: 0,
+    usdBalance: 0,
+    isSpinning: false,
+    wheelAngle: 0,
+    
+    save() {
+        try {
+            localStorage.setItem('spinStateV2', JSON.stringify({
+                premiumActive: this.premiumActive,
+                freeDraws: this.freeDraws,
+                paidSpins: this.paidSpins,
+                wheelAngle: this.wheelAngle,
+                timestamp: Date.now()
+            }));
+        } catch(e) {}
+    },
+    
+    load() {
+        try {
+            const raw = localStorage.getItem('spinStateV2');
+            if (raw) {
+                const d = JSON.parse(raw);
+                this.premiumActive = !!d.premiumActive;
+                this.freeDraws = d.freeDraws ?? 1;
+                this.paidSpins = d.paidSpins ?? 0;
+                this.wheelAngle = d.wheelAngle ?? 0;
+            }
+        } catch(e) {}
+    },
+    
+    applyServerData(data) {
+        if (!data) return;
+        this.mmkBalance = data.mmkBalance;
+        this.usdBalance = data.usdBalance;
+        this.premiumActive = data.premiumActive;
+        this.freeDraws = data.dailyDrawsRemaining;
+        this.paidSpins = data.paidSpins;
+        this.save();
     }
-    return d;
-}
+};
 
-async function saveSpinToServer(seg) {
-    const token = localStorage.getItem('auth_token');
-    await fetch('/api/spin/save', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,reward_type:seg.type,reward_amount:seg.reward,segment_label:seg.label})}).catch(()=>{});
-    await syncWithBackend();
-}
-
-async function buyPremiumBackend(months, cost) {
-    const token = localStorage.getItem('auth_token');
-    const r = await fetch('/api/buy_premium', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,months,cost})});
-    return await r.json();
-}
-
-// ==================== PREMIUM UI ====================
-function applyPremiumUI() {
-    const body = document.getElementById('mainBody');
-    const btn = document.getElementById('btnPremium');
-    if (State.premiumActive) {
-        body.classList.add('premium-active');
-        btn.textContent = '👑 ACTIVE';
-    } else {
-        body.classList.remove('premium-active');
-        btn.textContent = '👑 PREMIUM';
-    }
-}
-
-function showPremiumTransition() {
-    const overlay = document.getElementById('premiumTransition');
-    overlay.classList.add('active');
-    setTimeout(() => overlay.classList.remove('active'), 1800);
-}
-
-// ==================== FREE DRAW DISPLAY ====================
-function updateFreeDrawDisplay() {
-    document.getElementById('freeTimerCount').textContent = State.freeDraws;
-    updateSpinButton();
-}
-
-function updateSpinButton() {
-    const btn = document.getElementById('btnSpin');
-    const status = document.getElementById('spinStatus');
-    if (State.isSpinning) {
-        btn.disabled = true;
-        status.textContent = '⏱️ Spinning...';
-        return;
-    }
-    if (State.paidSpins > 0) {
-        btn.disabled = false;
-        status.textContent = `💳 Paid spins: ${State.paidSpins}`;
-    } else if (State.freeDraws > 0) {
-        btn.disabled = false;
-        status.textContent = `🎰 Free draws: ${State.freeDraws}`;
-    } else {
-        btn.disabled = true;
-        status.textContent = '⏰ No spins left';
-    }
-}
-
-// ==================== MIDNIGHT TIMER ====================
-function scheduleResetTimer() {
-    if (window._resetInterval) clearInterval(window._resetInterval);
-    const countdownEl = document.getElementById('resetCountdown');
-
-    function updateCountdown() {
-        const now = new Date();
-        const midnight = new Date(now);
-        midnight.setDate(midnight.getDate() + 1);
-        midnight.setHours(0, 0, 0, 0);
-        const remaining = midnight.getTime() - now.getTime();
-
-        if (remaining <= 0) {
-            // Reset draws
-            syncWithBackend().then(() => {
-                updateFreeDrawDisplay();
-                if (State.freeDraws === 0 && State.paidSpins === 0) scheduleResetTimer();
-            });
-            countdownEl.textContent = '';
-            return;
+// ==================== MODULE: UI ====================
+const UI = {
+    toast(msg, type='success') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.style.background = type==='success'?'#2ecc71':type==='error'?'#e74c3c':'#3498db';
+        el.style.display = 'block';
+        clearTimeout(this._timer);
+        this._timer = setTimeout(() => el.style.display='none', 3000);
+    },
+    
+    updateBalances() {
+        document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString() + ' Ks';
+        document.getElementById('usdBalance').textContent = '$' + State.usdBalance.toFixed(2);
+    },
+    
+    updateFreeDraws() {
+        document.getElementById('freeTimerCount').textContent = State.freeDraws;
+        this.updateSpinButton();
+    },
+    
+    updateSpinButton() {
+        const btn = document.getElementById('btnSpin');
+        const status = document.getElementById('spinStatus');
+        if (State.isSpinning) {
+            btn.disabled = true; status.textContent = '⏱️ Spinning...'; return;
         }
-        const h = Math.floor(remaining / 3600000);
-        const m = Math.floor((remaining % 3600000) / 60000);
-        const s = Math.floor((remaining % 60000) / 1000);
-        countdownEl.textContent = `🔄 Reset in: ${h}h ${m}m ${s}s`;
+        if (State.paidSpins > 0) { btn.disabled = false; status.textContent = `💳 Paid: ${State.paidSpins}`; }
+        else if (State.freeDraws > 0) { btn.disabled = false; status.textContent = `🎰 Free: ${State.freeDraws}`; }
+        else { btn.disabled = true; status.textContent = '⏰ No spins'; }
+    },
+    
+    applyPremiumTheme() {
+        const body = document.getElementById('mainBody');
+        const btn = document.getElementById('btnPremium');
+        if (State.premiumActive) { body.classList.add('premium-active'); btn.textContent = '👑 ACTIVE'; }
+        else { body.classList.remove('premium-active'); btn.textContent = '👑 PREMIUM'; }
+    },
+    
+    showPremiumTransition() {
+        const overlay = document.getElementById('premiumTransition');
+        overlay.classList.add('active');
+        setTimeout(() => overlay.classList.remove('active'), 1800);
+    },
+    
+    scheduleResetTimer() {
+        if (window._resetInterval) clearInterval(window._resetInterval);
+        const el = document.getElementById('resetCountdown');
+        const update = () => {
+            const now = new Date();
+            const midnight = new Date(now); midnight.setDate(midnight.getDate()+1); midnight.setHours(0,0,0,0);
+            const rem = midnight.getTime() - now.getTime();
+            if (rem <= 0) { el.textContent = ''; State.freeDraws = State.premiumActive ? 3 : 1; State.save(); UI.updateFreeDraws(); this.scheduleResetTimer(); return; }
+            const h=Math.floor(rem/3600000), m=Math.floor((rem%3600000)/60000), s=Math.floor((rem%60000)/1000);
+            el.textContent = `🔄 Reset in: ${h}h ${m}m ${s}s`;
+        };
+        update();
+        window._resetInterval = setInterval(update, 1000);
     }
+};
 
-    updateCountdown();
-    window._resetInterval = setInterval(updateCountdown, 1000);
-}
-
-// ==================== WHEEL ENGINE ====================
-const canvas = document.getElementById('wheelCanvas');
-const ctx = canvas.getContext('2d');
-
-function getActiveSegments() {
-    return State.premiumActive ? PREMIUM_SEGMENTS : NORMAL_SEGMENTS;
-}
-
-function drawWheel(angle = 0) {
-    const segs = getActiveSegments();
-    const cx = 280, cy = 280, r = 260;
-
-    ctx.clearRect(0, 0, 560, 560);
-
-    segs.forEach((s, i) => {
-        const start = i * ARC + angle;
-        const end = start + ARC;
-
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, r, start, end);
-        ctx.closePath();
-
-        const grad = ctx.createRadialGradient(cx, cy, r * 0.25, cx, cy, r);
-        grad.addColorStop(0, lightenColor(s.color, 50));
-        grad.addColorStop(1, s.color);
-        ctx.fillStyle = grad;
-        ctx.fill();
-
-        ctx.strokeStyle = State.premiumActive ? 'rgba(255,215,0,0.7)' : 'rgba(255,215,0,0.35)';
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(start + ARC / 2);
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 15px "Segoe UI"';
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 6;
-        ctx.fillText(s.label, r * 0.67, 6);
-        ctx.shadowBlur = 0;
-        ctx.restore();
-    });
-
-    // Outer ring
-    ctx.beginPath();
-    ctx.arc(cx, cy, r + 4, 0, 2 * Math.PI);
-    ctx.strokeStyle = State.premiumActive ? 'rgba(255,215,0,0.9)' : 'rgba(243,156,18,0.6)';
-    ctx.lineWidth = 5;
-    ctx.stroke();
-
-    // Center hub
-    ctx.beginPath();
-    ctx.arc(cx, cy, 32, 0, 2 * Math.PI);
-    const hubGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 32);
-    hubGrad.addColorStop(0, '#2c3e50');
-    hubGrad.addColorStop(1, State.premiumActive ? '#2d1b4e' : '#1a1f4b');
-    ctx.fillStyle = hubGrad;
-    ctx.fill();
-    ctx.strokeStyle = State.premiumActive ? '#ffd700' : '#f39c12';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.fillStyle = State.premiumActive ? '#ffd700' : '#f39c12';
-    ctx.font = 'bold 12px "Segoe UI"';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(State.premiumActive ? 'PREMIUM' : 'SPIN', cx, cy);
-}
-
-function lightenColor(hex, p) {
-    const num = parseInt(hex.slice(1), 16);
-    return `rgb(${Math.min(255,(num>>16)+p)},${Math.min(255,((num>>8)&0xFF)+p)},${Math.min(255,(num&0xFF)+p)})`;
-}
-
-// ==================== SPIN CONTROLLER ====================
-function getWinningIndex() {
-    const segs = getActiveSegments();
-    const total = segs.reduce((a, b) => a + b.weight, 0);
-    let rand = Math.random() * total;
-    for (let i = 0; i < segs.length; i++) {
-        rand -= segs[i].weight;
-        if (rand <= 0) return i;
-    }
-    return segs.length - 1;
-}
-
-function handleSpinClick() {
-    if (State.isSpinning) return;
-
-    if (State.paidSpins > 0) {
-        State.paidSpins--;
-        fetch('/api/spin/use_paid_spin', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({token:localStorage.getItem('auth_token')})
-        }).catch(()=>{});
-        updateSpinButton();
-        executeSpin();
-    } else if (State.freeDraws > 0) {
-        State.freeDraws--;
-        updateFreeDrawDisplay();
-        if (State.premiumActive) {
-            fetch('/api/track_premium_draw', {
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({token:localStorage.getItem('auth_token')})
-            }).catch(()=>{});
-        }
-        executeSpin();
-        if (State.freeDraws === 0 && State.paidSpins === 0) scheduleResetTimer();
-    } else {
-        toast('❌ No spins left!', 'error');
-    }
-}
-
-function executeSpin() {
-    State.isSpinning = true;
-    updateSpinButton();
-
-    const winIdx = getWinningIndex();
-    const seg = getActiveSegments()[winIdx];
-
-    // ✅ FIXED ARROW ALIGNMENT:
-    // Arrow at TOP (12 o'clock = -PI/2 = 3*PI/2)
-    // Segment i center = i*ARC + ARC/2 (from 3 o'clock, CCW)
-    // To bring segment i to top: rotate by -(i*ARC + ARC/2 - PI/2) = -(i*ARC + ARC/2) + PI/2
-    const segmentCenter = winIdx * ARC + ARC / 2;
-    let targetAngle = -segmentCenter + Math.PI / 2;
-    while (targetAngle < 0) targetAngle += 2 * Math.PI;
-    targetAngle = targetAngle % (2 * Math.PI);
-
-    const fullRotations = 7 + Math.floor(Math.random() * 4); // 7-10 full spins
-    const totalRotation = fullRotations * 2 * Math.PI + targetAngle;
-
-    const duration = 4000 + Math.random() * 600; // 4-4.6 seconds
-    const startAngle = State.wheelAngle;
-    const startTime = Date.now();
-
-    function animate() {
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        // Ease-out (cubic)
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const angle = startAngle + totalRotation * eased;
-
-        drawWheel(angle % (2 * Math.PI));
-        State.wheelAngle = angle;
-
-        if (progress < 1) {
-            requestAnimationFrame(animate);
+// ==================== MODULE: Modal ====================
+const Modal = {
+    open(id) { document.getElementById(id).classList.add('active'); },
+    close(id) { document.getElementById(id).classList.remove('active'); },
+    
+    showResult(seg) {
+        const icon = document.getElementById('resultIcon');
+        const text = document.getElementById('resultText');
+        const amount = document.getElementById('resultAmount');
+        const extra = document.getElementById('resultExtra');
+        extra.innerHTML = '';
+        
+        if (seg.type === 'super') {
+            icon.textContent = '👑'; text.textContent = '🏆 SUPER PRIZE!'; amount.textContent = 'Congratulations!'; amount.style.color = '#e91e63';
+            extra.innerHTML = `<a class="super-link-btn" href="${CONFIG.SUPER_FORM_URL}" target="_blank">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>`;
         } else {
-            State.isSpinning = false;
-            saveSpinToServer(seg).then(() => {
-                showResult(seg);
-                updateSpinButton();
-                if (State.freeDraws === 0 && State.paidSpins === 0) scheduleResetTimer();
+            switch(seg.type) {
+                case 'usd': icon.textContent='💵'; text.textContent='🎉 You Won!'; amount.textContent=`$${seg.reward.toFixed(2)} USD`; amount.style.color='#2ecc71'; break;
+                case 'mmk': icon.textContent='💰'; text.textContent='🎉 You Won!'; amount.textContent=`${seg.reward} Ks`; amount.style.color='#f39c12'; break;
+                case 'free': icon.textContent='🔄'; text.textContent='Free Spin!'; amount.textContent='+1 Extra Draw'; amount.style.color='#1abc9c'; State.freeDraws++; State.save(); UI.updateFreeDraws(); break;
+                default: icon.textContent='😊'; text.textContent='Thank You!'; amount.textContent='Better luck next time'; amount.style.color='#7f8c8d';
+            }
+            extra.innerHTML = '<button class="btn-yes" onclick="Modal.close(\'resultOverlay\')" style="margin-top:10px">OK</button>';
+        }
+        this.open('resultOverlay');
+    },
+    
+    showConfirm(title, msg, callback) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMsg').innerHTML = msg;
+        document.getElementById('confirmYesBtn').onclick = () => { this.close('confirmOverlay'); callback(); };
+        this.open('confirmOverlay');
+    }
+};
+
+// ==================== MODULE: Wheel Engine ====================
+const WheelEngine = {
+    canvas: document.getElementById('wheelCanvas'),
+    ctx: document.getElementById('wheelCanvas').getContext('2d'),
+    
+    getSegments() { return State.premiumActive ? CONFIG.PREMIUM_SEGMENTS : CONFIG.NORMAL_SEGMENTS; },
+    
+    getWinningIndex() {
+        const segs = this.getSegments();
+        const total = segs.reduce((a,b) => a + b.weight, 0);
+        let rand = Math.random() * total;
+        for (let i = 0; i < segs.length; i++) { rand -= segs[i].weight; if (rand <= 0) return i; }
+        return segs.length - 1;
+    },
+    
+    getTargetAngle(winIdx) {
+        const segmentCenter = winIdx * CONFIG.ARC + CONFIG.ARC / 2;
+        let target = -segmentCenter + Math.PI / 2;
+        while (target < 0) target += 2 * Math.PI;
+        return target % (2 * Math.PI);
+    },
+    
+    draw(angle = 0) {
+        const segs = this.getSegments();
+        const cx = 280, cy = 280, r = 260;
+        this.ctx.clearRect(0, 0, 560, 560);
+        
+        segs.forEach((s, i) => {
+            const start = i * CONFIG.ARC + angle, end = start + CONFIG.ARC;
+            this.ctx.beginPath(); this.ctx.moveTo(cx, cy); this.ctx.arc(cx, cy, r, start, end); this.ctx.closePath();
+            const grad = this.ctx.createRadialGradient(cx, cy, r*0.25, cx, cy, r);
+            grad.addColorStop(0, this._lighten(s.color, 50)); grad.addColorStop(1, s.color);
+            this.ctx.fillStyle = grad; this.ctx.fill();
+            this.ctx.strokeStyle = State.premiumActive ? 'rgba(255,215,0,0.7)' : 'rgba(255,215,0,0.35)';
+            this.ctx.lineWidth = 2.5; this.ctx.stroke();
+            this.ctx.save(); this.ctx.translate(cx, cy); this.ctx.rotate(start + CONFIG.ARC/2);
+            this.ctx.textAlign = 'center'; this.ctx.fillStyle = '#fff'; this.ctx.font = 'bold 15px "Segoe UI"';
+            this.ctx.shadowColor = 'rgba(0,0,0,0.8)'; this.ctx.shadowBlur = 6;
+            this.ctx.fillText(s.label, r*0.67, 6); this.ctx.restore();
+        });
+        
+        this.ctx.beginPath(); this.ctx.arc(cx, cy, r+4, 0, 2*Math.PI);
+        this.ctx.strokeStyle = State.premiumActive ? 'rgba(255,215,0,0.9)' : 'rgba(243,156,18,0.6)';
+        this.ctx.lineWidth = 5; this.ctx.stroke();
+        
+        this.ctx.beginPath(); this.ctx.arc(cx, cy, 32, 0, 2*Math.PI);
+        const hub = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, 32);
+        hub.addColorStop(0, '#2c3e50'); hub.addColorStop(1, State.premiumActive?'#2d1b4e':'#1a1f4b');
+        this.ctx.fillStyle = hub; this.ctx.fill();
+        this.ctx.strokeStyle = State.premiumActive?'#ffd700':'#f39c12'; this.ctx.lineWidth=3; this.ctx.stroke();
+        this.ctx.fillStyle = State.premiumActive?'#ffd700':'#f39c12';
+        this.ctx.font='bold 12px "Segoe UI"'; this.ctx.textAlign='center'; this.ctx.textBaseline='middle';
+        this.ctx.fillText(State.premiumActive?'PREMIUM':'SPIN', cx, cy);
+    },
+    
+    _lighten(hex, p) {
+        const n = parseInt(hex.slice(1), 16);
+        return `rgb(${Math.min(255,(n>>16)+p)},${Math.min(255,((n>>8)&0xFF)+p)},${Math.min(255,(n&0xFF)+p)})`;
+    },
+    
+    spin(winIdx) {
+        const targetAngle = this.getTargetAngle(winIdx);
+        const fullRotations = 7 + Math.floor(Math.random()*4);
+        const totalRotation = fullRotations * 2 * Math.PI + targetAngle;
+        const duration = 4000 + Math.random()*600;
+        const startAngle = State.wheelAngle;
+        const startTime = Date.now();
+        
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed/duration, 1);
+            const eased = 1 - Math.pow(1-progress, 3);
+            const angle = startAngle + totalRotation * eased;
+            this.draw(angle % (2*Math.PI));
+            State.wheelAngle = angle;
+            
+            if (progress < 1) requestAnimationFrame(animate);
+            else {
+                State.isSpinning = false;
+                State.save();
+                UI.updateSpinButton();
+                const seg = this.getSegments()[winIdx];
+                API.saveSpin(seg).then(() => API.syncAll().then(d => { if(d) { State.applyServerData(d); UI.updateBalances(); } }));
+                Modal.showResult(seg);
+                if (State.freeDraws === 0 && State.paidSpins === 0) UI.scheduleResetTimer();
+            }
+        };
+        requestAnimationFrame(animate);
+    }
+};
+
+// ==================== MODULE: Spin Controller ====================
+const SpinController = {
+    handleClick() {
+        if (State.isSpinning) return;
+        
+        if (State.paidSpins > 0) {
+            State.paidSpins--;
+            State.save();
+            API.usePaidSpin();
+            UI.updateSpinButton();
+            this._execute();
+        } else if (State.freeDraws > 0) {
+            State.freeDraws--;
+            State.save();
+            UI.updateFreeDraws();
+            if (State.premiumActive) API.trackPremiumDraw();
+            this._execute();
+            if (State.freeDraws === 0 && State.paidSpins === 0) UI.scheduleResetTimer();
+        } else {
+            UI.toast('No spins left!', 'error');
+        }
+    },
+    
+    _execute() {
+        State.isSpinning = true;
+        UI.updateSpinButton();
+        const winIdx = WheelEngine.getWinningIndex();
+        WheelEngine.spin(winIdx);
+    }
+};
+
+// ==================== MODULE: Premium Controller ====================
+const PremiumController = {
+    toggle() {
+        if (State.premiumActive) { UI.toast('Premium active!', 'success'); return; }
+        Modal.open('premInfoModal');
+    },
+    
+    confirmBuy(months, cost) {
+        if (State.mmkBalance < cost) { UI.toast('ငွေမလုံလောက်ပါ', 'error'); return; }
+        Modal.close('premInfoModal');
+        Modal.showConfirm('👑 Premium', `${months} Month(s)<br>Cost: <b>${cost.toLocaleString()} Ks</b>`, () => {
+            API.buyPremium(months, cost).then(r => {
+                if (r.success) {
+                    UI.toast('Premium activated!');
+                    UI.showPremiumTransition();
+                    API.syncAll().then(d => { if(d) { State.applyServerData(d); UI.updateBalances(); UI.applyPremiumTheme(); UI.updateFreeDraws(); WheelEngine.draw(0); } });
+                } else { UI.toast(r.message || 'Failed', 'error'); }
             });
-        }
+        });
     }
+};
 
-    requestAnimationFrame(animate);
-}
-
-// ==================== REWARD ENGINE ====================
-function showResult(seg) {
-    const icon = document.getElementById('resultIcon');
-    const text = document.getElementById('resultText');
-    const amount = document.getElementById('resultAmount');
-    const extra = document.getElementById('resultExtra');
-
-    extra.innerHTML = '';
-
-    if (seg.type === 'super') {
-        icon.textContent = '👑';
-        text.textContent = '🏆 SUPER PRIZE!';
-        amount.textContent = 'Congratulations!';
-        amount.style.color = '#e91e63';
-        // ✅ No close button, only forced claim link
-        extra.innerHTML = `<a class="super-link-btn" href="${SUPER_FORM_URL}" target="_blank">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>`;
-    } else {
-        switch(seg.type) {
-            case 'usd':
-                icon.textContent = '💵';
-                text.textContent = '🎉 You Won!';
-                amount.textContent = `$${seg.reward.toFixed(2)} USD`;
-                amount.style.color = '#2ecc71';
-                break;
-            case 'mmk':
-                icon.textContent = '💰';
-                text.textContent = '🎉 You Won!';
-                amount.textContent = `${seg.reward} Ks`;
-                amount.style.color = '#f39c12';
-                break;
-            case 'free':
-                icon.textContent = '🔄';
-                text.textContent = 'Free Spin!';
-                amount.textContent = '+1 Extra Draw';
-                amount.style.color = '#1abc9c';
-                State.freeDraws++;
-                updateFreeDrawDisplay();
-                break;
-            default:
-                icon.textContent = '😊';
-                text.textContent = 'Thank You!';
-                amount.textContent = 'Better luck next time';
-                amount.style.color = '#7f8c8d';
-        }
-        extra.innerHTML = '<button class="btn-yes" onclick="closeResult()" style="margin-top:10px">OK</button>';
+// ==================== MODULE: Buy Controller ====================
+const BuyController = {
+    confirm(spins, cost) {
+        if (State.mmkBalance < cost) { UI.toast('ငွေမလုံလောက်ပါ', 'error'); return; }
+        Modal.showConfirm('💳 Buy Spins', `${spins} Spin(s)<br>Cost: <b>${cost.toLocaleString()} Ks</b>`, () => {
+            API.deductBalance(cost, `Buy ${spins} spins`).then(r => {
+                if (r.success) {
+                    State.paidSpins += spins;
+                    State.mmkBalance = r.new_balance;
+                    State.save();
+                    UI.updateBalances();
+                    UI.updateSpinButton();
+                    UI.toast(`${spins} spins added!`);
+                } else { UI.toast(r.message || 'Failed', 'error'); }
+            });
+        });
     }
+};
 
-    openModal('resultOverlay');
-}
+// ==================== EVENT BINDINGS ====================
+document.getElementById('btnSpin').addEventListener('click', () => SpinController.handleClick());
+document.getElementById('btnPremium').addEventListener('click', () => PremiumController.toggle());
 
-function closeResult() {
-    closeModal('resultOverlay');
-}
+document.querySelectorAll('.btn-buy').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const spins = parseInt(btn.dataset.spins);
+        const cost = parseInt(btn.dataset.cost);
+        BuyController.confirm(spins, cost);
+    });
+});
 
-// ==================== PREMIUM CONTROLLER ====================
-function togglePremium() {
-    if (State.premiumActive) {
-        toast('👑 Premium is active!', 'success');
-    } else {
-        openModal('premInfoModal');
-    }
-}
-
-function confirmBuyPremium(months, cost) {
-    closeModal('premInfoModal');
-    document.getElementById('confirmTitle').textContent = '👑 Premium';
-    document.getElementById('confirmMsg').innerHTML = `${months} Month(s)<br>Cost: <b>${cost.toLocaleString()} Ks</b>`;
-    document.getElementById('confirmYesBtn').onclick = () => { closeConfirm(); buyPremium(months, cost); };
-    openModal('confirmOverlay');
-}
-
-async function buyPremium(months, cost) {
-    if (State._mmkBalance < cost) return toast('❌ ငွေမလုံလောက်ပါ', 'error');
-    const result = await buyPremiumBackend(months, cost);
-    if (result.success) {
-        toast('✅ Premium activated!');
-        await syncWithBackend();
-        showPremiumTransition();
-        applyPremiumUI();
-        drawWheel(0);
-    } else {
-        toast('❌ ' + (result.message || 'Failed'), 'error');
-    }
-}
-
-// ==================== BUY SPINS ====================
-function confirmBuySpin(spins, cost) {
-    if (State._mmkBalance < cost) return toast('❌ ငွေမလုံလောက်ပါ', 'error');
-    document.getElementById('confirmTitle').textContent = '💳 Buy Spins';
-    document.getElementById('confirmMsg').innerHTML = `${spins} Spin(s)<br>Cost: <b>${cost} Ks</b>`;
-    document.getElementById('confirmYesBtn').onclick = () => { closeConfirm(); buySpins(spins, cost); };
-    openModal('confirmOverlay');
-}
-
-async function buySpins(spins, cost) {
-    const result = await deductBalance(cost, `Buy ${spins} spins`);
-    if (result.success) {
-        State.paidSpins += spins;
-        await syncWithBackend();
-        updateSpinButton();
-        toast(`✅ ${spins} spins added!`);
-    } else {
-        toast('❌ ' + (result.message || 'Failed'), 'error');
-    }
-}
+document.querySelectorAll('.prem-pkg').forEach(pkg => {
+    pkg.addEventListener('click', () => {
+        const months = parseInt(pkg.dataset.months);
+        const cost = parseInt(pkg.dataset.cost);
+        PremiumController.confirmBuy(months, cost);
+    });
+});
 
 // ==================== INIT ====================
 async function init() {
-    // Load persisted state
     State.load();
-
-    // Always sync with backend for real balances and premium status
-    await syncWithBackend();
-
-    // If backend returned different premium status, apply it
-    applyPremiumUI();
-
-    // Draw wheel with saved angle
-    drawWheel(State.wheelAngle % (2 * Math.PI));
-
-    // Update UI
-    updateFreeDrawDisplay();
-
-    // Schedule reset timer
-    if (State.freeDraws === 0 && State.paidSpins === 0) {
-        scheduleResetTimer();
-    }
-
-    // Weekly bonus check
+    
+    const data = await API.syncAll();
+    if (data) { State.applyServerData(data); }
+    
+    UI.updateBalances();
+    UI.applyPremiumTheme();
+    UI.updateFreeDraws();
+    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
+    
+    if (State.freeDraws === 0 && State.paidSpins === 0) UI.scheduleResetTimer();
+    
+    // Weekly bonus
     if (State.premiumActive) {
-        const lastBonus = localStorage.getItem('weeklyBonusDate');
+        const lastBonus = localStorage.getItem('weeklyBonusDateV2');
         const today = new Date().toDateString();
         if (lastBonus !== today) {
             const diff = lastBonus ? Math.floor((Date.now() - new Date(lastBonus).getTime())/86400000) : 7;
             if (diff >= 7) {
-                State.freeDraws += 5;
-                localStorage.setItem('weeklyBonusDate', today);
-                toast('🎁 Weekly Bonus: +5 Free Draws!');
-                updateFreeDrawDisplay();
-                fetch('/api/claim_weekly_bonus', {
-                    method:'POST',
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({token:localStorage.getItem('auth_token')})
-                }).catch(()=>{});
+                State.freeDraws += 5; State.save(); localStorage.setItem('weeklyBonusDateV2', today);
+                UI.updateFreeDraws(); UI.toast('🎁 Weekly Bonus: +5 Draws!');
+                API.claimWeeklyBonus();
             }
         }
     }
-
-    // Periodic sync
-    setInterval(syncWithBackend, 30000);
+    
+    setInterval(async () => {
+        const d = await API.syncAll();
+        if (d) { State.applyServerData(d); UI.updateBalances(); UI.updateFreeDraws(); }
+    }, 30000);
 }
 
 init();
