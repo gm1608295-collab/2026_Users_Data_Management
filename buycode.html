@@ -164,19 +164,18 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     <div class="qr-modal" id="qrModal">
         <div class="qr-box" id="qrBoxContent"></div>
     </div>
-
-<script>
+ <script>
 // ==================== HARDCODED DATA ====================
- var CATEGORIES = {
+var CATEGORIES = {
     "shhh_emote":{name:"Shhh emote",icon:"https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png",price:2500,codes:[{id:1,code:"2359x2s4zqzq23fb8"},{id:2,code:"29jwchdgqyvj23f5e"},{id:3,code:"29hg4rbrxt6h23f5e"},{id:4,code:"29kqjbw949z823f5e"}]},
     "golden_border":{name:"Golden Month Border",icon:"https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png",price:3500,codes:[{id:5,code:"27e32tq495s423f5q"},{id:6,code:"27ffr6w3h9ka23f5q"},{id:7,code:"27gpet7tyr4g23f5q"},{id:8,code:"27h77fcrekx923f5q"}]},
     "lucky_diamond":{name:"Lucky Diamond Code",icon:"https://i.ibb.co/n8m2ZSgz/box4-7e338a9e.png",price:2000,codes:[{id:9,code:"2ja2rum6s6x923fnn"},{id:10,code:"47k9hgrpbs2v23fnn"},{id:11,code:"5npzg2zhdbwg23fnn"}]},
     "magic_durt":{name:"Magic Durt",icon:"https://i.ibb.co/NdpDZ0P7/8.png",price:1500,codes:[{id:12,code:"35smvu4a354423gzj"}]},
     "emblem_box":{name:"Emblem Box",icon:"https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png",price:1500,codes:[{id:13,code:"28knzpt43hdc23gzc"}]},
-    "promo_codes":{name:"Promo Code",icon:"https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg",price:700,codes:[]}
+    "promo_codes":{name:"Promo Code",icon:"https://i.ibb.co/YBch2sHS/mlbbsecuritylogo.jpg",price:700,codes:[]}
 };
 
-var currentBalance=0, currentCategoryKey='', pendingCodeId=null;
+var currentBalance = 0, currentCategoryKey = '', pendingCodeId = null, pendingPromoCodeId = null;
 
 // ==================== SOLD OUT TRACKING ====================
 var soldOutCategories = {};
@@ -185,7 +184,7 @@ function saveSoldOut() { localStorage.setItem('buycodeSoldOut', JSON.stringify(s
 function isSoldOut(key) { return soldOutCategories[key] === true; }
 
 // ==================== NOTIFICATION BELL ====================
-var notiItems=[],unreadCount=0;
+var notiItems = [], unreadCount = 0;
 function loadNotiItems(){var s=localStorage.getItem('buycodeNotiItems');if(s){try{notiItems=JSON.parse(s)}catch(e){notiItems=[]}}unreadCount=parseInt(localStorage.getItem('buycodeNotiUnread')||'0');updateNotiBadge();renderNotiDropdown()}
 function addNotiItem(msg){notiItems.unshift({message:msg,time:new Date().toISOString(),read:false});unreadCount++;if(notiItems.length>20)notiItems.pop();localStorage.setItem('buycodeNotiItems',JSON.stringify(notiItems));localStorage.setItem('buycodeNotiUnread',unreadCount.toString());updateNotiBadge();renderNotiDropdown()}
 function updateNotiBadge(){var b=document.getElementById('notiBadge');if(unreadCount>0){b.textContent=unreadCount>9?'9+':unreadCount;b.classList.add('show')}else{b.classList.remove('show')}}
@@ -202,12 +201,10 @@ function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
 function showCodeModal(code){
     var existing = document.getElementById('codeRevealModal');
     if (existing) existing.remove();
-    
     var sec = 10;
     var modal = document.createElement('div');
     modal.id = 'codeRevealModal';
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;justify-content:center;align-items:center';
-    
     modal.innerHTML = 
     '<div style="background:#0c0e27;padding:25px;border-radius:12px;width:90%;max-width:380px;border:2px solid #f39c12;text-align:center;max-height:90vh;overflow-y:auto">' +
         '<h3 style="color:#f39c12;margin-bottom:15px;font-size:18px"><i class="fas fa-gift"></i> Your Code</h3>' +
@@ -218,70 +215,43 @@ function showCodeModal(code){
         '<p style="color:#f39c12;font-size:12px;margin:8px 0" id="codeTimerDisplay">⏱️ Auto close in 10 seconds</p>' +
         '<button id="copyCodeBtn" style="background:#2ecc71;color:#000;border:none;padding:12px 30px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:bold;margin:5px"><i class="fas fa-copy"></i> Copy Code</button>' +
     '</div>';
-    
     document.body.appendChild(modal);
     
-    // Copy Button Click
     document.getElementById('copyCodeBtn').onclick = function() {
         var codeText = document.getElementById('theCodeText').textContent;
         var btn = document.getElementById('copyCodeBtn');
-        
-        // Try to copy
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(codeText).then(function() {
                 btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
                 btn.style.background = 'rgba(255,255,255,0.2)';
                 btn.style.color = '#2ecc71';
                 n('✅ Code Copied!');
-            }).catch(function() {
-                prompt('Copy (Ctrl+C):', codeText);
-            });
+            }).catch(function() { prompt('Copy (Ctrl+C):', codeText); });
         } else {
-            // Fallback
             var ta = document.createElement('textarea');
-            ta.value = codeText;
-            ta.style.position = 'fixed';
-            ta.style.left = '-9999px';
-            document.body.appendChild(ta);
-            ta.select();
-            try {
-                document.execCommand('copy');
-                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                btn.style.background = 'rgba(255,255,255,0.2)';
-                btn.style.color = '#2ecc71';
-                n('✅ Code Copied!');
-            } catch(e) {
-                prompt('Copy (Ctrl+C):', codeText);
-            }
+            ta.value = codeText; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); btn.innerHTML = '<i class="fas fa-check"></i> Copied!'; }
+            catch(e) { prompt('Copy (Ctrl+C):', codeText); }
             document.body.removeChild(ta);
         }
     };
     
-    // Timer
     var timerInterval = setInterval(function() {
         sec--;
         var t = document.getElementById('codeTimerDisplay');
         if (t) t.textContent = '⏱️ Auto close in ' + sec + ' seconds';
-        if (sec <= 0) {
-            clearInterval(timerInterval);
-            if (document.getElementById('codeRevealModal')) {
-                document.getElementById('codeRevealModal').remove();
-            }
-            n('⏰ Code သက်တမ်းကုန်သွားပါပြီ');
-        }
+        if (sec <= 0) { clearInterval(timerInterval); if (document.getElementById('codeRevealModal')) { document.getElementById('codeRevealModal').remove(); } n('⏰ Code သက်တမ်းကုန်သွားပါပြီ'); }
     }, 1000);
     
-    // Click outside to close
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            clearInterval(timerInterval);
-            modal.remove();
-        }
-    });
+    modal.addEventListener('click', function(e) { if (e.target === modal) { clearInterval(timerInterval); modal.remove(); } });
 }
+
 // ==================== RENDER GAME CARDS ====================
 function renderGameCards(){
     var grid=document.getElementById('gameGrid'); var cats=Object.keys(CATEGORIES); var h='';
+    // ✅ Promo codes ကို server ကနေ အရင်ဆွဲ
+    loadPromoCodesForCards();
     cats.forEach(function(key){
         var cat=CATEGORIES[key]; var cnt=cat.codes.length;
         if(cnt===0 || isSoldOut(key)){ if(cnt===0){ soldOutCategories[key]=true; saveSoldOut(); }
@@ -302,21 +272,20 @@ function loadPromoCodesForCards() {
         if (d.success && d.codes) {
             var availableCodes = d.codes.filter(function(c) { return !c.used; });
             CATEGORIES['promo_codes'].codes = availableCodes.map(function(c) {
-                return {
-                    id: c.id,
-                    code: c.api_key,
-                    amount: c.amount,
-                    currency: c.currency,
-                    expiry: c.expiry_date
-                };
+                return { id: c.id, code: c.api_key, amount: c.amount, currency: c.currency, expiry: c.expiry_date };
             });
-            renderGameCards();
         }
-    })
-    .catch(function() {});
+    }).catch(function() {});
 }
+
 // ==================== CATEGORY MODAL ====================
 function openCategory(key) {
+    // ✅ Promo Code ဆိုရင် သီးသန့် modal
+    if (key === 'promo_codes') {
+        openPromoCodeModal();
+        return;
+    }
+    
     currentCategoryKey = key; var cat = CATEGORIES[key]; if (!cat) return;
     document.getElementById('modalImg').src = cat.icon;
     document.getElementById('modalTitle').textContent = cat.name;
@@ -332,8 +301,66 @@ function openCategory(key) {
     document.getElementById('codeList').innerHTML = h;
     document.getElementById('categoryModal').style.display = 'flex';
 }
+function closeCategoryModal() { document.getElementById('categoryModal').style.display = 'none'; }
 
-// ✅ Promo Code Modal
+// ==================== BUY CODE FLOW ====================
+function buyCodeClick(codeId) {
+    document.getElementById('categoryModal').style.display = 'none';
+    var id = parseInt(codeId); if (!id || isNaN(id)) { n('❌ Code error', 'error'); return; }
+    var cat = CATEGORIES[currentCategoryKey]; if (!cat) { n('❌ Category error', 'error'); return; }
+    if (currentBalance < cat.price) { n('ငွေမလုံလောက်ပါ', 'error'); return; }
+    pendingCodeId = id;
+    pendingPromoCodeId = null;
+    document.getElementById('confirmPurchaseModal').style.display = 'flex';
+}
+
+function closeConfirmPurchase() { 
+    document.getElementById('confirmPurchaseModal').style.display = 'none'; 
+    pendingCodeId = null; 
+    pendingPromoCodeId = null;
+}
+
+function confirmBuyCode() {
+    document.getElementById('confirmPurchaseModal').style.display = 'none';
+    
+    // ✅ Promo code ဆိုရင်
+    if (pendingPromoCodeId) {
+        buyPromoCode(pendingPromoCodeId);
+        pendingPromoCodeId = null;
+        return;
+    }
+    
+    // ✅ Regular code
+    var id = pendingCodeId;
+    pendingCodeId = null;
+    if (!id || isNaN(id)) { n('❌ Code error', 'error'); return; }
+    buyCode(id);
+}
+
+// ==================== BUY REGULAR CODE ====================
+function buyCode(codeId){
+    if(!codeId||isNaN(codeId)){n('❌ Invalid Code ID','error');return}
+    var cat=CATEGORIES[currentCategoryKey]; if(!cat){n('❌ Category not found','error');return}
+    if(currentBalance<cat.price){n('ငွေမလုံလောက်ပါ','error');return}
+    var token=localStorage.getItem('auth_token'); if(!token){n('❌ Please login first','error');return}
+    
+    fetch('/api/buy_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token,codeId:parseInt(codeId)})})
+    .then(function(r){return r.json()}).then(function(d){
+        if(d.success){
+            currentBalance=d.balance;
+            document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
+            document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
+            var codes=CATEGORIES[currentCategoryKey].codes;
+            var idx=codes.findIndex(function(c){return c.id===parseInt(codeId)});
+            if(idx>-1){codes.splice(idx,1); if(codes.length===0){ soldOutCategories[currentCategoryKey]=true; saveSoldOut(); }}
+            renderGameCards();
+            addNotiItem('Code purchased successfully!');
+            showCodeModal(d.code);
+        }else{n(d.message||'Error','error')}
+    }).catch(function(e){n('Connection error','error')});
+}
+
+// ==================== PROMO CODE MODAL ====================
 function openPromoCodeModal() {
     var codes = CATEGORIES['promo_codes'].codes;
     document.getElementById('modalImg').src = 'https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg';
@@ -358,43 +385,20 @@ function openPromoCodeModal() {
     document.getElementById('categoryModal').style.display = 'flex';
 }
 
-// ✅ Promo Code ဝယ်တဲ့ function
-var pendingPromoCodeId = null;
-
 function buyPromoCodeClick(codeId) {
     document.getElementById('categoryModal').style.display = 'none';
-    if (currentBalance < 700) {
-        n('ငွေမလုံလောက်ပါ', 'error');
-        return;
-    }
+    if (currentBalance < 700) { n('ငွေမလုံလောက်ပါ', 'error'); return; }
+    pendingCodeId = null;
     pendingPromoCodeId = codeId;
     document.getElementById('confirmPurchaseModal').style.display = 'flex';
 }
 
-function confirmBuyCode() {
-    document.getElementById('confirmPurchaseModal').style.display = 'none';
-    
-    // ✅ Promo code ဆိုရင် - အရင်စစ်
-    if (pendingPromoCodeId) {
-        buyPromoCode(pendingPromoCodeId);
-        pendingPromoCodeId = null;
-        return;
-    }
-    
-    // ✅ Regular code
-    var id = pendingCodeId;
-    if (!id || isNaN(id)) { n('❌ Code error', 'error'); return; }
-    buyCode(id);
-}
-
-// ✅ Promo Code ဝယ်တဲ့ API call
 function buyPromoCode(codeId) {
     var token = localStorage.getItem('auth_token');
     if (!token) { n('❌ Please login first', 'error'); return; }
     
     fetch('/api/buy_promo_code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: token, codeId: parseInt(codeId) })
     })
     .then(function(r) { return r.json(); })
@@ -403,54 +407,14 @@ function buyPromoCode(codeId) {
             currentBalance = d.balance;
             document.getElementById('myBalance').textContent = fm(currentBalance) + ' Ks';
             document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
-            
-            // Remove used code
             var codes = CATEGORIES['promo_codes'].codes;
             var idx = codes.findIndex(function(c) { return c.id === parseInt(codeId); });
             if (idx > -1) codes.splice(idx, 1);
-            
             renderGameCards();
             addNotiItem('Promo code purchased! Value: ' + d.amount + ' ' + d.currency);
             showCodeModal(d.code);
-        } else {
-            n(d.message || 'Error', 'error');
-        }
-    })
-    .catch(function(e) { n('Connection error', 'error'); });
-}
-// ==================== BUY FLOW ====================
-function buyCodeClick(codeId) {
-    document.getElementById('categoryModal').style.display = 'none';
-    var id = parseInt(codeId); if (!id || isNaN(id)) { n('❌ Code error', 'error'); return; }
-    var cat = CATEGORIES[currentCategoryKey]; if (!cat) { n('❌ Category error', 'error'); return; }
-    if (currentBalance < cat.price) { n('ငွေမလုံလောက်ပါ', 'error'); return; }
-    pendingCodeId = id;
-    document.getElementById('confirmPurchaseModal').style.display = 'flex';
-}
-function closeConfirmPurchase() { document.getElementById('confirmPurchaseModal').style.display = 'none'; pendingCodeId = null; }
-// ==================== BUY CODE ====================
-function buyCode(codeId){
-    if(!codeId||isNaN(codeId)){n('❌ Invalid Code ID','error');return}
-    var cat=CATEGORIES[currentCategoryKey]; if(!cat){n('❌ Category not found','error');return}
-    if(currentBalance<cat.price){n('ငွေမလုံလောက်ပါ','error');return}
-    var token=localStorage.getItem('auth_token'); if(!token){n('❌ Please login first','error');return}
-    document.getElementById('categoryModal').style.display = 'none';
-    document.getElementById('confirmPurchaseModal').style.display = 'none';
-    
-    fetch('/api/buy_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token,codeId:parseInt(codeId)})})
-    .then(function(r){return r.json()}).then(function(d){
-        if(d.success){
-            currentBalance=d.balance;
-            document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
-            document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
-            var codes=CATEGORIES[currentCategoryKey].codes;
-            var idx=codes.findIndex(function(c){return c.id===parseInt(codeId)});
-            if(idx>-1){codes.splice(idx,1); if(codes.length===0){ soldOutCategories[currentCategoryKey]=true; saveSoldOut(); }}
-            renderGameCards();
-            addNotiItem('ဝယ်ယူအားပေးမှုအတွက်ကျေးဇူးတင်ရှိပါသည်၊အကယ်၍မိမိဝယ်ယူလိုက်သော code သည် အသုံးပြု၍မရခဲ့သည်ရှိသော် Menu Button ထဲက customer service စာမျက်နှာတွင် ပုံနှင့်တကွ ပြည့်စုံအောင် တင်ပြပေးပါ၊admin ဘက်မှစစ်ဆေးအတည်ပြုမှုအောင်မြင်ပါက မိမိ၏အကောင့်ထဲအား သင်ဝယ်ယူခဲ့သည့်ငွေပမာဏအတိုင်းပြန်လည်ပေးလျော်ပါမည်။လိမ်လည်တင်ပြပါက သင့်အကောင့်အား ၁ ရက်တိတိ ဘန်းခံရမည်ဖြစ်ပြီး နောင်တွင် လ/နှစ် နဲ့ချီအောင်ပါပိတ်ပင်နိုင်ပြီး အကောင့်ပါပျက်သွားနိုင်ပါသည်။');
-            showCodeModal(d.code);
-        }else{n(d.message||'Error','error')}
-    }).catch(function(e){n('Connection error','error')});
+        } else { n(d.message || 'Error', 'error'); }
+    }).catch(function(e) { n('Connection error', 'error'); });
 }
 
 // ==================== NOTICE ====================
@@ -459,61 +423,42 @@ function loadNotice(){fetch("/api/buycode_notice").then(function(r){return r.jso
 
 // ==================== CHECK FOR NEW CODES ====================
 var lastCodeId = parseInt(localStorage.getItem('buycodeLastCodeId') || '0');
-
 function checkNewCodes() {
     fetch('/api/buycode_new_codes')
     .then(function(r) { return r.json(); })
     .then(function(d) {
         if (d.success && d.hasNew && d.latestId > lastCodeId) {
-            // New codes available!
             lastCodeId = d.latestId;
             localStorage.setItem('buycodeLastCodeId', lastCodeId);
-            
-            // ====== CLEAR SOLD OUT STATUS ======
-            // Admin added new codes, so clear all sold out flags
             soldOutCategories = {};
             saveSoldOut();
-            
-            // Reload categories from server
             loadCategoriesFromServer();
-            
-            addNotiItem(d.message);
+            addNotiItem('New codes available!');
         }
-    })
-    .catch(function() {});
+    }).catch(function() {});
 }
-
-// ====== RELOAD CATEGORIES FROM SERVER ======
 function loadCategoriesFromServer() {
     fetch('/api/redeem_codes')
     .then(function(r) { return r.json(); })
     .then(function(d) {
         if (d.success && d.categories) {
-            // Update hardcoded data with server data
-            var hasCodes = false;
             for (var key in d.categories) {
                 if (d.categories[key].codes && d.categories[key].codes.length > 0) {
-                    hasCodes = true;
-                    // Update codes
                     CATEGORIES[key].codes = d.categories[key].codes;
-                    // Clear sold out for this category
-                    if (soldOutCategories[key]) {
-                        delete soldOutCategories[key];
-                    }
+                    if (soldOutCategories[key]) { delete soldOutCategories[key]; }
                 }
             }
             saveSoldOut();
             renderGameCards();
         }
-    })
-    .catch(function() {});
+    }).catch(function() {});
 }
-
-// Check every 30 seconds
 setInterval(checkNewCodes, 30000);
 checkNewCodes();
+
 // ==================== BG MUSIC PLAYER ====================
 (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
+
 // ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess() {
     try {
@@ -524,7 +469,7 @@ async function checkPageAccess() {
             if (bc && bc.status === 'off') {
                 document.getElementById('maintenanceMessage').style.display = 'block';
                 document.getElementById('buycodeContent').style.display = 'none';
-                checkPageTimer();  // ✅ Timer စဖို့ ဒါထည့်
+                checkPageTimer();
                 return false;
             }
         }
@@ -536,119 +481,53 @@ async function checkPageAccess() {
 (async function init() {
     const pageOn = await checkPageAccess();
     if (!pageOn) return;
-    
     document.getElementById('buycodeContent').style.display = 'block';
     renderGameCards();
-    
-    fetch('/api/get_balance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: localStorage.getItem('auth_token') })
-    }).then(function(r) { return r.json(); })
-    .then(function(d) {
-        currentBalance = d.balance || 0;
-        document.getElementById('myBalance').textContent = fm(currentBalance) + ' Ks';
-        document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
-    }).catch(function() {});
-    
+    fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).then(function(r){return r.json()}).then(function(d){currentBalance=d.balance||0;document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD'}).catch(function(){});
     loadNotice();
-    setInterval(loadNotice, 5000);
+    setInterval(loadNotice,5000);
 })();
-// ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
+
+// ==================== PAGE TIMER COUNTDOWN ====================
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
-    
     let timer = null;
-    
     try {
-        // Method 1: localStorage
         const saved = localStorage.getItem('pageTimers');
-        if (saved) {
-            const timers = JSON.parse(saved);
-            timer = timers[pageId];
-        }
-        
-        // Method 2: Cookie (for Median WebView)
-        if (!timer) {
-            const cookieTimers = getCookie('pageTimers');
-            if (cookieTimers) {
-                const timers = JSON.parse(decodeURIComponent(cookieTimers));
-                timer = timers[pageId];
-            }
-        }
-        
-        // Method 3: SessionStorage
-        if (!timer) {
-            const sessionTimers = sessionStorage.getItem('pageTimers');
-            if (sessionTimers) {
-                const timers = JSON.parse(sessionTimers);
-                timer = timers[pageId];
-            }
-        }
+        if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
+        if (!timer) { const cookieTimers = getCookie('pageTimers'); if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; } }
+        if (!timer) { const sessionTimers = sessionStorage.getItem('pageTimers'); if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; } }
     } catch(e) {}
-    
     if (!timer || timer <= Date.now()) return;
-    
     const maintMsg = document.getElementById('maintenanceMessage');
     if (maintMsg) maintMsg.style.display = 'block';
-    
     const pageBanner = document.getElementById('pageTimerBanner');
     if (pageBanner) pageBanner.style.display = 'block';
-    
     const maintTimer = document.getElementById('maintenanceCountdown');
     const pageCountdown = document.getElementById('pageTimerCountdown');
-    
     const update = () => {
         const rem = timer - Date.now();
-        
         if (rem <= 0) {
-            try {
-                const saved = localStorage.getItem('pageTimers');
-                if (saved) {
-                    const timers = JSON.parse(saved);
-                    delete timers[pageId];
-                    localStorage.setItem('pageTimers', JSON.stringify(timers));
-                }
-                setCookie('pageTimers', '', -1);
-                sessionStorage.removeItem('pageTimers');
-            } catch(e) {}
-            
-            location.reload();
-            return;
+            try { const saved = localStorage.getItem('pageTimers'); if (saved) { const timers = JSON.parse(saved); delete timers[pageId]; localStorage.setItem('pageTimers', JSON.stringify(timers)); } setCookie('pageTimers', '', -1); sessionStorage.removeItem('pageTimers'); } catch(e) {}
+            location.reload(); return;
         }
-        
-        const s = Math.floor(rem / 1000);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const sec = s % 60;
+        const s = Math.floor(rem / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
         const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-        
         if (maintTimer) maintTimer.textContent = timeStr;
         if (pageCountdown) pageCountdown.textContent = timeStr;
     };
-    
     update();
     setInterval(update, 1000);
 }
-
 function setCookie(name, value, days) {
     let expires = '';
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = '; expires=' + date.toUTCString();
-    }
+    if (days) { const date = new Date(); date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000)); expires = '; expires=' + date.toUTCString(); }
     document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
 }
-
 function getCookie(name) {
     const nameEQ = name + '=';
     const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
+    for (let i = 0; i < ca.length; i++) { let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
     return null;
 }
 </script>
