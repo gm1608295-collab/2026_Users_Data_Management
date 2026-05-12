@@ -5,140 +5,922 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SOLO M Game Shop - Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        html,body{height:100%;overflow:hidden;position:fixed;width:100%}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);display:flex;justify-content:center;align-items:center;padding:15px}
-        .container{width:100%;max-width:380px;background:rgba(12,14,39,0.95);border-radius:15px;overflow:hidden;border:1px solid #4a1c7a;box-shadow:0 15px 40px rgba(0,0,0,0.6);max-height:92vh;overflow-y:auto}
-        .header{background:linear-gradient(to right,var(--a),var(--p));padding:20px 15px;text-align:center;border-bottom:4px solid var(--w);position:relative}
-        .header .logo{width:60px;height:60px;border-radius:50%;margin:0 auto 10px;display:block;object-fit:cover;border:2px solid rgba(255,255,255,0.3)}
-        .header .marquee-wrap{overflow:hidden;white-space:nowrap;margin:0 auto;width:90%}
-        .header .marquee-text{display:inline-block;animation:marquee 12s linear infinite;font-size:12px;color:rgba(255,255,255,0.9)}
-        @keyframes marquee{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
-        .header p{font-size:10px;opacity:0.85;margin-top:4px}
-        .header .refresh-btn{position:absolute;top:12px;left:12px;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer}
-        .header .top-link{position:absolute;top:12px;right:12px;color:var(--b);font-size:10px;cursor:pointer}
-        .body{padding:15px 18px}
-        .fg{margin-bottom:10px}
-        .fg label{display:block;margin-bottom:4px;font-weight:600;color:#e0e0e0;font-size:11px}
-        .fg input{width:100%;padding:10px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;font-size:13px;color:var(--t)}
-        .fg input:focus{border-color:var(--w);outline:none}
-        .btn{display:block;width:100%;padding:11px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;margin-top:6px}
-        .btn-a{background:var(--a);color:var(--t)}.btn-b{background:transparent;color:var(--w);border:1.5px solid var(--w);margin-top:8px}
-        .divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:rgba(255,255,255,0.4);font-size:10px}
-        .divider::before,.divider::after{content:"";flex:1;height:1px;background:rgba(255,255,255,0.15)}
-        .social-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
-        .social-btn{display:flex;flex-direction:column;align-items:center;padding:10px 4px;border-radius:6px;font-size:9px;cursor:pointer;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);text-align:center;gap:4px}
-        .social-btn img{width:28px;height:28px;border-radius:6px;object-fit:cover}
-        .social-btn.tiktok{opacity:0.6;cursor:not-allowed}
-        .social-btn.tiktok .badge{font-size:6px;color:var(--r)}
-        .toggle-link{text-align:center;margin-top:10px;font-size:11px}
-        .toggle-link a{color:var(--w);cursor:pointer;font-weight:600}
-        .notif{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;display:none;z-index:9999;font-size:13px;max-width:280px;font-weight:bold}
-        .footer{text-align:center;padding:10px;color:rgba(255,255,255,0.5);font-size:9px;border-top:1px solid rgba(74,28,122,0.4)}
-        .recaptcha-wrap{display:flex;justify-content:center;margin:8px 0}
-        .g-recaptcha{display:inline-block;transform:scale(0.75);transform-origin:center}
-        #registerForm{display:none}
-        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000;justify-content:center;align-items:center}
-        .modal-overlay.active{display:flex}
-        .modal-box{background:var(--p);border:2px solid var(--w);border-radius:12px;padding:18px;max-width:420px;width:100%;max-height:80vh;overflow-y:auto;font-size:11px;line-height:1.8;color:#e0e0e0}
-        .modal-box h2{color:var(--w);text-align:center;margin-bottom:12px;font-size:15px}
-        .modal-box .close-btn{background:var(--r);color:#fff;border:none;padding:6px 14px;border-radius:4px;cursor:pointer;float:right;font-size:11px}
-        .guest-modal-box{background:var(--p);border:2px solid var(--r);border-radius:12px;padding:22px;max-width:350px;width:90%;text-align:center;color:#e0e0e0;font-size:12px}
-        .guest-modal-box h3{color:var(--r);margin-bottom:10px;font-size:15px}
-        .guest-modal-box .warn-text{color:var(--r);font-weight:bold;font-size:12px;line-height:1.8;margin-bottom:15px;background:rgba(231,76,60,0.1);padding:12px;border-radius:8px}
-        .guest-modal-box .btn-row{display:flex;gap:10px;justify-content:center}
-        .guest-modal-box .btn-row button{padding:10px 20px;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
-        .btn-cancel{background:rgba(255,255,255,0.15);color:var(--t)}.btn-confirm{background:var(--r);color:var(--t)}
+        :root {
+            --bg: #080c1a;
+            --card: #111633;
+            --gold: #f39c12;
+            --gold-light: #ffd700;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --blue: #3498db;
+            --text: #e0e0e0;
+            --text-muted: #8890a8;
+            --input-bg: rgba(255,255,255,0.05);
+            --input-border: rgba(255,255,255,0.12);
+            --btn-google: #fff;
+            --btn-telegram: #0088cc;
+            --btn-tiktok: #7f8c8d;
+            --btn-guest: #636e72;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* ========== ANIMATED BACKGROUND ========== */
+        .bg-particles {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .bg-particle {
+            position: absolute;
+            border-radius: 50%;
+            background: var(--gold);
+            opacity: 0.08;
+            animation: floatUp 8s infinite ease-in;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            10% { opacity: 0.08; }
+            90% { opacity: 0.08; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        /* ========== MAIN CONTAINER ========== */
+        .main-container {
+            width: 100%;
+            max-width: 410px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ========== LOGO / HEADER ========== */
+        .logo-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--gold), #e67e22);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #080c1a;
+            margin-bottom: 10px;
+            box-shadow: 0 8px 25px rgba(243,156,18,0.3);
+            animation: logoPulse 3s infinite;
+        }
+        @keyframes logoPulse {
+            0%,100% { box-shadow: 0 8px 25px rgba(243,156,18,0.3); }
+            50% { box-shadow: 0 8px 40px rgba(243,156,18,0.5); }
+        }
+        .logo-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+        .logo-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+            letter-spacing: 1px;
+        }
+
+        /* ========== CARD ========== */
+        .card {
+            background: var(--card);
+            border-radius: 18px;
+            padding: 24px 20px;
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            margin-bottom: 15px;
+        }
+        .card-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .card-header h2 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+        }
+        .card-header p {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+
+        /* ========== FORM ========== */
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper i {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.25);
+            font-size: 13px;
+            pointer-events: none;
+        }
+        .input-wrapper input {
+            width: 100%;
+            padding: 11px 12px 11px 36px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 13px;
+            transition: all 0.3s;
+            outline: none;
+        }
+        .input-wrapper input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(243,156,18,0.1);
+            background: rgba(255,255,255,0.08);
+        }
+        .input-wrapper input::placeholder {
+            color: rgba(255,255,255,0.2);
+            font-size: 11px;
+        }
+
+        /* Password Toggle */
+        .pw-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: rgba(255,255,255,0.3);
+            font-size: 13px;
+            padding: 5px;
+            transition: all 0.2s;
+        }
+        .pw-toggle:hover { color: var(--gold); }
+
+        /* ========== RECAPTCHA ========== */
+        .recaptcha-box {
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            user-select: none;
+        }
+        .recaptcha-box:hover { border-color: var(--gold); }
+        .recaptcha-box.verified {
+            border-color: var(--green);
+            background: rgba(46,204,113,0.08);
+        }
+        .recaptcha-check {
+            width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+        .recaptcha-box.verified .recaptcha-check {
+            background: var(--green);
+            border-color: var(--green);
+        }
+        .recaptcha-check i {
+            font-size: 10px;
+            color: #fff;
+            display: none;
+        }
+        .recaptcha-box.verified .recaptcha-check i { display: block; }
+        .recaptcha-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            flex: 1;
+        }
+        .recaptcha-box.verified .recaptcha-text { color: var(--green); }
+        .recaptcha-logo {
+            font-size: 10px;
+            color: rgba(255,255,255,0.2);
+            flex-shrink: 0;
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-login {
+            background: linear-gradient(135deg, var(--gold), #e67e22);
+            color: #080c1a;
+            box-shadow: 0 4px 15px rgba(243,156,18,0.3);
+            margin-bottom: 15px;
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(243,156,18,0.4);
+        }
+        .btn-login:active { transform: translateY(0); }
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+            color: var(--text-muted);
+            font-size: 10px;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* Social Buttons Grid */
+        .social-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .social-btn {
+            padding: 10px 6px;
+            border: 1.5px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            color: #fff;
+            background: rgba(255,255,255,0.03);
+        }
+        .social-btn:hover {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.06);
+        }
+        .social-btn i { font-size: 14px; }
+        .social-btn.google { border-color: rgba(255,255,255,0.15); }
+        .social-btn.google:hover { border-color: #4285f4; background: rgba(66,133,244,0.1); }
+        .social-btn.telegram { border-color: rgba(0,136,204,0.3); color: #0088cc; }
+        .social-btn.telegram:hover { border-color: #0088cc; background: rgba(0,136,204,0.1); }
+        .social-btn.tiktok {
+            border-color: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.25);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        .social-btn.tiktok:hover { transform: none; background: transparent; }
+        .tiktok-badge {
+            font-size: 7px;
+            color: rgba(255,255,255,0.3);
+            display: block;
+            text-align: center;
+            margin-top: 1px;
+        }
+        .social-btn.guest { border-color: rgba(255,255,255,0.1); grid-column: 1 / -1; }
+        .social-btn.guest:hover { border-color: var(--gold); background: rgba(243,156,18,0.08); }
+
+        /* ========== LANGUAGE SWITCHER ========== */
+        .lang-switcher {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .lang-btn {
+            padding: 5px 10px;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 9px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-muted);
+            background: transparent;
+        }
+        .lang-btn.active {
+            background: var(--gold);
+            color: #000;
+            border-color: var(--gold);
+            font-weight: 600;
+        }
+        .lang-btn:hover:not(.active) {
+            border-color: rgba(255,255,255,0.3);
+            color: #fff;
+        }
+
+        /* ========== REGISTER SECTION ========== */
+        .register-section {
+            text-align: center;
+            padding: 18px 20px;
+            background: var(--card);
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.06);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+        .register-section h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+        .register-form {
+            display: none;
+        }
+        .register-form.active {
+            display: block;
+        }
+        .btn-register {
+            background: var(--green);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(46,204,113,0.3);
+            margin-top: 10px;
+        }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(46,204,113,0.4);
+        }
+        .toggle-text {
+            margin-top: 12px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+        .toggle-text a {
+            color: var(--gold);
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .toggle-text a:hover { text-decoration: underline; }
+
+        /* ========== USER GUIDE MODAL ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 22px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: modalSlide 0.3s ease;
+        }
+        @keyframes modalSlide {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal-box h3 {
+            color: var(--gold);
+            font-size: 16px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-box h4 {
+            color: #fff;
+            font-size: 12px;
+            margin: 12px 0 6px;
+            border-left: 3px solid var(--gold);
+            padding-left: 8px;
+        }
+        .modal-box p, .modal-box li {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.7;
+            margin-bottom: 5px;
+        }
+        .modal-box ul { margin-left: 18px; }
+        .modal-box .highlight {
+            color: var(--gold);
+            font-weight: 600;
+        }
+        .modal-close {
+            float: right;
+            color: var(--red);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 5px;
+        }
+        .modal-close:hover { color: #ff4444; }
+
+        /* ========== TOAST ========== */
+        .toast {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            z-index: 9999;
+            font-size: 11px;
+            font-weight: 600;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            max-width: 280px;
+        }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+        .footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+        .footer a:hover { text-decoration: underline; }
+
+        /* Responsive */
+        @media (max-width: 360px) {
+            .card { padding: 18px 14px; }
+            .social-grid { grid-template-columns: 1fr 1fr; }
+            .logo-title { font-size: 17px; }
+        }
     </style>
 </head>
 <body>
-    <div class="notif" id="notif"></div>
-    <div class="container">
-        <div class="header">
-            <div class="refresh-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i></div>
-            <div class="top-link" onclick="openGuide()"><i class="fas fa-question-circle"></i> User Guide</div>
-            <img class="logo" src="https://i.ibb.co/YBch2sHS/mlbbsecuritylogo.jpg" alt="Logo" onerror="this.style.display='none'">
-            <div class="marquee-wrap"><span class="marquee-text">MLBB Security System &amp; USER Data Management</span></div>
-            <p><i class="fas fa-lock"></i> Secure Login</p>
-        </div>
-        <div class="body">
-            <div id="loginForm">
-                <div class="fg"><label>Email</label><input type="email" id="loginEmail" placeholder="Enter your email"></div>
-                <div class="fg"><label>Password</label><input type="password" id="loginPassword" placeholder="Enter your password"></div>
-                <div class="recaptcha-wrap"><div class="g-recaptcha" id="loginRecaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw"></div></div>
-                <button class="btn btn-a" id="loginBtn" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> Login</button>
-                <div class="divider">or continue with</div>
-                <div class="social-row">
-                    <div class="social-btn google" onclick="googleLogin()"><img src="https://i.ibb.co/Hw9kfDz/google.jpg" alt="Google"><span>Google</span></div>
-                    <div class="social-btn telegram" onclick="telegramLogin()"><img src="https://i.ibb.co/CLSDXzs/5713846d630704ce892f9c93944ba451.jpg" alt="Telegram"><span>Telegram</span></div>
-                    <div class="social-btn tiktok"><img src="https://i.ibb.co/p6CbXtWg/0601998cbad712b7a2a22d80d62966cc.jpg" alt="TikTok"><span>TikTok</span><span class="badge">မရသေး</span></div>
-                    <div class="social-btn guest" onclick="showGuestModal()"><img src="https://i.ibb.co/sJzYxZyW/guests.jpg" alt="Guest"><span>Guest</span></div>
-                </div>
-                <div class="toggle-link">Don't have an account? <a onclick="showReg()">Register</a></div>
-            </div>
-            <div id="registerForm">
-                <div class="fg"><label>Full Name</label><input type="text" id="regName" placeholder="Enter your full name"></div>
-                <div class="fg"><label>Email</label><input type="email" id="regEmail" placeholder="Enter your email"></div>
-                <div class="fg"><label>Phone</label><input type="tel" id="regPhone" placeholder="Enter phone number"></div>
-                <div class="fg"><label>Password</label><input type="password" id="regPass" placeholder="Min 6 characters"></div>
-                <div class="fg"><label>Confirm</label><input type="password" id="regConfirm" placeholder="Confirm password"></div>
-                <div class="recaptcha-wrap"><div class="g-recaptcha" id="regRecaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw"></div></div>
-                <button class="btn btn-a" onclick="doRegister()"><i class="fas fa-user-plus"></i> Register</button>
-                <button class="btn btn-b" onclick="showLogin()"><i class="fas fa-arrow-left"></i> Back to Login</button>
-            </div>
-        </div>
+    <!-- Background Particles -->
+    <div class="bg-particles" id="bgParticles"></div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Logo -->
+        <div class="logo-section">
+            <div class="logo-icon">🛡️</div>
+            <div class="logo-title">SOLO M Game Shop</div>
+            <div class="logo-subtitle">MLBB Security & User Data Management</div>
         </div>
 
-    <!-- Guest Modal -->
-    <div class="modal-overlay" id="guestModal">
-        <div class="guest-modal-box">
-            <h3><i class="fas fa-exclamation-triangle"></i> Guest Login</h3>
-            <div class="warn-text"><strong>သတိပေးချက်</strong><br><br>Guests ဖြင့်ဝင်ရောက်ပါက ချက်ချင်းဝင်ရောက်မည်ဖြစ်သော်လည်း<br>❌ ဒေတာများ သိမ်းဆည်းမည်မဟုတ်ပါ<br>❌ ယာယီဧည့်သည်အနေဖြင့်သာ<br>❌ အကောင့်ပြန်လည်ရယူနိုင်မည်မဟုတ်ပါ</div>
-            <div class="btn-row"><button class="btn-cancel" onclick="closeGuestModal()">Cancel</button><button class="btn-confirm" onclick="guestLogin()">Confirm</button></div>
+        <!-- Language Switcher -->
+        <div class="lang-switcher">
+            <button class="lang-btn active" onclick="setLang('my')">🇲🇲 မြန်မာ</button>
+            <button class="lang-btn" onclick="setLang('en')">🇬🇧 English</button>
+        </div>
+
+        <!-- Login Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2>🔐 Secure Login</h2>
+                <p>သင့်အကောင့်သို့ ဝင်ရောက်ပါ</p>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label>📧 Email</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="loginEmail" placeholder="Enter your email">
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <label>🔒 Password</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="loginPassword" placeholder="Enter your password">
+                    <span class="pw-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="pwIcon"></i>
+                    </span>
+                </div>
+            </div>
+
+            <!-- reCAPTCHA -->
+            <div class="recaptcha-box" id="recaptchaBox" onclick="verifyRecaptcha()">
+                <div class="recaptcha-check"><i class="fas fa-check"></i></div>
+                <span class="recaptcha-text" id="recaptchaText">I'm not a robot</span>
+                <span class="recaptcha-logo">🛡️ reCAPTCHA</span>
+            </div>
+
+            <!-- Login Button -->
+            <button class="btn btn-login" id="loginBtn" onclick="handleLogin()" disabled>
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+
+            <!-- Divider -->
+            <div class="divider">or continue with</div>
+
+            <!-- Social Buttons -->
+            <div class="social-grid">
+                <button class="social-btn google" onclick="loginWithGoogle()">
+                    <i class="fab fa-google"></i> Google
+                </button>
+                <button class="social-btn telegram" onclick="loginWithTelegram()">
+                    <i class="fab fa-telegram-plane"></i> Telegram
+                </button>
+                <button class="social-btn tiktok" disabled>
+                    <i class="fab fa-tiktok"></i> TikTok
+                    <span class="tiktok-badge">Coming Soon</span>
+                </button>
+                <button class="social-btn guest" onclick="loginAsGuest()">
+                    <i class="fas fa-user"></i> Continue as Guest
+                </button>
+            </div>
+        </div>
+
+        <!-- Register Card -->
+        <div class="register-section">
+            <h3>📝 Create Account</h3>
+
+            <div id="registerForm" class="register-form">
+                <div class="form-group">
+                    <label>👤 Username</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="regUsername" placeholder="Enter username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>📧 Email</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="regEmail" placeholder="Enter email">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>📱 Phone</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-phone"></i>
+                        <input type="tel" id="regPhone" placeholder="Enter phone number">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>🔒 Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="regPassword" placeholder="Min 6 characters">
+                    </div>
+                </div>
+                <button class="btn btn-register" onclick="handleRegister()">
+                    <i class="fas fa-user-plus"></i> Register
+                </button>
+            </div>
+
+            <p class="toggle-text">
+                Already have an account? <a onclick="toggleRegister()">Login here</a>
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <span onclick="openUserGuide()" style="cursor:pointer;color:var(--gold);">📖 User Guide</span> &nbsp;|&nbsp;
+            <a href="/terms.html">Terms</a> &nbsp;|&nbsp;
+            <a href="/privacy.html">Privacy</a> &nbsp;|&nbsp;
+            Contact: <a href="https://t.me/Solo_m28">@Solo_m28</a>
         </div>
     </div>
 
     <!-- User Guide Modal -->
-    <div class="modal-overlay" id="guideModal">
+    <div class="modal-overlay" id="userGuideModal">
         <div class="modal-box">
-            <span class="close-btn" onclick="closeGuide()">Close</span>
-            <h2>User Guide</h2>
-            <p><b>About:</b> SOLO M Game Shop - လုံခြုံသော MLBB အကောင့်စီမံခန့်ခွဲမှုစနစ်။</p>
-            <br>
-            <p><b>How to Use:</b></p>
-            <p>၁။ Register လုပ်ပါ</p>
-            <p>၂။ Login ဝင်ပါ</p>
-            <p>၃။ Data Tab တွင် အကောင့်များ သိမ်းပါ</p>
-            <p>၄။ Top Up / Buy Code ပြုလုပ်ပါ</p>
-            <br>
-            <p><b>Security:</b> Data အားလုံး Encryption ဖြင့် ကာကွယ်ထားပါသည်။</p>
-            <br>
-            <p><b>Contact:</b> @Solo_m28 | gm1608295@gmail.com</p>
+            <span class="modal-close" onclick="closeUserGuide()">&times;</span>
+            <h3>📖 User Guide</h3>
+
+            <h4>🔹 About</h4>
+            <p>SOLO M Game Shop သည် <span class="highlight">Mobile Legends: Bang Bang</span> ကစားသူများအတွက် လုံခြုံစိတ်ချရသော အကောင့်စီမံခန့်ခွဲမှုစနစ်တစ်ခုဖြစ်ပါသည်။</p>
+
+            <h4>🔹 စတင်အသုံးပြုနည်း</h4>
+            <ul>
+                <li><span class="highlight">၁။ Register လုပ်ပါ</span> - အချက်အလက်များ ဖြည့်သွင်းပြီး အကောင့်အသစ်ဖွင့်ပါ။</li>
+                <li><span class="highlight">၂။ Login ဝင်ပါ</span> - မှတ်ပုံတင်ပြီးသော Email နှင့် Password ဖြင့် ဝင်ရောက်ပါ။</li>
+                <li><span class="highlight">၃။ Dashboard</span> - ပင်မစာမျက်နှာတွင် လက်ကျန်ငွေ၊ Notice များ ကြည့်ရှုနိုင်ပါသည်။</li>
+                <li><span class="highlight">၄။ Top Up</span> - ငွေဖြည့်သွင်းရန် Top Up စာမျက်နှာသို့ သွားရောက်ပါ။</li>
+                <li><span class="highlight">၅။ Buy Code</span> - MLBB Redeem Code များ ဝယ်ယူရန် Buy Code စာမျက်နှာသို့ သွားရောက်ပါ။</li>
+                <li><span class="highlight">၆။ Data Tab</span> - မိမိအကောင့်များ၏ အချက်အလက်များ သိမ်းဆည်းနိုင်ပါသည်။</li>
+                <li><span class="highlight">၇။ Lucky Spin</span> - ကံစမ်းမဲဘူးဖြင့် USD နှင့် MMK ဆုများ ရယူနိုင်ပါသည်။</li>
+                <li><span class="highlight">၈။ Exchange</span> - USD မှ MMK သို့ ငွေလဲလှယ်နိုင်ပါသည်။</li>
+            </ul>
+
+            <h4>🔹 Login နည်းလမ်းများ</h4>
+            <ul>
+                <li><span class="highlight">Local Login</span> - Email နှင့် Password ဖြင့် ဝင်ရောက်ခြင်း</li>
+                <li><span class="highlight">Google Login</span> - Google အကောင့်ဖြင့် ဝင်ရောက်ခြင်း</li>
+                <li><span class="highlight">Telegram Login</span> - Telegram Bot (@SoloM28_bot) မှတဆင့် ဝင်ရောက်ခြင်း</li>
+                <li><span class="highlight">Guest Login</span> - အကောင့်မရှိဘဲ ဝင်ရောက်ကြည့်ရှုခြင်း (အချို့ Features များ ကန့်သတ်ထားသည်)</li>
+            </ul>
+
+            <h4>🔹 လုံခြုံရေး</h4>
+            <ul>
+                <li>အချက်အလက်အားလုံးကို <span class="highlight">Encryption</span> ဖြင့် ကာကွယ်ထားပါသည်။</li>
+                <li>Database နှစ်ခုဖြင့် <span class="highlight">Auto Backup</span> ပြုလုပ်ထားပါသည်။</li>
+                <li>သံသယဖြစ်ဖွယ် လုပ်ဆောင်ချက်များကို <span class="highlight">24/7 Monitor</span> လုပ်ထားပါသည်။</li>
+            </ul>
+
+            <h4>🔹 ဆက်သွယ်ရန်</h4>
+            <p>📞 Telegram: <span class="highlight">@Solo_m28</span><br>
+            📧 Email: <span class="highlight">gm1608295@gmail.com</span></p>
         </div>
     </div>
 
-    <script>
-        if(localStorage.getItem("auth_token")&&localStorage.getItem("user")){window.location.href="/dashboard"}
-        
-        function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-        function showReg(){document.getElementById("loginForm").style.display="none";document.getElementById("registerForm").style.display="block"}
-        function showLogin(){document.getElementById("registerForm").style.display="none";document.getElementById("loginForm").style.display="block"}
-        function showGuestModal(){document.getElementById("guestModal").classList.add("active")}
-        function closeGuestModal(){document.getElementById("guestModal").classList.remove("active")}
-        function guestLogin(){localStorage.setItem("auth_token","guest");localStorage.setItem("user",JSON.stringify({id:0,username:"Guest",email:"guest@mlbb.com",login_type:"guest"}));window.location.href="/dashboard"}
-        function googleLogin(){window.location.href="/auth/google"}
-        function telegramLogin(){window.open('https://t.me/Mobile_Legendss_Bang_Bang_bot/mlbbsecurity','_blank')}
-        function openGuide(){document.getElementById("guideModal").classList.add("active")}
-        function closeGuide(){document.getElementById("guideModal").classList.remove("active")}
-        function getCap(){const r=document.getElementsByClassName('g-recaptcha-response');for(let i=0;i<r.length;i++){if(r[i].value)return r[i].value}return typeof grecaptcha!=='undefined'?grecaptcha.getResponse():''}
-        
-        async function doRegister(){const na=document.getElementById("regName").value.trim(),em=document.getElementById("regEmail").value.trim(),ph=document.getElementById("regPhone").value.trim(),ps=document.getElementById("regPass").value,cf=document.getElementById("regConfirm").value;if(!na||!em||!ph||!ps||!cf)return n("အားလုံးဖြည့်ပါ","error");if(ps!==cf)return n("Password မတူညီပါ","error");if(ps.length<6)return n("Password အနည်းဆုံး ၆ လုံး","error");try{const r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:na,email:em,phone:ph,password:ps,captcha:getCap()})});const d=await r.json();d.success?(n("✅ အကောင့်ဖွင့်ပြီးပါပြီ!"),showLogin()):n(d.message,"error")}catch(e){n("Connection error","error")}}
-        
-        async function doLogin(){const em=document.getElementById("loginEmail").value.trim(),ps=document.getElementById("loginPassword").value,btn=document.getElementById("loginBtn");if(!em||!ps)return n("အားလုံးဖြည့်ပါ","error");btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...';btn.disabled=true;try{const r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em,password:ps,captcha:getCap()})});const d=await r.json();if(d.success){const bc=await fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:d.user.id.toString()})});const bd=await bc.json();if(bd.banned){btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;return n("❌ ဤအကောင့်သည် ပိတ်ခံထားရပါသည်","error")}localStorage.setItem("auth_token",d.token);localStorage.setItem("user",JSON.stringify(d.user));n("✅ Login Successful!");setTimeout(()=>window.location.href="/dashboard",500)}else{btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;n(d.message,"error")}}catch(e){btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';btn.disabled=false;n("Connection error","error")}}
-        
-    </script>
+<script>
+// ====================================
+// BACKGROUND PARTICLES
+// ====================================
+(function(){
+    const container = document.getElementById('bgParticles');
+    for(let i=0; i<25; i++){
+        const particle = document.createElement('div');
+        particle.className = 'bg-particle';
+        const size = Math.random()*3+1;
+        particle.style.cssText = `
+            width:${size}px; height:${size}px;
+            left:${Math.random()*100}%;
+            animation-delay:${Math.random()*8}s;
+            animation-duration:${Math.random()*6+5}s;
+        `;
+        container.appendChild(particle);
+    }
+})();
+
+// ====================================
+// GLOBALS
+// ====================================
+let captchaVerified = false;
+let currentLang = 'my';
+
+// ====================================
+// TOAST
+// ====================================
+function showToast(msg, type='success'){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    t.style.background = type==='success'?'#2ecc71':type==='error'?'#e74c3c':'#3498db';
+    t.style.color = '#fff';
+    clearTimeout(window._tt);
+    window._tt = setTimeout(()=>{ t.style.display = 'none'; }, 3000);
+}
+
+// ====================================
+// LANGUAGE
+// ====================================
+function setLang(lang){
+    currentLang = lang;
+    document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('active'));
+    event.target.classList.add('active');
+    if(lang==='en'){
+        document.querySelector('.card-header h2').textContent = '🔐 Secure Login';
+        document.querySelector('.card-header p').textContent = 'Sign in to your account';
+        document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+        document.querySelector('.divider').textContent = 'or continue with';
+        document.querySelector('.register-section h3').textContent = '📝 Create Account';
+        document.querySelector('.toggle-text').innerHTML = 'Already have an account? <a onclick="toggleRegister()">Login here</a>';
+    } else {
+        document.querySelector('.card-header h2').textContent = '🔐 Secure Login';
+        document.querySelector('.card-header p').textContent = 'သင့်အကောင့်သို့ ဝင်ရောက်ပါ';
+        document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+        document.querySelector('.divider').textContent = 'or continue with';
+        document.querySelector('.register-section h3').textContent = '📝 Create Account';
+        document.querySelector('.toggle-text').innerHTML = 'Already have an account? <a onclick="toggleRegister()">Login here</a>';
+    }
+}
+
+// ====================================
+// PASSWORD TOGGLE
+// ====================================
+function togglePassword(){
+    const input = document.getElementById('loginPassword');
+    const icon = document.getElementById('pwIcon');
+    if(input.type === 'password'){
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
+// ====================================
+// RECAPTCHA
+// ====================================
+function verifyRecaptcha(){
+    if(captchaVerified) return;
+    captchaVerified = true;
+    const box = document.getElementById('recaptchaBox');
+    box.classList.add('verified');
+    document.getElementById('recaptchaText').textContent = 'Verified! ✓';
+    updateLoginButton();
+}
+
+function updateLoginButton(){
+    const btn = document.getElementById('loginBtn');
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value.trim();
+    btn.disabled = !(captchaVerified && email && pass);
+}
+
+// ====================================
+// REGISTER TOGGLE
+// ====================================
+function toggleRegister(){
+    const form = document.getElementById('registerForm');
+    form.classList.toggle('active');
+}
+
+// ====================================
+// USER GUIDE MODAL
+// ====================================
+function openUserGuide(){
+    document.getElementById('userGuideModal').classList.add('active');
+}
+function closeUserGuide(){
+    document.getElementById('userGuideModal').classList.remove('active');
+}
+
+// ====================================
+// LOGIN
+// ====================================
+async function handleLogin(){
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+    
+    if(!email||!password){ showToast('Please fill all fields','error'); return; }
+    if(!captchaVerified){ showToast('Please verify you are human','error'); return; }
+    
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+    
+    try{
+        const r = await fetch('/api/login',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({email,password})
+        });
+        const d = await r.json();
+        if(d.success){
+            localStorage.setItem('auth_token', d.token);
+            localStorage.setItem('user', JSON.stringify(d.user));
+            showToast('✅ Login successful!','success');
+            setTimeout(()=>{ window.location.href = '/dashboard'; }, 500);
+        } else {
+            showToast(d.message||'Invalid credentials','error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+        }
+    } catch(e){
+        showToast('Connection error','error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+    }
+}
+
+// ====================================
+// REGISTER
+// ====================================
+async function handleRegister(){
+    const username = document.getElementById('regUsername').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const password = document.getElementById('regPassword').value.trim();
+    
+    if(!username||!email||!phone||!password){
+        showToast('Please fill all fields','error');
+        return;
+    }
+    if(password.length < 6){
+        showToast('Password must be at least 6 characters','error');
+        return;
+    }
+    
+    const btn = document.querySelector('.btn-register');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registering...';
+    
+    try{
+        const r = await fetch('/api/register',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({username,email,phone,password})
+        });
+        const d = await r.json();
+        if(d.success){
+            showToast('✅ Registration successful! Please login.','success');
+            document.getElementById('regUsername').value = '';
+            document.getElementById('regEmail').value = '';
+            document.getElementById('regPhone').value = '';
+            document.getElementById('regPassword').value = '';
+            document.getElementById('registerForm').classList.remove('active');
+        } else {
+            showToast(d.message||'Registration failed','error');
+        }
+    } catch(e){
+        showToast('Connection error','error');
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-user-plus"></i> Register';
+}
+
+// ====================================
+// SOCIAL LOGINS
+// ====================================
+function loginWithGoogle(){
+    window.location.href = '/auth/google';
+}
+function loginWithTelegram(){
+    window.open('https://t.me/SoloM28_bot', '_blank');
+}
+function loginAsGuest(){
+    localStorage.setItem('auth_token', 'guest');
+    localStorage.setItem('user', JSON.stringify({username:'Guest',login_type:'guest'}));
+    window.location.href = '/dashboard';
+}
+
+// ====================================
+// EVENT LISTENERS
+// ====================================
+document.getElementById('loginEmail').addEventListener('input', updateLoginButton);
+document.getElementById('loginPassword').addEventListener('input', updateLoginButton);
+document.getElementById('loginPassword').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') handleLogin();
+});
+
+// Modal close on overlay click
+document.getElementById('userGuideModal').addEventListener('click', function(e){
+    if(e.target === this) closeUserGuide();
+});
+
+// Check if already logged in
+(function(){
+    const token = localStorage.getItem('auth_token');
+    if(token && token !== 'guest'){
+        window.location.href = '/dashboard';
+    }
+})();
+</script>
 </body>
 </html>
