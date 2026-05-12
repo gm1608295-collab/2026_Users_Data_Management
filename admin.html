@@ -112,6 +112,18 @@
                 <h3 style="margin-top:10px"><i class="fas fa-toggle-on"></i> Page Control + Timer</h3>
                 <p class="help-note">OFF လုပ်ရင် Timer သတ်မှတ်နိုင်။ Timer ပြည့်ရင် Auto ON။</p>
                 <table class="page-table"><thead><tr><th></th><th>Page</th><th>Status</th><th>Toggle</th><th>Timer</th><th>Action</th></tr></thead><tbody id="pageToggleList"></tbody></table>
+
+                <!-- Spin Rate Management -->
+<div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-top:10px">
+    <h3><i class="fas fa-percentage"></i> Spin Rate Management</h3>
+    <p class="help-note">Weight တွေကို ပြင်ဆင်ပြီး Save လုပ်ပါ။ Total Weight ပေါ်မူတည်ပြီး % တွက်ချက်ပါမည်။</p>
+    
+    <div id="spinRateTables"></div>
+    
+    <button class="btn btn-g" onclick="saveAllSpinRates()" style="width:100%;margin-top:10px">
+        <i class="fas fa-save"></i> Save All Rates
+    </button>
+</div>
                 
                 <!-- Video System -->
                 <h3 style="margin-top:10px"><i class="fas fa-video"></i> Video System</h3>
@@ -263,8 +275,8 @@
     async function unlockAdmin(){
         if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");
         document.getElementById("adminBox").style.display="block";showLoading('Loading...');
-        try{await Promise.all([loadAdminData(),loadAdminOrders('all'),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes()]);updateBackupInfo();hideLoading();n('✅ Loaded');startAutoRefresh()}catch(e){hideLoading();n('Error','error')}
-    }
+        try{await Promise.all([loadAdminData(),loadAdminOrders('all'),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes(),loadSpinRates()]);updateBackupInfo();hideLoading();n('✅ Loaded');startAutoRefresh()}catch(e){hideLoading();n('Error','error')}
+   
     function startAutoRefresh(){if(autoRefreshInterval)clearInterval(autoRefreshInterval);autoRefreshInterval=setInterval(async()=>{await Promise.all([loadAdminData(),loadAdminOrders(currentOrderFilter),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes()])},5000)}
     
     // ==================== BACKUP & RESTORE ====================
@@ -355,6 +367,148 @@ async function togglePage(id, on){
     } catch(e) {
         n('Error', 'error');
     }
+}
+
+    // ==================== SPIN RATE MANAGEMENT ====================
+const RATE_TYPES = {
+    'normal_daily': '🎰 Normal Daily Draw',
+    'normal_buy': '💳 Normal Buy Draw', 
+    'premium_buy': '👑 Premium Buy Draw',
+    'premium_tier1': '🥉 Premium Tier 1 (Bronze)',
+    'premium_tier2': '🥈 Premium Tier 2 (Silver)',
+    'premium_tier3': '🥇 Premium Tier 3 (Gold)'
+};
+
+async function loadSpinRates() {
+    try {
+        const r = await fetch('/api/admin/spin_rates');
+        const d = await r.json();
+        
+        if (d.success && d.rates) {
+            renderSpinRateTables(d.rates);
+        }
+    } catch(e) {
+        console.error('Load spin rates error:', e);
+    }
+}
+
+function renderSpinRateTables(rates) {
+    let html = '';
+    
+    for (const [rateType, typeName] of Object.entries(RATE_TYPES)) {
+        const typeRates = rates.filter(r => r.rate_type === rateType);
+        if (typeRates.length === 0) continue;
+        
+        const totalWeight = typeRates.reduce((sum, r) => sum + r.weight, 0);
+        
+        html += `
+            <div style="margin-bottom:15px;background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.1)">
+                <h4 style="color:var(--gold);font-size:12px;margin-bottom:8px">${typeName}</h4>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        `;
+        
+        typeRates.forEach(rate => {
+            const pct = totalWeight > 0 ? ((rate.weight / totalWeight) * 100).toFixed(1) : '0.0';
+            html += `
+                <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;border-left:3px solid ${rate.segment_color}">
+                    <div style="font-size:11px;font-weight:bold;color:#fff">${rate.segment_label}</div>
+                    <div style="font-size:9px;color:rgba(255,255,255,0.4)">${rate.reward_type.toUpperCase()} | ${rate.reward}</div>
+                    <input type="number" 
+                        id="rate_${rate.id}" 
+                        value="${rate.weight}" 
+                        min="1" 
+                        max="100"
+                        data-rate-type="${rate.rate_type}"
+                        data-segment-label="${rate.segment_label}"
+                        style="width:50px;padding:4px;text-align:center;font-size:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;margin-top:4px"
+                        onchange="updateRatePercent(this)">
+                    <span id="pct_${rate.id}" style="font-size:9px;color:var(--gold);display:block;margin-top:2px">${pct}%</span>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+                <div style="text-align:right;font-size:9px;color:rgba(255,255,255,0.4);margin-top:6px">
+                    Total Weight: <span style="color:var(--gold)" id="total_${rateType}">${totalWeight}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    document.getElementById('spinRateTables').innerHTML = html;
+}
+
+function updateRatePercent(input) {
+    const id = input.id.replace('rate_', '');
+    const rateType = input.dataset.rateType;
+    const pctEl = document.getElementById('pct_' + id);
+    const totalEl = document.getElementById('total_' + rateType);
+    
+    // Calculate total for this rate type
+    let totalWeight = 0;
+    document.querySelectorAll(`input[data-rate-type="${rateType}"]`).forEach(inp => {
+        totalWeight += parseInt(inp.value) || 0;
+    });
+    
+    // Update percent display
+    const weight = parseInt(input.value) || 0;
+    const pct = totalWeight > 0 ? ((weight / totalWeight) * 100).toFixed(1) : '0.0';
+    pctEl.textContent = pct + '%';
+    
+    // Update total display
+    if (totalEl) totalEl.textContent = totalWeight;
+    
+    // Update all percents for this rate type
+    document.querySelectorAll(`input[data-rate-type="${rateType}"]`).forEach(inp => {
+        const pid = inp.id.replace('rate_', '');
+        const ppctEl = document.getElementById('pct_' + pid);
+        if (ppctEl) {
+            const w = parseInt(inp.value) || 0;
+            const p = totalWeight > 0 ? ((w / totalWeight) * 100).toFixed(1) : '0.0';
+            ppctEl.textContent = p + '%';
+        }
+    });
+}
+
+async function saveAllSpinRates() {
+    const rates = [];
+    
+    document.querySelectorAll('#spinRateTables input[type="number"]').forEach(input => {
+        rates.push({
+            id: parseInt(input.id.replace('rate_', '')),
+            rate_type: input.dataset.rateType,
+            segment_label: input.dataset.segmentLabel,
+            weight: parseInt(input.value) || 1
+        });
+    });
+    
+    if (rates.length === 0) {
+        n('No rates to save', 'error');
+        return;
+    }
+    
+    showLoading('Saving rates...');
+    
+    try {
+        const r = await fetch('/api/admin/spin_rates/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rates })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Spin rates updated!');
+            loadSpinRates();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) {
+        n('Connection error', 'error');
+    }
+    
+    hideLoading();
 }
     
     // ==================== VIDEO ====================
