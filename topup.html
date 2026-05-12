@@ -451,42 +451,55 @@ function checkOrderNoti(orders){
 }
 
 // ==================== BALANCE CHANGE NOTIFICATION ====================
-// Check for balance changes (Admin Manual Add/Deduct)
 async function checkBalanceChanges(){
-    const savedBalance=parseFloat(localStorage.getItem('topupLastBalance')||'0');
-    const token=localStorage.getItem('auth_token');
-    if(!token||token==='guest')return;
+    const savedBalance = parseFloat(localStorage.getItem('topupLastBalance')||'0');
+    const token = localStorage.getItem('auth_token');
+    if(!token || token === 'guest') return;
     
-    try{
-        const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
-        const d=await r.json();
-        const currentBalance=parseFloat(d.balance||0);
+    try {
+        const r = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({token})
+        });
+        const d = await r.json();
+        const currentBalance = parseFloat(d.balance || 0);
         
-        if(savedBalance>0){
-            const diff=currentBalance-savedBalance;
-            
-            if(diff>0){
-                // Balance increased - Admin added money
-                const lastAdd=localStorage.getItem('topupLastAddAmount');
-                const lastAddTime=parseInt(localStorage.getItem('topupLastAddTime')||'0');
-                
-                if(!lastAdd||Math.abs(diff-parseFloat(lastAdd))>0.01||Date.now()-lastAddTime>60000){
-                    addNotiItem('success',`Admin မှ သင်၏အကောင့်ထဲသို့ ငွေ ${fm(diff)} ကျပ်ကို တိုက်ရိုက်ဖြည့်သွင်းပေးပါသည်။ကျေးဇူးတင်ပါသည်。`);
-                    localStorage.setItem('topupLastAddAmount',diff.toString());
-                    localStorage.setItem('topupLastAddTime',Date.now().toString());
-                    renderNotiDropdown();
-                }
-            }else if(diff<0){
-                // Balance decreased - Admin deducted money
-                addNotiItem('rejected',`Admin မှ သင်၏အကောင့်ထဲမှ ငွေ ${fm(Math.abs(diff))} ကျပ် ပြန်နှုတ်ခဲ့ပါသည်။`);
-                renderNotiDropdown();
-            }
+        // ✅ ပထမဆုံးအကြိမ်ဆိုရင် သိမ်းပြီး return
+        if(savedBalance === 0 || isNaN(savedBalance)) {
+            localStorage.setItem('topupLastBalance', currentBalance.toString());
+            return;
         }
         
-        localStorage.setItem('topupLastBalance',currentBalance.toString());
-    }catch(e){}
+        const diff = currentBalance - savedBalance;
+        
+        // ✅ 1 Ks ထက်နည်းရင် noti မပြနဲ့ (rounding error ကြောင့်)
+        if(Math.abs(diff) < 1) {
+            localStorage.setItem('topupLastBalance', currentBalance.toString());
+            return;
+        }
+        
+        if(diff > 0){
+            // Balance increased
+            const lastAdd = localStorage.getItem('topupLastAddAmount');
+            const lastAddTime = parseInt(localStorage.getItem('topupLastAddTime')||'0');
+            
+            // ✅ ၁ မိနစ်အတွင်း တူညီတဲ့ amount အတွက် ထပ်မပြနဲ့
+            if(!lastAdd || Math.abs(diff - parseFloat(lastAdd)) > 1 || Date.now() - lastAddTime > 60000){
+                addNotiItem('success', 'Balance updated: +' + fm(diff) + ' Ks');
+                localStorage.setItem('topupLastAddAmount', diff.toString());
+                localStorage.setItem('topupLastAddTime', Date.now().toString());
+                renderNotiDropdown();
+            }
+        } else if(diff < -10) {
+            // ✅ 10 Ks ထက်ပိုကျမှပဲ noti ပြ (small adjustment တွေ ignore)
+            addNotiItem('rejected', 'Balance adjustment: ' + fm(diff) + ' Ks');
+            renderNotiDropdown();
+        }
+        
+        localStorage.setItem('topupLastBalance', currentBalance.toString());
+    } catch(e) {}
 }
-
 function renderOrderHistory(orders){const c=document.getElementById('orderHistory');c.innerHTML=orders.map((o,i)=>{const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';const rejectBox=o.status==='rejected'&&o.reject_reason?`<div class="reject-reason-box"><div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div><div class="reject-msg">${o.reject_reason}</div></div>`:'';return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${rejectBox}${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`}).join('')}
 function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
 function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
