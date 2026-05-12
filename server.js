@@ -1768,7 +1768,7 @@ app.post('/api/buy_promo_code', async (req, res) => {
     }
 });
 
-// ==================== REDEEM PROMO CODE (FROM CONTACT PAGE) ====================
+// ==================== REDEEM PROMO CODE (FROM CONTACT PAGE) - FIXED ====================
 app.post('/api/redeem_promo', async (req, res) => {
     const { token, promo_code } = req.body;
     
@@ -1779,59 +1779,72 @@ app.post('/api/redeem_promo', async (req, res) => {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         
-        // ✅ Case-insensitive check
+        // ✅ Case-insensitive
         const promoCode = promo_code.toUpperCase();
         
-        // ✅ Query with UPPER
+        // ✅ 1. Check if code exists and is SOLD (used=true) but NOT REDEEMED (used_by IS NULL)
         const code = await p.query(
-            "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = true",
+            "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = true AND used_by IS NULL AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)",
             [promoCode]
         );
         
-        if (code.rows.length === 0) {
-            // Check if it exists but not used
-            const unusedCheck = await p.query(
-                "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = false AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)",
-                [promoCode]
-            );
+        if (code.rows.length > 0) {
+            // ✅ Code found - user can redeem it (one time only)
+            const c = code.rows[0];
             
-            if (unusedCheck.rows.length > 0) {
-                return res.json({ success: false, message: 'Code မှားယွင်းနေပါသည်' });
+            // Mark as redeemed by this user
+            await p.query('UPDATE promo_codes SET used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
+            
+            // Add balance
+            if (c.currency === 'USD') {
+                await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id = $2', [c.amount, uid]);
+            } else {
+                await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id = $2', [c.amount, uid]);
             }
             
-            // Check expired
-            const expiredCheck = await p.query(
-                "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND expiry_date < CURRENT_DATE",
-                [promoCode]
-            );
+            const updatedUser = await p.query('SELECT balance, usd_balance FROM auth_users WHERE id = $1', [uid]);
             
-            if (expiredCheck.rows.length > 0) {
-                return res.json({ success: false, message: 'Code သက်တမ်းကုန်သွားပါပြီ' });
-            }
-            
+            return res.json({
+                success: true,
+                message: `✅ အောင်မြင်ပါသည်! ${c.amount.toLocaleString()} ${c.currency} ရရှိပါပြီ`,
+                amount: c.amount,
+                currency: c.currency,
+                balance: parseFloat(updatedUser.rows[0]?.balance || 0),
+                usd_balance: parseFloat(updatedUser.rows[0]?.usd_balance || 0)
+            });
+        }
+        
+        // ✅ 2. Check if code is already redeemed (used=true AND used_by IS NOT NULL)
+        const redeemedCheck = await p.query(
+            "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = true AND used_by IS NOT NULL",
+            [promoCode]
+        );
+        
+        if (redeemedCheck.rows.length > 0) {
+            return res.json({ success: false, message: 'Code ကိုအသုံးပြုပြီးပါပြီ (တစ်ကြိမ်ပဲသုံးလို့ရပါသည်)' });
+        }
+        
+        // ✅ 3. Check if code exists but not sold yet
+        const unsoldCheck = await p.query(
+            "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = false",
+            [promoCode]
+        );
+        
+        if (unsoldCheck.rows.length > 0) {
             return res.json({ success: false, message: 'Code မှားယွင်းနေပါသည်' });
         }
         
-        const c = code.rows[0];
+        // ✅ 4. Check expired
+        const expiredCheck = await p.query(
+            "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND expiry_date < CURRENT_DATE",
+            [promoCode]
+        );
         
-        // ✅ Add balance
-        if (c.currency === 'USD') {
-            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id = $2', [c.amount, uid]);
-        } else {
-            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id = $2', [c.amount, uid]);
+        if (expiredCheck.rows.length > 0) {
+            return res.json({ success: false, message: 'Code သက်တမ်းကုန်သွားပါပြီ' });
         }
-        await p.query('UPDATE promo_codes SET used = true, used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
-        // Get updated balance
-        const updatedUser = await p.query('SELECT balance, usd_balance FROM auth_users WHERE id = $1', [uid]);
         
-        res.json({
-            success: true,
-            message: `✅ အောင်မြင်ပါသည်! ${c.amount.toLocaleString()} ${c.currency} ရရှိပါပြီ`,
-            amount: c.amount,
-            currency: c.currency,
-            balance: parseFloat(updatedUser.rows[0]?.balance || 0),
-            usd_balance: parseFloat(updatedUser.rows[0]?.usd_balance || 0)
-        });
+        return res.json({ success: false, message: 'Code မှားယွင်းနေပါသည်' });
         
     } catch(e) {
         console.error('[REDEEM PROMO ERROR]', e);
