@@ -249,22 +249,62 @@ function showCodeModal(code){
 
 // ==================== RENDER GAME CARDS ====================
 function renderGameCards(){
-    var grid=document.getElementById('gameGrid'); var cats=Object.keys(CATEGORIES); var h='';
-    // ✅ Promo codes ကို server ကနေ အရင်ဆွဲ
-    loadPromoCodesForCards();
+    var grid=document.getElementById('gameGrid');
+    var cats=Object.keys(CATEGORIES);
+    var h='';
+    
     cats.forEach(function(key){
-        var cat=CATEGORIES[key]; var cnt=cat.codes.length;
-        if(cnt===0 || isSoldOut(key)){ if(cnt===0){ soldOutCategories[key]=true; saveSoldOut(); }
-            h+='<div class="game-card" style="opacity:0.5;cursor:not-allowed" onclick="soldOutAlert()">'+'<img src="'+cat.icon+'" alt="'+cat.name+'" onerror="this.style.display=\'none\'" style="opacity:0.5">'+'<p>'+cat.name+'</p>'+'<div class="price-tag">💰 '+fm(cat.price)+' Ks</div>'+'<div class="code-count" style="background:rgba(231,76,60,0.2);color:#e74c3c">❌ Sold Out</div>'+'</div>';
+        // ✅ Promo codes ကို ကျော် (server response မှ ထည့်မယ်)
+        if (key === 'promo_codes') return;
+        
+        var cat=CATEGORIES[key];
+        var cnt=cat.codes.length;
+        
+        if(cnt===0 || isSoldOut(key)){
+            if(cnt===0){ soldOutCategories[key]=true; saveSoldOut(); }
+            h+='<div class="game-card" style="opacity:0.5;cursor:not-allowed" onclick="soldOutAlert()">'+
+                '<img src="'+cat.icon+'" alt="'+cat.name+'" onerror="this.style.display=\'none\'" style="opacity:0.5">'+
+                '<p>'+cat.name+'</p>'+
+                '<div class="price-tag">💰 '+fm(cat.price)+' Ks</div>'+
+                '<div class="code-count" style="background:rgba(231,76,60,0.2);color:#e74c3c">❌ Sold Out</div>'+
+                '</div>';
         }else{
-            h+='<div class="game-card" onclick="openCategory(\''+key+'\')">'+'<img src="'+cat.icon+'" alt="'+cat.name+'" onerror="this.style.display=\'none\'">'+'<p>'+cat.name+'</p>'+'<div class="price-tag">💰 '+fm(cat.price)+' Ks</div>'+'<div class="code-count">📦 '+cnt+' codes</div>'+'</div>';
+            h+='<div class="game-card" onclick="openCategory(\''+key+'\')">'+
+                '<img src="'+cat.icon+'" alt="'+cat.name+'" onerror="this.style.display=\'none\'">'+
+                '<p>'+cat.name+'</p>'+
+                '<div class="price-tag">💰 '+fm(cat.price)+' Ks</div>'+
+                '<div class="code-count">📦 '+cnt+' codes</div>'+
+                '</div>';
         }
     });
+    
+    // ✅ Promo card ကို သီးသန့် ထည့်
+    var promoCat = CATEGORIES['promo_codes'];
+    var promoCount = promoCat.codes.length;
+    
+    if (promoCount === 0) {
+        h+='<div class="game-card" style="opacity:0.5;cursor:not-allowed" onclick="soldOutAlert()">'+
+            '<img src="'+promoCat.icon+'" alt="Promo Code" style="opacity:0.5">'+
+            '<p>Promo Code</p>'+
+            '<div class="price-tag">💰 '+fm(promoCat.price)+' Ks</div>'+
+            '<div class="code-count" style="background:rgba(231,76,60,0.2);color:#e74c3c">❌ Sold Out</div>'+
+            '</div>';
+    } else {
+        h+='<div class="game-card" onclick="openCategory(\'promo_codes\')">'+
+            '<img src="'+promoCat.icon+'" alt="Promo Code">'+
+            '<p>Promo Code</p>'+
+            '<div class="price-tag">💰 '+fm(promoCat.price)+' Ks</div>'+
+            '<div class="code-count">📦 '+promoCount+' codes</div>'+
+            '</div>';
+    }
+    
     grid.innerHTML=h;
+    
+    // ✅ Server ကနေ promo codes တွေ load လုပ်
+    loadPromoCodesForCards();
 }
-function soldOutAlert(){ n('❌ Code ရောင်းကုန်သွားပါပြီ၊ ဆက်လက်စောင့်ဆိုင်းပါ။', 'error'); }
 
-// ✅ Promo codes တွေကို server ကနေ load လုပ်
+// ✅ loadPromoCodesForCards မှာ renderGameCards ပြန်ခေါ်
 function loadPromoCodesForCards() {
     fetch('/api/admin/promo_codes')
     .then(function(r) { return r.json(); })
@@ -272,12 +312,19 @@ function loadPromoCodesForCards() {
         if (d.success && d.codes) {
             var availableCodes = d.codes.filter(function(c) { return !c.used; });
             CATEGORIES['promo_codes'].codes = availableCodes.map(function(c) {
-                return { id: c.id, code: c.api_key, amount: c.amount, currency: c.currency, expiry: c.expiry_date };
+                return {
+                    id: c.id,
+                    code: c.api_key,
+                    amount: c.amount,
+                    currency: c.currency,
+                    expiry: c.expiry_date
+                };
             });
+            // ✅ Promo codes ရပြီးရင် game cards ပြန် render
+            renderGameCards();
         }
     }).catch(function() {});
 }
-
 // ==================== CATEGORY MODAL ====================
 function openCategory(key) {
     // ✅ Promo Code ဆိုရင် သီးသန့် modal
