@@ -1820,7 +1820,7 @@ app.post('/api/redeem_promo', async (req, res) => {
         } else {
             await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id = $2', [c.amount, uid]);
         }
-        
+        await p.query('UPDATE promo_codes SET used = true, used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
         // Get updated balance
         const updatedUser = await p.query('SELECT balance, usd_balance FROM auth_users WHERE id = $1', [uid]);
         
