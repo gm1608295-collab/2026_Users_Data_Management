@@ -199,6 +199,50 @@
                     <button class="btn btn-g" onclick="addRedeemCode()" style="width:100%"><i class="fas fa-plus"></i> Add Code</button>
                     <div id="redeemCodeList" style="max-height:200px;overflow-y:auto;margin-top:8px"></div>
                 </div>
+
+                <!-- API Key & Reseller Management -->
+<div class="divider">
+    <h3><i class="fas fa-key"></i> API Key & Reseller Management</h3>
+    
+    <!-- Exchange Rate -->
+    <div class="video-card" style="margin-bottom:10px">
+        <div style="display:flex;gap:8px;align-items:center">
+            <div class="form-group" style="flex:1;margin-bottom:0">
+                <label>💱 Exchange Rate (1 USD = ? Ks)</label>
+                <input type="number" id="exchangeRateInput" value="3500" min="1" style="font-size:14px;font-weight:bold">
+            </div>
+            <button class="btn btn-w" onclick="updateExchangeRate()" style="height:38px;margin-top:18px"><i class="fas fa-save"></i> Update</button>
+        </div>
+    </div>
+    
+    <!-- Create Reseller -->
+    <div class="video-card" style="margin-bottom:10px">
+        <h4 style="color:var(--w);font-size:12px;margin-bottom:8px">➕ Create New Reseller</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="form-group"><label>Name</label><input type="text" id="newResellerName" placeholder="Shop name"></div>
+            <div class="form-group"><label>Currency</label><select id="newResellerCurrency"><option value="MMK">MMK (Ks)</option><option value="USD">USD ($)</option></select></div>
+            <div class="form-group"><label>Markup %</label><input type="number" id="newResellerMarkup" value="10" min="0" max="100"></div>
+            <div class="form-group"><label>Initial Balance</label><input type="number" id="newResellerBalance" value="0" min="0"></div>
+        </div>
+        <button class="btn btn-g" onclick="createReseller()" style="width:100%;margin-top:8px"><i class="fas fa-plus"></i> Create Reseller & Generate API Key</button>
+    </div>
+    
+    <!-- Reseller List -->
+    <div style="margin-bottom:10px">
+        <h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📋 Reseller List</h4>
+        <div id="resellerList" style="max-height:300px;overflow-y:auto">
+            <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p>
+        </div>
+    </div>
+    
+    <!-- Transaction Log -->
+    <div>
+        <h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📊 Recent Transactions</h4>
+        <div id="resellerTransactions" style="max-height:200px;overflow-y:auto">
+            <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p>
+        </div>
+    </div>
+</div>
                 
                 <!-- Bot Message -->
                 <div class="divider">
@@ -255,6 +299,35 @@
     
     <!-- Restore Confirm Modal -->
     <div class="modal" id="restoreConfirmModal"><div class="modal-box"><span class="modal-close" onclick="closeRestoreConfirm()">&times;</span><h3>⚠️ Restore Database</h3><p style="font-size:11px;color:var(--r);text-align:center;margin-bottom:15px">လက်ရှိ Database ကို Backup File ဖြင့် အစားထိုးမှာ သေချာပါသလား?</p><div style="display:flex;gap:8px"><button class="btn btn-r" onclick="confirmRestore()" style="flex:1">Yes</button><button class="btn" onclick="closeRestoreConfirm()" style="flex:1;background:rgba(255,255,255,0.2)">Cancel</button></div></div></div>
+    <!-- Reseller Detail Modal -->
+<div class="modal" id="resellerModal"><div class="modal-box"><span class="modal-close" onclick="closeResellerModal()">&times;</span><h3>🔑 Reseller Details</h3><input type="hidden" id="resellerId">
+    <div class="pass-display-box">
+        <div class="pass-label">API Key</div>
+        <div class="pass-value" id="resellerApiKey" style="font-size:11px;word-break:break-all">---</div>
+        <button class="btn btn-b" onclick="copyApiKey()" style="margin-top:6px;width:100%;font-size:10px"><i class="fas fa-copy"></i> Copy API Key</button>
+    </div>
+    <div id="resellerInfo" style="font-size:10px;line-height:1.8;color:rgba(255,255,255,0.8);margin-bottom:12px"></div>
+    
+    <div class="video-card" style="margin-bottom:10px">
+        <h4 style="color:var(--w);font-size:11px;margin-bottom:6px">➕ Add Balance</h4>
+        <div style="display:flex;gap:6px">
+            <input type="number" id="resellerAddAmount" placeholder="Amount" style="flex:1;padding:8px;font-size:11px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:5px;color:#fff">
+            <button class="btn btn-g" onclick="addResellerBalance()" style="flex:1"><i class="fas fa-plus"></i> Add</button>
+        </div>
+    </div>
+    
+    <div class="video-card" style="margin-bottom:10px">
+        <h4 style="color:var(--w);font-size:11px;margin-bottom:6px">⚙️ Edit Settings</h4>
+        <div class="form-group"><label>Markup %</label><input type="number" id="resellerEditMarkup" value="10"></div>
+        <div class="form-group"><label>Status</label><select id="resellerEditStatus"><option value="active">Active</option><option value="suspended">Suspended</option></select></div>
+        <button class="btn btn-w" onclick="editReseller()" style="width:100%"><i class="fas fa-save"></i> Save Changes</button>
+    </div>
+    
+    <div class="btn-row" style="margin-top:8px">
+        <button class="btn btn-o" onclick="resetResellerKey()" style="flex:1"><i class="fas fa-redo"></i> Reset Key</button>
+        <button class="btn btn-r" onclick="deleteReseller()" style="flex:1"><i class="fas fa-trash"></i> Delete</button>
+    </div>
+</div></div>
 
 <script>
     const ADMIN="MK2008";
@@ -268,12 +341,12 @@
     function zoomImage(src){const m=document.createElement('div');m.className='zoom-overlay';m.onclick=()=>m.remove();m.innerHTML=`<img src="${src}">`;document.body.appendChild(m)}
     
     async function unlockAdmin(){
-        if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");
-        document.getElementById("adminBox").style.display="block";showLoading('Loading...');
-        try{await Promise.all([loadAdminData(),loadAdminOrders('all'),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes(),loadSpinRates()]);updateBackupInfo();hideLoading();n('✅ Loaded');startAutoRefresh()}catch(e){hideLoading();n('Error','error')}
-    }
-    function startAutoRefresh(){if(autoRefreshInterval)clearInterval(autoRefreshInterval);autoRefreshInterval=setInterval(async()=>{await Promise.all([loadAdminData(),loadAdminOrders(currentOrderFilter),loadPageToggles(),loadSpinRates()])},5000)}
+    if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");
+    document.getElementById("adminBox").style.display="block";showLoading('Loading...');
+    try{await Promise.all([loadAdminData(),loadAdminOrders('all'),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes(),loadSpinRates(),loadResellers(),loadResellerTransactions(),loadExchangeRate()]);updateBackupInfo();hideLoading();n('✅ Loaded');startAutoRefresh()}catch(e){hideLoading();n('Error','error')}
+}
     
+    function startAutoRefresh(){if(autoRefreshInterval)clearInterval(autoRefreshInterval);autoRefreshInterval=setInterval(async()=>{await Promise.all([loadAdminData(),loadAdminOrders(currentOrderFilter),loadPageToggles(),loadSpinRates(),loadResellers(),loadResellerTransactions()])},5000)}
     // ==================== BACKUP & RESTORE ====================
     async function backupDatabase(){showLoading('Backing up...');try{const r=await fetch('/api/admin/backup');const d=await r.json();if(d.success&&d.data){const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);n('✅ Downloaded!');localStorage.setItem('lastBackup',new Date().toLocaleString());updateBackupInfo()}else n('Failed','error')}catch(e){n('Error','error')}hideLoading()}
     function restoreDatabase(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{pendingRestoreData=JSON.parse(e.target.result);if(!pendingRestoreData.tables){n('Invalid','error');return}document.getElementById('restoreConfirmModal').classList.add('active')}catch(e){n('Invalid JSON','error')}};reader.readAsText(file);input.value=''}
@@ -289,7 +362,8 @@
     function updateTimerPreview(){const h=parseInt(document.getElementById('timerHours').value)||0,m=parseInt(document.getElementById('timerMinutes').value)||0,s=parseInt(document.getElementById('timerSeconds').value)||0;document.getElementById('timerPreview').textContent=`⏱️ ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}
     function closeTimerModal(){document.getElementById('timerModal').classList.remove('active')}
     async function confirmTimer(){const id=document.getElementById('timerPageId').value;const h=parseInt(document.getElementById('timerHours').value)||0;const m=parseInt(document.getElementById('timerMinutes').value)||0;const s=parseInt(document.getElementById('timerSeconds').value)||0;const totalMs=(h*3600+m*60+s)*1000;if(totalMs<=0){n('Please set a time greater than 0','error');return}const turnOnTime=Date.now()+totalMs;await togglePage(id,false);pageTimers[id]=turnOnTime;localStorage.setItem('pageTimers',JSON.stringify(pageTimers));const cd=new Date();cd.setTime(cd.getTime()+(7*24*60*60*1000));document.cookie='pageTimers='+encodeURIComponent(JSON.stringify(pageTimers))+'; expires='+cd.toUTCString()+'; path=/';sessionStorage.setItem('pageTimers',JSON.stringify(pageTimers));setTimeout(async()=>{await togglePage(id,true);delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles()},totalMs);closeTimerModal();loadPageToggles();n(`✅ Timer set!`)}
-    function cancelTimer(id){delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));const d=new Date();d.setTime(d.getTime()+(7*24*60*60*1000));document.cookie='pageTimers='+encodeURIComponent(JSON.stringify(pageTimers))+'; expires='+d.toUTCString()+'; path=/';sessionStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles();n('✅ Timer cancelled')}
+    function cancelTimer(id){delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));const d=new Date();d.setTime(d.getTime()+(7*24*60*60*1000));document.cookie='pageTimers='+encodeURIComponent(JSON.string
+                                                                                                                                                                                                                              ify(pageTimers))+'; expires='+d.toUTCString()+'; path=/';sessionStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles();n('✅ Timer cancelled')}
     async function turnOffPage(id){if(!confirm(`Turn OFF "${id}"?`))return;await togglePage(id,false);n('✅ Page OFF')}
     async function togglePage(id,on){try{await fetch('/api/admin/toggle_page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_id:id,status:on?'on':'off'})});loadPageToggles()}catch(e){n('Error','error')}}
     try{pageTimers=JSON.parse(localStorage.getItem('pageTimers')||'{}');Object.keys(pageTimers).forEach(id=>{const tt=pageTimers[id],r=tt-Date.now();if(r>0){setTimeout(async()=>{await togglePage(id,true);delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers))},r)}else{delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers))}})}catch(e){}
@@ -357,7 +431,234 @@
     async function saveSliderImages(){const urls=[];for(let i=1;i<=5;i++){const inp=document.getElementById('sliderUrl'+i);if(inp&&inp.value.trim())urls.push(inp.value.trim())}if(!urls.length)return n("Enter URLs","error");try{await fetch('/api/admin/slider_images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:urls})});n('Saved!');for(let i=1;i<=5;i++)document.getElementById('sliderUrl'+i).value='';loadSliderPreview()}catch(e){n('Error','error')}}
     async function clearSliderImages(){try{await fetch('/api/admin/slider_images',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({images:[]})});n('Cleared!');loadSliderPreview()}catch(e){n('Error','error')}}
     async function loadSliderPreview(){try{const r=await fetch('/api/slider_images');const d=await r.json();const c=document.getElementById('sliderPreviewList');if(d.images&&d.images.length>0){c.innerHTML=d.images.map((u,i)=>`<div style="font-size:9px;padding:3px 0;color:rgba(255,255,255,0.6)">${i+1}. ${u.substring(0,50)}...</div>`).join('')}else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No images</span>'}}catch(e){}}
+
+    // ==================== RESELLER MANAGEMENT ====================
+async function loadResellers() {
+    try {
+        const r = await fetch('/api/admin/resellers');
+        const d = await r.json();
+        const c = document.getElementById('resellerList');
+        
+        if (d.resellers && d.resellers.length > 0) {
+            c.innerHTML = d.resellers.map(res => {
+                const statusColor = res.status === 'active' ? 'var(--g)' : 'var(--r)';
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:4px;font-size:10px;border-left:3px solid ${statusColor};gap:8px">
+                    <div style="flex:1;min-width:0">
+                        <b style="color:var(--w)">${res.name}</b>
+                        <span style="font-size:8px;color:${statusColor};margin-left:6px">[${res.status}]</span>
+                        <br><small style="color:rgba(255,255,255,0.5)">💰 ${parseFloat(res.balance).toLocaleString()} ${res.currency} | 📊 ${res.markup_percent}%</small>
+                    </div>
+                    <button class="btn btn-b" style="font-size:9px;padding:5px 10px" onclick="openResellerModal(${res.id})">🔧 Manage</button>
+                </div>`;
+            }).join('');
+        } else {
+            c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No resellers yet</p>';
+        }
+    } catch(e) {}
+}
+
+async function loadResellerTransactions() {
+    try {
+        const r = await fetch('/api/admin/reseller/transactions');
+        const d = await r.json();
+        const c = document.getElementById('resellerTransactions');
+        
+        if (d.transactions && d.transactions.length > 0) {
+            c.innerHTML = d.transactions.map(txn => {
+                const color = txn.amount > 0 ? 'var(--g)' : 'var(--r)';
+                const sign = txn.amount > 0 ? '+' : '';
+                return `<div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:4px;margin-bottom:3px;font-size:9px">
+                    <div>
+                        <b>${txn.reseller_name}</b> - ${txn.action}<br>
+                        <small style="color:rgba(255,255,255,0.4)">${new Date(txn.created_at).toLocaleString()}</small>
+                    </div>
+                    <div style="text-align:right;color:${color}">${sign}${Math.abs(txn.amount).toLocaleString()} ${txn.currency}</div>
+                </div>`;
+            }).join('');
+        } else {
+            c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No transactions yet</p>';
+        }
+    } catch(e) {}
+}
+
+function openResellerModal(id) {
+    fetch('/api/admin/resellers')
+    .then(r => r.json())
+    .then(d => {
+        const res = d.resellers.find(r => r.id === id);
+        if (!res) return;
+        
+        document.getElementById('resellerId').value = res.id;
+        document.getElementById('resellerApiKey').textContent = res.api_key;
+        document.getElementById('resellerEditMarkup').value = res.markup_percent;
+        document.getElementById('resellerEditStatus').value = res.status;
+        document.getElementById('resellerInfo').innerHTML = 
+            `<b>Name:</b> ${res.name}<br>` +
+            `<b>Balance:</b> ${parseFloat(res.balance).toLocaleString()} ${res.currency}<br>` +
+            `<b>Markup:</b> ${res.markup_percent}%<br>` +
+            `<b>Status:</b> ${res.status}<br>` +
+            `<b>Created:</b> ${new Date(res.created_at).toLocaleDateString()}`;
+        
+        document.getElementById('resellerModal').classList.add('active');
+    });
+}
+
+function closeResellerModal() {
+    document.getElementById('resellerModal').classList.remove('active');
+}
+
+function copyApiKey() {
+    const key = document.getElementById('resellerApiKey').textContent;
+    navigator.clipboard.writeText(key).then(() => n('✅ API Key Copied!'));
+}
+
+async function addResellerBalance() {
+    const id = document.getElementById('resellerId').value;
+    const amount = document.getElementById('resellerAddAmount').value;
     
+    if (!amount || amount <= 0) return n('❌ Enter amount', 'error');
+    
+    try {
+        const r = await fetch('/api/admin/reseller/add_balance', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ id, amount: parseFloat(amount) })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Balance added!');
+            closeResellerModal();
+            loadResellers();
+            loadResellerTransactions();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) { n('Error', 'error'); }
+}
+
+async function editReseller() {
+    const id = document.getElementById('resellerId').value;
+    const markup = document.getElementById('resellerEditMarkup').value;
+    const status = document.getElementById('resellerEditStatus').value;
+    
+    try {
+        const r = await fetch('/api/admin/reseller/edit', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ id, markup_percent: parseInt(markup), status })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Reseller updated!');
+            closeResellerModal();
+            loadResellers();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) { n('Error', 'error'); }
+}
+
+async function resetResellerKey() {
+    const id = document.getElementById('resellerId').value;
+    if (!confirm('Reset API Key? Old key will stop working.')) return;
+    
+    try {
+        const r = await fetch('/api/admin/reseller/reset_key', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ id })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            document.getElementById('resellerApiKey').textContent = d.api_key;
+            n('✅ API Key reset! New key shown above.');
+            loadResellers();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) { n('Error', 'error'); }
+}
+
+async function deleteReseller() {
+    const id = document.getElementById('resellerId').value;
+    if (!confirm('⚠️ Delete this reseller? This cannot be undone.')) return;
+    
+    try {
+        const r = await fetch('/api/admin/reseller/delete', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ id })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Reseller deleted!');
+            closeResellerModal();
+            loadResellers();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) { n('Error', 'error'); }
+}
+
+async function createReseller() {
+    const name = document.getElementById('newResellerName').value.trim();
+    const currency = document.getElementById('newResellerCurrency').value;
+    const markup = document.getElementById('newResellerMarkup').value;
+    const balance = document.getElementById('newResellerBalance').value;
+    
+    if (!name) return n('❌ Enter reseller name', 'error');
+    
+    try {
+        const r = await fetch('/api/admin/reseller/create', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ 
+                name, currency, 
+                markup_percent: parseInt(markup), 
+                initial_balance: parseFloat(balance) 
+            })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Reseller created! API Key: ' + d.api_key);
+            document.getElementById('newResellerName').value = '';
+            document.getElementById('newResellerBalance').value = '0';
+            loadResellers();
+            loadResellerTransactions();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) { n('Error', 'error'); }
+}
+
+async function updateExchangeRate() {
+    const rate = document.getElementById('exchangeRateInput').value;
+    if (!rate || rate < 1) return n('❌ Invalid rate', 'error');
+    
+    try {
+        const r = await fetch('/api/admin/exchange_rate', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ rate: parseInt(rate) })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Exchange rate updated!');
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) { n('Error', 'error'); }
+}
+
+async function loadExchangeRate() {
+    try {
+        const r = await fetch('/api/exchange_rate');
+        const d = await r.json();
+        if (d.rate) {
+            document.getElementById('exchangeRateInput').value = d.rate;
+        }
+    } catch(e) {}
+}
     // ==================== BG MUSIC ====================
     function buildMusicSlots(){let h='';for(let i=1;i<=3;i++){h+=`<div class="video-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><b style="font-size:11px;color:var(--w)">🎵 Music Slot ${i}</b><span class="card-status empty" id="musicStatus${i}">Empty</span></div><input type="file" id="musicFile${i}" accept="audio/*" onchange="handleFileSelect(${i})" style="width:100%;font-size:9px;padding:4px;margin-bottom:5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><input type="text" id="musicUrl${i}" placeholder="Or paste Audio URL..." style="width:100%;font-size:9px;padding:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;margin-bottom:5px"><div class="btn-row"><button class="btn btn-b" id="uploadBtn${i}" onclick="uploadMusic(${i})" style="font-size:9px;padding:5px 10px;flex:1"><i class="fas fa-upload"></i> Upload</button><button class="btn btn-r" onclick="clearMusicSlot(${i})" style="font-size:9px;padding:5px 10px;flex:1"><i class="fas fa-times"></i> Clear</button></div><audio class="preview-audio" id="preview${i}" controls style="display:none;width:100%;height:24px;margin-top:5px"></audio></div>`}document.getElementById('musicSlots').innerHTML=h}
     buildMusicSlots();
