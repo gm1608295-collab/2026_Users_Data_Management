@@ -1217,9 +1217,31 @@ app.post('/api/exchange_usd_to_mmk', async (req, res) => {
 
 // ==================== GET EXCHANGE RATE INFO ====================
 app.get('/api/exchange_rate_info', async (req, res) => {
-    res.json({ success: true, base_rate: 3000, fees: { transport: 300, internet: 300, data_transfer: 400, total: 1000 }, final_rate: 2000 });
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT value FROM settings WHERE key = 'exchange_rate'");
+        const baseRate = r.rows.length > 0 ? parseInt(r.rows[0].value) : 3500;
+        
+        res.json({ 
+            success: true, 
+            base_rate: baseRate, 
+            fees: { 
+                transport: 300, 
+                internet: 300, 
+                data_transfer: 400, 
+                total: 1000 
+            }, 
+            final_rate: baseRate - 1000 
+        });
+    } catch(e) {
+        res.json({ 
+            success: true, 
+            base_rate: 3500, 
+            fees: { transport: 300, internet: 300, data_transfer: 400, total: 1000 }, 
+            final_rate: 2500 
+        });
+    }
 });
-
 // ==================== SAVE SPIN HISTORY (Legacy) ====================
 app.post('/api/spin/save', async (req, res) => {
     const { token, reward_type, reward_amount, segment_label } = req.body;
