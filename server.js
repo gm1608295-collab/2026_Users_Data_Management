@@ -1779,34 +1779,34 @@ app.post('/api/redeem_promo', async (req, res) => {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         
-        // ဒါကိုထည့်
-const promoCode = promo_code.toUpperCase();
-
-// Query မှာလည်း UPPER သုံး
-const code = await p.query(
-    "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = true",
-    [promoCode]
-);
+        // ✅ Case-insensitive check
+        const promoCode = promo_code.toUpperCase();
+        
+        // ✅ Query with UPPER
+        const code = await p.query(
+            "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = true",
+            [promoCode]
+        );
         
         if (code.rows.length === 0) {
-            // Check if it exists but expired
+            // Check if it exists but not used
+            const unusedCheck = await p.query(
+                "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = false AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)",
+                [promoCode]
+            );
+            
+            if (unusedCheck.rows.length > 0) {
+                return res.json({ success: false, message: 'Code မှားယွင်းနေပါသည်' });
+            }
+            
+            // Check expired
             const expiredCheck = await p.query(
-                "SELECT * FROM promo_codes WHERE api_key = $1 AND used = false AND expiry_date < CURRENT_DATE",
-                [promo_code]
+                "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND expiry_date < CURRENT_DATE",
+                [promoCode]
             );
             
             if (expiredCheck.rows.length > 0) {
                 return res.json({ success: false, message: 'Code သက်တမ်းကုန်သွားပါပြီ' });
-            }
-            
-            // Check if used
-            const usedCheck = await p.query(
-                "SELECT * FROM promo_codes WHERE api_key = $1 AND used = true",
-                [promo_code]
-            );
-            
-            if (usedCheck.rows.length > 0) {
-                return res.json({ success: false, message: 'Code ကိုအသုံးပြုပြီးပါပြီ' });
             }
             
             return res.json({ success: false, message: 'Code မှားယွင်းနေပါသည်' });
@@ -1814,10 +1814,7 @@ const code = await p.query(
         
         const c = code.rows[0];
         
-        // Mark as used
-        await p.query('UPDATE promo_codes SET used = true, used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
-        
-        // Add balance
+        // ✅ Add balance
         if (c.currency === 'USD') {
             await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id = $2', [c.amount, uid]);
         } else {
