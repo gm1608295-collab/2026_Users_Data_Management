@@ -85,6 +85,40 @@
 
         .notif{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;z-index:10000;font-size:12px;font-weight:bold;box-shadow:0 6px 20px rgba(0,0,0,0.4);animation:slideIn 0.3s ease;display:none}
         @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+        /* ========== LEADERBOARD ========== */
+        .lb-title{color:var(--w);font-size:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid rgba(74,28,122,0.5);display:flex;align-items:center;gap:8px}
+        .lb-week{font-size:9px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:10px}
+        .lb-list{display:flex;flex-direction:column;gap:8px}
+        
+        .lb-card{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;transition:all 0.3s;position:relative;overflow:hidden}
+        .lb-card.gold{background:linear-gradient(135deg,rgba(255,215,0,0.15),rgba(255,215,0,0.05));border:2px solid rgba(255,215,0,0.4);animation:goldGlow 2s infinite}
+        .lb-card.silver{background:linear-gradient(135deg,rgba(192,192,192,0.15),rgba(192,192,192,0.05));border:2px solid rgba(192,192,192,0.4)}
+        .lb-card.bronze{background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:2px solid rgba(205,127,50,0.4)}
+        .lb-card.normal{background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.08)}
+        @keyframes goldGlow{0%,100%{box-shadow:0 0 15px rgba(255,215,0,0.3)}50%{box-shadow:0 0 30px rgba(255,215,0,0.5)}}
+        
+        .lb-rank{font-size:20px;font-weight:bold;width:36px;text-align:center;flex-shrink:0}
+        .lb-rank.gold{color:#FFD700;text-shadow:0 0 10px rgba(255,215,0,0.5)}
+        .lb-rank.silver{color:#C0C0C0;text-shadow:0 0 8px rgba(192,192,192,0.4)}
+        .lb-rank.bronze{color:#CD7F32;text-shadow:0 0 8px rgba(205,127,50,0.4)}
+        .lb-rank.normal{color:rgba(255,255,255,0.4);font-size:14px}
+        
+        .lb-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:bold;color:#fff;flex-shrink:0}
+        .lb-avatar.gold{background:linear-gradient(135deg,#FFD700,#FFA500);border:2px solid #FFD700}
+        .lb-avatar.silver{background:linear-gradient(135deg,#C0C0C0,#808080);border:2px solid #C0C0C0}
+        .lb-avatar.bronze{background:linear-gradient(135deg,#CD7F32,#8B4513);border:2px solid #CD7F32}
+        .lb-avatar.normal{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2)}
+        
+        .lb-info{flex:1;min-width:0}
+        .lb-name{font-size:13px;font-weight:700;color:var(--t);margin-bottom:2px}
+        .lb-name.gold{color:#FFD700}.lb-name.silver{color:#E8E8E8}.lb-name.bronze{color:#E8A87C}
+        .lb-email{font-size:9px;color:rgba(255,255,255,0.4)}
+        .lb-amount{font-size:14px;font-weight:bold;color:var(--w);text-align:right;flex-shrink:0}
+        .lb-amount.gold{color:#FFD700}.lb-amount.silver{color:#E8E8E8}.lb-amount.bronze{color:#E8A87C}
+        
+        .lb-empty{text-align:center;padding:30px 15px;color:rgba(255,255,255,0.3);font-size:12px}
+        .lb-loading{text-align:center;padding:20px;color:rgba(255,255,255,0.4);font-size:11px}
     </style>
 </head>
 <body>
@@ -141,7 +175,16 @@
                 </table>
             </div>
             
-            <!-- 🎁 Promo Code Redeem Box -->
+            <!-- 🏆 Weekly Leaderboard -->
+            <div class="section-panel">
+                <div class="lb-title"><i class="fas fa-trophy"></i> 🏆 Weekly Top Spenders</div>
+                <div class="lb-week" id="lbWeekLabel">Loading...</div>
+                <div class="lb-list" id="leaderboardList">
+                    <div class="lb-loading"><i class="fas fa-spinner fa-spin"></i> Loading leaderboard...</div>
+                </div>
+            </div>
+            
+            <!-- 🎁 Promo Code Redeem -->
             <div class="section-panel">
                 <h3><i class="fas fa-gift"></i> Have a Promo Code?</h3>
                 <div class="promo-input-wrapper">
@@ -153,7 +196,7 @@
                 <p class="promo-hint">💡 Enter your promo code to get free balance rewards!</p>
             </div>
 
-            <!-- Email Link (Click to open modal) -->
+            <!-- Email Link -->
             <div class="email-link" onclick="openEmailModal()">
                 <i class="fas fa-envelope"></i> Send us a message via Email ✉️
             </div>
@@ -291,7 +334,6 @@
                 n('✅ ' + d.message, 'success');
                 document.getElementById('promoCodeInput').value = '';
                 
-                // Show success modal
                 var modalHTML = 
                     '<div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;justify-content:center;align-items:center" onclick="this.remove()">' +
                     '<div style="background:#1a1f4b;border:2px solid #f39c12;border-radius:12px;padding:25px;width:90%;max-width:350px;text-align:center" onclick="event.stopPropagation()">' +
@@ -309,6 +351,70 @@
         
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-check-circle"></i> Redeem';
+    }
+
+    // ==================== WEEKLY LEADERBOARD ====================
+    function getWeekLabel() {
+        var now = new Date();
+        var start = new Date(now);
+        start.setDate(now.getDate() - now.getDay());
+        start.setHours(0,0,0,0);
+        var end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23,59,59,999);
+        
+        var fmt = function(d) { return d.getDate() + '/' + (d.getMonth()+1) + '/' + d.getFullYear(); };
+        return fmt(start) + ' - ' + fmt(end);
+    }
+    
+    async function loadLeaderboard() {
+        var container = document.getElementById('leaderboardList');
+        var weekLabel = document.getElementById('lbWeekLabel');
+        
+        if (weekLabel) weekLabel.textContent = '📅 ' + getWeekLabel() + ' (Auto-reset every Monday)';
+        
+        try {
+            var r = await fetch('/api/leaderboard/weekly_top_spenders');
+            var d = await r.json();
+            
+            if (!d.success || !d.leaders || d.leaders.length === 0) {
+                container.innerHTML = '<div class="lb-empty"><i class="fas fa-trophy"></i><br>No active spenders this week</div>';
+                return;
+            }
+            
+            var html = '';
+            d.leaders.forEach(function(leader, index) {
+                var rank = index + 1;
+                var cardClass, rankClass, avatarClass, nameClass, amountClass;
+                
+                switch(rank) {
+                    case 1: cardClass='gold'; rankClass='gold'; avatarClass='gold'; nameClass='gold'; amountClass='gold'; break;
+                    case 2: cardClass='silver'; rankClass='silver'; avatarClass='silver'; nameClass='silver'; amountClass='silver'; break;
+                    case 3: cardClass='bronze'; rankClass='bronze'; avatarClass='bronze'; nameClass='bronze'; amountClass='bronze'; break;
+                    default: cardClass='normal'; rankClass='normal'; avatarClass='normal'; nameClass=''; amountClass=''; break;
+                }
+                
+                var rankIcon = rank === 1 ? '👑' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '#' + rank;
+                var initial = (leader.username || 'U').charAt(0).toUpperCase();
+                var maskedEmail = leader.email ? leader.email.replace(/(.{2}).*(@.*)/, '$1***$2') : '';
+                var amountDisplay = parseFloat(leader.weekly_spent).toLocaleString() + ' Ks';
+                
+                html += '<div class="lb-card ' + cardClass + '">' +
+                    '<div class="lb-rank ' + rankClass + '">' + rankIcon + '</div>' +
+                    '<div class="lb-avatar ' + avatarClass + '">' + initial + '</div>' +
+                    '<div class="lb-info">' +
+                        '<div class="lb-name ' + nameClass + '">' + (leader.username || 'User') + '</div>' +
+                        '<div class="lb-email">' + maskedEmail + '</div>' +
+                    '</div>' +
+                    '<div class="lb-amount ' + amountClass + '">' + amountDisplay + '</div>' +
+                '</div>';
+            });
+            
+            container.innerHTML = html;
+            
+        } catch(e) {
+            container.innerHTML = '<div class="lb-empty">Unable to load leaderboard</div>';
+        }
     }
 
     // ==================== PAGE ACCESS CHECK ====================
@@ -359,54 +465,56 @@
                 location.reload(); return;
             }
             const s = Math.floor(rem / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-            const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+            const timeStr = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
             if (maintTimer) maintTimer.textContent = timeStr;
             if (pageCountdown) pageCountdown.textContent = timeStr;
         };
         update(); setInterval(update, 1000);
     }
     function setCookie(name, value, days) {
-        let expires = '';
-        if (days) { const date = new Date(); date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000)); expires = '; expires=' + date.toUTCString(); }
+        var expires = '';
+        if (days) { var date = new Date(); date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000)); expires = '; expires=' + date.toUTCString(); }
         document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
     }
     function getCookie(name) {
-        const nameEQ = name + '=';
-        const ca = document.cookie.split(';');
-        for (let i = 0; i < ca.length; i++) { let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
+        var nameEQ = name + '=';
+        var ca = document.cookie.split(';');
+        for (var i = 0; i < ca.length; i++) { var c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
         return null;
     }
 
     // ==================== BG MUSIC PLAYER ====================
     (function() {
-        const a = document.getElementById('bgAudio');
+        var a = document.getElementById('bgAudio');
         if (!a) return;
-        let p = [], i = 0;
+        var p = [], i = 0;
         a.volume = 0.5; a.loop = false;
-        const fl = !sessionStorage.getItem('mp');
+        var fl = !sessionStorage.getItem('mp');
         if (fl) { i = 0; localStorage.setItem('bgi','0'); localStorage.setItem('bgt0','0'); }
         else { i = parseInt(localStorage.getItem('bgi')||'0'); }
         sessionStorage.setItem('mp','1');
         async function fp() {
-            try { const r = await fetch('/api/bg_music?t='+Date.now()); const d = await r.json(); if (d.playlist && d.playlist.length>0) { p = d.playlist; return true; } return false; } catch(e) { return false; }
+            try { var r = await fetch('/api/bg_music?t='+Date.now()); var d = await r.json(); if (d.playlist && d.playlist.length>0) { p = d.playlist; return true; } return false; } catch(e) { return false; }
         }
         function pl() {
             if (!p.length) return; if (i >= p.length) i = 0;
-            const u = p[i]; a.src = u; a.load();
-            a.addEventListener('canplay', function h() { a.play().catch(()=>{}); a.removeEventListener('canplay',h); });
+            var u = p[i]; a.src = u; a.load();
+            a.addEventListener('canplay', function h() { a.play().catch(function(){}); a.removeEventListener('canplay',h); });
         }
-        a.addEventListener('ended', function() { localStorage.setItem('bgt'+i,'0'); i = (i+1) % p.length; localStorage.setItem('bgi',i); localStorage.setItem('bgt'+i,'0'); pl(); });
-        a.addEventListener('error', function() { i = (i+1) % p.length; localStorage.setItem('bgi',i); localStorage.setItem('bgt'+i,'0'); pl(); });
-        setInterval(() => { if (!a.paused && p.length>0 && a.currentTime>0) { localStorage.setItem('bgi',i); localStorage.setItem('bgt'+i, a.currentTime); } }, 1000);
-        fp().then(h => { if(h) { if(fl) i=0; pl(); } });
+        a.addEventListener('ended', function() { localStorage.setItem('bgt'+i,'0'); i = (i+1) % p.length; localStorage.setItem('bgi',String(i)); localStorage.setItem('bgt'+i,'0'); pl(); });
+        a.addEventListener('error', function() { i = (i+1) % p.length; localStorage.setItem('bgi',String(i)); localStorage.setItem('bgt'+i,'0'); pl(); });
+        setInterval(function() { if (!a.paused && p.length>0 && a.currentTime>0) { localStorage.setItem('bgi',String(i)); localStorage.setItem('bgt'+i, String(a.currentTime)); } }, 1000);
+        fp().then(function(h) { if(h) { if(fl) i=0; pl(); } });
         setInterval(fp, 3000);
     })();
 
     // ==================== INIT ====================
     (async function init() {
-        const pageOn = await checkPageAccess();
+        var pageOn = await checkPageAccess();
         if (!pageOn) return;
         document.getElementById('contactContent').style.display = 'block';
+        loadLeaderboard();
+        setInterval(loadLeaderboard, 60000);
     })();
 </script>
 </body>
