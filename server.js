@@ -1547,6 +1547,388 @@ app.post('/api/admin/spin_rates/save', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║              API KEY & RESELLER SYSTEM                      ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ==================== CREATE RESELLER TABLES ====================
+async function createResellerTables() {
+    const queries = [
+        `CREATE TABLE IF NOT EXISTS resellers (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            api_key VARCHAR(64) UNIQUE NOT NULL,
+            balance DECIMAL DEFAULT 0,
+            currency VARCHAR(10) DEFAULT 'MMK',
+            markup_percent INT DEFAULT 0,
+            status VARCHAR(20) DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS reseller_transactions (
+            id SERIAL PRIMARY KEY,
+            reseller_id INT,
+            reseller_name VARCHAR(100),
+            action VARCHAR(50),
+            amount DECIMAL,
+            balance_after DECIMAL,
+            currency VARCHAR(10) DEFAULT 'MMK',
+            product VARCHAR(100),
+            game_uid VARCHAR(50),
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS settings (
+            key VARCHAR(50) PRIMARY KEY,
+            value TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+    ];
+    
+    try {
+        for (const q of queries) {
+            await pool1.query(q).catch(() => {});
+            await pool2.query(q).catch(() => {});
+        }
+        console.log('✅ Reseller tables ready');
+        
+        // Init default exchange rate if not exists
+        await pool1.query(
+            "INSERT INTO settings (key, value) VALUES ('exchange_rate', '3500') ON CONFLICT (key) DO NOTHING"
+        ).catch(() => {});
+    } catch(e) {
+        console.log('⚠️ Reseller tables error:', e.message);
+    }
+}
+createResellerTables();
+
+// ==================== GENERATE API KEY ====================
+function generateApiKey(prefix = 'sk_live') {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let key = prefix + '_';
+    for (let i = 0; i < 32; i++) {
+        key += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return key;
+}
+
+// ==================== VERIFY API KEY MIDDLEWARE ====================
+async function verifyApiKey(req, res, next) {
+    const apiKey = req.headers['x-api-key'];
+    if (!apiKey) {
+        return res.status(401).json({ success: false, message: 'API Key required' });
+    }
+    
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            "SELECT * FROM resellers WHERE api_key = $1 AND status = 'active'",
+            [apiKey]
+        );
+        
+        if (r.rows.length === 0) {
+            return res.status(401).json({ success: false, message: 'Invalid or suspended API Key' });
+        }
+        
+        req.reseller = r.rows[0];
+        next();
+    } catch(e) {
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+}
+
+// ==================== EXCHANGE RATE API ====================
+
+// Get exchange rate (public)
+app.get('/api/exchange_rate', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query("SELECT value FROM settings WHERE key = 'exchange_rate'");
+        const rate = r.rows.length > 0 ? parseInt(r.rows[0].value) : 3500;
+        res.json({ success: true, rate: rate });
+    } catch(e) {
+        res.json({ success: true, rate: 3500 });
+    }
+});
+
+// Admin: Update exchange rate
+app.post('/api/admin/exchange_rate', async (req, res) => {
+    const { rate } = req.body;
+    if (!rate || rate < 1) return res.json({ success: false, message: 'Invalid rate' });
+    
+    try {
+        const p = await getPool();
+        await p.query(
+            "INSERT INTO settings (key, value, updated_at) VALUES ('exchange_rate', $1, NOW()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = NOW()",
+            [rate.toString()]
+        );
+        res.json({ success: true, message: 'Exchange rate updated!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ==================== ADMIN RESELLER MANAGEMENT ====================
+
+// Get all resellers
+app.get('/api/admin/resellers', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM resellers ORDER BY id DESC');
+        res.json({ success: true, resellers: r.rows });
+    } catch(e) {
+        res.json({ success: false, resellers: [] });
+    }
+});
+
+// Create reseller
+app.post('/api/admin/reseller/create', async (req, res) => {
+    const { name, currency, markup_percent, initial_balance } = req.body;
+    
+    if (!name) return res.json({ success: false, message: 'Reseller name required' });
+    
+    try {
+        const p = await getPool();
+        const apiKey = generateApiKey();
+        const currency_type = currency || 'MMK';
+        const markup = parseInt(markup_percent) || 0;
+        const balance = parseFloat(initial_balance) || 0;
+        
+        await p.query(
+            `INSERT INTO resellers (name, api_key, balance, currency, markup_percent) 
+             VALUES ($1, $2, $3, $4, $5)`,
+            [name, apiKey, balance, currency_type, markup]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: 'Reseller created!',
+            api_key: apiKey
+        });
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Edit reseller
+app.post('/api/admin/reseller/edit', async (req, res) => {
+    const { id, name, currency, markup_percent, status } = req.body;
+    
+    if (!id) return res.json({ success: false, message: 'Reseller ID required' });
+    
+    try {
+        const p = await getPool();
+        
+        if (name) await p.query('UPDATE resellers SET name=$1 WHERE id=$2', [name, id]);
+        if (currency) await p.query('UPDATE resellers SET currency=$1 WHERE id=$2', [currency, id]);
+        if (markup_percent !== undefined) await p.query('UPDATE resellers SET markup_percent=$1 WHERE id=$2', [parseInt(markup_percent), id]);
+        if (status) await p.query('UPDATE resellers SET status=$1 WHERE id=$2', [status, id]);
+        
+        await p.query('UPDATE resellers SET updated_at=NOW() WHERE id=$1', [id]);
+        
+        res.json({ success: true, message: 'Reseller updated!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Add balance to reseller
+app.post('/api/admin/reseller/add_balance', async (req, res) => {
+    const { id, amount, currency } = req.body;
+    
+    if (!id || !amount || amount <= 0) return res.json({ success: false, message: 'Invalid amount' });
+    
+    try {
+        const p = await getPool();
+        
+        const reseller = await p.query('SELECT * FROM resellers WHERE id=$1', [id]);
+        if (reseller.rows.length === 0) return res.json({ success: false, message: 'Reseller not found' });
+        
+        const r = reseller.rows[0];
+        const cur = currency || r.currency;
+        const newBalance = parseFloat(r.balance) + parseFloat(amount);
+        
+        await p.query('UPDATE resellers SET balance=$1 WHERE id=$2', [newBalance, id]);
+        
+        // Log transaction
+        await p.query(
+            `INSERT INTO reseller_transactions (reseller_id, reseller_name, action, amount, balance_after, currency) 
+             VALUES ($1, $2, 'top_up', $3, $4, $5)`,
+            [id, r.name, amount, newBalance, cur]
+        );
+        
+        res.json({ success: true, message: 'Balance added!', new_balance: newBalance });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Reset API Key
+app.post('/api/admin/reseller/reset_key', async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.json({ success: false, message: 'Reseller ID required' });
+    
+    try {
+        const p = await getPool();
+        const newKey = generateApiKey();
+        await p.query('UPDATE resellers SET api_key=$1, updated_at=NOW() WHERE id=$2', [newKey, id]);
+        
+        res.json({ success: true, message: 'API Key reset!', api_key: newKey });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Delete reseller
+app.post('/api/admin/reseller/delete', async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.json({ success: false, message: 'Reseller ID required' });
+    
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM resellers WHERE id=$1', [id]);
+        res.json({ success: true, message: 'Reseller deleted!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get reseller transactions
+app.get('/api/admin/reseller/transactions', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            'SELECT * FROM reseller_transactions ORDER BY id DESC LIMIT 50'
+        );
+        res.json({ success: true, transactions: r.rows });
+    } catch(e) {
+        res.json({ success: false, transactions: [] });
+    }
+});
+
+// ==================== RESELLER API ENDPOINTS ====================
+
+// Check balance
+app.post('/api/reseller/balance', verifyApiKey, async (req, res) => {
+    const r = req.reseller;
+    res.json({
+        success: true,
+        reseller: r.name,
+        balance: parseFloat(r.balance),
+        currency: r.currency,
+        markup_percent: r.markup_percent
+    });
+});
+
+// Buy code/diamond
+app.post('/api/reseller/buy', verifyApiKey, async (req, res) => {
+    const r = req.reseller;
+    const { game_uid, server_id, product, amount } = req.body;
+    
+    if (!game_uid || !product) {
+        return res.json({ success: false, message: 'game_uid and product required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Determine price based on product
+        let price = 0;
+        let productName = product;
+        
+        // Check if product is a redeem code category
+        const cat = REDEEM_CATEGORIES.find(c => c.id === product);
+        if (cat) {
+            price = cat.price;
+            
+            // Check code availability
+            const codeCheck = await p.query(
+                'SELECT * FROM redeem_codes WHERE category=$1 AND used=false ORDER BY id ASC LIMIT 1',
+                [product]
+            );
+            
+            if (codeCheck.rows.length === 0) {
+                return res.json({ success: false, message: 'No codes available for this product' });
+            }
+            
+        } else if (product.startsWith('diamond_')) {
+            // Diamond product
+            const diamondAmount = parseInt(product.replace('diamond_', ''));
+            price = diamondAmount * 50; // 50 Ks per diamond (adjust as needed)
+            productName = `${diamondAmount} Diamonds`;
+        } else {
+            return res.json({ success: false, message: 'Invalid product' });
+        }
+        
+        // Apply markup
+        const finalPrice = price + (price * r.markup_percent / 100);
+        
+        // Check balance
+        if (parseFloat(r.balance) < finalPrice) {
+            return res.json({ 
+                success: false, 
+                message: 'Insufficient balance',
+                required: finalPrice,
+                balance: parseFloat(r.balance)
+            });
+        }
+        
+        // Deduct balance
+        const newBalance = parseFloat(r.balance) - finalPrice;
+        await p.query('UPDATE resellers SET balance=$1 WHERE id=$2', [newBalance, r.id]);
+        
+        // Mark code as used if it's a redeem code
+        if (cat) {
+            const codeCheck = await p.query(
+                'SELECT * FROM redeem_codes WHERE category=$1 AND used=false ORDER BY id ASC LIMIT 1',
+                [product]
+            );
+            if (codeCheck.rows.length > 0) {
+                await p.query('UPDATE redeem_codes SET used=true, used_by=0, used_at=NOW() WHERE id=$1', [codeCheck.rows[0].id]);
+            }
+        }
+        
+        // Log transaction
+        await p.query(
+            `INSERT INTO reseller_transactions (reseller_id, reseller_name, action, amount, balance_after, currency, product, game_uid) 
+             VALUES ($1, $2, 'buy', $3, $4, $5, $6, $7)`,
+            [r.id, r.name, -finalPrice, newBalance, r.currency, productName, game_uid]
+        );
+        
+        res.json({
+            success: true,
+            message: `Product ${productName} purchased successfully!`,
+            transaction_id: 'TXN-' + Date.now(),
+            product: productName,
+            price: finalPrice,
+            remaining_balance: newBalance
+        });
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Transaction history for reseller
+app.post('/api/reseller/transactions', verifyApiKey, async (req, res) => {
+    const r = req.reseller;
+    
+    try {
+        const p = await getPool();
+        const txn = await p.query(
+            'SELECT * FROM reseller_transactions WHERE reseller_id=$1 ORDER BY id DESC LIMIT 30',
+            [r.id]
+        );
+        
+        res.json({ success: true, transactions: txn.rows });
+    } catch(e) {
+        res.json({ success: false, transactions: [] });
+    }
+});
+
+console.log('✅ API Key & Reseller System Ready');
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
