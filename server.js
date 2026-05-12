@@ -1585,6 +1585,9 @@ async function createResellerTables() {
             currency VARCHAR(10) DEFAULT 'MMK',
             markup_percent INT DEFAULT 0,
             status VARCHAR(20) DEFAULT 'active',
+            expiry_date DATE,
+            max_daily_transactions INT DEFAULT 50,
+            rate_limit_per_min INT DEFAULT 60,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
@@ -1615,16 +1618,28 @@ async function createResellerTables() {
         }
         console.log('✅ Reseller tables ready');
         
+        // Add missing columns to existing resellers table
+        const alterQueries = [
+            `ALTER TABLE resellers ADD COLUMN IF NOT EXISTS expiry_date DATE`,
+            `ALTER TABLE resellers ADD COLUMN IF NOT EXISTS max_daily_transactions INT DEFAULT 50`,
+            `ALTER TABLE resellers ADD COLUMN IF NOT EXISTS rate_limit_per_min INT DEFAULT 60`
+        ];
+        
+        for (const q of alterQueries) {
+            await pool1.query(q).catch(() => {});
+            await pool2.query(q).catch(() => {});
+        }
+        
         // Init default exchange rate if not exists
         await pool1.query(
             "INSERT INTO settings (key, value) VALUES ('exchange_rate', '3500') ON CONFLICT (key) DO NOTHING"
         ).catch(() => {});
+        
     } catch(e) {
         console.log('⚠️ Reseller tables error:', e.message);
     }
 }
 createResellerTables();
-
 // ==================== GENERATE API KEY ====================
 function generateApiKey(prefix = 'sk_live') {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
