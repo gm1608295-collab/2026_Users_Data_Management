@@ -596,7 +596,47 @@ app.post('/api/admin/buycode_notice/delete', async (req, res) => { try { const p
 app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='buycode'"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
 // ==================== BOT MESSAGE ====================
-app.post('/api/admin/bot_message', async (req, res) => { const { message } = req.body; if (!message) return res.json({ success: false }); try { const p = await getPool(); const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'"); let count = 0; for (const user of users.rows) { const tid = user.google_id.replace('tg_', ''); try { await fetch(`${TELEGRAM_API}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: tid, text: `ðŸ“¢ ${message}`, parse_mode: 'HTML' }) }); count++; } catch(e) {} } res.json({ success: true, count }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/bot_message', async (req, res) => {
+    const { message } = req.body;
+    if (!message) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        
+        // 1. Telegram Bot
+        const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'");
+        let telegramCount = 0;
+        for (const user of users.rows) {
+            const tid = user.google_id.replace('tg_', '');
+            try {
+                await fetch(`${TELEGRAM_API}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: tid,
+                        text: `📢 ${message}`,
+                        parse_mode: 'HTML'
+                    })
+                });
+                telegramCount++;
+            } catch(e) {}
+        }
+        
+        // 2. OneSignal Push Notification (အသံပါ)
+        sendOnesignal(
+            message,
+            "SOLO M Game Shop 📢",
+            "https://two026-users-data-management.onrender.com/dashboard",
+            "notification"
+        );
+        
+        console.log('[BOT MESSAGE] Sent to ' + telegramCount + ' Telegram users + Push Notification');
+        res.json({ success: true, count: telegramCount });
+        
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
 // ==================== TELEGRAM BOT (မြန်မာလို) ====================
 let lastUpdateId = 0;
 
