@@ -1630,6 +1630,214 @@ app.post('/api/admin/spin_rates/save', async (req, res) => {
 });
 
 // ╔══════════════════════════════════════════════════════════════╗
+// ║              PROMO CODE SYSTEM                              ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+// ==================== CREATE PROMO CODES TABLE ====================
+async function createPromoCodesTable() {
+    const query = `
+        CREATE TABLE IF NOT EXISTS promo_codes (
+            id SERIAL PRIMARY KEY,
+            api_key VARCHAR(64) UNIQUE NOT NULL,
+            amount DECIMAL DEFAULT 0,
+            currency VARCHAR(10) DEFAULT 'MMK',
+            used BOOLEAN DEFAULT false,
+            used_by INT,
+            used_at TIMESTAMP,
+            expiry_date DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `;
+    
+    try {
+        await pool1.query(query);
+        await pool2.query(query);
+        console.log('✅ promo_codes table ready');
+    } catch(e) {
+        console.log('⚠️ promo_codes table error:', e.message);
+    }
+}
+createPromoCodesTable();
+
+// Promo Code fixed price
+const PROMO_CODE_PRICE = 700; // 700 Ks per code
+
+// ==================== ADMIN: CREATE PROMO CODE ====================
+app.post('/api/admin/promo_code/create', async (req, res) => {
+    const { api_key, amount, currency, expiry_date } = req.body;
+    
+    if (!api_key || !amount) {
+        return res.json({ success: false, message: 'API Key and Amount required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        await p.query(
+            `INSERT INTO promo_codes (api_key, amount, currency, expiry_date) 
+             VALUES ($1, $2, $3, $4)`,
+            [api_key, parseFloat(amount), currency || 'MMK', expiry_date || null]
+        );
+        
+        res.json({ success: true, message: 'Promo code created!' });
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
+// ==================== ADMIN: GET ALL PROMO CODES ====================
+app.get('/api/admin/promo_codes', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM promo_codes ORDER BY id DESC');
+        res.json({ success: true, codes: r.rows });
+    } catch(e) {
+        res.json({ success: false, codes: [] });
+    }
+});
+
+// ==================== ADMIN: DELETE PROMO CODE ====================
+app.post('/api/admin/promo_code/delete', async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.json({ success: false, message: 'ID required' });
+    
+    try {
+        const p = await await getPool();
+        await p.query('DELETE FROM promo_codes WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Deleted!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ==================== BUY PROMO CODE (FROM BUY CODE PAGE) ====================
+app.post('/api/buy_promo_code', async (req, res) => {
+    const { token, codeId } = req.body;
+    
+    if (!token || !codeId) return res.json({ success: false, message: 'Missing data' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
+        
+        // Get promo code
+        const code = await p.query(
+            "SELECT * FROM promo_codes WHERE id = $1 AND used = false AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)",
+            [codeId]
+        );
+        
+        if (code.rows.length === 0) {
+            return res.json({ success: false, message: 'Promo code not available' });
+        }
+        
+        const c = code.rows[0];
+        
+        // Check balance
+        const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
+        
+        const balance = parseFloat(user.rows[0].balance || 0);
+        if (balance < PROMO_CODE_PRICE) {
+            return res.json({ success: false, message: 'Insufficient balance. Need ' + PROMO_CODE_PRICE + ' Ks' });
+        }
+        
+        // Mark as used
+        await p.query('UPDATE promo_codes SET used = true, used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
+        
+        // Deduct balance
+        await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id = $2', [PROMO_CODE_PRICE, uid]);
+        
+        const newBalance = balance - PROMO_CODE_PRICE;
+        
+        res.json({
+            success: true,
+            code: c.api_key,
+            amount: c.amount,
+            currency: c.currency,
+            balance: newBalance
+        });
+        
+    } catch(e) {
+        console.error('[BUY PROMO CODE ERROR]', e);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ==================== REDEEM PROMO CODE (FROM CONTACT PAGE) ====================
+app.post('/api/redeem_promo', async (req, res) => {
+    const { token, promo_code } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!promo_code) return res.json({ success: false, message: 'Promo code required' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        // Check if code exists and is unused
+        const code = await p.query(
+            "SELECT * FROM promo_codes WHERE api_key = $1 AND used = false AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)",
+            [promo_code]
+        );
+        
+        if (code.rows.length === 0) {
+            // Check if it exists but expired
+            const expiredCheck = await p.query(
+                "SELECT * FROM promo_codes WHERE api_key = $1 AND used = false AND expiry_date < CURRENT_DATE",
+                [promo_code]
+            );
+            
+            if (expiredCheck.rows.length > 0) {
+                return res.json({ success: false, message: 'Code သက်တမ်းကုန်သွားပါပြီ' });
+            }
+            
+            // Check if used
+            const usedCheck = await p.query(
+                "SELECT * FROM promo_codes WHERE api_key = $1 AND used = true",
+                [promo_code]
+            );
+            
+            if (usedCheck.rows.length > 0) {
+                return res.json({ success: false, message: 'Code ကိုအသုံးပြုပြီးပါပြီ' });
+            }
+            
+            return res.json({ success: false, message: 'Code မှားယွင်းနေပါသည်' });
+        }
+        
+        const c = code.rows[0];
+        
+        // Mark as used
+        await p.query('UPDATE promo_codes SET used = true, used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
+        
+        // Add balance
+        if (c.currency === 'USD') {
+            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id = $2', [c.amount, uid]);
+        } else {
+            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id = $2', [c.amount, uid]);
+        }
+        
+        // Get updated balance
+        const updatedUser = await p.query('SELECT balance, usd_balance FROM auth_users WHERE id = $1', [uid]);
+        
+        res.json({
+            success: true,
+            message: `✅ အောင်မြင်ပါသည်! ${c.amount.toLocaleString()} ${c.currency} ရရှိပါပြီ`,
+            amount: c.amount,
+            currency: c.currency,
+            balance: parseFloat(updatedUser.rows[0]?.balance || 0),
+            usd_balance: parseFloat(updatedUser.rows[0]?.usd_balance || 0)
+        });
+        
+    } catch(e) {
+        console.error('[REDEEM PROMO ERROR]', e);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+console.log('✅ Promo Code System Ready');
+// ╔══════════════════════════════════════════════════════════════╗
 // ║              API KEY & RESELLER SYSTEM                      ║
 // ╚══════════════════════════════════════════════════════════════╝
 
