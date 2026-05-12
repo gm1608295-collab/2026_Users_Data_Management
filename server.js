@@ -1196,6 +1196,65 @@ app.post('/api/claim_weekly_bonus', async (req, res) => {
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 
+// ==================== ADMIN: REVOKE PREMIUM ====================
+app.post('/api/admin/revoke_premium', async (req, res) => {
+    const { userId } = req.body;
+    
+    if (!userId) return res.json({ success: false, message: 'User ID required' });
+    
+    try {
+        const p = await getPool();
+        
+        // Revoke premium immediately
+        await p.query(
+            'UPDATE auth_users SET premium_expiry = NULL, premium_tier = 1 WHERE id = $1',
+            [userId]
+        );
+        
+        console.log('[PREMIUM] Revoked for user:', userId);
+        
+        res.json({ success: true, message: 'Premium access revoked!' });
+        
+    } catch(e) {
+        console.error('[PREMIUM REVOKE ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get user premium status (for admin)
+app.post('/api/admin/get_user_premium', async (req, res) => {
+    const { userId } = req.body;
+    
+    if (!userId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            'SELECT premium_expiry, premium_tier, username FROM auth_users WHERE id=$1',
+            [userId]
+        );
+        
+        if (r.rows.length > 0) {
+            const u = r.rows[0];
+            const isActive = u.premium_expiry && new Date(u.premium_expiry) > new Date();
+            
+            res.json({
+                success: true,
+                username: u.username,
+                premium_active: isActive,
+                premium_tier: u.premium_tier || 1,
+                expires_at: u.premium_expiry ? u.premium_expiry.toISOString() : null,
+                days_left: u.premium_expiry 
+                    ? Math.max(0, Math.ceil((new Date(u.premium_expiry) - new Date()) / (1000 * 60 * 60 * 24)))
+                    : 0
+            });
+        } else {
+            res.json({ success: false, message: 'User not found' });
+        }
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== EXCHANGE USD TO MMK ====================
 app.post('/api/exchange_usd_to_mmk', async (req, res) => {
     const { token, usd_amount } = req.body;
