@@ -2,39 +2,796 @@
 <html lang="my">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLBB Security - Offline</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Offline - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
-        .offline-box{text-align:center;color:#fff;max-width:400px}
-        .offline-icon{font-size:80px;color:#f39c12;margin-bottom:20px;animation:pulse 2s infinite}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
-        .offline-box h1{font-size:24px;margin-bottom:10px;color:#f39c12}
-        .offline-box p{font-size:14px;color:#ccc;margin-bottom:20px;line-height:1.6}
-        .retry-btn{display:inline-block;padding:12px 30px;background:#4a1c7a;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;text-decoration:none;transition:all 0.3s}
-        .retry-btn:hover{background:#5d2a92;transform:translateY(-2px)}
-        .retry-btn i{margin-right:8px}
-        .status-dot{width:12px;height:12px;background:#e74c3c;border-radius:50%;display:inline-block;margin-right:8px;animation:blink 1s infinite}
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
-        .footer-text{font-size:11px;color:#666;margin-top:30px}
+        :root {
+            --bg: #0c0e27;
+            --panel: #1a1f4b;
+            --gold: #f39c12;
+            --red: #e74c3c;
+            --green: #2ecc71;
+            --text: #fff;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        
+        body {
+            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: var(--text);
+            overflow-x: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        body.game-active {
+            background: #1a1a2e;
+        }
+        
+        /* ========== MAIN CONTAINER ========== */
+        .offline-container {
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        /* ========== TOP SECTION (Always Visible) ========== */
+        .offline-header {
+            margin-bottom: 25px;
+        }
+        
+        .offline-icon {
+            font-size: 70px;
+            color: var(--gold);
+            margin-bottom: 15px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .status-dot {
+            width: 14px;
+            height: 14px;
+            background: var(--red);
+            border-radius: 50%;
+            display: inline-block;
+            animation: blink 1.5s infinite;
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .status-dot.online {
+            background: var(--green);
+            animation: none;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.6);
+        }
+        
+        .offline-header h1 {
+            font-size: 22px;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+        
+        .offline-header p {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+        
+        /* ========== BUTTONS ========== */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .btn-retry {
+            background: var(--gold);
+            color: #000;
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+        }
+        .btn-retry:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(243, 156, 18, 0.5);
+        }
+        
+        .btn-game {
+            background: linear-gradient(135deg, #9b59b6, #e91e63);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3);
+            animation: gameBtnGlow 2s infinite;
+        }
+        .btn-game:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(233, 30, 99, 0.5);
+        }
+        @keyframes gameBtnGlow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(233, 30, 99, 0.3); }
+            50% { box-shadow: 0 4px 25px rgba(233, 30, 99, 0.6); }
+        }
+        
+        .btn-dashboard {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-dashboard:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* ========== GAME SECTION ========== */
+        .game-section {
+            display: none;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+            padding: 20px 15px;
+            border: 2px solid rgba(233, 30, 99, 0.3);
+            margin-top: 15px;
+            animation: slideUp 0.4s ease;
+        }
+        
+        .game-section.active {
+            display: block;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .game-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #e91e63;
+        }
+        
+        .game-score {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--gold);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .high-score {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            text-align: right;
+        }
+        
+        .game-canvas-container {
+            position: relative;
+            background: #1a1a2e;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 10px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        
+        canvas#gameCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #1a1a2e;
+        }
+        
+        .game-controls {
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .game-hint {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            animation: fadeInOut 2s infinite;
+        }
+        
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        
+        .game-over-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .game-over-overlay.active {
+            display: flex;
+        }
+        
+        .game-over-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--red);
+        }
+        
+        .game-over-score {
+            font-size: 16px;
+            color: var(--gold);
+        }
+        
+        .btn-restart {
+            padding: 8px 20px;
+            background: var(--gold);
+            color: #000;
+            border: none;
+            border-radius: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        /* ========== CONNECTION STATUS ========== */
+        .connection-status {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .connection-status .checking {
+            animation: dots 1.5s infinite;
+        }
+        
+        @keyframes dots {
+            0% { content: '.'; }
+            33% { content: '..'; }
+            66% { content: '...'; }
+        }
+        
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 400px) {
+            .offline-icon { font-size: 50px; }
+            .offline-header h1 { font-size: 18px; }
+            .btn { padding: 10px 18px; font-size: 12px; }
+        }
     </style>
 </head>
-<body>
-    <div class="offline-box">
-        <div class="offline-icon"><i class="fas fa-wifi"></i></div>
-        <h1><span class="status-dot"></span> No Internet Connection</h1>
-        <p>အင်တာနက်ချိတ်ဆက်မှုမရှိပါ။ သင့် WiFi သို့မဟုတ် Mobile Data ကိုစစ်ဆေးပြီး ပြန်လည်ချိတ်ဆက်ကြည့်ပါ။</p>
-        <p>Please check your internet connection and try again.</p>
-        <button class="retry-btn" onclick="retryConnection()"><i class="fas fa-redo"></i> Retry Connection</button>
+<body id="mainBody">
+    <div class="offline-container">
+        <!-- ========== HEADER ========== -->
+        <div class="offline-header">
+            <div class="offline-icon">
+                <i class="fas fa-wifi-slash" id="wifiIcon"></i>
+            </div>
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText" style="font-size:12px;color:rgba(255,255,255,0.6)">Checking connection...</span>
+            </div>
+            <h1 id="mainTitle">📴 No Internet</h1>
+            <p id="mainMsg">အင်တာနက်ချိတ်ဆက်မှုမရှိပါ။ သင့် WiFi သို့မဟုတ် Mobile Data ကိုစစ်ဆေးပါ။</p>
         </div>
-    <script>
-        function retryConnection(){
-            fetch('/').then(()=>{window.location.href='/'}).catch(()=>{alert('Still offline. Please check your connection.')});
+        
+        <!-- ========== BUTTONS ========== -->
+        <div class="btn-group">
+            <button class="btn btn-retry" onclick="retryConnection()">
+                <i class="fas fa-redo"></i> Retry
+            </button>
+            <button class="btn btn-game" id="btnGame" onclick="toggleGame()">
+                <i class="fas fa-gamepad"></i> Play Game
+            </button>
+            <a href="/dashboard" class="btn btn-dashboard" id="btnDashboard" style="display:none">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+        </div>
+        
+        <!-- ========== GAME SECTION ========== -->
+        <div class="game-section" id="gameSection">
+            <div class="game-header">
+                <div>
+                    <div class="game-title">🎮 Offline Runner</div>
+                    <div class="high-score">Best: <span id="highScore">0</span></div>
+                </div>
+                <div>
+                    <div class="game-score" id="currentScore">0</div>
+                </div>
+            </div>
+            
+            <div class="game-canvas-container" id="gameContainer">
+                <canvas id="gameCanvas" width="400" height="220"></canvas>
+                <div class="game-over-overlay" id="gameOverOverlay">
+                    <div class="game-over-text">Game Over!</div>
+                    <div class="game-over-score" id="gameOverScore">Score: 0</div>
+                    <button class="btn-restart" onclick="restartGame()">🔄 Play Again</button>
+                </div>
+            </div>
+            
+            <div class="game-controls">
+                <p class="game-hint" id="gameHint">👆 Tap or Click to Jump | ⏸️ Tap again to restart</p>
+            </div>
+        </div>
+        
+        <!-- ========== CONNECTION STATUS ========== -->
+        <div class="connection-status">
+            <span id="connectionMsg">Auto-checking every 5 seconds...</span>
+        </div>
+    </div>
+
+<script>
+// ====================================
+// OFFLINE PAGE - COMPLETE SYSTEM
+// ====================================
+
+// ==================== CONNECTION CHECK ====================
+let isOnline = false;
+let checkInterval = null;
+
+async function checkConnection() {
+    try {
+        const response = await fetch('/', { method: 'HEAD', cache: 'no-cache' });
+        if (response.ok) {
+            handleOnline();
+            return true;
         }
-        // Auto-retry every 5 seconds
-        setInterval(()=>{fetch('/').then(()=>{window.location.href='/'}).catch(()=>{})},5000);
-    </script>
+    } catch(e) {}
+    
+    handleOffline();
+    return false;
+}
+
+function handleOnline() {
+    if (!isOnline) {
+        isOnline = true;
+        document.getElementById('statusDot').classList.add('online');
+        document.getElementById('wifiIcon').className = 'fas fa-wifi';
+        document.getElementById('mainTitle').textContent = '✅ Back Online!';
+        document.getElementById('mainTitle').style.color = '#2ecc71';
+        document.getElementById('mainMsg').textContent = 'အင်တာနက်ပြန်လည်ချိတ်ဆက်ပြီးပါပြီ။ ပင်မစာမျက်နှာသို့ ပြန်သွားနိုင်ပါပြီ။';
+        document.getElementById('statusText').textContent = 'Connected';
+        document.getElementById('statusText').style.color = '#2ecc71';
+        document.getElementById('btnDashboard').style.display = 'inline-flex';
+        document.getElementById('connectionMsg').textContent = '✅ Connected! Redirecting...';
+        
+        // Auto redirect after 2 seconds
+        setTimeout(() => {
+            window.location.href = '/dashboard';
+        }, 2000);
+    }
+}
+
+function handleOffline() {
+    isOnline = false;
+    document.getElementById('statusDot').classList.remove('online');
+    document.getElementById('wifiIcon').className = 'fas fa-wifi-slash';
+    document.getElementById('mainTitle').textContent = '📴 No Internet';
+    document.getElementById('mainTitle').style.color = '#f39c12';
+    document.getElementById('mainMsg').textContent = 'အင်တာနက်ချိတ်ဆက်မှုမရှိပါ။ သင့် WiFi သို့မဟုတ် Mobile Data ကိုစစ်ဆေးပါ။';
+    document.getElementById('statusText').textContent = 'Disconnected';
+    document.getElementById('statusText').style.color = '#e74c3c';
+    document.getElementById('btnDashboard').style.display = 'none';
+    document.getElementById('connectionMsg').textContent = 'Auto-checking every 5 seconds...';
+}
+
+function retryConnection() {
+    document.getElementById('connectionMsg').textContent = 'Checking...';
+    checkConnection();
+}
+
+// ==================== GAME ENGINE ====================
+let gameRunning = false;
+let gamePaused = false;
+let score = 0;
+let highScore = 0;
+
+// Game objects
+let player = { x: 50, y: 0, width: 30, height: 30, vy: 0, jumping: false };
+let obstacles = [];
+let clouds = [];
+let groundY = 0;
+let gameSpeed = 3;
+let frameCount = 0;
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Load high score
+try {
+    highScore = parseInt(localStorage.getItem('offlineGameHighScore') || '0');
+    document.getElementById('highScore').textContent = highScore;
+} catch(e) {}
+
+function initGame() {
+    player.y = canvas.height - 40;
+    player.vy = 0;
+    player.jumping = false;
+    obstacles = [];
+    clouds = [];
+    score = 0;
+    gameSpeed = 3;
+    frameCount = 0;
+    document.getElementById('currentScore').textContent = '0';
+    document.getElementById('gameOverOverlay').classList.remove('active');
+}
+
+function toggleGame() {
+    const gameSection = document.getElementById('gameSection');
+    const btnGame = document.getElementById('btnGame');
+    
+    if (gameSection.classList.contains('active')) {
+        // Close game
+        gameSection.classList.remove('active');
+        btnGame.innerHTML = '<i class="fas fa-gamepad"></i> Play Game';
+        stopGame();
+    } else {
+        // Open game
+        gameSection.classList.add('active');
+        btnGame.innerHTML = '<i class="fas fa-times"></i> Close Game';
+        startGame();
+        document.getElementById('gameSection').scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function startGame() {
+    initGame();
+    gameRunning = true;
+    gamePaused = false;
+    document.getElementById('gameHint').textContent = '👆 Tap or Click to Jump!';
+    gameLoop();
+}
+
+function stopGame() {
+    gameRunning = false;
+    gamePaused = false;
+}
+
+function restartGame() {
+    initGame();
+    gameRunning = true;
+    gamePaused = false;
+    document.getElementById('gameHint').textContent = '👆 Tap or Click to Jump!';
+    gameLoop();
+}
+
+function gameOver() {
+    gameRunning = false;
+    document.getElementById('gameOverOverlay').classList.add('active');
+    document.getElementById('gameOverScore').textContent = 'Score: ' + score;
+    
+    // Save high score
+    if (score > highScore) {
+        highScore = score;
+        try {
+            localStorage.setItem('offlineGameHighScore', highScore.toString());
+        } catch(e) {}
+        document.getElementById('highScore').textContent = highScore;
+    }
+    
+    document.getElementById('gameHint').textContent = '👆 Tap to restart!';
+}
+
+// Jump action
+function jump() {
+    if (!gameRunning) {
+        // Restart if game over
+        if (document.getElementById('gameOverOverlay').classList.contains('active')) {
+            restartGame();
+        }
+        return;
+    }
+    
+    if (!player.jumping) {
+        player.vy = -8;
+        player.jumping = true;
+    }
+}
+
+// Event listeners
+canvas.addEventListener('click', (e) => {
+    e.preventDefault();
+    jump();
+});
+
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    jump();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        jump();
+    }
+});
+
+function gameLoop() {
+    if (!gameRunning) return;
+    
+    // Update
+    frameCount++;
+    
+    // Speed increases over time
+    if (frameCount % 300 === 0 && gameSpeed < 8) {
+        gameSpeed += 0.5;
+    }
+    
+    // Player physics
+    player.vy += 0.5; // Gravity
+    player.y += player.vy;
+    
+    // Ground collision
+    if (player.y >= canvas.height - 40) {
+        player.y = canvas.height - 40;
+        player.vy = 0;
+        player.jumping = false;
+    }
+    
+    // Generate obstacles
+    if (frameCount % 80 === 0 || (obstacles.length === 0 && frameCount > 30)) {
+        const height = 25 + Math.random() * 25;
+        obstacles.push({
+            x: canvas.width,
+            y: canvas.height - 40 - height,
+            width: 15 + Math.random() * 10,
+            height: height
+        });
+    }
+    
+    // Move obstacles
+    obstacles = obstacles.filter(obs => {
+        obs.x -= gameSpeed;
+        
+        // Collision detection
+        if (
+            player.x < obs.x + obs.width &&
+            player.x + player.width > obs.x &&
+            player.y < obs.y + obs.height &&
+            player.y + player.height > obs.y
+        ) {
+            gameOver();
+            return false;
+        }
+        
+        return obs.x > -30;
+    });
+    
+    // Generate clouds (background)
+    if (frameCount % 100 === 0) {
+        clouds.push({
+            x: canvas.width,
+            y: 20 + Math.random() * 80,
+            width: 40 + Math.random() * 30,
+            height: 15 + Math.random() * 10
+        });
+    }
+    
+    clouds = clouds.filter(cloud => {
+        cloud.x -= 0.5;
+        return cloud.x > -60;
+    });
+    
+    // Update score
+    score = Math.floor(frameCount / 6);
+    document.getElementById('currentScore').textContent = score;
+    
+    // ========== DRAW ==========
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Sky gradient
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    skyGrad.addColorStop(0, '#1a1a2e');
+    skyGrad.addColorStop(0.8, '#2d1b4e');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Stars
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    for (let i = 0; i < 15; i++) {
+        const sx = (i * 37 + frameCount * 0.1) % canvas.width;
+        const sy = (i * 23) % 150;
+        ctx.beginPath();
+        ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Clouds
+    clouds.forEach(cloud => {
+        ctx.fillStyle = 'rgba(255,255,255,0.06)';
+        ctx.beginPath();
+        ctx.ellipse(cloud.x, cloud.y, cloud.width/2, cloud.height/2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(cloud.x + 15, cloud.y - 5, cloud.width/3, cloud.height/3, 0, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    
+    // Ground
+    ctx.fillStyle = '#2d1b4e';
+    ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+    ctx.fillStyle = '#3d2b5e';
+    ctx.fillRect(0, canvas.height - 40, canvas.width, 3);
+    
+    // Ground dots
+    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+    for (let i = 0; i < 20; i++) {
+        const dx = (i * 25 - frameCount * gameSpeed * 0.5) % (canvas.width + 30) - 15;
+        ctx.beginPath();
+        ctx.arc(dx, canvas.height - 20, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    // Obstacles (Cactus style)
+    obstacles.forEach(obs => {
+        const grad = ctx.createLinearGradient(obs.x, obs.y, obs.x, obs.y + obs.height);
+        grad.addColorStop(0, '#e91e63');
+        grad.addColorStop(1, '#9b59b6');
+        ctx.fillStyle = grad;
+        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        
+        // Spikes
+        ctx.fillStyle = '#e91e63';
+        for (let s = 0; s < 4; s++) {
+            ctx.beginPath();
+            const spikeX = obs.x + s * (obs.width / 3) - 2;
+            const spikeY = obs.y - 8;
+            ctx.moveTo(spikeX, obs.y);
+            ctx.lineTo(spikeX + 3, spikeY);
+            ctx.lineTo(spikeX + 6, obs.y);
+            ctx.fill();
+        }
+    });
+    
+    // Player (Dino style)
+    const bodyGrad = ctx.createLinearGradient(player.x, player.y, player.x, player.y + player.height);
+    bodyGrad.addColorStop(0, '#2ecc71');
+    bodyGrad.addColorStop(1, '#27ae60');
+    ctx.fillStyle = bodyGrad;
+    
+    // Body
+    ctx.fillRect(player.x, player.y + 8, player.width, player.height - 8);
+    
+    // Head
+    ctx.fillStyle = '#2ecc71';
+    ctx.fillRect(player.x + 5, player.y, 20, 12);
+    
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(player.x + 16, player.y + 2, 7, 7);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(player.x + 18, player.y + 3, 3, 3);
+    
+    // Legs
+    const legOffset = player.jumping ? 3 : Math.sin(frameCount * 0.3) * 3;
+    ctx.fillStyle = '#27ae60';
+    ctx.fillRect(player.x + 3, player.y + player.height - 6, 7, 8 + legOffset);
+    ctx.fillRect(player.x + 18, player.y + player.height - 6, 7, 8 - legOffset);
+    
+    // Tail
+    ctx.fillStyle = '#2ecc71';
+    ctx.beginPath();
+    ctx.moveTo(player.x - 3, player.y + 15);
+    ctx.lineTo(player.x - 8, player.y + 10 + Math.sin(frameCount * 0.2) * 3);
+    ctx.lineTo(player.x, player.y + 20);
+    ctx.fill();
+    
+    requestAnimationFrame(gameLoop);
+}
+
+// ==================== INIT ====================
+function init() {
+    // Start connection check
+    checkConnection();
+    
+    // Auto check every 5 seconds
+    checkInterval = setInterval(checkConnection, 5000);
+    
+    // Listen for online/offline events
+    window.addEventListener('online', () => {
+        handleOnline();
+    });
+    
+    window.addEventListener('offline', () => {
+        handleOffline();
+    });
+    
+    // Listen for Service Worker messages
+    if (navigator.serviceWorker) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'ONLINE_STATUS') {
+                if (event.data.online) {
+                    handleOnline();
+                } else {
+                    handleOffline();
+                }
+            }
+        });
+        
+        // Tell SW we're ready
+        navigator.serviceWorker.ready.then((registration) => {
+            if (registration.active) {
+                registration.active.postMessage({ type: 'OFFLINE_PAGE_READY' });
+            }
+        });
+    }
+    
+    // Draw initial game canvas
+    drawInitialCanvas();
+    
+    console.log('🎮 Offline Page Ready');
+}
+
+function drawInitialCanvas() {
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#2d1b4e';
+    ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+    ctx.fillStyle = '#3d2b5e';
+    ctx.fillRect(0, canvas.height - 40, canvas.width, 3);
+    
+    ctx.fillStyle = '#2ecc71';
+    ctx.fillRect(50, canvas.height - 40 - 22 + 8, 30, 22 - 8);
+    ctx.fillRect(55, canvas.height - 40 - 30, 20, 12);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(66, canvas.height - 40 - 28, 7, 7);
+    ctx.fillStyle = '#000';
+    ctx.fillRect(68, canvas.height - 40 - 27, 3, 3);
+    ctx.fillStyle = '#27ae60';
+    ctx.fillRect(53, canvas.height - 40 - 6, 7, 8);
+    ctx.fillRect(68, canvas.height - 40 - 6, 7, 8);
+    
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = 'bold 14px "Segoe UI", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('👆 Tap to Play!', canvas.width/2, canvas.height/2 - 10);
+}
+
+// Start everything
+init();
+</script>
 </body>
 </html>
