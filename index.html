@@ -35,7 +35,7 @@
             overflow-x: hidden;
         }
 
-        /* ========== ANIMATED STARS BACKGROUND ========== */
+        /* ========== STARS BACKGROUND ========== */
         .stars-bg {
             position: fixed;
             top: 0; left: 0;
@@ -51,19 +51,19 @@
             opacity: 0;
         }
         @keyframes twinkle {
-            0%,100% { opacity: 0.1; transform: scale(0.8); }
-            50% { opacity: 0.6; transform: scale(1.3); }
+            0%,100% { opacity: 0.08; transform: scale(0.8); }
+            50% { opacity: 0.5; transform: scale(1.3); }
         }
 
-        /* ========== ANIMATED HEADER TEXT ========== */
-        .animated-header {
+        /* ========== TYPING ANIMATIONS ========== */
+        .typing-container {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             position: relative;
             z-index: 1;
         }
-        .typing-text {
-            font-size: 13px;
+        .typing-line {
+            font-size: 12px;
             font-weight: 600;
             color: var(--gold);
             letter-spacing: 2px;
@@ -71,9 +71,17 @@
             overflow: hidden;
             white-space: nowrap;
             border-right: 2px solid var(--gold);
-            animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
+            animation: typing 2.5s steps(30, end) forwards, blink-caret 0.75s step-end infinite;
             display: inline-block;
             max-width: 100%;
+        }
+        .typing-line.line2 {
+            font-size: 9px;
+            color: var(--text-muted);
+            letter-spacing: 2.5px;
+            border-right-color: var(--text-muted);
+            animation: typing 3s steps(35, end) 1s forwards, blink-caret 0.75s step-end 1s infinite;
+            width: 0;
         }
         @keyframes typing {
             from { width: 0 }
@@ -82,20 +90,6 @@
         @keyframes blink-caret {
             from, to { border-color: transparent }
             50% { border-color: var(--gold) }
-        }
-        .glitch-text {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 6px;
-            letter-spacing: 3px;
-            animation: glitch 2s infinite;
-        }
-        @keyframes glitch {
-            0%,100% { opacity: 1; transform: translateX(0); }
-            10% { opacity: 0.8; transform: translateX(-2px); }
-            20% { opacity: 1; transform: translateX(2px); }
-            30% { opacity: 0.9; transform: translateX(-1px); }
-            40% { opacity: 1; transform: translateX(0); }
         }
 
         /* ========== MAIN CONTAINER ========== */
@@ -106,455 +100,225 @@
             z-index: 1;
         }
 
-        /* ========== LOGO / HEADER REDESIGNED ========== */
+        /* ========== LOGO ========== */
         .logo-section {
             text-align: center;
-            margin-bottom: 18px;
-            position: relative;
+            margin-bottom: 16px;
         }
-        .logo-shield {
+        .logo-img {
+            width: 65px;
+            height: 65px;
+            border-radius: 16px;
+            object-fit: cover;
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 30px rgba(243,156,18,0.2);
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #1a1a3e, #0a0a1a);
+        }
+        .logo-fallback {
             width: 65px;
             height: 65px;
             background: linear-gradient(135deg, #1a1a3e, #0a0a1a);
             border: 2px solid var(--gold);
-            border-radius: 18px;
+            border-radius: 16px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 30px;
+            font-size: 28px;
             color: var(--gold);
-            margin-bottom: 10px;
-            box-shadow: 0 0 30px rgba(243,156,18,0.15), 0 0 60px rgba(243,156,18,0.05);
+            box-shadow: 0 0 30px rgba(243,156,18,0.15);
             position: relative;
         }
-        .logo-shield::after {
+        .logo-fallback::after {
             content: '';
             position: absolute;
             inset: -3px;
-            border-radius: 20px;
+            border-radius: 18px;
             background: linear-gradient(45deg, var(--gold), transparent, var(--gold));
             z-index: -1;
             opacity: 0.3;
-            animation: logoBorderGlow 3s infinite;
+            animation: logoGlow 3s infinite;
         }
-        @keyframes logoBorderGlow {
+        @keyframes logoGlow {
             0%,100% { opacity: 0.2; }
             50% { opacity: 0.5; }
         }
         .logo-title {
-            font-size: 19px;
+            font-size: 18px;
             font-weight: 700;
             color: #fff;
             letter-spacing: -0.3px;
         }
-        .logo-title span {
-            color: var(--gold);
-        }
+        .logo-title span { color: var(--gold); }
         .logo-subtitle {
-            font-size: 9px;
+            font-size: 8px;
             color: var(--text-muted);
-            margin-top: 3px;
             letter-spacing: 1.5px;
             text-transform: uppercase;
         }
 
+        /* ========== GUEST WARNING TABLE ========== */
+        .guest-warning {
+            background: rgba(231,76,60,0.06);
+            border: 1px solid rgba(231,76,60,0.2);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            display: none;
+        }
+        .guest-warning.active { display: block; }
+        .guest-warning .gw-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .guest-warning .gw-header i {
+            color: var(--red);
+            font-size: 16px;
+        }
+        .guest-warning .gw-header span {
+            color: var(--red);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .gw-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+        }
+        .gw-table th {
+            background: rgba(231,76,60,0.1);
+            color: var(--red);
+            padding: 7px 8px;
+            text-align: left;
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(231,76,60,0.2);
+        }
+        .gw-table td {
+            padding: 7px 8px;
+            color: rgba(255,255,255,0.7);
+            border-bottom: 1px solid rgba(231,76,60,0.08);
+        }
+        .gw-table tr:last-child td { border-bottom: none; }
+        .gw-table .feature-name { font-weight: 600; color: #fff; }
+        .gw-table .feature-status { text-align: center; }
+        .gw-table .available { color: var(--green); }
+        .gw-table .limited { color: var(--gold); }
+        .gw-table .locked { color: var(--red); }
+
         /* ========== CARD ========== */
         .card {
             background: var(--card);
-            border-radius: 16px;
-            padding: 22px 18px;
+            border-radius: 14px;
+            padding: 20px 16px;
             border: 1px solid rgba(255,255,255,0.05);
             box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-            margin-bottom: 14px;
-            position: relative;
-            overflow: hidden;
-        }
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(243,156,18,0.3), transparent);
+            margin-bottom: 12px;
         }
         .card-header {
             text-align: center;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
-        .card-header h2 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #fff;
-        }
-        .card-header p {
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
+        .card-header h2 { font-size: 14px; font-weight: 600; color: #fff; }
+        .card-header p { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
 
         /* ========== FORM ========== */
-        .form-group {
-            margin-bottom: 12px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 9px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-        .input-wrapper {
-            position: relative;
-        }
-        .input-wrapper .input-icon {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: rgba(255,255,255,0.2);
-            font-size: 12px;
-            pointer-events: none;
-            z-index: 1;
-        }
+        .form-group { margin-bottom: 11px; }
+        .form-group label { display: block; font-size: 9px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.6px; }
+        .input-wrapper { position: relative; }
+        .input-wrapper .input-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.18); font-size: 11px; z-index: 1; }
         .input-wrapper input {
-            width: 100%;
-            padding: 10px 10px 10px 32px;
-            background: var(--input-bg);
-            border: 1.5px solid var(--input-border);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 12px;
+            width: 100%; padding: 10px 10px 10px 32px;
+            background: var(--input-bg); border: 1.5px solid var(--input-border);
+            border-radius: 8px; color: #fff; font-size: 12px; outline: none;
             transition: all 0.3s;
-            outline: none;
-            line-height: 1.4;
         }
-        .input-wrapper input:focus {
-            border-color: var(--gold);
-            box-shadow: 0 0 0 2px rgba(243,156,18,0.08);
-        }
-        .input-wrapper input::placeholder {
-            color: rgba(255,255,255,0.15);
-            font-size: 10px;
-        }
-
-        /* Password Field Fix */
-        .pw-toggle {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            color: rgba(255,255,255,0.25);
-            font-size: 12px;
-            padding: 6px 8px;
-            z-index: 2;
-            transition: all 0.2s;
-        }
+        .input-wrapper input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(243,156,18,0.06); }
+        .input-wrapper input::placeholder { color: rgba(255,255,255,0.13); font-size: 10px; }
+        .pw-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; color: rgba(255,255,255,0.2); font-size: 11px; padding: 6px; z-index: 2; }
         .pw-toggle:hover { color: var(--gold); }
 
         /* ========== RECAPTCHA ========== */
         .recaptcha-box {
-            background: var(--input-bg);
-            border: 1.5px solid var(--input-border);
-            border-radius: 8px;
-            padding: 9px 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            user-select: none;
+            background: var(--input-bg); border: 1.5px solid var(--input-border);
+            border-radius: 8px; padding: 9px 10px; display: flex; align-items: center;
+            gap: 8px; margin-bottom: 12px; cursor: pointer; transition: all 0.3s; user-select: none;
         }
         .recaptcha-box:hover { border-color: var(--gold); }
-        .recaptcha-box.verified {
-            border-color: var(--green);
-            background: rgba(46,204,113,0.06);
-        }
-        .recaptcha-check {
-            width: 18px; height: 18px;
-            border: 2px solid rgba(255,255,255,0.25);
-            border-radius: 3px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: all 0.3s;
-        }
-        .recaptcha-box.verified .recaptcha-check {
-            background: var(--green);
-            border-color: var(--green);
-        }
-        .recaptcha-check i {
-            font-size: 9px;
-            color: #fff;
-            display: none;
-        }
+        .recaptcha-box.verified { border-color: var(--green); background: rgba(46,204,113,0.05); }
+        .recaptcha-check { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; }
+        .recaptcha-box.verified .recaptcha-check { background: var(--green); border-color: var(--green); }
+        .recaptcha-check i { font-size: 9px; color: #fff; display: none; }
         .recaptcha-box.verified .recaptcha-check i { display: block; }
-        .recaptcha-text {
-            font-size: 10px;
-            color: var(--text-muted);
-            flex: 1;
-        }
+        .recaptcha-text { font-size: 10px; color: var(--text-muted); flex: 1; }
         .recaptcha-box.verified .recaptcha-text { color: var(--green); }
 
-        /* ========== BUTTON ========== */
-        .btn {
-            width: 100%;
-            padding: 11px;
-            border: none;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .btn-login {
-            background: var(--gold);
-            color: #060a18;
-            box-shadow: 0 3px 12px rgba(243,156,18,0.25);
-            margin-bottom: 14px;
-        }
-        .btn-login:hover:not(:disabled) {
-            background: #f7a91e;
-            transform: translateY(-1px);
-            box-shadow: 0 5px 20px rgba(243,156,18,0.35);
-        }
-        .btn-login:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Divider */
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 12px 0;
-            color: var(--text-muted);
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: rgba(255,255,255,0.06);
-        }
+        /* ========== BUTTONS ========== */
+        .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+        .btn-login { background: var(--gold); color: #060a18; box-shadow: 0 3px 12px rgba(243,156,18,0.25); margin-bottom: 12px; }
+        .btn-login:hover:not(:disabled) { background: #f7a91e; transform: translateY(-1px); box-shadow: 0 5px 20px rgba(243,156,18,0.35); }
+        .btn-login:disabled { opacity: 0.4; cursor: not-allowed; }
+        .divider { display: flex; align-items: center; gap: 8px; margin: 10px 0; color: var(--text-muted); font-size: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.05); }
 
         /* ========== SOCIAL BUTTONS ========== */
-        .social-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 7px;
-            margin-bottom: 6px;
-        }
-        .social-btn {
-            padding: 9px 5px;
-            border: 1.5px solid rgba(255,255,255,0.06);
-            border-radius: 8px;
-            font-size: 9px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            color: #fff;
-            background: rgba(255,255,255,0.02);
-            position: relative;
-        }
-        .social-btn:hover:not(.disabled) {
-            transform: translateY(-2px);
-        }
-        .social-btn img {
-            width: 20px;
-            height: 20px;
-            object-fit: contain;
-        }
-        .social-btn.google:hover:not(.disabled) {
-            border-color: #4285f4;
-            background: rgba(66,133,244,0.08);
-        }
-        .social-btn.telegram:hover:not(.disabled) {
-            border-color: #0088cc;
-            background: rgba(0,136,204,0.08);
-        }
-        .social-btn.tiktok.disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-            filter: grayscale(80%);
-        }
-        .social-btn.tiktok.disabled:hover {
-            transform: none;
-            background: rgba(255,255,255,0.02);
-        }
-        .coming-soon {
-            font-size: 6px;
-            color: rgba(255,255,255,0.2);
-            position: absolute;
-            bottom: 2px;
-        }
-        .social-btn.guest {
-            grid-column: 1 / -1;
-            flex-direction: row;
-            gap: 6px;
-            font-size: 10px;
-        }
-        .social-btn.guest img {
-            width: 16px;
-            height: 16px;
-        }
-        .social-btn.guest:hover {
-            border-color: var(--gold);
-            background: rgba(243,156,18,0.08);
-        }
+        .social-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 5px; }
+        .social-btn { padding: 9px 5px; border: 1.5px solid rgba(255,255,255,0.06); border-radius: 8px; font-size: 9px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: #fff; background: rgba(255,255,255,0.02); position: relative; }
+        .social-btn:hover:not(.disabled) { transform: translateY(-2px); }
+        .social-btn img { width: 20px; height: 20px; object-fit: contain; }
+        .social-btn.google:hover:not(.disabled) { border-color: #4285f4; background: rgba(66,133,244,0.08); }
+        .social-btn.telegram:hover:not(.disabled) { border-color: #0088cc; background: rgba(0,136,204,0.08); }
+        .social-btn.tiktok.disabled { opacity: 0.3; cursor: not-allowed; filter: grayscale(80%); }
+        .social-btn.tiktok.disabled:hover { transform: none; }
+        .coming-soon { font-size: 6px; color: rgba(255,255,255,0.2); position: absolute; bottom: 2px; }
+        .social-btn.guest { grid-column: 1 / -1; flex-direction: row; gap: 6px; font-size: 10px; }
+        .social-btn.guest img { width: 16px; height: 16px; }
+        .social-btn.guest:hover { border-color: var(--gold); background: rgba(243,156,18,0.08); }
 
-        /* ========== REGISTER SECTION ========== */
+        /* ========== REGISTER ========== */
         .register-section {
-            text-align: center;
-            padding: 16px 18px;
-            background: var(--card);
-            border-radius: 16px;
+            text-align: center; padding: 15px 16px;
+            background: var(--card); border-radius: 14px;
             border: 1px solid rgba(255,255,255,0.05);
             box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-            position: relative;
-            overflow: hidden;
         }
-        .register-section::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(46,204,113,0.3), transparent);
-        }
-        .register-section h3 {
-            font-size: 14px;
-            font-weight: 600;
-            color: #fff;
-            margin-bottom: 12px;
-        }
-        .register-form {
-            display: none;
-        }
-        .register-form.active {
-            display: block;
-        }
-        .btn-register {
-            background: var(--green);
-            color: #060a18;
-            box-shadow: 0 3px 12px rgba(46,204,113,0.25);
-            margin-top: 8px;
-        }
-        .btn-register:hover {
-            background: #27ae60;
-            transform: translateY(-1px);
-            box-shadow: 0 5px 20px rgba(46,204,113,0.35);
-        }
-        .toggle-text {
-            margin-top: 10px;
-            font-size: 10px;
-            color: var(--text-muted);
-        }
-        .toggle-text a {
-            color: var(--gold);
-            cursor: pointer;
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .toggle-text a:hover { text-decoration: underline; }
+        .register-section h3 { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 10px; }
+        .register-form { display: none; }
+        .register-form.active { display: block; }
+        .btn-register { background: var(--green); color: #060a18; box-shadow: 0 3px 12px rgba(46,204,113,0.25); margin-top: 6px; }
+        .btn-register:hover { background: #27ae60; transform: translateY(-1px); }
+        .toggle-text { margin-top: 8px; font-size: 10px; color: var(--text-muted); }
+        .toggle-text a { color: var(--gold); cursor: pointer; font-weight: 600; text-decoration: none; }
 
         /* ========== MODAL ========== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.88);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(4px);
-        }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.88); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
         .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: #0f1329;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 14px;
-            padding: 20px;
-            width: 90%;
-            max-width: 390px;
-            max-height: 78vh;
-            overflow-y: auto;
-            animation: modalSlide 0.3s ease;
-        }
-        @keyframes modalSlide {
-            from { opacity: 0; transform: translateY(-15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .modal-box h3 {
-            color: var(--gold);
-            font-size: 15px;
-            margin-bottom: 12px;
-        }
-        .modal-box h4 {
-            color: #fff;
-            font-size: 11px;
-            margin: 10px 0 5px;
-            border-left: 3px solid var(--gold);
-            padding-left: 8px;
-        }
-        .modal-box p, .modal-box li {
-            font-size: 10px;
-            color: var(--text-muted);
-            line-height: 1.7;
-            margin-bottom: 4px;
-        }
+        .modal-box { background: #0f1329; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 20px; width: 90%; max-width: 390px; max-height: 78vh; overflow-y: auto; animation: modalSlide 0.3s ease; }
+        @keyframes modalSlide { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-box h3 { color: var(--gold); font-size: 15px; margin-bottom: 10px; }
+        .modal-box h4 { color: #fff; font-size: 11px; margin: 10px 0 5px; border-left: 3px solid var(--gold); padding-left: 8px; }
+        .modal-box p, .modal-box li { font-size: 10px; color: var(--text-muted); line-height: 1.7; margin-bottom: 4px; }
         .modal-box ul { margin-left: 16px; }
         .modal-box .highlight { color: var(--gold); font-weight: 600; }
-        .modal-close {
-            float: right;
-            color: var(--red);
-            cursor: pointer;
-            font-size: 18px;
-        }
+        .modal-close { float: right; color: var(--red); cursor: pointer; font-size: 18px; }
 
         /* ========== TOAST ========== */
-        .toast {
-            position: fixed;
-            top: 12px;
-            right: 12px;
-            padding: 9px 14px;
-            border-radius: 7px;
-            z-index: 9999;
-            font-size: 10px;
-            font-weight: 600;
-            display: none;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-            max-width: 260px;
-        }
+        .toast { position: fixed; top: 12px; right: 12px; padding: 9px 14px; border-radius: 7px; z-index: 9999; font-size: 10px; font-weight: 600; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); max-width: 260px; }
 
         /* ========== FOOTER ========== */
-        .footer {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 9px;
-            color: var(--text-muted);
-        }
+        .footer { text-align: center; margin-top: 10px; font-size: 8px; color: var(--text-muted); }
         .footer a { color: var(--gold); text-decoration: none; }
-        .footer a:hover { text-decoration: underline; }
         .footer span { cursor: pointer; color: var(--gold); }
 
         @media (max-width: 360px) {
-            .card { padding: 16px 12px; }
+            .card { padding: 15px 12px; }
             .social-grid { grid-template-columns: 1fr 1fr; }
-            .logo-title { font-size: 16px; }
-            .typing-text { font-size: 10px; }
+            .typing-line { font-size: 10px; }
+            .typing-line.line2 { font-size: 7px; }
         }
     </style>
 </head>
@@ -567,17 +331,71 @@
 
     <!-- Main Container -->
     <div class="main-container">
-        <!-- Animated Header Text -->
-        <div class="animated-header">
-            <div class="typing-text">⚡ Welcome to Gaming Hub ⚡</div>
-            <div class="glitch-text">SECURE • FAST • RELIABLE</div>
+        <!-- Typing Animation (Double Line) -->
+        <div class="typing-container">
+            <div class="typing-line">⚡ Welcome to Gaming Hub ⚡</div>
+            <div class="typing-line line2">SECURE • FAST • RELIABLE • 24/7</div>
         </div>
 
         <!-- Logo -->
         <div class="logo-section">
-            <div class="logo-shield">🛡️</div>
+            <!-- App Logo Image (falls back to shield icon) -->
+            <img src="https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png" 
+                 alt="SOLO M Logo" 
+                 class="logo-img"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.display='inline-flex';">
+            <div class="logo-fallback" style="display:none;">🛡️</div>
             <div class="logo-title">SOLO<span>M</span> Game Shop</div>
             <div class="logo-subtitle">MLBB Security & User Data Management</div>
+        </div>
+
+        <!-- Guest Warning Table -->
+        <div class="guest-warning" id="guestWarning">
+            <div class="gw-header">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>⚠️ Guest Account - Limited Access</span>
+            </div>
+            <table class="gw-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Guest</th>
+                        <th>Registered</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="feature-name">💰 Top Up</td>
+                        <td class="feature-status locked"><i class="fas fa-times-circle"></i> No</td>
+                        <td class="feature-status available"><i class="fas fa-check-circle"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">🛒 Buy Code</td>
+                        <td class="feature-status locked"><i class="fas fa-times-circle"></i> No</td>
+                        <td class="feature-status available"><i class="fas fa-check-circle"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">🎰 Lucky Spin</td>
+                        <td class="feature-status limited"><i class="fas fa-minus-circle"></i> Limited</td>
+                        <td class="feature-status available"><i class="fas fa-check-circle"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">💱 Exchange</td>
+                        <td class="feature-status locked"><i class="fas fa-times-circle"></i> No</td>
+                        <td class="feature-status available"><i class="fas fa-check-circle"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">📊 Data Management</td>
+                        <td class="feature-status locked"><i class="fas fa-times-circle"></i> No</td>
+                        <td class="feature-status available"><i class="fas fa-check-circle"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">💾 Save History</td>
+                        <td class="feature-status locked"><i class="fas fa-times-circle"></i> No</td>
+                        <td class="feature-status available"><i class="fas fa-check-circle"></i> Yes</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
         <!-- Login Card -->
@@ -617,23 +435,23 @@
 
             <div class="divider">or continue with</div>
 
-            <!-- Social Buttons with Real Icons -->
+            <!-- Social Buttons -->
             <div class="social-grid">
                 <button class="social-btn google" onclick="loginWithGoogle()">
-                    <img src="https://www.google.com/favicon.ico" alt="Google" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fab fa-google\'></i>';">
+                    <img src="https://www.google.com/favicon.ico" alt="Google" onerror="this.parentElement.innerHTML='<i class=\'fab fa-google\' style=\'font-size:20px\'></i><br>Google';">
                     Google
                 </button>
                 <button class="social-btn telegram" onclick="loginWithTelegram()">
-                    <img src="https://telegram.org/favicon.ico" alt="Telegram" onerror="this.style.display='none'; this.parentElement.innerHTML='<i class=\'fab fa-telegram-plane\'></i>';">
+                    <img src="https://telegram.org/favicon.ico" alt="Telegram" onerror="this.parentElement.innerHTML='<i class=\'fab fa-telegram-plane\' style=\'font-size:20px\'></i><br>Telegram';">
                     Telegram
                 </button>
                 <button class="social-btn tiktok disabled" disabled>
-                    <img src="https://www.tiktok.com/favicon.ico" alt="TikTok" style="opacity:0.5;" onerror="this.style.display='none';">
+                    <img src="https://www.tiktok.com/favicon.ico" alt="TikTok" style="opacity:0.4;">
                     TikTok
                     <span class="coming-soon">Coming Soon</span>
                 </button>
                 <button class="social-btn guest" onclick="loginAsGuest()">
-                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f39c12'%3E%3Cpath d='M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z'/%3E%3C/svg%3E" alt="Guest">
+                    <img src="https://cdn-icons-png.flaticon.com/128/1144/1144760.png" alt="Guest" onerror="this.parentElement.querySelector('img').src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22%23f39c12%22%3E%3Cpath d=%22M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z%22/%3E%3C/svg%3E';">
                     Continue as Guest
                 </button>
             </div>
@@ -698,13 +516,12 @@
             <p>SOLO M Game Shop သည် <span class="highlight">Mobile Legends: Bang Bang</span> ကစားသူများအတွက် လုံခြုံစိတ်ချရသော အကောင့်စီမံခန့်ခွဲမှုစနစ်ဖြစ်ပါသည်။</p>
             <h4>🔹 အသုံးပြုနည်း</h4>
             <ul>
-                <li><span class="highlight">၁။ Register</span> - အကောင့်အသစ်ဖွင့်ပါ</li>
-                <li><span class="highlight">၂။ Login</span> - Email/Password ဖြင့် ဝင်ပါ</li>
-                <li><span class="highlight">၃။ Dashboard</span> - လက်ကျန်ကြည့်ပါ</li>
-                <li><span class="highlight">၄။ Top Up</span> - ငွေဖြည့်ပါ</li>
-                <li><span class="highlight">၅။ Buy Code</span> - Code ဝယ်ပါ</li>
-                <li><span class="highlight">၆။ Lucky Spin</span> - ကံစမ်းပါ</li>
-                <li><span class="highlight">၇။ Exchange</span> - USD→MMK လဲပါ</li>
+                <li><span class="highlight">၁။ Register</span> - Email/Password ဖြင့် အကောင့်ဖွင့်ပါ</li>
+                <li><span class="highlight">၂။ Login</span> - အကောင့်ဝင်ပါ</li>
+                <li><span class="highlight">၃။ Top Up</span> - ငွေဖြည့်ပါ</li>
+                <li><span class="highlight">၄။ Buy Code</span> - MLBB Code ဝယ်ပါ</li>
+                <li><span class="highlight">၅။ Lucky Spin</span> - ကံစမ်းပါ</li>
+                <li><span class="highlight">၆။ Exchange</span> - USD→MMK လဲပါ</li>
             </ul>
             <h4>🔹 ဆက်သွယ်ရန်</h4>
             <p>📞 <span class="highlight">@Solo_m28</span> | 📧 <span class="highlight">gm1608295@gmail.com</span></p>
@@ -712,134 +529,49 @@
     </div>
 
 <script>
-// ====================================
-// STARS BACKGROUND
-// ====================================
 (function(){
-    const c = document.getElementById('starsBg');
-    for(let i=0; i<40; i++){
-        const s = document.createElement('div');
-        s.className = 'star';
-        const size = Math.random()*2+1;
-        s.style.cssText = `
-            width:${size}px; height:${size}px;
-            left:${Math.random()*100}%;
-            top:${Math.random()*100}%;
-            --dur:${Math.random()*3+2}s;
-            animation-delay:${Math.random()*3}s;
-        `;
-        c.appendChild(s);
-    }
+    const c=document.getElementById('starsBg');
+    for(let i=0;i<40;i++){const s=document.createElement('div');s.className='star';const sz=Math.random()*2+1;s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${Math.random()*3+2}s;animation-delay:${Math.random()*3}s;`;c.appendChild(s);}
 })();
 
-// ====================================
-// GLOBALS
-// ====================================
-let captchaVerified = false;
-
-function showToast(m,t){
-    t=t||'success';
-    const el=document.getElementById('toast');
-    el.textContent=m; el.style.display='block';
-    el.style.background=t==='success'?'#2ecc71':t==='error'?'#e74c3c':'#3498db';
-    el.style.color='#fff';
-    clearTimeout(window._tt);
-    window._tt=setTimeout(()=>{el.style.display='none';},3000);
-}
-
-function togglePassword(){
-    const inp=document.getElementById('loginPassword');
-    const ic=document.getElementById('pwIcon');
-    if(inp.type==='password'){inp.type='text';ic.className='fas fa-eye-slash';}
-    else{inp.type='password';ic.className='fas fa-eye';}
-}
-
-function verifyRecaptcha(){
-    if(captchaVerified)return;
-    captchaVerified=true;
-    const box=document.getElementById('recaptchaBox');
-    box.classList.add('verified');
-    document.getElementById('recaptchaText').textContent='Verified! ✓';
-    updateLoginBtn();
-}
-
-function updateLoginBtn(){
-    const btn=document.getElementById('loginBtn');
-    const e=document.getElementById('loginEmail').value.trim();
-    const p=document.getElementById('loginPassword').value.trim();
-    btn.disabled=!(captchaVerified&&e&&p);
-}
-
-function toggleRegister(){
-    document.getElementById('registerForm').classList.toggle('active');
-}
-
+let captchaVerified=false;
+function showToast(m,t){t=t||'success';const el=document.getElementById('toast');el.textContent=m;el.style.display='block';el.style.background=t==='success'?'#2ecc71':'#e74c3c';el.style.color='#fff';clearTimeout(window._tt);window._tt=setTimeout(()=>{el.style.display='none';},3000);}
+function togglePassword(){const i=document.getElementById('loginPassword'),ic=document.getElementById('pwIcon');if(i.type==='password'){i.type='text';ic.className='fas fa-eye-slash';}else{i.type='password';ic.className='fas fa-eye';}}
+function verifyRecaptcha(){if(captchaVerified)return;captchaVerified=true;const b=document.getElementById('recaptchaBox');b.classList.add('verified');document.getElementById('recaptchaText').textContent='Verified! ✓';updateLoginBtn();}
+function updateLoginBtn(){const b=document.getElementById('loginBtn'),e=document.getElementById('loginEmail').value.trim(),p=document.getElementById('loginPassword').value.trim();b.disabled=!(captchaVerified&&e&&p);}
+function toggleRegister(){document.getElementById('registerForm').classList.toggle('active');}
 function openUserGuide(){document.getElementById('userGuideModal').classList.add('active');}
 function closeUserGuide(){document.getElementById('userGuideModal').classList.remove('active');}
 
-// ====================================
-// LOGIN
-// ====================================
 async function handleLogin(){
-    const email=document.getElementById('loginEmail').value.trim();
-    const password=document.getElementById('loginPassword').value.trim();
-    if(!email||!password){showToast('Fill all fields','error');return;}
-    if(!captchaVerified){showToast('Verify captcha','error');return;}
+    const e=document.getElementById('loginEmail').value.trim(),p=document.getElementById('loginPassword').value.trim();
+    if(!e||!p){showToast('Fill all fields','error');return;}if(!captchaVerified){showToast('Verify captcha','error');return;}
     const btn=document.getElementById('loginBtn');btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>...';
-    try{
-        const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
-        const d=await r.json();
-        if(d.success){
-            localStorage.setItem('auth_token',d.token);
-            localStorage.setItem('user',JSON.stringify(d.user));
-            showToast('✅ Login success!');
-            setTimeout(()=>{window.location.href='/dashboard';},400);
-        }else{showToast(d.message||'Invalid','error');btn.disabled=false;btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';}
-    }catch(e){showToast('Connection error','error');btn.disabled=false;btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';}
+    try{const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:e,password:p})});const d=await r.json();if(d.success){localStorage.setItem('auth_token',d.token);localStorage.setItem('user',JSON.stringify(d.user));showToast('✅ Login success!');setTimeout(()=>{window.location.href='/dashboard';},400);}else{showToast(d.message||'Invalid','error');btn.disabled=false;btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';}}catch(er){showToast('Connection error','error');btn.disabled=false;btn.innerHTML='<i class="fas fa-sign-in-alt"></i> Login';}
 }
 
-// ====================================
-// REGISTER
-// ====================================
 async function handleRegister(){
-    const un=document.getElementById('regUsername').value.trim();
-    const em=document.getElementById('regEmail').value.trim();
-    const ph=document.getElementById('regPhone').value.trim();
-    const pw=document.getElementById('regPassword').value.trim();
-    if(!un||!em||!ph||!pw){showToast('Fill all fields','error');return;}
-    if(pw.length<6){showToast('Password min 6 chars','error');return;}
+    const un=document.getElementById('regUsername').value.trim(),em=document.getElementById('regEmail').value.trim(),ph=document.getElementById('regPhone').value.trim(),pw=document.getElementById('regPassword').value.trim();
+    if(!un||!em||!ph||!pw){showToast('Fill all fields','error');return;}if(pw.length<6){showToast('Password min 6 chars','error');return;}
     const btn=document.querySelector('.btn-register');btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>...';
-    try{
-        const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:un,email:em,phone:ph,password:pw})});
-        const d=await r.json();
-        if(d.success){
-            showToast('✅ Registered! Please login.');
-            document.getElementById('regUsername').value='';
-            document.getElementById('regEmail').value='';
-            document.getElementById('regPhone').value='';
-            document.getElementById('regPassword').value='';
-            document.getElementById('registerForm').classList.remove('active');
-        }else{showToast(d.message||'Error','error');}
-    }catch(e){showToast('Connection error','error');}
-    btn.disabled=false;btn.innerHTML='<i class="fas fa-user-plus"></i> Register';
+    try{const r=await fetch('/api/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:un,email:em,phone:ph,password:pw})});const d=await r.json();if(d.success){showToast('✅ Registered! Please login.');document.getElementById('regUsername').value='';document.getElementById('regEmail').value='';document.getElementById('regPhone').value='';document.getElementById('regPassword').value='';document.getElementById('registerForm').classList.remove('active');}else{showToast(d.message||'Error','error');}}catch(er){showToast('Connection error','error');}btn.disabled=false;btn.innerHTML='<i class="fas fa-user-plus"></i> Register';
 }
 
-// ====================================
-// SOCIAL
-// ====================================
 function loginWithGoogle(){window.location.href='/auth/google';}
 function loginWithTelegram(){window.open('https://t.me/SoloM28_bot','_blank');}
-function loginAsGuest(){localStorage.setItem('auth_token','guest');localStorage.setItem('user',JSON.stringify({username:'Guest',login_type:'guest'}));window.location.href='/dashboard';}
+function loginAsGuest(){
+    document.getElementById('guestWarning').classList.add('active');
+    localStorage.setItem('auth_token','guest');
+    localStorage.setItem('user',JSON.stringify({username:'Guest',login_type:'guest'}));
+    showToast('⚠️ Guest Mode - Limited Access','error');
+    setTimeout(()=>{window.location.href='/dashboard';},1500);
+}
 
-// ====================================
-// EVENTS
-// ====================================
 document.getElementById('loginEmail').addEventListener('input',updateLoginBtn);
 document.getElementById('loginPassword').addEventListener('input',updateLoginBtn);
 document.getElementById('loginPassword').addEventListener('keydown',function(e){if(e.key==='Enter')handleLogin();});
 document.getElementById('userGuideModal').addEventListener('click',function(e){if(e.target===this)closeUserGuide();});
 
-// Auto-redirect if logged in
 (function(){const t=localStorage.getItem('auth_token');if(t&&t!=='guest')window.location.href='/dashboard';})();
 </script>
 </body>
