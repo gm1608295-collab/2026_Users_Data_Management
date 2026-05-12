@@ -5,586 +5,430 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lucky Spin - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-   <style>
-    :root {
-        --bg: #0a0a1a;
-        --panel: #1a1f4b;
-        --gold: #f39c12;
-        --green: #2ecc71;
-        --red: #e74c3c;
-        --blue: #3498db;
-        --text: #fff;
-        --wheel-size: 300px;
-        --canvas-size: 600px;
+    <style>
+        :root {
+            --bg: #0a0a1a; --panel: #1a1f4b; --gold: #f39c12; --green: #2ecc71;
+            --red: #e74c3c; --blue: #3498db; --text: #fff;
+            --wheel-size: 300px; --canvas-size: 600px;
+            --prem-bg: #1a0a2e; --prem-panel: #2d1b4e; --prem-gold: #ffd700; --prem-accent: #c9a84c;
+            --tier1: #cd7f32; --tier2: #c0c0c0; --tier3: #ffd700;
+        }
         
-        /* Premium Colors */
-        --prem-bg: #1a0a2e;
-        --prem-panel: #2d1b4e;
-        --prem-gold: #ffd700;
-        --prem-accent: #c9a84c;
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
         
-        /* Premium Tier Colors */
-        --tier1: #cd7f32; /* Bronze */
-        --tier2: #c0c0c0; /* Silver */
-        --tier3: #ffd700; /* Gold */
-    }
-    
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-    
-    body {
-        background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
-        color: var(--text);
-        min-height: 100vh;
-        padding: 10px;
-        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        overflow-x: hidden;
-    }
-    
-    body.premium-mode { background: linear-gradient(135deg, #0a0015, #1a0a2e, #2d1050); }
-    body.premium-mode.tier2 { background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #2d2d50); }
-    body.premium-mode.tier3 { background: linear-gradient(135deg, #0a0a00, #1a1a00, #2d2d00); }
-    
-    .container { max-width: 450px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 30px; }
-    
-    /* Header */
-    .header {
-        display: flex; align-items: center; justify-content: space-between; width: 100%;
-        background: linear-gradient(to right, #4a1c7a, #1a1f4b); padding: 12px 15px;
-        border-radius: 12px; border: 2px solid var(--gold); transition: all 0.6s ease;
-    }
-    body.premium-mode .header { background: linear-gradient(to right, #6b2fa0, #2d1b4e); border-color: var(--prem-gold); box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); }
-    body.premium-mode.tier2 .header { background: linear-gradient(to right, #8b4fc0, #4d2b6e); border-color: #c0c0c0; box-shadow: 0 0 35px rgba(192,192,192,0.3); }
-    body.premium-mode.tier3 .header { background: linear-gradient(to right, #ab6fe0, #6d3b8e); border-color: #ffd700; box-shadow: 0 0 45px rgba(255,215,0,0.4); animation: headerGlowT3 2s infinite; }
-    @keyframes headerGlowT3 { 0%,100%{box-shadow:0 0 30px rgba(255,215,0,0.3)} 50%{box-shadow:0 0 60px rgba(255,215,0,0.7)} }
-    
-    .header h2 { font-size: 16px; font-weight: bold; color: var(--gold); transition: color 0.6s; }
-    body.premium-mode .header h2 { color: var(--prem-gold); text-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
-    
-    .premium-badge { display: none; background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: bold; animation: badgeGlow 2s infinite; }
-    body.premium-mode .premium-badge { display: inline-block; }
-    body.premium-mode.tier2 .premium-badge { background: linear-gradient(135deg, #c0c0c0, #808080); animation: badgeGlowT2 2s infinite; }
-    body.premium-mode.tier3 .premium-badge { background: linear-gradient(135deg, #ffd700, #ff8c00); animation: badgeGlowT3 1.5s infinite; }
-    @keyframes badgeGlow { 0%,100%{box-shadow:0 0 10px rgba(255,215,0,0.4)} 50%{box-shadow:0 0 25px rgba(255,215,0,0.9)} }
-    @keyframes badgeGlowT2 { 0%,100%{box-shadow:0 0 12px rgba(192,192,192,0.4)} 50%{box-shadow:0 0 30px rgba(192,192,192,0.9)} }
-    @keyframes badgeGlowT3 { 0%,100%{box-shadow:0 0 15px rgba(255,215,0,0.5)} 50%{box-shadow:0 0 40px rgba(255,215,0,1)} }
-    
-    /* Balance Bar */
-    .balance-bar { display: flex; gap: 8px; width: 100%; }
-    .bal-card { flex: 1; background: rgba(26, 31, 75, 0.8); border-radius: 10px; padding: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.6s ease; }
-    body.premium-mode .bal-card { background: rgba(45, 27, 78, 0.9); border-color: rgba(201, 168, 76, 0.3); }
-    .bal-label { font-size: 9px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
-    .bal-value { font-size: 18px; font-weight: bold; margin-top: 4px; }
-    .bal-value.usd { color: #85bb65; }
-    .bal-value.mmk { color: var(--gold); }
-    
-    /* Draws Status */
-    .draws-container { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    body.premium-mode .draws-container { grid-template-columns: 1fr 1fr 1fr; }
-    .draw-card { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); transition: all 0.6s ease; }
-    body.premium-mode .draw-card { background: rgba(45,27,78,0.6); }
-    .draw-card.weekly-bonus { display: none; }
-    body.premium-mode .draw-card.weekly-bonus { display: block; }
-    .draw-icon { font-size: 20px; margin-bottom: 4px; }
-    .draw-label { font-size: 9px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
-    .draw-count { font-size: 16px; font-weight: bold; color: var(--gold); margin-top: 2px; }
-    .draw-card.bought .draw-count { color: #3498db; }
-    
-    /* Wheel */
-    .wheel-container { position: relative; width: var(--wheel-size); height: var(--wheel-size); margin: 10px auto; transition: all 0.6s ease; }
-    body.premium-mode .wheel-container { filter: drop-shadow(0 0 25px rgba(255,215,0,0.4)); }
-    .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 35px; color: #ff4444; filter: drop-shadow(0 0 8px rgba(255,0,0,0.6)); transition: color 0.6s; }
-    body.premium-mode .wheel-pointer { color: #ffd700; filter: drop-shadow(0 0 12px rgba(255,215,0,0.8)); }
-    canvas#wheelCanvas { width: var(--wheel-size); height: var(--wheel-size); border-radius: 50%; border: 4px solid var(--gold); box-shadow: 0 0 30px rgba(243,156,18,0.3); transition: all 0.6s ease; }
-    body.premium-mode canvas#wheelCanvas { border-color: var(--prem-gold); box-shadow: 0 0 50px rgba(255,215,0,0.5); }
-    .spin-status { font-size: 11px; color: rgba(255,255,255,0.6); min-height: 20px; text-align: center; font-family: 'Courier New', monospace; }
-    
-    /* Buttons */
-    .btn-row { display: flex; gap: 10px; width: 100%; }
-    .btn-spin { flex: 2; padding: 14px 20px; border: none; border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer; letter-spacing: 1px; transition: all 0.3s ease; background: linear-gradient(135deg, #f39c12, #e67e22); color: #000; box-shadow: 0 5px 20px rgba(243,156,18,0.4); text-transform: uppercase; }
-    body.premium-mode .btn-spin { background: linear-gradient(135deg, #ffd700, #b8860b); box-shadow: 0 5px 30px rgba(255,215,0,0.6); animation: spinBtnGlow 2s infinite; }
-    @keyframes spinBtnGlow { 0%,100%{box-shadow:0 5px 20px rgba(255,215,0,0.4)} 50%{box-shadow:0 5px 40px rgba(255,215,0,0.8)} }
-    .btn-spin:hover:not(:disabled) { transform: translateY(-3px); }
-    .btn-spin:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; animation: none; }
-    .btn-premium { flex: 1; padding: 14px 10px; border: 2px solid var(--gold); border-radius: 30px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; background: rgba(255,255,255,0.05); color: var(--gold); text-transform: uppercase; }
-    body.premium-mode .btn-premium { background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; border-color: transparent; box-shadow: 0 5px 25px rgba(255,215,0,0.5); }
-    
-    /* Buy Table */
-    .buy-table { width: 100%; background: rgba(26,31,75,0.5); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); transition: all 0.6s ease; margin-bottom: 10px; }
-    body.premium-mode .buy-table { background: rgba(45,27,78,0.6); }
-    .buy-table.premium-draw-table { border: 1px solid rgba(255,215,0,0.3); }
-    .table-title { text-align: center; padding: 10px; font-size: 12px; font-weight: bold; color: var(--gold); background: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 1px; }
-    .table-title.premium-title { color: var(--prem-gold); }
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th { background: rgba(0,0,0,0.3); color: var(--gold); padding: 8px 5px; font-size: 8px; text-transform: uppercase; }
-    td { padding: 8px 5px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); }
-    .btn-buy { padding: 6px 14px; border: none; border-radius: 15px; font-size: 10px; font-weight: bold; cursor: pointer; background: var(--gold); color: #000; transition: all 0.3s; }
-    .btn-buy:hover { transform: scale(1.05); box-shadow: 0 3px 10px rgba(243,156,18,0.3); }
-    .btn-buy:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-    .save-text { color: #2ecc71; font-size: 9px; font-weight: bold; }
-    .rate-info { font-size: 8px; color: rgba(255,255,255,0.4); }
-    
-    /* Modals */
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
-    .modal-overlay.active { display: flex; }
-    .modal-box { background: #1a1f4b; border: 2px solid var(--gold); border-radius: 16px; padding: 20px; width: 90%; max-width: 420px; max-height: 85vh; overflow-y: auto; animation: modalSlideIn 0.4s ease; }
-    body.premium-mode .modal-box { background: #1a0a2e; border-color: var(--prem-gold); }
-    @keyframes modalSlideIn { from{opacity:0;transform:translateY(-40px) scale(0.9)} to{opacity:1;transform:translateY(0) scale(1)} }
-    .modal-box h3 { color: var(--gold); text-align: center; margin-bottom: 15px; font-size: 16px; }
-    .modal-close { float: right; color: var(--red); cursor: pointer; font-size: 24px; line-height: 1; }
-    
-    /* Result Modal */
-    .result-icon { font-size: 60px; text-align: center; margin: 10px 0; }
-    .result-text { text-align: center; font-size: 18px; font-weight: bold; margin: 10px 0; }
-    .result-amount { text-align: center; font-size: 28px; font-weight: bold; margin: 10px 0; }
-    
-    /* Premium Modal */
-    .premium-modal { background: linear-gradient(180deg, #1a0a2e, #0d0d1f) !important; border: 2px solid var(--prem-gold) !important; }
-    .premium-header { text-align: center; margin-bottom: 15px; }
-    .premium-crown { font-size: 50px; animation: crownBounce 2s infinite; }
-    @keyframes crownBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-    .premium-header h3 { color: var(--prem-gold) !important; font-size: 20px !important; margin: 5px 0 !important; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
-    .premium-subtitle { color: rgba(255,215,0,0.6); font-size: 12px; }
-    
-    .feature-title { color: var(--prem-gold); font-size: 13px; margin-bottom: 10px; text-align: center; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 8px; }
-    .prem-features { margin: 15px 0; }
-    .prem-feature { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: rgba(255,215,0,0.05); border-radius: 10px; margin-bottom: 6px; border-left: 3px solid var(--prem-gold); transition: all 0.3s; }
-    .prem-feature:hover { background: rgba(255,215,0,0.1); }
-    .prem-feature i { color: var(--prem-gold); font-size: 16px; width: 20px; text-align: center; margin-top: 2px; }
-    .prem-feature b { font-size: 12px; color: #fff; display: block; }
-    .prem-feature small { font-size: 9px; color: rgba(255,255,255,0.5); display: block; margin-top: 2px; }
-    
-    /* Compare Table */
-    .win-rate-compare { margin: 15px 0; }
-    .compare-table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    .compare-table th { background: rgba(255,215,0,0.1); color: var(--prem-gold); padding: 6px 4px; font-size: 9px; text-align: center; }
-    .compare-table td { padding: 5px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center; color: #ccc; }
-    .compare-table .highlight-row { background: rgba(233,30,99,0.1); }
-    .compare-table .highlight-row td { color: #e91e63; font-weight: bold; }
-    .compare-table .total-row { background: rgba(255,215,0,0.1); }
-    .compare-table .total-row td { color: var(--prem-gold); font-weight: bold; font-size: 11px; }
-    
-    /* Premium Packages */
-    .premium-plans { margin: 15px 0; }
-    .prem-packages { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .prem-pkg { background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 12px 6px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; }
-    .prem-pkg:hover { border-color: var(--prem-gold); transform: translateY(-3px); box-shadow: 0 5px 20px rgba(255,215,0,0.2); }
-    .prem-pkg.best { border-color: var(--prem-gold); background: rgba(255,215,0,0.08); }
-    .prem-pkg.tier2 { border-color: #c0c0c0; }
-    .prem-pkg.tier3 { border-color: #ffd700; animation: tier3Glow 2s infinite; }
-    @keyframes tier3Glow { 0%,100%{box-shadow:0 0 10px rgba(255,215,0,0.3)} 50%{box-shadow:0 0 25px rgba(255,215,0,0.6)} }
-    .best-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; font-size: 8px; padding: 3px 10px; border-radius: 10px; font-weight: bold; white-space: nowrap; }
-    .pkg-duration { font-size: 14px; font-weight: bold; color: var(--prem-gold); margin-top: 5px; }
-    .pkg-price { font-size: 16px; font-weight: bold; color: #fff; margin: 5px 0; }
-    .pkg-per-day { font-size: 9px; color: rgba(255,255,255,0.4); }
-    .pkg-save { font-size: 9px; color: #2ecc71; margin-top: 3px; font-weight: bold; }
-    .pkg-discount { font-size: 9px; color: #e74c3c; margin-top: 2px; font-weight: bold; }
-    .premium-notice { background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px; font-size: 10px; color: rgba(255,255,255,0.6); display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; border: 1px solid rgba(255,255,255,0.08); }
-    .premium-notice i { color: var(--prem-gold); font-size: 12px; margin-top: 1px; }
-
-    .pkg-status {
-    margin-top: 5px;
-    min-height: 18px;
-    }
-       
-    /* Super Prize */
-    .super-link { display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #e91e63, #9b59b6); color: #fff; border-radius: 25px; font-size: 13px; font-weight: bold; text-decoration: none; margin-top: 10px; box-shadow: 0 5px 20px rgba(233,30,99,0.5); animation: superGlow 1.5s infinite; }
-    @keyframes superGlow { 0%,100%{box-shadow:0 5px 20px rgba(233,30,99,0.4)} 50%{box-shadow:0 8px 35px rgba(233,30,99,0.8)} }
-    
-    /* Toast */
-    .toast { position: fixed; top: 15px; right: 15px; padding: 12px 18px; border-radius: 8px; z-index: 9999; font-size: 12px; font-weight: bold; display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.4); animation: toastSlide 0.3s ease; max-width: 300px; }
-    @keyframes toastSlide { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
-    
-    /* Transition Overlay */
-    .transition-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, rgba(255,215,0,0.3), rgba(0,0,0,0.95)); z-index: 999; justify-content: center; align-items: center; flex-direction: column; }
-    .transition-overlay.active { display: flex; animation: fadeIn 0.5s ease; }
-    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-    .transition-text { font-size: 32px; font-weight: bold; color: #ffd700; text-shadow: 0 0 40px rgba(255,215,0,0.8); animation: scaleIn 0.8s ease; text-align: center; }
-    @keyframes scaleIn { from{transform:scale(0.3);opacity:0} to{transform:scale(1);opacity:1} }
-    
-    /* Processing Modal */
-    .processing-modal { text-align: center; }
-    .processing-icon { font-size: 50px; animation: procBounce 1s infinite; }
-    @keyframes procBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
-    .processing-title { font-size: 16px; color: var(--prem-gold); margin: 10px 0; font-weight: bold; }
-    .progress-bar-container { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin: 15px 0; }
-    .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ff8c00); border-radius: 10px; transition: width 0.1s ease; width: 0%; }
-    .progress-text { font-size: 14px; color: #fff; font-weight: bold; }
-    .progress-subtext { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 5px; }
-    
-    /* Responsive */
-    @media (max-width: 380px) {
-        :root { --wheel-size: 250px; --canvas-size: 500px; }
-        .prem-packages { grid-template-columns: 1fr; }
-    }
-
-    /* ========== MAINTENANCE MODE ========== */
-.maintenance-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    text-align: center;
-    padding: 20px;
-}
-
-.maintenance-icon {
-    font-size: 80px;
-    color: var(--gold);
-    margin-bottom: 20px;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(1.1); }
-}
-
-.maintenance-title {
-    font-size: 22px;
-    font-weight: bold;
-    color: var(--gold);
-    margin-bottom: 10px;
-}
-
-.maintenance-subtitle {
-    font-size: 14px;
-    color: rgba(255,255,255,0.7);
-    margin-bottom: 8px;
-}
-
-.maintenance-timer {
-    font-size: 28px;
-    color: var(--gold);
-    font-family: 'Courier New', monospace;
-    margin: 15px 0;
-}
-
-.maintenance-btn {
-    display: inline-block;
-    padding: 12px 30px;
-    background: var(--gold);
-    color: #000;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: bold;
-    font-size: 14px;
-    margin-top: 10px;
-}
-
-/* ========== PAGE TIMER BANNER ========== */
-.page-timer-banner {
-    display: none;
-    background: rgba(231, 76, 60, 0.1);
-    border: 1px solid rgba(231, 76, 60, 0.3);
-    border-radius: 10px;
-    padding: 12px;
-    text-align: center;
-    margin-bottom: 10px;
-    width: 100%;
-    max-width: 450px;
-}
-
-.page-timer-banner .timer-label {
-    font-size: 10px;
-    color: var(--red);
-    margin-bottom: 5px;
-}
-
-.page-timer-banner .timer-value {
-    font-size: 18px;
-    font-weight: bold;
-    color: var(--red);
-    font-family: 'Courier New', monospace;
-}
-</style>
-    <body>
-      <body id="mainBody">
-
-    <!-- Maintenance Mode -->
-<div id="maintenanceMessage" style="display:none">
-    <div class="maintenance-container">
-        <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
-        <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
-        <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
-        <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
-        <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
-    </div>
-</div>
-
-<!-- Page Timer Banner -->
-<div class="page-timer-banner" id="pageTimerBanner">
-    <div class="timer-label">⏱️ ဤစာမျက်နှာ ယာယီပိတ်ထားပါသည်</div>
-    <div class="timer-value" id="pageTimerCountdown">--:--:--</div>
-</div>
-          
-    <!-- Toast -->
+        body {
+            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
+            color: var(--text); min-height: 100vh; padding: 10px;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden;
+        }
+        
+        body.premium-mode { background: linear-gradient(135deg, #0a0015, #1a0a2e, #2d1050); }
+        body.premium-mode.tier2 { background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #2d2d50); }
+        body.premium-mode.tier3 { 
+            background: linear-gradient(135deg, #0a0a00, #1a0a00, #2d1a00);
+            animation: tier3BgGlow 3s infinite;
+        }
+        @keyframes tier3BgGlow {
+            0%,100% { background: linear-gradient(135deg, #0a0a00, #1a0a00, #2d1a00); }
+            50% { background: linear-gradient(135deg, #1a1a00, #2d2d00, #4d3d00); }
+        }
+        
+        .container { max-width: 450px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-bottom: 30px; }
+        
+        /* ========== HEADER ========== */
+        .header {
+            display: flex; align-items: center; justify-content: space-between; width: 100%;
+            background: linear-gradient(to right, #4a1c7a, #1a1f4b); padding: 12px 15px;
+            border-radius: 12px; border: 2px solid var(--gold); transition: all 0.6s ease;
+        }
+        body.premium-mode .header { background: linear-gradient(to right, #6b2fa0, #2d1b4e); border-color: var(--prem-gold); box-shadow: 0 0 30px rgba(255, 215, 0, 0.2); }
+        body.premium-mode.tier2 .header { background: linear-gradient(to right, #8b4fc0, #4d2b6e); border-color: #c0c0c0; box-shadow: 0 0 35px rgba(192,192,192,0.3); }
+        body.premium-mode.tier3 .header { 
+            background: linear-gradient(to right, #ab6fe0, #6d3b8e); border-color: #ffd700;
+            box-shadow: 0 0 45px rgba(255,215,0,0.4); 
+            animation: headerGlowT3 2s infinite, headerBorderT3 1.5s infinite;
+        }
+        @keyframes headerGlowT3 { 0%,100%{box-shadow:0 0 30px rgba(255,215,0,0.3)} 50%{box-shadow:0 0 60px rgba(255,215,0,0.7)} }
+        @keyframes headerBorderT3 { 0%,100%{border-color:#ffd700} 25%{border-color:#ff8c00} 50%{border-color:#ffd700} 75%{border-color:#ffaa00} }
+        
+        .header h2 { font-size: 16px; font-weight: bold; color: var(--gold); transition: color 0.6s; }
+        body.premium-mode .header h2 { color: var(--prem-gold); text-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
+        body.premium-mode.tier3 .header h2 { animation: titleGlow 1s infinite; }
+        @keyframes titleGlow { 0%,100%{text-shadow:0 0 10px rgba(255,215,0,0.5)} 50%{text-shadow:0 0 25px rgba(255,215,0,1),0 0 50px rgba(255,215,0,0.5)} }
+        
+        .premium-badge { display: none; background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: bold; animation: badgeGlow 2s infinite; }
+        body.premium-mode .premium-badge { display: inline-block; }
+        body.premium-mode.tier2 .premium-badge { background: linear-gradient(135deg, #c0c0c0, #808080); animation: badgeGlowT2 2s infinite; }
+        body.premium-mode.tier3 .premium-badge { background: linear-gradient(135deg, #ffd700, #ff8c00); animation: badgeGlowT3 1s infinite; }
+        @keyframes badgeGlow { 0%,100%{box-shadow:0 0 10px rgba(255,215,0,0.4)} 50%{box-shadow:0 0 25px rgba(255,215,0,0.9)} }
+        @keyframes badgeGlowT2 { 0%,100%{box-shadow:0 0 12px rgba(192,192,192,0.4)} 50%{box-shadow:0 0 30px rgba(192,192,192,0.9)} }
+        @keyframes badgeGlowT3 { 0%,100%{box-shadow:0 0 15px rgba(255,215,0,0.5)} 50%{box-shadow:0 0 40px rgba(255,215,0,1),0 0 60px rgba(255,215,0,0.5)} }
+        
+        /* Balance Bar */
+        .balance-bar { display: flex; gap: 8px; width: 100%; }
+        .bal-card { flex: 1; background: rgba(26, 31, 75, 0.8); border-radius: 10px; padding: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.6s ease; }
+        body.premium-mode .bal-card { background: rgba(45, 27, 78, 0.9); border-color: rgba(201, 168, 76, 0.3); }
+        .bal-label { font-size: 9px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+        .bal-value { font-size: 18px; font-weight: bold; margin-top: 4px; }
+        .bal-value.usd { color: #85bb65; } .bal-value.mmk { color: var(--gold); }
+        
+        /* Draws Status */
+        .draws-container { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        body.premium-mode .draws-container { grid-template-columns: 1fr 1fr 1fr; }
+        .draw-card { background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.1); transition: all 0.6s ease; }
+        body.premium-mode .draw-card { background: rgba(45,27,78,0.6); }
+        body.premium-mode.tier3 .draw-card { border-color: rgba(255,215,0,0.2); animation: cardGlowT3 2s infinite; }
+        @keyframes cardGlowT3 { 0%,100%{border-color:rgba(255,215,0,0.2)} 50%{border-color:rgba(255,215,0,0.5)} }
+        .draw-card.weekly-bonus { display: none; }
+        body.premium-mode .draw-card.weekly-bonus { display: block; }
+        .draw-icon { font-size: 20px; margin-bottom: 4px; }
+        .draw-label { font-size: 9px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+        .draw-count { font-size: 16px; font-weight: bold; color: var(--gold); margin-top: 2px; }
+        .draw-card.bought .draw-count { color: #3498db; }
+        
+        /* Wheel */
+        .wheel-container { position: relative; width: var(--wheel-size); height: var(--wheel-size); margin: 10px auto; transition: all 0.6s ease; }
+        body.premium-mode .wheel-container { filter: drop-shadow(0 0 25px rgba(255,215,0,0.4)); }
+        body.premium-mode.tier3 .wheel-container { filter: drop-shadow(0 0 40px rgba(255,215,0,0.6)); animation: wheelGlowT3 2s infinite; }
+        @keyframes wheelGlowT3 { 0%,100%{filter:drop-shadow(0 0 30px rgba(255,215,0,0.4))} 50%{filter:drop-shadow(0 0 55px rgba(255,215,0,0.8))} }
+        .wheel-pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); z-index: 10; font-size: 35px; color: #ff4444; filter: drop-shadow(0 0 8px rgba(255,0,0,0.6)); transition: all 0.6s; }
+        body.premium-mode .wheel-pointer { color: #ffd700; filter: drop-shadow(0 0 12px rgba(255,215,0,0.8)); }
+        body.premium-mode.tier3 .wheel-pointer { animation: pointerBounce 0.5s infinite; }
+        @keyframes pointerBounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-5px)} }
+        canvas#wheelCanvas { width: var(--wheel-size); height: var(--wheel-size); border-radius: 50%; border: 4px solid var(--gold); box-shadow: 0 0 30px rgba(243,156,18,0.3); transition: all 0.6s ease; }
+        body.premium-mode canvas#wheelCanvas { border-color: var(--prem-gold); box-shadow: 0 0 50px rgba(255,215,0,0.5); }
+        body.premium-mode.tier3 canvas#wheelCanvas { border-color: #ffd700; animation: wheelBorderT3 2s infinite; }
+        @keyframes wheelBorderT3 { 0%,100%{border-color:#ffd700} 33%{border-color:#ff8c00} 66%{border-color:#ffaa00} }
+        .spin-status { font-size: 11px; color: rgba(255,255,255,0.6); min-height: 20px; text-align: center; font-family: 'Courier New', monospace; }
+        
+        /* Buttons */
+        .btn-row { display: flex; gap: 10px; width: 100%; }
+        .btn-spin { flex: 2; padding: 14px 20px; border: none; border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer; letter-spacing: 1px; transition: all 0.3s ease; background: linear-gradient(135deg, #f39c12, #e67e22); color: #000; box-shadow: 0 5px 20px rgba(243,156,18,0.4); text-transform: uppercase; }
+        body.premium-mode .btn-spin { background: linear-gradient(135deg, #ffd700, #b8860b); box-shadow: 0 5px 30px rgba(255,215,0,0.6); animation: spinBtnGlow 2s infinite; }
+        body.premium-mode.tier3 .btn-spin { animation: spinBtnGlowT3 1s infinite; }
+        @keyframes spinBtnGlow { 0%,100%{box-shadow:0 5px 20px rgba(255,215,0,0.4)} 50%{box-shadow:0 5px 40px rgba(255,215,0,0.8)} }
+        @keyframes spinBtnGlowT3 { 0%,100%{box-shadow:0 5px 25px rgba(255,215,0,0.5)} 50%{box-shadow:0 5px 50px rgba(255,215,0,1),0 0 70px rgba(255,215,0,0.5)} }
+        .btn-spin:hover:not(:disabled) { transform: translateY(-3px); }
+        .btn-spin:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; animation: none; }
+        
+        .btn-premium { flex: 1; padding: 14px 10px; border: 2px solid var(--gold); border-radius: 30px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s ease; background: rgba(255,255,255,0.05); color: var(--gold); text-transform: uppercase; }
+        body.premium-mode .btn-premium { background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; border-color: transparent; box-shadow: 0 5px 25px rgba(255,215,0,0.5); }
+        body.premium-mode.tier2 .btn-premium { background: linear-gradient(135deg, #c0c0c0, #808080); animation: premBtnGlowT2 2s infinite; }
+        body.premium-mode.tier3 .btn-premium { background: linear-gradient(135deg, #ffd700, #ff8c00); border: 2px solid #ffd700; animation: premBtnGlowT3 0.8s infinite; }
+        @keyframes premBtnGlowT2 { 0%,100%{box-shadow:0 5px 20px rgba(192,192,192,0.3)} 50%{box-shadow:0 5px 35px rgba(192,192,192,0.6)} }
+        @keyframes premBtnGlowT3 { 0%,100%{box-shadow:0 5px 25px rgba(255,215,0,0.5);transform:scale(1)} 50%{box-shadow:0 5px 50px rgba(255,215,0,1);transform:scale(1.03)} }
+        
+        /* Buy Table */
+        .buy-table { width: 100%; background: rgba(26,31,75,0.5); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); transition: all 0.6s ease; margin-bottom: 10px; }
+        body.premium-mode .buy-table { background: rgba(45,27,78,0.6); }
+        .buy-table.premium-draw-table { border: 1px solid rgba(255,215,0,0.3); }
+        body.premium-mode.tier3 .buy-table.premium-draw-table { border-color: rgba(255,215,0,0.5); animation: premiumTableGlow 2s infinite; }
+        @keyframes premiumTableGlow { 0%,100%{border-color:rgba(255,215,0,0.3)} 50%{border-color:rgba(255,215,0,0.7)} }
+        .table-title { text-align: center; padding: 10px; font-size: 12px; font-weight: bold; color: var(--gold); background: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 1px; }
+        .table-title.premium-title { color: var(--prem-gold); }
+        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        th { background: rgba(0,0,0,0.3); color: var(--gold); padding: 8px 5px; font-size: 8px; text-transform: uppercase; }
+        td { padding: 8px 5px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .btn-buy { padding: 6px 14px; border: none; border-radius: 15px; font-size: 10px; font-weight: bold; cursor: pointer; background: var(--gold); color: #000; transition: all 0.3s; }
+        .btn-buy:hover { transform: scale(1.05); box-shadow: 0 3px 10px rgba(243,156,18,0.3); }
+        .save-text { color: #2ecc71; font-size: 9px; font-weight: bold; }
+        .rate-info { font-size: 8px; color: rgba(255,255,255,0.4); }
+        
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: #1a1f4b; border: 2px solid var(--gold); border-radius: 16px; padding: 20px; width: 90%; max-width: 420px; max-height: 85vh; overflow-y: auto; animation: modalSlideIn 0.4s ease; pointer-events: auto !important; }
+        body.premium-mode .modal-box { background: #1a0a2e; border-color: var(--prem-gold); }
+        @keyframes modalSlideIn { from{opacity:0;transform:translateY(-40px) scale(0.9)} to{opacity:1;transform:translateY(0) scale(1)} }
+        .modal-box h3 { color: var(--gold); text-align: center; margin-bottom: 15px; font-size: 16px; }
+        .modal-close { float: right; color: var(--red); cursor: pointer; font-size: 24px; line-height: 1; pointer-events: auto !important; z-index: 10; position: relative; }
+        .modal-close:hover { color: #ff0000; transform: scale(1.2); transition: all 0.2s; }
+        
+        /* Result Modal */
+        .result-icon { font-size: 60px; text-align: center; margin: 10px 0; animation: resultBounce 0.5s ease; }
+        @keyframes resultBounce { 0%{transform:scale(0)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
+        .result-text { text-align: center; font-size: 18px; font-weight: bold; margin: 10px 0; }
+        .result-amount { text-align: center; font-size: 28px; font-weight: bold; margin: 10px 0; }
+        
+        /* Premium Modal */
+        .premium-modal { background: linear-gradient(180deg, #1a0a2e, #0d0d1f) !important; border: 2px solid var(--prem-gold) !important; }
+        .premium-header { text-align: center; margin-bottom: 15px; }
+        .premium-crown { font-size: 50px; animation: crownBounce 2s infinite; }
+        @keyframes crownBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        .premium-header h3 { color: var(--prem-gold) !important; font-size: 20px !important; margin: 5px 0 !important; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+        .premium-subtitle { color: rgba(255,215,0,0.6); font-size: 12px; }
+        
+        .feature-title { color: var(--prem-gold); font-size: 13px; margin-bottom: 10px; text-align: center; border-bottom: 1px solid rgba(255,215,0,0.2); padding-bottom: 8px; }
+        .prem-features { margin: 15px 0; }
+        .prem-feature { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: rgba(255,215,0,0.05); border-radius: 10px; margin-bottom: 6px; border-left: 3px solid var(--prem-gold); transition: all 0.3s; }
+        .prem-feature:hover { background: rgba(255,215,0,0.1); }
+        .prem-feature i { color: var(--prem-gold); font-size: 16px; width: 20px; text-align: center; margin-top: 2px; }
+        .prem-feature b { font-size: 12px; color: #fff; display: block; }
+        .prem-feature small { font-size: 9px; color: rgba(255,255,255,0.5); display: block; margin-top: 2px; }
+        
+        /* Compare Table */
+        .win-rate-compare { margin: 15px 0; }
+        .compare-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .compare-table th { background: rgba(255,215,0,0.1); color: var(--prem-gold); padding: 6px 4px; font-size: 9px; text-align: center; }
+        .compare-table td { padding: 5px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: center; color: #ccc; }
+        .compare-table .highlight-row { background: rgba(233,30,99,0.1); }
+        .compare-table .highlight-row td { color: #e91e63; font-weight: bold; }
+        .compare-table .total-row { background: rgba(255,215,0,0.1); }
+        .compare-table .total-row td { color: var(--prem-gold); font-weight: bold; font-size: 11px; }
+        
+        /* Premium Packages with Tier Borders */
+        .premium-plans { margin: 15px 0; }
+        .prem-packages { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        
+        .prem-pkg { 
+            background: rgba(0,0,0,0.4); border: 2px solid rgba(255,255,255,0.1); border-radius: 12px;
+            padding: 12px 6px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative;
+            overflow: hidden;
+        }
+        .prem-pkg:hover { border-color: var(--prem-gold); transform: translateY(-3px); box-shadow: 0 5px 20px rgba(255,215,0,0.2); }
+        
+        /* Tier 1 Border - Bronze Line */
+        .prem-pkg.tier1-border { border: 2px solid #cd7f32; }
+        .prem-pkg.tier1-border::before {
+            content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border-radius: 12px; background: linear-gradient(45deg, #cd7f32, #8b4513, #cd7f32);
+            z-index: -1; animation: borderRotate 3s linear infinite; opacity: 0.5;
+        }
+        
+        /* Tier 2 Border - Silver Line */
+        .prem-pkg.tier2-border { border: 2px solid #c0c0c0; }
+        .prem-pkg.tier2-border::before {
+            content: ''; position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px;
+            border-radius: 12px; background: linear-gradient(45deg, #c0c0c0, #808080, #c0c0c0);
+            z-index: -1; animation: borderRotate 2s linear infinite; opacity: 0.6;
+        }
+        
+        /* Tier 3 Border - Gold Line (Strong Animation) */
+        .prem-pkg.tier3-border { border: 2px solid #ffd700; animation: tier3PkgGlow 1.5s infinite; }
+        .prem-pkg.tier3-border::before {
+            content: ''; position: absolute; top: -3px; left: -3px; right: -3px; bottom: -3px;
+            border-radius: 12px; background: linear-gradient(45deg, #ffd700, #ff8c00, #ffd700, #ffaa00, #ffd700);
+            z-index: -1; animation: borderRotate 1s linear infinite; opacity: 0.8;
+        }
+        .prem-pkg.tier3-border::after {
+            content: ''; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px;
+            border-radius: 14px; background: linear-gradient(135deg, #ffd700, transparent, #ff8c00, transparent, #ffd700);
+            z-index: -2; animation: borderRotate 1.5s linear infinite reverse; opacity: 0.4;
+        }
+        
+        @keyframes borderRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes tier3PkgGlow {
+            0%,100% { box-shadow: 0 0 15px rgba(255,215,0,0.3); }
+            50% { box-shadow: 0 0 30px rgba(255,215,0,0.7), 0 0 60px rgba(255,215,0,0.3); }
+        }
+        
+        .prem-pkg.best { border-color: var(--prem-gold); background: rgba(255,215,0,0.08); }
+        .best-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; font-size: 8px; padding: 3px 10px; border-radius: 10px; font-weight: bold; white-space: nowrap; z-index: 5; }
+        .pkg-duration { font-size: 14px; font-weight: bold; color: var(--prem-gold); margin-top: 5px; position: relative; z-index: 1; }
+        .pkg-price { font-size: 16px; font-weight: bold; color: #fff; margin: 5px 0; position: relative; z-index: 1; }
+        .pkg-per-day { font-size: 9px; color: rgba(255,255,255,0.4); position: relative; z-index: 1; }
+        .pkg-save { font-size: 9px; color: #2ecc71; margin-top: 3px; font-weight: bold; position: relative; z-index: 1; }
+        .pkg-discount { font-size: 9px; color: #e74c3c; margin-top: 2px; font-weight: bold; position: relative; z-index: 1; }
+        .pkg-status { margin-top: 5px; min-height: 18px; position: relative; z-index: 1; }
+        
+        .premium-notice { background: rgba(255,255,255,0.05); padding: 10px 12px; border-radius: 8px; font-size: 10px; color: rgba(255,255,255,0.6); display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; border: 1px solid rgba(255,255,255,0.08); }
+        .premium-notice i { color: var(--prem-gold); font-size: 12px; margin-top: 1px; }
+        
+        /* Super Prize */
+        .super-link { display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #e91e63, #9b59b6); color: #fff; border-radius: 25px; font-size: 13px; font-weight: bold; text-decoration: none; margin-top: 10px; box-shadow: 0 5px 20px rgba(233,30,99,0.5); animation: superGlow 1.5s infinite; }
+        @keyframes superGlow { 0%,100%{box-shadow:0 5px 20px rgba(233,30,99,0.4)} 50%{box-shadow:0 8px 35px rgba(233,30,99,0.8)} }
+        
+        /* Toast */
+        .toast { position: fixed; top: 15px; right: 15px; padding: 12px 18px; border-radius: 8px; z-index: 9999; font-size: 12px; font-weight: bold; display: none; box-shadow: 0 5px 20px rgba(0,0,0,0.4); animation: toastSlide 0.3s ease; max-width: 300px; }
+        @keyframes toastSlide { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+        
+        /* Transition Overlay */
+        .transition-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, rgba(255,215,0,0.3), rgba(0,0,0,0.95)); z-index: 999; justify-content: center; align-items: center; flex-direction: column; }
+        .transition-overlay.active { display: flex; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .transition-text { font-size: 32px; font-weight: bold; color: #ffd700; text-shadow: 0 0 40px rgba(255,215,0,0.8); animation: scaleIn 0.8s ease; text-align: center; }
+        @keyframes scaleIn { from{transform:scale(0.3);opacity:0} to{transform:scale(1);opacity:1} }
+        
+        /* Processing Modal */
+        .processing-modal { text-align: center; }
+        .processing-icon { font-size: 50px; animation: procBounce 1s infinite; }
+        @keyframes procBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+        .processing-title { font-size: 16px; color: var(--prem-gold); margin: 10px 0; font-weight: bold; }
+        .progress-bar-container { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin: 15px 0; }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ff8c00); border-radius: 10px; transition: width 0.1s ease; width: 0%; }
+        .progress-text { font-size: 14px; color: #fff; font-weight: bold; }
+        .progress-subtext { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 5px; }
+        
+        /* Maintenance */
+        .maintenance-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px; }
+        .maintenance-icon { font-size: 80px; color: var(--gold); margin-bottom: 20px; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.1)} }
+        .maintenance-title { font-size: 22px; font-weight: bold; color: var(--gold); margin-bottom: 10px; }
+        .maintenance-subtitle { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 8px; }
+        .maintenance-timer { font-size: 28px; color: var(--gold); font-family: 'Courier New',monospace; margin: 15px 0; }
+        .maintenance-btn { display: inline-block; padding: 12px 30px; background: var(--gold); color: #000; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 10px; }
+        
+        .page-timer-banner { display: none; background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: 10px; padding: 12px; text-align: center; margin-bottom: 10px; width: 100%; max-width: 450px; }
+        .page-timer-banner .timer-label { font-size: 10px; color: var(--red); margin-bottom: 5px; }
+        .page-timer-banner .timer-value { font-size: 18px; font-weight: bold; color: var(--red); font-family: 'Courier New',monospace; }
+        
+        @media (max-width: 380px) {
+            :root { --wheel-size: 250px; --canvas-size: 500px; }
+            .prem-packages { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body id="mainBody">
     <div class="toast" id="toast"></div>
     
-    <!-- Premium Transition -->
     <div class="transition-overlay" id="transitionOverlay">
         <div class="transition-text" id="transitionText">👑<br>PREMIUM<br>UNLOCKED!</div>
     </div>
     
-    <!-- Processing Modal -->
     <div class="modal-overlay" id="processingModal">
         <div class="modal-box processing-modal">
             <div class="processing-icon">👑</div>
             <div class="processing-title" id="processingTitle">Processing Premium...</div>
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="progressBarFill"></div>
-            </div>
+            <div class="progress-bar-container"><div class="progress-bar-fill" id="progressBarFill"></div></div>
             <div class="progress-text" id="progressText">0%</div>
             <div class="progress-subtext">Please wait while we activate your premium features...</div>
         </div>
     </div>
     
-    <!-- Main Container -->
+    <div id="maintenanceMessage" style="display:none">
+        <div class="maintenance-container">
+            <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+            <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+            <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+            <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
+            <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
+        </div>
+    </div>
+    
+    <div class="page-timer-banner" id="pageTimerBanner">
+        <div class="timer-label">⏱️ ဤစာမျက်နှာ ယာယီပိတ်ထားပါသည်</div>
+        <div class="timer-value" id="pageTimerCountdown">--:--:--</div>
+    </div>
+
     <div class="container">
-        <!-- Header -->
         <div class="header">
-            <a href="/dashboard" style="color: inherit; text-decoration: none;">
-                <i class="fas fa-arrow-left"></i>
-            </a>
+            <a href="/dashboard" style="color:inherit;text-decoration:none"><i class="fas fa-arrow-left"></i></a>
             <h2 id="headerTitle">🎰 Lucky Spin</h2>
             <span class="premium-badge" id="premiumBadge">👑 PREMIUM</span>
         </div>
         
-        <!-- Balance -->
         <div class="balance-bar">
-            <div class="bal-card">
-                <div class="bal-label">💵 USD</div>
-                <div class="bal-value usd" id="usdBalance">$0.00</div>
-            </div>
-            <div class="bal-card">
-                <div class="bal-label">💰 MMK</div>
-                <div class="bal-value mmk" id="mmkBalance">0 Ks</div>
-            </div>
+            <div class="bal-card"><div class="bal-label">💵 USD</div><div class="bal-value usd" id="usdBalance">$0.00</div></div>
+            <div class="bal-card"><div class="bal-label">💰 MMK</div><div class="bal-value mmk" id="mmkBalance">0 Ks</div></div>
         </div>
         
-        <!-- Draws Status -->
         <div class="draws-container" id="drawsContainer">
-            <div class="draw-card" id="dailyDrawCard">
-                <div class="draw-icon">🔄</div>
-                <div class="draw-label">Daily Free</div>
-                <div class="draw-count" id="dailyCount">0</div>
-            </div>
-            <div class="draw-card bought" id="boughtDrawCard">
-                <div class="draw-icon">💳</div>
-                <div class="draw-label">Bought</div>
-                <div class="draw-count" id="boughtCount">0</div>
-            </div>
-            <div class="draw-card weekly-bonus" id="weeklyDrawCard">
-                <div class="draw-icon">🎁</div>
-                <div class="draw-label">Weekly Bonus</div>
-                <div class="draw-count" id="weeklyCount">0</div>
-            </div>
+            <div class="draw-card" id="dailyDrawCard"><div class="draw-icon">🔄</div><div class="draw-label">Daily Free</div><div class="draw-count" id="dailyCount">0</div></div>
+            <div class="draw-card bought" id="boughtDrawCard"><div class="draw-icon">💳</div><div class="draw-label">Bought</div><div class="draw-count" id="boughtCount">0</div></div>
+            <div class="draw-card weekly-bonus" id="weeklyDrawCard"><div class="draw-icon">🎁</div><div class="draw-label">Weekly Bonus</div><div class="draw-count" id="weeklyCount">0</div></div>
         </div>
         
-        <!-- Wheel -->
         <div class="wheel-container">
             <div class="wheel-pointer"><i class="fas fa-caret-down"></i></div>
             <canvas id="wheelCanvas" width="600" height="600"></canvas>
         </div>
         
-        <!-- Status -->
         <div class="spin-status" id="spinStatus">Ready to spin!</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center" id="resetCountdown"></div>
         
-        <!-- Reset Countdown -->
-        <div style="font-size: 10px; color: rgba(255,255,255,0.4); text-align: center;" id="resetCountdown"></div>
-        
-        <!-- Buttons -->
         <div class="btn-row">
             <button class="btn-spin" id="btnSpin">🎰 SPIN</button>
             <button class="btn-premium" id="btnPremium">👑 PREMIUM</button>
         </div>
         
-        <!-- Normal Draw Buy Table -->
         <div class="buy-table" id="normalBuyTable">
             <div class="table-title">💳 Buy Normal Draws</div>
-            <table>
-                <thead>
-                    <tr><th>Spins</th><th>Price</th><th>Save</th><th>Rate</th><th></th></tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1 Spin</td><td>250 Ks</td><td>-</td>
-                        <td class="rate-info">USD 35% | MMK 28%</td>
-                        <td><button class="btn-buy" data-spins="1" data-cost="250" data-type="normal">Buy</button></td>
-                    </tr>
-                    <tr>
-                        <td>3 Spins</td><td>700 Ks</td>
-                        <td class="save-text">Save 50 Ks</td>
-                        <td class="rate-info">USD 35% | MMK 28%</td>
-                        <td><button class="btn-buy" data-spins="3" data-cost="700" data-type="normal">Buy</button></td>
-                    </tr>
-                    <tr>
-                        <td>5 Spins</td><td>1,200 Ks</td>
-                        <td class="save-text">Save 50 Ks</td>
-                        <td class="rate-info">USD 35% | MMK 28%</td>
-                        <td><button class="btn-buy" data-spins="5" data-cost="1200" data-type="normal">Buy</button></td>
-                    </tr>
-                    <tr>
-                        <td>10 Spins</td><td>2,300 Ks</td>
-                        <td class="save-text">Save 200 Ks</td>
-                        <td class="rate-info">USD 35% | MMK 28%</td>
-                        <td><button class="btn-buy" data-spins="10" data-cost="2300" data-type="normal">Buy</button></td>
-                    </tr>
-                    <tr>
-                        <td>20 Spins</td><td>4,500 Ks</td>
-                        <td class="save-text">Save 500 Ks</td>
-                        <td class="rate-info">USD 35% | MMK 28%</td>
-                        <td><button class="btn-buy" data-spins="20" data-cost="4500" data-type="normal">Buy</button></td>
-                    </tr>
-                </tbody>
-            </table>
+            <table><thead><tr><th>Spins</th><th>Price</th><th>Save</th><th>Rate</th><th></th></tr></thead>
+            <tbody>
+                <tr><td>1 Spin</td><td>250 Ks</td><td>-</td><td class="rate-info">USD 35% | MMK 28%</td><td><button class="btn-buy" data-spins="1" data-cost="250">Buy</button></td></tr>
+                <tr><td>3 Spins</td><td>700 Ks</td><td class="save-text">Save 50 Ks</td><td class="rate-info">USD 35% | MMK 28%</td><td><button class="btn-buy" data-spins="3" data-cost="700">Buy</button></td></tr>
+                <tr><td>5 Spins</td><td>1,200 Ks</td><td class="save-text">Save 50 Ks</td><td class="rate-info">USD 35% | MMK 28%</td><td><button class="btn-buy" data-spins="5" data-cost="1200">Buy</button></td></tr>
+                <tr><td>10 Spins</td><td>2,300 Ks</td><td class="save-text">Save 200 Ks</td><td class="rate-info">USD 35% | MMK 28%</td><td><button class="btn-buy" data-spins="10" data-cost="2300">Buy</button></td></tr>
+                <tr><td>20 Spins</td><td>4,500 Ks</td><td class="save-text">Save 500 Ks</td><td class="rate-info">USD 35% | MMK 28%</td><td><button class="btn-buy" data-spins="20" data-cost="4500">Buy</button></td></tr>
+            </tbody></table>
         </div>
         
-        <!-- Premium Draw Buy Table -->
         <div class="buy-table premium-draw-table" id="premiumBuyTable">
             <div class="table-title premium-title">👑 Buy Premium Draws (2X Win Rate)</div>
-            <table>
-                <thead>
-                    <tr><th>Spins</th><th>Price</th><th>Save</th><th>Rate</th><th></th></tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1 Spin</td><td>450 Ks</td><td>-</td>
-                        <td class="rate-info">USD 57% | MMK 39%</td>
-                        <td><button class="btn-buy" data-spins="1" data-cost="450" data-type="premium">Buy</button></td>
-                    </tr>
-                    <tr>
-                        <td>3 Spins</td><td>1,300 Ks</td>
-                        <td class="save-text">Save 50 Ks</td>
-                        <td class="rate-info">USD 57% | MMK 39%</td>
-                        <td><button class="btn-buy" data-spins="3" data-cost="1300" data-type="premium">Buy</button></td>
-                    </tr>
-                    <tr>
-                        <td>5 Spins</td><td>2,200 Ks</td>
-                        <td class="save-text">Save 50 Ks</td>
-                        <td class="rate-info">USD 57% | MMK 39%</td>
-                        <td><button class="btn-buy" data-spins="5" data-cost="2200" data-type="premium">Buy</button></td>
-                    </tr>
-                    <tr>
-                        <td>10 Spins</td><td>4,000 Ks</td>
-                        <td class="save-text">Save 500 Ks</td>
-                        <td class="rate-info">USD 57% | MMK 39%</td>
-                        <td><button class="btn-buy" data-spins="10" data-cost="4000" data-type="premium">Buy</button></td>
-                    </tr>
-                    <tr>
-                        <td>20 Spins</td><td>8,000 Ks</td>
-                        <td class="save-text">Save 1,000 Ks</td>
-                        <td class="rate-info">USD 57% | MMK 39%</td>
-                        <td><button class="btn-buy" data-spins="20" data-cost="8000" data-type="premium">Buy</button></td>
-                    </tr>
-                </tbody>
-            </table>
+            <table><thead><tr><th>Spins</th><th>Price</th><th>Save</th><th>Rate</th><th></th></tr></thead>
+            <tbody>
+                <tr><td>1 Spin</td><td>450 Ks</td><td>-</td><td class="rate-info">USD 57% | MMK 39%</td><td><button class="btn-buy" data-spins="1" data-cost="450">Buy</button></td></tr>
+                <tr><td>3 Spins</td><td>1,300 Ks</td><td class="save-text">Save 50 Ks</td><td class="rate-info">USD 57% | MMK 39%</td><td><button class="btn-buy" data-spins="3" data-cost="1300">Buy</button></td></tr>
+                <tr><td>5 Spins</td><td>2,200 Ks</td><td class="save-text">Save 50 Ks</td><td class="rate-info">USD 57% | MMK 39%</td><td><button class="btn-buy" data-spins="5" data-cost="2200">Buy</button></td></tr>
+                <tr><td>10 Spins</td><td>4,000 Ks</td><td class="save-text">Save 500 Ks</td><td class="rate-info">USD 57% | MMK 39%</td><td><button class="btn-buy" data-spins="10" data-cost="4000">Buy</button></td></tr>
+                <tr><td>20 Spins</td><td>8,000 Ks</td><td class="save-text">Save 1,000 Ks</td><td class="rate-info">USD 57% | MMK 39%</td><td><button class="btn-buy" data-spins="20" data-cost="8000">Buy</button></td></tr>
+            </tbody></table>
         </div>
     </div>
     
-    <!-- Modal: Premium Info -->
+    <!-- Premium Modal -->
     <div class="modal-overlay" id="premiumModal">
         <div class="modal-box premium-modal">
             <span class="modal-close" onclick="closeModal('premiumModal')">&times;</span>
-            
-            <div class="premium-header">
-                <div class="premium-crown">👑</div>
-                <h3>Premium Lucky Spin</h3>
-                <p class="premium-subtitle">စွမ်းအားမြင့် ကံစမ်းမဲဘူး</p>
-            </div>
-            
-            <!-- Tier 1 Features -->
-            <div class="prem-features" id="tier1Features">
+            <div class="premium-header"><div class="premium-crown">👑</div><h3>Premium Lucky Spin</h3><p class="premium-subtitle">စွမ်းအားမြင့် ကံစမ်းမဲဘူး</p></div>
+            <div class="prem-features">
                 <h4 class="feature-title">🥉 Premium ၁ လ (Bronze)</h4>
                 <div class="prem-feature"><i class="fas fa-calendar-check"></i><div><b>နေ့စဉ် အခမဲ့ ၃ ကြိမ်</b><small>သာမန် ၁ ကြိမ်သာ</small></div></div>
                 <div class="prem-feature"><i class="fas fa-gift"></i><div><b>အပတ်စဉ် ဘောနပ်စ် +၅ ကြိမ်</b><small>အပတ်တိုင်း အခမဲ့ ၅ ကြိမ်</small></div></div>
                 <div class="prem-feature"><i class="fas fa-chart-line"></i><div><b>ဆုရနိုင်ခြေ ၂ဆ</b><small>USD ၅၇.၂% | MMK ၃၉.၃%</small></div></div>
-                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>အမြင့်ဆုံးဆု $၃.၀၀ + ၁၀၀၀ ကျပ်</b><small>သာမန် $၂.၀၀ + ၅၀၀ ကျပ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>$၃.၀၀ + ၁၀၀၀ ကျပ်</b><small>သာမန် $၂.၀၀ + ၅၀၀ ကျပ်</small></div></div>
                 <div class="prem-feature"><i class="fas fa-crown"></i><div><b>SUPER Prize</b><small>Premium သီးသန့် အထူးဆုကြီး</small></div></div>
                 <div class="prem-feature"><i class="fas fa-palette"></i><div><b>Bronze Theme</b><small>အထူးဒီဇိုင်းဖြင့် ကံစမ်းနိုင်</small></div></div>
             </div>
-            
-            <!-- Tier 2 Features -->
-            <div class="prem-features" id="tier2Features">
-                <h4 class="feature-title">🥈 Premium ၂ လ (Silver) - ၅၀% လျှော့ဈေး</h4>
+            <div class="prem-features">
+                <h4 class="feature-title">🥈 Premium ၂ လ (Silver)</h4>
                 <div class="prem-feature"><i class="fas fa-calendar-check"></i><div><b>နေ့စဉ် အခမဲ့ ၅ ကြိမ်</b><small>Tier 1 ထက် ၂ ကြိမ်ပိုသည်</small></div></div>
-                <div class="prem-feature"><i class="fas fa-gift"></i><div><b>အပတ်စဉ် ဘောနပ်စ် +၇ ကြိမ်</b><small>Tier 1 ထက် ၂ ကြိမ်ပိုသည်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-gift"></i><div><b>အပတ်စဉ် ဘောနပ်စ် +၇</b><small>Tier 1 ထက် ၂ ကြိမ်ပိုသည်</small></div></div>
                 <div class="prem-feature"><i class="fas fa-chart-line"></i><div><b>ဆုရနိုင်ခြေ ၂ဆ</b><small>USD ၅၇.၂% | MMK ၃၉.၃%</small></div></div>
-                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>ဆုအသစ်များ</b><small>$၃.၅၀ + $၄.၀၀ + ၂၀၀၀ ကျပ် + ၃၀၀၀ ကျပ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>$၃.၅၀+$၄.၀၀+၂၀၀၀+၃၀၀၀ ကျပ်</b><small>ဆုအသစ်များ</small></div></div>
                 <div class="prem-feature"><i class="fas fa-crown"></i><div><b>SUPER Prize</b><small>Premium သီးသန့် အထူးဆုကြီး</small></div></div>
                 <div class="prem-feature"><i class="fas fa-palette"></i><div><b>Silver Theme</b><small>ငွေရောင်အထူးဒီဇိုင်း</small></div></div>
             </div>
-            
-            <!-- Tier 3 Features -->
-            <div class="prem-features" id="tier3Features">
-                <h4 class="feature-title">🥇 Premium ၃ လ (Gold) - ၅၀% လျှော့ဈေး</h4>
+            <div class="prem-features">
+                <h4 class="feature-title">🥇 Premium ၃ လ (Gold)</h4>
                 <div class="prem-feature"><i class="fas fa-calendar-check"></i><div><b>နေ့စဉ် အခမဲ့ ၇ ကြိမ်</b><small>အများဆုံးလှည့်ခွင့်</small></div></div>
-                <div class="prem-feature"><i class="fas fa-gift"></i><div><b>အပတ်စဉ် ဘောနပ်စ် +၁၀ ကြိမ်</b><small>အများဆုံးဘောနပ်စ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-gift"></i><div><b>အပတ်စဉ် ဘောနပ်စ် +၁၀</b><small>အများဆုံးဘောနပ်စ်</small></div></div>
                 <div class="prem-feature"><i class="fas fa-chart-line"></i><div><b>ဆုရနိုင်ခြေ ၃ဆ</b><small>USD ၈၅.၈% | MMK ၅၈.၉%</small></div></div>
-                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>ဆုအသစ်များ</b><small>$၄.၅၀ + $၅.၀၀ + ၅၀၀၀ ကျပ်</small></div></div>
+                <div class="prem-feature"><i class="fas fa-coins"></i><div><b>$၄.၅၀+$၅.၀၀+၅၀၀၀ ကျပ်</b><small>ဆုအသစ်များ</small></div></div>
                 <div class="prem-feature"><i class="fas fa-crown"></i><div><b>SUPER Prize (၃.၆%)</b><small>အမြင့်ဆုံးပေါက်နိုင်ခြေ</small></div></div>
                 <div class="prem-feature"><i class="fas fa-palette"></i><div><b>Gold Theme + Animation</b><small>ရွှေရောင်အထူးဒီဇိုင်းနှင့် Animation များ</small></div></div>
             </div>
             
-            <!-- Compare Table -->
-            <div class="win-rate-compare">
-                <h4 class="feature-title">📊 ဆုရနိုင်ခြေ နှိုင်းယှဉ်ဇယား</h4>
-                <table class="compare-table">
-                    <thead><tr><th>ဆုအမျိုးအစား</th><th>Normal</th><th>Tier 1</th><th>Tier 2</th><th>Tier 3</th></tr></thead>
-                    <tbody>
-                        <tr><td>💵 $0.25</td><td>10.6%</td><td>-</td><td>-</td><td>-</td></tr>
-                        <tr><td>💵 $0.50</td><td>8.5%</td><td>17.9%</td><td>15%</td><td>12%</td></tr>
-                        <tr><td>💵 $0.75</td><td>7.0%</td><td>14.3%</td><td>12%</td><td>10%</td></tr>
-                        <tr><td>💵 $1.00</td><td>5.6%</td><td>12.9%</td><td>10%</td><td>8%</td></tr>
-                        <tr><td>💵 $2.00</td><td>3.5%</td><td>7.1%</td><td>6%</td><td>5%</td></tr>
-                        <tr><td>💵 $3.00</td><td>-</td><td>5.0%</td><td>4%</td><td>3%</td></tr>
-                        <tr><td>💵 $3.50</td><td>-</td><td>-</td><td>3%</td><td>-</td></tr>
-                        <tr><td>💵 $4.00</td><td>-</td><td>-</td><td>2%</td><td>-</td></tr>
-                        <tr><td>💵 $4.50</td><td>-</td><td>-</td><td>-</td><td>2%</td></tr>
-                        <tr><td>💵 $5.00</td><td>-</td><td>-</td><td>-</td><td>1.5%</td></tr>
-                        <tr><td>💰 500 Ks</td><td>28.2%</td><td>21.4%</td><td>-</td><td>-</td></tr>
-                        <tr><td>💰 1000 Ks</td><td>-</td><td>17.9%</td><td>15%</td><td>12%</td></tr>
-                        <tr><td>💰 2000 Ks</td><td>-</td><td>-</td><td>12%</td><td>10%</td></tr>
-                        <tr><td>💰 3000 Ks</td><td>-</td><td>-</td><td>8%</td><td>7%</td></tr>
-                        <tr><td>💰 5000 Ks</td><td>-</td><td>-</td><td>-</td><td>5%</td></tr>
-                        <tr><td>🔄 FREE</td><td>35.2%</td><td>-</td><td>-</td><td>-</td></tr>
-                        <tr class="highlight-row"><td>👑 SUPER</td><td>-</td><td>3.6%</td><td>3.6%</td><td>3.6%</td></tr>
-                        <tr class="total-row"><td><b>စုစုပေါင်း USD</b></td><td>35.2%</td><td>57.2%</td><td>57.2%</td><td>85.8%</td></tr>
-                    </tbody>
-                </table>
+            <div class="premium-plans">
+                <h4 class="feature-title">💳 Premium အစီအစဉ်များ</h4>
+                <div class="prem-packages" id="premPackages">
+                    <div class="prem-pkg tier1-border" id="pkgTier1" onclick="handlePremiumPurchase(1,8000,'tier1')">
+                        <div class="pkg-duration">🥉 ၁ လ</div>
+                        <div class="pkg-price" id="priceTier1">၈၀၀၀ ကျပ်</div>
+                        <div class="pkg-per-day">၂၆၇ ကျပ်/ရက်</div>
+                        <div class="pkg-status" id="statusTier1"></div>
+                    </div>
+                    <div class="prem-pkg best tier2-border" id="pkgTier2" onclick="handlePremiumPurchase(2,15000,'tier2')">
+                        <div class="best-badge" id="badgeTier2">⭐ အထူးအဆိုပြုချက်</div>
+                        <div class="pkg-duration">🥈 ၂ လ</div>
+                        <div class="pkg-price" id="priceTier2">၁၅၀၀၀ ကျပ်</div>
+                        <div class="pkg-per-day">၂၅၀ ကျပ်/ရက်</div>
+                        <div class="pkg-discount" id="discountTier2"></div>
+                        <div class="pkg-status" id="statusTier2"></div>
+                    </div>
+                    <div class="prem-pkg tier3-border" id="pkgTier3" onclick="handlePremiumPurchase(3,22000,'tier3')">
+                        <div class="best-badge" id="badgeTier3">⭐ အထူးအဆိုပြုချက်</div>
+                        <div class="pkg-duration">🥇 ၃ လ</div>
+                        <div class="pkg-price" id="priceTier3">၂၂၀၀၀ ကျပ်</div>
+                        <div class="pkg-per-day">၂၄၄ ကျပ်/ရက်</div>
+                        <div class="pkg-discount" id="discountTier3"></div>
+                        <div class="pkg-status" id="statusTier3"></div>
+                    </div>
+                </div>
             </div>
-            
-            <!-- Premium Plans -->
-<div class="premium-plans">
-    <h4 class="feature-title">💳 Premium အစီအစဉ်များ</h4>
-    <div class="prem-packages" id="premPackages">
-        <!-- Tier 1 -->
-        <div class="prem-pkg" id="pkgTier1" onclick="handlePremiumPurchase(1, 8000, 'tier1')">
-            <div class="pkg-duration">🥉 ၁ လ</div>
-            <div class="pkg-price" id="priceTier1">၈၀၀၀ ကျပ်</div>
-            <div class="pkg-per-day">၂၆၇ ကျပ်/ရက်</div>
-            <div class="pkg-status" id="statusTier1"></div>
-        </div>
-        <!-- Tier 2 -->
-        <div class="prem-pkg best tier2" id="pkgTier2" onclick="handlePremiumPurchase(2, 15000, 'tier2')">
-            <div class="best-badge" id="badgeTier2">⭐ ၅၀% လျှော့ဈေး</div>
-            <div class="pkg-duration">🥈 ၂ လ</div>
-            <div class="pkg-price" id="priceTier2"><s style="color:#888;font-size:11px">၁၅၀၀၀</s> ၇၅၀၀ ကျပ်</div>
-            <div class="pkg-per-day">၁၂၅ ကျပ်/ရက်</div>
-            <div class="pkg-discount">Tier 1 ရှိသူများ ၅၀% လျှော့ဈေး</div>
-            <div class="pkg-status" id="statusTier2"></div>
-        </div>
-        <!-- Tier 3 -->
-        <div class="prem-pkg tier3" id="pkgTier3" onclick="handlePremiumPurchase(3, 22000, 'tier3')">
-            <div class="best-badge" id="badgeTier3">⭐ ၅၀% လျှော့ဈေး</div>
-            <div class="pkg-duration">🥇 ၃ လ</div>
-            <div class="pkg-price" id="priceTier3"><s style="color:#888;font-size:11px">၂၂၀၀၀</s> ၁၁၀၀၀ ကျပ်</div>
-            <div class="pkg-per-day">၁၂၂ ကျပ်/ရက်</div>
-            <div class="pkg-discount">Tier 1/2 ရှိသူများ ၅၀% လျှော့ဈေး</div>
-            <div class="pkg-status" id="statusTier3"></div>
-        </div>
-    </div>
-</div>
             
             <div class="premium-notice">
                 <i class="fas fa-info-circle"></i>
@@ -593,102 +437,97 @@
         </div>
     </div>
     
-    <!-- Modal: Confirm -->
+    <!-- Confirm Modal -->
     <div class="modal-overlay" id="confirmModal">
-        <div class="modal-box" style="text-align:center;">
+        <div class="modal-box" style="text-align:center">
             <h3 id="confirmTitle"></h3>
-            <p id="confirmMsg" style="margin:15px 0; font-size:13px;"></p>
-            <div class="confirm-btns" style="display:flex;gap:10px;justify-content:center;margin-top:15px;">
-                <button class="btn-confirm btn-no" onclick="closeModal('confirmModal')" style="background:rgba(255,255,255,0.15);color:#fff;padding:10px 25px;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">Cancel</button>
-                <button class="btn-confirm btn-yes" id="confirmYesBtn" style="background:#2ecc71;color:#000;padding:10px 25px;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">Confirm</button>
+            <p id="confirmMsg" style="margin:15px 0;font-size:13px"></p>
+            <div style="display:flex;gap:10px;justify-content:center">
+                <button class="btn-confirm btn-no" onclick="closeModal('confirmModal')" style="background:rgba(255,255,255,0.15);color:#fff;padding:10px 25px;border:none;border-radius:20px;font-weight:bold;cursor:pointer">Cancel</button>
+                <button class="btn-confirm btn-yes" id="confirmYesBtn" style="background:#2ecc71;color:#000;padding:10px 25px;border:none;border-radius:20px;font-weight:bold;cursor:pointer">Confirm</button>
             </div>
         </div>
     </div>
     
-    <!-- Modal: Result -->
+    <!-- Result Modal -->
     <div class="modal-overlay" id="resultModal">
-        <div class="modal-box" style="text-align:center;">
+        <div class="modal-box" style="text-align:center">
             <div class="result-icon" id="resultIcon"></div>
             <div class="result-text" id="resultText"></div>
             <div class="result-amount" id="resultAmount"></div>
             <div id="resultExtra"></div>
-            <button class="btn-close" onclick="closeModal('resultModal')" style="display:block;margin:15px auto 0;padding:10px 30px;background:var(--gold);color:#000;border:none;border-radius:20px;font-weight:bold;cursor:pointer;">OK</button>
+            <button class="btn-close" onclick="closeModal('resultModal')" style="display:block;margin:15px auto 0;padding:10px 30px;background:var(--gold);color:#000;border:none;border-radius:20px;font-weight:bold;cursor:pointer">OK</button>
         </div>
-    </div>  
-    <script>
+    </div>
+
+<script>
 // ====================================
-// CONFIGURATION (Server.js SPIN_CONFIG နဲ့ ကိုက်ညီ)
+// CONFIGURATION
 // ====================================
 const CONFIG = {
     SUPER_FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform',
-    
     NORMAL_SEGMENTS: [
-        { label: 'FREE',      color: '#1abc9c', reward: 0,    type: 'free',    weight: 44 },
-        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 48 },
-        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 3  },
-        { label: '$0.25',     color: '#e74c3c', reward: 0.25, type: 'usd',     weight: 2  },
-        { label: '$0.50',     color: '#e67e22', reward: 0.50, type: 'usd',     weight: 1  },
-        { label: '$0.75',     color: '#3498db', reward: 0.75, type: 'usd',     weight: 1  },
-        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 1  },
-        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 1  }
+        { label: 'FREE', color: '#1abc9c', reward: 0, type: 'free', weight: 44 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0, type: 'thanks', weight: 48 },
+        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 3 },
+        { label: '$0.25', color: '#e74c3c', reward: 0.25, type: 'usd', weight: 2 },
+        { label: '$0.50', color: '#e67e22', reward: 0.50, type: 'usd', weight: 1 },
+        { label: '$0.75', color: '#3498db', reward: 0.75, type: 'usd', weight: 1 },
+        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 1 },
+        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 1 }
     ],
-    
     NORMAL_BUY_SEGMENTS: [
-        { label: 'FREE',      color: '#1abc9c', reward: 0,    type: 'free',    weight: 40 },
-        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 50 },
-        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 5  },
-        { label: '$0.25',     color: '#e74c3c', reward: 0.25, type: 'usd',     weight: 3  },
-        { label: '$0.50',     color: '#e67e22', reward: 0.50, type: 'usd',     weight: 2  },
-        { label: '$0.75',     color: '#3498db', reward: 0.75, type: 'usd',     weight: 1  },
-        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 1  },
-        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 1  }
+        { label: 'FREE', color: '#1abc9c', reward: 0, type: 'free', weight: 40 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0, type: 'thanks', weight: 50 },
+        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 5 },
+        { label: '$0.25', color: '#e74c3c', reward: 0.25, type: 'usd', weight: 3 },
+        { label: '$0.50', color: '#e67e22', reward: 0.50, type: 'usd', weight: 2 },
+        { label: '$0.75', color: '#3498db', reward: 0.75, type: 'usd', weight: 1 },
+        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 1 },
+        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 1 }
     ],
-    
     PREMIUM_BUY_SEGMENTS: [
-        { label: 'FREE',      color: '#1abc9c', reward: 0,    type: 'free',    weight: 40 },
-        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 40 },
-        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 6  },
-        { label: '$0.25',     color: '#e74c3c', reward: 0.25, type: 'usd',     weight: 3  },
-        { label: '$0.50',     color: '#e67e22', reward: 0.50, type: 'usd',     weight: 2  },
-        { label: '$0.75',     color: '#3498db', reward: 0.75, type: 'usd',     weight: 1  },
-        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 1  },
-        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 1  }
+        { label: 'FREE', color: '#1abc9c', reward: 0, type: 'free', weight: 40 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0, type: 'thanks', weight: 40 },
+        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 6 },
+        { label: '$0.25', color: '#e74c3c', reward: 0.25, type: 'usd', weight: 3 },
+        { label: '$0.50', color: '#e67e22', reward: 0.50, type: 'usd', weight: 2 },
+        { label: '$0.75', color: '#3498db', reward: 0.75, type: 'usd', weight: 1 },
+        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 1 },
+        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 1 }
     ],
-    
     PREMIUM_TIER1_SEGMENTS: [
-        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 18 },
-        { label: '1000 Ks',   color: '#c9a84c', reward: 1000, type: 'mmk',     weight: 14 },
-        { label: '$0.50',     color: '#e74c3c', reward: 0.50, type: 'usd',     weight: 17 },
-        { label: '$0.75',     color: '#e67e22', reward: 0.75, type: 'usd',     weight: 15 },
-        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 12 },
-        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 9  },
-        { label: '$3.00',     color: '#e91e63', reward: 3.00, type: 'usd',     weight: 6  },
-        { label: 'SUPER',     color: '#ff1744', reward: 0,    type: 'super',   weight: 5  },
-        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 5  }
+        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 18 },
+        { label: '1000 Ks', color: '#c9a84c', reward: 1000, type: 'mmk', weight: 14 },
+        { label: '$0.50', color: '#e74c3c', reward: 0.50, type: 'usd', weight: 17 },
+        { label: '$0.75', color: '#e67e22', reward: 0.75, type: 'usd', weight: 15 },
+        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 12 },
+        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 9 },
+        { label: '$3.00', color: '#e91e63', reward: 3.00, type: 'usd', weight: 6 },
+        { label: 'SUPER', color: '#ff1744', reward: 0, type: 'super', weight: 5 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0, type: 'thanks', weight: 5 }
     ],
-    
     PREMIUM_TIER2_SEGMENTS: [
-        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 14 },
-        { label: '1000 Ks',   color: '#c9a84c', reward: 1000, type: 'mmk',     weight: 11 },
-        { label: '$0.50',     color: '#e74c3c', reward: 0.50, type: 'usd',     weight: 12 },
-        { label: '$0.75',     color: '#e67e22', reward: 0.75, type: 'usd',     weight: 11 },
-        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 10 },
-        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 7  },
-        { label: '$3.00',     color: '#e91e63', reward: 3.00, type: 'usd',     weight: 5  },
-        { label: 'SUPER',     color: '#ff1744', reward: 0,    type: 'super',   weight: 3  },
-        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 25 }
+        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 14 },
+        { label: '1000 Ks', color: '#c9a84c', reward: 1000, type: 'mmk', weight: 11 },
+        { label: '$0.50', color: '#e74c3c', reward: 0.50, type: 'usd', weight: 12 },
+        { label: '$0.75', color: '#e67e22', reward: 0.75, type: 'usd', weight: 11 },
+        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 10 },
+        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 7 },
+        { label: '$3.00', color: '#e91e63', reward: 3.00, type: 'usd', weight: 5 },
+        { label: 'SUPER', color: '#ff1744', reward: 0, type: 'super', weight: 3 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0, type: 'thanks', weight: 25 }
     ],
-    
     PREMIUM_TIER3_SEGMENTS: [
-        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 12 },
-        { label: '1000 Ks',   color: '#c9a84c', reward: 1000, type: 'mmk',     weight: 10 },
-        { label: '$0.50',     color: '#e74c3c', reward: 0.50, type: 'usd',     weight: 15 },
-        { label: '$0.75',     color: '#e67e22', reward: 0.75, type: 'usd',     weight: 11 },
-        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 7  },
-        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 5  },
-        { label: '$3.00',     color: '#e91e63', reward: 3.00, type: 'usd',     weight: 4  },
-        { label: 'SUPER',     color: '#ff1744', reward: 0,    type: 'super',   weight: 4  },
-        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 34 }
+        { label: '500 Ks', color: '#f39c12', reward: 500, type: 'mmk', weight: 12 },
+        { label: '1000 Ks', color: '#c9a84c', reward: 1000, type: 'mmk', weight: 10 },
+        { label: '$0.50', color: '#e74c3c', reward: 0.50, type: 'usd', weight: 15 },
+        { label: '$0.75', color: '#e67e22', reward: 0.75, type: 'usd', weight: 11 },
+        { label: '$1.00', color: '#2ecc71', reward: 1.00, type: 'usd', weight: 7 },
+        { label: '$2.00', color: '#9b59b6', reward: 2.00, type: 'usd', weight: 5 },
+        { label: '$3.00', color: '#e91e63', reward: 3.00, type: 'usd', weight: 4 },
+        { label: 'SUPER', color: '#ff1744', reward: 0, type: 'super', weight: 4 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0, type: 'thanks', weight: 34 }
     ]
 };
 
@@ -701,28 +540,23 @@ const State = {
     mmkBalance: 0, usdBalance: 0, premiumExpiry: null, maxDailyDraws: 1,
     
     getTotalDraws() { return this.dailyDraws + this.boughtDraws + this.weeklyBonusDraws; },
-    
     getDrawSource() {
         if (this.dailyDraws > 0) return 'daily';
         if (this.isPremium && this.weeklyBonusDraws > 0) return 'weekly_bonus';
         if (this.boughtDraws > 0) return 'bought';
         return null;
     },
-    
     consumeDraw(source) {
         switch(source) { case 'daily': if(this.dailyDraws>0)this.dailyDraws--; break; case 'weekly_bonus': if(this.weeklyBonusDraws>0)this.weeklyBonusDraws--; break; case 'bought': if(this.boughtDraws>0)this.boughtDraws--; break; }
         this.save();
     },
-    
     getPremiumSegments() {
         switch(this.premiumTier) { case 1: return CONFIG.PREMIUM_TIER1_SEGMENTS; case 2: return CONFIG.PREMIUM_TIER2_SEGMENTS; case 3: return CONFIG.PREMIUM_TIER3_SEGMENTS; default: return CONFIG.PREMIUM_TIER1_SEGMENTS; }
     },
-    
     getSegmentsForSource(source) {
         if (!this.isPremium) { return (source === 'daily') ? CONFIG.NORMAL_SEGMENTS : CONFIG.NORMAL_BUY_SEGMENTS; }
-        else { if (source === 'daily' || source === 'weekly_bonus') { return this.getPremiumSegments(); } else { return CONFIG.PREMIUM_BUY_SEGMENTS; } }
+        else { if (source === 'daily' || source === 'weekly_bonus') return this.getPremiumSegments(); else return CONFIG.PREMIUM_BUY_SEGMENTS; }
     },
-    
     save() { try { localStorage.setItem('spinStateV6', JSON.stringify({ isPremium:this.isPremium, premiumTier:this.premiumTier, dailyDraws:this.dailyDraws, boughtDraws:this.boughtDraws, weeklyBonusDraws:this.weeklyBonusDraws, wheelAngle:this.wheelAngle, maxDailyDraws:this.maxDailyDraws, timestamp:Date.now() })); } catch(e) {} },
     load() { try { const d=JSON.parse(localStorage.getItem('spinStateV6')); if(d){ this.isPremium=d.isPremium||false; this.premiumTier=d.premiumTier||0; this.dailyDraws=d.dailyDraws||0; this.boughtDraws=d.boughtDraws||0; this.weeklyBonusDraws=d.weeklyBonusDraws||0; this.wheelAngle=d.wheelAngle||0; this.maxDailyDraws=d.maxDailyDraws||1; } } catch(e) {} }
 };
@@ -734,43 +568,22 @@ const API = {
     getToken() { return localStorage.getItem('auth_token'); },
     isGuest() { const t=this.getToken(); return !t||t==='guest'; },
     headers() { return {'Content-Type':'application/json'}; },
-    
     async syncAll() {
         if(this.isGuest()) return null;
-        const token=this.getToken();
-        try {
-            const [balRes,usdRes,premRes]=await Promise.all([
-                fetch('/api/get_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token})}).then(r=>r.json()),
-                fetch('/api/get_usd_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token})}).then(r=>r.json()),
-                fetch('/api/get_premium_status',{method:'POST',headers:this.headers(),body:JSON.stringify({token})}).then(r=>r.json())
-            ]);
-            return { mmkBalance:parseFloat(balRes.balance||0), usdBalance:parseFloat(usdRes.usd_balance||0), isPremium:!!(premRes.success&&premRes.premium_active), premiumTier:premRes.premium_tier||1, premiumExpiry:premRes.expires_at||null, dailyDrawsRemaining:premRes.daily_draws_remaining||0, maxDailyDraws:premRes.max_daily_draws||1 };
-        } catch(e) { return null; }
+        try { const [b,u,p]=await Promise.all([fetch('/api/get_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json()),fetch('/api/get_usd_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json()),fetch('/api/get_premium_status',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json())]); return { mmkBalance:parseFloat(b.balance||0), usdBalance:parseFloat(u.usd_balance||0), isPremium:!!(p.success&&p.premium_active), premiumTier:p.premium_tier||1, premiumExpiry:p.expires_at||null, dailyDrawsRemaining:p.daily_draws_remaining||0, maxDailyDraws:p.max_daily_draws||1 }; } catch(e) { return null; }
     },
-    
     async executeSpin(source) {
         if(this.isGuest()) return this._guestSpin(source);
-        try { const r=await fetch('/api/spin/execute',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),spin_source:source})}); return await r.json(); }
-        catch(e) { return null; }
+        try { return await (await fetch('/api/spin/execute',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),spin_source:source})})).json(); } catch(e) { return null; }
     },
-    
-    _guestSpin(source) {
-        const segs=State.getSegmentsForSource(source);
-        const tw=segs.reduce((s,x)=>s+x.weight,0); let rand=Math.random()*tw, wi=0;
-        for(let i=0;i<segs.length;i++){rand-=segs[i].weight;if(rand<=0){wi=i;break;}}
-        return {success:true,winIndex:wi,reward:segs[wi],mmkBalance:State.mmkBalance,usdBalance:State.usdBalance};
-    },
-    
+    _guestSpin(source) { const segs=State.getSegmentsForSource(source); const tw=segs.reduce((s,x)=>s+x.weight,0); let rand=Math.random()*tw, wi=0; for(let i=0;i<segs.length;i++){rand-=segs[i].weight;if(rand<=0){wi=i;break;}} return {success:true,winIndex:wi,reward:segs[wi],mmkBalance:State.mmkBalance,usdBalance:State.usdBalance}; },
     async buySpins(spins,cost) {
         if(this.isGuest()) return {success:false,message:'Login required'};
-        try { const r=await fetch('/api/deduct_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),amount:cost,reason:'Buy '+spins+' spins'})}); const d=await r.json(); if(d.success){State.boughtDraws+=spins;State.mmkBalance=d.new_balance;State.save();} return d; }
-        catch(e) { return {success:false,message:'Network error'}; }
+        try { const d=await (await fetch('/api/deduct_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),amount:cost,reason:'Buy '+spins+' spins'})})).json(); if(d.success){State.boughtDraws+=spins;State.mmkBalance=d.new_balance;State.save();} return d; } catch(e) { return {success:false,message:'Network error'}; }
     },
-    
     async buyPremium(months,cost,tier) {
         if(this.isGuest()) return {success:false,message:'Login required'};
-        try { const r=await fetch('/api/buy_premium',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),months,cost,tier})}); return await r.json(); }
-        catch(e) { return {success:false,message:'Network error'}; }
+        try { return await (await fetch('/api/buy_premium',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),months,cost,tier})})).json(); } catch(e) { return {success:false,message:'Network error'}; }
     }
 };
 
@@ -781,41 +594,17 @@ const WheelEngine = {
     canvas: document.getElementById('wheelCanvas'), ctx: document.getElementById('wheelCanvas').getContext('2d'),
     getSegments() { return State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS; },
     getArcSize() { return (2*Math.PI)/this.getSegments().length; },
-    
     draw(angle=0) {
         const segs=this.getSegments(), cx=300, cy=300, r=270, arc=this.getArcSize();
         this.ctx.clearRect(0,0,600,600);
         this.ctx.beginPath(); this.ctx.arc(cx,cy,r+8,0,2*Math.PI);
         this.ctx.fillStyle=State.isPremium?'rgba(255,215,0,0.15)':'rgba(243,156,18,0.08)'; this.ctx.fill();
-        segs.forEach((s,i)=>{
-            const sa=i*arc+angle, ea=sa+arc;
-            this.ctx.beginPath(); this.ctx.moveTo(cx,cy); this.ctx.arc(cx,cy,r,sa,ea); this.ctx.closePath();
-            const g=this.ctx.createRadialGradient(cx,cy,r*0.3,cx,cy,r); g.addColorStop(0,this._light(s.color,60)); g.addColorStop(1,s.color);
-            this.ctx.fillStyle=g; this.ctx.fill();
-            this.ctx.strokeStyle=State.isPremium?'rgba(255,215,0,0.8)':'rgba(255,215,100,0.4)'; this.ctx.lineWidth=2.5; this.ctx.stroke();
-            this.ctx.save(); this.ctx.translate(cx,cy); this.ctx.rotate(sa+arc/2);
-            this.ctx.fillStyle='#fff'; this.ctx.font='bold 13px Segoe UI'; this.ctx.shadowColor='rgba(0,0,0,0.8)'; this.ctx.shadowBlur=6;
-            this.ctx.fillText(s.label,r*0.62,5); this.ctx.restore();
-        });
-        this.ctx.beginPath(); this.ctx.arc(cx,cy,r+3,0,2*Math.PI);
-        this.ctx.strokeStyle=State.isPremium?'#ffd700':'#f39c12'; this.ctx.lineWidth=4; this.ctx.stroke();
-        this.ctx.beginPath(); this.ctx.arc(cx,cy,35,0,2*Math.PI);
-        const hg=this.ctx.createRadialGradient(cx,cy,0,cx,cy,35); hg.addColorStop(0,State.isPremium?'#4a1c7a':'#2c3e50'); hg.addColorStop(1,State.isPremium?'#1a0a2e':'#1a1f4b');
-        this.ctx.fillStyle=hg; this.ctx.fill();
-        this.ctx.strokeStyle=State.isPremium?'#ffd700':'#f39c12'; this.ctx.lineWidth=3; this.ctx.stroke();
-        this.ctx.fillStyle=State.isPremium?'#ffd700':'#f39c12'; this.ctx.font='bold 11px Segoe UI';
-        this.ctx.textAlign='center'; this.ctx.textBaseline='middle'; this.ctx.shadowBlur=0;
-        const tt=State.premiumTier>=2?' T'+State.premiumTier:'';
-        this.ctx.fillText(State.isPremium?'PREMIUM'+tt:'SPIN',cx,cy);
+        segs.forEach((s,i)=>{const sa=i*arc+angle,ea=sa+arc;this.ctx.beginPath();this.ctx.moveTo(cx,cy);this.ctx.arc(cx,cy,r,sa,ea);this.ctx.closePath();const g=this.ctx.createRadialGradient(cx,cy,r*0.3,cx,cy,r);g.addColorStop(0,this._light(s.color,60));g.addColorStop(1,s.color);this.ctx.fillStyle=g;this.ctx.fill();this.ctx.strokeStyle=State.isPremium?'rgba(255,215,0,0.8)':'rgba(255,215,100,0.4)';this.ctx.lineWidth=2.5;this.ctx.stroke();this.ctx.save();this.ctx.translate(cx,cy);this.ctx.rotate(sa+arc/2);this.ctx.fillStyle='#fff';this.ctx.font='bold 13px Segoe UI';this.ctx.shadowColor='rgba(0,0,0,0.8)';this.ctx.shadowBlur=6;this.ctx.fillText(s.label,r*0.62,5);this.ctx.restore();});
+        this.ctx.beginPath();this.ctx.arc(cx,cy,r+3,0,2*Math.PI);this.ctx.strokeStyle=State.isPremium?'#ffd700':'#f39c12';this.ctx.lineWidth=4;this.ctx.stroke();
+        this.ctx.beginPath();this.ctx.arc(cx,cy,35,0,2*Math.PI);const hg=this.ctx.createRadialGradient(cx,cy,0,cx,cy,35);hg.addColorStop(0,State.isPremium?'#4a1c7a':'#2c3e50');hg.addColorStop(1,State.isPremium?'#1a0a2e':'#1a1f4b');this.ctx.fillStyle=hg;this.ctx.fill();this.ctx.strokeStyle=State.isPremium?'#ffd700':'#f39c12';this.ctx.lineWidth=3;this.ctx.stroke();this.ctx.fillStyle=State.isPremium?'#ffd700':'#f39c12';this.ctx.font='bold 11px Segoe UI';this.ctx.textAlign='center';this.ctx.textBaseline='middle';this.ctx.shadowBlur=0;const tt=State.premiumTier>=2?' T'+State.premiumTier:'';this.ctx.fillText(State.isPremium?'PREMIUM'+tt:'SPIN',cx,cy);
     },
     _light(hex,p){const n=parseInt(hex.replace('#',''),16),a=Math.round(2.55*p);return`rgb(${Math.min(255,(n>>16)+a)},${Math.min(255,((n>>8)&0xFF)+a)},${Math.min(255,(n&0xFF)+a)})`},
-    
-    async spin(wi){
-        const segs=this.getSegments(),arc=(2*Math.PI)/segs.length;
-        const ta=-(wi*arc+arc/2)-Math.PI/2; let n=ta; while(n<0)n+=2*Math.PI;
-        const tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI,sa=State.wheelAngle,d=4000+Math.random()*500,st=Date.now();
-        return new Promise(r=>{const a=()=>{const e=Math.min((Date.now()-st)/d,1),c=1-Math.pow(1-e,3),ca=sa+tr*c;this.draw(ca%(2*Math.PI));State.wheelAngle=ca;e<1?requestAnimationFrame(a):r();};requestAnimationFrame(a);});
-    }
+    async spin(wi){const segs=this.getSegments(),arc=(2*Math.PI)/segs.length;const ta=-(wi*arc+arc/2)-Math.PI/2;let n=ta;while(n<0)n+=2*Math.PI;const tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI,sa=State.wheelAngle,d=4000+Math.random()*500,st=Date.now();return new Promise(r=>{const a=()=>{const e=Math.min((Date.now()-st)/d,1),c=1-Math.pow(1-e,3),ca=sa+tr*c;this.draw(ca%(2*Math.PI));State.wheelAngle=ca;e<1?requestAnimationFrame(a):r();};requestAnimationFrame(a);});}
 };
 
 // ====================================
@@ -827,22 +616,9 @@ const UI = {
     updateSpinButton(){const b=document.getElementById('btnSpin'),s=document.getElementById('spinStatus');if(State.isSpinning){b.disabled=true;s.textContent='⏳ Spinning...';return;}const t=State.getTotalDraws(),src=State.getDrawSource();if(t>0){b.disabled=false;let st='';switch(src){case'daily':st='🔄 Daily';break;case'weekly_bonus':st='🎁 Weekly Bonus';break;case'bought':st='💳 Bought Draw';break;}s.textContent=st+' · '+t+' draw(s) left';}else{b.disabled=true;s.textContent='⏰ No draws available';}},
     applyPremiumTheme(){const body=document.getElementById('mainBody'),ht=document.getElementById('headerTitle'),bp=document.getElementById('btnPremium'),wc=document.getElementById('weeklyDrawCard'),dc=document.getElementById('drawsContainer'),badge=document.getElementById('premiumBadge');body.classList.remove('premium-mode','tier2','tier3');if(State.isPremium){body.classList.add('premium-mode');if(State.premiumTier>=2)body.classList.add('tier2');if(State.premiumTier>=3)body.classList.add('tier3');const tn=['','Bronze','Silver','Gold'];ht.textContent='👑 Premium Lucky Spin ('+tn[State.premiumTier]+')';bp.textContent='👑 ACTIVE';wc.style.display='block';dc.style.gridTemplateColumns='1fr 1fr 1fr';const ts=['','🥉','🥈','🥇'];badge.textContent=ts[State.premiumTier]+' PREMIUM '+tn[State.premiumTier].toUpperCase();}else{ht.textContent='🎰 Lucky Spin';bp.textContent='👑 PREMIUM';wc.style.display='none';dc.style.gridTemplateColumns='1fr 1fr';}WheelEngine.draw(State.wheelAngle%(2*Math.PI));this.updateDraws();},
     showToast(m,t){t=t||'success';const toast=document.getElementById('toast');toast.textContent=m;toast.style.display='block';switch(t){case'success':toast.style.background='#2ecc71';toast.style.color='#fff';break;case'error':toast.style.background='#e74c3c';toast.style.color='#fff';break;case'info':toast.style.background='#3498db';toast.style.color='#fff';break;case'gold':toast.style.background='linear-gradient(135deg,#ffd700,#f39c12)';toast.style.color='#000';break;}clearTimeout(this._tt);this._tt=setTimeout(()=>{toast.style.display='none';},3000);},
-    showPremiumTransition(tier){const o=document.getElementById('transitionOverlay'),tx=document.getElementById('transitionText');const tn=['','BRONZE','SILVER','GOLD'],te=['','🥉','🥈','🥇'];tx.innerHTML='👑<br>PREMIUM '+tn[tier]+'<br>'+te[tier]+'<br>UNLOCKED!';o.classList.add('active');this._cp();setTimeout(()=>{o.classList.remove('active');},2500);},
-    _cp(){const o=document.getElementById('transitionOverlay');for(let i=0;i<50;i++){const p=document.createElement('div');p.style.cssText='position:absolute;width:'+(Math.random()*8+3)+'px;height:'+(Math.random()*8+3)+'px;background:#ffd700;border-radius:50%;left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;animation:particleFloat '+(Math.random()*2+1)+'s ease-out forwards;opacity:'+Math.random();o.appendChild(p);setTimeout(()=>p.remove(),2000);}},
+    showPremiumTransition(tier){const o=document.getElementById('transitionOverlay'),tx=document.getElementById('transitionText');const tn=['','BRONZE','SILVER','GOLD'],te=['','🥉','🥈','🥇'];tx.innerHTML='👑<br>PREMIUM '+tn[tier]+'<br>'+te[tier]+'<br>UNLOCKED!';o.classList.add('active');for(let i=0;i<50;i++){const p=document.createElement('div');p.style.cssText='position:absolute;width:'+(Math.random()*8+3)+'px;height:'+(Math.random()*8+3)+'px;background:#ffd700;border-radius:50%;left:'+(Math.random()*100)+'%;top:'+(Math.random()*100)+'%;animation:particleFloat '+(Math.random()*2+1)+'s ease-out forwards;opacity:'+Math.random();o.appendChild(p);setTimeout(()=>p.remove(),2000);}setTimeout(()=>{o.classList.remove('active');},2500);},
     async showProcessing(tier,cb){const m=document.getElementById('processingModal'),t=document.getElementById('processingTitle'),b=document.getElementById('progressBarFill'),tx=document.getElementById('progressText');const tn=['','Bronze','Silver','Gold'];t.textContent='Activating Premium '+tn[tier]+'...';b.style.width='0%';tx.textContent='0%';m.classList.add('active');for(let i=0;i<=100;i++){await new Promise(r=>setTimeout(r,20+Math.random()*15));b.style.width=i+'%';tx.textContent=i+'%';}const result=await cb();await new Promise(r=>setTimeout(r,500));m.classList.remove('active');return result;},
-    
-    showResult(wi){
-        const segs=State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS, rw=segs[wi];
-        const ic=document.getElementById('resultIcon'),tx=document.getElementById('resultText');
-        const am=document.getElementById('resultAmount'),ex=document.getElementById('resultExtra');ex.innerHTML='';
-        if(rw.type==='super'){ic.textContent='👑';tx.textContent='🏆 SUPER PRIZE!';am.textContent='Congratulations!';am.style.color='#e91e63';ex.innerHTML='<a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>';}
-        else if(rw.type==='free'){ic.textContent='🔄';tx.textContent='Free Spin!';am.textContent='+1 Extra Draw';am.style.color='#1abc9c';}
-        else if(rw.type==='thanks'){ic.textContent='😊';tx.textContent='Thank You!';am.textContent='Better luck next time';am.style.color='#7f8c8d';}
-        else if(rw.type==='usd'){ic.textContent='💵';tx.textContent='🎉 You Won!';am.textContent='$'+rw.reward.toFixed(2)+' USD';am.style.color='#2ecc71';}
-        else if(rw.type==='mmk'){ic.textContent='💰';tx.textContent='🎉 You Won!';am.textContent=rw.reward.toLocaleString()+' Ks';am.style.color='#f39c12';}
-        openModal('resultModal');
-    },
-    
+    showResult(wi){const segs=State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS,rw=segs[wi];const ic=document.getElementById('resultIcon'),tx=document.getElementById('resultText'),am=document.getElementById('resultAmount'),ex=document.getElementById('resultExtra');ex.innerHTML='';if(rw.type==='super'){ic.textContent='👑';tx.textContent='🏆 SUPER PRIZE!';am.textContent='Congratulations!';am.style.color='#e91e63';ex.innerHTML='<a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>';}else if(rw.type==='free'){ic.textContent='🔄';tx.textContent='Free Spin!';am.textContent='+1 Extra Draw';am.style.color='#1abc9c';}else if(rw.type==='thanks'){ic.textContent='😊';tx.textContent='Thank You!';am.textContent='Better luck next time';am.style.color='#7f8c8d';}else if(rw.type==='usd'){ic.textContent='💵';tx.textContent='🎉 You Won!';am.textContent='$'+rw.reward.toFixed(2)+' USD';am.style.color='#2ecc71';}else if(rw.type==='mmk'){ic.textContent='💰';tx.textContent='🎉 You Won!';am.textContent=rw.reward.toLocaleString()+' Ks';am.style.color='#f39c12';}openModal('resultModal');},
     scheduleResetTimer(){if(this._ri)clearInterval(this._ri);const el=document.getElementById('resetCountdown');const u=()=>{const n=new Date(),m=new Date(n);m.setDate(m.getDate()+1);m.setHours(0,0,0,0);const r=m.getTime()-n.getTime();if(r<=0){el.textContent='';this._rd();return;}const h=Math.floor(r/3600000),mi=Math.floor((r%3600000)/60000),s=Math.floor((r%60000)/1000);el.textContent='🔄 Reset in '+h+'h '+mi+'m '+s+'s';};u();this._ri=setInterval(u,1000);},
     _rd(){State.dailyDraws=State.maxDailyDraws;State.save();this.updateDraws();this.showToast('Daily draws reset! 🎉','success');if(State.getTotalDraws()>0){document.getElementById('resetCountdown').textContent='';clearInterval(this._ri);}else{this.scheduleResetTimer();}}
 };
@@ -860,15 +636,10 @@ async function handleSpin(){
     if(State.isSpinning)return;
     const source=State.getDrawSource();
     if(!source){UI.showToast('No draws available! Buy spins or wait for reset.','error');return;}
-    State.isSpinning=true;document.getElementById('btnSpin').disabled=true;
-    document.getElementById('spinStatus').textContent='⏳ Spinning...';
+    State.isSpinning=true;document.getElementById('btnSpin').disabled=true;document.getElementById('spinStatus').textContent='⏳ Spinning...';
     State.consumeDraw(source);UI.updateDraws();
     const result=await API.executeSpin(source);
-    if(!result||!result.success){
-        switch(source){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}
-        State.save();UI.updateDraws();UI.showToast('Spin failed! Please try again.','error');
-        State.isSpinning=false;UI.updateSpinButton();return;
-    }
+    if(!result||!result.success){switch(source){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}State.save();UI.updateDraws();UI.showToast('Spin failed! Please try again.','error');State.isSpinning=false;UI.updateSpinButton();return;}
     if(result.mmkBalance!==undefined)State.mmkBalance=result.mmkBalance;
     if(result.usdBalance!==undefined)State.usdBalance=result.usdBalance;
     if(result.reward&&result.reward.type==='free'){switch(source){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}}
@@ -882,123 +653,56 @@ async function handleSpin(){
 // ====================================
 async function handleBuySpins(spins,cost){
     if(State.mmkBalance<cost){UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။','error');return;}
-    document.getElementById('confirmTitle').textContent='💳 Buy Spins';
-    document.getElementById('confirmMsg').textContent=spins+' Spins - '+cost.toLocaleString()+' Ks';
-    const cb=document.getElementById('confirmYesBtn');
-    cb.onclick=async()=>{closeModal('confirmModal');const r=await API.buySpins(spins,cost);if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added! ✅','success');document.getElementById('resetCountdown').textContent='';}else{UI.showToast(r.message||'Purchase failed','error');}};
+    document.getElementById('confirmTitle').textContent='💳 Buy Spins';document.getElementById('confirmMsg').textContent=spins+' Spins - '+cost.toLocaleString()+' Ks';
+    const cb=document.getElementById('confirmYesBtn');cb.onclick=async()=>{closeModal('confirmModal');const r=await API.buySpins(spins,cost);if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added! ✅','success');document.getElementById('resetCountdown').textContent='';}else{UI.showToast(r.message||'Purchase failed','error');}};
     openModal('confirmModal');
 }
 
 // ====================================
-// PREMIUM FUNCTIONS (ပြင်ဆင်ပြီး)
+// PREMIUM FUNCTIONS
 // ====================================
-function handlePremiumClick(){
-    updatePremiumPackages();
-    openModal('premiumModal');
-}
+function handlePremiumClick(){ updatePremiumPackages(); openModal('premiumModal'); }
 
 function updatePremiumPackages() {
-    const currentTier = State.premiumTier;
-    const hasAnyPremium = State.isPremium && currentTier > 0;
+    const ct=State.premiumTier, has=State.isPremium&&ct>0;
+    const p1=document.getElementById('pkgTier1'),pr1=document.getElementById('priceTier1'),s1=document.getElementById('statusTier1');
+    if(has&&ct>=1){p1.style.opacity='0.5';p1.style.pointerEvents='none';p1.style.cursor='not-allowed';p1.onclick=null;s1.innerHTML='<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';pr1.innerHTML='၈၀၀၀ ကျပ်';}
+    else{p1.style.opacity='1';p1.style.pointerEvents='auto';p1.style.cursor='pointer';p1.onclick=function(){handlePremiumPurchase(1,8000,'tier1');};s1.innerHTML='';pr1.innerHTML='၈၀၀၀ ကျပ်';}
     
-    // ===== TIER 1 =====
-    const pkg1 = document.getElementById('pkgTier1');
-    const price1 = document.getElementById('priceTier1');
-    const status1 = document.getElementById('statusTier1');
+    const p2=document.getElementById('pkgTier2'),pr2=document.getElementById('priceTier2'),b2=document.getElementById('badgeTier2'),d2=document.getElementById('discountTier2'),s2=document.getElementById('statusTier2');
+    if(has&&ct>=2){p2.style.opacity='0.5';p2.style.pointerEvents='none';p2.style.cursor='not-allowed';p2.onclick=null;s2.innerHTML='<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';pr2.innerHTML='၁၅၀၀၀ ကျပ်';b2.textContent='⭐ အထူးအဆိုပြုချက်';d2.innerHTML='';}
+    else if(has&&ct>=1){p2.style.opacity='1';p2.style.pointerEvents='auto';p2.style.cursor='pointer';p2.onclick=function(){handlePremiumPurchase(2,15000,'tier2');};s2.innerHTML='';pr2.innerHTML='<s style="color:#888;font-size:11px">၁၅၀၀၀</s> <b style="color:#2ecc71">၇၅၀၀ ကျပ်</b>';b2.textContent='⭐ ၅၀% လျှော့ဈေး';d2.innerHTML='<span style="color:#2ecc71;font-size:9px;font-weight:bold">Tier 1 ရှိသူများ ၅၀% သက်သာ</span>';}
+    else{p2.style.opacity='1';p2.style.pointerEvents='auto';p2.style.cursor='pointer';p2.onclick=function(){handlePremiumPurchase(2,15000,'tier2');};s2.innerHTML='';pr2.innerHTML='၁၅၀၀၀ ကျပ်';b2.textContent='⭐ အထူးအဆိုပြုချက်';d2.innerHTML='';}
     
-    if (hasAnyPremium && currentTier >= 1) {
-        pkg1.style.opacity = '0.5'; pkg1.style.pointerEvents = 'none'; pkg1.style.cursor = 'not-allowed'; pkg1.onclick = null;
-        status1.innerHTML = '<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';
-        price1.innerHTML = '၈၀၀၀ ကျပ်';
-    } else {
-        pkg1.style.opacity = '1'; pkg1.style.pointerEvents = 'auto'; pkg1.style.cursor = 'pointer';
-        pkg1.onclick = function() { handlePremiumPurchase(1, 8000, 'tier1'); };
-        status1.innerHTML = '';
-        price1.innerHTML = '၈၀၀၀ ကျပ်';
-    }
-    
-    // ===== TIER 2 =====
-    const pkg2 = document.getElementById('pkgTier2');
-    const price2 = document.getElementById('priceTier2');
-    const badge2 = document.getElementById('badgeTier2');
-    const discount2 = document.getElementById('discountTier2');
-    const status2 = document.getElementById('statusTier2');
-    
-    if (hasAnyPremium && currentTier >= 2) {
-        pkg2.style.opacity = '0.5'; pkg2.style.pointerEvents = 'none'; pkg2.style.cursor = 'not-allowed'; pkg2.onclick = null;
-        status2.innerHTML = '<span style="color:#2ecc71;font-size:10px;font-weight:bold">✅ ဝယ်ပြီး</span>';
-        price2.innerHTML = '၁၅၀၀၀ ကျပ်'; badge2.textContent = '⭐ အထူးအဆိုပြုချက်'; discount2.innerHTML = '';
-    } else if (hasAnyPremium && currentTier >= 1) {
-        pkg2.style.opacity = '1'; pkg2.style.pointerEvents = 'auto'; pkg2.style.cursor = 'pointer';
-        pkg2.onclick = function() { handlePremiumPurchase(2, 15000, 'tier2'); };
-        status2.innerHTML = '';
-        price2.innerHTML = '<s style="color:#888;font-size:11px">၁၅၀၀၀</s> <b style="color:#2ecc71">၇၅၀၀ ကျပ်</b>';
-        badge2.textContent = '⭐ ၅၀% လျှော့ဈေး';
-        discount2.innerHTML = '<span style="color:#2ecc71;font-size:9px;font-weight:bold">Tier 1 ရှိသူများ ၅၀% သက်သာ</span>';
-    } else {
-        pkg2.style.opacity = '1'; pkg2.style.pointerEvents = 'auto'; pkg2.style.cursor = 'pointer';
-        pkg2.onclick = function() { handlePremiumPurchase(2, 15000, 'tier2'); };
-        status2.innerHTML = '';
-        price2.innerHTML = '၁၅၀၀၀ ကျပ်'; badge2.textContent = '⭐ အထူးအဆိုပြုချက်'; discount2.innerHTML = '';
-    }
-    
-    // ===== TIER 3 =====
-    const pkg3 = document.getElementById('pkgTier3');
-    const price3 = document.getElementById('priceTier3');
-    const badge3 = document.getElementById('badgeTier3');
-    const discount3 = document.getElementById('discountTier3');
-    const status3 = document.getElementById('statusTier3');
-    
-    if (hasAnyPremium && currentTier >= 3) {
-        pkg3.style.opacity = '0.5'; pkg3.style.pointerEvents = 'none'; pkg3.style.cursor = 'not-allowed'; pkg3.onclick = null;
-        status3.innerHTML = '<span style="color:#ffd700;font-size:10px;font-weight:bold">👑 MAX LEVEL</span>';
-        price3.innerHTML = '၂၂၀၀၀ ကျပ်'; badge3.textContent = '⭐ အထူးအဆိုပြုချက်'; discount3.innerHTML = '';
-    } else if (hasAnyPremium && currentTier >= 1) {
-        pkg3.style.opacity = '1'; pkg3.style.pointerEvents = 'auto'; pkg3.style.cursor = 'pointer';
-        pkg3.onclick = function() { handlePremiumPurchase(3, 22000, 'tier3'); };
-        status3.innerHTML = '';
-        price3.innerHTML = '<s style="color:#888;font-size:11px">၂၂၀၀၀</s> <b style="color:#2ecc71">၁၁၀၀၀ ကျပ်</b>';
-        badge3.textContent = '⭐ ၅၀% လျှော့ဈေး';
-        discount3.innerHTML = '<span style="color:#2ecc71;font-size:9px;font-weight:bold">Tier 1/2 ရှိသူများ ၅၀% သက်သာ</span>';
-    } else {
-        pkg3.style.opacity = '1'; pkg3.style.pointerEvents = 'auto'; pkg3.style.cursor = 'pointer';
-        pkg3.onclick = function() { handlePremiumPurchase(3, 22000, 'tier3'); };
-        status3.innerHTML = '';
-        price3.innerHTML = '၂၂၀၀၀ ကျပ်'; badge3.textContent = '⭐ အထူးအဆိုပြုချက်'; discount3.innerHTML = '';
-    }
+    const p3=document.getElementById('pkgTier3'),pr3=document.getElementById('priceTier3'),b3=document.getElementById('badgeTier3'),d3=document.getElementById('discountTier3'),s3=document.getElementById('statusTier3');
+    if(has&&ct>=3){p3.style.opacity='0.5';p3.style.pointerEvents='none';p3.style.cursor='not-allowed';p3.onclick=null;s3.innerHTML='<span style="color:#ffd700;font-size:10px;font-weight:bold">👑 MAX LEVEL</span>';pr3.innerHTML='၂၂၀၀၀ ကျပ်';b3.textContent='⭐ အထူးအဆိုပြုချက်';d3.innerHTML='';}
+    else if(has&&ct>=1){p3.style.opacity='1';p3.style.pointerEvents='auto';p3.style.cursor='pointer';p3.onclick=function(){handlePremiumPurchase(3,22000,'tier3');};s3.innerHTML='';pr3.innerHTML='<s style="color:#888;font-size:11px">၂၂၀၀၀</s> <b style="color:#2ecc71">၁၁၀၀၀ ကျပ်</b>';b3.textContent='⭐ ၅၀% လျှော့ဈေး';d3.innerHTML='<span style="color:#2ecc71;font-size:9px;font-weight:bold">Tier 1/2 ရှိသူများ ၅၀% သက်သာ</span>';}
+    else{p3.style.opacity='1';p3.style.pointerEvents='auto';p3.style.cursor='pointer';p3.onclick=function(){handlePremiumPurchase(3,22000,'tier3');};s3.innerHTML='';pr3.innerHTML='၂၂၀၀၀ ကျပ်';b3.textContent='⭐ အထူးအဆိုပြုချက်';d3.innerHTML='';}
 }
 
 async function handlePremiumPurchase(months,cost,tier){
     const nt=parseInt(tier.replace('tier',''));
     if(State.isPremium&&nt<=State.premiumTier){UI.showToast('ဤ Premium အစီအစဉ်ကို ဝယ်ယူပြီးပါပြီ။ အဆင့်မြင့် Tier ကိုသာ ဝယ်ယူနိုင်ပါသည်။','info');return;}
     closeModal('premiumModal');
-    let ac=cost,da=false;
-    if(State.isPremium&&State.premiumTier>0&&nt>State.premiumTier){ac=Math.floor(cost/2);da=true;}
+    let ac=cost,da=false;if(State.isPremium&&State.premiumTier>0&&nt>State.premiumTier){ac=Math.floor(cost/2);da=true;}
     if(State.mmkBalance<ac){UI.showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။','error');return;}
     const tn={'tier1':'Bronze','tier2':'Silver','tier3':'Gold'},tname=tn[tier]||'Unknown';
     let cm=months+' Month(s) - '+tname+'<br>Cost: <b>'+ac.toLocaleString()+' Ks</b>';
     if(da){cm+='<br><span style="color:#2ecc71">✅ ၅၀% လျှော့ဈေး ရရှိထားပါသည်</span>';cm+='<br><span style="color:#888;text-decoration:line-through">မူရင်း: '+cost.toLocaleString()+' Ks</span>';}
-    document.getElementById('confirmTitle').textContent='👑 Buy Premium '+tname;
-    document.getElementById('confirmMsg').innerHTML=cm;
+    document.getElementById('confirmTitle').textContent='👑 Buy Premium '+tname;document.getElementById('confirmMsg').innerHTML=cm;
     const cb=document.getElementById('confirmYesBtn');
     cb.onclick=async()=>{closeModal('confirmModal');
         const r=await UI.showProcessing(nt,async()=>{return await API.buyPremium(months,ac,nt);});
         if(r&&r.success){State.isPremium=true;State.premiumTier=nt;
             switch(nt){case 1:State.maxDailyDraws=3;break;case 2:State.maxDailyDraws=5;break;case 3:State.maxDailyDraws=7;break;default:State.maxDailyDraws=3;}
-            State.dailyDraws=State.maxDailyDraws;State.weeklyBonusDraws+=nt===3?10:nt===2?7:5;
-            State.mmkBalance-=ac;State.premiumExpiry=r.expires_at;State.save();
-            UI.updateBalances();UI.applyPremiumTheme();UI.showPremiumTransition(nt);
-            UI.showToast('Premium '+tname+' Activated! 👑','gold');updatePremiumPackages();
-        }else{UI.showToast(r&&r.message?r.message:'Purchase failed','error');}};
+            State.dailyDraws=State.maxDailyDraws;State.weeklyBonusDraws+=nt===3?10:nt===2?7:5;State.mmkBalance-=ac;State.premiumExpiry=r.expires_at;State.save();
+            UI.updateBalances();UI.applyPremiumTheme();UI.showPremiumTransition(nt);UI.showToast('Premium '+tname+' Activated! 👑','gold');updatePremiumPackages();}
+        else{UI.showToast(r&&r.message?r.message:'Purchase failed','error');}};
     openModal('confirmModal');
 }
 
-// ====================================
-// PREMIUM EXPIRY CHECK
-// ====================================
 async function checkPremiumExpiry(){
-    if(!State.isPremium)return;
-    const d=await API.syncAll();
+    if(!State.isPremium)return;const d=await API.syncAll();
     if(d&&!d.isPremium){State.isPremium=false;State.premiumTier=0;State.maxDailyDraws=1;State.dailyDraws=Math.min(State.dailyDraws,1);State.weeklyBonusDraws=0;State.save();UI.applyPremiumTheme();UI.updateDraws();UI.showToast('⚠️ Premium သက်တမ်းကုန်ဆုံးသွားပါပြီ။ Normal Mode သို့ ပြန်လည်ရောက်ရှိပါသည်။','info');}
     else if(d){State.premiumExpiry=d.premiumExpiry;State.premiumTier=d.premiumTier||1;}
 }
@@ -1010,193 +714,33 @@ document.getElementById('btnSpin').addEventListener('click',handleSpin);
 document.getElementById('btnPremium').addEventListener('click',handlePremiumClick);
 document.querySelectorAll('.btn-buy').forEach(btn=>{btn.addEventListener('click',()=>{const s=parseInt(btn.dataset.spins),c=parseInt(btn.dataset.cost);handleBuySpins(s,c);});});
 document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',(e)=>{if(e.target===o)o.classList.remove('active');});});
+document.querySelectorAll('.modal-box').forEach(box=>{box.addEventListener('click',(e)=>{e.stopPropagation();});});
 
 // ====================================
-// PAGE ACCESS CHECK
+// PAGE ACCESS & TIMER
 // ====================================
-function checkPageAccess(callback) {
-    fetch('/api/admin/page_status')
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        if (d.pages) {
-            var gamePage = d.pages.find(function(p) { return p.id === 'game'; });
-            if (gamePage && gamePage.status === 'off') {
-                document.getElementById('maintenanceMessage').style.display = 'block';
-                if (document.getElementById('exchangeContent')) {
-                    document.getElementById('exchangeContent').style.display = 'none';
-                }
-                document.querySelector('.container').style.display = 'none';
-                document.getElementById('pageTimerBanner').style.display = 'none';
-                callback(false);
-                return;
-            }
-        }
-        callback(true);
-    })
-    .catch(function() {
-        callback(true);
-    });
-}
+function checkPageAccess(cb){fetch('/api/admin/page_status').then(r=>r.json()).then(d=>{if(d.pages){const gp=d.pages.find(p=>p.id==='game');if(gp&&gp.status==='off'){document.getElementById('maintenanceMessage').style.display='block';document.querySelector('.container').style.display='none';document.getElementById('pageTimerBanner').style.display='none';cb(false);return;}}cb(true);}).catch(()=>{cb(true);});}
+function checkPageTimer(){const pid='game';let timer=null;try{const s=localStorage.getItem('pageTimers');if(s){const t=JSON.parse(s);timer=t[pid];}if(!timer){const c=getCookie('pageTimers');if(c){const t=JSON.parse(decodeURIComponent(c));timer=t[pid];}}if(!timer){const ss=sessionStorage.getItem('pageTimers');if(ss){const t=JSON.parse(ss);timer=t[pid];}}}catch(e){}if(!timer||timer<=Date.now())return;document.getElementById('maintenanceMessage').style.display='block';document.querySelector('.container').style.display='none';const pb=document.getElementById('pageTimerBanner');if(pb)pb.style.display='block';const mt=document.getElementById('maintenanceCountdown'),pc=document.getElementById('pageTimerCountdown');function u(){const rem=timer-Date.now();if(rem<=0){try{const s=localStorage.getItem('pageTimers');if(s){const t=JSON.parse(s);delete t[pid];localStorage.setItem('pageTimers',JSON.stringify(t));}setCookie('pageTimers','',-1);sessionStorage.removeItem('pageTimers');}catch(e){}location.reload();return;}const ss=Math.floor(rem/1000),h=Math.floor(ss/3600),m=Math.floor((ss%3600)/60),sec=ss%60,ts=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0')+':'+sec.toString().padStart(2,'0');if(mt)mt.textContent=ts;if(pc)pc.textContent=ts;}u();setInterval(u,1000);}
+function setCookie(n,v,d){let e='';if(d){const dt=new Date();dt.setTime(dt.getTime()+(d*24*60*60*1000));e='; expires='+dt.toUTCString();}document.cookie=n+'='+encodeURIComponent(v||'')+e+'; path=/';}
+function getCookie(n){const ne=n+'=',ca=document.cookie.split(';');for(let i=0;i<ca.length;i++){let c=ca[i];while(c.charAt(0)===' ')c=c.substring(1,c.length);if(c.indexOf(ne)===0)return c.substring(ne.length,c.length);}return null;}
 
 // ====================================
-// PAGE TIMER COUNTDOWN
-// ====================================
-function checkPageTimer() {
-    var pageId = 'game';
-    var timer = null;
-    
-    try {
-        var saved = localStorage.getItem('pageTimers');
-        if (saved) {
-            var timers = JSON.parse(saved);
-            timer = timers[pageId];
-        }
-        
-        if (!timer) {
-            var cookieTimers = getCookie('pageTimers');
-            if (cookieTimers) {
-                var timers = JSON.parse(decodeURIComponent(cookieTimers));
-                timer = timers[pageId];
-            }
-        }
-        
-        if (!timer) {
-            var sessionTimers = sessionStorage.getItem('pageTimers');
-            if (sessionTimers) {
-                var timers = JSON.parse(sessionTimers);
-                timer = timers[pageId];
-            }
-        }
-    } catch(e) {}
-    
-    if (!timer || timer <= Date.now()) return;
-    
-    document.getElementById('maintenanceMessage').style.display = 'block';
-    document.querySelector('.container').style.display = 'none';
-    
-    var pageBanner = document.getElementById('pageTimerBanner');
-    if (pageBanner) pageBanner.style.display = 'block';
-    
-    var maintTimer = document.getElementById('maintenanceCountdown');
-    var pageCountdown = document.getElementById('pageTimerCountdown');
-    
-    function update() {
-        var rem = timer - Date.now();
-        
-        if (rem <= 0) {
-            try {
-                var saved = localStorage.getItem('pageTimers');
-                if (saved) {
-                    var timers = JSON.parse(saved);
-                    delete timers[pageId];
-                    localStorage.setItem('pageTimers', JSON.stringify(timers));
-                }
-                setCookie('pageTimers', '', -1);
-                sessionStorage.removeItem('pageTimers');
-            } catch(e) {}
-            
-            location.reload();
-            return;
-        }
-        
-        var s = Math.floor(rem / 1000);
-        var h = Math.floor(s / 3600);
-        var m = Math.floor((s % 3600) / 60);
-        var sec = s % 60;
-        var timeStr = h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0') + ':' + sec.toString().padStart(2,'0');
-        
-        if (maintTimer) maintTimer.textContent = timeStr;
-        if (pageCountdown) pageCountdown.textContent = timeStr;
-    }
-    
-    update();
-    setInterval(update, 1000);
-}
-
-function setCookie(name, value, days) {
-    var expires = '';
-    if (days) {
-        var date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = '; expires=' + date.toUTCString();
-    }
-    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
-}
-
-function getCookie(name) {
-    var nameEQ = name + '=';
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-// ====================================
-// INITIALIZATION
+// INIT
 // ====================================
 async function init(){
-    // ✅ Page Timer Check
     checkPageTimer();
-    
-    // ✅ Page Access Check
-    checkPageAccess(async function(pageOn) {
-        if (!pageOn) return;
-        
-        // Show the main container
-        document.querySelector('.container').style.display = 'flex';
-        
-        State.load();
-        const d = await API.syncAll();
-        if (d) {
-            State.isPremium = d.isPremium;
-            State.premiumTier = d.premiumTier || 1;
-            State.mmkBalance = d.mmkBalance;
-            State.usdBalance = d.usdBalance;
-            State.maxDailyDraws = d.maxDailyDraws;
-            State.dailyDraws = d.dailyDrawsRemaining;
-            State.premiumExpiry = d.premiumExpiry;
-            
-            const today = new Date().toDateString();
-            const lr = localStorage.getItem('spinLastResetDate');
-            if (lr !== today) {
-                State.dailyDraws = d.maxDailyDraws || 1;
-                localStorage.setItem('spinLastResetDate', today);
-            }
-            State.save();
-        }
-        
-        UI.updateBalances();
-        UI.applyPremiumTheme();
-        UI.updateDraws();
-        WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
-        
-        if (State.getTotalDraws() === 0) UI.scheduleResetTimer();
-        
-        setInterval(async () => {
-            const data = await API.syncAll();
-            if (data) {
-                State.mmkBalance = data.mmkBalance;
-                State.usdBalance = data.usdBalance;
-                State.isPremium = data.isPremium;
-                State.premiumTier = data.premiumTier || 1;
-                State.maxDailyDraws = data.maxDailyDraws;
-                State.dailyDraws = data.dailyDrawsRemaining;
-                UI.updateBalances();
-                UI.applyPremiumTheme();
-                UI.updateDraws();
-            }
-        }, 30000);
-        
-        checkPremiumExpiry();
-        setInterval(checkPremiumExpiry, 60000);
+    checkPageAccess(async function(pageOn){
+        if(!pageOn)return;
+        document.querySelector('.container').style.display='flex';
+        State.load();const d=await API.syncAll();
+        if(d){State.isPremium=d.isPremium;State.premiumTier=d.premiumTier||1;State.mmkBalance=d.mmkBalance;State.usdBalance=d.usdBalance;State.maxDailyDraws=d.maxDailyDraws;State.dailyDraws=d.dailyDrawsRemaining;State.premiumExpiry=d.premiumExpiry;const today=new Date().toDateString(),lr=localStorage.getItem('spinLastResetDate');if(lr!==today){State.dailyDraws=d.maxDailyDraws||1;localStorage.setItem('spinLastResetDate',today);}State.save();}
+        UI.updateBalances();UI.applyPremiumTheme();UI.updateDraws();WheelEngine.draw(State.wheelAngle%(2*Math.PI));
+        if(State.getTotalDraws()===0)UI.scheduleResetTimer();
+        setInterval(async()=>{const data=await API.syncAll();if(data){State.mmkBalance=data.mmkBalance;State.usdBalance=data.usdBalance;State.isPremium=data.isPremium;State.premiumTier=data.premiumTier||1;State.maxDailyDraws=data.maxDailyDraws;State.dailyDraws=data.dailyDrawsRemaining;UI.updateBalances();UI.applyPremiumTheme();UI.updateDraws();}},30000);
+        checkPremiumExpiry();setInterval(checkPremiumExpiry,60000);
     });
 }
-
-const ps = document.createElement('style');
-ps.textContent = '@keyframes particleFloat{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-200px) scale(0);opacity:0}}';
-document.head.appendChild(ps);
+const ps=document.createElement('style');ps.textContent='@keyframes particleFloat{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-200px) scale(0);opacity:0}}';document.head.appendChild(ps);
 init();
 </script>
 </body>
