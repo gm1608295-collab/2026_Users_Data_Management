@@ -1180,6 +1180,24 @@ const COUNTRIES_DATA = [
         } catch(e) { n("❌ Error saving data", "error"); }
     }
 
+    // ==================== PAGE ACCESS CHECK ====================
+async function checkPageAccess() {
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const dp = d.pages.find(p => p.id === 'data');
+            if (dp && dp.status === 'off') {
+                document.getElementById('maintenanceMessage').style.display = 'block';
+                document.getElementById('dataContent').style.display = 'none';
+                checkPageTimer();
+                return false;
+            }
+        }
+        return true;
+    } catch(e) { return true; }
+}
+    
     // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
