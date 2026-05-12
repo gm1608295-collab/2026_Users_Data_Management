@@ -35,7 +35,7 @@ async function getPool() {
 const BOT_TOKEN = '8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE';
 const CHAT_ID = '8315028972';
 const ONESIGNAL_APP_ID = '1943a7fe-8313-4ce2-b420-0a0e2b59fcff';
-const ONESIGNAL_API_KEY = 'os_v2_app_dfb2p7udcngofnbabihcwwp476agyhbcncxexnu2gu2xsbo4uww6tynm5fuwze77wvka65febiapxnwwpoczsbtcq56a3e4a3thkskq';
+const ONESIGNAL_API_KEY = 'twk6oitefuutewj4a642tdkhj';
 const TIKTOK_CLIENT_KEY = 'awlwv9kkzin9m9pv';
 const TIKTOK_CLIENT_SECRET = '3QDthZspcNC7eHZNCA5ofYAs3CpACLX7';
 const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
@@ -622,13 +622,8 @@ app.post('/api/admin/bot_message', async (req, res) => {
             } catch(e) {}
         }
         
-        // 2. OneSignal Push Notification (အသံပါ)
-        sendOnesignal(
-            message,
-            "SOLO M Game Shop 📢",
-            "https://two026-users-data-management.onrender.com/dashboard",
-            "notification"
-        );
+        // 2. OneSignal Push Notification
+        sendOnesignal(message);
         
         console.log('[BOT MESSAGE] Sent to ' + telegramCount + ' Telegram users + Push Notification');
         res.json({ success: true, count: telegramCount });
