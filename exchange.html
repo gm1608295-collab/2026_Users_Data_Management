@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="my">
 <head>
@@ -802,7 +801,7 @@
 // CONFIG (DYNAMIC FROM SERVER)
 // ====================================
 var EXCHANGE_CONFIG = {
-    BASE_RATE: 3000,
+    BASE_RATE: 3500,
     TRANSPORT_FEE: 300,
     INTERNET_FEE: 300,
     DATA_TRANSFER_FEE: 400,
@@ -810,10 +809,9 @@ var EXCHANGE_CONFIG = {
     get FINAL_RATE() { return this.BASE_RATE - this.TOTAL_FEE; }
 };
 
-// ✅ Load rates from server
+// Load rates from server
 async function loadExchangeRates() {
     try {
-        // Get exchange rate from settings
         var rateRes = await fetch('/api/exchange_rate');
         var rateData = await rateRes.json();
         
@@ -821,7 +819,6 @@ async function loadExchangeRates() {
             EXCHANGE_CONFIG.BASE_RATE = parseInt(rateData.rate);
         }
         
-        // Get detailed rate info
         var infoRes = await fetch('/api/exchange_rate_info');
         var infoData = await infoRes.json();
         
@@ -834,17 +831,12 @@ async function loadExchangeRates() {
             }
         }
         
-        // Update the rate display
         updateRateDisplay();
         updateSummary();
-        
-    } catch(e) {
-        console.error('Failed to load exchange rates:', e);
-    }
+    } catch(e) {}
 }
 
 function updateRateDisplay() {
-    // Update rate box in HTML
     var rateRows = document.querySelectorAll('.rate-row');
     if (rateRows.length >= 5) {
         rateRows[0].querySelector('span:last-child').textContent = '1 USD = ' + EXCHANGE_CONFIG.BASE_RATE.toLocaleString() + ' Ks';
