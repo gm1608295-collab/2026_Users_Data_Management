@@ -736,16 +736,52 @@ function checkPageAccess(cb){
     }).catch(()=>{ cb(true); });
     }
 function checkPageTimer(){
-    const pid='game';let timer=null;
-    try{const s=localStorage.getItem('pageTimers');if(s){const t=JSON.parse(s);timer=t[pid];}if(!timer){const c=getCookie('pageTimers');if(c){const t=JSON.parse(decodeURIComponent(c));timer=t[pid];}}if(!timer){const ss=sessionStorage.getItem('pageTimers');if(ss){const t=JSON.parse(ss);timer=t[pid];}}}catch(e){}
-    if(!timer||timer<=Date.now())return;
-    document.getElementById('maintenanceMessage').style.display='block';document.querySelector('.container-main').style.display='none';
-    const pb=document.getElementById('pageTimerBanner');if(pb)pb.style.display='block';
-    const mt=document.getElementById('maintenanceCountdown'),pc=document.getElementById('pageTimerCountdown');
-    function u(){const rem=timer-Date.now();if(rem<=0){try{const s=localStorage.getItem('pageTimers');if(s){const t=JSON.parse(s);delete t[pid];localStorage.setItem('pageTimers',JSON.stringify(t));}setCookie('pageTimers','',-1);sessionStorage.removeItem('pageTimers');}catch(e){}location.reload();return;}const ss=Math.floor(rem/1000),h=Math.floor(ss/3600),m=Math.floor((ss%3600)/60),sec=ss%60;const ts=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0')+':'+sec.toString().padStart(2,'0');if(mt)mt.textContent=ts;if(pc)pc.textContent=ts;}u();setInterval(u,1000);}
-function setCookie(n,v,d){let e='';if(d){const dt=new Date();dt.setTime(dt.getTime()+(d*24*60*60*1000));e='; expires='+dt.toUTCString();}document.cookie=n+'='+encodeURIComponent(v||'')+e+'; path=/';}
-function getCookie(n){const ne=n+'=',ca=document.cookie.split(';');for(let i=0;i<ca.length;i++){let c=ca[i];while(c.charAt(0)===' ')c=c.substring(1,c.length);if(c.indexOf(ne)===0)return c.substring(ne.length,c.length);}return null;}
-
+    const pid='game';
+    let timer=null;
+    try{
+        const s=localStorage.getItem('pageTimers');
+        if(s){const t=JSON.parse(s);timer=t[pid];}
+        if(!timer){const c=getCookie('pageTimers');if(c){const t=JSON.parse(decodeURIComponent(c));timer=t[pid];}}
+        if(!timer){const ss=sessionStorage.getItem('pageTimers');if(ss){const t=JSON.parse(ss);timer=t[pid];}}
+    }catch(e){}
+    
+    if(!timer||timer<=Date.now()) return;
+    
+    // ✅ Maintenance message ပြ
+    document.getElementById('maintenanceMessage').style.display = 'block';
+    
+    // ✅ Container ကို ဝှက်
+    var container = document.querySelector('.container-main');
+    if(container) container.style.display = 'none';
+    
+    // ✅ Page timer banner ပြ
+    const pb=document.getElementById('pageTimerBanner');
+    if(pb) pb.style.display = 'block';
+    
+    // ✅ Timer elements
+    const mt=document.getElementById('maintenanceCountdown');
+    const pc=document.getElementById('pageTimerCountdown');
+    
+    function u(){
+        const rem=timer-Date.now();
+        if(rem<=0){
+            try{
+                const s=localStorage.getItem('pageTimers');
+                if(s){const t=JSON.parse(s);delete t[pid];localStorage.setItem('pageTimers',JSON.stringify(t));}
+                setCookie('pageTimers','',-1);
+                sessionStorage.removeItem('pageTimers');
+            }catch(e){}
+            location.reload();
+            return;
+        }
+        const ss=Math.floor(rem/1000),h=Math.floor(ss/3600),m=Math.floor((ss%3600)/60),sec=ss%60;
+        const ts=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0')+':'+sec.toString().padStart(2,'0');
+        if(mt) mt.textContent = ts;
+        if(pc) pc.textContent = ts;
+    }
+    u();
+    setInterval(u,1000);
+}
 // ====================================
 // EVENTS
 // ====================================
