@@ -365,6 +365,27 @@ async function loadDashboardVideo() {
         console.error('[VIDEO] Error:', e.message);
     }
 }
+    // ==================== PAGE ACCESS CHECK ====================
+async function checkPageAccess() {
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const dp = d.pages.find(p => p.id === 'dashboard');
+            if (dp && dp.status === 'off') {
+                document.getElementById('maintenanceMessage').style.display = 'block';
+                // Hide all content
+                const content = document.querySelector('.content');
+                const footer = document.querySelector('.footer');
+                if (content) content.style.display = 'none';
+                if (footer) footer.style.display = 'none';
+                checkPageTimer();  // ✅ Start timer
+                return false;
+            }
+        }
+        return true;
+    } catch(e) { return true; }
+}
     // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
@@ -463,11 +484,15 @@ function getCookie(name) {
     return null;
 }
     // ==================== INIT ====================
-    window.onload=function(){
-        if(!localStorage.getItem("auth_token")){window.location.href="/";return}
-        try{
-            const user=JSON.parse(localStorage.getItem("user")||'{}');
-            document.getElementById("myUserIdDisp").textContent=user.id?'U ID - '+user.id.toString().padStart(6,'0'):'U ID - ------';
+    window.onload = async function() {
+    // ✅ Page access check first
+    const pageOn = await checkPageAccess();
+    if (!pageOn) return;
+    
+    if(!localStorage.getItem("auth_token")){window.location.href="/";return}
+    try{
+    const user=JSON.parse(localStorage.getItem("user")||'{}');
+    document.getElementById("myUserIdDisp").textContent=user.id?'U ID - '+user.id.toString().padStart(6,'0'):'U ID - ------';
             document.getElementById("myEmail").textContent=maskEmail(user.email||'');
             document.getElementById("sidebarName").textContent=user.username||'User';
             document.getElementById("sidebarEmail").textContent=user.email||'user@mlbb.com';
