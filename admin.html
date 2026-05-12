@@ -206,9 +206,39 @@
             <!-- API Key & Reseller Management -->
             <div class="divider"><h3><i class="fas fa-key"></i> API Key & Reseller Management</h3><div class="video-card"><div style="display:flex;gap:8px;align-items:center"><div class="form-group" style="flex:1;margin-bottom:0"><label>💱 Exchange Rate (1 USD = ? Ks)</label><input type="number" id="exchangeRateInput" value="3500" min="1" style="font-size:14px;font-weight:bold"></div><button class="btn btn-w" onclick="updateExchangeRate()" style="height:38px;margin-top:18px"><i class="fas fa-save"></i> Update</button></div></div><div class="video-card"><h4 style="color:var(--w);font-size:12px;margin-bottom:8px">➕ Create New Reseller</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>Name</label><input type="text" id="newResellerName" placeholder="Shop name"></div><div class="form-group"><label>Currency</label><select id="newResellerCurrency"><option value="MMK">MMK (Ks)</option><option value="USD">USD ($)</option></select></div><div class="form-group"><label>Markup %</label><input type="number" id="newResellerMarkup" value="10" min="0" max="100"></div><div class="form-group"><label>Initial Balance</label><input type="number" id="newResellerBalance" value="0" min="0"></div><div class="form-group"><label>📅 Expiry Date</label><input type="date" id="newResellerExpiry"></div><div class="form-group"><label>🔢 Max/Day</label><input type="number" id="newResellerMaxDaily" value="50" min="1"></div></div><button class="btn btn-g" onclick="createReseller()" style="width:100%;margin-top:8px"><i class="fas fa-plus"></i> Create Reseller & Generate API Key</button></div><div><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📋 Reseller List</h4><div id="resellerList" style="max-height:300px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div><div><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📊 Recent Transactions</h4><div id="resellerTransactions" style="max-height:200px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div></div>
             
-            <!-- Bot Message -->
-            <div class="divider"><h3><i class="fab fa-telegram"></i> Bot Message</h3><div class="form-group"><label>Message</label><textarea id="botCustomMsg" rows="3" placeholder="Type message..."></textarea></div><div class="template-btns"><button class="template-btn" style="background:#e74c3c;color:#fff" onclick="addBotTemplate('announcement')">📢 Announcement</button><button class="template-btn" style="background:#2ecc71;color:#000" onclick="addBotTemplate('promo')">🎉 Promo</button><button class="template-btn" style="background:#3498db;color:#fff" onclick="addBotTemplate('update')">🔧 Update</button><button class="template-btn" style="background:#f39c12;color:#000" onclick="addBotTemplate('warning')">⚠️ Warning</button></div><button class="btn btn-b" onclick="sendBotMessage()" style="width:100%"><i class="fas fa-paper-plane"></i> Send</button></div>
-            
+            <!-- Bot Message Section ကို ဒါနဲ့ အစားထိုးပါ -->
+<div class="divider">
+    <h3><i class="fab fa-telegram"></i> Push Notification</h3>
+    <div class="form-group">
+        <label>📝 Message</label>
+        <textarea id="botCustomMsg" rows="3" placeholder="Type message..."></textarea>
+    </div>
+    <div class="form-group">
+        <label>🔔 Notification Sound</label>
+        <select id="botSoundSelect">
+            <option value="notification">🔔 Default Sound</option>
+            <option value="custom_sound_1">🎵 Sound 1 (notification.mp3)</option>
+            <option value="custom_sound_2">🎵 Sound 2 (samsung_notebook_music.mp3)</option>
+            <option value="custom_sound_3">🎵 Sound 3 (sinebits_chord_2.mp3)</option>
+            <option value="custom_sound_4">🎵 Sound 4 (sound.mp3)</option>
+            <option value="custom_sound_5">🎵 Sound 5 (superguyofans1234)</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>📋 Notification Title</label>
+        <input type="text" id="botTitleInput" value="SOLO M Game Shop" placeholder="Notification title">
+    </div>
+    <div class="template-btns">
+        <button class="template-btn" style="background:#e74c3c;color:#fff" onclick="addBotTemplate('announcement')">📢 Announcement</button>
+        <button class="template-btn" style="background:#2ecc71;color:#000" onclick="addBotTemplate('promo')">🎉 Promo</button>
+        <button class="template-btn" style="background:#3498db;color:#fff" onclick="addBotTemplate('update')">🔧 Update</button>
+        <button class="template-btn" style="background:#f39c12;color:#000" onclick="addBotTemplate('warning')">⚠️ Warning</button>
+    </div>
+    <button class="btn btn-b" onclick="sendBotMessage()" style="width:100%">
+        <i class="fas fa-paper-plane"></i> Send Push Notification
+    </button>
+</div>
+               
             <!-- Slider -->
             <div class="divider"><h3><i class="fas fa-images"></i> Image Slider</h3><div class="form-group"><input type="text" id="sliderUrl1" placeholder="Image URL 1"></div><div class="form-group"><input type="text" id="sliderUrl2" placeholder="Image URL 2"></div><div class="form-group"><input type="text" id="sliderUrl3" placeholder="Image URL 3"></div><div class="form-group"><input type="text" id="sliderUrl4" placeholder="Image URL 4"></div><div class="form-group"><input type="text" id="sliderUrl5" placeholder="Image URL 5"></div><div class="btn-row"><button class="btn btn-g" onclick="saveSliderImages()">Save</button><button class="btn btn-r" onclick="clearSliderImages()">Clear</button></div><div id="sliderPreviewList" style="margin-top:5px;font-size:10px"></div></div>
             
@@ -398,9 +428,46 @@ async function updateExchangeRate(){const rate=document.getElementById('exchange
 async function loadExchangeRate(){try{const r=await fetch('/api/exchange_rate');const d=await r.json();if(d.rate){document.getElementById('exchangeRateInput').value=d.rate}}catch(e){}}
 
 // ==================== BOT ====================
-function addBotTemplate(t){const ta=document.getElementById('botCustomMsg');const temps={announcement:'📢 Announcement\n\n',promo:'🎉 Promotion\n\n',update:'🔧 Update\n\n• \n• \n\n',warning:'⚠️ Warning\n\n'};ta.value=temps[t]||'';ta.focus()}
-async function sendBotMessage(){const msg=document.getElementById('botCustomMsg').value.trim();if(!msg)return n('Enter message','error');try{const r=await fetch('/api/admin/bot_message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});const d=await r.json();d.success?(n('✅ Sent to '+d.count+' users!'),document.getElementById('botCustomMsg').value=''):n(d.message||'Error','error')}catch(e){n('Error','error')}}
+function addBotTemplate(t){
+    const ta=document.getElementById('botCustomMsg');
+    const temps={
+        announcement:'📢 အသိပေးချက်\n\n',
+        promo:'🎉 ပရိုမိုးရှင်း\n\n',
+        update:'🔧 စနစ်မွမ်းမံမှု\n\n• \n• \n\n',
+        warning:'⚠️ သတိပေးချက်\n\n'
+    };
+    ta.value=temps[t]||'';ta.focus();
+}
 
+async function sendBotMessage(){
+    const msg = document.getElementById('botCustomMsg').value.trim();
+    const sound = document.getElementById('botSoundSelect').value || 'notification';
+    const title = document.getElementById('botTitleInput').value || 'SOLO M Game Shop';
+    
+    if(!msg) return n('Enter message','error');
+    
+    try{
+        const r = await fetch('/api/admin/bot_message', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                message: msg,
+                sound: sound,
+                title: title
+            })
+        });
+        const d = await r.json();
+        
+        if(d.success){
+            n('✅ Sent to ' + d.count + ' Telegram users + Push (sound: ' + sound + ')');
+            document.getElementById('botCustomMsg').value = '';
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e){
+        n('Connection error', 'error');
+    }
+}
 // ==================== SLIDER ====================
 async function saveSliderImages(){const urls=[];for(let i=1;i<=5;i++){const inp=document.getElementById('sliderUrl'+i);if(inp&&inp.value.trim())urls.push(inp.value.trim())}if(!urls.length)return n("Enter URLs","error");try{await fetch('/api/admin/slider_images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:urls})});n('Saved!');for(let i=1;i<=5;i++)document.getElementById('sliderUrl'+i).value='';loadSliderPreview()}catch(e){n('Error','error')}}
 async function clearSliderImages(){try{await fetch('/api/admin/slider_images',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({images:[]})});n('Cleared!');loadSliderPreview()}catch(e){n('Error','error')}}
