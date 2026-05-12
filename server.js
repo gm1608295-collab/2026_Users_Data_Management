@@ -2287,6 +2287,38 @@ app.post('/api/reseller/transactions', verifyApiKey, async (req, res) => {
 });
 
 console.log('✅ API Key & Reseller System Ready');
+
+// ==================== LEADERBOARD API ====================
+app.get('/api/leaderboard/top_spenders', async (req, res) => {
+    try {
+        const p = await getPool();
+        
+        // Active users only: balance > 0, not banned, not guest, logged in within 30 days
+        const r = await p.query(`
+            SELECT 
+                u.username, 
+                u.email, 
+                COALESCE(SUM(CASE WHEN o.amount > 0 AND o.status = 'approved' THEN o.amount ELSE 0 END), 0) as total_spent,
+                COUNT(CASE WHEN o.status = 'approved' THEN 1 END) as total_orders
+            FROM auth_users u
+            LEFT JOIN orders o ON u.id = o.user_id
+            WHERE u.login_type != 'guest'
+              AND u.id NOT IN (SELECT user_id::INT FROM banned_users)
+              AND u.last_login > NOW() - INTERVAL '30 days'
+              AND u.balance > 0
+            GROUP BY u.id, u.username, u.email
+            HAVING COALESCE(SUM(CASE WHEN o.amount > 0 AND o.status = 'approved' THEN o.amount ELSE 0 END), 0) > 0
+            ORDER BY total_spent DESC
+            LIMIT 10
+        `);
+        
+        res.json({ success: true, leaders: r.rows });
+        
+    } catch(e) {
+        console.error('[LEADERBOARD ERROR]', e.message);
+        res.json({ success: false, leaders: [] });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
