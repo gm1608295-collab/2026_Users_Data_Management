@@ -46,8 +46,44 @@ const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
 
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
-function sendOnesignal(msg) { try { const data = JSON.stringify({ app_id: ONESIGNAL_APP_ID, included_segments: ["All"], contents: { en: msg }, headings: { en: "SOLO M Game Shop" } }); const req = https.request({ hostname: 'onesignal.com', path: '/api/v1/notifications', method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${ONESIGNAL_API_KEY}` } }); req.write(data); req.end(); } catch(e) {} }
-
+function sendOnesignal(msg, sound = "notification", title = "SOLO M Game Shop") { 
+    try { 
+        const data = JSON.stringify({ 
+            app_id: ONESIGNAL_APP_ID, 
+            included_segments: ["All"], 
+            contents: { en: msg }, 
+            headings: { en: title },
+            // ✅ Custom Sounds from Median.co Screenshot
+            android_sound: sound,
+            ios_sound: sound + ".wav",
+            android_channel_id: "solom-default-channel",
+            // ✅ Small icon for Android
+            small_icon: "ic_stat_onesignal_default",
+            // ✅ Large icon
+            large_icon: "https://two026-users-data-management.onrender.com/icons/icon-192.png",
+            // ✅ Priority
+            priority: 10,
+            // ✅ Vibration pattern
+            android_vibration: [200, 100, 200]
+        }); 
+        
+        const req = https.request({ 
+            hostname: 'onesignal.com', 
+            path: '/api/v1/notifications', 
+            method: 'POST', 
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Basic ${ONESIGNAL_API_KEY}` 
+            } 
+        }); 
+        req.write(data); 
+        req.end(); 
+        
+        console.log('[ONESIGNAL] 📲 Notification sent with sound:', sound);
+    } catch(e) {
+        console.error('[ONESIGNAL ERROR]', e.message);
+    } 
+}
 // ==================== REDEEM CATEGORIES (Hardcoded Prices) ====================
 const REDEEM_CATEGORIES = [
     { id: 'shhh_emote', name: 'Shhh emote', icon: 'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png', price: 2500 },
@@ -597,7 +633,7 @@ app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { co
 
 // ==================== BOT MESSAGE ====================
 app.post('/api/admin/bot_message', async (req, res) => {
-    const { message } = req.body;
+    const { message, sound } = req.body;
     if (!message) return res.json({ success: false });
     
     try {
@@ -622,10 +658,11 @@ app.post('/api/admin/bot_message', async (req, res) => {
             } catch(e) {}
         }
         
-        // 2. OneSignal Push Notification
-        sendOnesignal(message);
+        // 2. OneSignal Push Notification (အသံပါ)
+        const selectedSound = sound || 'notification';
+        sendOnesignal(message, selectedSound);
         
-        console.log('[BOT MESSAGE] Sent to ' + telegramCount + ' Telegram users + Push Notification');
+        console.log('[BOT MESSAGE] Sent to ' + telegramCount + ' Telegram users + Push (sound: ' + selectedSound + ')');
         res.json({ success: true, count: telegramCount });
         
     } catch(e) {
