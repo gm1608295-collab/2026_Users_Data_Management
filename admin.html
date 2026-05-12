@@ -258,11 +258,10 @@
     
     <!-- Restore Confirm Modal -->
     <div class="modal" id="restoreConfirmModal"><div class="modal-box"><span class="modal-close" onclick="closeRestoreConfirm()">&times;</span><h3>⚠️ Restore Database</h3><p style="font-size:11px;color:var(--r);text-align:center;margin-bottom:15px">လက်ရှိ Database ကို Backup File ဖြင့် အစားထိုးမှာ သေချာပါသလား?</p><div style="display:flex;gap:8px"><button class="btn btn-r" onclick="confirmRestore()" style="flex:1">Yes</button><button class="btn" onclick="closeRestoreConfirm()" style="flex:1;background:rgba(255,255,255,0.2)">Cancel</button></div></div></div>
-
 <script>
     const ADMIN="MK2008";
     let currentOrderFilter='all',pendingRestoreData=null;
-    const pageIcons={'topup':'💰','buycode':'🛒','dashboard':'🏠','data':'📊','history':'📋','password':'🔑','recovery':'🔧','contact':'📞','aboutredeem':'ℹ️','exchange':'💱'};
+    const pageIcons={'topup':'💰','buycode':'🛒','dashboard':'🏠','data':'📊','history':'📋','password':'🔑','recovery':'🔧','contact':'📞','aboutredeem':'ℹ️','game':'🎰','exchange':'💱'};
     let autoRefreshInterval=null;
     let pageTimers={};
     
@@ -276,8 +275,8 @@
         if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");
         document.getElementById("adminBox").style.display="block";showLoading('Loading...');
         try{await Promise.all([loadAdminData(),loadAdminOrders('all'),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes(),loadSpinRates()]);updateBackupInfo();hideLoading();n('✅ Loaded');startAutoRefresh()}catch(e){hideLoading();n('Error','error')}
-   
-    function startAutoRefresh(){if(autoRefreshInterval)clearInterval(autoRefreshInterval);autoRefreshInterval=setInterval(async()=>{await Promise.all([loadAdminData(),loadAdminOrders(currentOrderFilter),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes()])},5000)}
+    }
+    function startAutoRefresh(){if(autoRefreshInterval)clearInterval(autoRefreshInterval);autoRefreshInterval=setInterval(async()=>{await Promise.all([loadAdminData(),loadAdminOrders(currentOrderFilter),loadPageToggles(),loadSpinRates()])},5000)}
     
     // ==================== BACKUP & RESTORE ====================
     async function backupDatabase(){showLoading('Backup...');try{const r=await fetch('/api/admin/backup');const d=await r.json();if(d.success&&d.data){const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);n('✅ Downloaded!');localStorage.setItem('lastBackup',new Date().toLocaleString());updateBackupInfo()}else n('Failed','error')}catch(e){n('Error','error')}hideLoading()}
@@ -294,222 +293,80 @@
     function updateTimerPreview(){const h=parseInt(document.getElementById('timerHours').value)||0,m=parseInt(document.getElementById('timerMinutes').value)||0,s=parseInt(document.getElementById('timerSeconds').value)||0;document.getElementById('timerPreview').textContent=`⏱️ ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}
     function closeTimerModal(){document.getElementById('timerModal').classList.remove('active')}
     async function confirmTimer() {
-    const id = document.getElementById('timerPageId').value;
-    const h = parseInt(document.getElementById('timerHours').value) || 0;
-    const m = parseInt(document.getElementById('timerMinutes').value) || 0;
-    const s = parseInt(document.getElementById('timerSeconds').value) || 0;
-    
-    const totalMs = (h * 3600 + m * 60 + s) * 1000;
-    
-    if (totalMs <= 0) {
-        n('Please set a time greater than 0', 'error');
-        return;
+        const id=document.getElementById('timerPageId').value;
+        const h=parseInt(document.getElementById('timerHours').value)||0;
+        const m=parseInt(document.getElementById('timerMinutes').value)||0;
+        const s=parseInt(document.getElementById('timerSeconds').value)||0;
+        const totalMs=(h*3600+m*60+s)*1000;
+        if(totalMs<=0){n('Please set a time greater than 0','error');return;}
+        const turnOnTime=Date.now()+totalMs;
+        await togglePage(id,false);
+        pageTimers[id]=turnOnTime;localStorage.setItem('pageTimers',JSON.stringify(pageTimers));
+        const cd=new Date();cd.setTime(cd.getTime()+(7*24*60*60*1000));
+        document.cookie='pageTimers='+encodeURIComponent(JSON.stringify(pageTimers))+'; expires='+cd.toUTCString()+'; path=/';
+        sessionStorage.setItem('pageTimers',JSON.stringify(pageTimers));
+        setTimeout(async()=>{await togglePage(id,true);delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles();},totalMs);
+        closeTimerModal();loadPageToggles();
+        n(`✅ Timer set! Page will auto-ON in ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`);
     }
+    function cancelTimer(id){delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));const d=new Date();d.setTime(d.getTime()+(7*24*60*60*1000));document.cookie='pageTimers='+encodeURIComponent(JSON.stringify(pageTimers))+'; expires='+d.toUTCString()+'; path=/';sessionStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles();n('✅ Timer cancelled')}
+    async function turnOffPage(id){if(!confirm(`Turn OFF "${id}" page?`))return;await togglePage(id,false);n('✅ Page turned OFF')}
+    async function togglePage(id,on){try{await fetch('/api/admin/toggle_page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_id:id,status:on?'on':'off'})});loadPageToggles();}catch(e){n('Error','error')}}
     
-    const turnOnTime = Date.now() + totalMs;
-    
-    // Turn page OFF now
-    await togglePage(id, false);
-    
-    // Save to localStorage
-    pageTimers[id] = turnOnTime;
-    localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
-    
-    // Save to cookie (for Median WebView)
-    const cookieDate = new Date();
-    cookieDate.setTime(cookieDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 days
-    document.cookie = 'pageTimers=' + encodeURIComponent(JSON.stringify(pageTimers)) + '; expires=' + cookieDate.toUTCString() + '; path=/';
-    
-    // Save to sessionStorage
-    sessionStorage.setItem('pageTimers', JSON.stringify(pageTimers));
-    
-    // Set timeout for auto-ON
-    setTimeout(async () => {
-        await togglePage(id, true);
-        delete pageTimers[id];
-        localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
-        document.cookie = 'pageTimers=' + encodeURIComponent(JSON.stringify(pageTimers)) + '; expires=' + cookieDate.toUTCString() + '; path=/';
-        sessionStorage.setItem('pageTimers', JSON.stringify(pageTimers));
-        loadPageToggles();
-    }, totalMs);
-    
-    // Close modal and refresh
-    closeTimerModal();
-    loadPageToggles();
-    
-    const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-    n(`✅ Timer set! Page will auto-ON in ${timeStr}`);
-    }
-    function cancelTimer(id){
-    delete pageTimers[id];
-    localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
-    // Also clear cookie
-    document.cookie = 'pageTimers=' + encodeURIComponent(JSON.stringify(pageTimers)) + '; expires=' + new Date(Date.now() + 7*24*60*60*1000).toUTCString() + '; path=/';
-    sessionStorage.setItem('pageTimers', JSON.stringify(pageTimers));
-    loadPageToggles();
-    n('✅ Timer cancelled');
-}
-
-async function turnOffPage(id){
-    if(!confirm(`Turn OFF "${id}" page?`)) return;
-    await togglePage(id, false);
-    n('✅ Page turned OFF');
-}
-
-async function togglePage(id, on){
-    try {
-        await fetch('/api/admin/toggle_page', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ page_id: id, status: on ? 'on' : 'off' })
-        });
-        loadPageToggles();
-    } catch(e) {
-        n('Error', 'error');
-    }
-}
-
     // ==================== SPIN RATE MANAGEMENT ====================
-const RATE_TYPES = {
-    'normal_daily': '🎰 Normal Daily Draw',
-    'normal_buy': '💳 Normal Buy Draw', 
-    'premium_buy': '👑 Premium Buy Draw',
-    'premium_tier1': '🥉 Premium Tier 1 (Bronze)',
-    'premium_tier2': '🥈 Premium Tier 2 (Silver)',
-    'premium_tier3': '🥇 Premium Tier 3 (Gold)'
-};
-
-async function loadSpinRates() {
-    try {
-        const r = await fetch('/api/admin/spin_rates');
-        const d = await r.json();
-        
-        if (d.success && d.rates) {
-            renderSpinRateTables(d.rates);
+    const RATE_TYPES={
+        'normal_daily':'🎰 Normal Daily Draw',
+        'normal_buy':'💳 Normal Buy Draw',
+        'premium_buy':'👑 Premium Buy Draw',
+        'premium_tier1':'🥉 Premium Tier 1 (Bronze)',
+        'premium_tier2':'🥈 Premium Tier 2 (Silver)',
+        'premium_tier3':'🥇 Premium Tier 3 (Gold)'
+    };
+    
+    async function loadSpinRates(){
+        try{const r=await fetch('/api/admin/spin_rates');const d=await r.json();if(d.success&&d.rates){renderSpinRateTables(d.rates);}}catch(e){console.error('Load spin rates error:',e);}
+    }
+    
+    function renderSpinRateTables(rates){
+        let h='';
+        for(const [rt,tn] of Object.entries(RATE_TYPES)){
+            const tr=rates.filter(r=>r.rate_type===rt);
+            if(tr.length===0)continue;
+            const tw=tr.reduce((s,r)=>s+r.weight,0);
+            h+=`<div style="margin-bottom:15px;background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.1)"><h4 style="color:var(--w);font-size:12px;margin-bottom:8px">${tn}</h4><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">`;
+            tr.forEach(rate=>{
+                const pct=tw>0?((rate.weight/tw)*100).toFixed(1):'0.0';
+                h+=`<div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;border-left:3px solid ${rate.segment_color}"><div style="font-size:11px;font-weight:bold;color:#fff">${rate.segment_label}</div><div style="font-size:9px;color:rgba(255,255,255,0.4)">${rate.reward_type.toUpperCase()} | ${rate.reward}</div><input type="number" id="rate_${rate.id}" value="${rate.weight}" min="1" max="100" data-rate-type="${rate.rate_type}" data-segment-label="${rate.segment_label}" style="width:50px;padding:4px;text-align:center;font-size:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;margin-top:4px" onchange="updateRatePercent(this)"><span id="pct_${rate.id}" style="font-size:9px;color:var(--w);display:block;margin-top:2px">${pct}%</span></div>`;
+            });
+            h+=`</div><div style="text-align:right;font-size:9px;color:rgba(255,255,255,0.4);margin-top:6px">Total Weight: <span style="color:var(--w)" id="total_${rt}">${tw}</span></div></div>`;
         }
-    } catch(e) {
-        console.error('Load spin rates error:', e);
+        document.getElementById('spinRateTables').innerHTML=h;
     }
-}
-
-function renderSpinRateTables(rates) {
-    let html = '';
     
-    for (const [rateType, typeName] of Object.entries(RATE_TYPES)) {
-        const typeRates = rates.filter(r => r.rate_type === rateType);
-        if (typeRates.length === 0) continue;
-        
-        const totalWeight = typeRates.reduce((sum, r) => sum + r.weight, 0);
-        
-        html += `
-            <div style="margin-bottom:15px;background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.1)">
-                <h4 style="color:var(--gold);font-size:12px;margin-bottom:8px">${typeName}</h4>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
-        `;
-        
-        typeRates.forEach(rate => {
-            const pct = totalWeight > 0 ? ((rate.weight / totalWeight) * 100).toFixed(1) : '0.0';
-            html += `
-                <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;border-left:3px solid ${rate.segment_color}">
-                    <div style="font-size:11px;font-weight:bold;color:#fff">${rate.segment_label}</div>
-                    <div style="font-size:9px;color:rgba(255,255,255,0.4)">${rate.reward_type.toUpperCase()} | ${rate.reward}</div>
-                    <input type="number" 
-                        id="rate_${rate.id}" 
-                        value="${rate.weight}" 
-                        min="1" 
-                        max="100"
-                        data-rate-type="${rate.rate_type}"
-                        data-segment-label="${rate.segment_label}"
-                        style="width:50px;padding:4px;text-align:center;font-size:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;margin-top:4px"
-                        onchange="updateRatePercent(this)">
-                    <span id="pct_${rate.id}" style="font-size:9px;color:var(--gold);display:block;margin-top:2px">${pct}%</span>
-                </div>
-            `;
+    function updateRatePercent(input){
+        const rt=input.dataset.rateType;
+        const pctEl=document.getElementById('pct_'+input.id.replace('rate_',''));
+        const totalEl=document.getElementById('total_'+rt);
+        let tw=0;
+        document.querySelectorAll(`input[data-rate-type="${rt}"]`).forEach(inp=>{tw+=parseInt(inp.value)||0;});
+        const w=parseInt(input.value)||0;
+        const pct=tw>0?((w/tw)*100).toFixed(1):'0.0';
+        pctEl.textContent=pct+'%';
+        if(totalEl)totalEl.textContent=tw;
+        document.querySelectorAll(`input[data-rate-type="${rt}"]`).forEach(inp=>{
+            const ppctEl=document.getElementById('pct_'+inp.id.replace('rate_',''));
+            if(ppctEl){const iw=parseInt(inp.value)||0;const ip=tw>0?((iw/tw)*100).toFixed(1):'0.0';ppctEl.textContent=ip+'%';}
         });
-        
-        html += `
-                </div>
-                <div style="text-align:right;font-size:9px;color:rgba(255,255,255,0.4);margin-top:6px">
-                    Total Weight: <span style="color:var(--gold)" id="total_${rateType}">${totalWeight}</span>
-                </div>
-            </div>
-        `;
     }
     
-    document.getElementById('spinRateTables').innerHTML = html;
-}
-
-function updateRatePercent(input) {
-    const id = input.id.replace('rate_', '');
-    const rateType = input.dataset.rateType;
-    const pctEl = document.getElementById('pct_' + id);
-    const totalEl = document.getElementById('total_' + rateType);
-    
-    // Calculate total for this rate type
-    let totalWeight = 0;
-    document.querySelectorAll(`input[data-rate-type="${rateType}"]`).forEach(inp => {
-        totalWeight += parseInt(inp.value) || 0;
-    });
-    
-    // Update percent display
-    const weight = parseInt(input.value) || 0;
-    const pct = totalWeight > 0 ? ((weight / totalWeight) * 100).toFixed(1) : '0.0';
-    pctEl.textContent = pct + '%';
-    
-    // Update total display
-    if (totalEl) totalEl.textContent = totalWeight;
-    
-    // Update all percents for this rate type
-    document.querySelectorAll(`input[data-rate-type="${rateType}"]`).forEach(inp => {
-        const pid = inp.id.replace('rate_', '');
-        const ppctEl = document.getElementById('pct_' + pid);
-        if (ppctEl) {
-            const w = parseInt(inp.value) || 0;
-            const p = totalWeight > 0 ? ((w / totalWeight) * 100).toFixed(1) : '0.0';
-            ppctEl.textContent = p + '%';
-        }
-    });
-}
-
-async function saveAllSpinRates() {
-    const rates = [];
-    
-    document.querySelectorAll('#spinRateTables input[type="number"]').forEach(input => {
-        rates.push({
-            id: parseInt(input.id.replace('rate_', '')),
-            rate_type: input.dataset.rateType,
-            segment_label: input.dataset.segmentLabel,
-            weight: parseInt(input.value) || 1
-        });
-    });
-    
-    if (rates.length === 0) {
-        n('No rates to save', 'error');
-        return;
+    async function saveAllSpinRates(){
+        const rates=[];
+        document.querySelectorAll('#spinRateTables input[type="number"]').forEach(input=>{rates.push({id:parseInt(input.id.replace('rate_','')),rate_type:input.dataset.rateType,segment_label:input.dataset.segmentLabel,weight:parseInt(input.value)||1});});
+        if(rates.length===0){n('No rates to save','error');return;}
+        showLoading('Saving rates...');
+        try{const r=await fetch('/api/admin/spin_rates/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rates})});const d=await r.json();if(d.success){n('✅ Spin rates updated!');loadSpinRates();}else{n(d.message||'Error','error');}}catch(e){n('Connection error','error');}
+        hideLoading();
     }
-    
-    showLoading('Saving rates...');
-    
-    try {
-        const r = await fetch('/api/admin/spin_rates/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rates })
-        });
-        const d = await r.json();
-        
-        if (d.success) {
-            n('✅ Spin rates updated!');
-            loadSpinRates();
-        } else {
-            n(d.message || 'Error', 'error');
-        }
-    } catch(e) {
-        n('Connection error', 'error');
-    }
-    
-    hideLoading();
-}
     
     // ==================== VIDEO ====================
     async function saveVideoUrl(){const url=document.getElementById('videoUrl').value.trim();if(!url)return n('Enter URL','error');try{await fetch('/api/admin/video',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});n('✅ Saved!');document.getElementById('videoUrl').value='';loadCurrentVideo()}catch(e){n('Error','error')}}
@@ -518,102 +375,22 @@ async function saveAllSpinRates() {
     
     // ==================== ADMIN DATA ====================
     async function loadAdminData(){try{const r=await fetch("/api/admin/users_grouped");const d=await r.json();document.getElementById("totalUsers").textContent=d.total||0;document.getElementById("bannedUsers").textContent=(d.banned||[]).length;const banned=d.banned||[];
-        const renderUserList=(list,container,editable)=>{
-            container.innerHTML=list.length===0?'<p style="font-size:10px;color:rgba(255,255,255,0.4)">No users</p>':list.map(u=>{
-                const b=banned.includes(u.id.toString());
-                const idDisplay=u.id.toString().padStart(6,'0');
-                return`<div class="user-row${b?' banned':''}">
-                    <div class="user-info">
-                        <b>🆔 ${idDisplay}</b> | ${u.username||'N/A'}<br>
-                        <small>📧 ${u.email||'N/A'} | 💰 ${u.balance||0} Ks</small>
-                    </div>
-                    <div class="user-btns">
-                        <div class="btn-row">
-                            ${editable?`<button class="btn-micro edit" onclick="openEditModal('${u.id}','${(u.username||'').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}','${u.phone||''}')">✏️ Edit</button>`:''}
-                            <button class="btn-micro pass" onclick="openDataPassModal('${u.id}','${(u.username||'User').replace(/'/g,"\\'")}')">🔑 Data Pass</button>
-                        </div>
-                        <div class="btn-row">
-                            ${b?`<button class="btn-micro unban" onclick="unbanUser('${u.id}')">✅ Unban</button>`:`<button class="btn-micro ban" onclick="banUserById('${u.id}')">🚫 Ban</button>`}
-                            <button class="btn-micro del" onclick="delUserById('${u.id}')">🗑️ Del</button>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-        };
-        renderUserList(d.local||[],document.getElementById("localList"),true);
-        renderUserList(d.google||[],document.getElementById("googleList"),false);
-        renderUserList(d.tiktok||[],document.getElementById("tiktokList"),false);
-        renderUserList(d.telegram||[],document.getElementById("telegramList"),false);
+        const renderUserList=(list,container,editable)=>{container.innerHTML=list.length===0?'<p style="font-size:10px;color:rgba(255,255,255,0.4)">No users</p>':list.map(u=>{const b=banned.includes(u.id.toString());const idDisplay=u.id.toString().padStart(6,'0');return`<div class="user-row${b?' banned':''}"><div class="user-info"><b>🆔 ${idDisplay}</b> | ${u.username||'N/A'}<br><small>📧 ${u.email||'N/A'} | 💰 ${u.balance||0} Ks</small></div><div class="user-btns"><div class="btn-row">${editable?`<button class="btn-micro edit" onclick="openEditModal('${u.id}','${(u.username||'').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}','${u.phone||''}')">✏️ Edit</button>`:''}<button class="btn-micro pass" onclick="openDataPassModal('${u.id}','${(u.username||'User').replace(/'/g,"\\'")}')">🔑 Data Pass</button></div><div class="btn-row">${b?`<button class="btn-micro unban" onclick="unbanUser('${u.id}')">✅ Unban</button>`:`<button class="btn-micro ban" onclick="banUserById('${u.id}')">🚫 Ban</button>`}<button class="btn-micro del" onclick="delUserById('${u.id}')">🗑️ Del</button></div></div></div>`;}).join('');};
+        renderUserList(d.local||[],document.getElementById("localList"),true);renderUserList(d.google||[],document.getElementById("googleList"),false);renderUserList(d.tiktok||[],document.getElementById("tiktokList"),false);renderUserList(d.telegram||[],document.getElementById("telegramList"),false);
     }catch(e){}}
     
     // ==================== USER ACTIONS ====================
     async function banUserById(id){await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Banned!");loadAdminData()}
     async function unbanUser(id){await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Unbanned!");loadAdminData()}
-    async function delUserById(id) {
-    if (!confirm("⚠️ Are you SURE you want to delete user #" + id + "?\n\nThis action cannot be undone. User will be banned first, then deleted.")) return;
-    
-    try {
-        const r = await fetch("/api/admin/delete", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: id })
-        });
-        const d = await r.json();
-        if (d.success) {
-            n("✅ User banned & deleted!");
-            loadAdminData();
-        } else {
-            n("❌ Error deleting user", "error");
-        }
-    } catch(e) {
-        n("❌ Connection error", "error");
-    }
-    } 
+    async function delUserById(id){if(!confirm("⚠️ Are you SURE you want to delete user #"+id+"?\n\nThis action cannot be undone. User will be banned first, then deleted."))return;try{const r=await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});const d=await r.json();if(d.success){n("✅ User banned & deleted!");loadAdminData();}else{n("❌ Error deleting user","error");}}catch(e){n("❌ Connection error","error");}}
     function openEditModal(uid,un,em,ph){document.getElementById("editUserId").value=uid;document.getElementById("editName").value=un||'';document.getElementById("editEmail").value=em||'';document.getElementById("editPhone").value=ph||'';document.getElementById("editPass").value='';document.getElementById("editModal").classList.add("active")}
     function closeEditModal(){document.getElementById("editModal").classList.remove("active")}
     async function saveEdit(){const id=document.getElementById("editUserId").value,un=document.getElementById("editName").value,em=document.getElementById("editEmail").value,ph=document.getElementById("editPhone").value,pw=document.getElementById("editPass").value;try{await fetch("/api/admin/edit_user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:parseInt(id),username:un,email:em,phone:ph,password:pw||''})});n("Updated!");closeEditModal();loadAdminData()}catch(e){n("Error","error")}}
     
     // ==================== DATA PASS MANAGEMENT ====================
-    function openDataPassModal(uid,uname){
-        document.getElementById('dataPassUserId').value=uid;
-        document.getElementById('dataPassUsername').value=uname;
-        document.getElementById('dataPassUserDisplay').textContent=uname+' (ID: '+uid.toString().padStart(6,'0')+')';
-        document.getElementById('newGmailPass').value='';
-        document.getElementById('newMlbbPass').value='';
-        document.getElementById('newTiktokPass').value='';
-        
-        // Fetch current passwords
-        fetch('/api/admin/get_user_data_pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})})
-        .then(r=>r.json()).then(d=>{
-            document.getElementById('currentGmailPass').textContent=d.gmail_pass||'Default: DoubleMK2008';
-            document.getElementById('currentMlbbPass').textContent=d.mlbb_pass||'Default: GlobalMK2008';
-            document.getElementById('currentTiktokPass').textContent=d.tiktok_pass||'Default: DoubleMK2008';
-        }).catch(()=>{
-            document.getElementById('currentGmailPass').textContent='Default: DoubleMK2008';
-            document.getElementById('currentMlbbPass').textContent='Default: GlobalMK2008';
-            document.getElementById('currentTiktokPass').textContent='Default: DoubleMK2008';
-        });
-        
-        document.getElementById('dataPassModal').classList.add('active');
-    }
+    function openDataPassModal(uid,uname){document.getElementById('dataPassUserId').value=uid;document.getElementById('dataPassUsername').value=uname;document.getElementById('dataPassUserDisplay').textContent=uname+' (ID: '+uid.toString().padStart(6,'0')+')';document.getElementById('newGmailPass').value='';document.getElementById('newMlbbPass').value='';document.getElementById('newTiktokPass').value='';fetch('/api/admin/get_user_data_pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})}).then(r=>r.json()).then(d=>{document.getElementById('currentGmailPass').textContent=d.gmail_pass||'Default: DoubleMK2008';document.getElementById('currentMlbbPass').textContent=d.mlbb_pass||'Default: GlobalMK2008';document.getElementById('currentTiktokPass').textContent=d.tiktok_pass||'Default: DoubleMK2008';}).catch(()=>{document.getElementById('currentGmailPass').textContent='Default: DoubleMK2008';document.getElementById('currentMlbbPass').textContent='Default: GlobalMK2008';document.getElementById('currentTiktokPass').textContent='Default: DoubleMK2008';});document.getElementById('dataPassModal').classList.add('active');}
     function closeDataPassModal(){document.getElementById('dataPassModal').classList.remove('active')}
-    async function saveDataPass(){
-        const uid=document.getElementById('dataPassUserId').value;
-        const gpass=document.getElementById('newGmailPass').value.trim();
-        const mpass=document.getElementById('newMlbbPass').value.trim();
-        const tpass=document.getElementById('newTiktokPass').value.trim();
-        
-        if(!gpass&&!mpass&&!tpass)return n('❌ Enter at least one new password','error');
-        
-        try{
-            const r=await fetch('/api/admin/update_data_pass',{
-                method:'POST',headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({userId:uid,gmail_pass:gpass||null,mlbb_pass:mpass||null,tiktok_pass:tpass||null})
-            });
-            const d=await r.json();
-            if(d.success){n('✅ Data passwords updated!');closeDataPassModal();}else{n(d.message||'Error','error')}
-        }catch(e){n('Error','error')}
-    }
+    async function saveDataPass(){const uid=document.getElementById('dataPassUserId').value;const gpass=document.getElementById('newGmailPass').value.trim();const mpass=document.getElementById('newMlbbPass').value.trim();const tpass=document.getElementById('newTiktokPass').value.trim();if(!gpass&&!mpass&&!tpass)return n('❌ Enter at least one new password','error');try{const r=await fetch('/api/admin/update_data_pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid,gmail_pass:gpass||null,mlbb_pass:mpass||null,tiktok_pass:tpass||null})});const d=await r.json();if(d.success){n('✅ Data passwords updated!');closeDataPassModal();}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
     
     // ==================== SEARCH ====================
     async function searchUser(){const q=document.getElementById('userSearch').value;if(q.length<2){document.getElementById('userSearchResult').innerHTML='';return}try{const r=await fetch('/api/admin/search_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();document.getElementById('userSearchResult').innerHTML=d.users.map(u=>`<div class="user-row"><div class="user-info"><b>ID:${u.id.toString().padStart(6,'0')}</b> ${u.username||''}<br><small>📧 ${u.email} | 💰 ${u.balance||0} Ks</small></div><div style="display:flex;gap:2px;align-items:center"><input type="number" id="bal${u.id}" placeholder="Amt" style="width:50px;padding:3px;font-size:9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px"><button class="btn btn-g" style="font-size:9px;padding:4px 8px" onclick="addBalance(${u.id})">+</button><button class="btn btn-r" style="font-size:9px;padding:4px 8px" onclick="subBalance(${u.id})">-</button></div></div>`).join('')}catch(e){}}
