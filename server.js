@@ -46,26 +46,36 @@ const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
 
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
-function sendOnesignal(msg, sound = "notification", title = "SOLO M Game Shop") { 
-    try { 
+function sendOnesignal(msg, sound, title) { 
+    try {
+        // ✅ Set default if not provided
+        const notificationSound = sound || 'notification';
+        const notificationTitle = title || 'SOLO M Game Shop';
+        
         const data = JSON.stringify({ 
             app_id: ONESIGNAL_APP_ID, 
             included_segments: ["All"], 
             contents: { en: msg }, 
-            headings: { en: title },
-            // ✅ Custom Sounds from Median.co Screenshot
-            android_sound: sound,
-            ios_sound: sound + ".wav",
-            android_channel_id: "solom-default-channel",
+            headings: { en: notificationTitle },
+            // ✅ Custom Sounds from Median.co
+            android_sound: notificationSound,
+            ios_sound: notificationSound + ".wav",
+            android_channel_id: "solom-notification-channel",
             // ✅ Small icon for Android
             small_icon: "ic_stat_onesignal_default",
             // ✅ Large icon
             large_icon: "https://two026-users-data-management.onrender.com/icons/icon-192.png",
             // ✅ Priority
             priority: 10,
-            // ✅ Vibration pattern
-            android_vibration: [200, 100, 200]
+            // ✅ TTL (1 hour)
+            ttl: 3600
         }); 
+        
+        console.log('[ONESIGNAL] 📲 Sending:', {
+            title: notificationTitle,
+            message: msg.substring(0, 50),
+            sound: notificationSound
+        });
         
         const req = https.request({ 
             hostname: 'onesignal.com', 
@@ -75,11 +85,22 @@ function sendOnesignal(msg, sound = "notification", title = "SOLO M Game Shop") 
                 'Content-Type': 'application/json', 
                 'Authorization': `Basic ${ONESIGNAL_API_KEY}` 
             } 
-        }); 
+        }, (res) => {
+            let body = '';
+            res.on('data', chunk => body += chunk);
+            res.on('end', () => {
+                console.log('[ONESIGNAL] Response:', body.substring(0, 100));
+                console.log('[ONESIGNAL] 📲 Push sent with sound:', notificationSound);
+            });
+        });
+        
+        req.on('error', (e) => {
+            console.error('[ONESIGNAL ERROR]', e.message);
+        });
+        
         req.write(data); 
         req.end(); 
         
-        console.log('[ONESIGNAL] 📲 Notification sent with sound:', sound);
     } catch(e) {
         console.error('[ONESIGNAL ERROR]', e.message);
     } 
@@ -633,8 +654,10 @@ app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { co
 
 // ==================== BOT MESSAGE ====================
 app.post('/api/admin/bot_message', async (req, res) => {
-    const { message, sound } = req.body;
-    if (!message) return res.json({ success: false });
+    const { message, sound, title } = req.body;
+    console.log('[BOT MESSAGE]', { message: message?.substring(0,30), sound, title });
+    
+    if (!message) return res.json({ success: false, message: 'Message required' });
     
     try {
         const p = await getPool();
@@ -658,15 +681,25 @@ app.post('/api/admin/bot_message', async (req, res) => {
             } catch(e) {}
         }
         
-        // 2. OneSignal Push Notification (အသံပါ)
+        // 2. ✅ OneSignal Push Notification (with selected sound)
         const selectedSound = sound || 'notification';
-        sendOnesignal(message, selectedSound);
+        const selectedTitle = title || 'SOLO M Game Shop';
         
-        console.log('[BOT MESSAGE] Sent to ' + telegramCount + ' Telegram users + Push (sound: ' + selectedSound + ')');
-        res.json({ success: true, count: telegramCount });
+        // Call OneSignal
+        sendOnesignal(message, selectedSound, selectedTitle);
+        
+        console.log('[BOT MESSAGE] ✅ Sent - Telegram: ' + telegramCount + ', Push: yes, Sound: ' + selectedSound);
+        
+        res.json({ 
+            success: true, 
+            count: telegramCount,
+            push_sent: true,
+            sound: selectedSound
+        });
         
     } catch(e) {
-        res.json({ success: false });
+        console.error('[BOT MESSAGE ERROR]', e);
+        res.json({ success: false, message: 'Server error' });
     }
 });
 // ==================== TELEGRAM BOT (မြန်မာလို) ====================
