@@ -1631,13 +1631,44 @@ async function verifyApiKey(req, res, next) {
             return res.status(401).json({ success: false, message: 'Invalid or suspended API Key' });
         }
         
-        req.reseller = r.rows[0];
+        const reseller = r.rows[0];
+        
+        // Check expiry date
+        if (reseller.expiry_date) {
+            const expiryDate = new Date(reseller.expiry_date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (expiryDate < today) {
+                return res.status(401).json({ 
+                    success: false, 
+                    message: 'API Key has expired on ' + reseller.expiry_date 
+                });
+            }
+        }
+        
+        // Check daily transaction limit
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayTxn = await p.query(
+            "SELECT COUNT(*) as cnt FROM reseller_transactions WHERE reseller_id=$1 AND created_at >= $2",
+            [reseller.id, todayStart]
+        );
+        const txnCount = parseInt(todayTxn.rows[0]?.cnt || 0);
+        
+        if (txnCount >= reseller.max_daily_transactions) {
+            return res.status(429).json({ 
+                success: false, 
+                message: 'Daily transaction limit reached (' + reseller.max_daily_transactions + ')' 
+            });
+        }
+        
+        req.reseller = reseller;
         next();
     } catch(e) {
         res.status(500).json({ success: false, message: 'Server error' });
     }
 }
-
 // ==================== EXCHANGE RATE API ====================
 
 // Get exchange rate (public)
@@ -1684,7 +1715,7 @@ app.get('/api/admin/resellers', async (req, res) => {
 
 // Create reseller
 app.post('/api/admin/reseller/create', async (req, res) => {
-    const { name, currency, markup_percent, initial_balance } = req.body;
+    const { name, currency, markup_percent, initial_balance, expiry_date, max_daily, rate_limit } = req.body;
     
     if (!name) return res.json({ success: false, message: 'Reseller name required' });
     
@@ -1694,17 +1725,21 @@ app.post('/api/admin/reseller/create', async (req, res) => {
         const currency_type = currency || 'MMK';
         const markup = parseInt(markup_percent) || 0;
         const balance = parseFloat(initial_balance) || 0;
+        const expiry = expiry_date || null;
+        const dailyMax = parseInt(max_daily) || 50;
+        const rate = parseInt(rate_limit) || 60;
         
         await p.query(
-            `INSERT INTO resellers (name, api_key, balance, currency, markup_percent) 
-             VALUES ($1, $2, $3, $4, $5)`,
-            [name, apiKey, balance, currency_type, markup]
+            `INSERT INTO resellers (name, api_key, balance, currency, markup_percent, expiry_date, max_daily_transactions, rate_limit_per_min) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [name, apiKey, balance, currency_type, markup, expiry, dailyMax, rate]
         );
         
         res.json({ 
             success: true, 
             message: 'Reseller created!',
-            api_key: apiKey
+            api_key: apiKey,
+            expiry_date: expiry
         });
         
     } catch(e) {
@@ -1714,7 +1749,7 @@ app.post('/api/admin/reseller/create', async (req, res) => {
 
 // Edit reseller
 app.post('/api/admin/reseller/edit', async (req, res) => {
-    const { id, name, currency, markup_percent, status } = req.body;
+    const { id, name, currency, markup_percent, status, expiry_date, max_daily, rate_limit } = req.body;
     
     if (!id) return res.json({ success: false, message: 'Reseller ID required' });
     
@@ -1725,6 +1760,9 @@ app.post('/api/admin/reseller/edit', async (req, res) => {
         if (currency) await p.query('UPDATE resellers SET currency=$1 WHERE id=$2', [currency, id]);
         if (markup_percent !== undefined) await p.query('UPDATE resellers SET markup_percent=$1 WHERE id=$2', [parseInt(markup_percent), id]);
         if (status) await p.query('UPDATE resellers SET status=$1 WHERE id=$2', [status, id]);
+        if (expiry_date !== undefined) await p.query('UPDATE resellers SET expiry_date=$1 WHERE id=$2', [expiry_date, id]);
+        if (max_daily !== undefined) await p.query('UPDATE resellers SET max_daily_transactions=$1 WHERE id=$2', [parseInt(max_daily), id]);
+        if (rate_limit !== undefined) await p.query('UPDATE resellers SET rate_limit_per_min=$1 WHERE id=$2', [parseInt(rate_limit), id]);
         
         await p.query('UPDATE resellers SET updated_at=NOW() WHERE id=$1', [id]);
         
