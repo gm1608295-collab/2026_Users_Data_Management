@@ -1743,8 +1743,11 @@ app.post('/api/buy_promo_code', async (req, res) => {
             return res.json({ success: false, message: 'Insufficient balance. Need ' + PROMO_CODE_PRICE + ' Ks' });
         }
         
-        // Mark as used
-        await p.query('UPDATE promo_codes SET used = true, used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
+        // ✅ Don't mark as used yet! User must redeem first
+        // await p.query('UPDATE promo_codes SET used = true, used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
+        
+        // ✅ Just deduct balance and mark as SOLD (but not redeemed)
+        await p.query('UPDATE promo_codes SET used = true WHERE id = $1', [c.id]);
         
         // Deduct balance
         await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id = $2', [PROMO_CODE_PRICE, uid]);
@@ -1776,11 +1779,14 @@ app.post('/api/redeem_promo', async (req, res) => {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         
-        // Check if code exists and is unused
-        const code = await p.query(
-            "SELECT * FROM promo_codes WHERE api_key = $1 AND used = false AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)",
-            [promo_code]
-        );
+        // ဒါကိုထည့်
+const promoCode = promo_code.toUpperCase();
+
+// Query မှာလည်း UPPER သုံး
+const code = await p.query(
+    "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = true",
+    [promoCode]
+);
         
         if (code.rows.length === 0) {
             // Check if it exists but expired
