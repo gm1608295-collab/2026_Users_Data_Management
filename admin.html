@@ -327,22 +327,60 @@
         try{const r=await fetch('/api/admin/spin_rates');const d=await r.json();if(d.success&&d.rates){renderSpinRateTables(d.rates);}}catch(e){console.error('Load spin rates error:',e);}
     }
     
-    function renderSpinRateTables(rates){
-        let h='';
-        for(const [rt,tn] of Object.entries(RATE_TYPES)){
-            const tr=rates.filter(r=>r.rate_type===rt);
-            if(tr.length===0)continue;
-            const tw=tr.reduce((s,r)=>s+r.weight,0);
-            h+=`<div style="margin-bottom:15px;background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.1)"><h4 style="color:var(--w);font-size:12px;margin-bottom:8px">${tn}</h4><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">`;
-            tr.forEach(rate=>{
-                const pct=tw>0?((rate.weight/tw)*100).toFixed(1):'0.0';
-                h+=`<div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;border-left:3px solid ${rate.segment_color}"><div style="font-size:11px;font-weight:bold;color:#fff">${rate.segment_label}</div><div style="font-size:9px;color:rgba(255,255,255,0.4)">${rate.reward_type.toUpperCase()} | ${rate.reward}</div><input type="number" id="rate_${rate.id}" value="${rate.weight}" min="1" max="100" data-rate-type="${rate.rate_type}" data-segment-label="${rate.segment_label}" style="width:50px;padding:4px;text-align:center;font-size:11px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;margin-top:4px" onchange="updateRatePercent(this)"><span id="pct_${rate.id}" style="font-size:9px;color:var(--w);display:block;margin-top:2px">${pct}%</span></div>`;
-            });
-            h+=`</div><div style="text-align:right;font-size:9px;color:rgba(255,255,255,0.4);margin-top:6px">Total Weight: <span style="color:var(--w)" id="total_${rt}">${tw}</span></div></div>`;
-        }
-        document.getElementById('spinRateTables').innerHTML=h;
+    function renderSpinRateTables(rates) {
+    let h = '';
+    
+    for (const [rt, tn] of Object.entries(RATE_TYPES)) {
+        const tr = rates.filter(r => r.rate_type === rt);
+        if (tr.length === 0) continue;
+        const tw = tr.reduce((s, r) => s + r.weight, 0);
+        
+        h += `<div class="rate-section" style="margin-bottom:15px;background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.1)">
+            <h4 style="color:var(--w);font-size:12px;margin-bottom:8px">${tn}</h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">`;
+        
+        tr.forEach(rate => {
+            const pct = tw > 0 ? ((rate.weight / tw) * 100).toFixed(1) : '0.0';
+            h += `<div class="rate-card" style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;border-left:3px solid ${rate.segment_color}">
+                <div style="font-size:11px;font-weight:bold;color:#fff">${rate.segment_label}</div>
+                <div style="font-size:9px;color:rgba(255,255,255,0.4)">${rate.reward_type.toUpperCase()} | ${rate.reward}</div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px">
+                    <button onclick="changeWeight(${rate.id},-1)" style="width:22px;height:22px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;font-size:12px;cursor:pointer;line-height:1">−</button>
+                    <input type="number" 
+                        id="rate_${rate.id}" 
+                        value="${rate.weight}" 
+                        min="0" 
+                        max="100"
+                        data-rate-type="${rate.rate_type}"
+                        data-segment-label="${rate.segment_label}"
+                        style="width:50px;padding:6px;text-align:center;font-size:13px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.25);border-radius:4px;color:#fff;font-weight:bold;-webkit-user-select:text;user-select:text;"
+                        onchange="updateRatePercent(this)"
+                        onfocus="this.select()">
+                    <button onclick="changeWeight(${rate.id},1)" style="width:22px;height:22px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;font-size:12px;cursor:pointer;line-height:1">+</button>
+                </div>
+                <span id="pct_${rate.id}" style="font-size:9px;color:var(--w);display:block;margin-top:2px">${pct}%</span>
+            </div>`;
+        });
+        
+        h += `</div>
+            <div style="text-align:right;font-size:9px;color:rgba(255,255,255,0.4);margin-top:6px">
+                Total Weight: <span style="color:var(--w)" id="total_${rt}">${tw}</span>
+            </div>
+        </div>`;
     }
     
+    document.getElementById('spinRateTables').innerHTML = h;
+}
+
+// ✅ Weight တစ်ချက်နှိပ် အတိုးအလျှော့ Function
+function changeWeight(rateId, delta) {
+    const input = document.getElementById('rate_' + rateId);
+    if (!input) return;
+    let currentWeight = parseInt(input.value) || 0;
+    currentWeight = Math.max(0, Math.min(100, currentWeight + delta));
+    input.value = currentWeight;
+    updateRatePercent(input);
+}  
     function updateRatePercent(input){
         const rt=input.dataset.rateType;
         const pctEl=document.getElementById('pct_'+input.id.replace('rate_',''));
