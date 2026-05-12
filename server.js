@@ -984,58 +984,86 @@ app.get('/api/buycode_new_codes', async (req, res) => {
         }
     } catch(e) { res.json({ success: false }); }
 });
- 
+
 // ╔══════════════════════════════════════════════════════════════╗
 // ║              SPIN & USD API (COMPLETE REWRITE)              ║
 // ╚══════════════════════════════════════════════════════════════╝
 
 // ==================== SPIN CONFIG (SERVER-SIDE) ====================
 const SPIN_CONFIG = {
+    // ✅ Normal Daily 1 Draw (Total Weight = 101)
     NORMAL_SEGMENTS: [
-        { label: 'FREE',   color: '#1abc9c', reward: 0,    type: 'free',  weight: 50 },
-        { label: '500 Ks', color: '#f39c12', reward: 500,  type: 'mmk',   weight: 40 },
-        { label: '$0.25',  color: '#e74c3c', reward: 0.25, type: 'usd',   weight: 15 },
-        { label: '$0.50',  color: '#e67e22', reward: 0.50, type: 'usd',   weight: 12 },
-        { label: '$0.75',  color: '#3498db', reward: 0.75, type: 'usd',   weight: 10 },
-        { label: '$1.00',  color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 8  },
-        { label: '$2.00',  color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 5  }
+        { label: 'FREE',      color: '#1abc9c', reward: 0,    type: 'free',    weight: 44 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 48 },
+        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 3  },
+        { label: '$0.25',     color: '#e74c3c', reward: 0.25, type: 'usd',     weight: 2  },
+        { label: '$0.50',     color: '#e67e22', reward: 0.50, type: 'usd',     weight: 1  },
+        { label: '$0.75',     color: '#3498db', reward: 0.75, type: 'usd',     weight: 1  },
+        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 1  },
+        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 1  }
     ],
+    
+    // ✅ Buy Normal Draw (Total Weight = 103)
+    NORMAL_BUY_SEGMENTS: [
+        { label: 'FREE',      color: '#1abc9c', reward: 0,    type: 'free',    weight: 40 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 50 },
+        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 5  },
+        { label: '$0.25',     color: '#e74c3c', reward: 0.25, type: 'usd',     weight: 3  },
+        { label: '$0.50',     color: '#e67e22', reward: 0.50, type: 'usd',     weight: 2  },
+        { label: '$0.75',     color: '#3498db', reward: 0.75, type: 'usd',     weight: 1  },
+        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 1  },
+        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 1  }
+    ],
+    
+    // ✅ Buy Premium Draw (Total Weight = 94)
+    PREMIUM_BUY_SEGMENTS: [
+        { label: 'FREE',      color: '#1abc9c', reward: 0,    type: 'free',    weight: 40 },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 40 },
+        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 6  },
+        { label: '$0.25',     color: '#e74c3c', reward: 0.25, type: 'usd',     weight: 3  },
+        { label: '$0.50',     color: '#e67e22', reward: 0.50, type: 'usd',     weight: 2  },
+        { label: '$0.75',     color: '#3498db', reward: 0.75, type: 'usd',     weight: 1  },
+        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 1  },
+        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 1  }
+    ],
+    
+    // ✅ Premium Tier 1 - Bronze (Total Weight = 101)
     PREMIUM_TIER1_SEGMENTS: [
-        { label: '500 Ks',   color: '#f39c12', reward: 500,  type: 'mmk',   weight: 30 },
-        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 25 },
-        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 25 },
-        { label: '$0.75',    color: '#e67e22', reward: 0.75, type: 'usd',   weight: 20 },
-        { label: '$1.00',    color: '#3498db', reward: 1.00, type: 'usd',   weight: 18 },
-        { label: '$2.00',    color: '#2ecc71', reward: 2.00, type: 'usd',   weight: 10 },
-        { label: '$3.00',    color: '#9b59b6', reward: 3.00, type: 'usd',   weight: 7  },
-        { label: 'SUPER',    color: '#e91e63', reward: 0,    type: 'super', weight: 5  }
+        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 18 },
+        { label: '1000 Ks',   color: '#c9a84c', reward: 1000, type: 'mmk',     weight: 14 },
+        { label: '$0.50',     color: '#e74c3c', reward: 0.50, type: 'usd',     weight: 17 },
+        { label: '$0.75',     color: '#e67e22', reward: 0.75, type: 'usd',     weight: 15 },
+        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 12 },
+        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 9  },
+        { label: '$3.00',     color: '#e91e63', reward: 3.00, type: 'usd',     weight: 6  },
+        { label: 'SUPER',     color: '#ff1744', reward: 0,    type: 'super',   weight: 5  },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 5  }
     ],
+    
+    // ✅ Premium Tier 2 - Silver (Total Weight = 98)
     PREMIUM_TIER2_SEGMENTS: [
-        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 20 },
-        { label: '2000 Ks',  color: '#ff9800', reward: 2000, type: 'mmk',   weight: 15 },
-        { label: '3000 Ks',  color: '#ff5722', reward: 3000, type: 'mmk',   weight: 10 },
-        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 20 },
-        { label: '$1.00',    color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 18 },
-        { label: '$2.00',    color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 12 },
-        { label: '$3.00',    color: '#e91e63', reward: 3.00, type: 'usd',   weight: 8  },
-        { label: '$3.50',    color: '#00bcd4', reward: 3.50, type: 'usd',   weight: 5  },
-        { label: '$4.00',    color: '#4caf50', reward: 4.00, type: 'usd',   weight: 3  },
-        { label: 'SUPER',    color: '#ff1744', reward: 0,    type: 'super', weight: 5  }
+        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 14 },
+        { label: '1000 Ks',   color: '#c9a84c', reward: 1000, type: 'mmk',     weight: 11 },
+        { label: '$0.50',     color: '#e74c3c', reward: 0.50, type: 'usd',     weight: 12 },
+        { label: '$0.75',     color: '#e67e22', reward: 0.75, type: 'usd',     weight: 11 },
+        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 10 },
+        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 7  },
+        { label: '$3.00',     color: '#e91e63', reward: 3.00, type: 'usd',     weight: 5  },
+        { label: 'SUPER',     color: '#ff1744', reward: 0,    type: 'super',   weight: 3  },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 25 }
     ],
+    
+    // ✅ Premium Tier 3 - Gold (Total Weight = 102)
     PREMIUM_TIER3_SEGMENTS: [
-        { label: '1000 Ks',  color: '#c9a84c', reward: 1000, type: 'mmk',   weight: 18 },
-        { label: '2000 Ks',  color: '#ff9800', reward: 2000, type: 'mmk',   weight: 14 },
-        { label: '3000 Ks',  color: '#ff5722', reward: 3000, type: 'mmk',   weight: 10 },
-        { label: '5000 Ks',  color: '#d32f2f', reward: 5000, type: 'mmk',   weight: 5  },
-        { label: '$0.50',    color: '#e74c3c', reward: 0.50, type: 'usd',   weight: 15 },
-        { label: '$1.00',    color: '#2ecc71', reward: 1.00, type: 'usd',   weight: 14 },
-        { label: '$2.00',    color: '#9b59b6', reward: 2.00, type: 'usd',   weight: 10 },
-        { label: '$3.00',    color: '#e91e63', reward: 3.00, type: 'usd',   weight: 8  },
-        { label: '$3.50',    color: '#00bcd4', reward: 3.50, type: 'usd',   weight: 5  },
-        { label: '$4.00',    color: '#4caf50', reward: 4.00, type: 'usd',   weight: 3  },
-        { label: '$4.50',    color: '#2196f3', reward: 4.50, type: 'usd',   weight: 2  },
-        { label: '$5.00',    color: '#ffd700', reward: 5.00, type: 'usd',   weight: 1  },
-        { label: 'SUPER',    color: '#ff1744', reward: 0,    type: 'super', weight: 5  }
+        { label: '500 Ks',    color: '#f39c12', reward: 500,  type: 'mmk',     weight: 12 },
+        { label: '1000 Ks',   color: '#c9a84c', reward: 1000, type: 'mmk',     weight: 10 },
+        { label: '$0.50',     color: '#e74c3c', reward: 0.50, type: 'usd',     weight: 15 },
+        { label: '$0.75',     color: '#e67e22', reward: 0.75, type: 'usd',     weight: 11 },
+        { label: '$1.00',     color: '#2ecc71', reward: 1.00, type: 'usd',     weight: 7  },
+        { label: '$2.00',     color: '#9b59b6', reward: 2.00, type: 'usd',     weight: 5  },
+        { label: '$3.00',     color: '#e91e63', reward: 3.00, type: 'usd',     weight: 4  },
+        { label: 'SUPER',     color: '#ff1744', reward: 0,    type: 'super',   weight: 4  },
+        { label: 'Thank You', color: '#7f8c8d', reward: 0,    type: 'thanks',  weight: 34 }
     ]
 };
 
@@ -1091,31 +1119,19 @@ app.post('/api/get_premium_status', async (req, res) => {
         const isPremium = r.rows.length > 0 && r.rows[0].premium_expiry && new Date(r.rows[0].premium_expiry) > new Date();
         const premiumTier = r.rows[0]?.premium_tier || 1;
         
-        // ✅ Premium Tier အလိုက် Max Daily Draws
         let maxDaily = 1;
         if (isPremium) {
-            switch(premiumTier) {
-                case 1: maxDaily = 3; break;
-                case 2: maxDaily = 5; break;
-                case 3: maxDaily = 7; break;
-                default: maxDaily = 3;
-            }
+            switch(premiumTier) { case 1: maxDaily = 3; break; case 2: maxDaily = 5; break; case 3: maxDaily = 7; break; default: maxDaily = 3; }
         }
         
-        const todayDraws = await p.query(
-            "SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND DATE(created_at)=CURRENT_DATE AND spin_source='daily'",
-            [uid]
-        );
+        const todayDraws = await p.query("SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND DATE(created_at)=CURRENT_DATE AND spin_source='daily'", [uid]);
         const usedToday = parseInt(todayDraws.rows[0]?.cnt || 0);
         const remaining = Math.max(0, maxDaily - usedToday);
         
         res.json({
-            success: true,
-            premium_active: isPremium,
-            premium_tier: premiumTier,
+            success: true, premium_active: isPremium, premium_tier: premiumTier,
             expires_at: isPremium ? r.rows[0].premium_expiry.toISOString() : null,
-            daily_draws_remaining: remaining,
-            max_daily_draws: maxDaily
+            daily_draws_remaining: remaining, max_daily_draws: maxDaily
         });
     } catch(e) { res.json({ success: false, premium_active: false }); }
 });
@@ -1132,21 +1148,13 @@ app.post('/api/deduct_balance', async (req, res) => {
         const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
         const balance = parseFloat(r.rows[0]?.balance || 0);
         if (balance < amount) return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။' });
-        
         await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id=$2', [amount, uid]);
-        
         if (reason && reason.includes('Buy') && reason.includes('spins')) {
             const spinsMatch = reason.match(/Buy (\d+) spins/);
-            if (spinsMatch) {
-                const spinsToAdd = parseInt(spinsMatch[1]);
-                await p.query('UPDATE auth_users SET paid_spins = COALESCE(paid_spins, 0) + $1 WHERE id=$2', [spinsToAdd, uid]);
-            }
+            if (spinsMatch) await p.query('UPDATE auth_users SET paid_spins = COALESCE(paid_spins, 0) + $1 WHERE id=$2', [parseInt(spinsMatch[1]), uid]);
         }
-        
         await p.query("INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, $3, 'approved')", [uid, -amount, reason || 'Spin Purchase']);
-        
-        const newBalance = balance - amount;
-        res.json({ success: true, new_balance: newBalance });
+        res.json({ success: true, new_balance: balance - amount });
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 
@@ -1162,15 +1170,11 @@ app.post('/api/buy_premium', async (req, res) => {
         const bal = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
         const balance = parseFloat(bal.rows[0]?.balance || 0);
         if (balance < cost) return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။' });
-        
-        const expiry = new Date();
-        expiry.setMonth(expiry.getMonth() + months);
+        const expiry = new Date(); expiry.setMonth(expiry.getMonth() + months);
         const premiumTier = tier || 1;
-        
         await p.query('UPDATE auth_users SET balance = balance - $1, premium_expiry = $2, premium_tier = $3 WHERE id = $4', [cost, expiry, premiumTier, uid]);
         await p.query("INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')", [uid, -cost]);
         await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
-        
         res.json({ success: true, expires_at: expiry.toISOString(), premium_tier: premiumTier });
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
@@ -1184,9 +1188,8 @@ app.post('/api/claim_weekly_bonus', async (req, res) => {
         const uid = parseInt(token.replace('token_', ''));
         if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
         const last = await p.query('SELECT claimed_at FROM weekly_bonus WHERE user_id=$1 ORDER BY claimed_at DESC LIMIT 1', [uid]);
-        if (last.rows.length > 0) {
-            const daysSince = Math.floor((Date.now() - new Date(last.rows[0].claimed_at).getTime()) / 86400000);
-            if (daysSince < 7) return res.json({ success: false, message: 'Already claimed this week' });
+        if (last.rows.length > 0 && Math.floor((Date.now() - new Date(last.rows[0].claimed_at).getTime()) / 86400000) < 7) {
+            return res.json({ success: false, message: 'Already claimed this week' });
         }
         await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
         res.json({ success: true, message: 'Weekly bonus claimed!' });
@@ -1196,10 +1199,6 @@ app.post('/api/claim_weekly_bonus', async (req, res) => {
 // ==================== EXCHANGE USD TO MMK ====================
 app.post('/api/exchange_usd_to_mmk', async (req, res) => {
     const { token, usd_amount } = req.body;
-    const BASE_RATE = 3000, TRANSPORT_FEE = 300, INTERNET_FEE = 300, DATA_TRANSFER_FEE = 400;
-    const TOTAL_FEE = TRANSPORT_FEE + INTERNET_FEE + DATA_TRANSFER_FEE;
-    const FINAL_RATE = BASE_RATE - TOTAL_FEE;
-    
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!usd_amount || usd_amount < 1) return res.json({ success: false, message: 'Minimum 1 USD required' });
     try {
@@ -1209,18 +1208,16 @@ app.post('/api/exchange_usd_to_mmk', async (req, res) => {
         const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
         const usdBalance = parseFloat(r.rows[0]?.usd_balance || 0);
         if (usdBalance < usd_amount) return res.json({ success: false, message: 'Insufficient USD balance' });
-        
-        const mmkAmount = FINAL_RATE * usd_amount;
+        const mmkAmount = 2000 * usd_amount;
         await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id=$2', [usd_amount, uid]);
         await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [mmkAmount, uid]);
-        
-        res.json({ success: true, mmk_received: mmkAmount, service_fee: TOTAL_FEE * usd_amount });
+        res.json({ success: true, mmk_received: mmkAmount, service_fee: 1000 * usd_amount });
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 
 // ==================== GET EXCHANGE RATE INFO ====================
 app.get('/api/exchange_rate_info', async (req, res) => {
-    res.json({ success: true, base_rate: 3000, fees: { transport: 300, internet: 300, data_transfer: 400, total: 1000 }, final_rate: 2000, min_exchange: 1, max_exchange: 100 });
+    res.json({ success: true, base_rate: 3000, fees: { transport: 300, internet: 300, data_transfer: 400, total: 1000 }, final_rate: 2000 });
 });
 
 // ==================== SAVE SPIN HISTORY (Legacy) ====================
@@ -1270,13 +1267,9 @@ app.post('/api/track_premium_draw', async (req, res) => {
 
 app.post('/api/spin/execute', async (req, res) => {
     const { token, spin_source } = req.body;
-    
     console.log('[SPIN EXECUTE] Source:', spin_source);
     
-    if (!token || token === 'guest') {
-        return res.json({ success: false, message: 'Login required' });
-    }
-    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!spin_source || !['daily', 'bought', 'premium_bought', 'weekly_bonus'].includes(spin_source)) {
         return res.json({ success: false, message: 'Invalid spin source' });
     }
@@ -1286,7 +1279,6 @@ app.post('/api/spin/execute', async (req, res) => {
         const uid = parseInt(token.replace('token_', ''));
         if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
         
-        // ========== GET USER DATA ==========
         const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
         if (user.rows.length === 0) return res.json({ success: false, message: 'User not found' });
         
@@ -1300,13 +1292,13 @@ app.post('/api/spin/execute', async (req, res) => {
             switch(premiumTier) { case 1: maxDaily = 3; break; case 2: maxDaily = 5; break; case 3: maxDaily = 7; break; default: maxDaily = 3; }
         }
         
-        // ========== COUNT DAILY USED ==========
+        // Count daily used
         const todayDraws = await p.query("SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND DATE(created_at)=CURRENT_DATE AND spin_source='daily'", [uid]);
         const dailyUsed = parseInt(todayDraws.rows[0]?.cnt || 0);
         const dailyRemaining = Math.max(0, maxDaily - dailyUsed);
         const boughtSpins = parseInt(u.paid_spins || 0);
         
-        // ========== COUNT WEEKLY USED ==========
+        // Count weekly used
         const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
         const weeklyBonusUsed = await p.query("SELECT COUNT(*) as cnt FROM spin_history_v2 WHERE user_id=$1 AND spin_source='weekly_bonus' AND created_at >= $2", [uid, weekStart]);
         const weeklyClaimed = await p.query("SELECT COUNT(*) as cnt FROM weekly_bonus WHERE user_id=$1 AND claimed_at >= $2", [uid, weekStart]);
@@ -1319,7 +1311,7 @@ app.post('/api/spin/execute', async (req, res) => {
         
         console.log('[SPIN CHECK] Tier:', premiumTier, 'Daily:', dailyRemaining, 'Bought:', boughtSpins, 'Weekly:', weeklyRemaining);
         
-        // ========== VERIFY & DEDUCT ==========
+        // Verify & Deduct
         let canSpin = false;
         if (spin_source === 'daily' && dailyRemaining > 0) { canSpin = true; }
         else if ((spin_source === 'bought' || spin_source === 'premium_bought') && boughtSpins > 0) {
@@ -1332,11 +1324,16 @@ app.post('/api/spin/execute', async (req, res) => {
             return res.json({ success: false, message: 'No draws remaining', draws: { daily: dailyRemaining, bought: boughtSpins, weekly: weeklyRemaining } });
         }
         
-        // ========== WEIGHTED RANDOM ==========
+        // ✅ Weighted Random - Source အလိုက် Segments ရွေးပါ
         let segments;
-        if (!isPremium) { segments = SPIN_CONFIG.NORMAL_SEGMENTS; }
-        else {
-            switch(premiumTier) { case 1: segments = SPIN_CONFIG.PREMIUM_TIER1_SEGMENTS; break; case 2: segments = SPIN_CONFIG.PREMIUM_TIER2_SEGMENTS; break; case 3: segments = SPIN_CONFIG.PREMIUM_TIER3_SEGMENTS; break; default: segments = SPIN_CONFIG.PREMIUM_TIER1_SEGMENTS; }
+        if (!isPremium) {
+            segments = (spin_source === 'daily') ? SPIN_CONFIG.NORMAL_SEGMENTS : SPIN_CONFIG.NORMAL_BUY_SEGMENTS;
+        } else {
+            if (spin_source === 'daily' || spin_source === 'weekly_bonus') {
+                switch(premiumTier) { case 1: segments = SPIN_CONFIG.PREMIUM_TIER1_SEGMENTS; break; case 2: segments = SPIN_CONFIG.PREMIUM_TIER2_SEGMENTS; break; case 3: segments = SPIN_CONFIG.PREMIUM_TIER3_SEGMENTS; break; default: segments = SPIN_CONFIG.PREMIUM_TIER1_SEGMENTS; }
+            } else {
+                segments = SPIN_CONFIG.PREMIUM_BUY_SEGMENTS;
+            }
         }
         
         const totalWeight = segments.reduce((sum, s) => sum + s.weight, 0);
@@ -1344,7 +1341,7 @@ app.post('/api/spin/execute', async (req, res) => {
         for (let i = 0; i < segments.length; i++) { rand -= segments[i].weight; if (rand <= 0) { winIndex = i; break; } }
         const reward = segments[winIndex];
         
-        // ========== BALANCE UPDATE ==========
+        // Balance Update
         const balBefore = { mmk: parseFloat(u.balance||0), usd: parseFloat(u.usd_balance||0) };
         let balAfter = { mmk: balBefore.mmk, usd: balBefore.usd };
         
@@ -1352,7 +1349,7 @@ app.post('/api/spin/execute', async (req, res) => {
         else if (reward.type === 'mmk' && reward.reward > 0) { await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward.reward, uid]); balAfter.mmk += reward.reward; }
         else if (reward.type === 'free' && (spin_source === 'bought' || spin_source === 'premium_bought')) { await p.query('UPDATE auth_users SET paid_spins = paid_spins + 1 WHERE id=$1', [uid]); }
         
-        // ========== LOG ==========
+        // Log
         await p.query(`INSERT INTO spin_history_v2 (user_id, spin_source, reward_type, reward_amount, balance_before_mmk, balance_after_mmk, balance_before_usd, balance_after_usd) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, [uid, spin_source, reward.type, reward.reward, balBefore.mmk, balAfter.mmk, balBefore.usd, balAfter.usd]);
         
         const updatedUser = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
@@ -1377,6 +1374,179 @@ app.post('/api/spin/execute', async (req, res) => {
 });
 
 console.log('✅ SPIN & USD API Section Ready');
+
+// ==================== CREATE SPIN RATES TABLE ====================
+async function createSpinRatesTable() {
+    const query = `
+        CREATE TABLE IF NOT EXISTS spin_rates (
+            id SERIAL PRIMARY KEY,
+            rate_type VARCHAR(50) NOT NULL,
+            segment_label VARCHAR(50) NOT NULL,
+            reward DECIMAL(10,2) DEFAULT 0,
+            reward_type VARCHAR(20) DEFAULT 'usd',
+            segment_color VARCHAR(20) DEFAULT '#e74c3c',
+            weight INT DEFAULT 10,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(rate_type, segment_label)
+        )
+    `;
+    
+    try {
+        await pool1.query(query);
+        await pool2.query(query);
+        console.log('✅ spin_rates table created on both databases');
+    } catch(e) {
+        console.log('⚠️ spin_rates table error:', e.message);
+    }
+}
+createSpinRatesTable();
+
+// ==================== INIT DEFAULT SPIN RATES ====================
+async function initDefaultSpinRates() {
+    const defaultRates = [
+        // Normal Daily Draw (Total = 101)
+        { rate_type: 'normal_daily', segment_label: 'FREE', reward: 0, reward_type: 'free', segment_color: '#1abc9c', weight: 44 },
+        { rate_type: 'normal_daily', segment_label: 'Thank You', reward: 0, reward_type: 'thanks', segment_color: '#7f8c8d', weight: 48 },
+        { rate_type: 'normal_daily', segment_label: '500 Ks', reward: 500, reward_type: 'mmk', segment_color: '#f39c12', weight: 3 },
+        { rate_type: 'normal_daily', segment_label: '$0.25', reward: 0.25, reward_type: 'usd', segment_color: '#e74c3c', weight: 2 },
+        { rate_type: 'normal_daily', segment_label: '$0.50', reward: 0.50, reward_type: 'usd', segment_color: '#e67e22', weight: 1 },
+        { rate_type: 'normal_daily', segment_label: '$0.75', reward: 0.75, reward_type: 'usd', segment_color: '#3498db', weight: 1 },
+        { rate_type: 'normal_daily', segment_label: '$1.00', reward: 1.00, reward_type: 'usd', segment_color: '#2ecc71', weight: 1 },
+        { rate_type: 'normal_daily', segment_label: '$2.00', reward: 2.00, reward_type: 'usd', segment_color: '#9b59b6', weight: 1 },
+        
+        // Normal Buy Draw (Total = 103)
+        { rate_type: 'normal_buy', segment_label: 'FREE', reward: 0, reward_type: 'free', segment_color: '#1abc9c', weight: 40 },
+        { rate_type: 'normal_buy', segment_label: 'Thank You', reward: 0, reward_type: 'thanks', segment_color: '#7f8c8d', weight: 50 },
+        { rate_type: 'normal_buy', segment_label: '500 Ks', reward: 500, reward_type: 'mmk', segment_color: '#f39c12', weight: 5 },
+        { rate_type: 'normal_buy', segment_label: '$0.25', reward: 0.25, reward_type: 'usd', segment_color: '#e74c3c', weight: 3 },
+        { rate_type: 'normal_buy', segment_label: '$0.50', reward: 0.50, reward_type: 'usd', segment_color: '#e67e22', weight: 2 },
+        { rate_type: 'normal_buy', segment_label: '$0.75', reward: 0.75, reward_type: 'usd', segment_color: '#3498db', weight: 1 },
+        { rate_type: 'normal_buy', segment_label: '$1.00', reward: 1.00, reward_type: 'usd', segment_color: '#2ecc71', weight: 1 },
+        { rate_type: 'normal_buy', segment_label: '$2.00', reward: 2.00, reward_type: 'usd', segment_color: '#9b59b6', weight: 1 },
+
+        // Premium Buy Draw (Total = 94)
+        { rate_type: 'premium_buy', segment_label: 'FREE', reward: 0, reward_type: 'free', segment_color: '#1abc9c', weight: 40 },
+        { rate_type: 'premium_buy', segment_label: 'Thank You', reward: 0, reward_type: 'thanks', segment_color: '#7f8c8d', weight: 40 },
+        { rate_type: 'premium_buy', segment_label: '500 Ks', reward: 500, reward_type: 'mmk', segment_color: '#f39c12', weight: 6 },
+        { rate_type: 'premium_buy', segment_label: '$0.25', reward: 0.25, reward_type: 'usd', segment_color: '#e74c3c', weight: 3 },
+        { rate_type: 'premium_buy', segment_label: '$0.50', reward: 0.50, reward_type: 'usd', segment_color: '#e67e22', weight: 2 },
+        { rate_type: 'premium_buy', segment_label: '$0.75', reward: 0.75, reward_type: 'usd', segment_color: '#3498db', weight: 1 },
+        { rate_type: 'premium_buy', segment_label: '$1.00', reward: 1.00, reward_type: 'usd', segment_color: '#2ecc71', weight: 1 },
+        { rate_type: 'premium_buy', segment_label: '$2.00', reward: 2.00, reward_type: 'usd', segment_color: '#9b59b6', weight: 1 },
+
+        // Premium Tier 1 (Total = 101)
+        { rate_type: 'premium_tier1', segment_label: '500 Ks', reward: 500, reward_type: 'mmk', segment_color: '#f39c12', weight: 18 },
+        { rate_type: 'premium_tier1', segment_label: '1000 Ks', reward: 1000, reward_type: 'mmk', segment_color: '#c9a84c', weight: 14 },
+        { rate_type: 'premium_tier1', segment_label: '$0.50', reward: 0.50, reward_type: 'usd', segment_color: '#e74c3c', weight: 17 },
+        { rate_type: 'premium_tier1', segment_label: '$0.75', reward: 0.75, reward_type: 'usd', segment_color: '#e67e22', weight: 15 },
+        { rate_type: 'premium_tier1', segment_label: '$1.00', reward: 1.00, reward_type: 'usd', segment_color: '#2ecc71', weight: 12 },
+        { rate_type: 'premium_tier1', segment_label: '$2.00', reward: 2.00, reward_type: 'usd', segment_color: '#9b59b6', weight: 9 },
+        { rate_type: 'premium_tier1', segment_label: '$3.00', reward: 3.00, reward_type: 'usd', segment_color: '#e91e63', weight: 6 },
+        { rate_type: 'premium_tier1', segment_label: 'SUPER', reward: 0, reward_type: 'super', segment_color: '#ff1744', weight: 5 },
+        { rate_type: 'premium_tier1', segment_label: 'Thank You', reward: 0, reward_type: 'thanks', segment_color: '#7f8c8d', weight: 5 },
+
+        // Premium Tier 2 (Total = 98)
+        { rate_type: 'premium_tier2', segment_label: '500 Ks', reward: 500, reward_type: 'mmk', segment_color: '#f39c12', weight: 14 },
+        { rate_type: 'premium_tier2', segment_label: '1000 Ks', reward: 1000, reward_type: 'mmk', segment_color: '#c9a84c', weight: 11 },
+        { rate_type: 'premium_tier2', segment_label: '$0.50', reward: 0.50, reward_type: 'usd', segment_color: '#e74c3c', weight: 12 },
+        { rate_type: 'premium_tier2', segment_label: '$0.75', reward: 0.75, reward_type: 'usd', segment_color: '#e67e22', weight: 11 },
+        { rate_type: 'premium_tier2', segment_label: '$1.00', reward: 1.00, reward_type: 'usd', segment_color: '#2ecc71', weight: 10 },
+        { rate_type: 'premium_tier2', segment_label: '$2.00', reward: 2.00, reward_type: 'usd', segment_color: '#9b59b6', weight: 7 },
+        { rate_type: 'premium_tier2', segment_label: '$3.00', reward: 3.00, reward_type: 'usd', segment_color: '#e91e63', weight: 5 },
+        { rate_type: 'premium_tier2', segment_label: 'SUPER', reward: 0, reward_type: 'super', segment_color: '#ff1744', weight: 3 },
+        { rate_type: 'premium_tier2', segment_label: 'Thank You', reward: 0, reward_type: 'thanks', segment_color: '#7f8c8d', weight: 25 },
+
+        // Premium Tier 3 (Total = 102)
+        { rate_type: 'premium_tier3', segment_label: '500 Ks', reward: 500, reward_type: 'mmk', segment_color: '#f39c12', weight: 12 },
+        { rate_type: 'premium_tier3', segment_label: '1000 Ks', reward: 1000, reward_type: 'mmk', segment_color: '#c9a84c', weight: 10 },
+        { rate_type: 'premium_tier3', segment_label: '$0.50', reward: 0.50, reward_type: 'usd', segment_color: '#e74c3c', weight: 15 },
+        { rate_type: 'premium_tier3', segment_label: '$0.75', reward: 0.75, reward_type: 'usd', segment_color: '#e67e22', weight: 11 },
+        { rate_type: 'premium_tier3', segment_label: '$1.00', reward: 1.00, reward_type: 'usd', segment_color: '#2ecc71', weight: 7 },
+        { rate_type: 'premium_tier3', segment_label: '$2.00', reward: 2.00, reward_type: 'usd', segment_color: '#9b59b6', weight: 5 },
+        { rate_type: 'premium_tier3', segment_label: '$3.00', reward: 3.00, reward_type: 'usd', segment_color: '#e91e63', weight: 4 },
+        { rate_type: 'premium_tier3', segment_label: 'SUPER', reward: 0, reward_type: 'super', segment_color: '#ff1744', weight: 4 },
+        { rate_type: 'premium_tier3', segment_label: 'Thank You', reward: 0, reward_type: 'thanks', segment_color: '#7f8c8d', weight: 34 }
+    ];
+    
+    try {
+        for (const rate of defaultRates) {
+            await pool1.query(
+                `INSERT INTO spin_rates (rate_type, segment_label, reward, reward_type, segment_color, weight) 
+                 VALUES ($1,$2,$3,$4,$5,$6) 
+                 ON CONFLICT (rate_type, segment_label) DO NOTHING`,
+                [rate.rate_type, rate.segment_label, rate.reward, rate.reward_type, rate.segment_color, rate.weight]
+            );
+        }
+        console.log('✅ Default spin rates initialized');
+    } catch(e) {
+        console.log('⚠️ Default spin rates error:', e.message);
+    }
+}
+initDefaultSpinRates();
+
+// ==================== SPIN RATES API ====================
+
+// Get all spin rates (for game.html)
+app.get('/api/spin_rates', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM spin_rates ORDER BY rate_type, id ASC');
+        
+        const rates = {};
+        r.rows.forEach(row => {
+            if (!rates[row.rate_type]) rates[row.rate_type] = [];
+            rates[row.rate_type].push({
+                label: row.segment_label,
+                color: row.segment_color,
+                reward: parseFloat(row.reward),
+                type: row.reward_type,
+                weight: row.weight
+            });
+        });
+        
+        res.json({ success: true, rates });
+    } catch(e) {
+        res.json({ success: false, rates: {} });
+    }
+});
+
+// Admin: Get all spin rates for editing
+app.get('/api/admin/spin_rates', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM spin_rates ORDER BY rate_type, id ASC');
+        res.json({ success: true, rates: r.rows });
+    } catch(e) {
+        res.json({ success: false, rates: [] });
+    }
+});
+
+// Admin: Save spin rates
+app.post('/api/admin/spin_rates/save', async (req, res) => {
+    const { rates } = req.body;
+    
+    if (!rates || !Array.isArray(rates)) {
+        return res.json({ success: false, message: 'Invalid data' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        for (const rate of rates) {
+            await p.query(
+                `UPDATE spin_rates SET weight = $1, updated_at = NOW() 
+                 WHERE rate_type = $2 AND segment_label = $3`,
+                [rate.weight, rate.rate_type, rate.segment_label]
+            );
+        }
+        
+        console.log('[SPIN RATES] ✅ Updated by admin');
+        res.json({ success: true, message: 'Rates updated successfully!' });
+    } catch(e) {
+        console.error('[SPIN RATES ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
