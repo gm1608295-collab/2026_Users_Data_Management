@@ -799,7 +799,7 @@
 
 <script>
 // ====================================
-// CONFIG
+// CONFIG (DYNAMIC FROM SERVER)
 // ====================================
 var EXCHANGE_CONFIG = {
     BASE_RATE: 3000,
@@ -810,6 +810,50 @@ var EXCHANGE_CONFIG = {
     get FINAL_RATE() { return this.BASE_RATE - this.TOTAL_FEE; }
 };
 
+// ✅ Load rates from server
+async function loadExchangeRates() {
+    try {
+        // Get exchange rate from settings
+        var rateRes = await fetch('/api/exchange_rate');
+        var rateData = await rateRes.json();
+        
+        if (rateData.rate) {
+            EXCHANGE_CONFIG.BASE_RATE = parseInt(rateData.rate);
+        }
+        
+        // Get detailed rate info
+        var infoRes = await fetch('/api/exchange_rate_info');
+        var infoData = await infoRes.json();
+        
+        if (infoData.success) {
+            EXCHANGE_CONFIG.BASE_RATE = infoData.base_rate || EXCHANGE_CONFIG.BASE_RATE;
+            if (infoData.fees) {
+                EXCHANGE_CONFIG.TRANSPORT_FEE = infoData.fees.transport || 300;
+                EXCHANGE_CONFIG.INTERNET_FEE = infoData.fees.internet || 300;
+                EXCHANGE_CONFIG.DATA_TRANSFER_FEE = infoData.fees.data_transfer || 400;
+            }
+        }
+        
+        // Update the rate display
+        updateRateDisplay();
+        updateSummary();
+        
+    } catch(e) {
+        console.error('Failed to load exchange rates:', e);
+    }
+}
+
+function updateRateDisplay() {
+    // Update rate box in HTML
+    var rateRows = document.querySelectorAll('.rate-row');
+    if (rateRows.length >= 5) {
+        rateRows[0].querySelector('span:last-child').textContent = '1 USD = ' + EXCHANGE_CONFIG.BASE_RATE.toLocaleString() + ' Ks';
+        rateRows[1].querySelector('span:last-child').textContent = '-' + EXCHANGE_CONFIG.TRANSPORT_FEE.toLocaleString() + ' Ks';
+        rateRows[2].querySelector('span:last-child').textContent = '-' + EXCHANGE_CONFIG.INTERNET_FEE.toLocaleString() + ' Ks';
+        rateRows[3].querySelector('span:last-child').textContent = '-' + EXCHANGE_CONFIG.DATA_TRANSFER_FEE.toLocaleString() + ' Ks';
+        rateRows[4].querySelector('span:last-child').textContent = '1 USD = ' + EXCHANGE_CONFIG.FINAL_RATE.toLocaleString() + ' Ks';
+    }
+}
 // ====================================
 // STATE
 // ====================================
@@ -1214,6 +1258,9 @@ async function init() {
         
         document.getElementById('exchangeContent').style.display = 'flex';
         
+        // ✅ Load rates from server first
+        await loadExchangeRates();
+        
         await syncBalances();
         updateSummary();
         
@@ -1221,8 +1268,6 @@ async function init() {
         setInterval(syncBalances, 30000);
     });
 }
-
-init();
 </script>
 </body>
 </html>
