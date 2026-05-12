@@ -719,10 +719,22 @@ async function checkPremiumExpiry(){
 // ====================================
 function checkPageAccess(cb){
     fetch('/api/admin/page_status').then(r=>r.json()).then(d=>{
-        if(d.pages){const gp=d.pages.find(p=>p.id==='game');if(gp&&gp.status==='off'){document.getElementById('maintenanceMessage').style.display='block';document.querySelector('.container-main').style.display='none';document.getElementById('pageTimerBanner').style.display='none';cb(false);return;}}
+        if(d.pages){
+            const gp = d.pages.find(p=>p.id==='game');
+            if(gp && gp.status==='off'){
+                document.getElementById('maintenanceMessage').style.display = 'block';
+                // ✅ container ကို ဝှက်မယ်
+                var container = document.querySelector('.container-main');
+                if(container) container.style.display = 'none';
+                // ✅ timer စမယ်
+                checkPageTimer();
+                cb(false);
+                return;
+            }
+        }
         cb(true);
-    }).catch(()=>{cb(true);});
-}
+    }).catch(()=>{ cb(true); });
+    }
 function checkPageTimer(){
     const pid='game';let timer=null;
     try{const s=localStorage.getItem('pageTimers');if(s){const t=JSON.parse(s);timer=t[pid];}if(!timer){const c=getCookie('pageTimers');if(c){const t=JSON.parse(decodeURIComponent(c));timer=t[pid];}}if(!timer){const ss=sessionStorage.getItem('pageTimers');if(ss){const t=JSON.parse(ss);timer=t[pid];}}}catch(e){}
