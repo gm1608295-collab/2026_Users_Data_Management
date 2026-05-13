@@ -66,7 +66,7 @@ function detectDevice(ua) {
     
     return { name: deviceName.trim(), type: deviceType, icon, brand: device.vendor || os.name || 'Unknown', model: device.model || os.version || 'Unknown', browser: browser.name || 'Unknown', browserVersion: browser.version || '', osName: os.name || 'Unknown', osVersion: os.version || '', isMobile };
 }
-// ==================== LOGIN TRACKING ====================
+// ==================== LOGIN TRACKING (FIXED) ====================
 async function trackLogin(userId, username, loginType, req) {
     try {
         const p = await getPool();
@@ -81,16 +81,17 @@ async function trackLogin(userId, username, loginType, req) {
             [userId, username, loginType, ip, info.name, info.type, info.brand, info.model, info.browser, info.isMobile, ua]
         ).catch(e => console.log('Login history error:', e.message));
         
-        // Save device session
-        const token = req.body?.token || '';
-        if (token && token !== 'guest') {
-            await p.query(
-                `INSERT INTO device_sessions (user_id, token, device_name, device_type, device_brand, device_model, browser, ip_address, user_agent) 
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-                 ON CONFLICT (user_id, token) DO UPDATE SET last_activity=NOW(), is_active=true`,
-                [userId, token, info.name, info.type, info.brand, info.model, info.browser, ip, ua]
-            ).catch(e => console.log('Device session error:', e.message));
-        }
+        // ✅ Save device session - use user_id + device fingerprint as unique key
+        // Generate a unique device token based on user_id + IP + User-Agent
+        const deviceToken = 'dev_' + userId + '_' + ip.replace(/\./g, '_') + '_' + ua.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_');
+        
+        await p.query(
+            `INSERT INTO device_sessions (user_id, token, device_name, device_type, device_brand, device_model, browser, ip_address, user_agent) 
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+             ON CONFLICT (user_id, token) DO UPDATE SET last_activity=NOW(), is_active=true, ip_address=$8`,
+            [userId, deviceToken, info.name, info.type, info.brand, info.model, info.browser, ip, ua]
+        ).catch(e => console.log('Device session error:', e.message));
+        
     } catch(e) {
         console.error('[LOGIN TRACK ERROR]', e.message);
     }
