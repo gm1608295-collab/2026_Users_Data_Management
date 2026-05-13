@@ -220,6 +220,43 @@ async function initTables(p) {
 }
 initTables(pool1);
 initTables(pool2);
+// ========== DAILY CHECK-IN SYSTEM ==========
+`CREATE TABLE IF NOT EXISTS daily_checkin_events (
+    id SERIAL PRIMARY KEY,
+    event_type VARCHAR(20) NOT NULL DEFAULT 'normal',
+    event_name VARCHAR(100),
+    start_date DATE NOT NULL,
+    start_time TIME DEFAULT '00:00:00',
+    end_date DATE,
+    end_time TIME DEFAULT '14:30:00',
+    total_days INT NOT NULL DEFAULT 7,
+    is_active BOOLEAN DEFAULT true,
+    cancelled BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
+`CREATE TABLE IF NOT EXISTS daily_checkin_rewards (
+    id SERIAL PRIMARY KEY,
+    event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE,
+    day_number INT NOT NULL,
+    reward_type VARCHAR(20) NOT NULL,
+    reward_amount DECIMAL(10,2) DEFAULT 0,
+    reward_label VARCHAR(100),
+    icon_url VARCHAR(500),
+    UNIQUE(event_id, day_number)
+)`,
+`CREATE TABLE IF NOT EXISTS daily_checkins (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE,
+    checkin_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    day_number INT NOT NULL,
+    reward_type VARCHAR(20),
+    reward_amount DECIMAL(10,2) DEFAULT 0,
+    claimed BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, event_id, checkin_date)
+)`
 // ==================== CREATE SPIN HISTORY V2 TABLE ====================
 async function createSpinHistoryV2Table() {
     const query = `
@@ -2070,6 +2107,563 @@ app.post('/api/redeem_promo', async (req, res) => {
 });
 
 console.log('✅ Promo Code System Ready');
+
+// ====================================
+// DAILY CHECK-IN EVENT MANAGEMENT (ADMIN)
+// ====================================
+
+// Get all check-in events
+app.get('/api/admin/checkin_events', async (req, res) => {
+    try {
+        const p = await getPool();
+        const events = await p.query('SELECT * FROM daily_checkin_events ORDER BY id DESC');
+        
+        // Get rewards for each event
+        for (let event of events.rows) {
+            const rewards = await p.query(
+                'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC',
+                [event.id]
+            );
+            event.rewards = rewards.rows;
+        }
+        
+        res.json({ success: true, events: events.rows });
+    } catch(e) {
+        res.json({ success: false, events: [] });
+    }
+});
+
+// Create check-in event
+app.post('/api/admin/checkin_event/create', async (req, res) => {
+    const { event_type, event_name, start_date, start_time, total_days, rewards } = req.body;
+    
+    if (!event_type || !start_date || !total_days) {
+        return res.json({ success: false, message: 'Missing required fields' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Calculate end date (total_days + 2 extra days)
+        const startDate = new Date(start_date);
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + parseInt(total_days) + 2);
+        
+        const result = await p.query(
+            `INSERT INTO daily_checkin_events 
+            (event_type, event_name, start_date, start_time, end_date, total_days) 
+            VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+            [
+                event_type,
+                event_name || (event_type === 'normal' ? 'Normal Daily Check-In' : 'Premium Daily Check-In'),
+                start_date,
+                start_time || '00:00:00',
+                endDate.toISOString().split('T')[0],
+                parseInt(total_days)
+            ]
+        );
+        
+        const eventId = result.rows[0].id;
+        
+        // Insert rewards
+        if (rewards && Array.isArray(rewards)) {
+            for (const reward of rewards) {
+                await p.query(
+                    `INSERT INTO daily_checkin_rewards 
+                    (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                    VALUES ($1,$2,$3,$4,$5,$6)`,
+                    [
+                        eventId,
+                        reward.day,
+                        reward.type,
+                        parseFloat(reward.amount) || 0,
+                        reward.label || '',
+                        reward.icon || ''
+                    ]
+                );
+            }
+        }
+        
+        res.json({ success: true, message: 'Event created!', event_id: eventId });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
+// Edit check-in event (before it starts)
+app.post('/api/admin/checkin_event/edit', async (req, res) => {
+    const { event_id, event_name, start_date, start_time, total_days, rewards } = req.body;
+    
+    if (!event_id) return res.json({ success: false, message: 'Event ID required' });
+    
+    try {
+        const p = await getPool();
+        
+        // Check if event already started
+        const event = await p.query('SELECT * FROM daily_checkin_events WHERE id=$1', [event_id]);
+        if (event.rows.length === 0) return res.json({ success: false, message: 'Event not found' });
+        
+        const evt = event.rows[0];
+        const now = new Date();
+        const eventStart = new Date(evt.start_date + 'T' + (evt.start_time || '00:00:00'));
+        
+        if (eventStart <= now) {
+            return res.json({ success: false, message: 'စတင်ပြီးသား Event ကို ပြင်ဆင်၍မရပါ' });
+        }
+        
+        // Update event
+        const endDate = new Date(start_date || evt.start_date);
+        endDate.setDate(endDate.getDate() + parseInt(total_days || evt.total_days) + 2);
+        
+        await p.query(
+            `UPDATE daily_checkin_events SET 
+            event_name=$1, start_date=$2, start_time=$3, end_date=$4, total_days=$5, updated_at=NOW()
+            WHERE id=$6`,
+            [
+                event_name || evt.event_name,
+                start_date || evt.start_date,
+                start_time || evt.start_time,
+                endDate.toISOString().split('T')[0],
+                parseInt(total_days) || evt.total_days,
+                event_id
+            ]
+        );
+        
+        // Update rewards if provided
+        if (rewards && Array.isArray(rewards)) {
+            await p.query('DELETE FROM daily_checkin_rewards WHERE event_id=$1', [event_id]);
+            for (const reward of rewards) {
+                await p.query(
+                    `INSERT INTO daily_checkin_rewards 
+                    (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                    VALUES ($1,$2,$3,$4,$5,$6)`,
+                    [event_id, reward.day, reward.type, parseFloat(reward.amount) || 0, reward.label || '', reward.icon || '']
+                );
+            }
+        }
+        
+        res.json({ success: true, message: 'Event updated!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
+// Cancel/Delete check-in event (only if not started)
+app.post('/api/admin/checkin_event/cancel', async (req, res) => {
+    const { event_id } = req.body;
+    if (!event_id) return res.json({ success: false, message: 'Event ID required' });
+    
+    try {
+        const p = await getPool();
+        
+        const event = await p.query('SELECT * FROM daily_checkin_events WHERE id=$1', [event_id]);
+        if (event.rows.length === 0) return res.json({ success: false, message: 'Event not found' });
+        
+        const evt = event.rows[0];
+        const now = new Date();
+        const eventStart = new Date(evt.start_date + 'T' + (evt.start_time || '00:00:00'));
+        
+        if (eventStart <= now) {
+            return res.json({ success: false, message: 'စတင်ပြီးသား Event ကို ဖျက်၍မရပါ' });
+        }
+        
+        await p.query('UPDATE daily_checkin_events SET cancelled=true, is_active=false WHERE id=$1', [event_id]);
+        res.json({ success: true, message: 'Event cancelled!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// ====================================
+// DAILY CHECK-IN USER APIs
+// ====================================
+
+// Get active check-in events for user
+app.post('/api/daily_checkin/status', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const currentTime = now.toTimeString().split(' ')[0];
+        
+        // Get user premium status
+        const user = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
+        const isPremium = user.rows[0]?.premium_expiry && new Date(user.rows[0].premium_expiry) > new Date();
+        
+        // Get active events
+        let eventQuery;
+        if (isPremium) {
+            eventQuery = `SELECT * FROM daily_checkin_events 
+                WHERE is_active=true AND cancelled=false 
+                AND (event_type='normal' OR event_type='premium')
+                AND start_date <= $1 AND end_date >= $1
+                ORDER BY event_type ASC`;
+        } else {
+            eventQuery = `SELECT * FROM daily_checkin_events 
+                WHERE is_active=true AND cancelled=false 
+                AND event_type='normal'
+                AND start_date <= $1 AND end_date >= $1
+                ORDER BY id ASC`;
+        }
+        
+        const events = await p.query(eventQuery, [today]);
+        
+        const result = [];
+        
+        for (const event of events.rows) {
+            // Check reset time (2:30 PM)
+            const resetTime = event.end_time || '14:30:00';
+            const todayReset = new Date(today + 'T' + resetTime);
+            
+            // Get today's checkin
+            const todayCheckin = await p.query(
+                'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3',
+                [uid, event.id, today]
+            );
+            
+            // Calculate current day
+            let currentDay = 1;
+            const startDate = new Date(event.start_date);
+            const daysDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            currentDay = Math.max(1, Math.min(daysDiff, event.total_days));
+            
+            // Get rewards
+            const rewards = await p.query(
+                'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC',
+                [event.id]
+            );
+            
+            // Get user's claimed days for this event
+            const claimedDays = await p.query(
+                'SELECT day_number FROM daily_checkins WHERE user_id=$1 AND event_id=$2 ORDER BY day_number ASC',
+                [uid, event.id]
+            );
+            const claimedDayNumbers = claimedDays.rows.map(r => r.day_number);
+            
+            // Determine if user missed a day
+            const yesterdayStr = new Date(now - 86400000).toISOString().split('T')[0];
+            const checkedInYesterday = await p.query(
+                'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3',
+                [uid, event.id, yesterdayStr]
+            );
+            
+            // Build day status array
+            const dayStatus = [];
+            for (let d = 1; d <= event.total_days; d++) {
+                const reward = rewards.rows.find(r => r.day_number === d);
+                dayStatus.push({
+                    day: d,
+                    claimed: claimedDayNumbers.includes(d),
+                    reward: reward ? {
+                        type: reward.reward_type,
+                        amount: parseFloat(reward.reward_amount),
+                        label: reward.reward_label,
+                        icon: reward.icon_url
+                    } : null
+                });
+            }
+            
+            result.push({
+                event_id: event.id,
+                event_type: event.event_type,
+                event_name: event.event_name,
+                total_days: event.total_days,
+                current_day: currentDay,
+                checked_in_today: todayCheckin.rows.length > 0,
+                claimed_days: claimedDayNumbers,
+                day_status: dayStatus,
+                can_claim: todayCheckin.rows.length === 0 && now < todayReset,
+                next_reset: todayReset.toISOString(),
+                end_date: event.end_date
+            });
+        }
+        
+        res.json({ success: true, events: result, is_premium: isPremium });
+    } catch(e) {
+        console.error('[CHECKIN STATUS]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Claim daily reward
+app.post('/api/daily_checkin/claim', async (req, res) => {
+    const { token, event_id } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!event_id) return res.json({ success: false, message: 'Event ID required' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        
+        // Check event
+        const event = await p.query(
+            'SELECT * FROM daily_checkin_events WHERE id=$1 AND is_active=true AND cancelled=false',
+            [event_id]
+        );
+        if (event.rows.length === 0) return res.json({ success: false, message: 'Event not found' });
+        
+        const evt = event.rows[0];
+        
+        // Check if within date range
+        if (today < evt.start_date || today > evt.end_date) {
+            return res.json({ success: false, message: 'Event is not active today' });
+        }
+        
+        // Check if already claimed today
+        const todayCheckin = await p.query(
+            'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3',
+            [uid, event_id, today]
+        );
+        if (todayCheckin.rows.length > 0) {
+            return res.json({ success: false, message: 'Already claimed today' });
+        }
+        
+        // Check reset time
+        const resetTime = evt.end_time || '14:30:00';
+        const todayReset = new Date(today + 'T' + resetTime);
+        if (now >= todayReset) {
+            return res.json({ success: false, message: 'Today claim period ended. Wait for reset.' });
+        }
+        
+        // Calculate current day
+        const startDate = new Date(evt.start_date);
+        const daysDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        const currentDay = Math.max(1, Math.min(daysDiff, evt.total_days));
+        
+        // Get reward for current day
+        const reward = await p.query(
+            'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 AND day_number=$2',
+            [event_id, currentDay]
+        );
+        
+        if (reward.rows.length === 0) {
+            return res.json({ success: false, message: 'No reward for this day' });
+        }
+        
+        const rwd = reward.rows[0];
+        
+        // Apply reward
+        let mmkAdded = 0, usdAdded = 0, spinsAdded = 0;
+        
+        switch (rwd.reward_type) {
+            case 'mmk':
+                await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [rwd.reward_amount, uid]);
+                mmkAdded = rwd.reward_amount;
+                break;
+            case 'usd':
+                await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [rwd.reward_amount, uid]);
+                usdAdded = rwd.reward_amount;
+                break;
+            case 'spin':
+                await p.query('UPDATE auth_users SET paid_spins = COALESCE(paid_spins,0) + $1 WHERE id=$2', [parseInt(rwd.reward_amount), uid]);
+                spinsAdded = parseInt(rwd.reward_amount);
+                break;
+        }
+        
+        // Log checkin
+        await p.query(
+            `INSERT INTO daily_checkins (user_id, event_id, checkin_date, day_number, reward_type, reward_amount) 
+            VALUES ($1,$2,$3,$4,$5,$6)`,
+            [uid, event_id, today, currentDay, rwd.reward_type, rwd.reward_amount]
+        );
+        
+        // Get updated balance
+        const updatedUser = await p.query('SELECT balance, usd_balance, paid_spins FROM auth_users WHERE id=$1', [uid]);
+        
+        res.json({
+            success: true,
+            message: 'Reward claimed!',
+            day: currentDay,
+            reward_type: rwd.reward_type,
+            reward_amount: parseFloat(rwd.reward_amount),
+            reward_label: rwd.reward_label,
+            mmk_balance: parseFloat(updatedUser.rows[0]?.balance || 0),
+            usd_balance: parseFloat(updatedUser.rows[0]?.usd_balance || 0),
+            paid_spins: parseInt(updatedUser.rows[0]?.paid_spins || 0)
+        });
+    } catch(e) {
+        console.error('[CHECKIN CLAIM]', e.message);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
+// Initialize default check-in events if none exist
+async function initDefaultCheckinEvents() {
+    try {
+        const existing = await pool1.query('SELECT COUNT(*) FROM daily_checkin_events');
+        if (parseInt(existing.rows[0].count) > 0) return;
+        
+        // Normal event
+        const normalEvent = await pool1.query(
+            `INSERT INTO daily_checkin_events (event_type, event_name, start_date, end_date, total_days) 
+            VALUES ('normal', 'Normal Daily Check-In', CURRENT_DATE, $1, 7) RETURNING id`,
+            [new Date(Date.now() + 9 * 86400000).toISOString().split('T')[0]]
+        );
+        
+        const normalRewards = [
+            { day: 1, type: 'spin', amount: 1, label: '1 Draw Spin', icon: '🎁' },
+            { day: 2, type: 'mmk', amount: 100, label: '100 Ks', icon: '💰' },
+            { day: 3, type: 'mmk', amount: 150, label: '150 Ks', icon: '💰' },
+            { day: 4, type: 'usd', amount: 0.05, label: '$0.05 USD', icon: '💵' },
+            { day: 5, type: 'spin', amount: 1, label: '1 Draw Spin', icon: '🔄' },
+            { day: 6, type: 'usd', amount: 0.10, label: '$0.10 USD', icon: '💵' },
+            { day: 7, type: 'mmk', amount: 300, label: '300 Ks', icon: '🎉' }
+        ];
+        
+        for (const r of normalRewards) {
+            await pool1.query(
+                `INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                VALUES ($1,$2,$3,$4,$5,$6)`,
+                [normalEvent.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
+            );
+        }
+        
+        // Premium event
+        const premEvent = await pool1.query(
+            `INSERT INTO daily_checkin_events (event_type, event_name, start_date, end_date, total_days) 
+            VALUES ('premium', 'Premium Daily Check-In', CURRENT_DATE, $1, 14) RETURNING id`,
+            [new Date(Date.now() + 16 * 86400000).toISOString().split('T')[0]]
+        );
+        
+        const premRewards = [
+            { day: 1, type: 'mmk', amount: 200, label: '200 Ks', icon: '💰' },
+            { day: 2, type: 'spin', amount: 1, label: '1 Draw Spin', icon: '🔄' },
+            { day: 3, type: 'usd', amount: 0.15, label: '$0.15 USD', icon: '💵' },
+            { day: 4, type: 'spin', amount: 2, label: '2 Draw Spins', icon: '🔄' },
+            { day: 5, type: 'mmk', amount: 300, label: '300 Ks', icon: '💰' },
+            { day: 6, type: 'mmk', amount: 350, label: '350 Ks', icon: '💰' },
+            { day: 7, type: 'usd', amount: 0.15, label: '$0.15 USD', icon: '💵' },
+            { day: 8, type: 'spin', amount: 2, label: '2 Draw Spins', icon: '🔄' },
+            { day: 9, type: 'spin', amount: 2, label: '2 Draw Spins', icon: '🔄' },
+            { day: 10, type: 'spin', amount: 2, label: '2 Draw Spins', icon: '🔄' },
+            { day: 11, type: 'mmk', amount: 400, label: '400 Ks', icon: '💰' },
+            { day: 12, type: 'usd', amount: 0.20, label: '$0.20 USD', icon: '💵' },
+            { day: 13, type: 'mmk', amount: 500, label: '500 Ks', icon: '💰' },
+            { day: 14, type: 'usd', amount: 0.25, label: '$0.25 USD', icon: '💵' }
+        ];
+        
+        for (const r of premRewards) {
+            await pool1.query(
+                `INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                VALUES ($1,$2,$3,$4,$5,$6)`,
+                [premEvent.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
+            );
+        }
+        
+        console.log('✅ Default check-in events created');
+    } catch(e) {
+        console.log('⚠️ Default check-in events error:', e.message);
+    }
+}
+
+// Call after initTables
+initDefaultCheckinEvents();
+
+// ====================================
+// REUSE EXISTING CHECK-IN EVENT
+// ====================================
+app.post('/api/admin/checkin_event/reuse', async (req, res) => {
+    const { event_id, start_date, start_time } = req.body;
+    
+    if (!event_id || !start_date) {
+        return res.json({ success: false, message: 'Event ID and Start Date required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Get original event
+        const original = await p.query('SELECT * FROM daily_checkin_events WHERE id=$1', [event_id]);
+        if (original.rows.length === 0) {
+            return res.json({ success: false, message: 'Original event not found' });
+        }
+        
+        const orig = original.rows[0];
+        
+        // Calculate new end date
+        const startDate = new Date(start_date);
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + parseInt(orig.total_days) + 2);
+        
+        // Create new event with same settings
+        const newEvent = await p.query(
+            `INSERT INTO daily_checkin_events 
+            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
+            VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+            [
+                orig.event_type,
+                orig.event_name,
+                start_date,
+                start_time || orig.start_time,
+                endDate.toISOString().split('T')[0],
+                orig.end_time || '14:30:00',
+                orig.total_days
+            ]
+        );
+        
+        const newEventId = newEvent.rows[0].id;
+        
+        // Copy rewards from original event
+        const originalRewards = await p.query(
+            'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC',
+            [event_id]
+        );
+        
+        for (const reward of originalRewards.rows) {
+            await p.query(
+                `INSERT INTO daily_checkin_rewards 
+                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                VALUES ($1,$2,$3,$4,$5,$6)`,
+                [
+                    newEventId,
+                    reward.day_number,
+                    reward.reward_type,
+                    reward.reward_amount,
+                    reward.reward_label,
+                    reward.icon_url
+                ]
+            );
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Event reused! New event created.', 
+            new_event_id: newEventId,
+            start_date: start_date,
+            end_date: endDate.toISOString().split('T')[0]
+        });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
+// Get past events (for reuse)
+app.get('/api/admin/checkin_events/past', async (req, res) => {
+    try {
+        const p = await getPool();
+        const today = new Date().toISOString().split('T')[0];
+        
+        const events = await p.query(
+            `SELECT * FROM daily_checkin_events 
+            WHERE end_date < $1 AND cancelled = false 
+            ORDER BY end_date DESC LIMIT 20`,
+            [today]
+        );
+        
+        res.json({ success: true, events: events.rows });
+    } catch(e) {
+        res.json({ success: false, events: [] });
+    }
+});
 // ==================== ADMIN: USERS WITH LOGIN INFO ====================
 app.get('/api/admin/users_with_logins', async (req, res) => {
     try {
