@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
 const https = require('https');
+const UAParser = require('ua-parser-js');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,6 +32,69 @@ async function getPool() {
     catch(e) { console.log('âš ï¸ DB Switch:', e.message); currentPool = pool1Active ? pool2 : pool1; pool1Active = !pool1Active; return currentPool; }
 }
 
+// ==================== DEVICE DETECTION ====================
+function detectDevice(ua) {
+    const parser = new UAParser(ua);
+    const result = parser.getResult();
+    
+    const browser = result.browser;
+    const os = result.os;
+    const device = result.device;
+    
+    let deviceName = '';
+    let deviceType = 'Desktop';
+    let icon = '🖥️';
+    let isMobile = false;
+    
+    // Build device name
+    if (device.vendor) deviceName += device.vendor + ' ';
+    if (device.model) deviceName += device.model;
+    if (!deviceName.trim()) {
+        if (os.name) deviceName += os.name + ' ';
+        if (os.version) deviceName += os.version;
+    }
+    if (browser.name) {
+        deviceName += ' • ' + browser.name;
+        if (browser.version) deviceName += ' ' + browser.version.split('.')[0];
+    }
+    if (!deviceName.trim()) deviceName = 'Unknown Device';
+    
+    // Device type
+    if (device.type === 'mobile') { deviceType = 'Mobile'; icon = '📱'; isMobile = true; }
+    else if (device.type === 'tablet') { deviceType = 'Tablet'; icon = '📱'; isMobile = true; }
+    else if (/Median|WebView/i.test(ua)) { deviceType = 'App'; deviceName = 'SOLO M Game App • ' + (os.name||''); icon = '🎮'; isMobile = true; }
+    
+    return { name: deviceName.trim(), type: deviceType, icon, brand: device.vendor || os.name || 'Unknown', model: device.model || os.version || 'Unknown', browser: browser.name || 'Unknown', browserVersion: browser.version || '', osName: os.name || 'Unknown', osVersion: os.version || '', isMobile };
+}
+// ==================== LOGIN TRACKING ====================
+async function trackLogin(userId, username, loginType, req) {
+    try {
+        const p = await getPool();
+        const ua = req.headers['user-agent'] || '';
+        const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'Unknown';
+        const info = detectDevice(ua);
+        
+        // Save login history
+        await p.query(
+            `INSERT INTO login_history (user_id, username, login_type, ip_address, device_info, device_type, device_brand, device_model, browser, is_mobile, user_agent) 
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+            [userId, username, loginType, ip, info.name, info.type, info.brand, info.model, info.browser, info.isMobile, ua]
+        ).catch(e => console.log('Login history error:', e.message));
+        
+        // Save device session
+        const token = req.body?.token || '';
+        if (token && token !== 'guest') {
+            await p.query(
+                `INSERT INTO device_sessions (user_id, token, device_name, device_type, device_brand, device_model, browser, ip_address, user_agent) 
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                 ON CONFLICT (user_id, token) DO UPDATE SET last_activity=NOW(), is_active=true`,
+                [userId, token, info.name, info.type, info.brand, info.model, info.browser, ip, ua]
+            ).catch(e => console.log('Device session error:', e.message));
+        }
+    } catch(e) {
+        console.error('[LOGIN TRACK ERROR]', e.message);
+    }
+}
 // ==================== CONFIG ====================
 const BOT_TOKEN = '8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE';
 const CHAT_ID = '8315028972';
@@ -116,45 +180,45 @@ const REDEEM_CATEGORIES = [
 
 // ==================== INIT TABLES ====================
 async function initTables(p) {
-    // First create base tables
-    const createQueries = [
-        `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, usd_balance DECIMAL DEFAULT 0, premium_expiry TIMESTAMP, paid_spins INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
+    const queries = [
+        // ========== USER & AUTH ==========
+        `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, usd_balance DECIMAL DEFAULT 0, premium_expiry TIMESTAMP, paid_spins INT DEFAULT 0, premium_tier INT DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
+        
+        // ========== SECURITY ==========
+        `CREATE TABLE IF NOT EXISTS login_history (id SERIAL PRIMARY KEY, user_id INT NOT NULL, username VARCHAR(100), login_type VARCHAR(20), ip_address VARCHAR(50), device_info VARCHAR(300), device_type VARCHAR(50), device_brand VARCHAR(100), device_model VARCHAR(100), browser VARCHAR(50), is_mobile BOOLEAN DEFAULT false, user_agent TEXT, login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS device_sessions (id SERIAL PRIMARY KEY, user_id INT NOT NULL, token VARCHAR(200) NOT NULL, device_name VARCHAR(300), device_type VARCHAR(50), device_brand VARCHAR(100), device_model VARCHAR(100), browser VARCHAR(50), ip_address VARCHAR(50), user_agent TEXT, is_active BOOLEAN DEFAULT true, last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, token))`,
+        
+        // ========== CONTENT ==========
         `CREATE TABLE IF NOT EXISTS notices (id SERIAL PRIMARY KEY, message TEXT, color VARCHAR(20) DEFAULT '#ffffff', created_by VARCHAR(100), notice_type VARCHAR(20) DEFAULT 'dashboard', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS slider_images (id SERIAL PRIMARY KEY, image_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS bg_music (id SERIAL PRIMARY KEY, music_urls TEXT DEFAULT '[]', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== SHOP ==========
         `CREATE TABLE IF NOT EXISTS page_status (page_id VARCHAR(50) PRIMARY KEY, status VARCHAR(5) DEFAULT 'on', updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS banned_users (user_id VARCHAR(100) PRIMARY KEY, banned_by VARCHAR(100), banned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS orders (id SERIAL PRIMARY KEY, user_id INT, username VARCHAR(100), amount DECIMAL, payment_method VARCHAR(50), screenshot TEXT, status VARCHAR(20) DEFAULT 'pending', submitted_user_id VARCHAR(20), reject_reason TEXT DEFAULT '', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS used_codes (code VARCHAR(100) PRIMARY KEY, user_id INT, used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS videos (id SERIAL PRIMARY KEY, video_url TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS redeem_codes (id SERIAL PRIMARY KEY, category VARCHAR(50), code VARCHAR(100), used BOOLEAN DEFAULT false, used_by INT, used_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS used_codes (code VARCHAR(100) PRIMARY KEY, user_id INT, used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== SECURITY PASSWORDS ==========
+        `CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS user_security_pass (user_id INT PRIMARY KEY, security_password VARCHAR(100), set_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== GAME ==========
         `CREATE TABLE IF NOT EXISTS spin_history (id SERIAL PRIMARY KEY, user_id INT, reward_type VARCHAR(50), reward_amount DECIMAL DEFAULT 0, segment_label VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS game_players (id SERIAL PRIMARY KEY, username VARCHAR(100) DEFAULT 'Player', device_id VARCHAR(200), level INT DEFAULT 1, total_score BIGINT DEFAULT 0, total_gold BIGINT DEFAULT 0, games_played INT DEFAULT 0, highest_score INT DEFAULT 0, highest_wave INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_played TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS game_scores (id SERIAL PRIMARY KEY, player_id INT, score INT DEFAULT 0, gold_earned INT DEFAULT 0, waves_completed INT DEFAULT 0, kills INT DEFAULT 0, deaths INT DEFAULT 0, hero_used VARCHAR(50) DEFAULT 'Warrior', played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS game_leaderboard (id SERIAL PRIMARY KEY, player_id INT, username VARCHAR(100), score INT, wave INT, season VARCHAR(20) DEFAULT 'S1', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== PREMIUM ==========
         `CREATE TABLE IF NOT EXISTS premium_draws (user_id INT, draw_date DATE, draw_count INT DEFAULT 1, PRIMARY KEY(user_id, draw_date))`,
         `CREATE TABLE IF NOT EXISTS weekly_bonus (id SERIAL PRIMARY KEY, user_id INT, claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
     ];
     
-    for (const q of createQueries) { 
+    for (const q of queries) { 
         await p.query(q).catch(e => console.log('Table create:', e.message)); 
     }
-    
-    // Then safely add missing columns (won't error if table doesn't exist)
-    const alterQueries = [
-    `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS usd_balance DECIMAL DEFAULT 0`,
-    `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_expiry TIMESTAMP`,
-    `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS paid_spins INT DEFAULT 0`,     // ✅ Comma ထည့်ပါ
-    `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS premium_tier INT DEFAULT 1`
-];
-    
-    for (const q of alterQueries) { 
-        await p.query(q).catch(() => {}); 
-    }
 }
-initTables(pool1); initTables(pool2);
+initTables(pool1);
+initTables(pool2);
 // ==================== CREATE SPIN HISTORY V2 TABLE ====================
 async function createSpinHistoryV2Table() {
     const query = `
@@ -236,19 +300,26 @@ app.post('/api/upload_music', async (req, res) => {
         else res.json({ success: false, message: 'Upload failed' });
     } catch(e) { res.json({ success: false }); }
 });
-
 // ==================== AUTH ====================
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.json({ success: false, message: 'All fields required' });
-    try { const p = await getPool(); const r = await p.query("SELECT * FROM auth_users WHERE email=$1 AND password=$2 AND login_type='local'", [email, password]); if (r.rows.length === 0) return res.json({ success: false, message: 'Invalid' }); const u = r.rows[0]; await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [u.id]); res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } }); }
+    try { 
+        const p = await getPool(); 
+        const r = await p.query("SELECT * FROM auth_users WHERE email=$1 AND password=$2 AND login_type='local'", [email, password]); 
+        if (r.rows.length === 0) return res.json({ success: false, message: 'Invalid' }); 
+        const u = r.rows[0]; 
+        await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [u.id]); 
+        trackLogin(u.id, u.username, 'local', req);
+        res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } }); 
+    }
     catch(e) { res.json({ success: false }); }
 });
 
 app.post('/api/register', async (req, res) => {
     const { username, email, phone, password } = req.body;
     if (!username || !email || !phone || !password) return res.json({ success: false, message: 'All fields required' });
-    try { const p = await getPool(); const exist = await p.query('SELECT id FROM auth_users WHERE email=$1', [email]); if (exist.rows.length > 0) return res.json({ success: false, message: 'Email exists' }); await p.query('INSERT INTO auth_users (username,email,phone,password,login_type) VALUES ($1,$2,$3,$4,$5)', [username, email, phone, password, 'local']); tgSend(`ðŸ†• ${username}\nðŸ“§ ${email}`); res.json({ success: true }); }
+    try { const p = await getPool(); const exist = await p.query('SELECT id FROM auth_users WHERE email=$1', [email]); if (exist.rows.length > 0) return res.json({ success: false, message: 'Email exists' }); await p.query('INSERT INTO auth_users (username,email,phone,password,login_type) VALUES ($1,$2,$3,$4,$5)', [username, email, phone, password, 'local']); tgSend(`🆕 ${username}\n📧 ${email}`); res.json({ success: true }); }
     catch(e) { res.json({ success: false }); }
 });
 
@@ -265,10 +336,26 @@ app.get('/auth/google/callback', async (req, res) => {
         const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { 'Authorization': `Bearer ${tokenData.access_token}` } });
         const userInfo = await userRes.json(); const googleId = userInfo.id, email = userInfo.email, name = userInfo.name || 'Google User';
         const p = await getPool(); let user = await p.query('SELECT * FROM auth_users WHERE google_id=$1', [googleId]);
-        if (user.rows.length > 0) { const u = user.rows[0]; await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [u.id]); res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||name}",email:"${email}",login_type:"google"}));window.location.href="/dashboard";</script>`); return; }
+        
+        if (user.rows.length > 0) { 
+            const u = user.rows[0]; 
+            await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [u.id]); 
+            trackLogin(u.id, u.username||name, 'google', req);
+            res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||name}",email:"${email}",login_type:"google"}));window.location.href="/dashboard";</script>`); 
+            return; 
+        }
+        
         user = await p.query("SELECT * FROM auth_users WHERE email=$1 AND login_type='local'", [email]);
-        if (user.rows.length > 0) { const u = user.rows[0]; await p.query('UPDATE auth_users SET google_id=$1, last_login=NOW() WHERE id=$2', [googleId, u.id]); res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||name}",email:"${email}",login_type:"google"}));window.location.href="/dashboard";</script>`); return; }
+        if (user.rows.length > 0) { 
+            const u = user.rows[0]; 
+            await p.query('UPDATE auth_users SET google_id=$1, last_login=NOW() WHERE id=$2', [googleId, u.id]); 
+            trackLogin(u.id, u.username||name, 'google', req);
+            res.send(`<script>localStorage.setItem("auth_token","token_${u.id}");localStorage.setItem("user",JSON.stringify({id:${u.id},username:"${u.username||name}",email:"${email}",login_type:"google"}));window.location.href="/dashboard";</script>`); 
+            return; 
+        }
+        
         const nu = await p.query('INSERT INTO auth_users (username,email,google_id,login_type) VALUES ($1,$2,$3,$4) RETURNING id', [name, email, googleId, 'google']);
+        trackLogin(nu.rows[0].id, name, 'google', req);
         res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${name}",email:"${email}",login_type:"google"}));window.location.href="/dashboard";</script>`);
     } catch(e) { res.send('<script>alert("Failed");window.location.href="/";</script>'); }
 });
@@ -281,11 +368,19 @@ app.get('/auth/tiktok/callback', async (req, res) => {
         const td = await tr.json(); const ur = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name', { headers: { 'Authorization': `Bearer ${td.access_token}` } });
         const ud = await ur.json(); const user = ud.data.user;
         const p = await getPool(); const dr = await p.query('SELECT * FROM auth_users WHERE google_id=$1', [user.open_id]);
-        if (dr.rows.length > 0) { await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [dr.rows[0].id]); res.send(`<script>localStorage.setItem("auth_token","token_${dr.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${dr.rows[0].id},username:"${dr.rows[0].username||user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); }
-        else { const nu = await p.query('INSERT INTO auth_users (username,email,google_id,login_type) VALUES ($1,$2,$3,$4) RETURNING id', [user.display_name, 'tiktok_'+user.open_id+'@tiktok.com', user.open_id, 'tiktok']); res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); }
+        
+        if (dr.rows.length > 0) { 
+            await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [dr.rows[0].id]); 
+            trackLogin(dr.rows[0].id, dr.rows[0].username||user.display_name, 'tiktok', req);
+            res.send(`<script>localStorage.setItem("auth_token","token_${dr.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${dr.rows[0].id},username:"${dr.rows[0].username||user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`); 
+            return;
+        }
+        
+        const nu = await p.query('INSERT INTO auth_users (username,email,google_id,login_type) VALUES ($1,$2,$3,$4) RETURNING id', [user.display_name, 'tiktok_'+user.open_id+'@tiktok.com', user.open_id, 'tiktok']); 
+        trackLogin(nu.rows[0].id, user.display_name, 'tiktok', req);
+        res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`);
     } catch(e) { res.send('<script>alert("Failed");window.location.href="/";</script>'); }
 });
-
 // ==================== GET USER DATA PASSWORDS (FROM DB) ====================
 app.post('/api/get_passwords', async (req, res) => {
     const { token } = req.body;
@@ -702,6 +797,17 @@ app.post('/api/admin/bot_message', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+// trackLogin for Telegram (manual)
+async function trackTelegramLogin(userId, username) {
+    try {
+        const p = await getPool();
+        await p.query(
+            `INSERT INTO login_history (user_id, username, login_type, device_info, device_type, is_mobile) 
+             VALUES ($1,$2,'telegram','Telegram Bot','Bot',true)`,
+            [userId, username]
+        );
+    } catch(e) {}
+}
 // ==================== TELEGRAM BOT (မြန်မာလို) ====================
 let lastUpdateId = 0;
 
