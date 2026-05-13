@@ -2497,10 +2497,14 @@ app.post('/api/daily_checkin/claim', async (req, res) => {
     }
 });
 
-// Initialize default check-in events if none exist
+// ====================================
+// INITIALIZE DEFAULT CHECK-IN EVENTS
+// ====================================
 async function initDefaultCheckinEvents() {
     // ✅ Table မရှိသေးရင် စောင့်
     let retries = 5;
+    let tableReady = false;
+    
     while (retries > 0) {
         try {
             const existing = await pool1.query('SELECT COUNT(*) FROM daily_checkin_events');
@@ -2508,6 +2512,7 @@ async function initDefaultCheckinEvents() {
                 console.log('✅ Check-in events already exist');
                 return;
             }
+            tableReady = true;
             break; // Table exists, proceed
         } catch(e) {
             retries--;
@@ -2516,12 +2521,22 @@ async function initDefaultCheckinEvents() {
         }
     }
     
-}
-        // Normal event
+    if (!tableReady) {
+        console.log('⚠️ Could not verify tables, skipping default events');
+        return;
+    }
+    
+    try {
+        // ✅ Normal Event (7 days)
+        const normalEndDate = new Date();
+        normalEndDate.setDate(normalEndDate.getDate() + 9); // 7 days + 2 extra
+        
         const normalEvent = await pool1.query(
-            `INSERT INTO daily_checkin_events (event_type, event_name, start_date, end_date, total_days) 
-            VALUES ('normal', 'Normal Daily Check-In', CURRENT_DATE, $1, 7) RETURNING id`,
-            [new Date(Date.now() + 9 * 86400000).toISOString().split('T')[0]]
+            `INSERT INTO daily_checkin_events 
+            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
+            VALUES ('normal', 'Normal Daily Check-In', CURRENT_DATE, '00:00:00', $1, '14:30:00', 7) 
+            RETURNING id`,
+            [normalEndDate.toISOString().split('T')[0]]
         );
         
         const normalRewards = [
@@ -2536,17 +2551,46 @@ async function initDefaultCheckinEvents() {
         
         for (const r of normalRewards) {
             await pool1.query(
-                `INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                `INSERT INTO daily_checkin_rewards 
+                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
                 VALUES ($1,$2,$3,$4,$5,$6)`,
                 [normalEvent.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
             );
         }
         
-        // Premium event
+        // Also insert into pool2
+        const normalEndDate2 = new Date();
+        normalEndDate2.setDate(normalEndDate2.getDate() + 9);
+        
+        const normalEvent2 = await pool2.query(
+            `INSERT INTO daily_checkin_events 
+            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
+            VALUES ('normal', 'Normal Daily Check-In', CURRENT_DATE, '00:00:00', $1, '14:30:00', 7) 
+            RETURNING id`,
+            [normalEndDate2.toISOString().split('T')[0]]
+        );
+        
+        for (const r of normalRewards) {
+            await pool2.query(
+                `INSERT INTO daily_checkin_rewards 
+                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                VALUES ($1,$2,$3,$4,$5,$6)`,
+                [normalEvent2.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
+            );
+        }
+        
+        console.log('✅ Normal check-in event created');
+        
+        // ✅ Premium Event (14 days)
+        const premEndDate = new Date();
+        premEndDate.setDate(premEndDate.getDate() + 16); // 14 days + 2 extra
+        
         const premEvent = await pool1.query(
-            `INSERT INTO daily_checkin_events (event_type, event_name, start_date, end_date, total_days) 
-            VALUES ('premium', 'Premium Daily Check-In', CURRENT_DATE, $1, 14) RETURNING id`,
-            [new Date(Date.now() + 16 * 86400000).toISOString().split('T')[0]]
+            `INSERT INTO daily_checkin_events 
+            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
+            VALUES ('premium', 'Premium Daily Check-In', CURRENT_DATE, '00:00:00', $1, '14:30:00', 14) 
+            RETURNING id`,
+            [premEndDate.toISOString().split('T')[0]]
         );
         
         const premRewards = [
@@ -2568,21 +2612,46 @@ async function initDefaultCheckinEvents() {
         
         for (const r of premRewards) {
             await pool1.query(
-                `INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                `INSERT INTO daily_checkin_rewards 
+                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
                 VALUES ($1,$2,$3,$4,$5,$6)`,
                 [premEvent.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
             );
         }
         
-        console.log('✅ Default check-in events created');
+        // Also insert into pool2
+        const premEndDate2 = new Date();
+        premEndDate2.setDate(premEndDate2.getDate() + 16);
+        
+        const premEvent2 = await pool2.query(
+            `INSERT INTO daily_checkin_events 
+            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
+            VALUES ('premium', 'Premium Daily Check-In', CURRENT_DATE, '00:00:00', $1, '14:30:00', 14) 
+            RETURNING id`,
+            [premEndDate2.toISOString().split('T')[0]]
+        );
+        
+        for (const r of premRewards) {
+            await pool2.query(
+                `INSERT INTO daily_checkin_rewards 
+                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
+                VALUES ($1,$2,$3,$4,$5,$6)`,
+                [premEvent2.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
+            );
+        }
+        
+        console.log('✅ Premium check-in event created');
+        console.log('✅ Default check-in events created on both databases');
+        
     } catch(e) {
         console.log('⚠️ Default check-in events error:', e.message);
     }
 }
 
-// Call after initTables
-initDefaultCheckinEvents();
-
+// ✅ Call after tables are ready
+setTimeout(() => {
+    initDefaultCheckinEvents();
+}, 3000); // Wait 3 seconds for tables to be created
 // ====================================
 // REUSE EXISTING CHECK-IN EVENT
 // ====================================
