@@ -268,6 +268,99 @@
         .progress-subtext { font-size:10px; color:rgba(255,255,255,0.4); margin-top:5px; }
         
         @media (max-width:380px) { .plan-cards { grid-template-columns:1fr; } .tier-tab { font-size:8px; padding:10px 2px; } }
+       /* ========== CONFIRM MODAL (ပြင်ဆင်ထား) ========== */
+#confirmModal {
+    z-index: 2000 !important;
+}
+#confirmModal .modal-box {
+    background: linear-gradient(180deg, #1a1f4b 0%, #0d1130 100%) !important;
+    border: 2px solid #f39c12 !important;
+    border-radius: 4px !important;
+    padding: 25px 20px !important;
+    width: 90% !important;
+    max-width: 380px !important;
+    text-align: center !important;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(243,156,18,0.3) !important;
+    animation: confirmSlideIn 0.3s ease !important;
+}
+@keyframes confirmSlideIn {
+    from { opacity: 0; transform: scale(0.9) translateY(-20px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+#confirmModal .confirm-icon {
+    font-size: 50px;
+    margin-bottom: 10px;
+    animation: confirmBounce 0.6s ease infinite;
+}
+@keyframes confirmBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+#confirmModal h3 {
+    color: #f39c12 !important;
+    margin-bottom: 12px !important;
+    font-size: 18px !important;
+    font-weight: bold !important;
+}
+
+#confirmModal .confirm-detail {
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    padding: 12px 15px;
+    margin: 10px 0 15px;
+    font-size: 13px;
+    color: #fff;
+    line-height: 1.8;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+#confirmModal .confirm-detail b {
+    color: #f39c12;
+}
+
+#confirmModal .confirm-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+#confirmModal .btn-confirm {
+    padding: 12px 25px !important;
+    border: none !important;
+    border-radius: 4px !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    font-size: 13px !important;
+    transition: all 0.3s ease !important;
+}
+
+#confirmModal .btn-confirm.btn-yes {
+    background: linear-gradient(135deg, #2ecc71, #27ae60) !important;
+    color: #000 !important;
+    box-shadow: 0 3px 10px rgba(46,204,113,0.3) !important;
+    flex: 2;
+}
+#confirmModal .btn-confirm.btn-yes:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(46,204,113,0.5) !important;
+}
+
+#confirmModal .btn-confirm.btn-no {
+    background: rgba(255,255,255,0.1) !important;
+    color: #fff !important;
+    flex: 1;
+}
+#confirmModal .btn-confirm.btn-no:hover {
+    background: rgba(231,76,60,0.3) !important;
+}
+
+/* Processing Modal z-index higher */
+#processingModal {
+    z-index: 3000 !important;
+}
     </style>
 </head>
 <body id="mainBody">
@@ -593,32 +686,116 @@ function renderFeatures(type){
     document.getElementById('featuresContent').innerHTML=h;
 }
 
+// ====================================
+// BUY PREMIUM (Fixed - No dismiss during processing)
+// ====================================
 async function handleBuyPremium(){
     if(userPremiumTier>=selectedTier){showToast('ဤ Premium ကို ဝယ်ယူပြီးပါပြီ။','info');return;}
     if(userBalance<selectedCost){showToast('ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။','error');return;}
-    const cm=selectedTier+' Month(s) - '+selectedName+'<br>Cost: <b>'+selectedCost.toLocaleString()+' Ks</b>';
-    document.getElementById('confirmTitle').textContent='👑 Buy Premium '+selectedName;
-    document.getElementById('confirmMsg').innerHTML=cm;
-    document.getElementById('confirmYesBtn').onclick=async()=>{
-        closeModal('confirmModal');await showProcessing();
-        try{
-            const r=await(await fetch('/api/buy_premium',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:getToken(),months:selectedTier,cost:selectedCost,tier:selectedTier})})).json();
-            if(r.success){showToast('Premium '+selectedName+' Activated! 👑','success');setTimeout(()=>{window.location.href='/game.html';},1500);}else{showToast(r.message||'Purchase failed','error');}
-        }catch(e){showToast('Network error','error');}
+    
+    // Build confirm content
+    const tierNames = {1:'🥉 Bronze', 2:'🥈 Silver', 3:'🥇 Gold'};
+    const monthsText = selectedTier + ' လ';
+    const tierName = tierNames[selectedTier] || 'Premium';
+    
+    document.getElementById('confirmTitle').innerHTML = '👑 <b>Premium ' + tierName + '</b>';
+    document.getElementById('confirmMsg').innerHTML = 
+        '<div class="confirm-detail">' +
+        '<div style="font-size:15px;margin-bottom:8px">📅 <b>' + monthsText + '</b> ဝယ်ယူမည်</div>' +
+        '<div style="font-size:18px;color:#f39c12;font-weight:bold">💰 ' + selectedCost.toLocaleString() + ' ကျပ်</div>' +
+        (userPremiumTier>0 && selectedTier>userPremiumTier ? '<div style="color:#2ecc71;font-size:10px;margin-top:4px">✅ ၅၀% လျှော့ဈေးဖြင့်</div>' : '') +
+        '</div>' +
+        '<p style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:5px">⏱️ ဝယ်ယူပြီးပါက ပြန်မပျောက်ပါ</p>';
+    
+    document.getElementById('confirmYesBtn').onclick = async function(){
+        // ✅ Close confirm modal first
+        closeModal('confirmModal');
+        
+        // ✅ Start processing (no way to dismiss)
+        await processPremiumPurchase();
     };
+    
     openModal('confirmModal');
 }
 
-async function showProcessing(){
-    const m=document.getElementById('processingModal'),t=document.getElementById('processingTitle'),b=document.getElementById('progressBarFill'),tx=document.getElementById('progressText');
-    t.textContent='Activating Premium '+selectedName+'...';b.style.width='0%';tx.textContent='0%';m.classList.add('active');
-    for(let i=0;i<=100;i++){await new Promise(r=>setTimeout(r,20+Math.random()*15));b.style.width=i+'%';tx.textContent=i+'%';}
-    await new Promise(r=>setTimeout(r,500));m.classList.remove('active');
+async function processPremiumPurchase(){
+    const processingModal = document.getElementById('processingModal');
+    const processingTitle = document.getElementById('processingTitle');
+    const progressBar = document.getElementById('progressBarFill');
+    const progressText = document.getElementById('progressText');
+    
+    // ✅ Show processing modal (no close button, no click to dismiss)
+    processingTitle.textContent = 'Activating Premium...';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+    processingModal.classList.add('active');
+    
+    // ✅ Disable clicking outside to close
+    processingModal.style.pointerEvents = 'auto';
+    
+    // Animate progress
+    for(let i = 0; i <= 100; i++){
+        await new Promise(r => setTimeout(r, 20 + Math.random() * 15));
+        progressBar.style.width = i + '%';
+        progressText.textContent = i + '%';
+    }
+    
+    await new Promise(r => setTimeout(r, 500));
+    
+    // ✅ Call API
+    try {
+        const r = await (await fetch('/api/buy_premium', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: getToken(),
+                months: selectedTier,
+                cost: selectedCost,
+                tier: selectedTier
+            })
+        })).json();
+        
+        if (r.success) {
+            processingTitle.textContent = '✅ Success!';
+            progressText.textContent = 'Premium Activated!';
+            progressBar.style.background = 'linear-gradient(90deg,#2ecc71,#27ae60)';
+            
+            await new Promise(r => setTimeout(r, 1000));
+            processingModal.classList.remove('active');
+            
+            showToast('Premium Activated! 👑', 'success');
+            setTimeout(() => { window.location.href = '/game.html'; }, 1500);
+        } else {
+            processingTitle.textContent = '❌ Failed';
+            progressText.textContent = r.message || 'Purchase failed';
+            progressBar.style.background = 'linear-gradient(90deg,#e74c3c,#c0392b)';
+            
+            await new Promise(r => setTimeout(r, 2000));
+            processingModal.classList.remove('active');
+            showToast(r.message || 'Purchase failed', 'error');
+        }
+    } catch (e) {
+        processingTitle.textContent = '❌ Error';
+        progressText.textContent = 'Network error';
+        progressBar.style.background = 'linear-gradient(90deg,#e74c3c,#c0392b)';
+        
+        await new Promise(r => setTimeout(r, 2000));
+        processingModal.classList.remove('active');
+        showToast('Network error', 'error');
+    }
 }
 
-document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',(e)=>{if(e.target===o)o.classList.remove('active');});});
-
-// ====================================
+// ✅ Remove old showProcessing function if exists
+// (delete the old showProcessing function)
+    // ✅ Modal close on outside click (EXCEPT processing modal)
+document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', function(e) {
+        // ✅ Don't close processing modal
+        if (o.id === 'processingModal') return;
+        if (e.target === o) o.classList.remove('active');
+    });
+});
+    // ====================================
 // INIT
 // ====================================
 async function init(){
