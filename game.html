@@ -842,7 +842,24 @@ const State = {
         }catch(e){}
     }
 };
-
+// ✅ ဒီ function ကို ထည့်ပါ
+checkPremiumExpiry(){
+    if(this.isPremium && this.premiumExpiry){
+        const now = new Date();
+        const expiry = new Date(this.premiumExpiry);
+        if(expiry <= now){
+            console.log('[STATE] Premium expired!');
+            this.isPremium = false;
+            this.premiumTier = 0;
+            this.premiumExpiry = null;
+            this.maxDailyDraws = 1;
+            this.weeklyBonusDraws = 0;
+            this.save();
+            return true;
+        }
+    }
+    return false;
+}
 // ====================================
 // API
 // ====================================
@@ -1234,7 +1251,6 @@ async function init(){
         if (d.pages) {
             const gp = d.pages.find(p => p.id === 'game');
             if (gp && gp.status === 'off') {
-                // Check timer from storage
                 let timer = null;
                 try {
                     const saved = localStorage.getItem('pageTimers');
@@ -1249,7 +1265,6 @@ async function init(){
                     }
                 } catch(e) {}
                 
-                // If timer active, show countdown
                 if (timer && timer > Date.now()) {
                     document.getElementById('mainContainer').style.display = 'none';
                     document.getElementById('maintenanceMessage').style.display = 'block';
@@ -1275,7 +1290,6 @@ async function init(){
                     return;
                 }
                 
-                // No timer = fully off
                 document.getElementById('mainContainer').style.display = 'none';
                 document.getElementById('maintenanceMessage').style.display = 'block';
                 return;
@@ -1290,65 +1304,66 @@ async function init(){
     State.load();
     await API.fetchRates();
     const d = await API.syncAll();
-    // init() ထဲက API sync အပိုင်း
-if(d){
-    State.mmkBalance = d.mmkBalance;
-    State.usdBalance = d.usdBalance;
-    State.isPremium = d.isPremium;
-    State.premiumTier = d.premiumTier || 1;
-    State.premiumExpiry = d.premiumExpiry; // ✅ ဒီစာကြောင်း ထည့်ပါ
-    State.maxDailyDraws = d.maxDailyDraws;
-    State.dailyDraws = d.dailyDrawsRemaining;
     
-    // ✅ Premium expiry check
-    State.checkPremiumExpiry();
-    
-    if(State.isPremium) {
-        document.getElementById('mainBody').classList.add('premium-active');
+    if(d){
+        State.mmkBalance = d.mmkBalance;
+        State.usdBalance = d.usdBalance;
+        State.isPremium = d.isPremium;
+        State.premiumTier = d.premiumTier || 1;
+        State.premiumExpiry = d.premiumExpiry;
+        State.maxDailyDraws = d.maxDailyDraws;
+        State.dailyDraws = d.dailyDrawsRemaining;
+        
+        const today = new Date().toDateString();
+        if(localStorage.getItem('spinLastResetDate') !== today){
+            State.dailyDraws = d.maxDailyDraws || 1;
+            localStorage.setItem('spinLastResetDate', today);
+        }
+        if(State.isPremium) {
+            document.getElementById('mainBody').classList.add('premium-active');
+        }
+        State.save();
     }
-    State.save();
-}
+    
     UI.updateBalances();
     UI.applyPremiumTheme();
     UI.updateDraws();
-    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
+    WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
     
     // Daily reset timer
     setInterval(() => UI.updateDailyTimer(), 1000);
     UI.updateDailyTimer();
     
-    // Auto refresh ထဲက API sync အပိုင်း
-setInterval(async () => {
-    await API.fetchRates();
-    const data = await API.syncAll();
-    if(data){
-        State.mmkBalance = data.mmkBalance;
-        State.usdBalance = data.usdBalance;
-        const wasPremium = State.isPremium;
-        State.isPremium = data.isPremium;
-        State.premiumTier = data.premiumTier || 1;
-        State.premiumExpiry = data.premiumExpiry; // ✅ ဒီစာကြောင်း ထည့်ပါ
-        State.maxDailyDraws = data.maxDailyDraws;
-        State.dailyDraws = data.dailyDrawsRemaining;
-        
-        // ✅ Premium expiry check
-        if(State.checkPremiumExpiry()){
-            UI.showToast('⏰ Premium သက်တမ်းကုန်သွားပါပြီ', 'info');
+    // Auto refresh every 30 seconds
+    setInterval(async () => {
+        await API.fetchRates();
+        const data = await API.syncAll();
+        if(data){
+            State.mmkBalance = data.mmkBalance;
+            State.usdBalance = data.usdBalance;
+            const wasPremium = State.isPremium;
+            State.isPremium = data.isPremium;
+            State.premiumTier = data.premiumTier || 1;
+            State.premiumExpiry = data.premiumExpiry;
+            State.maxDailyDraws = data.maxDailyDraws;
+            State.dailyDraws = data.dailyDrawsRemaining;
+            
+            if(State.isPremium && !wasPremium) {
+                document.getElementById('mainBody').classList.add('premium-active');
+            }
+            if(!State.isPremium && wasPremium) {
+                document.getElementById('mainBody').classList.remove('premium-active');
+            }
+            
+            UI.updateBalances();
+            UI.applyPremiumTheme();
+            UI.updateDraws();
+            State.save();
         }
-        
-        if(State.isPremium && !wasPremium) {
-            document.getElementById('mainBody').classList.add('premium-active');
-        }
-        if(!State.isPremium && wasPremium) {
-            document.getElementById('mainBody').classList.remove('premium-active');
-        }
-        
-        UI.updateBalances();
-        UI.applyPremiumTheme();
-        UI.updateDraws();
-        State.save();
-    }
-}, 30000);
+    }, 30000);
+}
+
+// ✅ Start the app
 init();
 </script>
 </body>
