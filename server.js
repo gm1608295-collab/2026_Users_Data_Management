@@ -2069,6 +2069,32 @@ app.post('/api/redeem_promo', async (req, res) => {
 });
 
 console.log('✅ Promo Code System Ready');
+// ==================== ADMIN: USERS WITH LOGIN INFO ====================
+app.get('/api/admin/users_with_logins', async (req, res) => {
+    try {
+        const p = await getPool();
+        
+        const r = await p.query(`
+            SELECT 
+                u.id, u.username, u.email, u.phone, u.login_type, 
+                u.balance, u.usd_balance, u.premium_expiry, u.premium_tier,
+                u.last_login, u.created_at as registered_at,
+                (SELECT COUNT(*) FROM device_sessions ds WHERE ds.user_id = u.id AND ds.is_active = true AND ds.last_activity > NOW() - INTERVAL '7 days') as active_devices,
+                (SELECT login_at FROM login_history lh WHERE lh.user_id = u.id ORDER BY lh.login_at DESC LIMIT 1) as last_login_time,
+                (SELECT device_info FROM login_history lh WHERE lh.user_id = u.id ORDER BY lh.login_at DESC LIMIT 1) as last_device,
+                (SELECT ip_address FROM login_history lh WHERE lh.user_id = u.id ORDER BY lh.login_at DESC LIMIT 1) as last_ip,
+                (SELECT COUNT(*) FROM login_history lh WHERE lh.user_id = u.id) as total_logins
+            FROM auth_users u
+            ORDER BY u.last_login DESC NULLS LAST
+            LIMIT 100
+        `);
+        
+        res.json({ success: true, users: r.rows });
+    } catch(e) {
+        console.error('[USERS WITH LOGINS ERROR]', e.message);
+        res.json({ success: false, users: [] });
+    }
+});
 // ╔══════════════════════════════════════════════════════════════╗
 // ║              API KEY & RESELLER SYSTEM                      ║
 // ╚══════════════════════════════════════════════════════════════╝
