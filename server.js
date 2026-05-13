@@ -2082,7 +2082,7 @@ app.get('/api/admin/users_with_logins', async (req, res) => {
                 u.last_login, u.created_at as registered_at,
                 (SELECT COUNT(*) FROM device_sessions ds WHERE ds.user_id = u.id AND ds.is_active = true AND ds.last_activity > NOW() - INTERVAL '7 days') as active_devices,
                 (SELECT login_at FROM login_history lh WHERE lh.user_id = u.id ORDER BY lh.login_at DESC LIMIT 1) as last_login_time,
-                (SELECT device_info FROM login_history lh WHERE lh.user_id = u.id ORDER BY lh.login_at DESC LIMIT 1) as last_device,
+                (SELECT CONCAT(COALESCE(device_brand,''), ' ', COALESCE(device_model,''), ' • ', COALESCE(browser,'')) FROM login_history lh WHERE lh.user_id = u.id AND device_brand IS NOT NULL ORDER BY lh.login_at DESC LIMIT 1) as last_device,
                 (SELECT ip_address FROM login_history lh WHERE lh.user_id = u.id ORDER BY lh.login_at DESC LIMIT 1) as last_ip,
                 (SELECT COUNT(*) FROM login_history lh WHERE lh.user_id = u.id) as total_logins
             FROM auth_users u
