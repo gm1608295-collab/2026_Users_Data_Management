@@ -2499,10 +2499,24 @@ app.post('/api/daily_checkin/claim', async (req, res) => {
 
 // Initialize default check-in events if none exist
 async function initDefaultCheckinEvents() {
-    try {
-        const existing = await pool1.query('SELECT COUNT(*) FROM daily_checkin_events');
-        if (parseInt(existing.rows[0].count) > 0) return;
-        
+    // ✅ Table မရှိသေးရင် စောင့်
+    let retries = 5;
+    while (retries > 0) {
+        try {
+            const existing = await pool1.query('SELECT COUNT(*) FROM daily_checkin_events');
+            if (parseInt(existing.rows[0].count) > 0) {
+                console.log('✅ Check-in events already exist');
+                return;
+            }
+            break; // Table exists, proceed
+        } catch(e) {
+            retries--;
+            console.log(`⏳ Waiting for tables... (${retries} retries left)`);
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds
+        }
+    }
+    
+}
         // Normal event
         const normalEvent = await pool1.query(
             `INSERT INTO daily_checkin_events (event_type, event_name, start_date, end_date, total_days) 
