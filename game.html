@@ -323,17 +323,107 @@ var API = {
 };
 
 // ====================================
-// WHEEL ENGINE
+// WHEEL ENGINE (FPS Optimized for Phone)
 // ====================================
 var WheelEngine = {
-    canvas:null, ctx:null,
-    init:function(){this.canvas=document.getElementById('wheelCanvas');this.ctx=this.canvas.getContext('2d');},
+    canvas:null, ctx:null, animFrame:null, 
+    glowAngle:0, sparkles:[], sparkleCount:0,
+    
+    init:function(){
+        this.canvas=document.getElementById('wheelCanvas');
+        this.ctx=this.canvas.getContext('2d',{alpha:false});
+        this.sparkles=[];
+        for(var i=0;i<8;i++){
+            this.sparkles.push({
+                a:Math.random()*Math.PI*2,
+                s:Math.random()*0.03+0.02,
+                alpha:Math.random()
+            });
+        }
+    },
+    
     getSegments:function(){return State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS;},
     getArcSize:function(){return(2*Math.PI)/this.getSegments().length;},
-    draw:function(angle){if(!this.ctx)this.init();var segs=this.getSegments();var cx=300;var cy=300;var r=270;var arc=this.getArcSize();this.ctx.clearRect(0,0,600,600);for(var i=0;i<segs.length;i++){var s=segs[i];var sa=i*arc+angle;var ea=sa+arc;this.ctx.beginPath();this.ctx.moveTo(cx,cy);this.ctx.arc(cx,cy,r,sa,ea);this.ctx.closePath();this.ctx.fillStyle=s.color;this.ctx.fill();this.ctx.strokeStyle='rgba(255,255,255,0.2)';this.ctx.lineWidth=1;this.ctx.stroke();this.ctx.save();this.ctx.translate(cx,cy);this.ctx.rotate(sa+arc/2);this.ctx.fillStyle='#fff';this.ctx.font='bold 11px Segoe UI';this.ctx.shadowColor='rgba(0,0,0,0.5)';this.ctx.shadowBlur=3;this.ctx.fillText(s.label,r*0.58,4);this.ctx.restore();}this.ctx.beginPath();this.ctx.arc(cx,cy,r+3,0,2*Math.PI);this.ctx.lineWidth=3;if(State.isPremium){if(State.premiumTier===3)this.ctx.strokeStyle='#FFD700';else if(State.premiumTier===2)this.ctx.strokeStyle='#C0C0C0';else this.ctx.strokeStyle='#CD7F32';}else{this.ctx.strokeStyle='#f39c12';}this.ctx.stroke();this.ctx.beginPath();this.ctx.arc(cx,cy,28,0,2*Math.PI);this.ctx.fillStyle='#1a0a2e';this.ctx.fill();this.ctx.strokeStyle='#ffd700';this.ctx.lineWidth=2;this.ctx.stroke();this.ctx.fillStyle='#fff';this.ctx.font='bold 10px Segoe UI';this.ctx.textAlign='center';this.ctx.textBaseline='middle';this.ctx.fillText('SPIN',cx,cy);},
-    spin:function(wi){var segs=this.getSegments();var arc=(2*Math.PI)/segs.length;var ta=-(wi*arc+arc/2)-Math.PI/2;var n=ta;while(n<0)n+=2*Math.PI;var tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI;var sa=State.wheelAngle;var d=4000+Math.random()*500;var st=Date.now();var self=this;return new Promise(function(r){var a=function(){var e=Math.min((Date.now()-st)/d,1);var c=1-Math.pow(1-e,3);var ca=sa+tr*c;self.draw(ca%(2*Math.PI));State.wheelAngle=ca;if(e<1){requestAnimationFrame(a);}else{r();}};requestAnimationFrame(a);});}
+    
+    draw:function(angle){
+        if(!this.ctx)this.init();
+        var segs=this.getSegments();var cx=300;var cy=300;var r=270;var arc=this.getArcSize();
+        this.ctx.clearRect(0,0,600,600);
+        
+        this.sparkleCount++;
+        var drawSparkles=(this.sparkleCount%3===0);
+        
+        if(State.isPremium){
+            this.glowAngle+=0.02;
+            if(State.premiumTier===3){
+                this.ctx.shadowColor='rgba(255,215,0,0.3)';
+                this.ctx.shadowBlur=8;
+            }
+        }
+        
+        for(var i=0;i<segs.length;i++){
+            var s=segs[i];
+            var sa=i*arc+angle;var ea=sa+arc;
+            this.ctx.beginPath();this.ctx.moveTo(cx,cy);this.ctx.arc(cx,cy,r,sa,ea);this.ctx.closePath();
+            this.ctx.fillStyle=s.color;this.ctx.fill();
+            this.ctx.strokeStyle='rgba(255,255,255,0.2)';this.ctx.lineWidth=1;this.ctx.stroke();
+            this.ctx.save();this.ctx.translate(cx,cy);this.ctx.rotate(sa+arc/2);
+            this.ctx.fillStyle='#fff';this.ctx.font='bold 11px Segoe UI';this.ctx.shadowColor='rgba(0,0,0,0.5)';this.ctx.shadowBlur=3;
+            this.ctx.fillText(s.label,r*0.58,4);this.ctx.restore();
+        }
+        
+        this.ctx.shadowColor='transparent';this.ctx.shadowBlur=0;
+        
+        this.ctx.beginPath();this.ctx.arc(cx,cy,r+3,0,2*Math.PI);
+        this.ctx.lineWidth=3;
+        if(State.isPremium){
+            if(State.premiumTier===3)this.ctx.strokeStyle='#FFD700';
+            else if(State.premiumTier===2)this.ctx.strokeStyle='#C0C0C0';
+            else this.ctx.strokeStyle='#CD7F32';
+        }else{this.ctx.strokeStyle='#f39c12';}
+        this.ctx.stroke();
+        
+        this.ctx.beginPath();this.ctx.arc(cx,cy,28,0,2*Math.PI);
+        this.ctx.fillStyle='#1a0a2e';this.ctx.fill();
+        this.ctx.strokeStyle='#ffd700';this.ctx.lineWidth=2;this.ctx.stroke();
+        this.ctx.fillStyle='#fff';this.ctx.font='bold 10px Segoe UI';
+        this.ctx.textAlign='center';this.ctx.textBaseline='middle';
+        this.ctx.fillText('SPIN',cx,cy);
+        
+        if(State.isPremium&&State.premiumTier>=2&&drawSparkles){
+            for(var j=0;j<this.sparkles.length;j++){
+                var sp=this.sparkles[j];
+                sp.a+=sp.s;sp.alpha+=0.05;
+                if(sp.alpha>1)sp.alpha=0;
+                var sx=cx+Math.cos(sp.a)*r*1.05;
+                var sy=cy+Math.sin(sp.a)*r*1.05;
+                this.ctx.beginPath();
+                this.ctx.arc(sx,sy,1.5,0,Math.PI*2);
+                this.ctx.fillStyle=State.premiumTier===3?'rgba(255,215,0,'+sp.alpha+')':'rgba(255,255,255,'+(sp.alpha*0.5)+')';
+                this.ctx.fill();
+            }
+        }
+    },
+    
+    spin:function(wi){
+        var segs=this.getSegments();var arc=(2*Math.PI)/segs.length;
+        var ta=-(wi*arc+arc/2)-Math.PI/2;var n=ta;while(n<0)n+=2*Math.PI;
+        var tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI;var sa=State.wheelAngle;var d=4000+Math.random()*500;var st=Date.now();
+        var self=this;
+        if(this.animFrame){cancelAnimationFrame(this.animFrame);}
+        return new Promise(function(r){
+            var a=function(){
+                var e=Math.min((Date.now()-st)/d,1);
+                var c=1-Math.pow(1-e,3);
+                var ca=sa+tr*c;
+                self.draw(ca%(2*Math.PI));
+                State.wheelAngle=ca;
+                if(e<1){self.animFrame=requestAnimationFrame(a);}else{r();}
+            };
+            self.animFrame=requestAnimationFrame(a);
+        });
+    }
 };
-
 // ====================================
 // UI
 // ====================================
