@@ -263,115 +263,7 @@
     <div class="modal" id="resellerModal"><div class="modal-box"><span class="modal-close" onclick="closeResellerModal()">&times;</span><h3>🔑 Reseller Details</h3><input type="hidden" id="resellerId"><div class="pass-display-box"><div class="pass-label">API Key</div><div class="pass-value" id="resellerApiKey" style="font-size:11px;word-break:break-all">---</div><button class="btn btn-b" onclick="copyApiKey()" style="margin-top:6px;width:100%;font-size:10px"><i class="fas fa-copy"></i> Copy API Key</button></div><div id="resellerInfo" style="font-size:10px;line-height:1.8;color:rgba(255,255,255,0.8);margin-bottom:12px"></div><div class="video-card"><h4 style="color:var(--w);font-size:11px;margin-bottom:6px">➕ Add Balance</h4><div style="display:flex;gap:6px"><input type="number" id="resellerAddAmount" placeholder="Amount" style="flex:1;padding:8px;font-size:11px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:5px;color:#fff"><button class="btn btn-g" onclick="addResellerBalance()" style="flex:1"><i class="fas fa-plus"></i> Add</button></div></div><div class="video-card"><h4 style="color:var(--w);font-size:11px;margin-bottom:6px">⚙️ Edit Settings</h4><div class="form-group"><label>Markup %</label><input type="number" id="resellerEditMarkup" value="10"></div><div class="form-group"><label>📅 Expiry Date</label><input type="date" id="resellerEditExpiry"></div><div class="form-group"><label>🔢 Max/Day</label><input type="number" id="resellerEditMaxDaily" value="50" min="1"></div><div class="form-group"><label>Status</label><select id="resellerEditStatus"><option value="active">Active</option><option value="suspended">Suspended</option></select></div><button class="btn btn-w" onclick="editReseller()" style="width:100%"><i class="fas fa-save"></i> Save Changes</button></div><div class="btn-row" style="margin-top:8px"><button class="btn btn-o" onclick="resetResellerKey()" style="flex:1"><i class="fas fa-redo"></i> Reset Key</button><button class="btn btn-r" onclick="deleteReseller()" style="flex:1"><i class="fas fa-trash"></i> Delete</button></div></div></div>
 
 <script>
-// ====================================
-// ADMIN PANEL - COMPLETE JAVASCRIPT
-// ====================================
-const ADMIN="MK2008";
-let currentOrderType='topup',currentOrderFilter='all',pendingRestoreData=null;
-const pageIcons={'topup':'💰','buycode':'🛒','dashboard':'🏠','data':'📊','history':'📋','password':'🔑','recovery':'🔧','contact':'📞','aboutredeem':'ℹ️','game':'🎰','exchange':'💱'};
-let autoRefreshInterval=null,pageTimers={};
-
-// ==================== UTILITIES ====================
-function n(m,t="success"){const e=document.getElementById("notif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-function showLoading(t){document.getElementById('loadingText').textContent=t||'Loading...';document.getElementById('loadingOverlay').classList.add('active')}
-function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active')}
-function zoomImage(src){const m=document.createElement('div');m.className='zoom-overlay';m.onclick=()=>m.remove();m.innerHTML=`<img src="${src}">`;document.body.appendChild(m)}
-
-// ==================== ORDER TAB SYSTEM ====================
-function switchOrderTab(type){
-    currentOrderType=type;
-    document.querySelectorAll('.order-tab').forEach(t=>t.classList.remove('active'));
-    event.target.classList.add('active');
-    loadFilteredOrders();
-}
-function switchOrderSubTab(filter){
-    currentOrderFilter=filter;
-    document.querySelectorAll('.order-sub-tab').forEach(t=>t.classList.remove('active'));
-    event.target.classList.add('active');
-    loadFilteredOrders();
-}
-async function loadFilteredOrders(){
-    try{
-        const r=await fetch(`/api/admin/orders?filter=${currentOrderFilter}`);
-        const d=await r.json();
-        const c=document.getElementById('adminOrders');
-        document.getElementById("totalOrders").textContent=d.total||0;
-        document.getElementById("todayOrders").textContent=d.today||0;
-        
-        if(!d.orders||d.orders.length===0){c.innerHTML='<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:15px;text-align:center">No orders</p>';return;}
-        
-        // ✅ Filter by type
-        let filtered=[];
-        if(currentOrderType==='topup'){
-            filtered=d.orders.filter(o=>o.payment_method&&!o.payment_method.includes('Premium')&&!o.payment_method.includes('Admin')&&!o.payment_method.includes('Deduction')&&o.amount>0);
-        }else if(currentOrderType==='premium'){
-            filtered=d.orders.filter(o=>o.payment_method&&o.payment_method.includes('Premium'));
-        }else if(currentOrderType==='deduction'){
-            filtered=d.orders.filter(o=>(o.amount<0||(o.payment_method&&(o.payment_method.includes('Admin')||o.payment_method.includes('Deduction')||o.payment_method.includes('Buy')))));
-        }
-        
-        if(filtered.length===0){c.innerHTML='<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:15px;text-align:center">No matching orders</p>';return;}
-        
-        let cd='',h='';
-        filtered.forEach(o=>{
-            const ds=new Date(o.created_at).toLocaleDateString('my-MM',{year:'numeric',month:'short',day:'numeric'});
-            if(ds!==cd){cd=ds;h+=`<div class="order-date-header">📅 ${ds}</div>`}
-            const typeClass=currentOrderType==='premium'?' type-premium':currentOrderType==='deduction'?' type-deduction':'';
-            h+=`<div class="order-row${typeClass}"><div><b>${o.username||'N/A'}</b><br>💰 ${currentOrderType==='deduction'?Math.abs(o.amount):o.amount} Ks | 💳 ${o.payment_method}<br><small>🆔 ${o.submitted_user_id||o.user_id} | ${new Date(o.created_at).toLocaleTimeString()}</small></div><div style="display:flex;gap:3px;align-items:center"><span style="font-size:8px;color:${o.status==='approved'?'var(--g)':o.status==='rejected'?'var(--r)':'var(--w)'}">${o.status}</span>${o.screenshot?`<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">`:'📷'}${o.status==='pending'?`<input type="number" id="approveAmt${o.id}" value="${Math.abs(o.amount)||10000}" style="width:55px;padding:3px;font-size:9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:3px" placeholder="Ks"><button class="btn btn-g" style="font-size:9px;padding:3px 6px" onclick="approveOrderWithAmount(${o.id},${o.user_id})">✓</button><button class="btn btn-r" style="font-size:9px;padding:3px 6px" onclick="rejectOrderWithReason(${o.id})">✕</button>`:''}</div></div>`;
-        });
-        c.innerHTML=h;
-    }catch(e){}
-}
-
-// ==================== ADMIN UNLOCK ====================
-async function unlockAdmin(){
-    console.log('Unlock button clicked'); // ✅ ဒါထည့်
-    if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");
-    document.getElementById("adminBox").style.display="block";
-    showLoading('Loading...');
-    try{
-        await Promise.all([
-            loadAdminData(),
-            loadFilteredOrders(),
-            loadPageToggles(),
-            loadNoticeList(),
-            loadBuyCodeNoticeList(),
-            loadTopupNoticeList(),
-            loadRedeemCodes(),
-            loadResellers(),
-            loadResellerTransactions(),
-            loadPromoCodes(),
-            loadExchangeRate()
-        ]);
-        updateBackupInfo();
-        hideLoading();
-        n('✅ Loaded');
-        startAutoRefresh();
-    }catch(e){
-        console.error('Unlock error:', e); // ✅ Error log
-        hideLoading();
-        n('Error: ' + e.message, 'error');
-    }
-    }
-// ==================== BACKUP & RESTORE ====================
-async function backupDatabase(){showLoading('Backing up...');try{const r=await fetch('/api/admin/backup');const d=await r.json();if(d.success&&d.data){const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);n('✅ Downloaded!');localStorage.setItem('lastBackup',new Date().toLocaleString());updateBackupInfo()}else n('Failed','error')}catch(e){n('Error','error')}hideLoading()}
-function restoreDatabase(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{pendingRestoreData=JSON.parse(e.target.result);if(!pendingRestoreData.tables){n('Invalid','error');return}document.getElementById('restoreConfirmModal').classList.add('active')}catch(e){n('Invalid JSON','error')}};reader.readAsText(file);input.value=''}
-async function confirmRestore(){if(!pendingRestoreData)return;showLoading('Restoring...');try{const r=await fetch('/api/admin/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:pendingRestoreData})});const d=await r.json();d.success?(n('✅ Restored!'),closeRestoreConfirm(),unlockAdmin(),updateBackupInfo()):n(d.message||'Error','error')}catch(e){n('Error','error')}hideLoading()}
-function closeRestoreConfirm(){document.getElementById("restoreConfirmModal").classList.remove("active");pendingRestoreData=null}
-function updateBackupInfo(){const lb=localStorage.getItem('lastBackup');document.getElementById('backupInfo').innerHTML=lb?`📅 Last Backup: ${lb}`:`📅 Last Backup: No backup yet`}
-
-// ==================== PAGE CONTROL ====================
-async function loadPageToggles(){try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){let h='';d.pages.forEach(p=>{const icon=pageIcons[p.id]||'📄';const timer=pageTimers[p.id];const hasTimer=timer&&timer>Date.now();const status=p.status==='on'?'on':(hasTimer?'timer':'off');const st=p.status==='on'?'ACTIVE':(hasTimer?'TIMER':'OFF');const checked=p.status==='on'?'checked':'';const td=hasTimer?`<span class="timer-display">⏱️ ${formatTimeRemaining(timer-Date.now())}</span>`:'<span style="font-size:9px;color:rgba(255,255,255,0.3)">--:--:--</span>';h+=`<tr><td>${icon}</td><td>${p.name}</td><td><span class="status-badge ${status}">${st}</span></td><td><label class="toggle-switch"><input type="checkbox" ${checked} onchange="handlePageToggle('${p.id}',this.checked)"><span class="toggle-slider"></span></label></td><td>${td}</td><td>${p.status==='off'&&!hasTimer?`<button class="timer-btn" style="background:var(--w);color:#000" onclick="openTimerModal('${p.id}')">⏱️ Timer</button>`:''}${hasTimer?`<button class="timer-btn" style="background:var(--r);color:#fff" onclick="cancelTimer('${p.id}')">✕ Cancel</button>`:''}${p.status==='on'?`<button class="timer-btn" style="background:var(--r);color:#fff" onclick="turnOffPage('${p.id}')">OFF</button>`:''}</td></tr>`});document.getElementById('pageToggleList').innerHTML=h}}catch(e){}}
-function formatTimeRemaining(ms){if(ms<=0)return'00:00:00';const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;return`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`}
-function handlePageToggle(id,on){if(!on){openTimerModal(id);return}cancelTimer(id);togglePage(id,true)}
-function openTimerModal(id){document.getElementById('timerPageId').value=id;document.getElementById('timerHours').value=0;document.getElementById('timerMinutes').value=5;document.getElementById('timerSeconds').value=0;updateTimerPreview();document.getElementById('timerModal').classList.add('active')}
-function updateTimerPreview(){const h=parseInt(document.getElementById('timerHours').value)||0,m=parseInt(document.getElementById('timerMinutes').value)||0,s=parseInt(document.getElementById('timerSeconds').value)||0;document.getElementById('timerPreview').textContent=`⏱️ ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`}
-function closeTimerModal(){document.getElementById('timerModal').classList.remove('active')}
-async function confirmTimer(){const id=document.getElementById('timerPageId').value;const h=parseInt(document.getElementById('timerHours').value)||0;const m=parseInt(document.getElementById('timerMinutes').value)||0;const s=parseInt(document.getElementById('timerSeconds').value)||0;const totalMs=(h*3600+m*60+s)*1000;if(totalMs<=0){n('Please set a time greater than 0','error');return}const turnOnTime=Date.now()+totalMs;await togglePage(id,false);pageTimers[id]=turnOnTime;localStorage.setItem('pageTimers',JSON.stringify(pageTimers));const cd=new Date();cd.setTime(cd.getTime()+(7*24*60*60*1000));document.cookie='pageTimers='+encodeURIComponent(JSON.stringify(pageTimers))+'; expires='+cd.toUTCString()+'; path=/';sessionStorage.setItem('pageTimers',JSON.stringify(pageTimers));setTimeout(async()=>{await togglePage(id,true);delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles()},totalMs);closeTimerModal();loadPageToggles();n(`✅ Timer set!`)}
-function cancelTimer(id){delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers));const d=new Date();d.setTime(d.getTime()+(7*24*60*60*1000));document.cookie='pageTimers='+encodeURIComponent(JSON.stringify(pageTimers))+'; expires='+d.toUTCString()+'; path=/';sessionStorage.setItem('pageTimers',JSON.stringify(pageTimers));loadPageToggles();n('✅ Timer cancelled')}
-async function turnOffPage(id){if(!confirm(`Turn OFF "${id}"?`))return;await togglePage(id,false);n('✅ Page OFF')}
-async function togglePage(id,on){try{await fetch('/api/admin/toggle_page',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({page_id:id,status:on?'on':'off'})});loadPageToggles()}catch(e){n('Error','error')}}
-try{pageTimers=JSON.parse(localStorage.getItem('pageTimers')||'{}');Object.keys(pageTimers).forEach(id=>{const tt=pageTimers[id],r=tt-Date.now();if(r>0){setTimeout(async()=>{await togglePage(id,true);delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers))},r)}else{delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers))}})}catch(e){}
+    ==='off'&&!hasTimer?`<button class="timer-btn" style="background:var(--w);color:#000" onclick="openTimerModal('${p.id}')">⏱️ Timer</button>`:''}${hasTimer?`<button class="timer-btn" style="background:var(--r);color:#fff" onclick="cancelTimer('${p..now();if(r>0){setTimeout(async()=>{await togglePage(id,true);delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers))},r)}else{delete pageTimers[id];localStorage.setItem('pageTimers',JSON.stringify(pageTimers))}})}catch(e){}
 
 // ==================== SPIN RATE MANAGEMENT ====================
 const RATE_TYPES={'normal_daily':'🎰 Normal Daily Draw','normal_buy':'💳 Normal Buy Draw','premium_buy':'👑 Premium Buy Draw','premium_tier1':'🥉 Premium Tier 1','premium_tier2':'🥈 Premium Tier 2','premium_tier3':'🥇 Premium Tier 3'};
@@ -394,34 +286,23 @@ async function loadAdminData(){try{const r=await fetch("/api/admin/users_with_lo
             document.getElementById("tiktokList").innerHTML='<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:10px">No users</p>';
             document.getElementById("telegramList").innerHTML='<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:10px">No users</p>';
             return;
-        }
-        const renderList=(list,container,editable)=>{container.innerHTML=list.length===0?'<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:10px">No users</p>':list.map(u=>{const isPremium=u.premium_expiry&&new Date(u.premium_expiry)>new Date();const premiumBadge=isPremium?'<span style="background:rgba(243,156,18,0.2);color:#f39c12;font-size:8px;padding:2px 6px;border-radius:10px;margin-left:4px">👑 Premium</span>':'';const lastLogin=u.last_login_time?new Date(u.last_login_time):null;const timeAgo=lastLogin?getTimeAgo(lastLogin):'Never';const activeDevices=parseInt(u.active_devices)||0;const deviceIcon=activeDevices>0?'🟢':'🔴';const lastDevice=u.last_device||'Unknown';return`<div class="user-row"><div class="user-info"><b>🆔 ${u.id.toString().padStart(6,'0')}</b> | ${u.username||'N/A'}${premiumBadge}<br><small>📧 ${u.email||'N/A'} | 💰 ${u.balance||0} Ks</small><br><small style="color:rgba(255,255,255,0.35)">${deviceIcon} 📱 ${activeDevices} active | 🕐 ${timeAgo} | 📱 ${lastDevice.substring(0,30)}</small></div><div class="user-btns"><div class="btn-row">${editable?`<button class="btn-micro edit" onclick="openEditModal('${u.id}','${(u.username||'').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}','${u.phone||''}')">✏️ Edit</button>`:''}<button class="btn-micro pass" onclick="openDataPassModal('${u.id}','${(u.username||'User').replace(/'/g,"\\'")}')">🔑 Pass</button>${isPremium?`<button class="btn-micro revoke" onclick="revokePremium('${u.id}','${(u.username||'User').replace(/'/g,"\\'")}')">👑 Revoke</button>`:''}</div><div class="btn-row"><button class="btn-micro ban">🚫 Ban</button><button class="btn-micro del" onclick="delUserById('${u.id}')">🗑️ Del</button></div></div></div>`}).join('')};
-        const locals=d.users.filter(u=>u.login_type==='local');const googles=d.users.filter(u=>u.login_type==='google');const tiktoks=d.users.filter(u=>u.login_type==='tiktok');const telegrams=d.users.filter(u=>u.login_type==='telegram');
-        renderList(locals,document.getElementById("localList"),true);renderList(googles,document.getElementById("googleList"),false);renderList(tiktoks,document.getElementById("tiktokList"),false);renderList(telegrams,document.getElementById("telegramList"),false)}catch(e){}}
-
-function getTimeAgo(date){const now=new Date();const diff=Math.floor((now-date)/1000);if(diff<60)return'diff+'s ago';if(diff<3600)return Math.floor(diff/60)+'m ago';if(diff<86400)return Math.floor(diff/3600)+'h ago';if(diff<604800)return Math.floor(diff/86400)+'d ago';return date.toLocaleDateString();}
-async function banUserById(id){await fetch("/api/admin/ban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Banned!");loadAdminData()}
-async function unbanUser(id){await fetch("/api/admin/unban",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});n("Unbanned!");loadAdminData()}
-async function delUserById(id){if(!confirm("⚠️ Delete user #"+id+"?\n\nUser will be banned first, then deleted."))return;try{const r=await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});const d=await r.json();if(d.success){n("✅ Deleted!");loadAdminData()}else{n("❌ Error","error")}}catch(e){n("❌ Error","error")}}
+(id){if(!confirm("⚠️ Delete user #"+id+"?\n\nUser will be banned first, then deleted."))return;try{const r=await fetch("/api/admin/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:id})});const d=await r.json();if(d.success){n("✅ Deleted!");loadAdminData()}else{n("❌ Error","error")}}catch(e){n("❌ Error","error")}}
 async function revokePremium(userId,username){if(!confirm('⚠️ Revoke premium access for "'+username+'"?\n\nThis will immediately remove their premium status.'))return;try{const r=await fetch('/api/admin/revoke_premium',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:userId})});const d=await r.json();if(d.success){n('✅ Premium revoked for '+username);loadAdminData()}else{n('❌ '+(d.message||'Error'),'error')}}catch(e){n('❌ Error','error')}}
 function openEditModal(uid,un,em,ph){document.getElementById("editUserId").value=uid;document.getElementById("editName").value=un||'';document.getElementById("editEmail").value=em||'';document.getElementById("editPhone").value=ph||'';document.getElementById("editPass").value='';document.getElementById("editModal").classList.add("active")}
-function closeEditModal(){document.getElementById("editModal").classList.remove("active")}
+funct closeEditModal(){document.getElementById("editModal").classList.remove("active")}
 async function saveEdit(){const id=document.getElementById("editUserId").value,un=document.getElementById("editName").value,em=document.getElementById("editEmail").value,ph=document.getElementById("editPhone").value,pw=document.getElementById("editPass").value;try{await fetch("/api/admin/edit_user",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:parseInt(id),username:un,email:em,phone:ph,password:pw||''})});n("✅ Updated!");closeEditModal();loadAdminData()}catch(e){n("Error","error")}}
 function openDataPassModal(uid,uname){document.getElementById('dataPassUserId').value=uid;document.getElementById('dataPassUserDisplay').textContent=uname+' (ID: '+uid.toString().padStart(6,'0')+')';document.getElementById('newGmailPass').value='';document.getElementById('newMlbbPass').value='';document.getElementById('newTiktokPass').value='';fetch('/api/admin/get_user_data_pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})}).then(r=>r.json()).then(d=>{document.getElementById('currentGmailPass').textContent=d.gmail_pass||'Default: DoubleMK2008';document.getElementById('currentMlbbPass').textContent=d.mlbb_pass||'Default: GlobalMK2008';document.getElementById('currentTiktokPass').textContent=d.tiktok_pass||'Default: DoubleMK2008'}).catch(()=>{document.getElementById('currentGmailPass').textContent='Default: DoubleMK2008';document.getElementById('currentMlbbPass').textContent='Default: GlobalMK2008';document.getElementById('currentTiktokPass').textContent='Default: DoubleMK2008'});document.getElementById('dataPassModal').classList.add('active')}
 function closeDataPassModal(){document.getElementById('dataPassModal').classList.remove('active')}
 async function saveDataPass(){const uid=document.getElementById('dataPassUserId').value;const gpass=document.getElementById('newGmailPass').value.trim();const mpass=document.getElementById('newMlbbPass').value.trim();const tpass=document.getElementById('newTiktokPass').value.trim();if(!gpass&&!mpass&&!tpass)return n('❌ Enter at least one password','error');try{const r=await fetch('/api/admin/update_data_pass',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid,gmail_pass:gpass||null,mlbb_pass:mpass||null,tiktok_pass:tpass||null})});const d=await r.json();if(d.success){n('✅ Updated!');closeDataPassModal()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
 
 // ==================== SEARCH ====================
-async function searchUser(){const q=document.getElementById('userSearch').value;if(q.length<2){document.getElementById('userSearchResult').innerHTML='';return}try{const r=await fetch('/api/admin/search_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();document.getElementById('userSearchResult').innerHTML=d.users.map(u=>`<div class="user-row"><div class="user-info"><b>ID:${u.id.toString().padStart(6,'0')}</b> ${u.username||''}<br><small>📧 ${u.email} | 💰 ${u.balance||0} Ks</small></div><div style="display:flex;gap:3px;align-items:center"><input type="number" id="bal${u.id}" placeholder="Amt" style="width:55px;padding:4px;font-size:9px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:4px"><button class="btn btn-g" style="font-size:9px;padding:5px 8px" onclick="addBalance(${u.id})">+</button><button class="btn btn-r" style="font-size:9px;padding:5px 8px" onclick="subBalance(${u.id})">-</button></div></div>`).join('')}catch(e){}}
-async function addBalance(uid){const a=document.getElementById('bal'+uid).value;if(!a)return;await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:parseFloat(a)})});n('Added!');searchUser();loadAdminData()}
-async function subBalance(uid){const a=document.getElementById('bal'+uid).value;if(!a)return;await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:uid,amount:-parseFloat(a)})});n('Deducted!');searchUser();loadAdminData()}
 
 // ==================== ORDER APPROVE/REJECT ====================
 async function approveOrderWithAmount(id,userId){const amtInput=document.getElementById('approveAmt'+id);const amount=parseInt(amtInput?.value)||0;if(amount<=0){n('❌ Enter amount','error');return}try{await fetch('/api/admin/order_status',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status:'approved'})});await fetch('/api/admin/update_balance',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:userId,amount:parseFloat(amount)})});n('✅ Approved! +'+amount+' Ks');loadFilteredOrders();loadAdminData()}catch(e){n('Error','error')}}
 function rejectOrderWithReason(id){const reason=prompt('ငြင်းပယ်ရသည့်အကြောင်းရင်း:');if(reason===null)return;if(!reason.trim())return n('Reason required!','error');rejectOrder(id,reason.trim())}
 async function rejectOrder(id,reason){try{await fetch('/api/admin/order_status',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({id,status:'rejected',reason})});n('❌ Rejected!');loadFilteredOrders()}catch(e){n('Error','error')}}
 
-// ==================== NOTICES ====================
+/============= NOTICES ====================
 async function loadNoticeList(){try{const r=await fetch("/api/admin/notices");const d=await r.json();const c=document.getElementById("noticeCards");if(d.notices&&d.notices.length>0){c.innerHTML=d.notices.map(n=>`<div class="notice-card"><div class="nc-color" style="background:${n.color||'#fff'}"></div><div class="nc-msg"><span style="color:${n.color||'#fff'}">${n.message}</span></div><div class="nc-date">${new Date(n.created_at).toLocaleDateString()}</div><span class="nc-del" onclick="delNoticeById(${n.id})"><i class="fas fa-times"></i></span></div>`).join('')}else{c.innerHTML='<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No notices</p>'}}catch(e){}}
 async function postNotice(){const m=document.getElementById("adminNoticeMsg").value,co=document.getElementById("noticeColor").value;if(!m)return n("Enter text","error");try{await fetch("/api/admin/notice",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:m,color:co})});n("Posted!");document.getElementById("adminNoticeMsg").value="";loadNoticeList()}catch(e){n("Error","error")}}
 async function delNoticeById(id){await fetch("/api/admin/notice/delete",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id:id})});n("Deleted!");loadNoticeList()}
@@ -453,22 +334,10 @@ function closeResellerModal(){document.getElementById('resellerModal').classList
 function copyApiKey(){const key=document.getElementById('resellerApiKey').textContent;navigator.clipboard.writeText(key).then(()=>n('✅ API Key Copied!'))}
 async function addResellerBalance(){const id=document.getElementById('resellerId').value;const amount=document.getElementById('resellerAddAmount').value;if(!amount||amount<=0)return n('❌ Enter amount','error');try{const r=await fetch('/api/admin/reseller/add_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,amount:parseFloat(amount)})});const d=await r.json();if(d.success){n('✅ Balance added!');closeResellerModal();loadResellers();loadResellerTransactions()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
 async function editReseller(){const id=document.getElementById('resellerId').value;const markup=document.getElementById('resellerEditMarkup').value;const status=document.getElementById('resellerEditStatus').value;const expiry=document.getElementById('resellerEditExpiry').value;const maxDaily=document.getElementById('resellerEditMaxDaily').value;try{const r=await fetch('/api/admin/reseller/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,markup_percent:parseInt(markup),status,expiry_date:expiry||null,max_daily:parseInt(maxDaily)})});const d=await r.json();if(d.success){n('✅ Reseller updated!');closeResellerModal();loadResellers()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
-async function resetResellerKey(){const id=document.getElementById('resellerId').value;if(!confirm('Reset API Key? Old key will stop working.'))return;try{const r=await fetch('/api/admin/reseller/reset_key',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const d=await r.json();if(d.success){document.getElementById('resellerApiKey').textContent=d.api_key;n('✅ API Key reset!');loadResellers()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
-async function deleteReseller(){const id=document.getElementById('resellerId').value;if(!confirm('⚠️ Delete this reseller? This cannot be undone.'))return;try{const r=await fetch('/api/admin/reseller/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const d=await r.json();if(d.success){n('✅ Reseller deleted!');closeResellerModal();loadResellers()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
-async function createReseller(){const name=document.getElementById('newResellerName').value.trim();const currency=document.getElementById('newResellerCurrency').value;const markup=document.getElementById('newResellerMarkup').value;const balance=document.getElementById('newResellerBalance').value;const expiry=document.getElementById('newResellerExpiry').value;const maxDaily=document.getElementById('newResellerMaxDaily').value;if(!name)return n('❌ Enter reseller name','error');try{const r=await fetch('/api/admin/reseller/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,currency,markup_percent:parseInt(markup),initial_balance:parseFloat(balance),expiry_date:expiry||null,max_daily:parseInt(maxDaily)})});const d=await r.json();if(d.success){n('✅ Reseller created! API Key: '+d.api_key);document.getElementById('newResellerName').value='';document.getElementById('newResellerBalance').value='0';document.getElementById('newResellerExpiry').value='';loadResellers();loadResellerTransactions()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
-
-// ==================== EXCHANGE RATE ====================
-async function updateExchangeRate(){const rate=document.getElementById('exchangeRateInput').value;if(!rate||rate<1)return n('❌ Invalid rate','error');try{const r=await fetch('/api/admin/exchange_rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rate:parseInt(rate)})});const d=await r.json();if(d.success){n('✅ Exchange rate updated!')}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
-async function loadExchangeRate(){try{const r=await fetch('/api/exchange_rate');const d=await r.json();if(d.rate){document.getElementById('exchangeRateInput').value=d.rate}}catch(e){}}
-
+async function resetResellerKey(){cons
 // ==================== BOT ====================
 function addBotTemplate(t){
-    const ta=document.getElementById('botCustomMsg');
-    const temps={
-        announcement:'📢 အသိပေးချက်\n\n',
-        promo:'🎉 ပရိုမိုးရှင်း\n\n',
-        update:'🔧 စနစ်မွမ်းမံမှု\n\n• \n• \n\n',
-        warning:'⚠️ သတိပေးချက်\n\n'
+:'⚠️ သတိပေးချက်\n\n'
     };
     ta.value=temps[t]||'';ta.focus();
 }
@@ -499,23 +368,6 @@ async function sendBotMessage(){
             n(d.message || 'Error', 'error');
         }
     } catch(e){
-        n('Connection error', 'error');
-    }
-}
-// ==================== SLIDER ====================
-async function saveSliderImages(){const urls=[];for(let i=1;i<=5;i++){const inp=document.getElementById('sliderUrl'+i);if(inp&&inp.value.trim())urls.push(inp.value.trim())}if(!urls.length)return n("Enter URLs","error");try{await fetch('/api/admin/slider_images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:urls})});n('Saved!');for(let i=1;i<=5;i++)document.getElementById('sliderUrl'+i).value='';loadSliderPreview()}catch(e){n('Error','error')}}
-async function clearSliderImages(){try{await fetch('/api/admin/slider_images',{method:'POST',headers:{"Content-Type":"application/json"},body:JSON.stringify({images:[]})});n('Cleared!');loadSliderPreview()}catch(e){n('Error','error')}}
-async function loadSliderPreview(){try{const r=await fetch('/api/slider_images');const d=await r.json();const c=document.getElementById('sliderPreviewList');if(d.images&&d.images.length>0){c.innerHTML=d.images.map((u,i)=>`<div style="font-size:9px;padding:3px 0;color:rgba(255,255,255,0.6)">${i+1}. ${u.substring(0,50)}...</div>`).join('')}else{c.innerHTML='<span style="color:rgba(255,255,255,0.4)">No images</span>'}}catch(e){}}
-
-// ==================== BG MUSIC ====================
-function buildMusicSlots(){let h='';for(let i=1;i<=3;i++){h+=`<div class="video-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px"><b style="font-size:11px;color:var(--w)">🎵 Music Slot ${i}</b><span class="card-status empty" id="musicStatus${i}">Empty</span></div><input type="file" id="musicFile${i}" accept="audio/*" onchange="handleFileSelect(${i})" style="width:100%;font-size:9px;padding:4px;margin-bottom:5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><input type="text" id="musicUrl${i}" placeholder="Or paste Audio URL..." style="width:100%;font-size:9px;padding:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;margin-bottom:5px"><div class="btn-row"><button class="btn btn-b" id="uploadBtn${i}" onclick="uploadMusic(${i})" style="font-size:9px;padding:5px 10px;flex:1"><i class="fas fa-upload"></i> Upload</button><button class="btn btn-r" onclick="clearMusicSlot(${i})" style="font-size:9px;padding:5px 10px;flex:1"><i class="fas fa-times"></i> Clear</button></div><audio class="preview-audio" id="preview${i}" controls style="display:none;width:100%;height:24px;margin-top:5px"></audio></div>`}document.getElementById('musicSlots').innerHTML=h}
-buildMusicSlots();
-function handleFileSelect(s){const f=document.getElementById('musicFile'+s).files[0],p=document.getElementById('preview'+s);if(f){p.src=URL.createObjectURL(f);p.style.display='block';document.getElementById('musicUrl'+s).placeholder='File: '+f.name}else{p.style.display='none'}}
-async function uploadMusic(s){const fi=document.getElementById('musicFile'+s),ui=document.getElementById('musicUrl'+s),ub=document.getElementById('uploadBtn'+s),sd=document.getElementById('musicStatus'+s),pr=document.getElementById('preview'+s);const f=fi.files[0],du=ui.value.trim();if(!f&&du){ui.value=du;sd.textContent='URL Set';sd.className='card-status filled';pr.src=du;pr.style.display='block';n('✅ URL added');return}if(!f)return n('Select file','error');ub.disabled=true;try{const b64=await new Promise((r,rj)=>{const reader=new FileReader();reader.onload=e=>r(e.target.result);reader.onerror=rj;reader.readAsDataURL(f)});const res=await fetch('/api/upload_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:b64,filename:f.name})});const d=await res.json();if(d.success&&d.url){ui.value=d.url;sd.textContent='Uploaded ✅';sd.className='card-status filled';pr.src=d.url;pr.style.display='block';fi.value='';n('✅ Uploaded!')}else{n(d.message||'Failed','error')}}catch(e){n('Error','error')}finally{ub.disabled=false}}
-function clearMusicSlot(s){document.getElementById('musicFile'+s).value='';document.getElementById('musicUrl'+s).value='';document.getElementById('preview'+s).style.display='none';document.getElementById('musicStatus'+s).textContent='Empty';document.getElementById('musicStatus'+s).className='card-status empty'}
-function clearAllSlots(){if(!confirm('Clear all 3 slots?'))return;for(let i=1;i<=3;i++)clearMusicSlot(i);savePlaylist();n('✅ All cleared')}
-async function savePlaylist(){const p=[];for(let i=1;i<=3;i++){const u=document.getElementById('musicUrl'+i).value.trim();if(u)p.push(u)}showLoading('Saving...');try{await fetch('/api/admin/bg_music',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playlist:p})});n(p.length===0?'✅ Cleared!':'✅ Saved! ('+p.length+' songs)')}catch(e){n('Error','error')}hideLoading()}
-async function loadCurrentPlaylist(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){d.playlist.forEach((url,i)=>{if(i<3){const s=i+1;document.getElementById('musicUrl'+s).value=url;document.getElementById('musicStatus'+s).textContent='Loaded ✅';document.getElementById('musicStatus'+s).className='card-status filled';document.getElementById('preview'+s).src=url;document.getElementById('preview'+s).style.display='block'}})}}catch(e){}}
 </script>
 </body>
 </html>
