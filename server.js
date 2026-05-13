@@ -827,6 +827,8 @@ async function createTelegramUser(userId, firstName) {
         
         if (exist.rows.length > 0) {
             await p.query('UPDATE auth_users SET last_login = NOW() WHERE id = $1', [exist.rows[0].id]);
+            // ✅ Track login
+            trackTelegramLogin(exist.rows[0].id, exist.rows[0].username || firstName);
             return { id: exist.rows[0].id, isNew: false, balance: exist.rows[0].balance || 0 };
         }
         
@@ -837,6 +839,9 @@ async function createTelegramUser(userId, firstName) {
             'INSERT INTO auth_users (username, email, google_id, login_type, balance) VALUES ($1, $2, $3, $4, $5) RETURNING id',
             [displayName, email, tgId, 'telegram', 0]
         );
+        
+        // ✅ Track login for new user
+        trackTelegramLogin(nu.rows[0].id, displayName);
         
         tgSend(`🆕 Telegram User အသစ်\n👤 ${displayName}\n🆔 ${tgId}`);
         
