@@ -748,7 +748,7 @@ const CONFIG = {
 };
 
 // ====================================
-// STATE
+// STATE (Premium Expiry Check Added)
 // ====================================
 const State = {
     isPremium:false, premiumTier:0, isSpinning:false, wheelAngle:0,
@@ -779,12 +779,41 @@ const State = {
             else{const rates=this.getSegmentsFromRates('premium_buy');return rates||CONFIG.PREMIUM_BUY_SEGMENTS;}
         }
     },
-    updatePremiumStatus(active,tier){
+    
+    // ✅ Check if premium is expired
+    checkPremiumExpiry(){
+        if(this.isPremium && this.premiumExpiry){
+            const now = new Date();
+            const expiry = new Date(this.premiumExpiry);
+            if(expiry <= now){
+                // Premium expired
+                console.log('[STATE] Premium expired! Expiry:', this.premiumExpiry);
+                this.isPremium = false;
+                this.premiumTier = 0;
+                this.premiumExpiry = null;
+                this.maxDailyDraws = 1;
+                this.weeklyBonusDraws = 0;
+                this.save();
+                return true; // expired
+            }
+        }
+        return false; // not expired
+    },
+    
+    updatePremiumStatus(active,tier,expiry){
         const wasPremium=this.isPremium;
-        this.isPremium=active;this.premiumTier=tier||1;
+        this.isPremium=active;
+        this.premiumTier=active?(tier||1):0;
+        this.premiumExpiry=active?(expiry||null):null;
+        if(!active){
+            this.maxDailyDraws=1;
+            this.weeklyBonusDraws=0;
+        }
         if(this.isPremium&&!wasPremium)this.showPremiumActivation();
+        this.save();
         UI.applyPremiumTheme();
     },
+    
     showPremiumActivation(){
         document.getElementById('processingModal').classList.add('active');
         document.getElementById('processingTitle').textContent='Activating Premium...';
@@ -807,8 +836,57 @@ const State = {
             }
         },200);
     },
-    save(){try{localStorage.setItem('spinStateV9',JSON.stringify({isPremium:this.isPremium,premiumTier:this.premiumTier,dailyDraws:this.dailyDraws,boughtDraws:this.boughtDraws,weeklyBonusDraws:this.weeklyBonusDraws,wheelAngle:this.wheelAngle,maxDailyDraws:this.maxDailyDraws,superPrizeUsed:this.superPrizeUsed,timestamp:Date.now()}));}catch(e){}},
-    load(){try{const d=JSON.parse(localStorage.getItem('spinStateV9'));if(d){this.isPremium=d.isPremium||false;this.premiumTier=d.premiumTier||0;this.dailyDraws=d.dailyDraws||0;this.boughtDraws=d.boughtDraws||0;this.weeklyBonusDraws=d.weeklyBonusDraws||0;this.wheelAngle=d.wheelAngle||0;this.maxDailyDraws=d.maxDailyDraws||1;this.superPrizeUsed=d.superPrizeUsed||false;}}catch(e){}}
+    
+    save(){
+        try{
+            localStorage.setItem('spinStateV9',JSON.stringify({
+                isPremium:this.isPremium,
+                premiumTier:this.premiumTier,
+                premiumExpiry:this.premiumExpiry, // ✅ Save expiry
+                dailyDraws:this.dailyDraws,
+                boughtDraws:this.boughtDraws,
+                weeklyBonusDraws:this.weeklyBonusDraws,
+                wheelAngle:this.wheelAngle,
+                maxDailyDraws:this.maxDailyDraws,
+                superPrizeUsed:this.superPrizeUsed,
+                timestamp:Date.now()
+            }));
+        }catch(e){}
+    },
+    
+    load(){
+        try{
+            const d=JSON.parse(localStorage.getItem('spinStateV9'));
+            if(d){
+                // ✅ Check if premium expired
+                const now = new Date();
+                const expiryDate = d.premiumExpiry ? new Date(d.premiumExpiry) : null;
+                const isExpired = expiryDate && expiryDate <= now;
+                
+                if(isExpired){
+                    console.log('[STATE] Loaded expired premium. Expiry:', d.premiumExpiry);
+                    this.isPremium = false;
+                    this.premiumTier = 0;
+                    this.premiumExpiry = null;
+                    this.maxDailyDraws = 1;
+                    this.weeklyBonusDraws = 0;
+                } else {
+                    this.isPremium = d.isPremium || false;
+                    this.premiumTier = d.premiumTier || 0;
+                    this.premiumExpiry = d.premiumExpiry || null;
+                    this.maxDailyDraws = d.maxDailyDraws || 1;
+                }
+                
+                this.dailyDraws = d.dailyDraws || 0;
+                this.boughtDraws = d.boughtDraws || 0;
+                this.weeklyBonusDraws = isExpired ? 0 : (d.weeklyBonusDraws || 0);
+                this.wheelAngle = d.wheelAngle || 0;
+                this.superPrizeUsed = d.superPrizeUsed || false;
+            }
+        }catch(e){
+            console.log('[STATE] Load error:', e.message);
+        }
+    }
 };
 
 // ====================================
@@ -1258,22 +1336,24 @@ async function init(){
     State.load();
     await API.fetchRates();
     const d = await API.syncAll();
-    if(d){
-        State.mmkBalance = d.mmkBalance;
-        State.usdBalance = d.usdBalance;
-        State.isPremium = d.isPremium;
-        State.premiumTier = d.premiumTier||1;
-        State.maxDailyDraws = d.maxDailyDraws;
-        State.dailyDraws = d.dailyDrawsRemaining;
-        State.premiumExpiry = d.premiumExpiry;
-        const today = new Date().toDateString();
-        if(localStorage.getItem('spinLastResetDate') !== today){
-            State.dailyDraws = d.maxDailyDraws||1;
-            localStorage.setItem('spinLastResetDate', today);
-        }
-        if(State.isPremium) document.getElementById('mainBody').classList.add('premium-active');
-        State.save();
+    // init() ထဲက API sync အပိုင်း
+if(d){
+    State.mmkBalance = d.mmkBalance;
+    State.usdBalance = d.usdBalance;
+    State.isPremium = d.isPremium;
+    State.premiumTier = d.premiumTier || 1;
+    State.premiumExpiry = d.premiumExpiry; // ✅ ဒီစာကြောင်း ထည့်ပါ
+    State.maxDailyDraws = d.maxDailyDraws;
+    State.dailyDraws = d.dailyDrawsRemaining;
+    
+    // ✅ Premium expiry check
+    State.checkPremiumExpiry();
+    
+    if(State.isPremium) {
+        document.getElementById('mainBody').classList.add('premium-active');
     }
+    State.save();
+}
     UI.updateBalances();
     UI.applyPremiumTheme();
     UI.updateDraws();
@@ -1283,26 +1363,38 @@ async function init(){
     setInterval(() => UI.updateDailyTimer(), 1000);
     UI.updateDailyTimer();
     
-    // Auto refresh
-    setInterval(async () => {
-        await API.fetchRates();
-        const data = await API.syncAll();
-        if(data){
-            State.mmkBalance = data.mmkBalance;
-            State.usdBalance = data.usdBalance;
-            const wasPremium = State.isPremium;
-            State.isPremium = data.isPremium;
-            State.premiumTier = data.premiumTier||1;
-            State.maxDailyDraws = data.maxDailyDraws;
-            State.dailyDraws = data.dailyDrawsRemaining;
-            if(State.isPremium && !wasPremium) document.getElementById('mainBody').classList.add('premium-active');
-            UI.updateBalances();
-            UI.applyPremiumTheme();
-            UI.updateDraws();
-            State.save();
+    // Auto refresh ထဲက API sync အပိုင်း
+setInterval(async () => {
+    await API.fetchRates();
+    const data = await API.syncAll();
+    if(data){
+        State.mmkBalance = data.mmkBalance;
+        State.usdBalance = data.usdBalance;
+        const wasPremium = State.isPremium;
+        State.isPremium = data.isPremium;
+        State.premiumTier = data.premiumTier || 1;
+        State.premiumExpiry = data.premiumExpiry; // ✅ ဒီစာကြောင်း ထည့်ပါ
+        State.maxDailyDraws = data.maxDailyDraws;
+        State.dailyDraws = data.dailyDrawsRemaining;
+        
+        // ✅ Premium expiry check
+        if(State.checkPremiumExpiry()){
+            UI.showToast('⏰ Premium သက်တမ်းကုန်သွားပါပြီ', 'info');
         }
-    }, 30000);
-}
+        
+        if(State.isPremium && !wasPremium) {
+            document.getElementById('mainBody').classList.add('premium-active');
+        }
+        if(!State.isPremium && wasPremium) {
+            document.getElementById('mainBody').classList.remove('premium-active');
+        }
+        
+        UI.updateBalances();
+        UI.applyPremiumTheme();
+        UI.updateDraws();
+        State.save();
+    }
+}, 30000);
 init();
 </script>
 </body>
