@@ -179,7 +179,7 @@ const REDEEM_CATEGORIES = [
     { id: 'emblem_box', name: 'Emblem Box', icon: 'https://i.ibb.co/Xr1LDXSG/mbx1-c5ec07ee.png', price: 1500 }  
 ];
 
-// ==================== INIT TABLES ====================
+ // ==================== INIT TABLES ====================
 async function initTables(p) {
     const queries = [
         // ========== USER & AUTH ==========
@@ -211,7 +211,45 @@ async function initTables(p) {
         
         // ========== PREMIUM ==========
         `CREATE TABLE IF NOT EXISTS premium_draws (user_id INT, draw_date DATE, draw_count INT DEFAULT 1, PRIMARY KEY(user_id, draw_date))`,
-        `CREATE TABLE IF NOT EXISTS weekly_bonus (id SERIAL PRIMARY KEY, user_id INT, claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`
+        `CREATE TABLE IF NOT EXISTS weekly_bonus (id SERIAL PRIMARY KEY, user_id INT, claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== DAILY CHECK-IN SYSTEM ==========
+        `CREATE TABLE IF NOT EXISTS daily_checkin_events (
+            id SERIAL PRIMARY KEY,
+            event_type VARCHAR(20) NOT NULL DEFAULT 'normal',
+            event_name VARCHAR(100),
+            start_date DATE NOT NULL,
+            start_time TIME DEFAULT '00:00:00',
+            end_date DATE,
+            end_time TIME DEFAULT '14:30:00',
+            total_days INT NOT NULL DEFAULT 7,
+            is_active BOOLEAN DEFAULT true,
+            cancelled BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS daily_checkin_rewards (
+            id SERIAL PRIMARY KEY,
+            event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE,
+            day_number INT NOT NULL,
+            reward_type VARCHAR(20) NOT NULL,
+            reward_amount DECIMAL(10,2) DEFAULT 0,
+            reward_label VARCHAR(100),
+            icon_url VARCHAR(500),
+            UNIQUE(event_id, day_number)
+        )`,
+        `CREATE TABLE IF NOT EXISTS daily_checkins (
+            id SERIAL PRIMARY KEY,
+            user_id INT NOT NULL,
+            event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE,
+            checkin_date DATE NOT NULL DEFAULT CURRENT_DATE,
+            day_number INT NOT NULL,
+            reward_type VARCHAR(20),
+            reward_amount DECIMAL(10,2) DEFAULT 0,
+            claimed BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, event_id, checkin_date)
+        )`
     ];
     
     for (const q of queries) { 
@@ -220,43 +258,6 @@ async function initTables(p) {
 }
 initTables(pool1);
 initTables(pool2);
-// ========== DAILY CHECK-IN SYSTEM ==========
-`CREATE TABLE IF NOT EXISTS daily_checkin_events (
-    id SERIAL PRIMARY KEY,
-    event_type VARCHAR(20) NOT NULL DEFAULT 'normal',
-    event_name VARCHAR(100),
-    start_date DATE NOT NULL,
-    start_time TIME DEFAULT '00:00:00',
-    end_date DATE,
-    end_time TIME DEFAULT '14:30:00',
-    total_days INT NOT NULL DEFAULT 7,
-    is_active BOOLEAN DEFAULT true,
-    cancelled BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)`,
-`CREATE TABLE IF NOT EXISTS daily_checkin_rewards (
-    id SERIAL PRIMARY KEY,
-    event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE,
-    day_number INT NOT NULL,
-    reward_type VARCHAR(20) NOT NULL,
-    reward_amount DECIMAL(10,2) DEFAULT 0,
-    reward_label VARCHAR(100),
-    icon_url VARCHAR(500),
-    UNIQUE(event_id, day_number)
-)`,
-`CREATE TABLE IF NOT EXISTS daily_checkins (
-    id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL,
-    event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE,
-    checkin_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    day_number INT NOT NULL,
-    reward_type VARCHAR(20),
-    reward_amount DECIMAL(10,2) DEFAULT 0,
-    claimed BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, event_id, checkin_date)
-)`
 // ==================== CREATE SPIN HISTORY V2 TABLE ====================
 async function createSpinHistoryV2Table() {
     const query = `
