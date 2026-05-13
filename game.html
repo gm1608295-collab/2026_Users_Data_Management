@@ -675,13 +675,12 @@ body.tier3 .btn-buy { background:var(--gold-metallic); color:#1a1000; }
         </div>
     </div>
 
-    <script>
+   <script>
 // ====================================
 // CONFIGURATION
 // ====================================
 const CONFIG = {
     SUPER_FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform',
-    
     NORMAL_SEGMENTS: [
         {label:'FREE',color:'#1abc9c',reward:0,type:'free',weight:44},
         {label:'Thank You',color:'#7f8c8d',reward:0,type:'thanks',weight:48},
@@ -747,7 +746,6 @@ const CONFIG = {
     ]
 };
 
-
 // ====================================
 // STATE
 // ====================================
@@ -755,188 +753,52 @@ const State = {
     isPremium:false, premiumTier:0, isSpinning:false, wheelAngle:0,
     dailyDraws:0, boughtDraws:0, weeklyBonusDraws:0,
     mmkBalance:0, usdBalance:0, premiumExpiry:null, maxDailyDraws:1,
-    superPrizeUsed:false,
-    serverRates:null,
+    superPrizeUsed:false, serverRates:null,
     
     getTotalDraws(){return this.dailyDraws+this.boughtDraws+this.weeklyBonusDraws;},
     getDrawSource(){if(this.dailyDraws>0)return'daily';if(this.isPremium&&this.weeklyBonusDraws>0)return'weekly_bonus';if(this.boughtDraws>0)return'bought';return null;},
     consumeDraw(s){switch(s){case'daily':if(this.dailyDraws>0)this.dailyDraws--;break;case'weekly_bonus':if(this.weeklyBonusDraws>0)this.weeklyBonusDraws--;break;case'bought':if(this.boughtDraws>0)this.boughtDraws--;break;}this.save();},
-    getSegmentsFromRates(rateType){
-        if(!this.serverRates||!this.serverRates[rateType])return null;
-        return this.serverRates[rateType].map(r=>({label:r.label,color:r.color,reward:r.reward,type:r.type,weight:r.weight}));
-    },
-    getPremiumSegments(){
-        let rateType;
-        switch(this.premiumTier){case 1:rateType='premium_tier1';break;case 2:rateType='premium_tier2';break;case 3:rateType='premium_tier3';break;default:rateType='premium_tier1';}
-        const rates=this.getSegmentsFromRates(rateType);
-        return rates||CONFIG.PREMIUM_TIER1_SEGMENTS;
-    },
-    getSegmentsForSource(s){
-        if(!this.isPremium){
-            if(s==='daily'){const rates=this.getSegmentsFromRates('normal_daily');return rates||CONFIG.NORMAL_SEGMENTS;}
-            else{const rates=this.getSegmentsFromRates('normal_buy');return rates||CONFIG.NORMAL_BUY_SEGMENTS;}
-        }else{
-            if(s==='daily'||s==='weekly_bonus')return this.getPremiumSegments();
-            else{const rates=this.getSegmentsFromRates('premium_buy');return rates||CONFIG.PREMIUM_BUY_SEGMENTS;}
-        }
-    },
+    getSegmentsFromRates(rateType){if(!this.serverRates||!this.serverRates[rateType])return null;return this.serverRates[rateType].map(function(r){return{label:r.label,color:r.color,reward:r.reward,type:r.type,weight:r.weight};});},
+    getPremiumSegments(){var rateType;switch(this.premiumTier){case 1:rateType='premium_tier1';break;case 2:rateType='premium_tier2';break;case 3:rateType='premium_tier3';break;default:rateType='premium_tier1';}var rates=this.getSegmentsFromRates(rateType);return rates||CONFIG.PREMIUM_TIER1_SEGMENTS;},
+    getSegmentsForSource(s){if(!this.isPremium){if(s==='daily'){var rates=this.getSegmentsFromRates('normal_daily');return rates||CONFIG.NORMAL_SEGMENTS;}else{var rates=this.getSegmentsFromRates('normal_buy');return rates||CONFIG.NORMAL_BUY_SEGMENTS;}}else{if(s==='daily'||s==='weekly_bonus')return this.getPremiumSegments();else{var rates=this.getSegmentsFromRates('premium_buy');return rates||CONFIG.PREMIUM_BUY_SEGMENTS;}}},
     
-    showPremiumActivation(){
-        document.getElementById('processingModal').classList.add('active');
-        document.getElementById('processingTitle').textContent='Activating Premium...';
-        let progress=0;
-        const bar=document.getElementById('progressBarFill');
-        const text=document.getElementById('progressText');
-        const interval=setInterval(()=>{
-            progress+=Math.random()*15;
-            if(progress>100)progress=100;
-            bar.style.width=progress+'%';
-            text.textContent=Math.floor(progress)+'%';
-            if(progress>=100){
-                clearInterval(interval);
-                setTimeout(()=>{
-                    document.getElementById('processingModal').classList.remove('active');
-                    document.getElementById('transitionOverlay').classList.add('active');
-                    document.getElementById('transitionText').innerHTML='👑<br>PREMIUM<br>UNLOCKED!';
-                    setTimeout(()=>{document.getElementById('transitionOverlay').classList.remove('active');},2000);
-                },500);
-            }
-        },200);
-    },
+    save(){try{localStorage.setItem('spinStateV9',JSON.stringify({isPremium:this.isPremium,premiumTier:this.premiumTier,premiumExpiry:this.premiumExpiry,dailyDraws:this.dailyDraws,boughtDraws:this.boughtDraws,weeklyBonusDraws:this.weeklyBonusDraws,wheelAngle:this.wheelAngle,maxDailyDraws:this.maxDailyDraws,superPrizeUsed:this.superPrizeUsed,timestamp:Date.now()}));}catch(e){}},
     
-    save(){
-        try{
-            localStorage.setItem('spinStateV9',JSON.stringify({
-                isPremium:this.isPremium,
-                premiumTier:this.premiumTier,
-                premiumExpiry:this.premiumExpiry,
-                dailyDraws:this.dailyDraws,
-                boughtDraws:this.boughtDraws,
-                weeklyBonusDraws:this.weeklyBonusDraws,
-                wheelAngle:this.wheelAngle,
-                maxDailyDraws:this.maxDailyDraws,
-                superPrizeUsed:this.superPrizeUsed,
-                timestamp:Date.now()
-            }));
-        }catch(e){}
-    },
-    
-    load(){
-        try{
-            const d=JSON.parse(localStorage.getItem('spinStateV9'));
-            if(d){
-                const now = new Date();
-                const expiryDate = d.premiumExpiry ? new Date(d.premiumExpiry) : null;
-                const isExpired = expiryDate && expiryDate <= now;
-                
-                this.isPremium = isExpired ? false : (d.isPremium || false);
-                this.premiumTier = isExpired ? 0 : (d.premiumTier || 0);
-                this.premiumExpiry = isExpired ? null : (d.premiumExpiry || null);
-                this.maxDailyDraws = isExpired ? 1 : (d.maxDailyDraws || 1);
-                this.dailyDraws = d.dailyDraws || 0;
-                this.boughtDraws = d.boughtDraws || 0;
-                this.weeklyBonusDraws = isExpired ? 0 : (d.weeklyBonusDraws || 0);
-                this.wheelAngle = d.wheelAngle || 0;
-                this.superPrizeUsed = d.superPrizeUsed || false;
-            }
-        }catch(e){}
-    }
+    load(){try{var d=JSON.parse(localStorage.getItem('spinStateV9'));if(d){var now=new Date();var expiryDate=d.premiumExpiry?new Date(d.premiumExpiry):null;var isExpired=expiryDate&&expiryDate<=now;this.isPremium=isExpired?false:(d.isPremium||false);this.premiumTier=isExpired?0:(d.premiumTier||0);this.premiumExpiry=isExpired?null:(d.premiumExpiry||null);this.maxDailyDraws=isExpired?1:(d.maxDailyDraws||1);this.dailyDraws=d.dailyDraws||0;this.boughtDraws=d.boughtDraws||0;this.weeklyBonusDraws=isExpired?0:(d.weeklyBonusDraws||0);this.wheelAngle=d.wheelAngle||0;this.superPrizeUsed=d.superPrizeUsed||false;}}catch(e){}}
 };
-// ✅ ဒီ function ကို ထည့်ပါ
-checkPremiumExpiry(){
-    if(this.isPremium && this.premiumExpiry){
-        const now = new Date();
-        const expiry = new Date(this.premiumExpiry);
-        if(expiry <= now){
-            console.log('[STATE] Premium expired!');
-            this.isPremium = false;
-            this.premiumTier = 0;
-            this.premiumExpiry = null;
-            this.maxDailyDraws = 1;
-            this.weeklyBonusDraws = 0;
-            this.save();
-            return true;
-        }
-    }
-    return false;
-}
+
 // ====================================
 // API
 // ====================================
 const API = {
     getToken(){return localStorage.getItem('auth_token');},
-    isGuest(){const t=this.getToken();return!t||t==='guest';},
+    isGuest(){var t=this.getToken();return!t||t==='guest';},
     headers(){return{'Content-Type':'application/json'};},
-    async fetchRates(){
-        try{const r=await fetch('/api/spin_rates');const d=await r.json();if(d.success){State.serverRates=d.rates;console.log('[RATES] Loaded from server');}}catch(e){console.log('[RATES] Using defaults');}
-    },
-    async syncAll(){
-        if(this.isGuest())return null;
-        try{
-            const[b,u,p]=await Promise.all([
-                fetch('/api/get_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json()),
-                fetch('/api/get_usd_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json()),
-                fetch('/api/get_premium_status',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json())
-            ]);
-            return{
-                mmkBalance:parseFloat(b.balance||0),
-                usdBalance:parseFloat(u.usd_balance||0),
-                isPremium:!!(p.success&&p.premium_active),
-                premiumTier:p.premium_tier||1,
-                premiumExpiry:p.expires_at||null,
-                dailyDrawsRemaining:p.daily_draws_remaining||0,
-                maxDailyDraws:p.max_daily_draws||1
-            };
-        }catch(e){return null;}
-    },
-    async executeSpin(s){
-        if(this.isGuest())return this._guestSpin(s);
-        try{return await(await fetch('/api/spin/execute',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),spin_source:s})})).json();}catch(e){return null;}
-    },
-    _guestSpin(s){
-        const segs=State.getSegmentsForSource(s);
-        const tw=segs.reduce((a,x)=>a+x.weight,0);
-        let rand=Math.random()*tw,wi=0;
-        for(let i=0;i<segs.length;i++){rand-=segs[i].weight;if(rand<=0){wi=i;break;}}
-        if(segs[wi].type==='usd')State.usdBalance+=segs[wi].reward;
-        else if(segs[wi].type==='mmk')State.mmkBalance+=segs[wi].reward;
-        else if(segs[wi].type==='free'&&s!=='daily')State.boughtDraws++;
-        return{success:true,winIndex:wi,reward:segs[wi],mmkBalance:State.mmkBalance,usdBalance:State.usdBalance};
-    },
-    async buySpins(spins,cost){
-        if(this.isGuest())return{success:false,message:'Login required'};
-        try{
-            const d=await(await fetch('/api/deduct_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),amount:cost,reason:'Buy '+spins+' spins'})})).json();
-            if(d.success){State.boughtDraws+=spins;State.mmkBalance=d.new_balance;State.save();}
-            return d;
-        }catch(e){return{success:false};}
-    },
-    async checkSuperPrize(){
-        if(State.superPrizeUsed)return false;
-        const t=this.getToken();if(!t||t==='guest')return true;
-        try{const r=await(await fetch('/api/spin/check_super',{method:'POST',headers:this.headers(),body:JSON.stringify({token:t})})).json();return!r.used;}catch(e){return true;}
-    },
-    async markSuperPrize(){
-        State.superPrizeUsed=true;State.save();
-        const t=this.getToken();if(!t||t==='guest')return;
-        try{await fetch('/api/spin/mark_super',{method:'POST',headers:this.headers(),body:JSON.stringify({token:t})});}catch(e){}
-    }
+    async fetchRates(){try{var r=await fetch('/api/spin_rates');var d=await r.json();if(d.success){State.serverRates=d.rates;}}catch(e){}},
+    async syncAll(){if(this.isGuest())return null;try{var b=await fetch('/api/get_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(function(r){return r.json();});var u=await fetch('/api/get_usd_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(function(r){return r.json();});var p=await fetch('/api/get_premium_status',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(function(r){return r.json();});return{mmkBalance:parseFloat(b.balance||0),usdBalance:parseFloat(u.usd_balance||0),isPremium:!!(p.success&&p.premium_active),premiumTier:p.premium_tier||1,premiumExpiry:p.expires_at||null,dailyDrawsRemaining:p.daily_draws_remaining||0,maxDailyDraws:p.max_daily_draws||1};}catch(e){return null;}},
+    async executeSpin(s){if(this.isGuest())return this._guestSpin(s);try{return await(await fetch('/api/spin/execute',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),spin_source:s})})).json();}catch(e){return null;}},
+    _guestSpin(s){var segs=State.getSegmentsForSource(s);var tw=segs.reduce(function(a,x){return a+x.weight;},0);var rand=Math.random()*tw;var wi=0;for(var i=0;i<segs.length;i++){rand-=segs[i].weight;if(rand<=0){wi=i;break;}}if(segs[wi].type==='usd')State.usdBalance+=segs[wi].reward;else if(segs[wi].type==='mmk')State.mmkBalance+=segs[wi].reward;else if(segs[wi].type==='free'&&s!=='daily')State.boughtDraws++;return{success:true,winIndex:wi,reward:segs[wi],mmkBalance:State.mmkBalance,usdBalance:State.usdBalance};},
+    async buySpins(spins,cost){if(this.isGuest())return{success:false,message:'Login required'};try{var d=await(await fetch('/api/deduct_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),amount:cost,reason:'Buy '+spins+' spins'})})).json();if(d.success){State.boughtDraws+=spins;State.mmkBalance=d.new_balance;State.save();}return d;}catch(e){return{success:false};}},
+    async checkSuperPrize(){if(State.superPrizeUsed)return false;var t=this.getToken();if(!t||t==='guest')return true;try{var r=await(await fetch('/api/spin/check_super',{method:'POST',headers:this.headers(),body:JSON.stringify({token:t})})).json();return!r.used;}catch(e){return true;}},
+    async markSuperPrize(){State.superPrizeUsed=true;State.save();var t=this.getToken();if(!t||t==='guest')return;try{await fetch('/api/spin/mark_super',{method:'POST',headers:this.headers(),body:JSON.stringify({token:t})});}catch(e){}}
 };
 
 // ====================================
 // WHEEL ENGINE
 // ====================================
 const WheelEngine = {
-    canvas:document.getElementById('wheelCanvas'),ctx:document.getElementById('wheelCanvas').getContext('2d'),
+    canvas:null,ctx:null,
+    init(){this.canvas=document.getElementById('wheelCanvas');this.ctx=this.canvas.getContext('2d');},
     getSegments(){return State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS;},
     getArcSize(){return(2*Math.PI)/this.getSegments().length;},
-    draw(angle=0){
-        const segs=this.getSegments(),cx=300,cy=300,r=270,arc=this.getArcSize();
+    draw(angle){
+        if(!this.ctx)this.init();
+        var segs=this.getSegments();var cx=300;var cy=300;var r=270;var arc=this.getArcSize();
         this.ctx.clearRect(0,0,600,600);
-        segs.forEach((s,i)=>{
-            const sa=i*arc+angle,ea=sa+arc;
+        segs.forEach(function(s,i){
+            var sa=i*arc+angle;var ea=sa+arc;
             this.ctx.beginPath();this.ctx.moveTo(cx,cy);this.ctx.arc(cx,cy,r,sa,ea);this.ctx.closePath();
-            const g=this.ctx.createRadialGradient(cx,cy,r*0.3,cx,cy,r);
+            var g=this.ctx.createRadialGradient(cx,cy,r*0.3,cx,cy,r);
             g.addColorStop(0,this._light(s.color,50));g.addColorStop(1,s.color);
             this.ctx.fillStyle=g;this.ctx.fill();
             this.ctx.strokeStyle='rgba(255,255,255,0.3)';this.ctx.lineWidth=2;this.ctx.stroke();
@@ -944,12 +806,12 @@ const WheelEngine = {
             this.ctx.fillStyle='#fff';this.ctx.font='bold 12px Segoe UI';
             this.ctx.shadowColor='rgba(0,0,0,0.8)';this.ctx.shadowBlur=5;
             this.ctx.fillText(s.label,r*0.6,5);this.ctx.restore();
-        });
+        }.bind(this));
         this.ctx.beginPath();this.ctx.arc(cx,cy,r+3,0,2*Math.PI);
         this.ctx.strokeStyle=State.isPremium?(State.premiumTier===3?'#ffd700':State.premiumTier===2?'#c0c0c0':'#cd7f32'):'#f39c12';
         this.ctx.lineWidth=3;this.ctx.stroke();
         this.ctx.beginPath();this.ctx.arc(cx,cy,30,0,2*Math.PI);
-        const hg=this.ctx.createRadialGradient(cx,cy,0,cx,cy,30);
+        var hg=this.ctx.createRadialGradient(cx,cy,0,cx,cy,30);
         hg.addColorStop(0,'#4a1c7a');hg.addColorStop(1,'#1a0a2e');
         this.ctx.fillStyle=hg;this.ctx.fill();
         this.ctx.strokeStyle='#ffd700';this.ctx.lineWidth=2;this.ctx.stroke();
@@ -957,12 +819,13 @@ const WheelEngine = {
         this.ctx.textAlign='center';this.ctx.textBaseline='middle';
         this.ctx.fillText('SPIN',cx,cy);
     },
-    _light(hex,p){const n=parseInt(hex.replace('#',''),16),a=Math.round(2.55*p);return`rgb(${Math.min(255,(n>>16)+a)},${Math.min(255,((n>>8)&0xFF)+a)},${Math.min(255,(n&0xFF)+a)})`},
-    async spin(wi){
-        const segs=this.getSegments(),arc=(2*Math.PI)/segs.length;
-        const ta=-(wi*arc+arc/2)-Math.PI/2;let n=ta;while(n<0)n+=2*Math.PI;
-        const tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI,sa=State.wheelAngle,d=4000+Math.random()*500,st=Date.now();
-        return new Promise(r=>{const a=()=>{const e=Math.min((Date.now()-st)/d,1),c=1-Math.pow(1-e,3),ca=sa+tr*c;this.draw(ca%(2*Math.PI));State.wheelAngle=ca;e<1?requestAnimationFrame(a):r();};requestAnimationFrame(a);});
+    _light(hex,p){var n=parseInt(hex.replace('#',''),16);var a=Math.round(2.55*p);return'rgb('+Math.min(255,(n>>16)+a)+','+Math.min(255,((n>>8)&0xFF)+a)+','+Math.min(255,(n&0xFF)+a)+')';},
+    spin(wi){
+        var segs=this.getSegments();var arc=(2*Math.PI)/segs.length;
+        var ta=-(wi*arc+arc/2)-Math.PI/2;var n=ta;while(n<0)n+=2*Math.PI;
+        var tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI;var sa=State.wheelAngle;var d=4000+Math.random()*500;var st=Date.now();
+        var self=this;
+        return new Promise(function(r){var a=function(){var e=Math.min((Date.now()-st)/d,1);var c=1-Math.pow(1-e,3);var ca=sa+tr*c;self.draw(ca%(2*Math.PI));State.wheelAngle=ca;e<1?requestAnimationFrame(a):r();};requestAnimationFrame(a);});
     }
 };
 
@@ -970,143 +833,63 @@ const WheelEngine = {
 // UI
 // ====================================
 const UI = {
-    updateBalances(){
-        document.getElementById('mmkBalance').textContent=State.mmkBalance.toLocaleString()+' Ks';
-        document.getElementById('usdBalance').textContent='$'+State.usdBalance.toFixed(2);
-    },
-    updateDraws(){
-        document.getElementById('dailyCount').textContent=State.dailyDraws;
-        document.getElementById('boughtCount').textContent=State.boughtDraws;
-        document.getElementById('weeklyCount').textContent=State.weeklyBonusDraws;
-        const dl=document.querySelector('#dailyDrawCard .draw-label');
-        if(dl)dl.textContent=State.isPremium?'Daily (T'+State.premiumTier+')':'Daily Free';
-        this.updateSpinButton();
-    },
-    updateSpinButton(){
-        const b=document.getElementById('btnSpin'),s=document.getElementById('spinStatus');
-        if(State.isSpinning){b.disabled=true;s.textContent='⏳ Spinning...';return;}
-        const t=State.getTotalDraws(),src=State.getDrawSource();
-        if(t>0){b.disabled=false;let st='';switch(src){case'daily':st='🔄 Daily';break;case'weekly_bonus':st='🎁 Weekly Bonus';break;case'bought':st='💳 Bought';break;}s.textContent=st+' · '+t+' draw(s) left';}
-        else{b.disabled=true;s.textContent='⏰ No draws';}
-    },
-    applyPremiumTheme(){
-        const body=document.getElementById('mainBody');
-        body.classList.remove('tier1','tier2','tier3','premium-active');
-        if(State.isPremium){
-            body.classList.add('premium-active');
-            switch(State.premiumTier){case 1:body.classList.add('tier1');break;case 2:body.classList.add('tier2');break;case 3:body.classList.add('tier3');break;default:body.classList.add('tier1');}
-            const marquee=document.getElementById('headerMarquee');
-            if(marquee){
-                switch(State.premiumTier){case 1:marquee.textContent='🥉 Premium Lucky Spin (Bronze) - SOLO M Game Shop';break;case 2:marquee.textContent='🥈 Premium Lucky Spin (Silver) - SOLO M Game Shop';break;case 3:marquee.textContent='🥇 Premium Lucky Spin (Gold) - SOLO M Game Shop';break;default:marquee.textContent='👑 Premium Lucky Spin - SOLO M Game Shop';}
-            }
-        }
-        WheelEngine.draw(State.wheelAngle%(2*Math.PI));
-        this.updateDraws();
-        this.updateDailyTimer();
-    },
-    updateDailyTimer(){
-        const now=new Date();
-        const tomorrow=new Date(now);tomorrow.setDate(tomorrow.getDate()+1);tomorrow.setHours(0,0,0,0);
-        const diff=tomorrow-now;
-        const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);
-        document.getElementById('dailyTimerCountdown').textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-    },
-    showToast(m,t){t=t||'success';const toast=document.getElementById('toast');toast.textContent=m;toast.style.display='block';toast.style.background=t==='success'?'#2ecc71':t==='error'?'#e74c3c':'#3498db';toast.style.color='#fff';clearTimeout(this._tt);this._tt=setTimeout(()=>{toast.style.display='none';},3000);},
-    
-    showResult(wi){
-        const segs=State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS,rw=segs[wi];
-        const ic=document.getElementById('resultIcon'),tx=document.getElementById('resultText'),
-              am=document.getElementById('resultAmount'),ex=document.getElementById('resultExtra'),
-              timer=document.getElementById('resultTimer'),cb=document.getElementById('resultCloseBtn');
-        ex.innerHTML='';timer.textContent='';cb.style.display='block';
-        tx.classList.remove('super-text');am.classList.remove('super-text');
-        document.getElementById('slideLight').style.display='none';
-        this.stopFireworks();
-        
-        if(rw.type==='super'){
-            cb.style.display='none';
-            ic.textContent='👑';tx.textContent='🏆 SUPER PRIZE!';tx.classList.add('super-text');
-            am.textContent='ONE TIME ONLY!';am.style.color='#e91e63';am.classList.add('super-text');
-            timer.innerHTML='⏰ <b>10</b> seconds remaining...';
-            ex.innerHTML='<p style="color:#ffd700;font-size:11px;margin:8px 0">⚠️ တစ်ကြိမ်သာရရှိမည့် အထူးဆုကြီး<br><small>1 User + 1 Account = 1 Time Limit</small></p><a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link" onclick="handleSuperClaimed()" style="display:inline-block;padding:12px 25px;background:#ffd700;color:#000;text-decoration:none;border-radius:20px;font-weight:bold;margin:8px 0">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a><p style="color:rgba(255,255,255,0.4);font-size:9px;margin-top:8px">Link နှိပ်ပါ သို့မဟုတ် 10 စက္ကန့်စောင့်ပါ</p>';
-            openModal('resultModal');
-            this.startFireworks();
-            document.getElementById('slideLight').style.display='block';
-            let count=10;
-            clearInterval(this._superTimer);
-            this._superTimer=setInterval(()=>{count--;if(count<=0){clearInterval(this._superTimer);closeResultModal();return;}timer.innerHTML='⏰ <b>'+count+'</b> seconds remaining...';},1000);
-        }else{
-            cb.style.display='block';timer.textContent='';
-            switch(rw.type){
-                case'free':ic.textContent='🔄';tx.textContent='Free Spin!';am.textContent='+1 Extra Draw';am.style.color='#1abc9c';break;
-                case'thanks':ic.textContent='😊';tx.textContent='Thank You!';am.textContent='Better luck next time';am.style.color='#7f8c8d';break;
-                case'usd':ic.textContent='💵';tx.textContent='🎉 You Won!';am.textContent='$'+rw.reward.toFixed(2)+' USD';am.style.color='#2ecc71';break;
-                case'mmk':ic.textContent='💰';tx.textContent='🎉 You Won!';am.textContent=rw.reward.toLocaleString()+' Ks';am.style.color='#f39c12';break;
-            }
-            openModal('resultModal');
-        }
-    },
-    startFireworks(){
-        const container=document.getElementById('fireworksContainer');
-        if(!container)return;
-        container.innerHTML='';
-        for(let i=0;i<40;i++){
-            const p=document.createElement('div');
-            p.className='firework-particle';
-            p.style.left=Math.random()*100+'%';
-            p.style.top=Math.random()*70+'%';
-            p.style.setProperty('--fx',(Math.random()-0.5)*300+'px');
-            p.style.setProperty('--fy',-(Math.random()*200+100)+'px');
-            p.style.background='hsl('+Math.floor(Math.random()*60+30)+',100%,50%)';
-            p.style.animationDuration=(Math.random()*1+1)+'s';
-            p.style.animationDelay=Math.random()*0.5+'s';
-            container.appendChild(p);
-        }
-        setTimeout(()=>this.stopFireworks(),3000);
-    },
-    stopFireworks(){
-        const c=document.getElementById('fireworksContainer');
-        if(c)c.innerHTML='';
-        document.getElementById('slideLight').style.display='none';
-    }
+    _superTimer:null,_tt:null,
+    updateBalances(){document.getElementById('mmkBalance').textContent=State.mmkBalance.toLocaleString()+' Ks';document.getElementById('usdBalance').textContent='$'+State.usdBalance.toFixed(2);},
+    updateDraws(){document.getElementById('dailyCount').textContent=State.dailyDraws;document.getElementById('boughtCount').textContent=State.boughtDraws;document.getElementById('weeklyCount').textContent=State.weeklyBonusDraws;var dl=document.querySelector('#dailyDrawCard .draw-label');if(dl)dl.textContent=State.isPremium?'Daily (T'+State.premiumTier+')':'Daily Free';this.updateSpinButton();},
+    updateSpinButton(){var b=document.getElementById('btnSpin');var s=document.getElementById('spinStatus');if(State.isSpinning){b.disabled=true;s.textContent='Spinning...';return;}var t=State.getTotalDraws();var src=State.getDrawSource();if(t>0){b.disabled=false;var st='';switch(src){case'daily':st='Daily';break;case'weekly_bonus':st='Weekly Bonus';break;case'bought':st='Bought';break;}s.textContent=st+' - '+t+' draw(s) left';}else{b.disabled=true;s.textContent='No draws';}},
+    applyPremiumTheme(){var body=document.getElementById('mainBody');body.classList.remove('tier1','tier2','tier3','premium-active');if(State.isPremium){body.classList.add('premium-active');switch(State.premiumTier){case 1:body.classList.add('tier1');break;case 2:body.classList.add('tier2');break;case 3:body.classList.add('tier3');break;default:body.classList.add('tier1');}var marquee=document.getElementById('headerMarquee');if(marquee){switch(State.premiumTier){case 1:marquee.textContent='Premium Lucky Spin (Bronze) - SOLO M Game Shop';break;case 2:marquee.textContent='Premium Lucky Spin (Silver) - SOLO M Game Shop';break;case 3:marquee.textContent='Premium Lucky Spin (Gold) - SOLO M Game Shop';break;default:marquee.textContent='Premium Lucky Spin - SOLO M Game Shop';}}}WheelEngine.draw(State.wheelAngle%(2*Math.PI));this.updateDraws();this.updateDailyTimer();},
+    updateDailyTimer(){var now=new Date();var tomorrow=new Date(now);tomorrow.setDate(tomorrow.getDate()+1);tomorrow.setHours(0,0,0,0);var diff=tomorrow-now;var h=Math.floor(diff/3600000);var m=Math.floor((diff%3600000)/60000);var s=Math.floor((diff%60000)/1000);var el=document.getElementById('dailyTimerCountdown');if(el)el.textContent=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');},
+    showToast(m,t){t=t||'success';var toast=document.getElementById('toast');toast.textContent=m;toast.style.display='block';toast.style.background=t==='success'?'#2ecc71':t==='error'?'#e74c3c':'#3498db';toast.style.color='#fff';clearTimeout(this._tt);this._tt=setTimeout(function(){toast.style.display='none';},3000);},
+    showResult(wi){var segs=State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS;var rw=segs[wi];var ic=document.getElementById('resultIcon');var tx=document.getElementById('resultText');var am=document.getElementById('resultAmount');var ex=document.getElementById('resultExtra');var timer=document.getElementById('resultTimer');var cb=document.getElementById('resultCloseBtn');ex.innerHTML='';timer.textContent='';cb.style.display='block';tx.classList.remove('super-text');am.classList.remove('super-text');var sl=document.getElementById('slideLight');if(sl)sl.style.display='none';this.stopFireworks();if(rw.type==='super'){cb.style.display='none';ic.textContent='';tx.textContent='SUPER PRIZE!';tx.classList.add('super-text');am.textContent='ONE TIME ONLY!';am.style.color='#e91e63';am.classList.add('super-text');timer.innerHTML='10 seconds remaining...';ex.innerHTML='<p style="color:#ffd700;font-size:11px;margin:8px 0">1 User + 1 Account = 1 Time Limit</p><a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link" onclick="handleSuperClaimed()" style="display:inline-block;padding:12px 25px;background:#ffd700;color:#000;text-decoration:none;font-weight:bold;margin:8px 0">Claim Prize</a>';openModal('resultModal');this.startFireworks();if(sl)sl.style.display='block';var count=10;var self=this;clearInterval(this._superTimer);this._superTimer=setInterval(function(){count--;if(count<=0){clearInterval(self._superTimer);closeResultModal();return;}timer.innerHTML=count+' seconds remaining...';},1000);}else{cb.style.display='block';timer.textContent='';switch(rw.type){case'free':ic.textContent='';tx.textContent='Free Spin!';am.textContent='+1 Extra Draw';am.style.color='#1abc9c';break;case'thanks':ic.textContent='';tx.textContent='Thank You!';am.textContent='Better luck next time';am.style.color='#7f8c8d';break;case'usd':ic.textContent='';tx.textContent='You Won!';am.textContent='$'+rw.reward.toFixed(2)+' USD';am.style.color='#2ecc71';break;case'mmk':ic.textContent='';tx.textContent='You Won!';am.textContent=rw.reward.toLocaleString()+' Ks';am.style.color='#f39c12';break;}openModal('resultModal');}},
+    startFireworks(){var container=document.getElementById('fireworksContainer');if(!container)return;container.innerHTML='';for(var i=0;i<40;i++){var p=document.createElement('div');p.className='firework-particle';p.style.left=Math.random()*100+'%';p.style.top=Math.random()*70+'%';p.style.setProperty('--fx',(Math.random()-0.5)*300+'px');p.style.setProperty('--fy',-(Math.random()*200+100)+'px');p.style.background='hsl('+Math.floor(Math.random()*60+30)+',100%,50%)';p.style.animationDuration=(Math.random()*1+1)+'s';p.style.animationDelay=Math.random()*0.5+'s';container.appendChild(p);}setTimeout(this.stopFireworks.bind(this),3000);},
+    stopFireworks(){var c=document.getElementById('fireworksContainer');if(c)c.innerHTML='';var sl=document.getElementById('slideLight');if(sl)sl.style.display='none';}
 };
 
 function handleSuperClaimed(){API.markSuperPrize();closeResultModal();}
-function closeResultModal(){
-    clearInterval(UI._superTimer);
-    UI.stopFireworks();
-    const m=document.getElementById('resultModal');if(m)m.classList.remove('active');
-}
-
-function openModal(id){const m=document.getElementById(id);if(m)m.classList.add('active');}
-function closeModal(id){const m=document.getElementById(id);if(m)m.classList.remove('active');}
+function closeResultModal(){clearInterval(UI._superTimer);UI.stopFireworks();var m=document.getElementById('resultModal');if(m)m.classList.remove('active');}
+function openModal(id){var m=document.getElementById(id);if(m)m.classList.add('active');}
+function closeModal(id){var m=document.getElementById(id);if(m)m.classList.remove('active');}
 
 // ====================================
 // SPIN
 // ====================================
 async function handleSpin(){
-    if(State.isSpinning)return;const s=State.getDrawSource();
+    if(State.isSpinning)return;
+    var s=State.getDrawSource();
     if(!s){UI.showToast('No draws available!','error');return;}
-    State.isSpinning=true;document.getElementById('btnSpin').disabled=true;document.getElementById('spinStatus').textContent='⏳ Spinning...';
-    State.consumeDraw(s);UI.updateDraws();
-    const r=await API.executeSpin(s);
-    if(!r||!r.success){switch(s){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}State.save();UI.updateDraws();UI.showToast('Spin failed!','error');State.isSpinning=false;UI.updateSpinButton();return;}
+    State.isSpinning=true;
+    document.getElementById('btnSpin').disabled=true;
+    document.getElementById('spinStatus').textContent='Spinning...';
+    State.consumeDraw(s);
+    UI.updateDraws();
+    var r=await API.executeSpin(s);
+    if(!r||!r.success){
+        switch(s){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}
+        State.save();UI.updateDraws();UI.showToast('Spin failed!','error');
+        State.isSpinning=false;UI.updateSpinButton();return;
+    }
     if(r.mmkBalance!==undefined)State.mmkBalance=r.mmkBalance;
     if(r.usdBalance!==undefined)State.usdBalance=r.usdBalance;
     if(r.reward&&r.reward.type==='free'){switch(s){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}}
-    State.save();UI.updateBalances();await WheelEngine.spin(r.winIndex);
-    UI.showResult(r.winIndex);State.isSpinning=false;UI.updateDraws();UI.updateSpinButton();
+    State.save();UI.updateBalances();
+    await WheelEngine.spin(r.winIndex);
+    UI.showResult(r.winIndex);
+    State.isSpinning=false;UI.updateDraws();UI.updateSpinButton();
 }
 
 // ====================================
-// BUY
+// BUY SPINS
 // ====================================
-async function handleBuySpins(spins,cost){
-    if(State.mmkBalance<cost){UI.showToast('ငွေမလုံလောက်ပါ။','error');return;}
-    document.getElementById('confirmTitle').textContent='💳 Buy Spins';
+function handleBuySpins(spins,cost){
+    if(State.mmkBalance<cost){UI.showToast('Balance not enough','error');return;}
+    document.getElementById('confirmTitle').textContent='Buy Spins';
     document.getElementById('confirmMsg').textContent=spins+' Spins - '+cost.toLocaleString()+' Ks';
-    const cb=document.getElementById('confirmYesBtn');
-    cb.onclick=async()=>{closeModal('confirmModal');const r=await API.buySpins(spins,cost);if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added!','success');}else{UI.showToast(r.message||'Failed','error');}};
+    document.getElementById('confirmYesBtn').onclick=async function(){
+        closeModal('confirmModal');
+        var r=await API.buySpins(spins,cost);
+        if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added!','success');}
+        else{UI.showToast(r.message||'Failed','error');}
+    };
     openModal('confirmModal');
 }
 
@@ -1114,187 +897,97 @@ async function handleBuySpins(spins,cost){
 // EVENTS
 // ====================================
 document.getElementById('btnSpin').addEventListener('click',handleSpin);
-document.querySelectorAll('.btn-buy').forEach(btn=>{btn.addEventListener('click',()=>{handleBuySpins(parseInt(btn.dataset.spins),parseInt(btn.dataset.cost));});});
-document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',(e)=>{if(e.target===o)o.classList.remove('active');});});
+document.querySelectorAll('.btn-buy').forEach(function(btn){
+    btn.addEventListener('click',function(){handleBuySpins(parseInt(btn.dataset.spins),parseInt(btn.dataset.cost));});
+});
+document.querySelectorAll('.modal-overlay').forEach(function(o){
+    o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('active');});
+});
 
 // ====================================
-// PAGE ACCESS CHECK (Maintenance System)
+// COOKIE HELPERS
 // ====================================
-async function checkPageAccess() {
-    try {
-        const r = await fetch('/api/admin/page_status');
-        const d = await r.json();
-        if (d.pages) {
-            const gamePage = d.pages.find(p => p.id === 'game');
-            if (gamePage && gamePage.status === 'off') {
-                // Check for timer
-                const pageId = 'game';
-                let timer = null;
-                try {
-                    const saved = localStorage.getItem('pageTimers');
-                    if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
-                    if (!timer) {
-                        const cookieTimers = getCookie('pageTimers');
-                        if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; }
-                    }
-                    if (!timer) {
-                        const sessionTimers = sessionStorage.getItem('pageTimers');
-                        if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; }
-                    }
-                } catch(e) {}
-                
-                if (!timer || timer <= Date.now()) {
-                    // No timer or timer expired - check if page is back on
-                    return false; // Page is off, no timer
-                }
-                
-                // Timer is active - show maintenance with countdown
-                showMaintenanceWithTimer(timer);
-                return false;
-            }
-        }
-        return true;
-    } catch(e) { 
-        return true; // If API fails, allow access
-    }
-}
+function setCookie(name,value,days){var expires='';if(days){var date=new Date();date.setTime(date.getTime()+(days*24*60*60*1000));expires='; expires='+date.toUTCString();}document.cookie=name+'='+encodeURIComponent(value||'')+expires+'; path=/';}
+function getCookie(name){var nameEQ=name+'=';var ca=document.cookie.split(';');for(var i=0;i<ca.length;i++){var c=ca[i];while(c.charAt(0)===' ')c=c.substring(1,c.length);if(c.indexOf(nameEQ)===0)return c.substring(nameEQ.length,c.length);}return null;}
 
-function showMaintenanceWithTimer(timer) {
-    const maintMsg = document.getElementById('maintenanceMessage');
-    const mainContainer = document.getElementById('mainContainer');
-    
-    if (maintMsg) maintMsg.style.display = 'block';
-    if (mainContainer) mainContainer.style.display = 'none';
-    
-    const maintTimer = document.getElementById('maintenanceCountdown');
-    
-    const update = () => {
-        const rem = timer - Date.now();
-        if (rem <= 0) {
-            // Timer expired - page should be back on
-            try {
-                const pageId = 'game';
-                const saved = localStorage.getItem('pageTimers');
-                if (saved) {
-                    const timers = JSON.parse(saved);
-                    delete timers[pageId];
-                    localStorage.setItem('pageTimers', JSON.stringify(timers));
-                }
-                setCookie('pageTimers', '', -1);
-                sessionStorage.removeItem('pageTimers');
-            } catch(e) {}
-            location.reload();
-            return;
-        }
-        const s = Math.floor(rem / 1000);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const sec = s % 60;
-        const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-        if (maintTimer) maintTimer.textContent = timeStr;
-    };
-    
-    update();
-    setInterval(update, 1000);
-}
-
-function setCookie(name, value, days) {
-    let expires = '';
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = '; expires=' + date.toUTCString();
-    }
-    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
-}
-
-function getCookie(name) {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
 // ====================================
 // PAGE TIMER CHECK
 // ====================================
 async function checkPageTimer(){
-    const pageId='game';let timer=null;
+    var pageId='game';var timer=null;
     try{
-        const saved=localStorage.getItem('pageTimers');if(saved){const timers=JSON.parse(saved);timer=timers[pageId];}
-        if(!timer){const cookieTimers=getCookie('pageTimers');if(cookieTimers){const timers=JSON.parse(decodeURIComponent(cookieTimers));timer=timers[pageId];}}
-        if(!timer){const sessionTimers=sessionStorage.getItem('pageTimers');if(sessionTimers){const timers=JSON.parse(sessionTimers);timer=timers[pageId];}}
+        var saved=localStorage.getItem('pageTimers');if(saved){var timers=JSON.parse(saved);timer=timers[pageId];}
+        if(!timer){var ck=getCookie('pageTimers');if(ck){var timers=JSON.parse(decodeURIComponent(ck));timer=timers[pageId];}}
+        if(!timer){var ss=sessionStorage.getItem('pageTimers');if(ss){var timers=JSON.parse(ss);timer=timers[pageId];}}
     }catch(e){}
     if(!timer||timer<=Date.now())return true;
-    const maintMsg=document.getElementById('maintenanceMessage');
-    const mainContainer=document.getElementById('mainContainer');
-    if(maintMsg)maintMsg.style.display='block';
-    if(mainContainer)mainContainer.style.display='none';
-    const maintTimer=document.getElementById('maintenanceCountdown');
-    const update=()=>{const rem=timer-Date.now();if(rem<=0){try{const saved=localStorage.getItem('pageTimers');if(saved){const timers=JSON.parse(saved);delete timers[pageId];localStorage.setItem('pageTimers',JSON.stringify(timers));}setCookie('pageTimers','',-1);sessionStorage.removeItem('pageTimers');}catch(e){}location.reload();return;}const s=Math.floor(rem/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;const timeStr=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;if(maintTimer)maintTimer.textContent=timeStr;};
+    document.getElementById('mainContainer').style.display='none';
+    document.getElementById('maintenanceMessage').style.display='block';
+    var maintTimer=document.getElementById('maintenanceCountdown');
+    var update=function(){
+        var rem=timer-Date.now();
+        if(rem<=0){try{var saved=localStorage.getItem('pageTimers');if(saved){var timers=JSON.parse(saved);delete timers[pageId];localStorage.setItem('pageTimers',JSON.stringify(timers));}setCookie('pageTimers','',-1);sessionStorage.removeItem('pageTimers');}catch(e){}location.reload();return;}
+        var s=Math.floor(rem/1000);var h=Math.floor(s/3600);var m=Math.floor((s%3600)/60);var sec=s%60;
+        maintTimer.textContent=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0')+':'+sec.toString().padStart(2,'0');
+    };
     update();setInterval(update,1000);return false;
 }
-function setCookie(name,value,days){let expires='';if(days){const date=new Date();date.setTime(date.getTime()+(days*24*60*60*1000));expires='; expires='+date.toUTCString();}document.cookie=name+'='+encodeURIComponent(value||'')+expires+'; path=/';}
-function getCookie(name){const nameEQ=name+'=';const ca=document.cookie.split(';');for(let i=0;i<ca.length;i++){let c=ca[i];while(c.charAt(0)===' ')c=c.substring(1,c.length);if(c.indexOf(nameEQ)===0)return c.substring(nameEQ.length,c.length);}return null;}
 
 // ====================================
 // INIT
 // ====================================
 async function init(){
-    const pageOn = await checkPageTimer();
-    if (!pageOn) return;
+    var pageOn=await checkPageTimer();
+    if(!pageOn)return;
     
+    document.getElementById('mainContainer').style.display='';
+    document.getElementById('maintenanceMessage').style.display='none';
+    
+    WheelEngine.init();
     State.load();
     await API.fetchRates();
-    const d = await API.syncAll();
+    var d=await API.syncAll();
     if(d){
-        State.mmkBalance = d.mmkBalance;
-        State.usdBalance = d.usdBalance;
-        State.isPremium = d.isPremium;
-        State.premiumTier = d.premiumTier||1;
-        State.maxDailyDraws = d.maxDailyDraws;
-        State.dailyDraws = d.dailyDrawsRemaining;
-        State.premiumExpiry = d.premiumExpiry;
-        const today = new Date().toDateString();
-        if(localStorage.getItem('spinLastResetDate') !== today){
-            State.dailyDraws = d.maxDailyDraws||1;
-            localStorage.setItem('spinLastResetDate', today);
-        }
-        if(State.isPremium) document.getElementById('mainBody').classList.add('premium-active');
+        State.mmkBalance=d.mmkBalance;
+        State.usdBalance=d.usdBalance;
+        State.isPremium=d.isPremium;
+        State.premiumTier=d.premiumTier||1;
+        State.premiumExpiry=d.premiumExpiry;
+        State.maxDailyDraws=d.maxDailyDraws;
+        State.dailyDraws=d.dailyDrawsRemaining;
+        var today=new Date().toDateString();
+        if(localStorage.getItem('spinLastResetDate')!==today){State.dailyDraws=d.maxDailyDraws||1;localStorage.setItem('spinLastResetDate',today);}
+        if(State.isPremium)document.getElementById('mainBody').classList.add('premium-active');
         State.save();
     }
     UI.updateBalances();
     UI.applyPremiumTheme();
     UI.updateDraws();
-    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
-    
-    setInterval(() => UI.updateDailyTimer(), 1000);
+    WheelEngine.draw(State.wheelAngle%(2*Math.PI));
+    setInterval(function(){UI.updateDailyTimer();},1000);
     UI.updateDailyTimer();
-    
-    setInterval(async () => {
+    setInterval(async function(){
         await API.fetchRates();
-        const data = await API.syncAll();
+        var data=await API.syncAll();
         if(data){
-            State.mmkBalance = data.mmkBalance;
-            State.usdBalance = data.usdBalance;
-            const wasPremium = State.isPremium;
-            State.isPremium = data.isPremium;
-            State.premiumTier = data.premiumTier||1;
-            State.maxDailyDraws = data.maxDailyDraws;
-            State.dailyDraws = data.dailyDrawsRemaining;
-            State.premiumExpiry = data.premiumExpiry;
-            if(State.isPremium && !wasPremium) document.getElementById('mainBody').classList.add('premium-active');
+            State.mmkBalance=data.mmkBalance;
+            State.usdBalance=data.usdBalance;
+            var wasPremium=State.isPremium;
+            State.isPremium=data.isPremium;
+            State.premiumTier=data.premiumTier||1;
+            State.premiumExpiry=data.premiumExpiry;
+            State.maxDailyDraws=data.maxDailyDraws;
+            State.dailyDraws=data.dailyDrawsRemaining;
+            if(State.isPremium&&!wasPremium)document.getElementById('mainBody').classList.add('premium-active');
+            if(!State.isPremium&&wasPremium)document.getElementById('mainBody').classList.remove('premium-active');
             UI.updateBalances();
             UI.applyPremiumTheme();
             UI.updateDraws();
             State.save();
         }
-    }, 30000);
+    },30000);
 }
 init();
-</script>
+</script> 
 </body>
 </html>
