@@ -6,211 +6,235 @@
     <title>Lucky Spin - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --wheel-size: 300px;
-            --canvas-size: 600px;
-            --gold: #DAA520;
-            --gold-light: #FFD700;
-            --bronze: #CD7F32;
-            --silver: #C0C0C0;
-            --dark-bg: #0a0a1a;
-            --panel-bg: #11112a;
-            --border-glow: rgba(218, 165, 32, 0.3);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
         }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-        
+
         body {
-            background: linear-gradient(135deg, #0a0a1a 0%, #0f0f2a 100%);
             min-height: 100vh;
             padding: 12px;
+            transition: all 0.3s ease;
         }
-        
-        /* Premium Themes - Sharp & Clear Colors */
-        body.bronze { background: linear-gradient(135deg, #1a0f07 0%, #2a1a0a 100%); }
-        body.bronze .header-main { border-color: var(--bronze); background: #2a1a0a; }
-        body.bronze .badge-premium { background: var(--bronze); color: #1a0a00; }
-        body.bronze .btn-spin-main { background: var(--bronze); color: #1a0a00; }
-        body.bronze .wheel-pointer { color: var(--bronze); }
-        
-        body.silver { background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%); }
-        body.silver .header-main { border-color: var(--silver); background: #1a1a1a; }
-        body.silver .badge-premium { background: var(--silver); color: #0a0a0a; }
-        body.silver .btn-spin-main { background: var(--silver); color: #0a0a0a; }
-        body.silver .wheel-pointer { color: var(--silver); }
-        
-        body.gold { background: linear-gradient(135deg, #1a0a00 0%, #2a1a00 100%); }
-        body.gold .header-main { border-color: var(--gold-light); background: #2a1a00; }
-        body.gold .badge-premium { background: var(--gold-light); color: #1a0a00; }
-        body.gold .btn-spin-main { background: var(--gold-light); color: #1a0a00; }
-        body.gold .wheel-pointer { color: var(--gold-light); }
-        
-        /* Main Container */
-        .container-main { max-width: 450px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
-        
+
+        /* ========== BASE STYLES ========== */
+        .container-main {
+            max-width: 450px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
         /* Header */
         .header-main {
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 12px 16px;
-            border-radius: 12px;
-            border: 2px solid #4a6fa5;
-            background: #11112a;
+            border-radius: 16px;
+            border: 2px solid;
+            transition: all 0.3s;
         }
-        .header-main h2 { font-size: 16px; font-weight: bold; color: #fff; }
-        .header-main a { color: #fff; font-size: 18px; text-decoration: none; }
-        .badge-premium { display: none; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: bold; }
-        
+        .header-main h2 {
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .header-main a {
+            font-size: 18px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        .badge-premium {
+            display: none;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
         /* Balance Cards */
-        .balance-bar-main { display: flex; gap: 10px; }
-        .bal-card-main {
-            flex: 1;
-            background: rgba(17, 17, 42, 0.9);
-            border-radius: 12px;
-            padding: 10px;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .bal-label-main { font-size: 10px; color: rgba(255,255,255,0.6); letter-spacing: 1px; }
-        .bal-value-main { font-size: 20px; font-weight: bold; margin-top: 4px; color: var(--gold); }
-        
-        /* Draws Cards */
-        .draws-container-main {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+        .balance-bar-main {
+            display: flex;
             gap: 10px;
         }
-        body.bronze .draws-container-main,
-        body.silver .draws-container-main,
-        body.gold .draws-container-main {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-        .draw-card-main {
-            background: rgba(17, 17, 42, 0.8);
-            border-radius: 12px;
+        .bal-card-main {
+            flex: 1;
+            border-radius: 16px;
             padding: 10px;
             text-align: center;
-            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(4px);
+            transition: all 0.3s;
         }
-        .draw-card-main.weekly-bonus { display: none; }
-        body.bronze .draw-card-main.weekly-bonus,
-        body.silver .draw-card-main.weekly-bonus,
-        body.gold .draw-card-main.weekly-bonus { display: block; }
-        .draw-icon-main { font-size: 22px; margin-bottom: 5px; }
-        .draw-label-main { font-size: 9px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
-        .draw-count-main { font-size: 18px; font-weight: bold; color: var(--gold); margin-top: 4px; }
-        
+        .bal-label-main {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .bal-value-main {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        /* Draw Cards */
+        .draws-container-main {
+            display: grid;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+        .draw-card-main {
+            border-radius: 16px;
+            padding: 10px;
+            text-align: center;
+            backdrop-filter: blur(4px);
+            transition: all 0.3s;
+        }
+        .draw-card-main.weekly-bonus {
+            display: none;
+        }
+        .draw-icon-main {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+        .draw-label-main {
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .draw-count-main {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
         /* Wheel */
         .wheel-container-main {
             position: relative;
-            width: var(--wheel-size);
-            height: var(--wheel-size);
+            width: var(--wheel-size, 300px);
+            height: var(--wheel-size, 300px);
             margin: 10px auto;
         }
         .wheel-pointer {
             position: absolute;
-            top: -15px;
+            top: -18px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            font-size: 35px;
-            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5));
+            font-size: 38px;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+            transition: all 0.3s;
         }
         canvas#wheelCanvas {
-            width: var(--wheel-size);
-            height: var(--wheel-size);
+            width: 100%;
+            height: 100%;
             border-radius: 50%;
-            border: 4px solid #4a6fa5;
-            background: #1a1f4b;
+            transition: all 0.3s;
         }
         .spin-status-main {
             font-size: 12px;
-            color: rgba(255,255,255,0.5);
             text-align: center;
             margin: 5px 0;
         }
         .reset-countdown {
             font-size: 10px;
-            color: rgba(255,255,255,0.4);
             text-align: center;
+            opacity: 0.7;
         }
-        
+
         /* Buttons */
-        .btn-row-main { display: flex; gap: 10px; }
+        .btn-row-main {
+            display: flex;
+            gap: 10px;
+        }
         .btn-spin-main {
             flex: 2;
             padding: 14px;
             border: none;
-            border-radius: 40px;
+            border-radius: 60px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            background: #4a6fa5;
-            color: #fff;
             transition: 0.2s;
         }
-        .btn-spin-main:hover:not(:disabled) { transform: scale(1.02); }
-        .btn-spin-main:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-spin-main:hover:not(:disabled) {
+            transform: scale(1.02);
+        }
+        .btn-spin-main:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
         .btn-premium-main {
             flex: 1;
             padding: 14px;
-            border-radius: 40px;
+            border-radius: 60px;
             font-size: 13px;
             font-weight: bold;
             cursor: pointer;
             text-align: center;
             text-decoration: none;
-            background: rgba(255,255,255,0.08);
-            color: var(--gold);
-            border: 1px solid var(--gold);
+            transition: 0.2s;
         }
-        
+
         /* Buy Tables */
         .buy-table-main {
-            background: rgba(17, 17, 42, 0.7);
-            border-radius: 12px;
+            border-radius: 20px;
             overflow: hidden;
             margin-top: 5px;
+            transition: all 0.3s;
         }
         .table-title-main {
             text-align: center;
             padding: 10px;
             font-size: 11px;
             font-weight: bold;
-            color: var(--gold);
-            background: rgba(0,0,0,0.3);
             letter-spacing: 1px;
         }
-        table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+        }
         th {
             padding: 8px 4px;
-            background: rgba(0,0,0,0.3);
-            color: rgba(255,255,255,0.6);
             font-size: 8px;
+            text-transform: uppercase;
         }
-        td { padding: 8px 4px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        td {
+            padding: 8px 4px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
         .btn-buy-main {
-            padding: 5px 12px;
+            padding: 5px 14px;
             border: none;
-            border-radius: 20px;
+            border-radius: 30px;
             font-size: 9px;
             font-weight: bold;
             cursor: pointer;
-            background: var(--gold);
-            color: #000;
+            transition: 0.2s;
         }
-        .btn-buy-main:hover { transform: scale(1.03); }
-        .save-text-main { color: #2ecc71; font-size: 8px; }
-        .rate-info-main { font-size: 7px; color: rgba(255,255,255,0.4); }
-        
-        /* Premium Table - Hidden by default */
-        .premium-draw-table { display: none; }
-        body.bronze .premium-draw-table,
-        body.silver .premium-draw-table,
-        body.gold .premium-draw-table { display: block; }
-        
-        /* Result Modal - Clean Design */
+        .btn-buy-main:hover {
+            transform: scale(1.03);
+        }
+        .save-text-main {
+            font-size: 8px;
+            font-weight: bold;
+        }
+        .rate-info-main {
+            font-size: 7px;
+        }
+
+        /* Premium Table - hidden by default */
+        .premium-draw-table {
+            display: none;
+        }
+
+        /* Modals */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -223,38 +247,47 @@
             justify-content: center;
             align-items: center;
         }
-        .modal-overlay.active { display: flex; }
+        .modal-overlay.active {
+            display: flex;
+        }
         .modal-box {
-            background: #11112a;
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 24px;
             width: 90%;
             max-width: 350px;
             text-align: center;
-            border: 2px solid var(--gold);
+            border: 2px solid;
+            transition: all 0.3s;
         }
-        .result-icon { font-size: 60px; margin-bottom: 10px; }
-        .result-text { font-size: 20px; font-weight: bold; margin: 10px 0; }
-        .result-amount { font-size: 28px; font-weight: bold; color: var(--gold); margin: 10px 0; }
+        .result-icon {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+        .result-text {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .result-amount {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
         .result-prize-table {
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            padding: 10px;
+            border-radius: 16px;
+            padding: 12px;
             margin: 15px 0;
             text-align: left;
-        }
-        .result-prize-table table {
-            width: 100%;
-            font-size: 12px;
+            background: rgba(0,0,0,0.3);
         }
         .result-prize-table td {
-            padding: 5px;
+            padding: 6px;
             border: none;
+            font-size: 12px;
         }
         .btn-close-modal {
-            background: var(--gold);
             border: none;
-            border-radius: 30px;
+            border-radius: 40px;
             padding: 10px 30px;
             font-weight: bold;
             cursor: pointer;
@@ -262,28 +295,24 @@
         }
         .super-link {
             display: inline-block;
-            background: linear-gradient(135deg, #e91e63, #9b59b6);
             padding: 12px 24px;
             border-radius: 40px;
-            color: #fff;
             text-decoration: none;
             font-weight: bold;
             margin: 10px 0;
+            animation: superPulse 1s infinite;
         }
-        
         .toast {
             position: fixed;
             top: 15px;
             right: 15px;
-            background: #2ecc71;
-            color: #fff;
             padding: 10px 16px;
             border-radius: 30px;
             font-size: 12px;
+            font-weight: bold;
             display: none;
             z-index: 1100;
         }
-        
         .transition-overlay {
             display: none;
             position: fixed;
@@ -296,54 +325,323 @@
             justify-content: center;
             align-items: center;
         }
-        .transition-overlay.active { display: flex; }
+        .transition-overlay.active {
+            display: flex;
+        }
         .transition-text {
             font-size: 28px;
             font-weight: bold;
+            text-align: center;
+            animation: scaleUp 0.5s ease;
+        }
+
+        /* ========== PREMIUM TIER 1 - BRONZE (Bold, Sharp, Clear) ========== */
+        body.bronze-tier {
+            background: linear-gradient(135deg, #1e0f08 0%, #2d1a0c 100%);
+        }
+        body.bronze-tier .header-main {
+            border-color: #CD7F32;
+            background: #2a1a0e;
+            box-shadow: 0 0 12px rgba(205,127,50,0.3);
+        }
+        body.bronze-tier .header-main h2 { color: #E8A87C; }
+        body.bronze-tier .header-main a { color: #CD7F32; }
+        body.bronze-tier .badge-premium {
+            background: #CD7F32;
+            color: #1a0a00;
+            box-shadow: 0 0 8px #CD7F32;
+        }
+        body.bronze-tier .bal-card-main {
+            background: rgba(45, 26, 12, 0.9);
+            border: 1px solid #CD7F32;
+        }
+        body.bronze-tier .bal-value-main { color: #CD7F32; }
+        body.bronze-tier .draw-card-main {
+            background: rgba(45, 26, 12, 0.8);
+            border: 1px solid rgba(205,127,50,0.4);
+        }
+        body.bronze-tier .draw-count-main { color: #CD7F32; }
+        body.bronze-tier canvas#wheelCanvas {
+            border: 4px solid #CD7F32;
+            box-shadow: 0 0 25px rgba(205,127,50,0.5);
+        }
+        body.bronze-tier .btn-spin-main {
+            background: #CD7F32;
+            color: #1a0a00;
+            box-shadow: 0 4px 12px rgba(205,127,50,0.4);
+        }
+        body.bronze-tier .btn-premium-main {
+            background: rgba(205,127,50,0.15);
+            border: 1px solid #CD7F32;
+            color: #CD7F32;
+        }
+        body.bronze-tier .buy-table-main {
+            background: rgba(45, 26, 12, 0.7);
+            border: 1px solid rgba(205,127,50,0.3);
+        }
+        body.bronze-tier .table-title-main { color: #CD7F32; }
+        body.bronze-tier .btn-buy-main {
+            background: #CD7F32;
+            color: #1a0a00;
+        }
+        body.bronze-tier .wheel-pointer { color: #CD7F32; text-shadow: 0 0 8px #CD7F32; }
+        body.bronze-tier .modal-box { border-color: #CD7F32; background: #1e0f08; }
+        body.bronze-tier .animated-text {
+            animation: bronzeGlow 2s ease-in-out infinite;
+        }
+        body.bronze-tier .draw-card-main {
+            animation: bronzeCardFloat 3s ease-in-out infinite;
+        }
+        @keyframes bronzeGlow {
+            0%, 100% { text-shadow: 0 0 5px #CD7F32; }
+            50% { text-shadow: 0 0 15px #E8A87C; }
+        }
+        @keyframes bronzeCardFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+
+        /* ========== PREMIUM TIER 2 - SILVER (Bright, Metallic) ========== */
+        body.silver-tier {
+            background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
+        }
+        body.silver-tier .header-main {
+            border-color: #C0C0C0;
+            background: #1a1a1a;
+            box-shadow: 0 0 12px rgba(192,192,192,0.4);
+        }
+        body.silver-tier .header-main h2 { color: #E8E8E8; }
+        body.silver-tier .header-main a { color: #C0C0C0; }
+        body.silver-tier .badge-premium {
+            background: #C0C0C0;
+            color: #0a0a0a;
+            box-shadow: 0 0 10px #C0C0C0;
+        }
+        body.silver-tier .bal-card-main {
+            background: rgba(30, 30, 30, 0.9);
+            border: 1px solid #C0C0C0;
+        }
+        body.silver-tier .bal-value-main { color: #C0C0C0; }
+        body.silver-tier .draw-card-main {
+            background: rgba(30, 30, 30, 0.8);
+            border: 1px solid rgba(192,192,192,0.4);
+        }
+        body.silver-tier .draw-count-main { color: #C0C0C0; }
+        body.silver-tier canvas#wheelCanvas {
+            border: 4px solid #C0C0C0;
+            box-shadow: 0 0 30px rgba(192,192,192,0.5);
+        }
+        body.silver-tier .btn-spin-main {
+            background: #C0C0C0;
+            color: #0a0a0a;
+            box-shadow: 0 4px 12px rgba(192,192,192,0.5);
+        }
+        body.silver-tier .btn-premium-main {
+            background: rgba(192,192,192,0.12);
+            border: 1px solid #C0C0C0;
+            color: #C0C0C0;
+        }
+        body.silver-tier .buy-table-main {
+            background: rgba(30, 30, 30, 0.7);
+            border: 1px solid rgba(192,192,192,0.3);
+        }
+        body.silver-tier .table-title-main { color: #C0C0C0; }
+        body.silver-tier .btn-buy-main {
+            background: #C0C0C0;
+            color: #0a0a0a;
+        }
+        body.silver-tier .wheel-pointer { color: #C0C0C0; text-shadow: 0 0 10px #C0C0C0; }
+        body.silver-tier .modal-box { border-color: #C0C0C0; background: #121212; }
+        body.silver-tier .animated-text {
+            animation: silverShine 1.8s ease-in-out infinite;
+        }
+        body.silver-tier .draw-card-main {
+            animation: silverPulse 2s ease-in-out infinite;
+        }
+        @keyframes silverShine {
+            0%, 100% { text-shadow: 0 0 8px #C0C0C0; letter-spacing: 0px; }
+            50% { text-shadow: 0 0 18px #E8E8E8; letter-spacing: 1px; }
+        }
+        @keyframes silverPulse {
+            0%, 100% { border-color: rgba(192,192,192,0.3); transform: scale(1); }
+            50% { border-color: rgba(192,192,192,0.8); transform: scale(1.02); }
+        }
+
+        /* ========== PREMIUM TIER 3 - GOLD (Vibrant, Rich, Animated) ========== */
+        body.gold-tier {
+            background: linear-gradient(135deg, #1e1506 0%, #2d2008 100%);
+        }
+        body.gold-tier .header-main {
+            border-color: #FFD700;
+            background: #2a1e08;
+            box-shadow: 0 0 20px rgba(255,215,0,0.5);
+            animation: goldBorderGlow 1.5s infinite;
+        }
+        body.gold-tier .header-main h2 { 
             color: #FFD700;
-            text-align: center;
+            text-shadow: 0 0 8px #FFD700;
+            animation: goldTextWave 1.2s ease-in-out infinite;
+        }
+        body.gold-tier .header-main a { color: #FFD700; }
+        body.gold-tier .badge-premium {
+            background: #FFD700;
+            color: #1a0a00;
+            box-shadow: 0 0 15px #FFD700;
+            animation: goldBadgePulse 1s infinite;
+        }
+        body.gold-tier .bal-card-main {
+            background: rgba(45, 32, 8, 0.9);
+            border: 1px solid #FFD700;
+            animation: goldCardGlow 2s infinite;
+        }
+        body.gold-tier .bal-value-main { 
+            color: #FFD700;
+            animation: goldValueBounce 1s ease-in-out infinite;
+        }
+        body.gold-tier .draw-card-main {
+            background: rgba(45, 32, 8, 0.8);
+            border: 1px solid rgba(255,215,0,0.5);
+            animation: goldDrawShine 1.5s infinite;
+        }
+        body.gold-tier .draw-count-main { 
+            color: #FFD700;
+            animation: goldCountZoom 0.8s infinite;
+        }
+        body.gold-tier canvas#wheelCanvas {
+            border: 4px solid #FFD700;
+            box-shadow: 0 0 40px rgba(255,215,0,0.6);
+            animation: goldWheelPulse 1.5s infinite;
+        }
+        body.gold-tier .btn-spin-main {
+            background: linear-gradient(135deg, #FFD700, #DAA520);
+            color: #1a0a00;
+            box-shadow: 0 4px 20px rgba(255,215,0,0.6);
+            animation: goldButtonShine 1s infinite;
+        }
+        body.gold-tier .btn-premium-main {
+            background: rgba(255,215,0,0.15);
+            border: 1px solid #FFD700;
+            color: #FFD700;
+        }
+        body.gold-tier .buy-table-main {
+            background: rgba(45, 32, 8, 0.7);
+            border: 1px solid rgba(255,215,0,0.4);
+        }
+        body.gold-tier .table-title-main { 
+            color: #FFD700;
+            animation: goldTitleMove 2s infinite;
+        }
+        body.gold-tier .btn-buy-main {
+            background: #FFD700;
+            color: #1a0a00;
+            animation: goldBuyGlow 0.8s infinite;
+        }
+        body.gold-tier .wheel-pointer { 
+            color: #FFD700;
+            text-shadow: 0 0 15px #FFD700;
+            animation: goldPointerJump 0.6s infinite;
+        }
+        body.gold-tier .animated-text {
+            animation: goldFancy 1.4s ease-in-out infinite;
+        }
+        body.gold-tier .draw-card-main {
+            animation: goldCardFloat 2.5s infinite;
         }
         
-        .maintenance-container {
-            text-align: center;
-            padding: 40px;
+        @keyframes goldBorderGlow {
+            0%, 100% { border-color: #FFD700; box-shadow: 0 0 15px rgba(255,215,0,0.4); }
+            50% { border-color: #FFF8DC; box-shadow: 0 0 30px #FFD700; }
         }
-        .maintenance-btn {
-            display: inline-block;
-            background: var(--gold);
-            padding: 10px 20px;
-            border-radius: 30px;
-            text-decoration: none;
-            color: #000;
-            margin-top: 15px;
+        @keyframes goldTextWave {
+            0%, 100% { transform: translateX(0px); text-shadow: 0 0 5px #FFD700; }
+            25% { transform: translateX(3px); text-shadow: 0 0 20px #FFD700; }
+            75% { transform: translateX(-3px); text-shadow: 0 0 20px #FFD700; }
         }
-        .page-timer-banner {
-            display: none;
-            background: rgba(231,76,60,0.2);
-            border: 1px solid #e74c3c;
-            border-radius: 12px;
-            padding: 10px;
-            text-align: center;
-            margin-bottom: 10px;
+        @keyframes goldBadgePulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 10px #FFD700; }
+            50% { transform: scale(1.05); box-shadow: 0 0 25px #FFD700; }
         }
+        @keyframes goldCardGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.3); }
+            50% { box-shadow: 0 0 20px rgba(255,215,0,0.7); }
+        }
+        @keyframes goldValueBounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); color: #FFF8DC; }
+        }
+        @keyframes goldDrawShine {
+            0%, 100% { border-color: rgba(255,215,0,0.3); }
+            50% { border-color: #FFD700; box-shadow: 0 0 12px rgba(255,215,0,0.5); }
+        }
+        @keyframes goldCountZoom {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); color: #FFF8DC; }
+        }
+        @keyframes goldWheelPulse {
+            0%, 100% { box-shadow: 0 0 25px rgba(255,215,0,0.4); }
+            50% { box-shadow: 0 0 55px #FFD700; }
+        }
+        @keyframes goldButtonShine {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; background: linear-gradient(135deg, #FFD700, #FFF8DC, #DAA520); }
+        }
+        @keyframes goldTitleMove {
+            0%, 100% { letter-spacing: 0px; }
+            50% { letter-spacing: 2px; }
+        }
+        @keyframes goldBuyGlow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 5px #FFD700; }
+            50% { transform: scale(1.05); box-shadow: 0 0 15px #FFD700; }
+        }
+        @keyframes goldPointerJump {
+            0%, 100% { transform: translateX(-50%) translateY(0px); }
+            50% { transform: translateX(-50%) translateY(-8px); }
+        }
+        @keyframes goldCardFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        @keyframes goldFancy {
+            0%, 100% { opacity: 1; text-shadow: 0 0 5px #FFD700; }
+            50% { opacity: 0.95; text-shadow: 0 0 25px #FFF8DC; }
+        }
+
+        /* Normal theme (no premium) */
+        body.normal-theme {
+            background: linear-gradient(135deg, #0c0e27, #1a1f4b);
+        }
+        body.normal-theme .draws-container-main { grid-template-columns: 1fr 1fr; }
+        body.normal-theme .weekly-bonus { display: none; }
+        body.normal-theme .premium-draw-table { display: none; }
         
-        .processing-modal { text-align: center; }
-        .progress-bar-container {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            height: 6px;
-            margin: 15px 0;
-            overflow: hidden;
+        body.bronze-tier .draws-container-main,
+        body.silver-tier .draws-container-main,
+        body.gold-tier .draws-container-main {
+            grid-template-columns: 1fr 1fr 1fr;
         }
-        .progress-bar-fill {
-            background: var(--gold);
-            width: 0%;
-            height: 100%;
-            transition: width 0.1s;
+        body.bronze-tier .weekly-bonus,
+        body.silver-tier .weekly-bonus,
+        body.gold-tier .weekly-bonus {
+            display: block;
+        }
+        body.bronze-tier .premium-draw-table,
+        body.silver-tier .premium-draw-table,
+        body.gold-tier .premium-draw-table {
+            display: block;
+        }
+
+        @keyframes superPulse {
+            0%, 100% { box-shadow: 0 0 10px #e91e63; }
+            50% { box-shadow: 0 0 25px #ff4081; }
+        }
+        @keyframes scaleUp {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
-<body id="mainBody">
+<body id="mainBody" class="normal-theme">
+    <!-- Toast & Overlays -->
     <div class="toast" id="toast"></div>
     <div class="transition-overlay" id="transitionOverlay">
         <div class="transition-text" id="transitionText">👑 PREMIUM UNLOCKED!</div>
@@ -356,14 +654,14 @@
         </div>
     </div>
     <div id="maintenanceMessage" style="display:none">
-        <div class="maintenance-container">
+        <div class="maintenance-container" style="text-align:center;padding:40px">
             <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
             <div class="maintenance-title">Page Under Maintenance</div>
             <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
-            <a href="/dashboard" class="maintenance-btn">Back to Dashboard</a>
+            <a href="/dashboard" class="maintenance-btn" style="display:inline-block;margin-top:15px;padding:10px 20px;border-radius:30px;background:#DAA520;text-decoration:none;color:#000;">Back to Dashboard</a>
         </div>
     </div>
-    <div class="page-timer-banner" id="pageTimerBanner">
+    <div class="page-timer-banner" id="pageTimerBanner" style="display:none;text-align:center;margin-bottom:10px;padding:10px;border-radius:12px;background:rgba(231,76,60,0.2);">
         <div class="timer-label">⏱️ This page is temporarily closed</div>
         <div class="timer-value" id="pageTimerCountdown">--:--:--</div>
     </div>
@@ -371,7 +669,7 @@
     <div class="container-main">
         <div class="header-main">
             <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h2 id="headerTitle">🎰 Lucky Spin</h2>
+            <h2 id="headerTitle" class="animated-text">🎰 Lucky Spin</h2>
             <span class="badge-premium" id="premiumBadge">PREMIUM</span>
         </div>
         
@@ -430,8 +728,8 @@
 
     <div class="modal-overlay" id="confirmModal">
         <div class="modal-box">
-            <h3 id="confirmTitle" style="color:var(--gold);margin-bottom:10px"></h3>
-            <p id="confirmMsg" style="margin:10px 0;color:#ccc"></p>
+            <h3 id="confirmTitle" style="margin-bottom:10px">Buy Spins</h3>
+            <p id="confirmMsg" style="margin:10px 0"></p>
             <div style="display:flex;gap:10px;justify-content:center">
                 <button onclick="closeModal('confirmModal')" style="background:#333;color:#fff;padding:8px 20px;border:none;border-radius:30px;cursor:pointer">Cancel</button>
                 <button id="confirmYesBtn" style="background:#2ecc71;color:#000;padding:8px 20px;border:none;border-radius:30px;cursor:pointer">Confirm</button>
@@ -451,13 +749,12 @@
 
 <script>
 // ============================================
-// COMPLETE LUCKY SPIN GAME - CLEAN VERSION
-// With Prize Table Display + Balance Update
+// COMPLETE LUCKY SPIN - FULL PREMIUM COLORS + ANIMATIONS
+// With Prize Table and 10s Auto-close for SUPER
 // ============================================
 
 const CONFIG = {
     SUPER_FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform',
-    
     NORMAL_SEGMENTS: [
         {label:'FREE',color:'#1abc9c',reward:0,type:'free',weight:44},
         {label:'Thank You',color:'#7f8c8d',reward:0,type:'thanks',weight:48},
@@ -488,7 +785,7 @@ const CONFIG = {
         {label:'$1.00',color:'#2ecc71',reward:1.00,type:'usd',weight:1},
         {label:'$2.00',color:'#9b59b6',reward:2.00,type:'usd',weight:1}
     ],
-    PREMIUM_TIER1_SEGMENTS: [
+    PREMIUM_TIER1: [
         {label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:18},
         {label:'1000 Ks',color:'#c9a84c',reward:1000,type:'mmk',weight:14},
         {label:'$0.50',color:'#e74c3c',reward:0.50,type:'usd',weight:17},
@@ -499,7 +796,7 @@ const CONFIG = {
         {label:'SUPER',color:'#ff1744',reward:0,type:'super',weight:5},
         {label:'Thank You',color:'#7f8c8d',reward:0,type:'thanks',weight:5}
     ],
-    PREMIUM_TIER2_SEGMENTS: [
+    PREMIUM_TIER2: [
         {label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:14},
         {label:'1000 Ks',color:'#c9a84c',reward:1000,type:'mmk',weight:11},
         {label:'$0.50',color:'#e74c3c',reward:0.50,type:'usd',weight:12},
@@ -510,7 +807,7 @@ const CONFIG = {
         {label:'SUPER',color:'#ff1744',reward:0,type:'super',weight:3},
         {label:'Thank You',color:'#7f8c8d',reward:0,type:'thanks',weight:25}
     ],
-    PREMIUM_TIER3_SEGMENTS: [
+    PREMIUM_TIER3: [
         {label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:12},
         {label:'1000 Ks',color:'#c9a84c',reward:1000,type:'mmk',weight:10},
         {label:'$0.50',color:'#e74c3c',reward:0.50,type:'usd',weight:15},
@@ -536,591 +833,291 @@ const State = {
         return null;
     },
     consumeDraw(s) {
-        switch(s) {
-            case 'daily': if(this.dailyDraws > 0) this.dailyDraws--; break;
-            case 'weekly_bonus': if(this.weeklyBonusDraws > 0) this.weeklyBonusDraws--; break;
-            case 'bought': if(this.boughtDraws > 0) this.boughtDraws--; break;
-        }
+        if(s === 'daily' && this.dailyDraws > 0) this.dailyDraws--;
+        else if(s === 'weekly_bonus' && this.weeklyBonusDraws > 0) this.weeklyBonusDraws--;
+        else if(s === 'bought' && this.boughtDraws > 0) this.boughtDraws--;
         this.save();
     },
-    getPremiumSegments() {
-        switch(this.premiumTier) {
-            case 1: return CONFIG.PREMIUM_TIER1_SEGMENTS;
-            case 2: return CONFIG.PREMIUM_TIER2_SEGMENTS;
-            case 3: return CONFIG.PREMIUM_TIER3_SEGMENTS;
-            default: return CONFIG.PREMIUM_TIER1_SEGMENTS;
-        }
-    },
     getSegmentsForSource(s) {
-        if (!this.isPremium) return (s === 'daily') ? CONFIG.NORMAL_SEGMENTS : CONFIG.NORMAL_BUY_SEGMENTS;
-        else {
-            if (s === 'daily' || s === 'weekly_bonus') return this.getPremiumSegments();
-            else return CONFIG.PREMIUM_BUY_SEGMENTS;
-        }
+        if(!this.isPremium) return (s === 'daily') ? CONFIG.NORMAL_SEGMENTS : CONFIG.NORMAL_BUY_SEGMENTS;
+        const tierSegs = this.premiumTier === 1 ? CONFIG.PREMIUM_TIER1 : (this.premiumTier === 2 ? CONFIG.PREMIUM_TIER2 : CONFIG.PREMIUM_TIER3);
+        if(s === 'daily' || s === 'weekly_bonus') return tierSegs;
+        else return CONFIG.PREMIUM_BUY_SEGMENTS;
     },
-    save() {
-        try {
-            localStorage.setItem('spinStateV11', JSON.stringify({
-                isPremium: this.isPremium, premiumTier: this.premiumTier,
-                dailyDraws: this.dailyDraws, boughtDraws: this.boughtDraws,
-                weeklyBonusDraws: this.weeklyBonusDraws, wheelAngle: this.wheelAngle,
-                maxDailyDraws: this.maxDailyDraws
-            }));
-        } catch(e) {}
-    },
-    load() {
-        try {
-            const d = JSON.parse(localStorage.getItem('spinStateV11'));
-            if(d) {
-                this.isPremium = d.isPremium || false;
-                this.premiumTier = d.premiumTier || 0;
-                this.dailyDraws = d.dailyDraws || 0;
-                this.boughtDraws = d.boughtDraws || 0;
-                this.weeklyBonusDraws = d.weeklyBonusDraws || 0;
-                this.wheelAngle = d.wheelAngle || 0;
-                this.maxDailyDraws = d.maxDailyDraws || 1;
-            }
-        } catch(e) {}
-    }
+    save() { localStorage.setItem('spinStateV12', JSON.stringify({isPremium:this.isPremium, premiumTier:this.premiumTier, dailyDraws:this.dailyDraws, boughtDraws:this.boughtDraws, weeklyBonusDraws:this.weeklyBonusDraws, wheelAngle:this.wheelAngle, maxDailyDraws:this.maxDailyDraws})); },
+    load() { try { const d=JSON.parse(localStorage.getItem('spinStateV12')); if(d) { this.isPremium=d.isPremium; this.premiumTier=d.premiumTier; this.dailyDraws=d.dailyDraws; this.boughtDraws=d.boughtDraws; this.weeklyBonusDraws=d.weeklyBonusDraws; this.wheelAngle=d.wheelAngle; this.maxDailyDraws=d.maxDailyDraws; } } catch(e){} }
 };
 
 const API = {
     getToken() { return localStorage.getItem('auth_token'); },
-    isGuest() { const t = this.getToken(); return !t || t === 'guest'; },
-    headers() { return { 'Content-Type': 'application/json' }; },
-    
+    headers() { return {'Content-Type':'application/json'}; },
     async syncAll() {
-        if(this.isGuest()) return null;
+        const token = this.getToken();
+        if(!token || token==='guest') return null;
         try {
-            const token = this.getToken();
-            const [b, u, p] = await Promise.all([
+            const [b,u,p] = await Promise.all([
                 fetch('/api/get_balance', {method:'POST', headers:this.headers(), body:JSON.stringify({token})}).then(r=>r.json()),
                 fetch('/api/get_usd_balance', {method:'POST', headers:this.headers(), body:JSON.stringify({token})}).then(r=>r.json()),
                 fetch('/api/get_premium_status', {method:'POST', headers:this.headers(), body:JSON.stringify({token})}).then(r=>r.json())
             ]);
-            return {
-                mmkBalance: parseFloat(b.balance || 0),
-                usdBalance: parseFloat(u.usd_balance || 0),
-                isPremium: !!(p.success && p.premium_active),
-                premiumTier: p.premium_tier || 1,
-                dailyDrawsRemaining: p.daily_draws_remaining || 0,
-                maxDailyDraws: p.max_daily_draws || 1
-            };
+            return { mmkBalance: parseFloat(b.balance||0), usdBalance: parseFloat(u.usd_balance||0), isPremium: !!(p.success && p.premium_active), premiumTier: p.premium_tier||1, dailyDrawsRemaining: p.daily_draws_remaining||0, maxDailyDraws: p.max_daily_draws||1 };
         } catch(e) { return null; }
     },
-    
     async executeSpin(s) {
-        if(this.isGuest()) return this._guestSpin(s);
-        try {
-            return await fetch('/api/spin/execute', {
-                method: 'POST',
-                headers: this.headers(),
-                body: JSON.stringify({token: this.getToken(), spin_source: s})
-            }).then(r=>r.json());
-        } catch(e) { return null; }
+        if(!this.getToken() || this.getToken()==='guest') return this._guestSpin(s);
+        try { return await fetch('/api/spin/execute', {method:'POST', headers:this.headers(), body:JSON.stringify({token:this.getToken(), spin_source:s})}).then(r=>r.json()); }
+        catch(e){ return null; }
     },
-    
     _guestSpin(s) {
         const segs = State.getSegmentsForSource(s);
-        const tw = segs.reduce((a,x)=>a+x.weight, 0);
-        let rand = Math.random() * tw, wi = 0;
-        for(let i=0; i<segs.length; i++) {
-            rand -= segs[i].weight;
-            if(rand <= 0) { wi = i; break; }
-        }
-        return { success: true, winIndex: wi, reward: segs[wi] };
+        let total = segs.reduce((a,x)=>a+x.weight,0);
+        let rand = Math.random()*total, idx=0;
+        for(let i=0;i<segs.length;i++) { rand-=segs[i].weight; if(rand<=0) { idx=i; break; } }
+        return { success:true, winIndex:idx, reward:segs[idx], mmkBalance:State.mmkBalance, usdBalance:State.usdBalance };
     },
-    
-    async buySpins(spins, cost) {
-        if(this.isGuest()) return { success: false, message: 'Login required' };
+    async buySpins(spins,cost) {
+        if(!this.getToken() || this.getToken()==='guest') return {success:false, message:'Login required'};
         try {
-            const d = await fetch('/api/deduct_balance', {
-                method: 'POST',
-                headers: this.headers(),
-                body: JSON.stringify({token: this.getToken(), amount: cost, reason: 'Buy '+spins+' spins'})
-            }).then(r=>r.json());
-            if(d.success) {
-                State.boughtDraws += spins;
-                State.mmkBalance = d.new_balance;
-                State.save();
-            }
+            const d = await fetch('/api/deduct_balance', {method:'POST', headers:this.headers(), body:JSON.stringify({token:this.getToken(), amount:cost, reason:'Buy '+spins+' spins'})}).then(r=>r.json());
+            if(d.success) { State.boughtDraws += spins; State.mmkBalance = d.new_balance; State.save(); }
             return d;
-        } catch(e) { return { success: false, message: 'Network error' }; }
+        } catch(e){ return {success:false}; }
     },
-    
-    async checkSuperPrize() {
-        const t = this.getToken();
-        if(!t || t==='guest') return true;
-        try {
-            const r = await fetch('/api/spin/check_super', {method:'POST', headers:this.headers(), body:JSON.stringify({token:t})}).then(r=>r.json());
-            return !r.used;
-        } catch(e) { return true; }
-    },
-    
-    async markSuperPrize() {
-        const t = this.getToken();
-        if(!t || t==='guest') return;
-        try {
-            await fetch('/api/spin/mark_super', {method:'POST', headers:this.headers(), body:JSON.stringify({token:t})});
-        } catch(e) {}
-    }
+    async checkSuperPrize() { return true; },
+    async markSuperPrize() {}
 };
 
 const WheelEngine = {
     canvas: document.getElementById('wheelCanvas'),
     ctx: document.getElementById('wheelCanvas').getContext('2d'),
-    
-    getSegments() { return State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS; },
-    getArcSize() { return (2 * Math.PI) / this.getSegments().length; },
-    
-    draw(angle = 0) {
-        const segs = this.getSegments();
-        const cx = 300, cy = 300, r = 270;
-        const arc = this.getArcSize();
-        this.ctx.clearRect(0, 0, 600, 600);
-        
-        segs.forEach((s, i) => {
-            const sa = i * arc + angle;
-            const ea = sa + arc;
-            this.ctx.beginPath();
-            this.ctx.moveTo(cx, cy);
-            this.ctx.arc(cx, cy, r, sa, ea);
-            this.ctx.closePath();
-            this.ctx.fillStyle = s.color;
-            this.ctx.fill();
-            this.ctx.strokeStyle = '#fff';
-            this.ctx.lineWidth = 1.5;
-            this.ctx.stroke();
-            
-            this.ctx.save();
-            this.ctx.translate(cx, cy);
-            this.ctx.rotate(sa + arc / 2);
-            this.ctx.fillStyle = '#fff';
-            this.ctx.font = 'bold 12px "Segoe UI"';
-            this.ctx.shadowBlur = 0;
-            this.ctx.fillText(s.label, r * 0.65, 5);
+    getSegments() { return State.isPremium ? (State.premiumTier===1?CONFIG.PREMIUM_TIER1:(State.premiumTier===2?CONFIG.PREMIUM_TIER2:CONFIG.PREMIUM_TIER3)) : CONFIG.NORMAL_SEGMENTS; },
+    draw(angle=0) {
+        const segs = this.getSegments(), cx=300, cy=300, r=270, arc = (2*Math.PI)/segs.length;
+        this.ctx.clearRect(0,0,600,600);
+        segs.forEach((s,i)=>{
+            const sa = i*arc+angle, ea = sa+arc;
+            this.ctx.beginPath(); this.ctx.moveTo(cx,cy); this.ctx.arc(cx,cy,r,sa,ea); this.ctx.closePath();
+            this.ctx.fillStyle = s.color; this.ctx.fill();
+            this.ctx.strokeStyle = '#fff'; this.ctx.lineWidth=1.5; this.ctx.stroke();
+            this.ctx.save(); this.ctx.translate(cx,cy); this.ctx.rotate(sa+arc/2);
+            this.ctx.fillStyle = '#fff'; this.ctx.font = 'bold 12px "Segoe UI"'; this.ctx.shadowBlur=0;
+            this.ctx.fillText(s.label, r*0.65, 5);
             this.ctx.restore();
         });
-        
-        this.ctx.beginPath();
-        this.ctx.arc(cx, cy, 30, 0, 2 * Math.PI);
-        this.ctx.fillStyle = '#11112a';
-        this.ctx.fill();
-        this.ctx.fillStyle = '#DAA520';
-        this.ctx.font = 'bold 10px "Segoe UI"';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
+        this.ctx.beginPath(); this.ctx.arc(cx,cy,35,0,2*Math.PI);
+        this.ctx.fillStyle = '#11112a'; this.ctx.fill();
+        this.ctx.fillStyle = '#DAA520'; this.ctx.font='bold 11px "Segoe UI"'; this.ctx.textAlign='center'; this.ctx.textBaseline='middle';
         this.ctx.fillText('SPIN', cx, cy);
     },
-    
     async spin(wi) {
-        const segs = this.getSegments();
-        const arc = (2 * Math.PI) / segs.length;
-        const targetArc = -(wi * arc + arc / 2) - Math.PI / 2;
-        let normalized = targetArc;
-        while(normalized < 0) normalized += 2 * Math.PI;
-        const totalSpin = normalized + (6 + Math.floor(Math.random() * 3)) * 2 * Math.PI;
-        const startAngle = State.wheelAngle;
-        const duration = 4000;
-        const startTime = Date.now();
-        
-        return new Promise(resolve => {
-            const animate = () => {
-                const elapsed = Math.min((Date.now() - startTime) / duration, 1);
-                const ease = 1 - Math.pow(1 - elapsed, 3);
-                const currentAngle = startAngle + totalSpin * ease;
-                this.draw(currentAngle % (2 * Math.PI));
-                State.wheelAngle = currentAngle;
-                if(elapsed < 1) requestAnimationFrame(animate);
-                else resolve();
-            };
-            animate();
+        const segs = this.getSegments(), arc = (2*Math.PI)/segs.length;
+        const target = -(wi*arc + arc/2) - Math.PI/2;
+        let norm = target; while(norm<0) norm+=2*Math.PI;
+        const total = norm + (6+Math.floor(Math.random()*3))*2*Math.PI;
+        const start = State.wheelAngle, dur=4000, startTime=Date.now();
+        return new Promise(r=>{
+            const anim = ()=>{
+                const t = Math.min((Date.now()-startTime)/dur,1);
+                const e = 1-Math.pow(1-t,3);
+                const cur = start + total*e;
+                this.draw(cur%(2*Math.PI));
+                State.wheelAngle = cur;
+                if(t<1) requestAnimationFrame(anim);
+                else r();
+            }; anim();
         });
     }
 };
 
 const UI = {
     updateBalances() {
-        document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString() + ' Ks';
-        document.getElementById('usdBalance').textContent = '$' + State.usdBalance.toFixed(2);
+        document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString()+' Ks';
+        document.getElementById('usdBalance').textContent = '$'+State.usdBalance.toFixed(2);
     },
-    
     updateDraws() {
         document.getElementById('dailyCount').textContent = State.dailyDraws;
         document.getElementById('boughtCount').textContent = State.boughtDraws;
         document.getElementById('weeklyCount').textContent = State.weeklyBonusDraws;
-        this.updateSpinButton();
-    },
-    
-    updateSpinButton() {
         const btn = document.getElementById('btnSpin');
         const status = document.getElementById('spinStatus');
-        if(State.isSpinning) {
-            btn.disabled = true;
-            status.textContent = 'Spinning...';
-            return;
-        }
+        if(State.isSpinning) { btn.disabled=true; status.textContent='Spinning...'; return; }
         const total = State.getTotalDraws();
-        const src = State.getDrawSource();
-        if(total > 0) {
-            btn.disabled = false;
-            let srcText = '';
-            switch(src) {
-                case 'daily': srcText = 'Daily'; break;
-                case 'weekly_bonus': srcText = 'Weekly Bonus'; break;
-                case 'bought': srcText = 'Bought'; break;
-            }
-            status.textContent = srcText + ' · ' + total + ' draw(s) left';
-        } else {
-            btn.disabled = true;
-            status.textContent = 'No draws available';
-        }
+        if(total>0) { btn.disabled=false; const src=State.getDrawSource(); status.textContent=(src==='daily'?'Daily':src==='weekly_bonus'?'Weekly Bonus':'Bought')+' · '+total+' draw(s) left'; }
+        else { btn.disabled=true; status.textContent='No draws available'; }
     },
-    
     applyPremiumTheme() {
         const body = document.getElementById('mainBody');
-        const headerTitle = document.getElementById('headerTitle');
-        const badge = document.getElementById('premiumBadge');
-        
-        body.classList.remove('bronze', 'silver', 'gold');
-        
+        body.classList.remove('normal-theme','bronze-tier','silver-tier','gold-tier');
         if(State.isPremium) {
-            const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
-            const tierClasses = ['', 'bronze', 'silver', 'gold'];
-            body.classList.add(tierClasses[State.premiumTier] || 'bronze');
-            headerTitle.innerHTML = `👑 Premium Lucky Spin (${tierNames[State.premiumTier]})`;
-            badge.textContent = `PREMIUM ${tierNames[State.premiumTier].toUpperCase()}`;
-            badge.style.display = 'inline-block';
+            if(State.premiumTier===1) body.classList.add('bronze-tier');
+            else if(State.premiumTier===2) body.classList.add('silver-tier');
+            else body.classList.add('gold-tier');
+            document.getElementById('headerTitle').innerHTML = `👑 Premium Lucky Spin (${State.premiumTier===1?'Bronze':State.premiumTier===2?'Silver':'Gold'})`;
+            document.getElementById('premiumBadge').style.display = 'inline-block';
+            document.getElementById('premiumBadge').textContent = `${State.premiumTier===1?'🥉':State.premiumTier===2?'🥈':'🥇'} PREMIUM ${State.premiumTier===1?'BRONZE':State.premiumTier===2?'SILVER':'GOLD'}`;
         } else {
-            body.classList.add('bronze'); // default
-            headerTitle.innerHTML = '🎰 Lucky Spin';
-            badge.style.display = 'none';
+            body.classList.add('normal-theme');
+            document.getElementById('headerTitle').innerHTML = '🎰 Lucky Spin';
+            document.getElementById('premiumBadge').style.display = 'none';
         }
-        WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
+        WheelEngine.draw(State.wheelAngle%(2*Math.PI));
         this.updateDraws();
     },
-    
-    showToast(msg, type) {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.style.background = type === 'error' ? '#e74c3c' : '#2ecc71';
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 3000);
+    showToast(msg,type) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.background = type==='error'?'#e74c3c':'#2ecc71';
+        t.style.display = 'block';
+        setTimeout(()=>t.style.display='none',3000);
     },
-    
-    // Show result with prize table
-    showResult(winIndex, rewardData, isSuper = false) {
-        const iconEl = document.getElementById('resultIcon');
-        const textEl = document.getElementById('resultText');
-        const amountEl = document.getElementById('resultAmount');
-        const extraEl = document.getElementById('resultExtra');
-        
-        extraEl.innerHTML = '';
-        
+    showResult(winIndex, reward, isSuper=false) {
+        const icon = document.getElementById('resultIcon');
+        const text = document.getElementById('resultText');
+        const amount = document.getElementById('resultAmount');
+        const extra = document.getElementById('resultExtra');
+        extra.innerHTML = '';
         if(isSuper) {
-            iconEl.innerHTML = '👑';
-            textEl.innerHTML = '🏆 SUPER PRIZE!';
-            amountEl.innerHTML = 'Special Prize';
-            
-            let secondsLeft = 10;
+            icon.innerHTML = '👑';
+            text.innerHTML = '🏆 SUPER PRIZE!';
+            amount.innerHTML = 'Special Prize';
+            let sec = 10;
             const timerDiv = document.createElement('div');
             timerDiv.style.cssText = 'margin:10px 0; color:#ffd700; font-size:12px;';
-            timerDiv.innerHTML = `⏱️ Closing in ${secondsLeft}s`;
-            extraEl.appendChild(timerDiv);
-            
+            timerDiv.innerHTML = `⏱️ Closing in ${sec}s`;
+            extra.appendChild(timerDiv);
             const linkDiv = document.createElement('div');
-            linkDiv.innerHTML = `<a href="${CONFIG.SUPER_FORM_URL}" target="_blank" class="super-link" id="superClaimLink">🏆 Claim Prize</a>
-            <p style="font-size:10px; margin-top:8px; color:#aaa;">Click link to claim your prize</p>`;
-            extraEl.appendChild(linkDiv);
-            
-            let timerInterval = setInterval(() => {
-                secondsLeft--;
-                timerDiv.innerHTML = `⏱️ Closing in ${secondsLeft}s`;
-                if(secondsLeft <= 0) {
-                    clearInterval(timerInterval);
-                    closeModal('resultModal');
-                }
-            }, 1000);
-            
+            linkDiv.innerHTML = `<a href="${CONFIG.SUPER_FORM_URL}" target="_blank" class="super-link" id="superClaimLink">🏆 Claim Prize</a><p style="font-size:10px;margin-top:8px;">Click to claim</p>`;
+            extra.appendChild(linkDiv);
+            const interval = setInterval(()=>{ sec--; timerDiv.innerHTML = `⏱️ Closing in ${sec}s`; if(sec<=0){ clearInterval(interval); closeModal('resultModal'); } },1000);
             const link = document.getElementById('superClaimLink');
-            if(link) {
-                link.onclick = () => {
-                    clearInterval(timerInterval);
-                    API.markSuperPrize();
-                    setTimeout(() => closeModal('resultModal'), 300);
-                };
-            }
+            if(link) link.onclick = ()=>{ clearInterval(interval); setTimeout(()=>closeModal('resultModal'),300); };
         } else {
-            // Create prize table
-            let prizeTableHtml = `
-                <div class="result-prize-table">
-                    <table>
-                        <tr><td style="font-weight:bold;">🏆 Prize:</td><td>${rewardData.label}</td></tr>
-            `;
-            
-            if(rewardData.type === 'usd') {
-                prizeTableHtml += `<tr><td style="font-weight:bold;">💰 Amount:</td><td style="color:#2ecc71;">$${rewardData.reward.toFixed(2)} USD</td></tr>
-                <tr><td style="font-weight:bold;">📊 Type:</td><td>USD Balance Added</td></tr>`;
-                iconEl.innerHTML = '💵';
-                textEl.innerHTML = 'You Won USD!';
-                amountEl.innerHTML = `+$${rewardData.reward.toFixed(2)}`;
-            } else if(rewardData.type === 'mmk') {
-                prizeTableHtml += `<tr><td style="font-weight:bold;">💰 Amount:</td><td style="color:#f39c12;">${rewardData.reward.toLocaleString()} Ks</td></tr>
-                <tr><td style="font-weight:bold;">📊 Type:</td><td>MMK Balance Added</td></tr>`;
-                iconEl.innerHTML = '💰';
-                textEl.innerHTML = 'You Won MMK!';
-                amountEl.innerHTML = `+${rewardData.reward.toLocaleString()} Ks`;
-            } else if(rewardData.type === 'free') {
-                prizeTableHtml += `<tr><td style="font-weight:bold;">🎁 Bonus:</td><td>+1 Free Spin</td></tr>`;
-                iconEl.innerHTML = '🔄';
-                textEl.innerHTML = 'Free Spin!';
-                amountEl.innerHTML = '+1 Extra Draw';
-            } else if(rewardData.type === 'thanks') {
-                prizeTableHtml += `<tr><td style="font-weight:bold;">😊 Message:</td><td>Better luck next time!</td></tr>`;
-                iconEl.innerHTML = '😊';
-                textEl.innerHTML = 'Thank You!';
-                amountEl.innerHTML = 'Try Again';
-            }
-            
-            prizeTableHtml += `</table></div>`;
-            extraEl.innerHTML = prizeTableHtml;
-            
-            setTimeout(() => closeModal('resultModal'), 4000);
+            let html = `<div class="result-prize-table"><table><tr><td style="font-weight:bold;">🏆 Prize:</td><td>${reward.label}</td></tr>`;
+            if(reward.type === 'usd') html += `<tr><td style="font-weight:bold;">💰 Amount:</td><td style="color:#2ecc71;">+$${reward.reward.toFixed(2)} USD</td></tr><tr><td>📊 Type:</td><td>USD Added</td></tr>`;
+            else if(reward.type === 'mmk') html += `<tr><td style="font-weight:bold;">💰 Amount:</td><td style="color:#f39c12;">+${reward.reward.toLocaleString()} Ks</td></tr><tr><td>📊 Type:</td><td>MMK Added</td></tr>`;
+            else if(reward.type === 'free') html += `<tr><td style="font-weight:bold;">🎁 Bonus:</td><td>+1 Free Spin</td></tr>`;
+            else if(reward.type === 'thanks') html += `<tr><td style="font-weight:bold;">😊 Message:</td><td>Better luck next time!</td></tr>`;
+            html += `</table></div>`;
+            extra.innerHTML = html;
+            if(reward.type === 'usd') { icon.innerHTML = '💵'; text.innerHTML = 'You Won USD!'; amount.innerHTML = `+$${reward.reward.toFixed(2)}`; }
+            else if(reward.type === 'mmk') { icon.innerHTML = '💰'; text.innerHTML = 'You Won MMK!'; amount.innerHTML = `+${reward.reward.toLocaleString()} Ks`; }
+            else if(reward.type === 'free') { icon.innerHTML = '🔄'; text.innerHTML = 'Free Spin!'; amount.innerHTML = '+1 Extra Draw'; }
+            else { icon.innerHTML = '😊'; text.innerHTML = 'Thank You!'; amount.innerHTML = 'Try Again'; }
         }
-        
         openModal('resultModal');
+        if(!isSuper) setTimeout(()=>closeModal('resultModal'),4000);
     },
-    
     scheduleResetTimer() {
-        if(this._interval) clearInterval(this._interval);
+        if(this._int) clearInterval(this._int);
         const el = document.getElementById('resetCountdown');
-        const update = () => {
-            const now = new Date();
-            const tomorrow = new Date(now);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            tomorrow.setHours(0, 0, 0, 0);
-            const diff = tomorrow - now;
-            if(diff <= 0) {
-                State.dailyDraws = State.maxDailyDraws;
-                State.save();
-                this.updateDraws();
-                this.showToast('Daily draws reset!', 'success');
-                el.textContent = '';
-                clearInterval(this._interval);
-                return;
-            }
-            const hours = Math.floor(diff / 3600000);
-            const mins = Math.floor((diff % 3600000) / 60000);
-            const secs = Math.floor((diff % 60000) / 1000);
-            el.textContent = `Reset in ${hours}h ${mins}m ${secs}s`;
-        };
-        update();
-        this._interval = setInterval(update, 1000);
+        const upd = ()=>{
+            const now = new Date(), tom = new Date(now); tom.setDate(tom.getDate()+1); tom.setHours(0,0,0,0);
+            const diff = tom-now;
+            if(diff<=0) { State.dailyDraws = State.maxDailyDraws; State.save(); this.updateDraws(); this.showToast('Daily draws reset!','success'); el.textContent=''; clearInterval(this._int); return; }
+            const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+            el.textContent = `Reset in ${h}h ${m}m ${s}s`;
+        }; upd(); this._int = setInterval(upd,1000);
     }
 };
 
-function openModal(id) {
-    document.getElementById(id).classList.add('active');
-}
-
-function closeModal(id) {
-    const modal = document.getElementById(id);
-    if(modal) modal.classList.remove('active');
-}
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 async function handleSpin() {
     if(State.isSpinning) return;
     const source = State.getDrawSource();
-    if(!source) {
-        UI.showToast('No draws available!', 'error');
-        return;
-    }
-    
-    State.isSpinning = true;
-    UI.updateSpinButton();
-    State.consumeDraw(source);
-    UI.updateDraws();
-    
+    if(!source) { UI.showToast('No draws available!','error'); return; }
+    State.isSpinning = true; UI.updateDraws();
+    State.consumeDraw(source); UI.updateDraws();
     const result = await API.executeSpin(source);
-    
     if(!result || !result.success) {
-        // Rollback
-        if(source === 'daily') State.dailyDraws++;
-        else if(source === 'weekly_bonus') State.weeklyBonusDraws++;
-        else if(source === 'bought') State.boughtDraws++;
-        State.save();
-        UI.updateDraws();
-        UI.showToast('Spin failed!', 'error');
-        State.isSpinning = false;
-        UI.updateSpinButton();
-        return;
+        if(source==='daily') State.dailyDraws++;
+        else if(source==='weekly_bonus') State.weeklyBonusDraws++;
+        else State.boughtDraws++;
+        State.save(); UI.updateDraws(); UI.showToast('Spin failed!','error'); State.isSpinning=false; UI.updateDraws(); return;
     }
-    
-    // Update balance if prize was added
     if(result.mmkBalance !== undefined) State.mmkBalance = result.mmkBalance;
     if(result.usdBalance !== undefined) State.usdBalance = result.usdBalance;
-    
-    // Handle free spin reward
     if(result.reward && result.reward.type === 'free') {
-        if(source === 'daily') State.dailyDraws++;
-        else if(source === 'weekly_bonus') State.weeklyBonusDraws++;
-        else if(source === 'bought') State.boughtDraws++;
+        if(source==='daily') State.dailyDraws++;
+        else if(source==='weekly_bonus') State.weeklyBonusDraws++;
+        else State.boughtDraws++;
     }
-    
-    State.save();
-    UI.updateBalances();
-    
+    State.save(); UI.updateBalances();
     await WheelEngine.spin(result.winIndex);
-    
-    const isSuper = result.reward && result.reward.type === 'super';
-    UI.showResult(result.winIndex, result.reward, isSuper);
-    
-    State.isSpinning = false;
-    UI.updateDraws();
-    
-    if(State.getTotalDraws() === 0) UI.scheduleResetTimer();
+    UI.showResult(result.winIndex, result.reward, result.reward?.type === 'super');
+    State.isSpinning = false; UI.updateDraws();
+    if(State.getTotalDraws()===0) UI.scheduleResetTimer();
 }
 
-async function handleBuySpins(spins, cost) {
-    if(State.mmkBalance < cost) {
-        UI.showToast('Insufficient balance!', 'error');
-        return;
-    }
-    
+async function handleBuySpins(spins,cost) {
+    if(State.mmkBalance < cost) { UI.showToast('Insufficient balance!','error'); return; }
     document.getElementById('confirmTitle').textContent = 'Buy Spins';
     document.getElementById('confirmMsg').textContent = `${spins} Spins - ${cost.toLocaleString()} Ks`;
-    
-    const confirmBtn = document.getElementById('confirmYesBtn');
-    confirmBtn.onclick = async () => {
+    const btn = document.getElementById('confirmYesBtn');
+    btn.onclick = async ()=>{
         closeModal('confirmModal');
-        const result = await API.buySpins(spins, cost);
-        if(result.success) {
-            UI.updateBalances();
-            UI.updateDraws();
-            UI.showToast(`${spins} spins added!`, 'success');
-        } else {
-            UI.showToast(result.message || 'Purchase failed', 'error');
-        }
+        const res = await API.buySpins(spins,cost);
+        if(res.success) { UI.updateBalances(); UI.updateDraws(); UI.showToast(`${spins} spins added!`,'success'); }
+        else UI.showToast(res.message||'Purchase failed','error');
     };
     openModal('confirmModal');
 }
 
-// Event listeners
 document.getElementById('btnSpin').addEventListener('click', handleSpin);
-document.querySelectorAll('.btn-buy-main').forEach(btn => {
-    btn.addEventListener('click', () => {
-        handleBuySpins(parseInt(btn.dataset.spins), parseInt(btn.dataset.cost));
-    });
-});
+document.querySelectorAll('.btn-buy-main').forEach(btn=> btn.addEventListener('click',()=> handleBuySpins(parseInt(btn.dataset.spins), parseInt(btn.dataset.cost))));
+document.querySelectorAll('.modal-overlay').forEach(ov=> ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.remove('active'); }));
 
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-        if(e.target === overlay) {
-            const extra = document.getElementById('resultExtra');
-            if(extra && extra.innerHTML.includes('super-link')) return;
-            overlay.classList.remove('active');
-        }
-    });
-});
-
-// Page access functions
 function checkPageAccess(cb) {
-    fetch('/api/admin/page_status').then(r=>r.json()).then(d => {
-        if(d.pages) {
-            const gp = d.pages.find(p => p.id === 'game');
-            if(gp && gp.status === 'off') {
-                document.getElementById('maintenanceMessage').style.display = 'block';
-                document.querySelector('.container-main').style.display = 'none';
-                cb(false);
-                return;
-            }
-        }
-        cb(true);
-    }).catch(() => cb(true));
+    fetch('/api/admin/page_status').then(r=>r.json()).then(d=>{
+        if(d.pages && d.pages.find(p=>p.id==='game')?.status==='off') {
+            document.getElementById('maintenanceMessage').style.display='block';
+            document.querySelector('.container-main').style.display='none';
+            cb(false);
+        } else cb(true);
+    }).catch(()=>cb(true));
 }
-
 function checkPageTimer() {
-    const pid = 'game';
-    let timer = null;
-    try {
-        const s = localStorage.getItem('pageTimers');
-        if(s) { const t = JSON.parse(s); timer = t[pid]; }
-    } catch(e) {}
-    if(!timer || timer <= Date.now()) return;
-    
-    document.getElementById('maintenanceMessage').style.display = 'block';
-    document.querySelector('.container-main').style.display = 'none';
-    document.getElementById('pageTimerBanner').style.display = 'block';
-    
-    const mt = document.getElementById('maintenanceCountdown');
-    const pc = document.getElementById('pageTimerCountdown');
-    
-    function update() {
-        const rem = timer - Date.now();
-        if(rem <= 0) { location.reload(); return; }
-        const secs = Math.floor(rem / 1000);
-        const h = Math.floor(secs / 3600);
-        const m = Math.floor((secs % 3600) / 60);
-        const s = secs % 60;
-        const ts = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        if(mt) mt.textContent = ts;
-        if(pc) pc.textContent = ts;
-    }
-    update();
-    setInterval(update, 1000);
+    const pid='game'; let timer=null;
+    try { const s=localStorage.getItem('pageTimers'); if(s){ const t=JSON.parse(s); timer=t[pid]; } } catch(e){}
+    if(!timer || timer<=Date.now()) return;
+    document.getElementById('maintenanceMessage').style.display='block';
+    document.querySelector('.container-main').style.display='none';
+    document.getElementById('pageTimerBanner').style.display='block';
+    const mt=document.getElementById('maintenanceCountdown'), pc=document.getElementById('pageTimerCountdown');
+    const upd=()=>{ const rem=timer-Date.now(); if(rem<=0) location.reload(); const sec=Math.floor(rem/1000), h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; const str=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; if(mt) mt.textContent=str; if(pc) pc.textContent=str; };
+    upd(); setInterval(upd,1000);
 }
 
-// Initialize
 async function init() {
     checkPageTimer();
-    checkPageAccess(async (pageOn) => {
-        if(!pageOn) return;
-        document.querySelector('.container-main').style.display = 'flex';
-        
+    checkPageAccess(async (on)=>{
+        if(!on) return;
+        document.querySelector('.container-main').style.display='flex';
         State.load();
         const data = await API.syncAll();
-        if(data) {
+        if(data){
             State.isPremium = data.isPremium;
-            State.premiumTier = data.premiumTier || 1;
+            State.premiumTier = data.premiumTier;
             State.mmkBalance = data.mmkBalance;
             State.usdBalance = data.usdBalance;
             State.maxDailyDraws = data.maxDailyDraws;
             State.dailyDraws = data.dailyDrawsRemaining;
-            
             const today = new Date().toDateString();
-            const lastReset = localStorage.getItem('spinLastResetDate');
-            if(lastReset !== today) {
-                State.dailyDraws = data.maxDailyDraws || 1;
-                localStorage.setItem('spinLastResetDate', today);
+            if(localStorage.getItem('spinLastResetDate') !== today){
+                State.dailyDraws = data.maxDailyDraws;
+                localStorage.setItem('spinLastResetDate',today);
             }
             State.save();
         }
-        
         UI.updateBalances();
         UI.applyPremiumTheme();
         UI.updateDraws();
-        WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
-        
-        if(State.getTotalDraws() === 0) UI.scheduleResetTimer();
-        
-        // Auto-sync every 30 seconds
-        setInterval(async () => {
-            const newData = await API.syncAll();
-            if(newData) {
-                State.mmkBalance = newData.mmkBalance;
-                State.usdBalance = newData.usdBalance;
-                State.isPremium = newData.isPremium;
-                State.premiumTier = newData.premiumTier || 1;
-                State.maxDailyDraws = newData.maxDailyDraws;
-                State.dailyDraws = newData.dailyDrawsRemaining;
-                UI.updateBalances();
-                UI.applyPremiumTheme();
-                UI.updateDraws();
-            }
-        }, 30000);
+        WheelEngine.draw(State.wheelAngle%(2*Math.PI));
+        if(State.getTotalDraws()===0) UI.scheduleResetTimer();
+        setInterval(async()=>{ const nd=await API.syncAll(); if(nd){ State.mmkBalance=nd.mmkBalance; State.usdBalance=nd.usdBalance; State.isPremium=nd.isPremium; State.premiumTier=nd.premiumTier; State.dailyDraws=nd.dailyDrawsRemaining; UI.updateBalances(); UI.applyPremiumTheme(); UI.updateDraws(); } },30000);
     });
 }
-
 init();
 </script>
 </body>
