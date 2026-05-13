@@ -196,7 +196,20 @@
             
             <!-- Redeem Code -->
             <div class="divider"><h3><i class="fas fa-gift"></i> Redeem Code Management</h3><div class="form-group"><label>Category</label><select id="redeemCategory"><option value="shhh_emote">🎭 Shhh emote (2,500 Ks)</option><option value="golden_border">🏆 Golden Month Border (3,500 Ks)</option><option value="lucky_diamond">💎 Lucky Diamond Code (2,000 Ks)</option><option value="magic_durt">✨ Magic Durt (1,500 Ks)</option><option value="emblem_box">📦 Emblem Box (1,500 Ks)</option></select></div><div class="form-group"><label>Code</label><input type="text" id="redeemCode" placeholder="Enter redeem code..."></div><button class="btn btn-g" onclick="addRedeemCode()" style="width:100%"><i class="fas fa-plus"></i> Add Code</button><div id="redeemCodeList" style="max-height:200px;overflow-y:auto;margin-top:8px"></div></div>
-            
+
+               <!-- Daily Check-In Management -->
+<div class="divider">
+    <h3><i class="fas fa-calendar-check"></i> Daily Check-In Event Management</h3>
+    <p class="help-note">Normal (7 days) နှင့် Premium (14 days) Check-In Event များကို စီမံခန့်ခွဲရန်။ Event မစတင်မီသာ ပြင်ဆင်/ဖျက်သိမ်းနိုင်သည်။</p>
+    
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+        <button class="btn btn-g" onclick="openCheckinEventModal('normal')"><i class="fas fa-plus"></i> New Normal Event</button>
+        <button class="btn btn-p" onclick="openCheckinEventModal('premium')"><i class="fas fa-plus"></i> New Premium Event</button>
+    </div>
+    
+    <div id="checkinEventsList" style="max-height:400px;overflow-y:auto"></div>
+</div>
+               
             <!-- Promo Code Management -->
             <div class="divider"><h3><i class="fas fa-ticket-alt"></i> Promo Code Management</h3><p class="help-note">Code တစ်ခုကို 700 Ks နဲ့ ရောင်းချပါမည်။ Expiry Date ရောက်ရင် Auto Disable ဖြစ်ပါမည်။</p>
                 <div class="video-card"><h4 style="color:var(--w);font-size:12px;margin-bottom:8px">➕ Create New Promo Code</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>🔑 API Key (Code)</label><input type="text" id="promoApiKey" placeholder="PROMO-ABC-XYZ"></div><div class="form-group"><label>💰 Amount</label><input type="number" id="promoAmount" value="5000" min="1"></div><div class="form-group"><label>💱 Currency</label><select id="promoCurrency"><option value="MMK">MMK (Ks)</option><option value="USD">USD ($)</option></select></div><div class="form-group"><label>📅 Expiry Date (Required)</label><input type="date" id="promoExpiry"></div></div><button class="btn btn-g" onclick="createPromoCode()" style="width:100%;margin-top:8px"><i class="fas fa-plus"></i> Create Promo Code</button></div>
@@ -419,6 +432,8 @@ function startAutoRefresh() {
     }, 5000);
 }
 
+// unlockAdmin() ထဲမှာ ဒီစာကြောင်းထည့်
+loadCheckinEvents(),
 // ==================== BACKUP & RESTORE ====================
 async function backupDatabase() {
     showLoading('Backing up...');
@@ -746,6 +761,207 @@ async function deletePromoCode(id) {
     } catch (e) { n('❌ Error', 'error'); }
 }
 
+// ====================================
+// DAILY CHECK-IN EVENT MANAGEMENT
+// ====================================
+
+async function loadCheckinEvents() {
+    try {
+        const r = await fetch('/api/admin/checkin_events');
+        const d = await r.json();
+        const container = document.getElementById('checkinEventsList');
+        if (!container) return;
+        
+        if (d.events && d.events.length > 0) {
+            container.innerHTML = d.events.map(evt => {
+                const isStarted = new Date(evt.start_date + 'T' + (evt.start_time || '00:00:00')) <= new Date();
+                const statusColor = evt.cancelled ? 'var(--r)' : isStarted ? 'var(--g)' : 'var(--w)';
+                const statusText = evt.cancelled ? 'Cancelled' : isStarted ? 'Active' : 'Pending';
+                const typeColor = evt.event_type === 'premium' ? '#9b59b6' : '#3498db';
+                const typeIcon = evt.event_type === 'premium' ? '👑' : '🎁';
+                
+                let rewardsHtml = '';
+                if (evt.rewards) {
+                    rewardsHtml = evt.rewards.map(r => 
+                        `<span style="font-size:8px;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;margin:1px">Day${r.day_number}: ${r.icon_url||''} ${r.reward_label}</span>`
+                    ).join(' ');
+                }
+                
+                return `<div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:12px;margin-bottom:8px;border-left:4px solid ${typeColor}">
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div>
+                            <b>${typeIcon} ${evt.event_name}</b>
+                            <span style="font-size:8px;color:${statusColor};margin-left:8px">[${statusText}]</span>
+                            <br><small style="color:rgba(255,255,255,0.5)">
+                                📅 ${evt.start_date} → ${evt.end_date} | 
+                                📆 ${evt.total_days} days | 
+                                ⏰ Reset: ${evt.end_time || '14:30'}
+                            </small>
+                        </div>
+                        <div style="display:flex;gap:4px">
+    ${!isStarted && !evt.cancelled ? 
+        `<button class="btn btn-w" style="font-size:9px;padding:4px 8px" onclick="editCheckinEvent(${evt.id},'${evt.event_type}')">✏️</button>
+        <button class="btn btn-r" style="font-size:9px;padding:4px 8px" onclick="cancelCheckinEvent(${evt.id})">🗑️</button>` 
+        : (evt.end_date && new Date(evt.end_date) < new Date() ? 
+        `<button class="btn btn-b" style="font-size:9px;padding:4px 8px" onclick="reuseCheckinEvent(${evt.id})">🔄 Reuse</button>` : '')
+    }
+</div>
+                    </div>
+                    <div style="margin-top:8px;line-height:2">${rewardsHtml}</div>
+                </div>`;
+            }).join('');
+        } else {
+            container.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No events yet</p>';
+        }
+    } catch(e) {}
+}
+
+async function openCheckinEventModal(type) {
+    const days = type === 'normal' ? 7 : 14;
+    const title = type === 'normal' ? '🎁 Normal Daily Check-In (7 Days)' : '👑 Premium Daily Check-In (14 Days)';
+    
+    let rewardsHtml = '';
+    for (let d = 1; d <= days; d++) {
+        rewardsHtml += `<div style="display:flex;gap:4px;align-items:center;margin-bottom:4px">
+            <span style="width:40px;font-size:9px">Day ${d}:</span>
+            <select id="rewardType${d}" style="width:70px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">
+                <option value="mmk">💰 MMK</option>
+                <option value="usd">💵 USD</option>
+                <option value="spin">🔄 Spin</option>
+            </select>
+            <input type="number" id="rewardAmount${d}" value="100" min="0" step="0.01" style="width:70px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">
+            <input type="text" id="rewardLabel${d}" placeholder="Label" style="width:80px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">
+            <input type="text" id="rewardIcon${d}" placeholder="🎁" style="width:40px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">
+        </div>`;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'checkinEventModal';
+    modal.style.display = 'flex';
+    modal.innerHTML = `<div class="modal-box" style="max-width:500px;max-height:85vh;overflow-y:auto">
+        <span class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</span>
+        <h3>${title}</h3>
+        <div class="form-group"><label>Event Name</label><input type="text" id="checkinEventName" value="${title}"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="form-group"><label>📅 Start Date</label><input type="date" id="checkinStartDate"></div>
+            <div class="form-group"><label>⏰ Start Time</label><input type="time" id="checkinStartTime" value="00:00"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="form-group"><label>📆 Total Days</label><input type="number" id="checkinTotalDays" value="${days}" readonly></div>
+            <div class="form-group"><label>⏰ Daily Reset Time</label><input type="time" id="checkinResetTime" value="14:30"></div>
+        </div>
+        <h4 style="color:var(--w);font-size:11px;margin:10px 0">Rewards Configuration</h4>
+        <div style="max-height:300px;overflow-y:auto">${rewardsHtml}</div>
+        <button class="btn btn-g" onclick="createCheckinEvent('${type}')" style="width:100%;margin-top:10px"><i class="fas fa-save"></i> Create Event</button>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e) { if(e.target === modal) modal.remove(); });
+}
+
+async function createCheckinEvent(type) {
+    const days = type === 'normal' ? 7 : 14;
+    const name = document.getElementById('checkinEventName').value;
+    const startDate = document.getElementById('checkinStartDate').value;
+    const startTime = document.getElementById('checkinStartTime').value + ':00';
+    const resetTime = document.getElementById('checkinResetTime').value + ':00';
+    
+    if (!startDate) return n('❌ Start date required', 'error');
+    
+    const rewards = [];
+    for (let d = 1; d <= days; d++) {
+        rewards.push({
+            day: d,
+            type: document.getElementById('rewardType' + d).value,
+            amount: document.getElementById('rewardAmount' + d).value,
+            label: document.getElementById('rewardLabel' + d).value,
+            icon: document.getElementById('rewardIcon' + d).value
+        });
+    }
+    
+    showLoading('Creating...');
+    try {
+        const r = await fetch('/api/admin/checkin_event/create', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                event_type: type,
+                event_name: name,
+                start_date: startDate,
+                start_time: startTime,
+                end_time: resetTime,
+                total_days: days,
+                rewards: rewards
+            })
+        });
+        const d = await r.json();
+        if (d.success) {
+            n('✅ Event created!');
+            document.getElementById('checkinEventModal').remove();
+            loadCheckinEvents();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) { n('Error', 'error'); }
+    hideLoading();
+}
+
+async function cancelCheckinEvent(eventId) {
+    if (!confirm('Cancel this event?')) return;
+    try {
+        const r = await fetch('/api/admin/checkin_event/cancel', {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({event_id: eventId})
+        });
+        const d = await r.json();
+        if (d.success) { n('✅ Cancelled!'); loadCheckinEvents(); }
+        else { n(d.message || 'Error', 'error'); }
+    } catch(e) { n('Error', 'error'); }
+}
+
+async function editCheckinEvent(eventId, type) {
+    // Similar to create but pre-filled - can add later
+    n('Edit feature coming soon', 'info');
+}
+
+// ====================================
+// REUSE CHECK-IN EVENT
+// ====================================
+async function reuseCheckinEvent(eventId) {
+    // Ask for new start date
+    const startDate = prompt('📅 ဘယ်နေ့မှ စတင်မလဲ?\n(YYYY-MM-DD ပုံစံဖြင့် ထည့်ပါ)\nဥပမာ - 2026-06-01', 
+        new Date().toISOString().split('T')[0]
+    );
+    
+    if (!startDate) return;
+    
+    const startTime = prompt('⏰ ဘယ်အချိန်မှ စတင်မလဲ?\n(HH:MM ပုံစံဖြင့် ထည့်ပါ)\nဥပမာ - 00:00', '00:00');
+    
+    if (!startTime) return;
+    
+    showLoading('Reusing event...');
+    try {
+        const r = await fetch('/api/admin/checkin_event/reuse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_id: eventId,
+                start_date: startDate,
+                start_time: startTime + ':00'
+            })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Event reused! Starts: ' + startDate + ' → Ends: ' + d.end_date);
+            loadCheckinEvents();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) {
+        n('Error', 'error');
+    }
+    hideLoading();
+}
 // ==================== RESELLER MANAGEMENT ====================
 async function loadResellers() { try { const r = await fetch('/api/admin/resellers'); const d = await r.json(); const c = document.getElementById('resellerList'); if (d.resellers && d.resellers.length > 0) { c.innerHTML = d.resellers.map(res => { const expired = res.expiry_date && new Date(res.expiry_date) < new Date(); let sc = res.status === 'active' ? 'var(--g)' : 'var(--r)'; let st = res.status; if (expired && res.status === 'active') { sc = '#7f8c8d'; st = 'Expired'; } return `<div class="reseller-card${res.status !== 'active' ? ' suspended' : expired ? ' expired' : ''}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="flex:1"><b style="color:var(--w)">${res.name}</b><span style="font-size:8px;color:${sc};margin-left:8px">[${st}]</span>${expired && res.status === 'active' ? '<span class="expiry-warning"> EXPIRED</span>' : ''}<br><small style="color:rgba(255,255,255,0.5)">💰 ${parseFloat(res.balance).toLocaleString()} ${res.currency} | 📊 ${res.markup_percent}%</small></div><button class="btn btn-b" style="font-size:9px;padding:5px 10px" onclick="openResellerModal(${res.id})">🔧 Manage</button></div></div>`; }).join(''); } else { c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No resellers yet</p>'; } } catch (e) {} }
 async function loadResellerTransactions() { try { const r = await fetch('/api/admin/reseller/transactions'); const d = await r.json(); const c = document.getElementById('resellerTransactions'); if (d.transactions && d.transactions.length > 0) { c.innerHTML = d.transactions.map(txn => { const color = txn.amount > 0 ? 'var(--g)' : 'var(--r)'; const sign = txn.amount > 0 ? '+' : ''; return `<div style="display:flex;justify-content:space-between;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:4px;margin-bottom:3px;font-size:9px"><div><b>${txn.reseller_name}</b> - ${txn.action}<br><small style="color:rgba(255,255,255,0.4)">${new Date(txn.created_at).toLocaleString()}</small></div><div style="text-align:right;color:${color}">${sign}${Math.abs(txn.amount).toLocaleString()} ${txn.currency}</div></div>`; }).join(''); } else { c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No transactions yet</p>'; } } catch (e) {} }
