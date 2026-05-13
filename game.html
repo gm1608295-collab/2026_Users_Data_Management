@@ -1069,6 +1069,107 @@ document.querySelectorAll('.btn-buy').forEach(btn=>{btn.addEventListener('click'
 document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',(e)=>{if(e.target===o)o.classList.remove('active');});});
 
 // ====================================
+// PAGE ACCESS CHECK (Maintenance System)
+// ====================================
+async function checkPageAccess() {
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const gamePage = d.pages.find(p => p.id === 'game');
+            if (gamePage && gamePage.status === 'off') {
+                // Check for timer
+                const pageId = 'game';
+                let timer = null;
+                try {
+                    const saved = localStorage.getItem('pageTimers');
+                    if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
+                    if (!timer) {
+                        const cookieTimers = getCookie('pageTimers');
+                        if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; }
+                    }
+                    if (!timer) {
+                        const sessionTimers = sessionStorage.getItem('pageTimers');
+                        if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; }
+                    }
+                } catch(e) {}
+                
+                if (!timer || timer <= Date.now()) {
+                    // No timer or timer expired - check if page is back on
+                    return false; // Page is off, no timer
+                }
+                
+                // Timer is active - show maintenance with countdown
+                showMaintenanceWithTimer(timer);
+                return false;
+            }
+        }
+        return true;
+    } catch(e) { 
+        return true; // If API fails, allow access
+    }
+}
+
+function showMaintenanceWithTimer(timer) {
+    const maintMsg = document.getElementById('maintenanceMessage');
+    const mainContainer = document.getElementById('mainContainer');
+    
+    if (maintMsg) maintMsg.style.display = 'block';
+    if (mainContainer) mainContainer.style.display = 'none';
+    
+    const maintTimer = document.getElementById('maintenanceCountdown');
+    
+    const update = () => {
+        const rem = timer - Date.now();
+        if (rem <= 0) {
+            // Timer expired - page should be back on
+            try {
+                const pageId = 'game';
+                const saved = localStorage.getItem('pageTimers');
+                if (saved) {
+                    const timers = JSON.parse(saved);
+                    delete timers[pageId];
+                    localStorage.setItem('pageTimers', JSON.stringify(timers));
+                }
+                setCookie('pageTimers', '', -1);
+                sessionStorage.removeItem('pageTimers');
+            } catch(e) {}
+            location.reload();
+            return;
+        }
+        const s = Math.floor(rem / 1000);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        if (maintTimer) maintTimer.textContent = timeStr;
+    };
+    
+    update();
+    setInterval(update, 1000);
+}
+
+function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
+}
+
+function getCookie(name) {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+// ====================================
 // PAGE TIMER CHECK
 // ====================================
 async function checkPageTimer(){
@@ -1094,43 +1195,115 @@ function getCookie(name){const nameEQ=name+'=';const ca=document.cookie.split(';
 // INIT
 // ====================================
 async function init(){
-    const pageOn=await checkPageTimer();
-    if(!pageOn)return;
+    // ✅ Page Maintenance Check
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const gp = d.pages.find(p => p.id === 'game');
+            if (gp && gp.status === 'off') {
+                // Check timer from storage
+                let timer = null;
+                try {
+                    const saved = localStorage.getItem('pageTimers');
+                    if (saved) { const t = JSON.parse(saved); timer = t['game']; }
+                    if (!timer) {
+                        const ck = getCookie('pageTimers');
+                        if (ck) { const t = JSON.parse(decodeURIComponent(ck)); timer = t['game']; }
+                    }
+                    if (!timer) {
+                        const ss = sessionStorage.getItem('pageTimers');
+                        if (ss) { const t = JSON.parse(ss); timer = t['game']; }
+                    }
+                } catch(e) {}
+                
+                // If timer active, show countdown
+                if (timer && timer > Date.now()) {
+                    document.getElementById('mainContainer').style.display = 'none';
+                    document.getElementById('maintenanceMessage').style.display = 'block';
+                    const cnt = document.getElementById('maintenanceCountdown');
+                    const upd = () => {
+                        const rem = timer - Date.now();
+                        if (rem <= 0) {
+                            try {
+                                const s = localStorage.getItem('pageTimers');
+                                if (s) { const t = JSON.parse(s); delete t['game']; localStorage.setItem('pageTimers', JSON.stringify(t)); }
+                                setCookie('pageTimers', '', -1);
+                                sessionStorage.removeItem('pageTimers');
+                            } catch(e) {}
+                            location.reload(); return;
+                        }
+                        const ss = Math.floor(rem / 1000);
+                        const hh = Math.floor(ss / 3600);
+                        const mm = Math.floor((ss % 3600) / 60);
+                        const sec = ss % 60;
+                        cnt.textContent = `${hh.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+                    };
+                    upd(); setInterval(upd, 1000);
+                    return;
+                }
+                
+                // No timer = fully off
+                document.getElementById('mainContainer').style.display = 'none';
+                document.getElementById('maintenanceMessage').style.display = 'block';
+                return;
+            }
+        }
+    } catch(e) {}
+    
+    // ✅ Page is ON - continue
+    document.getElementById('mainContainer').style.display = '';
+    document.getElementById('maintenanceMessage').style.display = 'none';
     
     State.load();
     await API.fetchRates();
-    const d=await API.syncAll();
+    const d = await API.syncAll();
     if(d){
-        State.mmkBalance=d.mmkBalance;State.usdBalance=d.usdBalance;
-        State.isPremium=d.isPremium;State.premiumTier=d.premiumTier||1;
-        State.maxDailyDraws=d.maxDailyDraws;State.dailyDraws=d.dailyDrawsRemaining;
-        State.premiumExpiry=d.premiumExpiry;
-        const today=new Date().toDateString();
-        if(localStorage.getItem('spinLastResetDate')!==today){State.dailyDraws=d.maxDailyDraws||1;localStorage.setItem('spinLastResetDate',today);}
-        if(State.isPremium)document.getElementById('mainBody').classList.add('premium-active');
+        State.mmkBalance = d.mmkBalance;
+        State.usdBalance = d.usdBalance;
+        State.isPremium = d.isPremium;
+        State.premiumTier = d.premiumTier||1;
+        State.maxDailyDraws = d.maxDailyDraws;
+        State.dailyDraws = d.dailyDrawsRemaining;
+        State.premiumExpiry = d.premiumExpiry;
+        const today = new Date().toDateString();
+        if(localStorage.getItem('spinLastResetDate') !== today){
+            State.dailyDraws = d.maxDailyDraws||1;
+            localStorage.setItem('spinLastResetDate', today);
+        }
+        if(State.isPremium) document.getElementById('mainBody').classList.add('premium-active');
         State.save();
     }
-    UI.updateBalances();UI.applyPremiumTheme();UI.updateDraws();WheelEngine.draw(State.wheelAngle%(2*Math.PI));
+    UI.updateBalances();
+    UI.applyPremiumTheme();
+    UI.updateDraws();
+    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
     
-    // Daily reset timer update
-    setInterval(()=>UI.updateDailyTimer(),1000);
+    // Daily reset timer
+    setInterval(() => UI.updateDailyTimer(), 1000);
     UI.updateDailyTimer();
     
-    setInterval(async()=>{
+    // Auto refresh
+    setInterval(async () => {
         await API.fetchRates();
-        const data=await API.syncAll();
+        const data = await API.syncAll();
         if(data){
-            State.mmkBalance=data.mmkBalance;State.usdBalance=data.usdBalance;
-            const wasPremium=State.isPremium;
-            State.isPremium=data.isPremium;State.premiumTier=data.premiumTier||1;
-            State.maxDailyDraws=data.maxDailyDraws;State.dailyDraws=data.dailyDrawsRemaining;
-            if(State.isPremium&&!wasPremium)document.getElementById('mainBody').classList.add('premium-active');
-            UI.updateBalances();UI.applyPremiumTheme();UI.updateDraws();
+            State.mmkBalance = data.mmkBalance;
+            State.usdBalance = data.usdBalance;
+            const wasPremium = State.isPremium;
+            State.isPremium = data.isPremium;
+            State.premiumTier = data.premiumTier||1;
+            State.maxDailyDraws = data.maxDailyDraws;
+            State.dailyDraws = data.dailyDrawsRemaining;
+            if(State.isPremium && !wasPremium) document.getElementById('mainBody').classList.add('premium-active');
+            UI.updateBalances();
+            UI.applyPremiumTheme();
+            UI.updateDraws();
             State.save();
         }
-    },30000);
+    }, 30000);
 }
-init();
+init()
 </script>
 </body>
 </html>
