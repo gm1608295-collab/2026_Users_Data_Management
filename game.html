@@ -5,756 +5,575 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Lucky Spin - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-        }
+    <!-- CSS ကို အပိုင်း ၂ မှာ ထည့်ပါ -->
+ <style>
+:root {
+    --bg: #0a0a1a; --panel: #1a1f4b; --gold: #f39c12;
+    --green: #2ecc71; --red: #e74c3c; --text: #fff;
+    --wheel-size: 300px; --canvas-size: 600px;
+    
+    /* Bronze */
+    --bronze: #CD7F32; --bronze-light: #E8A87C; --bronze-dark: #8B4513;
+    --bronze-metallic: linear-gradient(135deg, #6b3410, #8B4513, #CD7F32, #E8A87C, #8B4513);
+    
+    /* Silver */
+    --silver: #A8A8A8; --silver-light: #E8E8E8; --silver-dark: #707070;
+    --silver-metallic: linear-gradient(135deg, #5a5a5a, #808080, #C0C0C0, #E8E8E8, #808080);
+    
+    /* Gold */
+    --gold-p: #FFD700; --gold-light: #FFF8DC; --gold-dark: #B8860B;
+    --gold-metallic: linear-gradient(135deg, #8B6914, #B8860B, #FFD700, #FFF8DC, #DAA520);
+}
 
-        body {
-            min-height: 100vh;
-            padding: 12px;
-            transition: all 0.3s ease;
-        }
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',system-ui,sans-serif; }
 
-        /* ========== BASE STYLES ========== */
-        .container-main {
-            max-width: 450px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
+/* ========== BASE BODY ========== */
+body {
+    background: #0c0e27;
+    color: var(--text); min-height:100vh; padding:10px;
+    transition: all 0.6s ease; overflow-x:hidden;
+}
 
-        /* Header */
-        .header-main {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            border-radius: 16px;
-            border: 2px solid;
-            transition: all 0.3s;
-        }
-        .header-main h2 {
-            font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        .header-main a {
-            font-size: 18px;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        .badge-premium {
-            display: none;
-            padding: 4px 12px;
-            border-radius: 30px;
-            font-size: 10px;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
+/* ========== TIER BACKGROUNDS ========== */
+body.tier1 { background: linear-gradient(135deg, #1a0c00, #2d1800, #1a0c00); }
+body.tier2 { background: linear-gradient(135deg, #0a0a0a, #161616, #0a0a0a); }
+body.tier3 { 
+    background: linear-gradient(135deg, #0a0a00, #1a1000, #2d1a00, #1a1000, #0a0a00);
+    animation: goldBgShine 4s infinite;
+}
+@keyframes goldBgShine {
+    0%,100% { background: linear-gradient(135deg, #0a0a00, #1a1000, #2d1a00, #1a1000, #0a0a00); }
+    50% { background: linear-gradient(135deg, #1a1000, #2d1a00, #4d2a00, #2d1a00, #1a1000); }
+}
 
-        /* Balance Cards */
-        .balance-bar-main {
-            display: flex;
-            gap: 10px;
-        }
-        .bal-card-main {
-            flex: 1;
-            border-radius: 16px;
-            padding: 10px;
-            text-align: center;
-            backdrop-filter: blur(4px);
-            transition: all 0.3s;
-        }
-        .bal-label-main {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .bal-value-main {
-            font-size: 20px;
-            font-weight: bold;
-            margin-top: 4px;
-        }
+.container { max-width:450px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:10px; padding-bottom:30px; }
 
-        /* Draw Cards */
-        .draws-container-main {
-            display: grid;
-            gap: 10px;
-            transition: all 0.3s;
-        }
-        .draw-card-main {
-            border-radius: 16px;
-            padding: 10px;
-            text-align: center;
-            backdrop-filter: blur(4px);
-            transition: all 0.3s;
-        }
-        .draw-card-main.weekly-bonus {
-            display: none;
-        }
-        .draw-icon-main {
-            font-size: 22px;
-            margin-bottom: 5px;
-        }
-        .draw-label-main {
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .draw-count-main {
-            font-size: 18px;
-            font-weight: bold;
-            margin-top: 4px;
-        }
+/* ========== HEADER ========== */
+.header {
+    display:flex; align-items:center; justify-content:space-between; width:100%;
+    background: linear-gradient(to right, #4a1c7a, #1a1f4b);
+    padding:12px 15px; border-radius:14px; border:2px solid var(--gold);
+    transition: all 0.6s ease; position:relative; overflow:hidden;
+}
+.back-btn { color:var(--gold); font-size:18px; text-decoration:none; z-index:1; }
+.header h2 { font-size:15px; font-weight:bold; color:var(--gold); z-index:1; flex:1; text-align:center; }
 
-        /* Wheel */
-        .wheel-container-main {
-            position: relative;
-            width: var(--wheel-size, 300px);
-            height: var(--wheel-size, 300px);
-            margin: 10px auto;
-        }
-        .wheel-pointer {
-            position: absolute;
-            top: -18px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 10;
-            font-size: 38px;
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
-            transition: all 0.3s;
-        }
-        canvas#wheelCanvas {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            transition: all 0.3s;
-        }
-        .spin-status-main {
-            font-size: 12px;
-            text-align: center;
-            margin: 5px 0;
-        }
-        .reset-countdown {
-            font-size: 10px;
-            text-align: center;
-            opacity: 0.7;
-        }
+/* Title Animation */
+.title-anim {
+    display:inline-block;
+    background: linear-gradient(90deg, #f39c12, #fff, #f39c12);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: titleShine 3s linear infinite;
+}
+@keyframes titleShine {
+    0% { background-position: 0% center; }
+    100% { background-position: 200% center; }
+}
 
-        /* Buttons */
-        .btn-row-main {
-            display: flex;
-            gap: 10px;
-        }
-        .btn-spin-main {
-            flex: 2;
-            padding: 14px;
-            border: none;
-            border-radius: 60px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-spin-main:hover:not(:disabled) {
-            transform: scale(1.02);
-        }
-        .btn-spin-main:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        .btn-premium-main {
-            flex: 1;
-            padding: 14px;
-            border-radius: 60px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            text-align: center;
-            text-decoration: none;
-            transition: 0.2s;
-        }
+/* Tier Header Overrides */
+body.tier1 .header {
+    background: linear-gradient(to right, #3d1c00, #6b3410, #8B4513);
+    border: 2px solid var(--bronze-light);
+    box-shadow: 0 0 20px rgba(205,127,50,0.3);
+}
+body.tier1 .header h2 { 
+    background: linear-gradient(90deg, #E8A87C, #fff, #CD7F32, #fff, #E8A87C);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: titleShine 3s linear infinite;
+}
+body.tier1 .back-btn { color: var(--bronze-light); }
 
-        /* Buy Tables */
-        .buy-table-main {
-            border-radius: 20px;
-            overflow: hidden;
-            margin-top: 5px;
-            transition: all 0.3s;
-        }
-        .table-title-main {
-            text-align: center;
-            padding: 10px;
-            font-size: 11px;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 10px;
-        }
-        th {
-            padding: 8px 4px;
-            font-size: 8px;
-            text-transform: uppercase;
-        }
-        td {
-            padding: 8px 4px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-        .btn-buy-main {
-            padding: 5px 14px;
-            border: none;
-            border-radius: 30px;
-            font-size: 9px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .btn-buy-main:hover {
-            transform: scale(1.03);
-        }
-        .save-text-main {
-            font-size: 8px;
-            font-weight: bold;
-        }
-        .rate-info-main {
-            font-size: 7px;
-        }
+body.tier2 .header {
+    background: linear-gradient(to right, #2d2d2d, #5a5a5a, #808080);
+    border: 2px solid var(--silver-light);
+    box-shadow: 0 0 20px rgba(192,192,192,0.3);
+}
+body.tier2 .header h2 { 
+    background: linear-gradient(90deg, #E8E8E8, #fff, #C0C0C0, #fff, #E8E8E8);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: titleShine 3s linear infinite;
+}
+body.tier2 .back-btn { color: var(--silver-light); }
 
-        /* Premium Table - hidden by default */
-        .premium-draw-table {
-            display: none;
-        }
+body.tier3 .header {
+    background: linear-gradient(to right, #3d2a00, #8B6914, #B8860B);
+    border: 2px solid var(--gold-light);
+    box-shadow: 0 0 30px rgba(255,215,0,0.4);
+    animation: headerGoldGlow 2s infinite;
+}
+@keyframes headerGoldGlow {
+    0%,100% { box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+    50% { box-shadow: 0 0 45px rgba(255,215,0,0.6); }
+}
+body.tier3 .header h2 { 
+    background: linear-gradient(90deg, #FFF8DC, #fff, #FFD700, #fff, #FFF8DC);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: titleShine 2s linear infinite;
+}
+body.tier3 .back-btn { color: var(--gold-light); }
 
-        /* Modals */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal-box {
-            border-radius: 24px;
-            padding: 24px;
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-            border: 2px solid;
-            transition: all 0.3s;
-        }
-        .result-icon {
-            font-size: 60px;
-            margin-bottom: 10px;
-        }
-        .result-text {
-            font-size: 20px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .result-amount {
-            font-size: 28px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .result-prize-table {
-            border-radius: 16px;
-            padding: 12px;
-            margin: 15px 0;
-            text-align: left;
-            background: rgba(0,0,0,0.3);
-        }
-        .result-prize-table td {
-            padding: 6px;
-            border: none;
-            font-size: 12px;
-        }
-        .btn-close-modal {
-            border: none;
-            border-radius: 40px;
-            padding: 10px 30px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .super-link {
-            display: inline-block;
-            padding: 12px 24px;
-            border-radius: 40px;
-            text-decoration: none;
-            font-weight: bold;
-            margin: 10px 0;
-            animation: superPulse 1s infinite;
-        }
-        .toast {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            padding: 10px 16px;
-            border-radius: 30px;
-            font-size: 12px;
-            font-weight: bold;
-            display: none;
-            z-index: 1100;
-        }
-        .transition-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 999;
-            justify-content: center;
-            align-items: center;
-        }
-        .transition-overlay.active {
-            display: flex;
-        }
-        .transition-text {
-            font-size: 28px;
-            font-weight: bold;
-            text-align: center;
-            animation: scaleUp 0.5s ease;
-        }
+.premium-badge { display:none; padding:4px 12px; border-radius:20px; font-size:9px; font-weight:bold; z-index:1; }
+body.tier1 .premium-badge { display:inline-block; background: var(--bronze-metallic); color:#1a0c00; }
+body.tier2 .premium-badge { display:inline-block; background: var(--silver-metallic); color:#0a0a0a; }
+body.tier3 .premium-badge { display:inline-block; background: var(--gold-metallic); color:#1a1000; animation:badgePulse 1.5s infinite; }
+@keyframes badgePulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
 
-        /* ========== PREMIUM TIER 1 - BRONZE (Bold, Sharp, Clear) ========== */
-        body.bronze-tier {
-            background: linear-gradient(135deg, #1e0f08 0%, #2d1a0c 100%);
-        }
-        body.bronze-tier .header-main {
-            border-color: #CD7F32;
-            background: #2a1a0e;
-            box-shadow: 0 0 12px rgba(205,127,50,0.3);
-        }
-        body.bronze-tier .header-main h2 { color: #E8A87C; }
-        body.bronze-tier .header-main a { color: #CD7F32; }
-        body.bronze-tier .badge-premium {
-            background: #CD7F32;
-            color: #1a0a00;
-            box-shadow: 0 0 8px #CD7F32;
-        }
-        body.bronze-tier .bal-card-main {
-            background: rgba(45, 26, 12, 0.9);
-            border: 1px solid #CD7F32;
-        }
-        body.bronze-tier .bal-value-main { color: #CD7F32; }
-        body.bronze-tier .draw-card-main {
-            background: rgba(45, 26, 12, 0.8);
-            border: 1px solid rgba(205,127,50,0.4);
-        }
-        body.bronze-tier .draw-count-main { color: #CD7F32; }
-        body.bronze-tier canvas#wheelCanvas {
-            border: 4px solid #CD7F32;
-            box-shadow: 0 0 25px rgba(205,127,50,0.5);
-        }
-        body.bronze-tier .btn-spin-main {
-            background: #CD7F32;
-            color: #1a0a00;
-            box-shadow: 0 4px 12px rgba(205,127,50,0.4);
-        }
-        body.bronze-tier .btn-premium-main {
-            background: rgba(205,127,50,0.15);
-            border: 1px solid #CD7F32;
-            color: #CD7F32;
-        }
-        body.bronze-tier .buy-table-main {
-            background: rgba(45, 26, 12, 0.7);
-            border: 1px solid rgba(205,127,50,0.3);
-        }
-        body.bronze-tier .table-title-main { color: #CD7F32; }
-        body.bronze-tier .btn-buy-main {
-            background: #CD7F32;
-            color: #1a0a00;
-        }
-        body.bronze-tier .wheel-pointer { color: #CD7F32; text-shadow: 0 0 8px #CD7F32; }
-        body.bronze-tier .modal-box { border-color: #CD7F32; background: #1e0f08; }
-        body.bronze-tier .animated-text {
-            animation: bronzeGlow 2s ease-in-out infinite;
-        }
-        body.bronze-tier .draw-card-main {
-            animation: bronzeCardFloat 3s ease-in-out infinite;
-        }
-        @keyframes bronzeGlow {
-            0%, 100% { text-shadow: 0 0 5px #CD7F32; }
-            50% { text-shadow: 0 0 15px #E8A87C; }
-        }
-        @keyframes bronzeCardFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-4px); }
-        }
+/* ========== BALANCE CARDS ========== */
+.balance-bar { display:flex; gap:8px; width:100%; }
+.bal-card {
+    flex:1; background:rgba(26,31,75,0.8); border-radius:12px;
+    padding:12px 10px; text-align:center; border:1px solid rgba(255,255,255,0.1);
+    transition:all 0.6s ease; position:relative; overflow:hidden;
+}
+.bal-icon { font-size:18px; margin-bottom:2px; }
+.bal-label { font-size:8px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1px; }
+.bal-value { font-size:20px; font-weight:bold; margin-top:3px; position:relative; z-index:1; }
+.bal-value.usd { color:#85bb65; }
+.bal-value.mmk { color:var(--gold); }
+.bal-shine {
+    position:absolute; top:-50%; left:-50%; width:200%; height:200%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.05) 50%, transparent 60%);
+    animation: cardShine 4s infinite;
+}
+@keyframes cardShine { 0%{transform:translateX(-100%) rotate(45deg)} 100%{transform:translateX(100%) rotate(45deg)} }
 
-        /* ========== PREMIUM TIER 2 - SILVER (Bright, Metallic) ========== */
-        body.silver-tier {
-            background: linear-gradient(135deg, #121212 0%, #1e1e1e 100%);
-        }
-        body.silver-tier .header-main {
-            border-color: #C0C0C0;
-            background: #1a1a1a;
-            box-shadow: 0 0 12px rgba(192,192,192,0.4);
-        }
-        body.silver-tier .header-main h2 { color: #E8E8E8; }
-        body.silver-tier .header-main a { color: #C0C0C0; }
-        body.silver-tier .badge-premium {
-            background: #C0C0C0;
-            color: #0a0a0a;
-            box-shadow: 0 0 10px #C0C0C0;
-        }
-        body.silver-tier .bal-card-main {
-            background: rgba(30, 30, 30, 0.9);
-            border: 1px solid #C0C0C0;
-        }
-        body.silver-tier .bal-value-main { color: #C0C0C0; }
-        body.silver-tier .draw-card-main {
-            background: rgba(30, 30, 30, 0.8);
-            border: 1px solid rgba(192,192,192,0.4);
-        }
-        body.silver-tier .draw-count-main { color: #C0C0C0; }
-        body.silver-tier canvas#wheelCanvas {
-            border: 4px solid #C0C0C0;
-            box-shadow: 0 0 30px rgba(192,192,192,0.5);
-        }
-        body.silver-tier .btn-spin-main {
-            background: #C0C0C0;
-            color: #0a0a0a;
-            box-shadow: 0 4px 12px rgba(192,192,192,0.5);
-        }
-        body.silver-tier .btn-premium-main {
-            background: rgba(192,192,192,0.12);
-            border: 1px solid #C0C0C0;
-            color: #C0C0C0;
-        }
-        body.silver-tier .buy-table-main {
-            background: rgba(30, 30, 30, 0.7);
-            border: 1px solid rgba(192,192,192,0.3);
-        }
-        body.silver-tier .table-title-main { color: #C0C0C0; }
-        body.silver-tier .btn-buy-main {
-            background: #C0C0C0;
-            color: #0a0a0a;
-        }
-        body.silver-tier .wheel-pointer { color: #C0C0C0; text-shadow: 0 0 10px #C0C0C0; }
-        body.silver-tier .modal-box { border-color: #C0C0C0; background: #121212; }
-        body.silver-tier .animated-text {
-            animation: silverShine 1.8s ease-in-out infinite;
-        }
-        body.silver-tier .draw-card-main {
-            animation: silverPulse 2s ease-in-out infinite;
-        }
-        @keyframes silverShine {
-            0%, 100% { text-shadow: 0 0 8px #C0C0C0; letter-spacing: 0px; }
-            50% { text-shadow: 0 0 18px #E8E8E8; letter-spacing: 1px; }
-        }
-        @keyframes silverPulse {
-            0%, 100% { border-color: rgba(192,192,192,0.3); transform: scale(1); }
-            50% { border-color: rgba(192,192,192,0.8); transform: scale(1.02); }
-        }
+/* Tier Balance Cards */
+body.tier1 .bal-card { background:rgba(139,69,19,0.2); border-color:rgba(205,127,50,0.4); }
+body.tier1 .bal-card .bal-value.mmk { color:var(--bronze-light); }
+body.tier1 .bal-shine { background: linear-gradient(45deg, transparent 40%, rgba(232,168,124,0.08) 50%, transparent 60%); }
 
-        /* ========== PREMIUM TIER 3 - GOLD (Vibrant, Rich, Animated) ========== */
-        body.gold-tier {
-            background: linear-gradient(135deg, #1e1506 0%, #2d2008 100%);
-        }
-        body.gold-tier .header-main {
-            border-color: #FFD700;
-            background: #2a1e08;
-            box-shadow: 0 0 20px rgba(255,215,0,0.5);
-            animation: goldBorderGlow 1.5s infinite;
-        }
-        body.gold-tier .header-main h2 { 
-            color: #FFD700;
-            text-shadow: 0 0 8px #FFD700;
-            animation: goldTextWave 1.2s ease-in-out infinite;
-        }
-        body.gold-tier .header-main a { color: #FFD700; }
-        body.gold-tier .badge-premium {
-            background: #FFD700;
-            color: #1a0a00;
-            box-shadow: 0 0 15px #FFD700;
-            animation: goldBadgePulse 1s infinite;
-        }
-        body.gold-tier .bal-card-main {
-            background: rgba(45, 32, 8, 0.9);
-            border: 1px solid #FFD700;
-            animation: goldCardGlow 2s infinite;
-        }
-        body.gold-tier .bal-value-main { 
-            color: #FFD700;
-            animation: goldValueBounce 1s ease-in-out infinite;
-        }
-        body.gold-tier .draw-card-main {
-            background: rgba(45, 32, 8, 0.8);
-            border: 1px solid rgba(255,215,0,0.5);
-            animation: goldDrawShine 1.5s infinite;
-        }
-        body.gold-tier .draw-count-main { 
-            color: #FFD700;
-            animation: goldCountZoom 0.8s infinite;
-        }
-        body.gold-tier canvas#wheelCanvas {
-            border: 4px solid #FFD700;
-            box-shadow: 0 0 40px rgba(255,215,0,0.6);
-            animation: goldWheelPulse 1.5s infinite;
-        }
-        body.gold-tier .btn-spin-main {
-            background: linear-gradient(135deg, #FFD700, #DAA520);
-            color: #1a0a00;
-            box-shadow: 0 4px 20px rgba(255,215,0,0.6);
-            animation: goldButtonShine 1s infinite;
-        }
-        body.gold-tier .btn-premium-main {
-            background: rgba(255,215,0,0.15);
-            border: 1px solid #FFD700;
-            color: #FFD700;
-        }
-        body.gold-tier .buy-table-main {
-            background: rgba(45, 32, 8, 0.7);
-            border: 1px solid rgba(255,215,0,0.4);
-        }
-        body.gold-tier .table-title-main { 
-            color: #FFD700;
-            animation: goldTitleMove 2s infinite;
-        }
-        body.gold-tier .btn-buy-main {
-            background: #FFD700;
-            color: #1a0a00;
-            animation: goldBuyGlow 0.8s infinite;
-        }
-        body.gold-tier .wheel-pointer { 
-            color: #FFD700;
-            text-shadow: 0 0 15px #FFD700;
-            animation: goldPointerJump 0.6s infinite;
-        }
-        body.gold-tier .animated-text {
-            animation: goldFancy 1.4s ease-in-out infinite;
-        }
-        body.gold-tier .draw-card-main {
-            animation: goldCardFloat 2.5s infinite;
-        }
-        
-        @keyframes goldBorderGlow {
-            0%, 100% { border-color: #FFD700; box-shadow: 0 0 15px rgba(255,215,0,0.4); }
-            50% { border-color: #FFF8DC; box-shadow: 0 0 30px #FFD700; }
-        }
-        @keyframes goldTextWave {
-            0%, 100% { transform: translateX(0px); text-shadow: 0 0 5px #FFD700; }
-            25% { transform: translateX(3px); text-shadow: 0 0 20px #FFD700; }
-            75% { transform: translateX(-3px); text-shadow: 0 0 20px #FFD700; }
-        }
-        @keyframes goldBadgePulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 10px #FFD700; }
-            50% { transform: scale(1.05); box-shadow: 0 0 25px #FFD700; }
-        }
-        @keyframes goldCardGlow {
-            0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.3); }
-            50% { box-shadow: 0 0 20px rgba(255,215,0,0.7); }
-        }
-        @keyframes goldValueBounce {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.08); color: #FFF8DC; }
-        }
-        @keyframes goldDrawShine {
-            0%, 100% { border-color: rgba(255,215,0,0.3); }
-            50% { border-color: #FFD700; box-shadow: 0 0 12px rgba(255,215,0,0.5); }
-        }
-        @keyframes goldCountZoom {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.2); color: #FFF8DC; }
-        }
-        @keyframes goldWheelPulse {
-            0%, 100% { box-shadow: 0 0 25px rgba(255,215,0,0.4); }
-            50% { box-shadow: 0 0 55px #FFD700; }
-        }
-        @keyframes goldButtonShine {
-            0%, 100% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; background: linear-gradient(135deg, #FFD700, #FFF8DC, #DAA520); }
-        }
-        @keyframes goldTitleMove {
-            0%, 100% { letter-spacing: 0px; }
-            50% { letter-spacing: 2px; }
-        }
-        @keyframes goldBuyGlow {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 5px #FFD700; }
-            50% { transform: scale(1.05); box-shadow: 0 0 15px #FFD700; }
-        }
-        @keyframes goldPointerJump {
-            0%, 100% { transform: translateX(-50%) translateY(0px); }
-            50% { transform: translateX(-50%) translateY(-8px); }
-        }
-        @keyframes goldCardFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-6px); }
-        }
-        @keyframes goldFancy {
-            0%, 100% { opacity: 1; text-shadow: 0 0 5px #FFD700; }
-            50% { opacity: 0.95; text-shadow: 0 0 25px #FFF8DC; }
-        }
+body.tier2 .bal-card { background:rgba(128,128,128,0.15); border-color:rgba(192,192,192,0.4); }
+body.tier2 .bal-card .bal-value.mmk { color:var(--silver-light); }
+body.tier2 .bal-shine { background: linear-gradient(45deg, transparent 40%, rgba(232,232,232,0.08) 50%, transparent 60%); }
 
-        /* Normal theme (no premium) */
-        body.normal-theme {
-            background: linear-gradient(135deg, #0c0e27, #1a1f4b);
-        }
-        body.normal-theme .draws-container-main { grid-template-columns: 1fr 1fr; }
-        body.normal-theme .weekly-bonus { display: none; }
-        body.normal-theme .premium-draw-table { display: none; }
-        
-        body.bronze-tier .draws-container-main,
-        body.silver-tier .draws-container-main,
-        body.gold-tier .draws-container-main {
-            grid-template-columns: 1fr 1fr 1fr;
-        }
-        body.bronze-tier .weekly-bonus,
-        body.silver-tier .weekly-bonus,
-        body.gold-tier .weekly-bonus {
-            display: block;
-        }
-        body.bronze-tier .premium-draw-table,
-        body.silver-tier .premium-draw-table,
-        body.gold-tier .premium-draw-table {
-            display: block;
-        }
+body.tier3 .bal-card { background:rgba(184,134,11,0.15); border-color:rgba(255,215,0,0.4); animation:cardPulse 2s infinite; }
+body.tier3 .bal-card .bal-value.mmk { color:var(--gold-light); }
+body.tier3 .bal-card .bal-value.usd { color:#a8e6a0; }
+body.tier3 .bal-shine { background: linear-gradient(45deg, transparent 40%, rgba(255,248,220,0.1) 50%, transparent 60%); }
+@keyframes cardPulse { 0%,100%{border-color:rgba(255,215,0,0.3)} 50%{border-color:rgba(255,215,0,0.6)} }
 
-        @keyframes superPulse {
-            0%, 100% { box-shadow: 0 0 10px #e91e63; }
-            50% { box-shadow: 0 0 25px #ff4081; }
-        }
-        @keyframes scaleUp {
-            from { transform: scale(0.5); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-    </style>
+/* ========== DRAW CARDS ========== */
+.draws-container { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+body.tier1 .draws-container, body.tier2 .draws-container, body.tier3 .draws-container { grid-template-columns:1fr 1fr 1fr; }
+.draw-card {
+    background:rgba(0,0,0,0.3); border-radius:12px; padding:12px 8px;
+    text-align:center; border:1px solid rgba(255,255,255,0.1);
+    transition:all 0.6s ease; position:relative; overflow:hidden;
+}
+.draw-card.weekly-bonus { display:none; }
+body.tier1 .draw-card.weekly-bonus, body.tier2 .draw-card.weekly-bonus, body.tier3 .draw-card.weekly-bonus { display:block; }
+.draw-icon-wrapper { position:relative; display:inline-block; margin-bottom:4px; }
+.draw-icon { font-size:22px; position:relative; z-index:1; }
+.draw-ring {
+    position:absolute; top:-4px; left:-4px; width:calc(100%+8px); height:calc(100%+8px);
+    border-radius:50%; border:2px solid transparent; animation: ringSpin 3s linear infinite;
+}
+.draw-label { font-size:8px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.5px; }
+.draw-count { font-size:18px; font-weight:bold; color:var(--gold); margin-top:2px; }
+.draw-card.bought .draw-count { color:#3498db; }
+
+@keyframes ringSpin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+
+/* Tier Draw Cards */
+body.tier1 .draw-card { border-color:rgba(205,127,50,0.3); background:rgba(139,69,19,0.1); }
+body.tier1 .draw-ring { border-color:rgba(205,127,50,0.4); }
+body.tier1 .draw-count { color:var(--bronze-light); }
+
+body.tier2 .draw-card { border-color:rgba(192,192,192,0.3); background:rgba(128,128,128,0.1); }
+body.tier2 .draw-ring { border-color:rgba(192,192,192,0.4); }
+body.tier2 .draw-count { color:var(--silver-light); }
+
+body.tier3 .draw-card { border-color:rgba(255,215,0,0.3); background:rgba(184,134,11,0.1); animation:drawGlow 2s infinite; }
+body.tier3 .draw-ring { border-color:rgba(255,215,0,0.5); animation: ringSpin 2s linear infinite, ringGlow 2s infinite; }
+body.tier3 .draw-count { color:var(--gold-light); }
+@keyframes drawGlow { 0%,100%{border-color:rgba(255,215,0,0.2)} 50%{border-color:rgba(255,215,0,0.5)} }
+@keyframes ringGlow { 0%,100%{border-color:rgba(255,215,0,0.3)} 50%{border-color:rgba(255,215,0,0.7)} }
+
+/* ========== WHEEL ========== */
+.wheel-container { position:relative; width:var(--wheel-size); height:var(--wheel-size); margin:8px auto; transition:all 0.6s ease; }
+.wheel-pointer { position:absolute; top:-12px; left:50%; transform:translateX(-50%); z-index:10; font-size:32px; color:#ff4444; transition:all 0.6s; }
+body.tier1 .wheel-pointer { color:var(--bronze-light); } body.tier2 .wheel-pointer { color:var(--silver-light); }
+body.tier3 .wheel-pointer { color:var(--gold-light); animation:pointerBounce 0.5s infinite; }
+@keyframes pointerBounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-5px)} }
+canvas#wheelCanvas { width:var(--wheel-size); height:var(--wheel-size); border-radius:50%; border:4px solid var(--gold); box-shadow:0 0 30px rgba(243,156,18,0.3); transition:all 0.6s ease; }
+body.tier1 canvas#wheelCanvas { border-color:var(--bronze-light); box-shadow:0 0 35px rgba(205,127,50,0.4); }
+body.tier2 canvas#wheelCanvas { border-color:var(--silver-light); box-shadow:0 0 35px rgba(192,192,192,0.4); }
+body.tier3 canvas#wheelCanvas { border-color:var(--gold-light); box-shadow:0 0 50px rgba(255,215,0,0.5); animation:wheelGlow 2s infinite; }
+@keyframes wheelGlow { 0%,100%{box-shadow:0 0 30px rgba(255,215,0,0.4)} 50%{box-shadow:0 0 60px rgba(255,215,0,0.7)} }
+
+/* ========== STATUS ========== */
+.spin-status { font-size:10px; color:rgba(255,255,255,0.5); min-height:16px; text-align:center; }
+body.tier1 .spin-status { color:var(--bronze-light); } body.tier2 .spin-status { color:var(--silver-light); }
+body.tier3 .spin-status { color:var(--gold-light); animation:textGlow 2s infinite; }
+@keyframes textGlow { 0%,100%{text-shadow:0 0 5px rgba(255,215,0,0.3)} 50%{text-shadow:0 0 15px rgba(255,215,0,0.6)} }
+.reset-countdown { font-size:9px; color:rgba(255,255,255,0.3); text-align:center; }
+
+/* ========== BUTTONS ========== */
+.btn-row { display:flex; gap:8px; width:100%; }
+.btn-spin {
+    flex:2; padding:14px 20px; border:none; border-radius:28px;
+    font-size:15px; font-weight:bold; cursor:pointer; letter-spacing:1px;
+    transition:all 0.3s ease; background:linear-gradient(135deg,#f39c12,#e67e22);
+    color:#000; box-shadow:0 5px 20px rgba(243,156,18,0.4); text-transform:uppercase;
+}
+.btn-spin:hover:not(:disabled) { transform:translateY(-2px); }
+.btn-spin:disabled { opacity:0.4; cursor:not-allowed; }
+
+body.tier1 .btn-spin { background: var(--bronze-metallic); color:#1a0c00; border:2px solid var(--bronze-light); box-shadow:0 5px 25px rgba(205,127,50,0.4); }
+body.tier2 .btn-spin { background: var(--silver-metallic); color:#0a0a0a; border:2px solid var(--silver-light); box-shadow:0 5px 25px rgba(192,192,192,0.4); }
+body.tier3 .btn-spin { background: var(--gold-metallic); color:#1a1000; border:2px solid var(--gold-light); box-shadow:0 5px 30px rgba(255,215,0,0.5); animation:spinBtnPulse 1.5s infinite; }
+@keyframes spinBtnPulse { 0%,100%{box-shadow:0 5px 25px rgba(255,215,0,0.4)} 50%{box-shadow:0 5px 50px rgba(255,215,0,0.7)} }
+
+.btn-premium { flex:1; padding:14px 8px; border:2px solid var(--gold); border-radius:28px; font-size:12px; font-weight:bold; cursor:pointer; transition:all 0.3s ease; background:rgba(255,255,255,0.05); color:var(--gold); text-transform:uppercase; }
+body.tier1 .btn-premium { background: var(--bronze-metallic); color:#1a0c00; border-color:var(--bronze-light); }
+body.tier2 .btn-premium { background: var(--silver-metallic); color:#0a0a0a; border-color:var(--silver-light); }
+body.tier3 .btn-premium { background: var(--gold-metallic); color:#1a1000; border-color:var(--gold-light); animation:premBtnPulse 2s infinite; }
+@keyframes premBtnPulse { 0%,100%{box-shadow:0 5px 20px rgba(255,215,0,0.3)} 50%{box-shadow:0 5px 40px rgba(255,215,0,0.6)} }
+
+/* ========== BUY TABLES ========== */
+.buy-table {
+    width:100%; background:rgba(26,31,75,0.5); border-radius:14px;
+    overflow:hidden; border:1px solid rgba(255,255,255,0.08);
+    transition:all 0.6s ease; margin-bottom:8px;
+}
+.buy-table.premium-draw-table { border:1px solid rgba(255,215,0,0.3); }
+.table-wrapper { padding:0 8px 8px; }
+.table-title {
+    text-align:center; padding:10px; font-size:11px; font-weight:bold;
+    color:var(--gold); background:rgba(0,0,0,0.4); letter-spacing:1px;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.table-title.premium-title { color:var(--prem-gold, #ffd700); }
+.table-title-icon { font-size:14px; }
+table { width:100%; border-collapse:collapse; font-size:10px; }
+th { background:rgba(0,0,0,0.3); color:var(--gold); padding:7px 4px; font-size:8px; text-transform:uppercase; }
+td { padding:7px 4px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.04); }
+.btn-buy {
+    padding:6px 14px; border:none; border-radius:15px; font-size:10px;
+    font-weight:bold; cursor:pointer; background:var(--gold); color:#000;
+    transition:all 0.3s;
+}
+.btn-buy:hover { transform:scale(1.05); }
+.premium-buy-btn { background: linear-gradient(135deg, #ffd700, #ff8c00); color:#000; }
+.save-text { color:#2ecc71; font-size:8px; font-weight:bold; }
+.rate-info { font-size:7px; color:rgba(255,255,255,0.4); }
+
+/* Tier Table Overrides */
+body.tier1 .buy-table { border-color:rgba(205,127,50,0.4); }
+body.tier1 .buy-table .table-title { color:var(--bronze-light); }
+body.tier1 .buy-table th { color:var(--bronze-light); }
+body.tier1 .btn-buy { background:var(--bronze-metallic); color:#1a0c00; }
+
+body.tier2 .buy-table { border-color:rgba(192,192,192,0.4); }
+body.tier2 .buy-table .table-title { color:var(--silver-light); }
+body.tier2 .buy-table th { color:var(--silver-light); }
+body.tier2 .btn-buy { background:var(--silver-metallic); color:#0a0a0a; }
+
+body.tier3 .buy-table { border-color:rgba(255,215,0,0.4); animation:tableGlow 2s infinite; }
+body.tier3 .buy-table .table-title { color:var(--gold-light); }
+body.tier3 .buy-table th { color:var(--gold-light); }
+body.tier3 .btn-buy { background:var(--gold-metallic); color:#1a1000; }
+@keyframes tableGlow { 0%,100%{border-color:rgba(255,215,0,0.3)} 50%{border-color:rgba(255,215,0,0.6)} }
+
+/* ========== MODALS ========== */
+.modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:1000; justify-content:center; align-items:center; backdrop-filter:blur(3px); }
+.modal-overlay.active { display:flex; }
+.modal-box { background:#1a1f4b; border:2px solid var(--gold); border-radius:16px; padding:20px; width:90%; max-width:420px; max-height:85vh; overflow-y:auto; animation:modalSlideIn 0.4s ease; }
+@keyframes modalSlideIn { from{opacity:0;transform:translateY(-40px) scale(0.9)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+/* Result Modal */
+.result-modal-box { text-align:center; }
+.result-icon { font-size:60px; text-align:center; margin:10px 0; }
+.result-text { text-align:center; font-size:18px; font-weight:bold; margin:8px 0; }
+.result-amount { text-align:center; font-size:26px; font-weight:bold; margin:8px 0; }
+.result-timer { text-align:center; font-size:12px; color:rgba(255,255,255,0.5); margin:8px 0; font-family:'Courier New',monospace; }
+.btn-close { display:block; margin:15px auto 0; padding:10px 30px; background:var(--gold); color:#000; border:none; border-radius:20px; font-weight:bold; cursor:pointer; }
+
+/* Confirm Modal */
+.confirm-modal-box { text-align:center; }
+.confirm-modal-box h3 { color:var(--gold); margin-bottom:10px; }
+.confirm-modal-box p { font-size:12px; margin:10px 0; color:#ccc; }
+.confirm-btns { display:flex; gap:10px; justify-content:center; margin-top:15px; }
+.btn-confirm { padding:10px 25px; border:none; border-radius:20px; font-weight:bold; cursor:pointer; }
+.btn-yes { background:#2ecc71; color:#000; }
+.btn-no { background:rgba(255,255,255,0.15); color:#fff; }
+
+/* Processing Modal */
+.processing-modal { text-align:center; }
+.processing-icon { font-size:50px; animation:procBounce 1s infinite; }
+@keyframes procBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-15px)} }
+.processing-title { font-size:16px; color:var(--gold); margin:10px 0; font-weight:bold; }
+.progress-bar-container { width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:10px; overflow:hidden; margin:15px 0; }
+.progress-bar-fill { height:100%; background:linear-gradient(90deg,#ffd700,#ff8c00); border-radius:10px; transition:width 0.1s ease; width:0%; }
+.progress-text { font-size:14px; color:#fff; font-weight:bold; }
+.progress-subtext { font-size:10px; color:rgba(255,255,255,0.4); margin-top:5px; }
+
+/* Toast */
+.toast { position:fixed; top:15px; right:15px; padding:12px 18px; border-radius:8px; z-index:9999; font-size:12px; font-weight:bold; display:none; box-shadow:0 5px 20px rgba(0,0,0,0.4); max-width:300px; }
+
+/* Transition Overlay */
+.transition-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:radial-gradient(circle,rgba(255,215,0,0.3),rgba(0,0,0,0.95)); z-index:999; justify-content:center; align-items:center; flex-direction:column; }
+.transition-overlay.active { display:flex; }
+.transition-text { font-size:32px; font-weight:bold; color:#ffd700; text-shadow:0 0 40px rgba(255,215,0,0.8); text-align:center; }
+
+/* Maintenance & Timer */
+.maintenance-container { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; text-align:center; padding:20px; }
+.maintenance-icon { font-size:80px; color:var(--gold); margin-bottom:20px; }
+.maintenance-title { font-size:22px; font-weight:bold; color:var(--gold); margin-bottom:10px; }
+.maintenance-subtitle { font-size:14px; color:rgba(255,255,255,0.7); margin-bottom:8px; }
+.maintenance-timer { font-size:28px; color:var(--gold); font-family:'Courier New',monospace; margin:15px 0; }
+.maintenance-btn { display:inline-block; padding:12px 30px; background:var(--gold); color:#000; text-decoration:none; border-radius:8px; font-weight:bold; font-size:14px; margin-top:10px; }
+.page-timer-banner { display:none; background:rgba(231,76,60,0.1); border:1px solid rgba(231,76,60,0.3); border-radius:10px; padding:12px; text-align:center; margin-bottom:10px; width:100%; }
+.timer-label { font-size:10px; color:var(--red); margin-bottom:5px; }
+.timer-value { font-size:18px; font-weight:bold; color:var(--red); font-family:'Courier New',monospace; }
+
+@media (max-width:380px) {
+    :root { --wheel-size:250px; --canvas-size:500px; }
+    .draws-container { grid-template-columns:1fr 1fr; }
+}
+</style>
 </head>
-<body id="mainBody" class="normal-theme">
-    <!-- Toast & Overlays -->
+<body id="mainBody">
+    <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
+    
+    <!-- Premium Transition Overlay -->
     <div class="transition-overlay" id="transitionOverlay">
-        <div class="transition-text" id="transitionText">👑 PREMIUM UNLOCKED!</div>
+        <div class="transition-text" id="transitionText">👑<br>PREMIUM<br>UNLOCKED!</div>
     </div>
+    
+    <!-- Processing Modal -->
     <div class="modal-overlay" id="processingModal">
-        <div class="modal-box">
+        <div class="modal-box processing-modal">
             <div class="processing-icon">👑</div>
-            <div class="progress-bar-container"><div class="progress-bar-fill" id="progressBarFill"></div></div>
-            <div id="progressText">0%</div>
+            <div class="processing-title" id="processingTitle">Processing Premium...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">0%</div>
+            <div class="progress-subtext">Please wait while we activate your premium features...</div>
         </div>
     </div>
-    <div id="maintenanceMessage" style="display:none">
-        <div class="maintenance-container" style="text-align:center;padding:40px">
-            <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
-            <div class="maintenance-title">Page Under Maintenance</div>
-            <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
-            <a href="/dashboard" class="maintenance-btn" style="display:inline-block;margin-top:15px;padding:10px 20px;border-radius:30px;background:#DAA520;text-decoration:none;color:#000;">Back to Dashboard</a>
-        </div>
-    </div>
-    <div class="page-timer-banner" id="pageTimerBanner" style="display:none;text-align:center;margin-bottom:10px;padding:10px;border-radius:12px;background:rgba(231,76,60,0.2);">
-        <div class="timer-label">⏱️ This page is temporarily closed</div>
+    
+    <!-- Page Timer Banner -->
+    <div class="page-timer-banner" id="pageTimerBanner">
+        <div class="timer-label">⏱️ ဤစာမျက်နှာ ယာယီပိတ်ထားပါသည်</div>
         <div class="timer-value" id="pageTimerCountdown">--:--:--</div>
     </div>
+    
+    <!-- Maintenance Mode -->
+    <div id="maintenanceMessage" style="display:none">
+        <div class="maintenance-container">
+            <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+            <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+            <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+            <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
+            <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
+        </div>
+    </div>
 
-    <div class="container-main">
-        <div class="header-main">
-            <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-            <h2 id="headerTitle" class="animated-text">🎰 Lucky Spin</h2>
-            <span class="badge-premium" id="premiumBadge">PREMIUM</span>
+    <!-- ========== MAIN CONTAINER ========== -->
+    <div class="container" id="mainContainer">
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h2 id="headerTitle" class="title-anim">🎰 Lucky Spin</h2>
+            <span class="premium-badge" id="premiumBadge">👑 PREMIUM</span>
         </div>
         
-        <div class="balance-bar-main">
-            <div class="bal-card-main"><div class="bal-label-main">💵 USD</div><div class="bal-value-main" id="usdBalance">$0.00</div></div>
-            <div class="bal-card-main"><div class="bal-label-main">💰 MMK</div><div class="bal-value-main" id="mmkBalance">0 Ks</div></div>
+        <!-- ===== BALANCE BAR ===== -->
+        <div class="balance-bar">
+            <div class="bal-card" id="usdCard">
+                <div class="bal-icon">💵</div>
+                <div class="bal-label">USD Balance</div>
+                <div class="bal-value usd" id="usdBalance">$0.00</div>
+                <div class="bal-shine"></div>
+            </div>
+            <div class="bal-card" id="mmkCard">
+                <div class="bal-icon">💰</div>
+                <div class="bal-label">MMK Balance</div>
+                <div class="bal-value mmk" id="mmkBalance">0 Ks</div>
+                <div class="bal-shine"></div>
+            </div>
         </div>
         
-        <div class="draws-container-main">
-            <div class="draw-card-main"><div class="draw-icon-main">🔄</div><div class="draw-label-main">Daily Free</div><div class="draw-count-main" id="dailyCount">0</div></div>
-            <div class="draw-card-main"><div class="draw-icon-main">💳</div><div class="draw-label-main">Bought</div><div class="draw-count-main" id="boughtCount">0</div></div>
-            <div class="draw-card-main weekly-bonus"><div class="draw-icon-main">🎁</div><div class="draw-label-main">Weekly Bonus</div><div class="draw-count-main" id="weeklyCount">0</div></div>
+        <!-- ===== DRAWS STATUS ===== -->
+        <div class="draws-container" id="drawsContainer">
+            <div class="draw-card" id="dailyDrawCard">
+                <div class="draw-icon-wrapper">
+                    <div class="draw-icon">🔄</div>
+                    <div class="draw-ring"></div>
+                </div>
+                <div class="draw-label">Daily Free</div>
+                <div class="draw-count" id="dailyCount">0</div>
+            </div>
+            <div class="draw-card bought" id="boughtDrawCard">
+                <div class="draw-icon-wrapper">
+                    <div class="draw-icon">💳</div>
+                    <div class="draw-ring"></div>
+                </div>
+                <div class="draw-label">Bought Draws</div>
+                <div class="draw-count" id="boughtCount">0</div>
+            </div>
+            <div class="draw-card weekly-bonus" id="weeklyDrawCard">
+                <div class="draw-icon-wrapper">
+                    <div class="draw-icon">🎁</div>
+                    <div class="draw-ring"></div>
+                </div>
+                <div class="draw-label">Weekly Bonus</div>
+                <div class="draw-count" id="weeklyCount">0</div>
+            </div>
         </div>
         
-        <div class="wheel-container-main">
+        <!-- ===== WHEEL ===== -->
+        <div class="wheel-container">
             <div class="wheel-pointer"><i class="fas fa-caret-down"></i></div>
             <canvas id="wheelCanvas" width="600" height="600"></canvas>
         </div>
         
-        <div class="spin-status-main" id="spinStatus">Ready to spin!</div>
+        <!-- ===== SPIN STATUS ===== -->
+        <div class="spin-status" id="spinStatus">Ready to spin!</div>
         <div class="reset-countdown" id="resetCountdown"></div>
         
-        <div class="btn-row-main">
-            <button class="btn-spin-main" id="btnSpin">🎰 SPIN</button>
-            <a href="/premium.html" class="btn-premium-main" id="btnPremium">👑 PREMIUM</a>
+        <!-- ===== BUTTONS ===== -->
+        <div class="btn-row">
+            <button class="btn-spin" id="btnSpin">🎰 SPIN</button>
+            <button class="btn-premium" id="btnPremium" onclick="window.location.href='/premium.html'">👑 PREMIUM</button>
         </div>
         
-        <div class="buy-table-main">
-            <div class="table-title-main">💳 BUY NORMAL DRAWS</div>
-            <table>
-                <thead><tr><th>SPINS</th><th>PRICE</th><th>SAVE</th><th>RATE</th><th></th></tr></thead>
-                <tbody>
-                    <tr><td>1 Spin</td><td>250 Ks</td><td>-</td><td class="rate-info-main">USD 35% | MMK 28%</td><td><button class="btn-buy-main" data-spins="1" data-cost="250">Buy</button></td></tr>
-                    <tr><td>3 Spins</td><td>700 Ks</td><td class="save-text-main">Save 50 Ks</td><td class="rate-info-main">USD 35% | MMK 28%</td><td><button class="btn-buy-main" data-spins="3" data-cost="700">Buy</button></td></tr>
-                    <tr><td>5 Spins</td><td>1,200 Ks</td><td class="save-text-main">Save 50 Ks</td><td class="rate-info-main">USD 35% | MMK 28%</td><td><button class="btn-buy-main" data-spins="5" data-cost="1200">Buy</button></td></tr>
-                    <tr><td>10 Spins</td><td>2,300 Ks</td><td class="save-text-main">Save 200 Ks</td><td class="rate-info-main">USD 35% | MMK 28%</td><td><button class="btn-buy-main" data-spins="10" data-cost="2300">Buy</button></td></tr>
-                    <tr><td>20 Spins</td><td>4,500 Ks</td><td class="save-text-main">Save 500 Ks</td><td class="rate-info-main">USD 35% | MMK 28%</td><td><button class="btn-buy-main" data-spins="20" data-cost="4500">Buy</button></td></tr>
-                </tbody>
-            </table>
+        <!-- ===== BUY NORMAL DRAWS TABLE ===== -->
+        <div class="buy-table" id="normalBuyTable">
+            <div class="table-title">
+                <span class="table-title-icon">💳</span>
+                Buy Normal Draws
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Spins</th><th>Price</th><th>Save</th><th>Rate</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>1 Spin</b></td><td>250 Ks</td><td>-</td>
+                            <td class="rate-info">USD 35% | MMK 28%</td>
+                            <td><button class="btn-buy" data-spins="1" data-cost="250">Buy</button></td>
+                        </tr>
+                        <tr>
+                            <td><b>3 Spins</b></td><td>700 Ks</td>
+                            <td class="save-text">Save 50 Ks</td>
+                            <td class="rate-info">USD 35% | MMK 28%</td>
+                            <td><button class="btn-buy" data-spins="3" data-cost="700">Buy</button></td>
+                        </tr>
+                        <tr>
+                            <td><b>5 Spins</b></td><td>1,200 Ks</td>
+                            <td class="save-text">Save 50 Ks</td>
+                            <td class="rate-info">USD 35% | MMK 28%</td>
+                            <td><button class="btn-buy" data-spins="5" data-cost="1200">Buy</button></td>
+                        </tr>
+                        <tr>
+                            <td><b>10 Spins</b></td><td>2,300 Ks</td>
+                            <td class="save-text">Save 200 Ks</td>
+                            <td class="rate-info">USD 35% | MMK 28%</td>
+                            <td><button class="btn-buy" data-spins="10" data-cost="2300">Buy</button></td>
+                        </tr>
+                        <tr>
+                            <td><b>20 Spins</b></td><td>4,500 Ks</td>
+                            <td class="save-text">Save 500 Ks</td>
+                            <td class="rate-info">USD 35% | MMK 28%</td>
+                            <td><button class="btn-buy" data-spins="20" data-cost="4500">Buy</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
         
-        <div class="buy-table-main premium-draw-table">
-            <div class="table-title-main">👑 BUY PREMIUM DRAWS (2X WIN RATE)</div>
-            <table>
-                <thead><tr><th>SPINS</th><th>PRICE</th><th>SAVE</th><th>RATE</th><th></th></tr></thead>
-                <tbody>
-                    <tr><td>1 Spin</td><td>450 Ks</td><td>-</td><td class="rate-info-main">USD 57% | MMK 39%</td><td><button class="btn-buy-main" data-spins="1" data-cost="450">Buy</button></td></tr>
-                    <tr><td>3 Spins</td><td>1,300 Ks</td><td class="save-text-main">Save 50 Ks</td><td class="rate-info-main">USD 57% | MMK 39%</td><td><button class="btn-buy-main" data-spins="3" data-cost="1300">Buy</button></td></tr>
-                    <tr><td>5 Spins</td><td>2,200 Ks</td><td class="save-text-main">Save 50 Ks</td><td class="rate-info-main">USD 57% | MMK 39%</td><td><button class="btn-buy-main" data-spins="5" data-cost="2200">Buy</button></td></tr>
-                    <tr><td>10 Spins</td><td>4,000 Ks</td><td class="save-text-main">Save 500 Ks</td><td class="rate-info-main">USD 57% | MMK 39%</td><td><button class="btn-buy-main" data-spins="10" data-cost="4000">Buy</button></td></tr>
-                    <tr><td>20 Spins</td><td>8,000 Ks</td><td class="save-text-main">Save 1,000 Ks</td><td class="rate-info-main">USD 57% | MMK 39%</td><td><button class="btn-buy-main" data-spins="20" data-cost="8000">Buy</button></td></tr>
-                </tbody>
-            </table>
+        <!-- ===== BUY PREMIUM DRAWS TABLE ===== -->
+        <div class="buy-table premium-draw-table" id="premiumBuyTable">
+            <div class="table-title premium-title">
+                <span class="table-title-icon">👑</span>
+                Buy Premium Draws (2X Win Rate)
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr><th>Spins</th><th>Price</th><th>Save</th><th>Rate</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><b>1 Spin</b></td><td>450 Ks</td><td>-</td>
+                            <td class="rate-info">USD 57% | MMK 39%</td>
+                            <td><button class="btn-buy premium-buy-btn" data-spins="1" data-cost="450">Buy</button></td>
+                        </tr>
+                        <tr>
+                            <td><b>3 Spins</b></td><td>1,300 Ks</td>
+                            <td class="save-text">Save 50 Ks</td>
+                            <td class="rate-info">USD 57% | MMK 39%</td>
+                            <td><button class="btn-buy premium-buy-btn" data-spins="3" data-cost="1300">Buy</button></td>
+                        </tr>
+                        <tr>
+                            <td><b>5 Spins</b></td><td>2,200 Ks</td>
+                            <td class="save-text">Save 50 Ks</td>
+                            <td class="rate-info">USD 57% | MMK 39%</td>
+                            <td><button class="btn-buy premium-buy-btn" data-spins="5" data-cost="2200">Buy</button></td>
+                        </tr>
+                        <tr>
+                            <td><b>10 Spins</b></td><td>4,000 Ks</td>
+                            <td class="save-text">Save 500 Ks</td>
+                            <td class="rate-info">USD 57% | MMK 39%</td>
+                            <td><button class="btn-buy premium-buy-btn" data-spins="10" data-cost="4000">Buy</button></td>
+                        </tr>
+                        <tr>
+                            <td><b>20 Spins</b></td><td>8,000 Ks</td>
+                            <td class="save-text">Save 1,000 Ks</td>
+                            <td class="rate-info">USD 57% | MMK 39%</td>
+                            <td><button class="btn-buy premium-buy-btn" data-spins="20" data-cost="8000">Buy</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-
+    
+    <!-- ========== RESULT MODAL ========== -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-box result-modal-box">
+            <div class="result-icon" id="resultIcon"></div>
+            <div class="result-text" id="resultText"></div>
+            <div class="result-amount" id="resultAmount"></div>
+            <div class="result-timer" id="resultTimer"></div>
+            <div id="resultExtra"></div>
+            <button class="btn-close" id="resultCloseBtn" onclick="closeResultModal()">OK</button>
+        </div>
+    </div>
+    
+    <!-- ========== CONFIRM MODAL ========== -->
     <div class="modal-overlay" id="confirmModal">
-        <div class="modal-box">
-            <h3 id="confirmTitle" style="margin-bottom:10px">Buy Spins</h3>
-            <p id="confirmMsg" style="margin:10px 0"></p>
-            <div style="display:flex;gap:10px;justify-content:center">
-                <button onclick="closeModal('confirmModal')" style="background:#333;color:#fff;padding:8px 20px;border:none;border-radius:30px;cursor:pointer">Cancel</button>
-                <button id="confirmYesBtn" style="background:#2ecc71;color:#000;padding:8px 20px;border:none;border-radius:30px;cursor:pointer">Confirm</button>
+        <div class="modal-box confirm-modal-box">
+            <h3 id="confirmTitle"></h3>
+            <p id="confirmMsg"></p>
+            <div class="confirm-btns">
+                <button class="btn-confirm btn-no" onclick="closeModal('confirmModal')">ပယ်ဖျက်မည်</button>
+                <button class="btn-confirm btn-yes" id="confirmYesBtn">အတည်ပြုမည်</button>
             </div>
         </div>
     </div>
 
-    <div class="modal-overlay" id="resultModal">
-        <div class="modal-box">
-            <div class="result-icon" id="resultIcon"></div>
-            <div class="result-text" id="resultText"></div>
-            <div class="result-amount" id="resultAmount"></div>
-            <div id="resultExtra"></div>
-            <button class="btn-close-modal" onclick="closeModal('resultModal')">OK</button>
-        </div>
-    </div>
-
-<script>
-// ============================================
-// COMPLETE LUCKY SPIN - FULL PREMIUM COLORS + ANIMATIONS
-// With Prize Table and 10s Auto-close for SUPER
-// ============================================
-
+    <!-- JavaScript ကို အပိုင်း ၃ မှာ ထည့်ပါ -->
+  <script>
+// ====================================
+// CONFIGURATION
+// ====================================
 const CONFIG = {
     SUPER_FORM_URL: 'https://docs.google.com/forms/d/e/1FAIpQLSc3Im3lVSQgicVpAtiDMOW4kKxDIGd27wmQ5imk-Hqoon73Yw/viewform',
+    
     NORMAL_SEGMENTS: [
         {label:'FREE',color:'#1abc9c',reward:0,type:'free',weight:44},
         {label:'Thank You',color:'#7f8c8d',reward:0,type:'thanks',weight:48},
@@ -785,7 +604,7 @@ const CONFIG = {
         {label:'$1.00',color:'#2ecc71',reward:1.00,type:'usd',weight:1},
         {label:'$2.00',color:'#9b59b6',reward:2.00,type:'usd',weight:1}
     ],
-    PREMIUM_TIER1: [
+    PREMIUM_TIER1_SEGMENTS: [
         {label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:18},
         {label:'1000 Ks',color:'#c9a84c',reward:1000,type:'mmk',weight:14},
         {label:'$0.50',color:'#e74c3c',reward:0.50,type:'usd',weight:17},
@@ -796,7 +615,7 @@ const CONFIG = {
         {label:'SUPER',color:'#ff1744',reward:0,type:'super',weight:5},
         {label:'Thank You',color:'#7f8c8d',reward:0,type:'thanks',weight:5}
     ],
-    PREMIUM_TIER2: [
+    PREMIUM_TIER2_SEGMENTS: [
         {label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:14},
         {label:'1000 Ks',color:'#c9a84c',reward:1000,type:'mmk',weight:11},
         {label:'$0.50',color:'#e74c3c',reward:0.50,type:'usd',weight:12},
@@ -807,7 +626,7 @@ const CONFIG = {
         {label:'SUPER',color:'#ff1744',reward:0,type:'super',weight:3},
         {label:'Thank You',color:'#7f8c8d',reward:0,type:'thanks',weight:25}
     ],
-    PREMIUM_TIER3: [
+    PREMIUM_TIER3_SEGMENTS: [
         {label:'500 Ks',color:'#f39c12',reward:500,type:'mmk',weight:12},
         {label:'1000 Ks',color:'#c9a84c',reward:1000,type:'mmk',weight:10},
         {label:'$0.50',color:'#e74c3c',reward:0.50,type:'usd',weight:15},
@@ -820,303 +639,151 @@ const CONFIG = {
     ]
 };
 
+// ====================================
+// STATE
+// ====================================
 const State = {
-    isPremium: false, premiumTier: 0, isSpinning: false, wheelAngle: 0,
-    dailyDraws: 0, boughtDraws: 0, weeklyBonusDraws: 0,
-    mmkBalance: 0, usdBalance: 0, maxDailyDraws: 1,
+    isPremium:false, premiumTier:0, isSpinning:false, wheelAngle:0,
+    dailyDraws:0, boughtDraws:0, weeklyBonusDraws:0,
+    mmkBalance:0, usdBalance:0, premiumExpiry:null, maxDailyDraws:1,
+    superPrizeUsed:false,
     
-    getTotalDraws() { return this.dailyDraws + this.boughtDraws + this.weeklyBonusDraws; },
-    getDrawSource() {
-        if (this.dailyDraws > 0) return 'daily';
-        if (this.isPremium && this.weeklyBonusDraws > 0) return 'weekly_bonus';
-        if (this.boughtDraws > 0) return 'bought';
-        return null;
-    },
-    consumeDraw(s) {
-        if(s === 'daily' && this.dailyDraws > 0) this.dailyDraws--;
-        else if(s === 'weekly_bonus' && this.weeklyBonusDraws > 0) this.weeklyBonusDraws--;
-        else if(s === 'bought' && this.boughtDraws > 0) this.boughtDraws--;
-        this.save();
-    },
-    getSegmentsForSource(s) {
-        if(!this.isPremium) return (s === 'daily') ? CONFIG.NORMAL_SEGMENTS : CONFIG.NORMAL_BUY_SEGMENTS;
-        const tierSegs = this.premiumTier === 1 ? CONFIG.PREMIUM_TIER1 : (this.premiumTier === 2 ? CONFIG.PREMIUM_TIER2 : CONFIG.PREMIUM_TIER3);
-        if(s === 'daily' || s === 'weekly_bonus') return tierSegs;
-        else return CONFIG.PREMIUM_BUY_SEGMENTS;
-    },
-    save() { localStorage.setItem('spinStateV12', JSON.stringify({isPremium:this.isPremium, premiumTier:this.premiumTier, dailyDraws:this.dailyDraws, boughtDraws:this.boughtDraws, weeklyBonusDraws:this.weeklyBonusDraws, wheelAngle:this.wheelAngle, maxDailyDraws:this.maxDailyDraws})); },
-    load() { try { const d=JSON.parse(localStorage.getItem('spinStateV12')); if(d) { this.isPremium=d.isPremium; this.premiumTier=d.premiumTier; this.dailyDraws=d.dailyDraws; this.boughtDraws=d.boughtDraws; this.weeklyBonusDraws=d.weeklyBonusDraws; this.wheelAngle=d.wheelAngle; this.maxDailyDraws=d.maxDailyDraws; } } catch(e){} }
+    getTotalDraws(){return this.dailyDraws+this.boughtDraws+this.weeklyBonusDraws;},
+    getDrawSource(){if(this.dailyDraws>0)return'daily';if(this.isPremium&&this.weeklyBonusDraws>0)return'weekly_bonus';if(this.boughtDraws>0)return'bought';return null;},
+    consumeDraw(s){switch(s){case'daily':if(this.dailyDraws>0)this.dailyDraws--;break;case'weekly_bonus':if(this.weeklyBonusDraws>0)this.weeklyBonusDraws--;break;case'bought':if(this.boughtDraws>0)this.boughtDraws--;break;}this.save();},
+    getPremiumSegments(){switch(this.premiumTier){case 1:return CONFIG.PREMIUM_TIER1_SEGMENTS;case 2:return CONFIG.PREMIUM_TIER2_SEGMENTS;case 3:return CONFIG.PREMIUM_TIER3_SEGMENTS;default:return CONFIG.PREMIUM_TIER1_SEGMENTS;}},
+    getSegmentsForSource(s){if(!this.isPremium)return(s==='daily')?CONFIG.NORMAL_SEGMENTS:CONFIG.NORMAL_BUY_SEGMENTS;else{if(s==='daily'||s==='weekly_bonus')return this.getPremiumSegments();else return CONFIG.PREMIUM_BUY_SEGMENTS;}},
+    save(){try{localStorage.setItem('spinStateV8',JSON.stringify({isPremium:this.isPremium,premiumTier:this.premiumTier,dailyDraws:this.dailyDraws,boughtDraws:this.boughtDraws,weeklyBonusDraws:this.weeklyBonusDraws,wheelAngle:this.wheelAngle,maxDailyDraws:this.maxDailyDraws,superPrizeUsed:this.superPrizeUsed,timestamp:Date.now()}));}catch(e){}},
+    load(){try{const d=JSON.parse(localStorage.getItem('spinStateV8'));if(d){this.isPremium=d.isPremium||false;this.premiumTier=d.premiumTier||0;this.dailyDraws=d.dailyDraws||0;this.boughtDraws=d.boughtDraws||0;this.weeklyBonusDraws=d.weeklyBonusDraws||0;this.wheelAngle=d.wheelAngle||0;this.maxDailyDraws=d.maxDailyDraws||1;this.superPrizeUsed=d.superPrizeUsed||false;}}catch(e){}}
 };
 
+// ====================================
+// API
+// ====================================
 const API = {
-    getToken() { return localStorage.getItem('auth_token'); },
-    headers() { return {'Content-Type':'application/json'}; },
-    async syncAll() {
-        const token = this.getToken();
-        if(!token || token==='guest') return null;
-        try {
-            const [b,u,p] = await Promise.all([
-                fetch('/api/get_balance', {method:'POST', headers:this.headers(), body:JSON.stringify({token})}).then(r=>r.json()),
-                fetch('/api/get_usd_balance', {method:'POST', headers:this.headers(), body:JSON.stringify({token})}).then(r=>r.json()),
-                fetch('/api/get_premium_status', {method:'POST', headers:this.headers(), body:JSON.stringify({token})}).then(r=>r.json())
-            ]);
-            return { mmkBalance: parseFloat(b.balance||0), usdBalance: parseFloat(u.usd_balance||0), isPremium: !!(p.success && p.premium_active), premiumTier: p.premium_tier||1, dailyDrawsRemaining: p.daily_draws_remaining||0, maxDailyDraws: p.max_daily_draws||1 };
-        } catch(e) { return null; }
-    },
-    async executeSpin(s) {
-        if(!this.getToken() || this.getToken()==='guest') return this._guestSpin(s);
-        try { return await fetch('/api/spin/execute', {method:'POST', headers:this.headers(), body:JSON.stringify({token:this.getToken(), spin_source:s})}).then(r=>r.json()); }
-        catch(e){ return null; }
-    },
-    _guestSpin(s) {
-        const segs = State.getSegmentsForSource(s);
-        let total = segs.reduce((a,x)=>a+x.weight,0);
-        let rand = Math.random()*total, idx=0;
-        for(let i=0;i<segs.length;i++) { rand-=segs[i].weight; if(rand<=0) { idx=i; break; } }
-        return { success:true, winIndex:idx, reward:segs[idx], mmkBalance:State.mmkBalance, usdBalance:State.usdBalance };
-    },
-    async buySpins(spins,cost) {
-        if(!this.getToken() || this.getToken()==='guest') return {success:false, message:'Login required'};
-        try {
-            const d = await fetch('/api/deduct_balance', {method:'POST', headers:this.headers(), body:JSON.stringify({token:this.getToken(), amount:cost, reason:'Buy '+spins+' spins'})}).then(r=>r.json());
-            if(d.success) { State.boughtDraws += spins; State.mmkBalance = d.new_balance; State.save(); }
-            return d;
-        } catch(e){ return {success:false}; }
-    },
-    async checkSuperPrize() { return true; },
-    async markSuperPrize() {}
+    getToken(){return localStorage.getItem('auth_token');},
+    isGuest(){const t=this.getToken();return!t||t==='guest';},
+    headers(){return{'Content-Type':'application/json'};},
+    async syncAll(){if(this.isGuest())return null;try{const[b,u,p]=await Promise.all([fetch('/api/get_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json()),fetch('/api/get_usd_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json()),fetch('/api/get_premium_status',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(r=>r.json())]);return{mmkBalance:parseFloat(b.balance||0),usdBalance:parseFloat(u.usd_balance||0),isPremium:!!(p.success&&p.premium_active),premiumTier:p.premium_tier||1,premiumExpiry:p.expires_at||null,dailyDrawsRemaining:p.daily_draws_remaining||0,maxDailyDraws:p.max_daily_draws||1};}catch(e){return null;}},
+    async executeSpin(s){if(this.isGuest())return this._guestSpin(s);try{return await(await fetch('/api/spin/execute',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),spin_source:s})})).json();}catch(e){return null;}},
+    _guestSpin(s){const segs=State.getSegmentsForSource(s);const tw=segs.reduce((a,x)=>a+x.weight,0);let rand=Math.random()*tw,wi=0;for(let i=0;i<segs.length;i++){rand-=segs[i].weight;if(rand<=0){wi=i;break;}}return{success:true,winIndex:wi,reward:segs[wi],mmkBalance:State.mmkBalance,usdBalance:State.usdBalance};},
+    async buySpins(spins,cost){if(this.isGuest())return{success:false,message:'Login required'};try{const d=await(await fetch('/api/deduct_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),amount:cost,reason:'Buy '+spins+' spins'})})).json();if(d.success){State.boughtDraws+=spins;State.mmkBalance=d.new_balance;State.save();}return d;}catch(e){return{success:false};}},
+    async checkSuperPrize(){if(State.superPrizeUsed)return false;const t=this.getToken();if(!t||t==='guest')return true;try{const r=await(await fetch('/api/spin/check_super',{method:'POST',headers:this.headers(),body:JSON.stringify({token:t})})).json();return!r.used;}catch(e){return true;}},
+    async markSuperPrize(){State.superPrizeUsed=true;State.save();const t=this.getToken();if(!t||t==='guest')return;try{await fetch('/api/spin/mark_super',{method:'POST',headers:this.headers(),body:JSON.stringify({token:t})});}catch(e){}}
 };
 
+// ====================================
+// WHEEL ENGINE (unchanged - same as before)
+// ====================================
 const WheelEngine = {
-    canvas: document.getElementById('wheelCanvas'),
-    ctx: document.getElementById('wheelCanvas').getContext('2d'),
-    getSegments() { return State.isPremium ? (State.premiumTier===1?CONFIG.PREMIUM_TIER1:(State.premiumTier===2?CONFIG.PREMIUM_TIER2:CONFIG.PREMIUM_TIER3)) : CONFIG.NORMAL_SEGMENTS; },
-    draw(angle=0) {
-        const segs = this.getSegments(), cx=300, cy=300, r=270, arc = (2*Math.PI)/segs.length;
-        this.ctx.clearRect(0,0,600,600);
-        segs.forEach((s,i)=>{
-            const sa = i*arc+angle, ea = sa+arc;
-            this.ctx.beginPath(); this.ctx.moveTo(cx,cy); this.ctx.arc(cx,cy,r,sa,ea); this.ctx.closePath();
-            this.ctx.fillStyle = s.color; this.ctx.fill();
-            this.ctx.strokeStyle = '#fff'; this.ctx.lineWidth=1.5; this.ctx.stroke();
-            this.ctx.save(); this.ctx.translate(cx,cy); this.ctx.rotate(sa+arc/2);
-            this.ctx.fillStyle = '#fff'; this.ctx.font = 'bold 12px "Segoe UI"'; this.ctx.shadowBlur=0;
-            this.ctx.fillText(s.label, r*0.65, 5);
-            this.ctx.restore();
-        });
-        this.ctx.beginPath(); this.ctx.arc(cx,cy,35,0,2*Math.PI);
-        this.ctx.fillStyle = '#11112a'; this.ctx.fill();
-        this.ctx.fillStyle = '#DAA520'; this.ctx.font='bold 11px "Segoe UI"'; this.ctx.textAlign='center'; this.ctx.textBaseline='middle';
-        this.ctx.fillText('SPIN', cx, cy);
-    },
-    async spin(wi) {
-        const segs = this.getSegments(), arc = (2*Math.PI)/segs.length;
-        const target = -(wi*arc + arc/2) - Math.PI/2;
-        let norm = target; while(norm<0) norm+=2*Math.PI;
-        const total = norm + (6+Math.floor(Math.random()*3))*2*Math.PI;
-        const start = State.wheelAngle, dur=4000, startTime=Date.now();
-        return new Promise(r=>{
-            const anim = ()=>{
-                const t = Math.min((Date.now()-startTime)/dur,1);
-                const e = 1-Math.pow(1-t,3);
-                const cur = start + total*e;
-                this.draw(cur%(2*Math.PI));
-                State.wheelAngle = cur;
-                if(t<1) requestAnimationFrame(anim);
-                else r();
-            }; anim();
-        });
-    }
+    canvas:document.getElementById('wheelCanvas'),ctx:document.getElementById('wheelCanvas').getContext('2d'),
+    getSegments(){return State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS;},
+    getArcSize(){return(2*Math.PI)/this.getSegments().length;},
+    draw(angle=0){const segs=this.getSegments(),cx=300,cy=300,r=270,arc=this.getArcSize();this.ctx.clearRect(0,0,600,600);this.ctx.beginPath();this.ctx.arc(cx,cy,r+8,0,2*Math.PI);this.ctx.fillStyle=State.isPremium?'rgba(255,215,0,0.1)':'rgba(243,156,18,0.06)';this.ctx.fill();segs.forEach((s,i)=>{const sa=i*arc+angle,ea=sa+arc;this.ctx.beginPath();this.ctx.moveTo(cx,cy);this.ctx.arc(cx,cy,r,sa,ea);this.ctx.closePath();const g=this.ctx.createRadialGradient(cx,cy,r*0.3,cx,cy,r);g.addColorStop(0,this._light(s.color,50));g.addColorStop(1,s.color);this.ctx.fillStyle=g;this.ctx.fill();this.ctx.strokeStyle='rgba(255,255,255,0.3)';this.ctx.lineWidth=2;this.ctx.stroke();this.ctx.save();this.ctx.translate(cx,cy);this.ctx.rotate(sa+arc/2);this.ctx.fillStyle='#fff';this.ctx.font='bold 12px Segoe UI';this.ctx.shadowColor='rgba(0,0,0,0.8)';this.ctx.shadowBlur=5;this.ctx.fillText(s.label,r*0.6,5);this.ctx.restore();});this.ctx.beginPath();this.ctx.arc(cx,cy,r+3,0,2*Math.PI);this.ctx.strokeStyle=State.isPremium?'#ffd700':'#f39c12';this.ctx.lineWidth=3;this.ctx.stroke();this.ctx.beginPath();this.ctx.arc(cx,cy,30,0,2*Math.PI);const hg=this.ctx.createRadialGradient(cx,cy,0,cx,cy,30);hg.addColorStop(0,'#4a1c7a');hg.addColorStop(1,'#1a0a2e');this.ctx.fillStyle=hg;this.ctx.fill();this.ctx.strokeStyle='#ffd700';this.ctx.lineWidth=2;this.ctx.stroke();this.ctx.fillStyle='#fff';this.ctx.font='bold 10px Segoe UI';this.ctx.textAlign='center';this.ctx.textBaseline='middle';this.ctx.fillText('SPIN',cx,cy);},
+    _light(hex,p){const n=parseInt(hex.replace('#',''),16),a=Math.round(2.55*p);return`rgb(${Math.min(255,(n>>16)+a)},${Math.min(255,((n>>8)&0xFF)+a)},${Math.min(255,(n&0xFF)+a)})`},
+    async spin(wi){const segs=this.getSegments(),arc=(2*Math.PI)/segs.length;const ta=-(wi*arc+arc/2)-Math.PI/2;let n=ta;while(n<0)n+=2*Math.PI;const tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI,sa=State.wheelAngle,d=4000+Math.random()*500,st=Date.now();return new Promise(r=>{const a=()=>{const e=Math.min((Date.now()-st)/d,1),c=1-Math.pow(1-e,3),ca=sa+tr*c;this.draw(ca%(2*Math.PI));State.wheelAngle=ca;e<1?requestAnimationFrame(a):r();};requestAnimationFrame(a);});}
 };
 
+// ====================================
+// UI (SIMPLIFIED)
+// ====================================
 const UI = {
-    updateBalances() {
-        document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString()+' Ks';
-        document.getElementById('usdBalance').textContent = '$'+State.usdBalance.toFixed(2);
-    },
-    updateDraws() {
-        document.getElementById('dailyCount').textContent = State.dailyDraws;
-        document.getElementById('boughtCount').textContent = State.boughtDraws;
-        document.getElementById('weeklyCount').textContent = State.weeklyBonusDraws;
-        const btn = document.getElementById('btnSpin');
-        const status = document.getElementById('spinStatus');
-        if(State.isSpinning) { btn.disabled=true; status.textContent='Spinning...'; return; }
-        const total = State.getTotalDraws();
-        if(total>0) { btn.disabled=false; const src=State.getDrawSource(); status.textContent=(src==='daily'?'Daily':src==='weekly_bonus'?'Weekly Bonus':'Bought')+' · '+total+' draw(s) left'; }
-        else { btn.disabled=true; status.textContent='No draws available'; }
-    },
-    applyPremiumTheme() {
-        const body = document.getElementById('mainBody');
-        body.classList.remove('normal-theme','bronze-tier','silver-tier','gold-tier');
-        if(State.isPremium) {
-            if(State.premiumTier===1) body.classList.add('bronze-tier');
-            else if(State.premiumTier===2) body.classList.add('silver-tier');
-            else body.classList.add('gold-tier');
-            document.getElementById('headerTitle').innerHTML = `👑 Premium Lucky Spin (${State.premiumTier===1?'Bronze':State.premiumTier===2?'Silver':'Gold'})`;
-            document.getElementById('premiumBadge').style.display = 'inline-block';
-            document.getElementById('premiumBadge').textContent = `${State.premiumTier===1?'🥉':State.premiumTier===2?'🥈':'🥇'} PREMIUM ${State.premiumTier===1?'BRONZE':State.premiumTier===2?'SILVER':'GOLD'}`;
-        } else {
-            body.classList.add('normal-theme');
-            document.getElementById('headerTitle').innerHTML = '🎰 Lucky Spin';
-            document.getElementById('premiumBadge').style.display = 'none';
+    updateBalances(){document.getElementById('mmkBalance').textContent=State.mmkBalance.toLocaleString()+' Ks';document.getElementById('usdBalance').textContent='$'+State.usdBalance.toFixed(2);},
+    updateDraws(){document.getElementById('dailyCount').textContent=State.dailyDraws;document.getElementById('boughtCount').textContent=State.boughtDraws;document.getElementById('weeklyCount').textContent=State.weeklyBonusDraws;const dl=document.querySelector('#dailyDrawCard .draw-label');if(dl)dl.textContent=State.isPremium?'Daily (T'+State.premiumTier+')':'Daily Free';this.updateSpinButton();},
+    updateSpinButton(){const b=document.getElementById('btnSpin'),s=document.getElementById('spinStatus');if(State.isSpinning){b.disabled=true;s.textContent='⏳ Spinning...';return;}const t=State.getTotalDraws(),src=State.getDrawSource();if(t>0){b.disabled=false;let st='';switch(src){case'daily':st='🔄 Daily';break;case'weekly_bonus':st='🎁 Weekly Bonus';break;case'bought':st='💳 Bought';break;}s.textContent=st+' · '+t+' draw(s) left';}else{b.disabled=true;s.textContent='⏰ No draws';}},
+    applyPremiumTheme(){const body=document.getElementById('mainBody');body.classList.remove('tier1','tier2','tier3');if(State.isPremium){switch(State.premiumTier){case 1:body.classList.add('tier1');break;case 2:body.classList.add('tier2');break;case 3:body.classList.add('tier3');break;default:body.classList.add('tier1');}}WheelEngine.draw(State.wheelAngle%(2*Math.PI));this.updateDraws();},
+    showToast(m,t){t=t||'success';const toast=document.getElementById('toast');toast.textContent=m;toast.style.display='block';toast.style.background=t==='success'?'#2ecc71':t==='error'?'#e74c3c':'#3498db';toast.style.color='#fff';clearTimeout(this._tt);this._tt=setTimeout(()=>{toast.style.display='none';},3000);},
+    
+    // ✅ SUPER PRIZE with Timer
+    showResult(wi){
+        const segs=State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS,rw=segs[wi];
+        const ic=document.getElementById('resultIcon'),tx=document.getElementById('resultText'),
+              am=document.getElementById('resultAmount'),ex=document.getElementById('resultExtra'),
+              timer=document.getElementById('resultTimer'),cb=document.getElementById('resultCloseBtn');
+        ex.innerHTML='';timer.textContent='';cb.style.display='block';
+        
+        if(rw.type==='super'){
+            cb.style.display='none';
+            ic.textContent='👑';tx.textContent='🏆 SUPER PRIZE!';am.textContent='ONE TIME ONLY!';am.style.color='#e91e63';
+            timer.innerHTML='⏰ <b>10</b> seconds remaining...';
+            ex.innerHTML='<p style="color:#ffd700;font-size:11px;margin:8px 0">⚠️ တစ်ကြိမ်သာရရှိမည့် အထူးဆုကြီး</p><a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link" onclick="handleSuperClaimed()">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a><p style="color:rgba(255,255,255,0.4);font-size:9px;margin-top:8px">Link နှိပ်ပါ သို့မဟုတ် 10 စက္ကန့်စောင့်ပါ</p>';
+            openModal('resultModal');
+            // 10 seconds auto close
+            let count=10;
+            clearInterval(this._superTimer);
+            this._superTimer=setInterval(()=>{
+                count--;
+                if(count<=0){clearInterval(this._superTimer);closeResultModal();return;}
+                timer.innerHTML='⏰ <b>'+count+'</b> seconds remaining...';
+            },1000);
+        }else{
+            cb.style.display='block';timer.textContent='';
+            switch(rw.type){
+                case'free':ic.textContent='🔄';tx.textContent='Free Spin!';am.textContent='+1 Extra Draw';am.style.color='#1abc9c';break;
+                case'thanks':ic.textContent='😊';tx.textContent='Thank You!';am.textContent='Better luck next time';am.style.color='#7f8c8d';break;
+                case'usd':ic.textContent='💵';tx.textContent='🎉 You Won!';am.textContent='$'+rw.reward.toFixed(2)+' USD';am.style.color='#2ecc71';break;
+                case'mmk':ic.textContent='💰';tx.textContent='🎉 You Won!';am.textContent=rw.reward.toLocaleString()+' Ks';am.style.color='#f39c12';break;
+            }
+            openModal('resultModal');
         }
-        WheelEngine.draw(State.wheelAngle%(2*Math.PI));
-        this.updateDraws();
-    },
-    showToast(msg,type) {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.style.background = type==='error'?'#e74c3c':'#2ecc71';
-        t.style.display = 'block';
-        setTimeout(()=>t.style.display='none',3000);
-    },
-    showResult(winIndex, reward, isSuper=false) {
-        const icon = document.getElementById('resultIcon');
-        const text = document.getElementById('resultText');
-        const amount = document.getElementById('resultAmount');
-        const extra = document.getElementById('resultExtra');
-        extra.innerHTML = '';
-        if(isSuper) {
-            icon.innerHTML = '👑';
-            text.innerHTML = '🏆 SUPER PRIZE!';
-            amount.innerHTML = 'Special Prize';
-            let sec = 10;
-            const timerDiv = document.createElement('div');
-            timerDiv.style.cssText = 'margin:10px 0; color:#ffd700; font-size:12px;';
-            timerDiv.innerHTML = `⏱️ Closing in ${sec}s`;
-            extra.appendChild(timerDiv);
-            const linkDiv = document.createElement('div');
-            linkDiv.innerHTML = `<a href="${CONFIG.SUPER_FORM_URL}" target="_blank" class="super-link" id="superClaimLink">🏆 Claim Prize</a><p style="font-size:10px;margin-top:8px;">Click to claim</p>`;
-            extra.appendChild(linkDiv);
-            const interval = setInterval(()=>{ sec--; timerDiv.innerHTML = `⏱️ Closing in ${sec}s`; if(sec<=0){ clearInterval(interval); closeModal('resultModal'); } },1000);
-            const link = document.getElementById('superClaimLink');
-            if(link) link.onclick = ()=>{ clearInterval(interval); setTimeout(()=>closeModal('resultModal'),300); };
-        } else {
-            let html = `<div class="result-prize-table"><table><tr><td style="font-weight:bold;">🏆 Prize:</td><td>${reward.label}</td></tr>`;
-            if(reward.type === 'usd') html += `<tr><td style="font-weight:bold;">💰 Amount:</td><td style="color:#2ecc71;">+$${reward.reward.toFixed(2)} USD</td></tr><tr><td>📊 Type:</td><td>USD Added</td></tr>`;
-            else if(reward.type === 'mmk') html += `<tr><td style="font-weight:bold;">💰 Amount:</td><td style="color:#f39c12;">+${reward.reward.toLocaleString()} Ks</td></tr><tr><td>📊 Type:</td><td>MMK Added</td></tr>`;
-            else if(reward.type === 'free') html += `<tr><td style="font-weight:bold;">🎁 Bonus:</td><td>+1 Free Spin</td></tr>`;
-            else if(reward.type === 'thanks') html += `<tr><td style="font-weight:bold;">😊 Message:</td><td>Better luck next time!</td></tr>`;
-            html += `</table></div>`;
-            extra.innerHTML = html;
-            if(reward.type === 'usd') { icon.innerHTML = '💵'; text.innerHTML = 'You Won USD!'; amount.innerHTML = `+$${reward.reward.toFixed(2)}`; }
-            else if(reward.type === 'mmk') { icon.innerHTML = '💰'; text.innerHTML = 'You Won MMK!'; amount.innerHTML = `+${reward.reward.toLocaleString()} Ks`; }
-            else if(reward.type === 'free') { icon.innerHTML = '🔄'; text.innerHTML = 'Free Spin!'; amount.innerHTML = '+1 Extra Draw'; }
-            else { icon.innerHTML = '😊'; text.innerHTML = 'Thank You!'; amount.innerHTML = 'Try Again'; }
-        }
-        openModal('resultModal');
-        if(!isSuper) setTimeout(()=>closeModal('resultModal'),4000);
-    },
-    scheduleResetTimer() {
-        if(this._int) clearInterval(this._int);
-        const el = document.getElementById('resetCountdown');
-        const upd = ()=>{
-            const now = new Date(), tom = new Date(now); tom.setDate(tom.getDate()+1); tom.setHours(0,0,0,0);
-            const diff = tom-now;
-            if(diff<=0) { State.dailyDraws = State.maxDailyDraws; State.save(); this.updateDraws(); this.showToast('Daily draws reset!','success'); el.textContent=''; clearInterval(this._int); return; }
-            const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
-            el.textContent = `Reset in ${h}h ${m}m ${s}s`;
-        }; upd(); this._int = setInterval(upd,1000);
     }
 };
 
-function openModal(id) { document.getElementById(id).classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+// ✅ SUPER Prize Claimed
+function handleSuperClaimed(){API.markSuperPrize();closeResultModal();}
+function closeResultModal(){
+    clearInterval(UI._superTimer);
+    const m=document.getElementById('resultModal');if(m)m.classList.remove('active');
+}
 
-async function handleSpin() {
-    if(State.isSpinning) return;
-    const source = State.getDrawSource();
-    if(!source) { UI.showToast('No draws available!','error'); return; }
-    State.isSpinning = true; UI.updateDraws();
-    State.consumeDraw(source); UI.updateDraws();
-    const result = await API.executeSpin(source);
-    if(!result || !result.success) {
-        if(source==='daily') State.dailyDraws++;
-        else if(source==='weekly_bonus') State.weeklyBonusDraws++;
-        else State.boughtDraws++;
-        State.save(); UI.updateDraws(); UI.showToast('Spin failed!','error'); State.isSpinning=false; UI.updateDraws(); return;
+// ====================================
+// MODAL
+// ====================================
+function openModal(id){const m=document.getElementById(id);if(m)m.classList.add('active');}
+function closeModal(id){const m=document.getElementById(id);if(m)m.classList.remove('active');}
+
+// ====================================
+// SPIN
+// ====================================
+async function handleSpin(){
+    if(State.isSpinning)return;const s=State.getDrawSource();
+    if(!s){UI.showToast('No draws available!','error');return;}
+    // Check SUPER prize eligibility
+    if(State.isPremium){
+        const canGetSuper=await API.checkSuperPrize();
+        if(!canGetSuper){UI.showToast('SUPER Prize already claimed!','info');}
     }
-    if(result.mmkBalance !== undefined) State.mmkBalance = result.mmkBalance;
-    if(result.usdBalance !== undefined) State.usdBalance = result.usdBalance;
-    if(result.reward && result.reward.type === 'free') {
-        if(source==='daily') State.dailyDraws++;
-        else if(source==='weekly_bonus') State.weeklyBonusDraws++;
-        else State.boughtDraws++;
-    }
-    State.save(); UI.updateBalances();
-    await WheelEngine.spin(result.winIndex);
-    UI.showResult(result.winIndex, result.reward, result.reward?.type === 'super');
-    State.isSpinning = false; UI.updateDraws();
-    if(State.getTotalDraws()===0) UI.scheduleResetTimer();
+    State.isSpinning=true;document.getElementById('btnSpin').disabled=true;document.getElementById('spinStatus').textContent='⏳ Spinning...';
+    State.consumeDraw(s);UI.updateDraws();
+    const r=await API.executeSpin(s);
+    if(!r||!r.success){switch(s){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}State.save();UI.updateDraws();UI.showToast('Spin failed!','error');State.isSpinning=false;UI.updateSpinButton();return;}
+    if(r.mmkBalance!==undefined)State.mmkBalance=r.mmkBalance;
+    if(r.usdBalance!==undefined)State.usdBalance=r.usdBalance;
+    if(r.reward&&r.reward.type==='free'){switch(s){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':State.boughtDraws++;break;}}
+    State.save();UI.updateBalances();await WheelEngine.spin(r.winIndex);
+    UI.showResult(r.winIndex);State.isSpinning=false;UI.updateDraws();UI.updateSpinButton();
 }
 
-async function handleBuySpins(spins,cost) {
-    if(State.mmkBalance < cost) { UI.showToast('Insufficient balance!','error'); return; }
-    document.getElementById('confirmTitle').textContent = 'Buy Spins';
-    document.getElementById('confirmMsg').textContent = `${spins} Spins - ${cost.toLocaleString()} Ks`;
-    const btn = document.getElementById('confirmYesBtn');
-    btn.onclick = async ()=>{
-        closeModal('confirmModal');
-        const res = await API.buySpins(spins,cost);
-        if(res.success) { UI.updateBalances(); UI.updateDraws(); UI.showToast(`${spins} spins added!`,'success'); }
-        else UI.showToast(res.message||'Purchase failed','error');
-    };
-    openModal('confirmModal');
-}
+// ====================================
+// BUY
+// ====================================
+async function handleBuySpins(spins,cost){if(State.mmkBalance<cost){UI.showToast('ငွေမလုံလောက်ပါ။','error');return;}document.getElementById('confirmTitle').textContent='💳 Buy Spins';document.getElementById('confirmMsg').textContent=spins+' Spins - '+cost.toLocaleString()+' Ks';const cb=document.getElementById('confirmYesBtn');cb.onclick=async()=>{closeModal('confirmModal');const r=await API.buySpins(spins,cost);if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added!','success');}else{UI.showToast(r.message||'Failed','error');}};openModal('confirmModal');}
 
-document.getElementById('btnSpin').addEventListener('click', handleSpin);
-document.querySelectorAll('.btn-buy-main').forEach(btn=> btn.addEventListener('click',()=> handleBuySpins(parseInt(btn.dataset.spins), parseInt(btn.dataset.cost))));
-document.querySelectorAll('.modal-overlay').forEach(ov=> ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.remove('active'); }));
+// ====================================
+// EVENTS
+// ====================================
+document.getElementById('btnSpin').addEventListener('click',handleSpin);
+document.querySelectorAll('.btn-buy').forEach(btn=>{btn.addEventListener('click',()=>{handleBuySpins(parseInt(btn.dataset.spins),parseInt(btn.dataset.cost));});});
+document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',(e)=>{if(e.target===o)o.classList.remove('active');});});
 
-function checkPageAccess(cb) {
-    fetch('/api/admin/page_status').then(r=>r.json()).then(d=>{
-        if(d.pages && d.pages.find(p=>p.id==='game')?.status==='off') {
-            document.getElementById('maintenanceMessage').style.display='block';
-            document.querySelector('.container-main').style.display='none';
-            cb(false);
-        } else cb(true);
-    }).catch(()=>cb(true));
-}
-function checkPageTimer() {
-    const pid='game'; let timer=null;
-    try { const s=localStorage.getItem('pageTimers'); if(s){ const t=JSON.parse(s); timer=t[pid]; } } catch(e){}
-    if(!timer || timer<=Date.now()) return;
-    document.getElementById('maintenanceMessage').style.display='block';
-    document.querySelector('.container-main').style.display='none';
-    document.getElementById('pageTimerBanner').style.display='block';
-    const mt=document.getElementById('maintenanceCountdown'), pc=document.getElementById('pageTimerCountdown');
-    const upd=()=>{ const rem=timer-Date.now(); if(rem<=0) location.reload(); const sec=Math.floor(rem/1000), h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60; const str=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; if(mt) mt.textContent=str; if(pc) pc.textContent=str; };
-    upd(); setInterval(upd,1000);
-}
-
-async function init() {
-    checkPageTimer();
-    checkPageAccess(async (on)=>{
-        if(!on) return;
-        document.querySelector('.container-main').style.display='flex';
-        State.load();
-        const data = await API.syncAll();
-        if(data){
-            State.isPremium = data.isPremium;
-            State.premiumTier = data.premiumTier;
-            State.mmkBalance = data.mmkBalance;
-            State.usdBalance = data.usdBalance;
-            State.maxDailyDraws = data.maxDailyDraws;
-            State.dailyDraws = data.dailyDrawsRemaining;
-            const today = new Date().toDateString();
-            if(localStorage.getItem('spinLastResetDate') !== today){
-                State.dailyDraws = data.maxDailyDraws;
-                localStorage.setItem('spinLastResetDate',today);
-            }
-            State.save();
-        }
-        UI.updateBalances();
-        UI.applyPremiumTheme();
-        UI.updateDraws();
-        WheelEngine.draw(State.wheelAngle%(2*Math.PI));
-        if(State.getTotalDraws()===0) UI.scheduleResetTimer();
-        setInterval(async()=>{ const nd=await API.syncAll(); if(nd){ State.mmkBalance=nd.mmkBalance; State.usdBalance=nd.usdBalance; State.isPremium=nd.isPremium; State.premiumTier=nd.premiumTier; State.dailyDraws=nd.dailyDrawsRemaining; UI.updateBalances(); UI.applyPremiumTheme(); UI.updateDraws(); } },30000);
-    });
+// ====================================
+// INIT
+// ====================================
+async function init(){
+    State.load();const d=await API.syncAll();
+    if(d){State.isPremium=d.isPremium;State.premiumTier=d.premiumTier||1;State.mmkBalance=d.mmkBalance;State.usdBalance=d.usdBalance;State.maxDailyDraws=d.maxDailyDraws;State.dailyDraws=d.dailyDrawsRemaining;State.premiumExpiry=d.premiumExpiry;const today=new Date().toDateString();if(localStorage.getItem('spinLastResetDate')!==today){State.dailyDraws=d.maxDailyDraws||1;localStorage.setItem('spinLastResetDate',today);}State.save();}
+    UI.updateBalances();UI.applyPremiumTheme();UI.updateDraws();WheelEngine.draw(State.wheelAngle%(2*Math.PI));
+    setInterval(async()=>{const data=await API.syncAll();if(data){State.mmkBalance=data.mmkBalance;State.usdBalance=data.usdBalance;State.isPremium=data.isPremium;State.premiumTier=data.premiumTier||1;State.maxDailyDraws=data.maxDailyDraws;State.dailyDraws=data.dailyDrawsRemaining;UI.updateBalances();UI.applyPremiumTheme();UI.updateDraws();}},30000);
 }
 init();
 </script>
