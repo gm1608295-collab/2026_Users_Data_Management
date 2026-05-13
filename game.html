@@ -436,6 +436,81 @@ body.tier3 .btn-buy { background:var(--gold-metallic); color:#1a1000; }
 
 /* Super Prize Link */
 .super-link { border-radius: 0px !important; }
+/* ========== DAILY CHECK-IN SYSTEM ========== */
+.checkin-section {
+    width: 100%; margin-bottom: 8px;
+}
+.checkin-box {
+    background: rgba(0,0,0,0.4); border-radius: 0px; padding: 12px 10px;
+    border: 2px solid rgba(255,255,255,0.1); margin-bottom: 6px;
+    transition: all 0.3s ease;
+}
+.checkin-box.normal-checkin { border-color: rgba(52,152,219,0.4); }
+.checkin-box.premium-checkin { border-color: rgba(155,89,182,0.4); }
+
+.checkin-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+}
+.checkin-title {
+    font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 6px;
+}
+.normal-checkin .checkin-title { color: #3498db; }
+.premium-checkin .checkin-title { color: #9b59b6; }
+
+.checkin-timer {
+    font-size: 8px; color: rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 10px;
+}
+
+.checkin-days {
+    display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; margin-bottom: 8px;
+}
+.checkin-day {
+    width: 36px; height: 50px; border-radius: 4px; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    font-size: 8px; transition: all 0.3s ease; position: relative;
+}
+.checkin-day .day-icon { font-size: 14px; margin-bottom: 2px; }
+.checkin-day .day-label { font-size: 7px; color: rgba(255,255,255,0.6); }
+
+/* Normal Checkin Day Colors */
+.normal-checkin .checkin-day { background: rgba(52,152,219,0.1); border: 1px solid rgba(52,152,219,0.2); }
+.normal-checkin .checkin-day.claimed { background: rgba(46,204,113,0.2); border-color: rgba(46,204,113,0.5); }
+.normal-checkin .checkin-day.claimed .day-icon { opacity: 0.5; }
+.normal-checkin .checkin-day.today { border-color: #3498db; box-shadow: 0 0 8px rgba(52,152,219,0.4); }
+.normal-checkin .checkin-day.current { border-color: #f39c12; animation: dayPulse 1.5s infinite; }
+
+/* Premium Checkin Day Colors */
+.premium-checkin .checkin-day { background: rgba(155,89,182,0.1); border: 1px solid rgba(155,89,182,0.2); }
+.premium-checkin .checkin-day.claimed { background: rgba(46,204,113,0.2); border-color: rgba(46,204,113,0.5); }
+.premium-checkin .checkin-day.claimed .day-icon { opacity: 0.5; }
+.premium-checkin .checkin-day.today { border-color: #9b59b6; box-shadow: 0 0 8px rgba(155,89,182,0.4); }
+.premium-checkin .checkin-day.current { border-color: #f39c12; animation: dayPulse 1.5s infinite; }
+
+@keyframes dayPulse {
+    0%,100% { box-shadow: 0 0 5px rgba(243,156,18,0.3); }
+    50% { box-shadow: 0 0 15px rgba(243,156,18,0.6); }
+}
+
+.checkin-claim-btn {
+    width: 100%; padding: 10px; border: none; border-radius: 0px;
+    font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+.normal-checkin .checkin-claim-btn { background: linear-gradient(135deg,#2980b9,#3498db); color: #fff; }
+.premium-checkin .checkin-claim-btn { background: linear-gradient(135deg,#8e44ad,#9b59b6); color: #fff; }
+.checkin-claim-btn:hover { transform: translateY(-2px); }
+.checkin-claim-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.checkin-claimed-text {
+    text-align: center; font-size: 10px; color: #2ecc71; padding: 8px;
+    background: rgba(46,204,113,0.1); border-radius: 0px;
+}
+.checkin-ended-text {
+    text-align: center; font-size: 10px; color: rgba(255,255,255,0.4); padding: 8px;
+    background: rgba(0,0,0,0.2); border-radius: 0px;
+}
 </style>
 </head>
 <body id="mainBody">
@@ -536,7 +611,10 @@ body.tier3 .btn-buy { background:var(--gold-metallic); color:#1a1000; }
                 <div class="draw-count" id="weeklyCount">0</div>
             </div>
         </div>
-        
+
+        <!-- ===== DAILY CHECK-IN SECTION ===== -->
+<div class="checkin-section" id="checkinSection"></div>
+     
         <!-- ===== DAILY RESET TIMER (Premium Only) ===== -->
         <div class="daily-reset-timer" id="dailyResetTimer">
             ⏰ Daily Draws Reset in: <span id="dailyTimerCountdown">--:--:--</span>
@@ -917,6 +995,143 @@ function openModal(id){var m=document.getElementById(id);if(m)m.classList.add('a
 function closeModal(id){var m=document.getElementById(id);if(m)m.classList.remove('active');}
 
 // ====================================
+// DAILY CHECK-IN UI
+// ====================================
+async loadCheckInStatus() {
+    try {
+        const token = API.getToken();
+        if (!token || token === 'guest') {
+            document.getElementById('checkinSection').innerHTML = '';
+            return;
+        }
+        
+        const r = await fetch('/api/daily_checkin/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const d = await r.json();
+        
+        if (d.success && d.events && d.events.length > 0) {
+            this.renderCheckInUI(d.events);
+        } else {
+            document.getElementById('checkinSection').innerHTML = '';
+        }
+    } catch(e) {
+        document.getElementById('checkinSection').innerHTML = '';
+    }
+},
+
+renderCheckInUI(events) {
+    let html = '';
+    
+    events.forEach(event => {
+        const isNormal = event.event_type === 'normal';
+        const boxClass = isNormal ? 'normal-checkin' : 'premium-checkin';
+        const titleIcon = isNormal ? '🎁' : '👑';
+        const titleText = event.event_name || (isNormal ? 'Daily Check-In' : 'Premium Check-In');
+        
+        // Build days
+        let daysHtml = '';
+        event.day_status.forEach(day => {
+            let dayClass = '';
+            let checkMark = '';
+            
+            if (day.claimed) {
+                dayClass = 'claimed';
+                checkMark = '✅';
+            } else if (day.day === event.current_day && !event.checked_in_today) {
+                dayClass = 'current';
+            } else if (day.day === event.current_day) {
+                dayClass = 'today';
+            }
+            
+            const rewardIcon = day.reward ? day.reward.icon || this.getRewardIcon(day.reward.type) : '⬜';
+            const rewardText = day.reward ? day.reward.label : '';
+            
+            daysHtml += `
+                <div class="checkin-day ${dayClass}" title="Day ${day.day}: ${rewardText}">
+                    <span class="day-icon">${checkMark || rewardIcon}</span>
+                    <span class="day-label">Day ${day.day}</span>
+                </div>`;
+        });
+        
+        // Next reset time
+        const resetDate = new Date(event.next_reset);
+        const resetTimeStr = resetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        
+        // Claim button or status
+        let actionHtml = '';
+        if (event.checked_in_today) {
+            actionHtml = `<div class="checkin-claimed-text">✅ Today's reward claimed!</div>`;
+        } else if (event.can_claim) {
+            actionHtml = `<button class="checkin-claim-btn" onclick="claimDailyReward(${event.event_id})">
+                🎁 ဆုယူမည်
+            </button>`;
+        } else {
+            actionHtml = `<div class="checkin-ended-text">⏰ နောက်နေ့ ${resetTimeStr} တွင် ပြန်လာပါ</div>`;
+        }
+        
+        html += `
+            <div class="checkin-box ${boxClass}">
+                <div class="checkin-header">
+                    <span class="checkin-title">${titleIcon} ${titleText}</span>
+                    <span class="checkin-timer">⏰ Reset: ${resetTimeStr}</span>
+                </div>
+                <div class="checkin-days">${daysHtml}</div>
+                ${actionHtml}
+            </div>`;
+    });
+    
+    document.getElementById('checkinSection').innerHTML = html;
+},
+
+getRewardIcon(type) {
+    switch(type) {
+        case 'mmk': return '💰';
+        case 'usd': return '💵';
+        case 'spin': return '🔄';
+        default: return '🎁';
+    }
+}
+// ====================================
+// CLAIM DAILY REWARD
+// ====================================
+async function claimDailyReward(eventId) {
+    const token = API.getToken();
+    if (!token || token === 'guest') {
+        UI.showToast('Please login first', 'error');
+        return;
+    }
+    
+    try {
+        const r = await fetch('/api/daily_checkin/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, event_id: eventId })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            // Update balances
+            State.mmkBalance = d.mmk_balance;
+            State.usdBalance = d.usd_balance;
+            State.boughtDraws = d.paid_spins;
+            
+            UI.updateBalances();
+            UI.updateDraws();
+            UI.showToast(`✅ ${d.reward_label} claimed!`, 'success');
+            
+            // Reload check-in UI
+            UI.loadCheckInStatus();
+        } else {
+            UI.showToast(d.message || 'Claim failed', 'error');
+        }
+    } catch(e) {
+        UI.showToast('Network error', 'error');
+    }
+}
+// ====================================
 // SPIN
 // ====================================
 async function handleSpin(){
@@ -1003,55 +1218,135 @@ async function checkPageTimer(){
 // INIT
 // ====================================
 async function init(){
-    var pageOn=await checkPageTimer();
-    if(!pageOn)return;
+    // ✅ Page Maintenance Check
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const gp = d.pages.find(p => p.id === 'game');
+            if (gp && gp.status === 'off') {
+                // Check timer from storage
+                let timer = null;
+                try {
+                    const saved = localStorage.getItem('pageTimers');
+                    if (saved) { const t = JSON.parse(saved); timer = t['game']; }
+                    if (!timer) {
+                        const ck = getCookie('pageTimers');
+                        if (ck) { const t = JSON.parse(decodeURIComponent(ck)); timer = t['game']; }
+                    }
+                    if (!timer) {
+                        const ss = sessionStorage.getItem('pageTimers');
+                        if (ss) { const t = JSON.parse(ss); timer = t['game']; }
+                    }
+                } catch(e) {}
+                
+                // If timer active, show countdown
+                if (timer && timer > Date.now()) {
+                    document.getElementById('mainContainer').style.display = 'none';
+                    document.getElementById('maintenanceMessage').style.display = 'block';
+                    const cnt = document.getElementById('maintenanceCountdown');
+                    const upd = () => {
+                        const rem = timer - Date.now();
+                        if (rem <= 0) {
+                            try {
+                                const s = localStorage.getItem('pageTimers');
+                                if (s) { const t = JSON.parse(s); delete t['game']; localStorage.setItem('pageTimers', JSON.stringify(t)); }
+                                setCookie('pageTimers', '', -1);
+                                sessionStorage.removeItem('pageTimers');
+                            } catch(e) {}
+                            location.reload(); return;
+                        }
+                        const ss = Math.floor(rem / 1000);
+                        const hh = Math.floor(ss / 3600);
+                        const mm = Math.floor((ss % 3600) / 60);
+                        const sec = ss % 60;
+                        cnt.textContent = `${hh.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+                    };
+                    upd(); setInterval(upd, 1000);
+                    return;
+                }
+                
+                // No timer = fully off
+                document.getElementById('mainContainer').style.display = 'none';
+                document.getElementById('maintenanceMessage').style.display = 'block';
+                return;
+            }
+        }
+    } catch(e) {}
     
-    document.getElementById('mainContainer').style.display='';
-    document.getElementById('maintenanceMessage').style.display='none';
+    // ✅ Page is ON - continue
+    document.getElementById('mainContainer').style.display = '';
+    document.getElementById('maintenanceMessage').style.display = 'none';
     
-    WheelEngine.init();
     State.load();
     await API.fetchRates();
-    var d=await API.syncAll();
+    const d = await API.syncAll();
     if(d){
-        State.mmkBalance=d.mmkBalance;
-        State.usdBalance=d.usdBalance;
-        State.isPremium=d.isPremium;
-        State.premiumTier=d.premiumTier||1;
-        State.premiumExpiry=d.premiumExpiry;
-        State.maxDailyDraws=d.maxDailyDraws;
-        State.dailyDraws=d.dailyDrawsRemaining;
-        var today=new Date().toDateString();
-        if(localStorage.getItem('spinLastResetDate')!==today){State.dailyDraws=d.maxDailyDraws||1;localStorage.setItem('spinLastResetDate',today);}
-        if(State.isPremium)document.getElementById('mainBody').classList.add('premium-active');
+        State.mmkBalance = d.mmkBalance;
+        State.usdBalance = d.usdBalance;
+        State.isPremium = d.isPremium;
+        State.premiumTier = d.premiumTier||1;
+        State.premiumExpiry = d.premiumExpiry;
+        State.maxDailyDraws = d.maxDailyDraws;
+        State.dailyDraws = d.dailyDrawsRemaining;
+        
+        // ✅ Premium expiry check
+        State.checkPremiumExpiry();
+        
+        const today = new Date().toDateString();
+        if(localStorage.getItem('spinLastResetDate') !== today){
+            State.dailyDraws = d.maxDailyDraws||1;
+            localStorage.setItem('spinLastResetDate', today);
+        }
+        if(State.isPremium) document.getElementById('mainBody').classList.add('premium-active');
         State.save();
     }
     UI.updateBalances();
     UI.applyPremiumTheme();
     UI.updateDraws();
-    WheelEngine.draw(State.wheelAngle%(2*Math.PI));
-    setInterval(function(){UI.updateDailyTimer();},1000);
+    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
+    
+    // ✅ Daily Check-In Load
+    UI.loadCheckInStatus();
+    
+    // Daily reset timer
+    setInterval(() => UI.updateDailyTimer(), 1000);
     UI.updateDailyTimer();
-    setInterval(async function(){
+    
+    // Auto refresh every 30 seconds
+    setInterval(async () => {
         await API.fetchRates();
-        var data=await API.syncAll();
+        const data = await API.syncAll();
         if(data){
-            State.mmkBalance=data.mmkBalance;
-            State.usdBalance=data.usdBalance;
-            var wasPremium=State.isPremium;
-            State.isPremium=data.isPremium;
-            State.premiumTier=data.premiumTier||1;
-            State.premiumExpiry=data.premiumExpiry;
-            State.maxDailyDraws=data.maxDailyDraws;
-            State.dailyDraws=data.dailyDrawsRemaining;
-            if(State.isPremium&&!wasPremium)document.getElementById('mainBody').classList.add('premium-active');
-            if(!State.isPremium&&wasPremium)document.getElementById('mainBody').classList.remove('premium-active');
+            State.mmkBalance = data.mmkBalance;
+            State.usdBalance = data.usdBalance;
+            const wasPremium = State.isPremium;
+            State.isPremium = data.isPremium;
+            State.premiumTier = data.premiumTier||1;
+            State.premiumExpiry = data.premiumExpiry;
+            State.maxDailyDraws = data.maxDailyDraws;
+            State.dailyDraws = data.dailyDrawsRemaining;
+            
+            // ✅ Premium expiry check
+            if(State.checkPremiumExpiry()){
+                UI.showToast('⏰ Premium သက်တမ်းကုန်သွားပါပြီ', 'info');
+            }
+            
+            if(State.isPremium && !wasPremium) document.getElementById('mainBody').classList.add('premium-active');
+            if(!State.isPremium && wasPremium) document.getElementById('mainBody').classList.remove('premium-active');
+            
             UI.updateBalances();
             UI.applyPremiumTheme();
             UI.updateDraws();
             State.save();
         }
-    },30000);
+        
+        // ✅ Refresh Check-In Status
+        UI.loadCheckInStatus();
+    }, 30000);
+    
+    // ✅ Check-In auto refresh every 60 seconds
+    setInterval(() => UI.loadCheckInStatus(), 60000);
 }
 init();
 </script> 
