@@ -1244,97 +1244,36 @@ function getCookie(name){const nameEQ=name+'=';const ca=document.cookie.split(';
 // INIT
 // ====================================
 async function init(){
-    // ✅ Page Maintenance Check
-    try {
-        const r = await fetch('/api/admin/page_status');
-        const d = await r.json();
-        if (d.pages) {
-            const gp = d.pages.find(p => p.id === 'game');
-            if (gp && gp.status === 'off') {
-                let timer = null;
-                try {
-                    const saved = localStorage.getItem('pageTimers');
-                    if (saved) { const t = JSON.parse(saved); timer = t['game']; }
-                    if (!timer) {
-                        const ck = getCookie('pageTimers');
-                        if (ck) { const t = JSON.parse(decodeURIComponent(ck)); timer = t['game']; }
-                    }
-                    if (!timer) {
-                        const ss = sessionStorage.getItem('pageTimers');
-                        if (ss) { const t = JSON.parse(ss); timer = t['game']; }
-                    }
-                } catch(e) {}
-                
-                if (timer && timer > Date.now()) {
-                    document.getElementById('mainContainer').style.display = 'none';
-                    document.getElementById('maintenanceMessage').style.display = 'block';
-                    const cnt = document.getElementById('maintenanceCountdown');
-                    const upd = () => {
-                        const rem = timer - Date.now();
-                        if (rem <= 0) {
-                            try {
-                                const s = localStorage.getItem('pageTimers');
-                                if (s) { const t = JSON.parse(s); delete t['game']; localStorage.setItem('pageTimers', JSON.stringify(t)); }
-                                setCookie('pageTimers', '', -1);
-                                sessionStorage.removeItem('pageTimers');
-                            } catch(e) {}
-                            location.reload(); return;
-                        }
-                        const ss = Math.floor(rem / 1000);
-                        const hh = Math.floor(ss / 3600);
-                        const mm = Math.floor((ss % 3600) / 60);
-                        const sec = ss % 60;
-                        cnt.textContent = `${hh.toString().padStart(2,'0')}:${mm.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-                    };
-                    upd(); setInterval(upd, 1000);
-                    return;
-                }
-                
-                document.getElementById('mainContainer').style.display = 'none';
-                document.getElementById('maintenanceMessage').style.display = 'block';
-                return;
-            }
-        }
-    } catch(e) {}
-    
-    // ✅ Page is ON - continue
-    document.getElementById('mainContainer').style.display = '';
-    document.getElementById('maintenanceMessage').style.display = 'none';
+    const pageOn = await checkPageTimer();
+    if (!pageOn) return;
     
     State.load();
     await API.fetchRates();
     const d = await API.syncAll();
-    
     if(d){
         State.mmkBalance = d.mmkBalance;
         State.usdBalance = d.usdBalance;
         State.isPremium = d.isPremium;
-        State.premiumTier = d.premiumTier || 1;
-        State.premiumExpiry = d.premiumExpiry;
+        State.premiumTier = d.premiumTier||1;
         State.maxDailyDraws = d.maxDailyDraws;
         State.dailyDraws = d.dailyDrawsRemaining;
-        
+        State.premiumExpiry = d.premiumExpiry;
         const today = new Date().toDateString();
         if(localStorage.getItem('spinLastResetDate') !== today){
-            State.dailyDraws = d.maxDailyDraws || 1;
+            State.dailyDraws = d.maxDailyDraws||1;
             localStorage.setItem('spinLastResetDate', today);
         }
-        if(State.isPremium) {
-            document.getElementById('mainBody').classList.add('premium-active');
-        }
+        if(State.isPremium) document.getElementById('mainBody').classList.add('premium-active');
         State.save();
     }
-    
     UI.updateBalances();
     UI.applyPremiumTheme();
     UI.updateDraws();
-    WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
+    WheelEngine.draw(State.wheelAngle % (2*Math.PI));
     
-    // Daily reset timer
     setInterval(() => UI.updateDailyTimer(), 1000);
     UI.updateDailyTimer();
     
-    // Auto refresh every 30 seconds
     setInterval(async () => {
         await API.fetchRates();
         const data = await API.syncAll();
@@ -1343,18 +1282,11 @@ async function init(){
             State.usdBalance = data.usdBalance;
             const wasPremium = State.isPremium;
             State.isPremium = data.isPremium;
-            State.premiumTier = data.premiumTier || 1;
-            State.premiumExpiry = data.premiumExpiry;
+            State.premiumTier = data.premiumTier||1;
             State.maxDailyDraws = data.maxDailyDraws;
             State.dailyDraws = data.dailyDrawsRemaining;
-            
-            if(State.isPremium && !wasPremium) {
-                document.getElementById('mainBody').classList.add('premium-active');
-            }
-            if(!State.isPremium && wasPremium) {
-                document.getElementById('mainBody').classList.remove('premium-active');
-            }
-            
+            State.premiumExpiry = data.premiumExpiry;
+            if(State.isPremium && !wasPremium) document.getElementById('mainBody').classList.add('premium-active');
             UI.updateBalances();
             UI.applyPremiumTheme();
             UI.updateDraws();
@@ -1362,8 +1294,6 @@ async function init(){
         }
     }, 30000);
 }
-
-// ✅ Start the app
 init();
 </script>
 </body>
