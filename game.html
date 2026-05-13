@@ -747,8 +747,9 @@ const CONFIG = {
     ]
 };
 
+
 // ====================================
-// STATE (Premium Expiry Check Added)
+// STATE
 // ====================================
 const State = {
     isPremium:false, premiumTier:0, isSpinning:false, wheelAngle:0,
@@ -780,40 +781,6 @@ const State = {
         }
     },
     
-    // ✅ Check if premium is expired
-    checkPremiumExpiry(){
-        if(this.isPremium && this.premiumExpiry){
-            const now = new Date();
-            const expiry = new Date(this.premiumExpiry);
-            if(expiry <= now){
-                // Premium expired
-                console.log('[STATE] Premium expired! Expiry:', this.premiumExpiry);
-                this.isPremium = false;
-                this.premiumTier = 0;
-                this.premiumExpiry = null;
-                this.maxDailyDraws = 1;
-                this.weeklyBonusDraws = 0;
-                this.save();
-                return true; // expired
-            }
-        }
-        return false; // not expired
-    },
-    
-    updatePremiumStatus(active,tier,expiry){
-        const wasPremium=this.isPremium;
-        this.isPremium=active;
-        this.premiumTier=active?(tier||1):0;
-        this.premiumExpiry=active?(expiry||null):null;
-        if(!active){
-            this.maxDailyDraws=1;
-            this.weeklyBonusDraws=0;
-        }
-        if(this.isPremium&&!wasPremium)this.showPremiumActivation();
-        this.save();
-        UI.applyPremiumTheme();
-    },
-    
     showPremiumActivation(){
         document.getElementById('processingModal').classList.add('active');
         document.getElementById('processingTitle').textContent='Activating Premium...';
@@ -842,7 +809,7 @@ const State = {
             localStorage.setItem('spinStateV9',JSON.stringify({
                 isPremium:this.isPremium,
                 premiumTier:this.premiumTier,
-                premiumExpiry:this.premiumExpiry, // ✅ Save expiry
+                premiumExpiry:this.premiumExpiry,
                 dailyDraws:this.dailyDraws,
                 boughtDraws:this.boughtDraws,
                 weeklyBonusDraws:this.weeklyBonusDraws,
@@ -858,34 +825,21 @@ const State = {
         try{
             const d=JSON.parse(localStorage.getItem('spinStateV9'));
             if(d){
-                // ✅ Check if premium expired
                 const now = new Date();
                 const expiryDate = d.premiumExpiry ? new Date(d.premiumExpiry) : null;
                 const isExpired = expiryDate && expiryDate <= now;
                 
-                if(isExpired){
-                    console.log('[STATE] Loaded expired premium. Expiry:', d.premiumExpiry);
-                    this.isPremium = false;
-                    this.premiumTier = 0;
-                    this.premiumExpiry = null;
-                    this.maxDailyDraws = 1;
-                    this.weeklyBonusDraws = 0;
-                } else {
-                    this.isPremium = d.isPremium || false;
-                    this.premiumTier = d.premiumTier || 0;
-                    this.premiumExpiry = d.premiumExpiry || null;
-                    this.maxDailyDraws = d.maxDailyDraws || 1;
-                }
-                
+                this.isPremium = isExpired ? false : (d.isPremium || false);
+                this.premiumTier = isExpired ? 0 : (d.premiumTier || 0);
+                this.premiumExpiry = isExpired ? null : (d.premiumExpiry || null);
+                this.maxDailyDraws = isExpired ? 1 : (d.maxDailyDraws || 1);
                 this.dailyDraws = d.dailyDraws || 0;
                 this.boughtDraws = d.boughtDraws || 0;
                 this.weeklyBonusDraws = isExpired ? 0 : (d.weeklyBonusDraws || 0);
                 this.wheelAngle = d.wheelAngle || 0;
                 this.superPrizeUsed = d.superPrizeUsed || false;
             }
-        }catch(e){
-            console.log('[STATE] Load error:', e.message);
-        }
+        }catch(e){}
     }
 };
 
