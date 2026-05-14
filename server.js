@@ -2508,13 +2508,17 @@ app.post('/api/daily_checkin/claim', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+
+// ====================================
+// INITIALIZE DEFAULT CHECK-IN EVENTS
+// ====================================
 async function initDefaultCheckinEvents() {
-    let retries = 5;
-    let tableReady = false;
+    var retries = 5;
+    var tableReady = false;
     
     while (retries > 0) {
         try {
-            const existing = await pool1.query('SELECT COUNT(*) FROM daily_checkin_events');
+            var existing = await pool1.query('SELECT COUNT(*) FROM daily_checkin_events');
             if (parseInt(existing.rows[0].count) > 0) {
                 console.log('✅ Check-in events already exist');
                 return;
@@ -2627,12 +2631,18 @@ async function initDefaultCheckinEvents() {
             );
         }
         
+        console.log('✅ Premium check-in event created');
         console.log('✅ Default check-in events created on both databases');
         
     } catch(e) {
         console.log('⚠️ Default check-in events error:', e.message);
     }
 }
+
+// ❌ Default Events မဖန်တီးချင်ရင် ဒီ ၃ ကြောင်းကို comment လုပ်ထားပါ
+// setTimeout(function() {
+//     initDefaultCheckinEvents();
+// }, 3000);
 // ====================================
 // REUSE EXISTING CHECK-IN EVENT
 // ====================================
