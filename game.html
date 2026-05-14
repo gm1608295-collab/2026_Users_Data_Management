@@ -417,7 +417,7 @@ body.tier3 .buy-table th { color:var(--gold-light); } body.tier3 .btn-buy { back
     <div class="modal-overlay" id="resultModal"><div class="modal-box result-modal-box"><div class="result-icon" id="resultIcon"></div><div class="result-text" id="resultText"></div><div class="result-amount" id="resultAmount"></div><div class="result-timer" id="resultTimer"></div><div id="resultExtra" class="result-extra"></div><button class="btn-close" id="resultCloseBtn" onclick="closeResultModal()">OK</button></div></div>
     <div class="modal-overlay" id="confirmModal"><div class="modal-box confirm-modal-box"><h3 id="confirmTitle"></h3><p id="confirmMsg"></p><div class="confirm-btns"><button class="btn-confirm btn-no" onclick="closeModal('confirmModal')">ပယ်ဖျက်မည်</button><button class="btn-confirm btn-yes" id="confirmYesBtn">အတည်ပြုမည်</button></div></div></div>
 <script>
-    // ====================================
+// ====================================
 // CONFIGURATION
 // ====================================
 var CONFIG = {
@@ -441,7 +441,7 @@ var State = {
     getTotalDraws:function(){return this.dailyDraws+this.boughtDraws+this.weeklyBonusDraws;},
     getDrawSource:function(){if(this.dailyDraws>0)return'daily';if(this.isPremium&&this.weeklyBonusDraws>0)return'weekly_bonus';if(this.boughtDraws>0)return'bought';return null;},
     consumeDraw:function(s){switch(s){case'daily':if(this.dailyDraws>0)this.dailyDraws--;break;case'weekly_bonus':if(this.weeklyBonusDraws>0)this.weeklyBonusDraws--;break;case'bought':if(this.boughtDraws>0)this.boughtDraws--;break;}this.save();},
-    getSegmentsFromRates:function(rateType){if(!this.serverRates||!this.serverRates[rateType])return null;var self=this;return this.serverRates[rateType].map(function(r){return{label:r.label,color:r.color,reward:r.reward,type:r.type,weight:r.weight};});},
+    getSegmentsFromRates:function(rateType){if(!this.serverRates||!this.serverRates[rateType])return null;return this.serverRates[rateType].map(function(r){return{label:r.label,color:r.color,reward:r.reward,type:r.type,weight:r.weight};});},
     getPremiumSegments:function(){var rateType;switch(this.premiumTier){case 1:rateType='premium_tier1';break;case 2:rateType='premium_tier2';break;case 3:rateType='premium_tier3';break;default:rateType='premium_tier1';}var rates=this.getSegmentsFromRates(rateType);return rates||CONFIG.PREMIUM_TIER1_SEGMENTS;},
     getSegmentsForSource:function(s){if(!this.isPremium){if(s==='daily'){var rates=this.getSegmentsFromRates('normal_daily');return rates||CONFIG.NORMAL_SEGMENTS;}else{var rates=this.getSegmentsFromRates('normal_buy');return rates||CONFIG.NORMAL_BUY_SEGMENTS;}}else{if(s==='daily'||s==='weekly_bonus')return this.getPremiumSegments();else{var rates=this.getSegmentsFromRates('premium_buy');return rates||CONFIG.PREMIUM_BUY_SEGMENTS;}}},
     checkPremiumExpiry:function(){if(this.isPremium&&this.premiumExpiry){var now=new Date();var expiry=new Date(this.premiumExpiry);if(expiry<=now){this.isPremium=false;this.premiumTier=0;this.premiumExpiry=null;this.maxDailyDraws=1;this.weeklyBonusDraws=0;this.save();return true;}}return false;},
@@ -470,10 +470,7 @@ var API = {
 // ====================================
 var WheelEngine = {
     canvas:null, ctx:null, animFrame:null,
-    init:function(){
-        this.canvas=document.getElementById('wheelCanvas');
-        this.ctx=this.canvas.getContext('2d',{alpha:false});
-    },
+    init:function(){this.canvas=document.getElementById('wheelCanvas');this.ctx=this.canvas.getContext('2d',{alpha:false});},
     getSegments:function(){return State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS;},
     getArcSize:function(){return(2*Math.PI)/this.getSegments().length;},
     draw:function(angle){
@@ -630,12 +627,17 @@ var UI = {
         events.forEach(function(event){
             var isNormal=event.event_type==='normal';
             var boxClass=isNormal?'normal-checkin':'premium-checkin';
-            var titleImg=isNormal?'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png':'https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png';
+            // ✅ Admin က Icon မှာ ထည့်ထားတဲ့ URL ကိုပဲ သုံးမယ်
+            // Default icon အနေနဲ့ emoji ကိုပဲ သုံးမယ်
+            var titleImg='';
+            var titleIcon=isNormal?'🎁':'👑';
             var titleText=event.event_name||(isNormal?'Daily Check-In':'Premium Check-In');
             var daysHtml='';
             event.day_status.forEach(function(day){
                 var reward=day.reward;
-                var rewardImg=UI.getCheckinRewardImage(reward?reward.type:'',reward?reward.amount:0);
+                // ✅ Admin က ထည့်ထားတဲ့ icon_url ကိုပဲ သုံးမယ်
+                var rewardIconUrl=reward&&reward.icon?reward.icon:'';
+                var rewardEmoji=UI.getCheckinRewardEmoji(reward?reward.type:'');
                 var rewardLabel=reward?reward.label:'';
                 var rewardAmount=reward?(reward.type==='usd'?'$'+parseFloat(reward.amount).toFixed(2):reward.type==='mmk'?parseFloat(reward.amount).toLocaleString()+' Ks':parseInt(reward.amount)+' Draw'+(parseInt(reward.amount)>1?'s':'')):'';
                 var cardClass='';var actionHtml='';
@@ -645,19 +647,29 @@ var UI = {
                 else if(day.day===event.current_day&&event.checked_in_today){cardClass='today';actionHtml='<div class="day-claimed-badge">✅ Claimed</div>';}
                 else if(day.day>event.current_day){actionHtml='<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">🔒 Locked</div>';}
                 else{actionHtml='<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">⏰ Wait</div>';}
-                daysHtml+='<div class="checkin-day-card '+cardClass+'"><div class="day-number">Day '+day.day+'</div><img class="day-reward-icon" src="'+rewardImg+'" alt="" onerror="this.style.display=\'none\'"><div class="day-reward-label">'+rewardLabel+'</div><div class="day-reward-amount">'+rewardAmount+'</div>'+actionHtml+'</div>';
+                // ✅ Icon - URL ရှိရင် img tag၊ မရှိရင် emoji
+                var iconHtml='';
+                if(rewardIconUrl&&rewardIconUrl.length>0&&rewardIconUrl!=='🎁'&&rewardIconUrl!=='💰'&&rewardIconUrl!=='💵'&&rewardIconUrl!=='🔄'&&rewardIconUrl!=='🎉'&&rewardIconUrl!=='👑'){
+                    iconHtml='<img class="day-reward-icon" src="'+rewardIconUrl+'" alt="" onerror="this.style.display=\'none\';this.parentNode.querySelector(\'.day-emoji\').style.display=\'block\';">';
+                    iconHtml+='<span class="day-emoji" style="display:none;font-size:28px">'+rewardEmoji+'</span>';
+                }else{
+                    iconHtml='<span style="font-size:28px;display:block;text-align:center;margin-bottom:4px">'+(rewardIconUrl||rewardEmoji)+'</span>';
+                }
+                daysHtml+='<div class="checkin-day-card '+cardClass+'"><div class="day-number">Day '+day.day+'</div>'+iconHtml+'<div class="day-reward-label">'+rewardLabel+'</div><div class="day-reward-amount">'+rewardAmount+'</div>'+actionHtml+'</div>';
             });
+            // ✅ Reset Time - 24 နာရီပုံစံ
             var resetDate=new Date(event.next_reset);
-            var resetTimeStr=resetDate.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true});
+            var hours=resetDate.getHours();
+            var minutes=resetDate.getMinutes().toString().padStart(2,'0');
+            var resetTimeStr=hours+':'+minutes;
             var endDate=new Date(event.end_date);var now=new Date();var isEnded=endDate<=now;
-            html+='<div class="checkin-box '+boxClass+'"><div class="checkin-header"><span class="checkin-title"><img class="checkin-title-img" src="'+titleImg+'" alt=""> '+titleText+'</span><span class="checkin-timer">⏰ Reset: '+resetTimeStr+'</span></div><div class="checkin-days-scroll">'+daysHtml+'</div>'+(isEnded?'<div class="checkin-ended-text">📅 Event Ended</div>':'')+'</div>';
+            html+='<div class="checkin-box '+boxClass+'"><div class="checkin-header"><span class="checkin-title">'+titleIcon+' '+titleText+'</span><span class="checkin-timer">⏰ Reset: '+resetTimeStr+'</span></div><div class="checkin-days-scroll">'+daysHtml+'</div>'+(isEnded?'<div class="checkin-ended-text">📅 Event Ended</div>':'')+'</div>';
         });
         html+='<div class="checkin-coming-soon" id="checkinComingSoon" style="display:none"><div class="checkin-coming-title">🎬 SOLO M Game Shop × Daily Check In Event Collab is Coming</div><div class="checkin-coming-sub">Admin မှ Event သတ်မှတ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်</div></div>';
         section.innerHTML=html;
     },
     
-    getCheckinRewardIcon:function(type){switch(type){case'mmk':return'💰';case'usd':return'💵';case'spin':return'🔄';default:return'🎁';}},
-    getCheckinRewardImage:function(type,amount){switch(type){case'mmk':return'https://i.ibb.co/0jqYgXZ/mmk-icon.png';case'usd':return'https://i.ibb.co/4ZLZrYf/usd-icon.png';case'spin':return'https://i.ibb.co/9HjKqXw/spin-icon.png';default:return'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png';}}
+    getCheckinRewardEmoji:function(type){switch(type){case'mmk':return'💰';case'usd':return'💵';case'spin':return'🔄';default:return'🎁';}}
 };
 
 // ====================================
