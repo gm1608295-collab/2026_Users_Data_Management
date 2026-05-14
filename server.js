@@ -2640,7 +2640,6 @@ async function initDefaultCheckinEvents() {
     }
 }   // ← try ရဲ့အဆုံး (ဒီတစ်ခု ထပ်လိုတယ်)
 }   // ← function ရဲ့အဆုံး
-}
 // ❌ အောက်ပါ ၃ ကြောင်းကို မှတ်ချက်ထားပါ...
 // ====================================
 // REUSE EXISTING CHECK-IN EVENT
