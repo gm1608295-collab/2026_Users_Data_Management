@@ -2508,9 +2508,7 @@ app.post('/api/daily_checkin/claim', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
-
 async function initDefaultCheckinEvents() {
-    // Table မရှိသေးရင် စောင့်
     let retries = 5;
     let tableReady = false;
     
@@ -2536,7 +2534,6 @@ async function initDefaultCheckinEvents() {
     }
     
     try {
-        // Normal Event (7 days)
         var normalEndDate = new Date();
         normalEndDate.setDate(normalEndDate.getDate() + 9);
         
@@ -2563,7 +2560,6 @@ async function initDefaultCheckinEvents() {
             );
         }
         
-        // Also insert into pool2
         var normalEndDate2 = new Date();
         normalEndDate2.setDate(normalEndDate2.getDate() + 9);
         
@@ -2582,7 +2578,6 @@ async function initDefaultCheckinEvents() {
         
         console.log('✅ Normal check-in event created');
         
-        // Premium Event (14 days)
         var premEndDate = new Date();
         premEndDate.setDate(premEndDate.getDate() + 16);
         
@@ -2616,7 +2611,6 @@ async function initDefaultCheckinEvents() {
             );
         }
         
-        // Also insert into pool2
         var premEndDate2 = new Date();
         premEndDate2.setDate(premEndDate2.getDate() + 16);
         
@@ -2638,9 +2632,7 @@ async function initDefaultCheckinEvents() {
     } catch(e) {
         console.log('⚠️ Default check-in events error:', e.message);
     }
-}   // ← try ရဲ့အဆုံး (ဒီတစ်ခု ထပ်လိုတယ်)
-}   // ← function ရဲ့အဆုံး
-// ❌ အောက်ပါ ၃ ကြောင်းကို မှတ်ချက်ထားပါ...
+}
 // ====================================
 // REUSE EXISTING CHECK-IN EVENT
 // ====================================
