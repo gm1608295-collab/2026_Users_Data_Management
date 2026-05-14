@@ -2509,7 +2509,7 @@ app.post('/api/daily_checkin/claim', async (req, res) => {
     }
 });
 
-// ====================================
+   // ====================================
 // INITIALIZE DEFAULT CHECK-IN EVENTS
 // ====================================
 async function initDefaultCheckinEvents() {
@@ -2528,8 +2528,8 @@ async function initDefaultCheckinEvents() {
             break; // Table exists, proceed
         } catch(e) {
             retries--;
-            console.log(`⏳ Waiting for tables... (${retries} retries left)`);
-            await new Promise(r => setTimeout(r, 2000)); // Wait 2 seconds
+            console.log('⏳ Waiting for tables... (' + retries + ' retries left)');
+            await new Promise(function(r) { setTimeout(r, 2000); }); // Wait 2 seconds
         }
     }
     
@@ -2540,18 +2540,15 @@ async function initDefaultCheckinEvents() {
     
     try {
         // ✅ Normal Event (7 days)
-        const normalEndDate = new Date();
+        var normalEndDate = new Date();
         normalEndDate.setDate(normalEndDate.getDate() + 9); // 7 days + 2 extra
         
-        const normalEvent = await pool1.query(
-            `INSERT INTO daily_checkin_events 
-            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
-            VALUES ('normal', 'Normal Daily Check-In', CURRENT_DATE, '00:00:00', $1, '14:30:00', 7) 
-            RETURNING id`,
-            [normalEndDate.toISOString().split('T')[0]]
+        var normalEvent = await pool1.query(
+            'INSERT INTO daily_checkin_events (event_type, event_name, start_date, start_time, end_date, end_time, total_days) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+            ['normal', 'Normal Daily Check-In', new Date().toISOString().split('T')[0], '00:00:00', normalEndDate.toISOString().split('T')[0], '14:30:00', 7]
         );
         
-        const normalRewards = [
+        var normalRewards = [
             { day: 1, type: 'spin', amount: 1, label: '1 Draw Spin', icon: '🎁' },
             { day: 2, type: 'mmk', amount: 100, label: '100 Ks', icon: '💰' },
             { day: 3, type: 'mmk', amount: 150, label: '150 Ks', icon: '💰' },
@@ -2561,51 +2558,43 @@ async function initDefaultCheckinEvents() {
             { day: 7, type: 'mmk', amount: 300, label: '300 Ks', icon: '🎉' }
         ];
         
-        for (const r of normalRewards) {
+        for (var i = 0; i < normalRewards.length; i++) {
+            var r = normalRewards[i];
             await pool1.query(
-                `INSERT INTO daily_checkin_rewards 
-                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
-                VALUES ($1,$2,$3,$4,$5,$6)`,
+                'INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) VALUES ($1,$2,$3,$4,$5,$6)',
                 [normalEvent.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
             );
         }
         
         // Also insert into pool2
-        const normalEndDate2 = new Date();
+        var normalEndDate2 = new Date();
         normalEndDate2.setDate(normalEndDate2.getDate() + 9);
         
-        const normalEvent2 = await pool2.query(
-            `INSERT INTO daily_checkin_events 
-            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
-            VALUES ('normal', 'Normal Daily Check-In', CURRENT_DATE, '00:00:00', $1, '14:30:00', 7) 
-            RETURNING id`,
-            [normalEndDate2.toISOString().split('T')[0]]
+        var normalEvent2 = await pool2.query(
+            'INSERT INTO daily_checkin_events (event_type, event_name, start_date, start_time, end_date, end_time, total_days) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+            ['normal', 'Normal Daily Check-In', new Date().toISOString().split('T')[0], '00:00:00', normalEndDate2.toISOString().split('T')[0], '14:30:00', 7]
         );
         
-        for (const r of normalRewards) {
+        for (var j = 0; j < normalRewards.length; j++) {
+            var r2 = normalRewards[j];
             await pool2.query(
-                `INSERT INTO daily_checkin_rewards 
-                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
-                VALUES ($1,$2,$3,$4,$5,$6)`,
-                [normalEvent2.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
+                'INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) VALUES ($1,$2,$3,$4,$5,$6)',
+                [normalEvent2.rows[0].id, r2.day, r2.type, r2.amount, r2.label, r2.icon]
             );
         }
         
         console.log('✅ Normal check-in event created');
         
         // ✅ Premium Event (14 days)
-        const premEndDate = new Date();
+        var premEndDate = new Date();
         premEndDate.setDate(premEndDate.getDate() + 16); // 14 days + 2 extra
         
-        const premEvent = await pool1.query(
-            `INSERT INTO daily_checkin_events 
-            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
-            VALUES ('premium', 'Premium Daily Check-In', CURRENT_DATE, '00:00:00', $1, '14:30:00', 14) 
-            RETURNING id`,
-            [premEndDate.toISOString().split('T')[0]]
+        var premEvent = await pool1.query(
+            'INSERT INTO daily_checkin_events (event_type, event_name, start_date, start_time, end_date, end_time, total_days) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+            ['premium', 'Premium Daily Check-In', new Date().toISOString().split('T')[0], '00:00:00', premEndDate.toISOString().split('T')[0], '14:30:00', 14]
         );
         
-        const premRewards = [
+        var premRewards = [
             { day: 1, type: 'mmk', amount: 200, label: '200 Ks', icon: '💰' },
             { day: 2, type: 'spin', amount: 1, label: '1 Draw Spin', icon: '🔄' },
             { day: 3, type: 'usd', amount: 0.15, label: '$0.15 USD', icon: '💵' },
@@ -2622,33 +2611,28 @@ async function initDefaultCheckinEvents() {
             { day: 14, type: 'usd', amount: 0.25, label: '$0.25 USD', icon: '💵' }
         ];
         
-        for (const r of premRewards) {
+        for (var k = 0; k < premRewards.length; k++) {
+            var pr = premRewards[k];
             await pool1.query(
-                `INSERT INTO daily_checkin_rewards 
-                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
-                VALUES ($1,$2,$3,$4,$5,$6)`,
-                [premEvent.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
+                'INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) VALUES ($1,$2,$3,$4,$5,$6)',
+                [premEvent.rows[0].id, pr.day, pr.type, pr.amount, pr.label, pr.icon]
             );
         }
         
         // Also insert into pool2
-        const premEndDate2 = new Date();
+        var premEndDate2 = new Date();
         premEndDate2.setDate(premEndDate2.getDate() + 16);
         
-        const premEvent2 = await pool2.query(
-            `INSERT INTO daily_checkin_events 
-            (event_type, event_name, start_date, start_time, end_date, end_time, total_days) 
-            VALUES ('premium', 'Premium Daily Check-In', CURRENT_DATE, '00:00:00', $1, '14:30:00', 14) 
-            RETURNING id`,
-            [premEndDate2.toISOString().split('T')[0]]
+        var premEvent2 = await pool2.query(
+            'INSERT INTO daily_checkin_events (event_type, event_name, start_date, start_time, end_date, end_time, total_days) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
+            ['premium', 'Premium Daily Check-In', new Date().toISOString().split('T')[0], '00:00:00', premEndDate2.toISOString().split('T')[0], '14:30:00', 14]
         );
         
-        for (const r of premRewards) {
+        for (var m = 0; m < premRewards.length; m++) {
+            var pr2 = premRewards[m];
             await pool2.query(
-                `INSERT INTO daily_checkin_rewards 
-                (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) 
-                VALUES ($1,$2,$3,$4,$5,$6)`,
-                [premEvent2.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
+                'INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) VALUES ($1,$2,$3,$4,$5,$6)',
+                [premEvent2.rows[0].id, pr2.day, pr2.type, pr2.amount, pr2.label, pr2.icon]
             );
         }
         
@@ -2660,10 +2644,10 @@ async function initDefaultCheckinEvents() {
     }
 }
 
-// ✅ Call after tables are ready
-setTimeout(() => {
-    initDefaultCheckinEvents();
-}, 3000); // Wait 3 seconds for tables to be created
+// ❌ Default Events မဖန်တီးချင်ရင် ဒီ ၃ ကြောင်းကို comment လုပ်ထားပါ
+// setTimeout(function() {
+//     initDefaultCheckinEvents();
+// }, 3000);      
 // ====================================
 // REUSE EXISTING CHECK-IN EVENT
 // ====================================
