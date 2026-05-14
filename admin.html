@@ -316,19 +316,44 @@
         if(!c)return;
         if(d.events&&d.events.length>0){
             c.innerHTML=d.events.map(function(evt){
-                // ✅ Server time ကိုသုံးပြီး ချက်ချင်း status ပြောင်း
+                // ✅ လက်ရှိအချိန်ကို UTC အနေနဲ့ မဟုတ်ဘဲ Local Time အနေနဲ့ တွက်
                 var now=new Date();
-                var startDateTime=new Date(evt.start_date+'T'+(evt.start_time||'00:00:00'));
-                var endDateTime=new Date(evt.end_date+'T'+(evt.end_time||'14:30:00'));
+                
+                // ✅ Event Start DateTime တည်ဆောက်
+                var startDateStr=evt.start_date; // "2026-05-14"
+                var startTimeStr=evt.start_time||'00:00:00'; // "01:50:00"
+                var startDateTime=new Date(startDateStr+'T'+startTimeStr);
+                
+                // ✅ Event End DateTime တည်ဆောက်
+                var endDateStr=evt.end_date; // "2026-05-23"
+                var endTimeStr=evt.end_time||'14:30:00'; // "14:30:00"
+                var endDateTime=new Date(endDateStr+'T'+endTimeStr);
+                
+                // ✅ Status စစ်
+                var isCancelled=evt.cancelled;
                 var isStarted=startDateTime<=now;
                 var isEnded=endDateTime<=now;
-                var isCancelled=evt.cancelled;
                 
                 var statusColor, statusText;
-                if(isCancelled){statusColor='var(--r)';statusText='Cancelled';}
-                else if(isEnded){statusColor='#7f8c8d';statusText='Ended';}
-                else if(isStarted){statusColor='var(--g)';statusText='Active';}
-                else{statusColor='var(--w)';statusText='Pending';}
+                if(isCancelled){
+                    statusColor='var(--r)';
+                    statusText='Cancelled';
+                }else if(isEnded){
+                    statusColor='#7f8c8d';
+                    statusText='Ended';
+                }else if(isStarted){
+                    statusColor='var(--g)';
+                    statusText='Active';
+                }else{
+                    statusColor='var(--w)';
+                    statusText='Pending';
+                }
+                
+                // ✅ Debug - Console မှာ စစ်ကြည့်လို့ရ
+                console.log('Event:',evt.event_name);
+                console.log('Start:',startDateTime.toLocaleString(),'| Now:',now.toLocaleString(),'| Started:',isStarted);
+                console.log('End:',endDateTime.toLocaleString(),'| Ended:',isEnded);
+                console.log('Status:',statusText);
                 
                 var typeColor=evt.event_type==='premium'?'#9b59b6':'#3498db';
                 var typeIcon=evt.event_type==='premium'?'👑':'🎁';
@@ -336,24 +361,21 @@
                 // Rewards display
                 var rewardsHtml='';
                 if(evt.rewards&&evt.rewards.length>0){
-                    rewardsHtml='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">';
+                    rewardsHtml='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:8px">';
                     evt.rewards.forEach(function(r){
                         var iconDisplay=r.icon_url||'';
-                        if(iconDisplay&&iconDisplay.length>0&&iconDisplay!=='🎁'&&iconDisplay!=='💰'&&iconDisplay!=='💵'&&iconDisplay!=='🔄'&&iconDisplay!=='🎉'){
-                            iconDisplay='<img src="'+iconDisplay+'" style="width:16px;height:16px;object-fit:contain;vertical-align:middle" onerror="this.style.display=\'none\'">';
-                        }
-                        rewardsHtml+='<span style="font-size:8px;background:rgba(255,255,255,0.1);padding:3px 7px;border-radius:3px;margin:1px;display:inline-flex;align-items:center;gap:3px">'+iconDisplay+' D'+r.day_number+': '+r.reward_label+'</span>';
+                        rewardsHtml+='<span style="font-size:7px;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;margin:1px">D'+r.day_number+': '+(iconDisplay?iconDisplay+' ':'')+r.reward_label+'</span>';
                     });
                     rewardsHtml+='</div>';
                 }
                 
-                // Start time display
-                var startTimeDisplay=evt.start_time?evt.start_time.substring(0,5):'00:00';
-                var resetTimeDisplay=evt.end_time?evt.end_time.substring(0,5):'14:30';
+                // Time display (HH:MM ပုံစံ)
+                var startTimeDisplay=startTimeStr.substring(0,5);
+                var resetTimeDisplay=endTimeStr.substring(0,5);
                 
                 var html='<div style="background:rgba(0,0,0,0.35);border-radius:10px;padding:14px;margin-bottom:10px;border-left:5px solid '+typeColor+'">';
                 html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">';
-                html+='<div style="flex:1;min-width:200px">';
+                html+='<div style="flex:1;min-width:180px">';
                 html+='<b style="font-size:13px">'+typeIcon+' '+evt.event_name+'</b>';
                 html+='<span style="font-size:9px;color:'+statusColor+';margin-left:8px;font-weight:bold">['+statusText+']</span>';
                 html+='<br><small style="color:rgba(255,255,255,0.6);font-size:9px">';
@@ -361,8 +383,6 @@
                 html+=' | 📆 '+evt.total_days+' days | ⏰ Reset: '+resetTimeDisplay;
                 html+='</small>';
                 html+='</div>';
-                
-                // Buttons
                 html+='<div style="display:flex;gap:5px;flex-shrink:0">';
                 if(!isStarted&&!isCancelled){
                     html+='<button class="btn btn-w" style="font-size:10px;padding:6px 12px" onclick="editCheckinEvent('+evt.id+',\''+evt.event_type+'\')">✏️ Edit</button>';
