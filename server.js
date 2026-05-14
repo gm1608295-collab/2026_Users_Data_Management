@@ -2633,18 +2633,15 @@ async function initDefaultCheckinEvents() {
             );
         }
         
-        console.log('✅ Premium check-in event created');
         console.log('✅ Default check-in events created on both databases');
         
     } catch(e) {
         console.log('⚠️ Default check-in events error:', e.message);
     }
-}   // ← ဒီမှာ } တစ်ခုထပ်ထည့်
+}   // ← try ရဲ့အဆုံး (ဒီတစ်ခု ထပ်လိုတယ်)
+}   // ← function ရဲ့အဆုံး
 
-// ❌ အောက်ပါ ၃ ကြောင်းကို မှတ်ချက်ထားပါ (သို့) ဖျက်ပါ
-// setTimeout(function() {
-//     initDefaultCheckinEvents();
-// }, 3000);
+// ❌ အောက်ပါ ၃ ကြောင်းကို မှတ်ချက်ထားပါ...
 // ====================================
 // REUSE EXISTING CHECK-IN EVENT
 // ====================================
