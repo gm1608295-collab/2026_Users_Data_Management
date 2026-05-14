@@ -364,7 +364,19 @@ app.post('/api/register', async (req, res) => {
 
 app.post('/api/logout', (req, res) => res.json({ success: true }));
 app.post('/api/check_banned', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ banned: r.rows.length > 0 }); } catch(e) { res.json({ banned: false }); } });
-
+// ==================== BANNED LIST API (အသစ်) ====================
+app.get('/api/admin/banned_list', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT user_id FROM banned_users');
+        res.json({ 
+            success: true, 
+            banned: r.rows.map(row => row.user_id) 
+        });
+    } catch(e) {
+        res.json({ success: false, banned: [] });
+    }
+});
 // ==================== GOOGLE OAUTH ====================
 app.get('/auth/google', (req, res) => { if (!GOOGLE_CLIENT_ID) return res.send('Not configured'); res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?client_id=${GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT)}&response_type=code&scope=email%20profile`); });
 app.get('/auth/google/callback', async (req, res) => {
