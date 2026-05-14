@@ -2509,11 +2509,8 @@ app.post('/api/daily_checkin/claim', async (req, res) => {
     }
 });
 
-   // ====================================
-// INITIALIZE DEFAULT CHECK-IN EVENTS
-// ====================================
 async function initDefaultCheckinEvents() {
-    // ✅ Table မရှိသေးရင် စောင့်
+    // Table မရှိသေးရင် စောင့်
     let retries = 5;
     let tableReady = false;
     
@@ -2525,11 +2522,11 @@ async function initDefaultCheckinEvents() {
                 return;
             }
             tableReady = true;
-            break; // Table exists, proceed
+            break;
         } catch(e) {
             retries--;
             console.log('⏳ Waiting for tables... (' + retries + ' retries left)');
-            await new Promise(function(r) { setTimeout(r, 2000); }); // Wait 2 seconds
+            await new Promise(function(r) { setTimeout(r, 2000); });
         }
     }
     
@@ -2539,9 +2536,9 @@ async function initDefaultCheckinEvents() {
     }
     
     try {
-        // ✅ Normal Event (7 days)
+        // Normal Event (7 days)
         var normalEndDate = new Date();
-        normalEndDate.setDate(normalEndDate.getDate() + 9); // 7 days + 2 extra
+        normalEndDate.setDate(normalEndDate.getDate() + 9);
         
         var normalEvent = await pool1.query(
             'INSERT INTO daily_checkin_events (event_type, event_name, start_date, start_time, end_date, end_time, total_days) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
@@ -2585,9 +2582,9 @@ async function initDefaultCheckinEvents() {
         
         console.log('✅ Normal check-in event created');
         
-        // ✅ Premium Event (14 days)
+        // Premium Event (14 days)
         var premEndDate = new Date();
-        premEndDate.setDate(premEndDate.getDate() + 16); // 14 days + 2 extra
+        premEndDate.setDate(premEndDate.getDate() + 16);
         
         var premEvent = await pool1.query(
             'INSERT INTO daily_checkin_events (event_type, event_name, start_date, start_time, end_date, end_time, total_days) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
@@ -2644,10 +2641,11 @@ async function initDefaultCheckinEvents() {
     }
 }
 
-// ❌ Default Events မဖန်တီးချင်ရင် ဒီ ၃ ကြောင်းကို comment လုပ်ထားပါ
+// ❌ အောက်ပါ ၃ ကြောင်းကို မှတ်ချက်ထားပါ (သို့) ဖျက်ပါ
 // setTimeout(function() {
 //     initDefaultCheckinEvents();
-// }, 3000);      
+// }, 3000);
+
 // ====================================
 // REUSE EXISTING CHECK-IN EVENT
 // ====================================
