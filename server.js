@@ -2382,19 +2382,19 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             }
             
             result.push({
-                event_id: event.id,
-                event_type: event.event_type,
-                event_name: event.event_name,
-                total_days: event.total_days,
-                current_day: currentDay,
-                checked_in_today: todayCheckin.rows.length > 0,
-                claimed_days: claimedDayNumbers,
-                day_status: dayStatus,
-                can_claim: todayCheckin.rows.length === 0 && now < todayReset,
-                next_reset: todayReset.toISOString(),
-                end_date: event.end_date
-            });
-        }
+    event_id: event.id,
+    event_type: event.event_type,
+    event_name: event.event_name,
+    start_date: event.start_date,  // ✅ ဒီစာကြောင်း ထည့်ပါ
+    end_date: event.end_date,
+    total_days: event.total_days,
+    current_day: currentDay,
+    checked_in_today: todayCheckin.rows.length > 0,
+    claimed_days: claimedDayNumbers,
+    day_status: dayStatus,
+    can_claim: todayCheckin.rows.length === 0 && now < todayReset,
+    next_reset: todayReset.toISOString()
+});
         
         res.json({ success: true, events: result, is_premium: isPremium });
     } catch(e) {
