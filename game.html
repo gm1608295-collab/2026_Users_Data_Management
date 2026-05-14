@@ -417,7 +417,7 @@ body.tier3 .buy-table th { color:var(--gold-light); } body.tier3 .btn-buy { back
     <div class="modal-overlay" id="resultModal"><div class="modal-box result-modal-box"><div class="result-icon" id="resultIcon"></div><div class="result-text" id="resultText"></div><div class="result-amount" id="resultAmount"></div><div class="result-timer" id="resultTimer"></div><div id="resultExtra" class="result-extra"></div><button class="btn-close" id="resultCloseBtn" onclick="closeResultModal()">OK</button></div></div>
     <div class="modal-overlay" id="confirmModal"><div class="modal-box confirm-modal-box"><h3 id="confirmTitle"></h3><p id="confirmMsg"></p><div class="confirm-btns"><button class="btn-confirm btn-no" onclick="closeModal('confirmModal')">ပယ်ဖျက်မည်</button><button class="btn-confirm btn-yes" id="confirmYesBtn">အတည်ပြုမည်</button></div></div></div>
 <script>
-// ====================================
+ // ====================================
 // CONFIGURATION
 // ====================================
 var CONFIG = {
@@ -608,7 +608,7 @@ var UI = {
         var sl=document.getElementById('slideLight');if(sl)sl.style.display='none';
     },
     
-    // ========== DAILY CHECK-IN ==========
+    // ========== DAILY CHECK-IN (ပြင်ဆင်ထား) ==========
     loadCheckInStatus:async function(){
         try{
             var token=API.getToken();
@@ -627,15 +627,29 @@ var UI = {
         events.forEach(function(event){
             var isNormal=event.event_type==='normal';
             var boxClass=isNormal?'normal-checkin':'premium-checkin';
-            // ✅ Admin က Icon မှာ ထည့်ထားတဲ့ URL ကိုပဲ သုံးမယ်
-            // Default icon အနေနဲ့ emoji ကိုပဲ သုံးမယ်
-            var titleImg='';
             var titleIcon=isNormal?'🎁':'👑';
             var titleText=event.event_name||(isNormal?'Daily Check-In':'Premium Check-In');
+            
+            // ✅ Admin က သတ်မှတ်ထားတဲ့ Reset Time ကို တိုက်ရိုက်သုံး
+            var resetTimeStr='2:30';
+            if(event.end_time){
+                var timeParts=event.end_time.split(':');
+                var hh=parseInt(timeParts[0])||0;
+                var mm=parseInt(timeParts[1])||0;
+                resetTimeStr=hh+':'+mm.toString().padStart(2,'0');
+            }
+            
+            // ✅ Start/End Date ပြမယ်
+            var startDateDisplay=event.start_date||'';
+            var endDateDisplay=event.end_date||'';
+            var dateInfo='';
+            if(startDateDisplay&&endDateDisplay){
+                dateInfo='<br><small style="font-size:7px;color:rgba(255,255,255,0.35)">📅 '+startDateDisplay+' → '+endDateDisplay+'</small>';
+            }
+            
             var daysHtml='';
             event.day_status.forEach(function(day){
                 var reward=day.reward;
-                // ✅ Admin က ထည့်ထားတဲ့ icon_url ကိုပဲ သုံးမယ်
                 var rewardIconUrl=reward&&reward.icon?reward.icon:'';
                 var rewardEmoji=UI.getCheckinRewardEmoji(reward?reward.type:'');
                 var rewardLabel=reward?reward.label:'';
@@ -647,23 +661,18 @@ var UI = {
                 else if(day.day===event.current_day&&event.checked_in_today){cardClass='today';actionHtml='<div class="day-claimed-badge">✅ Claimed</div>';}
                 else if(day.day>event.current_day){actionHtml='<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">🔒 Locked</div>';}
                 else{actionHtml='<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">⏰ Wait</div>';}
-                // ✅ Icon - URL ရှိရင် img tag၊ မရှိရင် emoji
+                
                 var iconHtml='';
                 if(rewardIconUrl&&rewardIconUrl.length>0&&rewardIconUrl!=='🎁'&&rewardIconUrl!=='💰'&&rewardIconUrl!=='💵'&&rewardIconUrl!=='🔄'&&rewardIconUrl!=='🎉'&&rewardIconUrl!=='👑'){
-                    iconHtml='<img class="day-reward-icon" src="'+rewardIconUrl+'" alt="" onerror="this.style.display=\'none\';this.parentNode.querySelector(\'.day-emoji\').style.display=\'block\';">';
-                    iconHtml+='<span class="day-emoji" style="display:none;font-size:28px">'+rewardEmoji+'</span>';
+                    iconHtml='<img class="day-reward-icon" src="'+rewardIconUrl+'" alt="" onerror="this.style.display=\'none\'">';
                 }else{
                     iconHtml='<span style="font-size:28px;display:block;text-align:center;margin-bottom:4px">'+(rewardIconUrl||rewardEmoji)+'</span>';
                 }
                 daysHtml+='<div class="checkin-day-card '+cardClass+'"><div class="day-number">Day '+day.day+'</div>'+iconHtml+'<div class="day-reward-label">'+rewardLabel+'</div><div class="day-reward-amount">'+rewardAmount+'</div>'+actionHtml+'</div>';
             });
-            // ✅ Reset Time - 24 နာရီပုံစံ
-            var resetDate=new Date(event.next_reset);
-            var hours=resetDate.getHours();
-            var minutes=resetDate.getMinutes().toString().padStart(2,'0');
-            var resetTimeStr=hours+':'+minutes;
+            
             var endDate=new Date(event.end_date);var now=new Date();var isEnded=endDate<=now;
-            html+='<div class="checkin-box '+boxClass+'"><div class="checkin-header"><span class="checkin-title">'+titleIcon+' '+titleText+'</span><span class="checkin-timer">⏰ Reset: '+resetTimeStr+'</span></div><div class="checkin-days-scroll">'+daysHtml+'</div>'+(isEnded?'<div class="checkin-ended-text">📅 Event Ended</div>':'')+'</div>';
+            html+='<div class="checkin-box '+boxClass+'"><div class="checkin-header"><span class="checkin-title">'+titleIcon+' '+titleText+'</span><span class="checkin-timer">⏰ Reset: '+resetTimeStr+dateInfo+'</span></div><div class="checkin-days-scroll">'+daysHtml+'</div>'+(isEnded?'<div class="checkin-ended-text">📅 Event Ended</div>':'')+'</div>';
         });
         html+='<div class="checkin-coming-soon" id="checkinComingSoon" style="display:none"><div class="checkin-coming-title">🎬 SOLO M Game Shop × Daily Check In Event Collab is Coming</div><div class="checkin-coming-sub">Admin မှ Event သတ်မှတ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်</div></div>';
         section.innerHTML=html;
