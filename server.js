@@ -6,6 +6,7 @@ const https = require('https');
 const UAParser = require('ua-parser-js');
 const http = require('http');
 const { Server } = require('socket.io');
+const app = express();
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '100mb' }));
@@ -291,8 +292,8 @@ async function initTables(p) {
         await p.query(q).catch(e => console.log('Table create:', e.message)); 
     }
 }
-initTables(pool1);
-initTables(pool2);
+initTables(pools[0]);
+initTables(pools[1]);
 // ==================== CREATE SPIN HISTORY V2 TABLE ====================
 async function createSpinHistoryV2Table() {
     const query = `
@@ -311,8 +312,8 @@ async function createSpinHistoryV2Table() {
     `;
     
     try {
-        await pool1.query(query);
-        await pool2.query(query);
+        await pools[0].query(query);
+        await pools[1].query(query);
         console.log('✅ spin_history_v2 table created on both databases');
     } catch(e) {
         console.log('⚠️ spin_history_v2 table error:', e.message);
@@ -335,8 +336,8 @@ const ALL_PAGES = [
 ];
 
 ALL_PAGES.forEach(async (pg) => {
-    await pool1.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
-    await pool2.query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
+    await pools[0].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
+    await pools[1].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
 });
 // ==================== IMAGE UPLOAD ====================
 app.post('/api/upload_image', async (req, res) => {
