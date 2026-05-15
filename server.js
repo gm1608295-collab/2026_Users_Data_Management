@@ -3390,175 +3390,58 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
     } catch(e) { res.json({ success: false, messages: [] }); }
 });
 
-// Create admin room (User -> Admin)
+// Create admin room
 app.post('/api/chat/create_admin_room', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false });
-    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         const uname = (await p.query('SELECT username FROM auth_users WHERE id=$1', [uid])).rows[0]?.username || 'User';
         
-        // ✅ Check if admin exists (user_id = 1)
-        const adminCheck = await p.query('SELECT id FROM auth_users WHERE id = 1');
-        if (adminCheck.rows.length === 0) {
-            // Create admin account if not exists
-            await p.query(
-                `INSERT INTO auth_users (id, username, email, login_type) VALUES (1, 'Admin', 'admin@sologame.com', 'local') 
-                 ON CONFLICT (id) DO NOTHING`
-            );
+        await p.query(`INSERT INTO auth_users (id, username, email, login_type) VALUES (1, 'Admin', 'admin@sologame.com', 'local') ON CONFLICT (id) DO NOTHING`);
+        
+        const existingRoom = await p.query(`SELECT cr.id FROM chat_rooms cr JOIN chat_participants cp ON cr.id = cp.room_id WHERE cr.room_type = 'admin' AND cp.user_id = $1`, [uid]);
+        
+        if (existingRoom.rows.length > 0) {
+            return res.json({ success: true, room: { id: existingRoom.rows[0].id, room_name: uname + ' - Admin', room_type: 'admin' } });
         }
+        
+        const room = await p.query("INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'admin', $2) RETURNING id", [uname + ' - Admin', uid]);
+        const roomId = room.rows[0].id;
+        
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, uid]);
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, 1]);
+        
+        res.json({ success: true, room: { id: roomId, room_name: uname + ' - Admin', room_type: 'admin' } });
+    } catch(e) { console.error('[CREATE ADMIN ROOM ERROR]', e.message); res.json({ success: false, message: 'Server error' }); }
+});
 
-        // Create private room (User -> User)
+// Create private room
 app.post('/api/chat/create_private_room', async (req, res) => {
     const { token, otherUserId } = req.body;
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!otherUserId) return res.json({ success: false, message: 'Other user ID required' });
-    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         const myName = (await p.query('SELECT username FROM auth_users WHERE id=$1', [uid])).rows[0]?.username || 'User';
         const otherName = (await p.query('SELECT username FROM auth_users WHERE id=$1', [otherUserId])).rows[0]?.username || 'User';
         
-        // Check if room already exists between these 2 users
-        const existingRoom = await p.query(
-            `SELECT cr.id FROM chat_rooms cr 
-             JOIN chat_participants cp1 ON cr.id = cp1.room_id AND cp1.user_id = $1
-             JOIN chat_participants cp2 ON cr.id = cp2.room_id AND cp2.user_id = $2
-             WHERE cr.room_type = 'private'`,
-            [uid, otherUserId]
-        );
+        const existingRoom = await p.query(`SELECT cr.id FROM chat_rooms cr JOIN chat_participants cp1 ON cr.id = cp1.room_id AND cp1.user_id = $1 JOIN chat_participants cp2 ON cr.id = cp2.room_id AND cp2.user_id = $2 WHERE cr.room_type = 'private'`, [uid, otherUserId]);
         
         if (existingRoom.rows.length > 0) {
-            return res.json({ 
-                success: true, 
-                room: { id: existingRoom.rows[0].id, room_name: otherName, room_type: 'private' } 
-            });
+            return res.json({ success: true, room: { id: existingRoom.rows[0].id, room_name: otherName, room_type: 'private' } });
         }
         
-        // Create new room
-        const room = await p.query(
-            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'private', $2) RETURNING id",
-            [myName + ' & ' + otherName, uid]
-        );
+        const room = await p.query("INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'private', $2) RETURNING id", [myName + ' & ' + otherName, uid]);
         const roomId = room.rows[0].id;
         
-        // Add both users
         await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, uid]);
         await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, otherUserId]);
         
         res.json({ success: true, room: { id: roomId, room_name: otherName, room_type: 'private' } });
-        
-    } catch(e) {
-        console.error('[CREATE PRIVATE ROOM ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-
-// Create group room
-app.post('/api/chat/create_group_room', async (req, res) => {
-    const { token, roomName, userIds } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!roomName || !userIds || !Array.isArray(userIds) || userIds.length < 2) {
-        return res.json({ success: false, message: 'Room name and at least 2 users required' });
-    }
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        
-        // Create room
-        const room = await p.query(
-            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id",
-            [roomName, uid]
-        );
-        const roomId = room.rows[0].id;
-        
-        // Add all users (including creator)
-        const allUsers = [...new Set([uid, ...userIds])]; // Remove duplicates
-        for (const userId of allUsers) {
-            await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, userId]);
-        }
-        
-        res.json({ success: true, room: { id: roomId, room_name: roomName, room_type: 'group' } });
-        
-    } catch(e) {
-        console.error('[CREATE GROUP ROOM ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-
-// Delete room
-app.post('/api/chat/room/delete', async (req, res) => {
-    const { roomId } = req.body;
-    if (!roomId) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        await p.query('DELETE FROM chat_messages WHERE room_id = $1', [roomId]);
-        await p.query('DELETE FROM chat_participants WHERE room_id = $1', [roomId]);
-        await p.query('DELETE FROM chat_rooms WHERE id = $1', [roomId]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-// Delete message
-app.post('/api/chat/delete', async (req, res) => {
-    const { messageId } = req.body;
-    if (!messageId) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        await p.query('DELETE FROM chat_messages WHERE id = $1', [messageId]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-        
-        // ✅ Check if room already exists
-        const existingRoom = await p.query(
-            `SELECT cr.id FROM chat_rooms cr 
-             JOIN chat_participants cp ON cr.id = cp.room_id 
-             WHERE cr.room_type = 'admin' AND cp.user_id = $1`,
-            [uid]
-        );
-        
-        if (existingRoom.rows.length > 0) {
-            return res.json({ 
-                success: true, 
-                room: { 
-                    id: existingRoom.rows[0].id, 
-                    room_name: uname + ' - Admin', 
-                    room_type: 'admin' 
-                } 
-            });
-        }
-        
-        // Create new room
-        const room = await p.query(
-            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'admin', $2) RETURNING id",
-            [uname + ' - Admin', uid]
-        );
-        const roomId = room.rows[0].id;
-        
-        // Add participants (user + admin)
-        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, uid]);
-        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, 1]); // Admin ID=1
-        
-        res.json({ 
-            success: true, 
-            room: { 
-                id: roomId, 
-                room_name: uname + ' - Admin', 
-                room_type: 'admin' 
-            } 
-        });
-        
-    } catch(e) {
-        console.error('[CREATE ADMIN ROOM ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
+    } catch(e) { console.error('[CREATE PRIVATE ROOM ERROR]', e.message); res.json({ success: false, message: 'Server error' }); }
 });
 
 // Mark messages as read
@@ -3578,14 +3461,33 @@ app.post('/api/chat/unread', async (req, res) => {
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
-        const r = await p.query(
-            `SELECT COUNT(*) as cnt FROM chat_messages cm 
-             JOIN chat_participants cp ON cm.room_id = cp.room_id 
-             WHERE cp.user_id = $1 AND cm.sender_id != $1 AND cm.is_read = false`,
-            [uid]
-        );
+        const r = await p.query(`SELECT COUNT(*) as cnt FROM chat_messages cm JOIN chat_participants cp ON cm.room_id = cp.room_id WHERE cp.user_id = $1 AND cm.sender_id != $1 AND cm.is_read = false`, [uid]);
         res.json({ count: parseInt(r.rows[0].cnt) });
     } catch(e) { res.json({ count: 0 }); }
+});
+
+// Delete room
+app.post('/api/chat/room/delete', async (req, res) => {
+    const { roomId } = req.body;
+    if (!roomId) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM chat_messages WHERE room_id = $1', [roomId]);
+        await p.query('DELETE FROM chat_participants WHERE room_id = $1', [roomId]);
+        await p.query('DELETE FROM chat_rooms WHERE id = $1', [roomId]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Delete message
+app.post('/api/chat/delete', async (req, res) => {
+    const { messageId } = req.body;
+    if (!messageId) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM chat_messages WHERE id = $1', [messageId]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
 });
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
