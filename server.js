@@ -625,46 +625,200 @@ async function createOTP(userId) {
 }
 
 function startLongPolling() {
-    console.log('Telegram Bot Started');
-    var mainKeyboard = { inline_keyboard: [[{ text: 'Home', url: 'https://two026-users-data-management.onrender.com' }], [{ text: 'Top Up', url: 'https://two026-users-data-management.onrender.com/topup.html' }], [{ text: 'Buy Code', url: 'https://two026-users-data-management.onrender.com/buycode.html' }], [{ text: 'Contact Admin', url: 'https://t.me/Solo_m28' }]] };
-    var quickKeyboard = { inline_keyboard: [[{ text: 'Balance', callback_data: 'balance' }], [{ text: 'OTP', callback_data: 'otp' }], [{ text: 'Orders', callback_data: 'status' }], [{ text: 'Buy Code', callback_data: 'buycode' }], [{ text: 'Contact', url: 'https://t.me/Solo_m28' }]] };
+    console.log('🤖 Telegram Bot စတင်ပါပြီ');
+    
+    var mainKeyboard = {
+        inline_keyboard: [
+            [{ text: '🏠 အကောင့်ဝင်ရန်', url: 'https://two026-users-data-management.onrender.com' }],
+            [{ text: '💰 ငွေဖြည့်ရန်', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
+            [{ text: '🛒 Code ဝယ်ရန်', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
+            [{ text: '🎰 Lucky Spin', url: 'https://two026-users-data-management.onrender.com/game.html' }],
+            [{ text: '📞 Admin ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }]
+        ]
+    };
+    
+    var quickKeyboard = {
+        inline_keyboard: [
+            [{ text: '💳 လက်ကျန်ကြည့်ရန်', callback_data: 'balance' }],
+            [{ text: '🔐 OTP ရယူရန်', callback_data: 'otp' }],
+            [{ text: '📋 Order စစ်ရန်', callback_data: 'status' }],
+            [{ text: '🛒 Code ဝယ်ရန်', callback_data: 'buycode' }],
+            [{ text: '🎰 Lucky Spin', url: 'https://two026-users-data-management.onrender.com/game.html' }],
+            [{ text: '📞 ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }]
+        ]
+    };
 
     async function getUpdates() {
         try {
             var url = TELEGRAM_API + '/getUpdates?offset=' + (lastUpdateId + 1) + '&timeout=15';
-            var response = await fetch(url, { signal: AbortSignal.timeout(20000) }); var result = await response.json();
+            var response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+            var result = await response.json();
+            
             if (result.ok && result.result.length > 0) {
                 for (var i = 0; i < result.result.length; i++) {
-                    var update = result.result[i]; lastUpdateId = update.update_id;
+                    var update = result.result[i];
+                    lastUpdateId = update.update_id;
+                    
+                    // ========== ခလုတ်နှိပ်ခြင်းများ ==========
                     if (update.callback_query) {
-                        var cq = update.callback_query; var chatId = cq.message.chat.id; var data = cq.data; var firstName = cq.from.first_name || 'User';
+                        var cq = update.callback_query;
+                        var chatId = cq.message.chat.id;
+                        var data = cq.data;
+                        var firstName = cq.from.first_name || 'User';
+                        
                         var user = await createTelegramUser(cq.from.id, firstName);
-                        if (!user) { sendTelegramMessage(chatId, 'Error. /start'); continue; }
-                        if (data === 'balance') { var balance = user.balance || 0; sendTelegramMessage(chatId, 'Balance: ' + balance.toLocaleString() + ' Ks\n~$' + (balance/2100).toFixed(2) + ' USD', quickKeyboard); }
-                        else if (data === 'otp') { var otp = await createOTP(user.id); sendTelegramMessage(chatId, 'OTP: ' + otp + '\n60 seconds only', quickKeyboard); }
-                        else if (data === 'status') { var orders = await getUserOrders(cq.from.id); if (orders.length === 0) { sendTelegramMessage(chatId, 'No orders', quickKeyboard); } else { var msg = 'Recent Orders:\n\n'; for (var j = 0; j < orders.length; j++) { var o = orders[j]; var st = o.status === 'approved' ? 'OK' : o.status === 'rejected' ? 'NO' : '...'; msg += st + ' #' + o.id + ' | ' + o.amount + ' Ks | ' + o.payment_method + '\n' + new Date(o.created_at).toLocaleDateString() + '\n\n'; } sendTelegramMessage(chatId, msg, quickKeyboard); } }
-                        else if (data === 'buycode') { sendTelegramMessage(chatId, 'Buy Code: https://two026-users-data-management.onrender.com/buycode.html', mainKeyboard); }
+                        if (!user) { sendTelegramMessage(chatId, '❌ Error ရှိနေပါသည်။ /start ကိုနှိပ်ပါ'); continue; }
+                        
+                        if (data === 'balance') {
+                            var balance = user.balance || 0;
+                            sendTelegramMessage(chatId, 
+                                '💳 <b>သင့်လက်ကျန်</b>\n\n' +
+                                '💰 <b>' + balance.toLocaleString() + ' ကျပ်</b>\n' +
+                                '💵 ≈ $' + (balance/2100).toFixed(2) + ' USD\n\n' +
+                                'ငွေဖြည့်ရန် Top Up ခလုတ်ကိုနှိပ်ပါ။', 
+                                quickKeyboard
+                            );
+                        }
+                        else if (data === 'otp') {
+                            var otp = await createOTP(user.id);
+                            sendTelegramMessage(chatId, 
+                                '🔐 <b>သင့် OTP ကုဒ်</b>\n\n' +
+                                '🔢 <b>' + otp + '</b>\n\n' +
+                                '⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n' +
+                                '⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်။', 
+                                quickKeyboard
+                            );
+                        }
+                        else if (data === 'status') {
+                            var orders = await getUserOrders(cq.from.id);
+                            if (orders.length === 0) {
+                                sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။', quickKeyboard);
+                            } else {
+                                var msg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
+                                for (var j = 0; j < orders.length; j++) {
+                                    var o = orders[j];
+                                    var st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+                                    msg += st + ' #' + o.id + ' | 💰 ' + o.amount + ' Ks | 💳 ' + o.payment_method + '\n📅 ' + new Date(o.created_at).toLocaleDateString() + '\n\n';
+                                }
+                                sendTelegramMessage(chatId, msg, quickKeyboard);
+                            }
+                        }
+                        else if (data === 'buycode') {
+                            sendTelegramMessage(chatId, 
+                                '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', 
+                                mainKeyboard
+                            );
+                        }
+                        
                         try { await fetch(TELEGRAM_API + '/answerCallbackQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: cq.id }) }); } catch(e) {}
                         continue;
                     }
-                    var msg = update.message; if (!msg) continue;
-                    var chatId = msg.chat.id; var text = (msg.text || '').trim(); var firstName = msg.from.first_name || 'User';
-                    if (text === '/start' || text === '/login') { var u = await createTelegramUser(msg.from.id, firstName); var welcome = u.isNew ? 'Welcome to SOLO M Game Shop!\n\nHi ' + firstName + '!\n\nYour account is ready.' : 'Welcome back ' + firstName + '!'; sendTelegramMessage(chatId, welcome + '\n\nBalance: ' + (u.balance || 0).toLocaleString() + ' Ks', quickKeyboard); }
-                    else if (text === '/help') { sendTelegramMessage(chatId, 'Commands:\n/start\n/help\n/balance\n/otp\n/status\n/buy\n\nContact: @Solo_m28', quickKeyboard); }
-                    else if (text === '/balance') { var ub = await createTelegramUser(msg.from.id, firstName); var bal = ub ? (ub.balance || 0) : 0; sendTelegramMessage(chatId, 'Balance: ' + bal.toLocaleString() + ' Ks\n~$' + (bal/2100).toFixed(2) + ' USD', quickKeyboard); }
-                    else if (text === '/otp') { var uo = await createTelegramUser(msg.from.id, firstName); if (uo) { var otp2 = await createOTP(uo.id); sendTelegramMessage(chatId, 'OTP: ' + otp2 + '\n60 seconds only'); } }
-                    else if (text === '/status') { var ord = await getUserOrders(msg.from.id); if (ord.length === 0) { sendTelegramMessage(chatId, 'No orders'); } else { var smsg = 'Recent Orders:\n\n'; for (var k = 0; k < ord.length; k++) { var oo = ord[k]; var sst = oo.status === 'approved' ? 'OK' : oo.status === 'rejected' ? 'NO' : '...'; smsg += sst + ' #' + oo.id + ' | ' + oo.amount + ' Ks | ' + oo.payment_method + '\n' + new Date(oo.created_at).toLocaleDateString() + '\n\n'; } sendTelegramMessage(chatId, smsg); } }
-                    else if (text === '/buy') { sendTelegramMessage(chatId, 'Buy Code: https://two026-users-data-management.onrender.com/buycode.html', mainKeyboard); }
-                    else { sendTelegramMessage(chatId, 'Commands:\n/start\n/help\n/balance\n/otp\n/status\n/buy', quickKeyboard); }
+                    
+                    // ========== စာတိုပေးပို့ခြင်းများ ==========
+                    var msg = update.message;
+                    if (!msg) continue;
+                    
+                    var chatId = msg.chat.id;
+                    var text = (msg.text || '').trim();
+                    var firstName = msg.from.first_name || 'User';
+                    
+                    if (text === '/start' || text === '/login') {
+                        var u = await createTelegramUser(msg.from.id, firstName);
+                        var welcomeMsg = u.isNew ? 
+                            '🎉 <b>SOLO M Game Shop မှ ကြိုဆိုပါတယ်!</b>\n\nမင်္ဂလာပါ ' + firstName + '!\n\nသင့်အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ။' :
+                            '👋 ပြန်လည်ကြိုဆိုပါတယ် ' + firstName + '!';
+                        
+                        sendTelegramMessage(chatId, 
+                            welcomeMsg + '\n\n' +
+                            '💳 လက်ကျန်: <b>' + (u.balance || 0).toLocaleString() + ' ကျပ်</b>\n\n' +
+                            'အောက်ပါ ခလုတ်များကို အသုံးပြုနိုင်ပါသည်။',
+                            quickKeyboard
+                        );
+                    }
+                    else if (text === '/help') {
+                        sendTelegramMessage(chatId,
+                            '📖 <b>SOLO M Game Shop</b>\n\n' +
+                            '<b>Commands များ:</b>\n' +
+                            '/start - အကောင့်ဝင်ရန်\n' +
+                            '/help - အကူအညီ\n' +
+                            '/balance - လက်ကျန်ကြည့်ရန်\n' +
+                            '/otp - OTP Code\n' +
+                            '/status - Order စစ်ရန်\n' +
+                            '/buy - Code ဝယ်ရန်\n' +
+                            '/spin - Lucky Spin\n\n' +
+                            '<b>ဆက်သွယ်ရန်:</b> @Solo_m28',
+                            quickKeyboard
+                        );
+                    }
+                    else if (text === '/balance') {
+                        var ub = await createTelegramUser(msg.from.id, firstName);
+                        var bal = ub ? (ub.balance || 0) : 0;
+                        sendTelegramMessage(chatId, 
+                            '💳 <b>သင့်လက်ကျန်</b>\n\n' +
+                            '💰 <b>' + bal.toLocaleString() + ' ကျပ်</b>\n' +
+                            '💵 ≈ $' + (bal/2100).toFixed(2) + ' USD', 
+                            quickKeyboard
+                        );
+                    }
+                    else if (text === '/otp') {
+                        var uo = await createTelegramUser(msg.from.id, firstName);
+                        if (uo) {
+                            var otp2 = await createOTP(uo.id);
+                            sendTelegramMessage(chatId, 
+                                '🔐 <b>သင့် OTP ကုဒ်</b>\n\n🔢 <b>' + otp2 + '</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။'
+                            );
+                        }
+                    }
+                    else if (text === '/status') {
+                        var ord = await getUserOrders(msg.from.id);
+                        if (ord.length === 0) {
+                            sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။');
+                        } else {
+                            var smsg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
+                            for (var k = 0; k < ord.length; k++) {
+                                var oo = ord[k];
+                                var sst = oo.status === 'approved' ? '✅' : oo.status === 'rejected' ? '❌' : '⏳';
+                                smsg += sst + ' #' + oo.id + ' | 💰 ' + oo.amount + ' Ks | 💳 ' + oo.payment_method + '\n📅 ' + new Date(oo.created_at).toLocaleDateString() + '\n\n';
+                            }
+                            sendTelegramMessage(chatId, smsg);
+                        }
+                    }
+                    else if (text === '/buy') {
+                        sendTelegramMessage(chatId, 
+                            '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', 
+                            mainKeyboard
+                        );
+                    }
+                    else if (text === '/spin') {
+                        sendTelegramMessage(chatId, 
+                            '🎰 <b>Lucky Spin</b>\n\nhttps://two026-users-data-management.onrender.com/game.html', 
+                            mainKeyboard
+                        );
+                    }
+                    else {
+                        sendTelegramMessage(chatId, 
+                            'အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n' +
+                            '/start - စတင်ရန်\n' +
+                            '/help - အကူအညီ\n' +
+                            '/balance - လက်ကျန်ကြည့်ရန်\n' +
+                            '/otp - OTP Code\n' +
+                            '/status - Order မှတ်တမ်း\n' +
+                            '/buy - Code ဝယ်ယူရန်\n' +
+                            '/spin - Lucky Spin',
+                            quickKeyboard
+                        );
+                    }
                 }
             }
-        } catch(e) { console.log('Bot Polling:', e.message); }
+        } catch(e) {
+            console.log('Bot Polling:', e.message);
+        }
         setTimeout(getUpdates, 500);
     }
+    
     getUpdates();
-    console.log('Bot Long Polling Active');
+    console.log('✅ Bot Long Polling Active');
 }
-startLongPolling();
 
 // ==================== VIDEO SYSTEM ====================
 function getEmbedUrl(url) {
@@ -1082,31 +1236,109 @@ app.post('/api/admin/checkin_event/cancel', async function(req, res) {
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 
-// ==================== DAILY CHECK-IN USER APIs ====================
+// ====================================
+// DAILY CHECK-IN USER APIs
+// ====================================
+
+// Get active check-in events for user
 app.post('/api/daily_checkin/status', async function(req, res) {
-    var token = req.body.token; if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    var token = req.body.token;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    
     try {
-        var p = await getPool(); var uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false });
-        var now = new Date(); var today = now.toISOString().split('T')[0];
+        var p = await getPool();
+        var uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        var now = new Date();
+        var today = now.toISOString().split('T')[0];
+        var currentTimeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+        
+        // Get user premium status
         var user = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
         var isPremium = user.rows[0] && user.rows[0].premium_expiry && new Date(user.rows[0].premium_expiry) > new Date();
+        
+        // ✅ Get active events - Start Time စစ်ပြီးမှ ပြ
         var eventQuery;
-        if (isPremium) { eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND (event_type='normal' OR event_type='premium') AND start_date <= $1 AND end_date >= $1 ORDER BY event_type ASC"; }
-        else { eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND event_type='normal' AND start_date <= $1 AND end_date >= $1 ORDER BY id ASC"; }
-        var events = await p.query(eventQuery, [today]); var result = [];
-        for (var i = 0; i < events.rows.length; i++) {
-            var event = events.rows[i]; var resetTime = event.end_time || '14:30:00'; var todayReset = new Date(today + 'T' + resetTime);
-            var todayCheckin = await p.query('SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3', [uid, event.id, today]);
-            var currentDay = 1; var startDate = new Date(event.start_date); var daysDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1; currentDay = Math.max(1, Math.min(daysDiff, event.total_days));
-            var rewards = await p.query('SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC', [event.id]);
-            var claimedDays = await p.query('SELECT day_number FROM daily_checkins WHERE user_id=$1 AND event_id=$2 ORDER BY day_number ASC', [uid, event.id]);
-            var claimedDayNumbers = claimedDays.rows.map(function(r) { return r.day_number; });
-            var dayStatus = [];
-            for (var d = 1; d <= event.total_days; d++) { var reward = rewards.rows.find(function(r) { return r.day_number === d; }); dayStatus.push({ day: d, claimed: claimedDayNumbers.indexOf(d) !== -1, reward: reward ? { type: reward.reward_type, amount: parseFloat(reward.reward_amount), label: reward.reward_label, icon: reward.icon_url } : null }); }
-            result.push({ event_id: event.id, event_type: event.event_type, event_name: event.event_name, start_date: event.start_date, end_date: event.end_date, end_time: event.end_time, total_days: event.total_days, current_day: currentDay, checked_in_today: todayCheckin.rows.length > 0, claimed_days: claimedDayNumbers, day_status: dayStatus, can_claim: todayCheckin.rows.length === 0 && now < todayReset, next_reset: todayReset.toISOString() });
+        if (isPremium) {
+            eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND (event_type='normal' OR event_type='premium') AND start_date <= $1 AND end_date >= $1 AND (start_date < $1 OR (start_date = $1 AND start_time <= $2)) ORDER BY event_type ASC";
+        } else {
+            eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND event_type='normal' AND start_date <= $1 AND end_date >= $1 AND (start_date < $1 OR (start_date = $1 AND start_time <= $2)) ORDER BY id ASC";
         }
+        
+        var events = await p.query(eventQuery, [today, currentTimeStr]);
+        var result = [];
+        
+        for (var i = 0; i < events.rows.length; i++) {
+            var event = events.rows[i];
+            
+            // Check reset time
+            var resetTime = event.end_time || '14:30:00';
+            var todayReset = new Date(today + 'T' + resetTime);
+            
+            // Get today's checkin
+            var todayCheckin = await p.query(
+                'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3',
+                [uid, event.id, today]
+            );
+            
+            // Calculate current day
+            var currentDay = 1;
+            var startDate = new Date(event.start_date);
+            var daysDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            currentDay = Math.max(1, Math.min(daysDiff, event.total_days));
+            
+            // Get rewards
+            var rewards = await p.query(
+                'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC',
+                [event.id]
+            );
+            
+            // Get user's claimed days for this event
+            var claimedDays = await p.query(
+                'SELECT day_number FROM daily_checkins WHERE user_id=$1 AND event_id=$2 ORDER BY day_number ASC',
+                [uid, event.id]
+            );
+            var claimedDayNumbers = claimedDays.rows.map(function(r) { return r.day_number; });
+            
+            // Build day status array
+            var dayStatus = [];
+            for (var d = 1; d <= event.total_days; d++) {
+                var reward = rewards.rows.find(function(r) { return r.day_number === d; });
+                dayStatus.push({
+                    day: d,
+                    claimed: claimedDayNumbers.indexOf(d) !== -1,
+                    reward: reward ? {
+                        type: reward.reward_type,
+                        amount: parseFloat(reward.reward_amount),
+                        label: reward.reward_label,
+                        icon: reward.icon_url
+                    } : null
+                });
+            }
+            
+            result.push({
+                event_id: event.id,
+                event_type: event.event_type,
+                event_name: event.event_name,
+                start_date: event.start_date,
+                end_date: event.end_date,
+                end_time: event.end_time,
+                total_days: event.total_days,
+                current_day: currentDay,
+                checked_in_today: todayCheckin.rows.length > 0,
+                claimed_days: claimedDayNumbers,
+                day_status: dayStatus,
+                can_claim: todayCheckin.rows.length === 0 && now < todayReset,
+                next_reset: todayReset.toISOString()
+            });
+        }
+        
         res.json({ success: true, events: result, is_premium: isPremium });
-    } catch(e) { res.json({ success: false, message: 'Server error' }); }
+    } catch(e) {
+        console.error('[CHECKIN STATUS]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
 });
 
 app.post('/api/daily_checkin/claim', async function(req, res) {
