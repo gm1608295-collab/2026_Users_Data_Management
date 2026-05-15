@@ -418,7 +418,16 @@
         
         var days=event.total_days;
         var title='✏️ Edit: '+event.event_name;
-        var rewardsHtml='';
+        
+        // ✅ Table header
+        var rewardsHtml='<div style="overflow-x:auto;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:9px">';
+        rewardsHtml+='<thead><tr style="background:rgba(0,0,0,0.3)">';
+        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Day</th>';
+        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Type</th>';
+        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Amount</th>';
+        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Label</th>';
+        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Icon</th>';
+        rewardsHtml+='</tr></thead><tbody>';
         
         if(event.rewards){
             for(var j=0;j<event.rewards.length;j++){
@@ -427,19 +436,19 @@
                 var selMmk=(rw.reward_type==='mmk')?'selected':'';
                 var selUsd=(rw.reward_type==='usd')?'selected':'';
                 var selSpin=(rw.reward_type==='spin')?'selected':'';
-                rewardsHtml+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:5px">';
-                rewardsHtml+='<span style="width:35px;font-size:9px">Day'+d2+':</span>';
-                rewardsHtml+='<select id="editRewardType'+d2+'" style="width:60px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">';
-                rewardsHtml+='<option value="mmk" '+selMmk+'>💰MMK</option>';
-                rewardsHtml+='<option value="usd" '+selUsd+'>💵USD</option>';
-                rewardsHtml+='<option value="spin" '+selSpin+'>🔄Spin</option>';
-                rewardsHtml+='</select>';
-                rewardsHtml+='<input type="number" id="editRewardAmount'+d2+'" value="'+rw.reward_amount+'" min="0" step="0.01" style="width:65px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">';
-                rewardsHtml+='<input type="text" id="editRewardLabel'+d2+'" value="'+(rw.reward_label||'').replace(/"/g,'&quot;')+'" placeholder="Label" style="width:80px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">';
-                rewardsHtml+='<input type="text" id="editRewardIcon'+d2+'" value="'+(rw.icon_url||'').replace(/"/g,'&quot;')+'" placeholder="🎁" style="width:50px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">';
-                rewardsHtml+='</div>';
+                var bgColor=(j%2===0)?'rgba(255,255,255,0.02)':'rgba(255,255,255,0.04)';
+                
+                rewardsHtml+='<tr style="background:'+bgColor+'">';
+                rewardsHtml+='<td style="padding:4px;text-align:center;font-weight:bold;color:var(--w)">'+d2+'</td>';
+                rewardsHtml+='<td style="padding:4px;text-align:center"><select id="editRewardType'+d2+'" style="width:70px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><option value="mmk" '+selMmk+'>💰 MMK</option><option value="usd" '+selUsd+'>💵 USD</option><option value="spin" '+selSpin+'>🔄 Spin</option></select></td>';
+                rewardsHtml+='<td style="padding:4px;text-align:center"><input type="number" id="editRewardAmount'+d2+'" value="'+rw.reward_amount+'" min="0" step="0.01" style="width:75px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;text-align:center"></td>';
+                rewardsHtml+='<td style="padding:4px;text-align:center"><input type="text" id="editRewardLabel'+d2+'" value="'+(rw.reward_label||'').replace(/"/g,'&quot;')+'" placeholder="Label" style="width:85px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;text-align:center"></td>';
+                rewardsHtml+='<td style="padding:4px;text-align:center"><input type="text" id="editRewardIcon'+d2+'" value="'+(rw.icon_url||'').replace(/"/g,'&quot;')+'" placeholder="🎁" style="width:55px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;text-align:center"></td>';
+                rewardsHtml+='</tr>';
             }
         }
+        
+        rewardsHtml+='</tbody></table></div>';
         
         var startTimeVal=event.start_time?event.start_time.substring(0,5):'00:00';
         var resetTimeVal=event.end_time?event.end_time.substring(0,5):'14:30';
@@ -448,27 +457,28 @@
         modal.className='modal';
         modal.id='editCheckinEventModal';
         modal.style.display='flex';
-        modal.innerHTML='<div class="modal-box" style="max-width:550px;max-height:85vh;overflow-y:auto">';
+        modal.innerHTML='<div class="modal-box" style="max-width:600px;max-height:85vh;overflow-y:auto">';
         modal.innerHTML+='<span class="modal-close" onclick="this.closest(\'.modal\').remove()">&times;</span>';
         modal.innerHTML+='<h3>'+title+'</h3>';
+        
+        // Event Info
+        modal.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
         modal.innerHTML+='<div class="form-group"><label>Event Name</label><input type="text" id="editCheckinEventName" value="'+(event.event_name||'').replace(/"/g,'&quot;')+'"></div>';
-        modal.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
         modal.innerHTML+='<div class="form-group"><label>📅 Start Date</label><input type="date" id="editCheckinStartDate" value="'+event.start_date+'"></div>';
         modal.innerHTML+='<div class="form-group"><label>⏰ Start Time</label><input type="time" id="editCheckinStartTime" value="'+startTimeVal+'"></div>';
+        modal.innerHTML+='<div class="form-group"><label>⏰ Reset Time</label><input type="time" id="editCheckinResetTime" value="'+resetTimeVal+'"></div>';
         modal.innerHTML+='</div>';
-        modal.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-        modal.innerHTML+='<div class="form-group"><label>📆 Total Days</label><input type="number" id="editCheckinTotalDays" value="'+days+'" readonly></div>';
-        modal.innerHTML+='<div class="form-group"><label>⏰ Daily Reset Time</label><input type="time" id="editCheckinResetTime" value="'+resetTimeVal+'"></div>';
-        modal.innerHTML+='</div>';
-        modal.innerHTML+='<h4 style="color:var(--w);font-size:12px;margin:12px 0 8px">Rewards Configuration</h4>';
-        modal.innerHTML+='<div style="max-height:280px;overflow-y:auto">'+rewardsHtml+'</div>';
-        modal.innerHTML+='<button class="btn btn-g" onclick="saveEditCheckinEvent('+eventId+')" style="width:100%;margin-top:12px"><i class="fas fa-save"></i> Save Changes</button>';
+        
+        // Rewards Table
+        modal.innerHTML+='<h4 style="color:var(--w);font-size:12px;margin:8px 0">📋 Rewards Configuration</h4>';
+        modal.innerHTML+=rewardsHtml;
+        
+        modal.innerHTML+='<button class="btn btn-g" onclick="saveEditCheckinEvent('+eventId+')" style="width:100%;margin-top:8px"><i class="fas fa-save"></i> Save Changes</button>';
         modal.innerHTML+='</div>';
         document.body.appendChild(modal);
         modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
     }catch(e){n('Error loading event','error');}
 }
-
 async function saveEditCheckinEvent(eventId){
     var name=document.getElementById('editCheckinEventName').value;
     var startDate=document.getElementById('editCheckinStartDate').value;
