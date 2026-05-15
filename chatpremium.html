@@ -172,10 +172,9 @@ async function loadBalances() {
     
     try {
         const [usdRes, premRes] = await Promise.all([
-            fetch('/api/get_usd_balance', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) }).then(r=>r.json()),
-            fetch('/api/get_premium_status', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) }).then(r=>r.json())
-        ]);
-        
+    fetch('/api/get_usd_balance', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) }).then(r=>r.json()),
+    fetch('/api/chat/premium/status', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) }).then(r=>r.json())
+]);
         usdBalance = parseFloat(usdRes.usd_balance || 0);
         document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
         
@@ -250,7 +249,7 @@ async function buyPremium() {
     if (!token) return n('အကောင့်ဝင်ပါ', 'error');
     
     try {
-        const r = await fetch('/api/buy_premium', {
+        const r = await fetch('/api/chat/premium/buy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, months: plan.months, cost: plan.cost, tier: plan.tier })
