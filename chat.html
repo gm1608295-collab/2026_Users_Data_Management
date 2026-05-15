@@ -228,7 +228,16 @@
     </div>
 
 <script>
-const socket = io();
+// Check login
+if (!localStorage.getItem('auth_token') || localStorage.getItem('auth_token') === 'guest') {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;text-align:center"><div><i class="fas fa-lock" style="font-size:50px;color:#f39c12;margin-bottom:15px"></i><h3>စကားပြောရန် အကောင့်ဝင်ပါ</h3><a href="/" style="color:#f39c12;margin-top:15px;display:inline-block">Login Page သို့သွားရန်</a></div></div>';
+    throw new Error('Not logged in');
+}
+    const socket = io(window.location.origin, {
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 5
+});
 let user = null;
 let currentRoom = null;
 let messageOffset = 0;
