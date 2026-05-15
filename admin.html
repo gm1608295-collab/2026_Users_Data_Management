@@ -315,10 +315,21 @@
         var c=document.getElementById('checkinEventsList');
         if(!c)return;
         if(d.events&&d.events.length>0){
+            // ✅ Server Time ကို ယူမယ်
+            var now=new Date();
+            
             c.innerHTML=d.events.map(function(evt){
-                var now=new Date();
-                var startDateTime=new Date(evt.start_date+'T'+(evt.start_time||'00:00:00'));
-                var endDateTime=new Date(evt.end_date+'T'+(evt.end_time||'14:30:00'));
+                // ✅ Start Date + Start Time ကို ပေါင်းပြီး DateTime တည်ဆောက်
+                var startDateStr=evt.start_date;
+                var startTimeStr=evt.start_time||'00:00:00';
+                var startDateTime=new Date(startDateStr+'T'+startTimeStr);
+                
+                // ✅ End Date + End Time
+                var endDateStr=evt.end_date;
+                var endTimeStr=evt.end_time||'14:30:00';
+                var endDateTime=new Date(endDateStr+'T'+endTimeStr);
+                
+                // ✅ Status စစ်
                 var isCancelled=evt.cancelled;
                 var isStarted=startDateTime<=now;
                 var isEnded=endDateTime<=now;
@@ -329,10 +340,12 @@
                 else if(isStarted){statusColor='var(--g)';statusText='Active';}
                 else{statusColor='var(--w)';statusText='Pending';}
                 
+                // ✅ Debug - Console မှာ စစ်ကြည့်လို့ရ
+                console.log('Event:',evt.event_name,'Start:',startDateTime.toLocaleString(),'Now:',now.toLocaleString(),'Started:',isStarted,'Status:',statusText);
+                
                 var typeColor=evt.event_type==='premium'?'#9b59b6':'#3498db';
                 var typeIcon=evt.event_type==='premium'?'👑':'🎁';
                 
-                // Rewards display
                 var rewardsHtml='';
                 if(evt.rewards&&evt.rewards.length>0){
                     rewardsHtml='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:8px">';
@@ -343,8 +356,8 @@
                     rewardsHtml+='</div>';
                 }
                 
-                var startTimeDisplay=(evt.start_time||'00:00:00').substring(0,5);
-                var resetTimeDisplay=(evt.end_time||'14:30:00').substring(0,5);
+                var startTimeDisplay=startTimeStr.substring(0,5);
+                var resetTimeDisplay=endTimeStr.substring(0,5);
                 
                 var html='<div style="background:rgba(0,0,0,0.35);border-radius:10px;padding:14px;margin-bottom:10px;border-left:5px solid '+typeColor+'">';
                 html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">';
@@ -357,7 +370,7 @@
                 html+='</small>';
                 html+='</div>';
                 
-                // ✅ Buttons - Start Time မရောက်မှသာ Edit/Cancel ပြ
+                // ✅ Buttons - Start Time မရောက်သေးမှ Edit/Cancel
                 html+='<div style="display:flex;gap:5px;flex-shrink:0">';
                 if(!isStarted&&!isCancelled){
                     html+='<button class="btn btn-w" style="font-size:10px;padding:6px 12px" onclick="editCheckinEvent('+evt.id+',\''+evt.event_type+'\')">✏️ Edit</button>';
@@ -376,85 +389,7 @@
         }
     }catch(e){}
 }
-    async function openCheckinEventModal(type){const days=type==='normal'?7:14;const title=type==='normal'?'🎁 Normal Daily Check-In (7 Days)':'👑 Premium Daily Check-In (14 Days)';let rewardsHtml='';for(let d=1;d<=days;d++){rewardsHtml+=`<div style="display:flex;gap:4px;align-items:center;margin-bottom:4px"><span style="width:35px;font-size:8px">Day${d}:</span><select id="rewardType${d}" style="width:60px;padding:3px;font-size:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><option value="mmk">💰MMK</option><option value="usd">💵USD</option><option value="spin">🔄Spin</option></select><input type="number" id="rewardAmount${d}" value="100" min="0" step="0.01" style="width:55px;padding:3px;font-size:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><input type="text" id="rewardLabel${d}" placeholder="Label" style="width:65px;padding:3px;font-size:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><input type="text" id="rewardIcon${d}" placeholder="🎁" style="width:35px;padding:3px;font-size:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"></div>`}const modal=document.createElement('div');modal.className='modal';modal.id='checkinEventModal';modal.style.display='flex';modal.innerHTML=`<div class="modal-box" style="max-width:500px;max-height:85vh;overflow-y:auto"><span class="modal-close" onclick="this.closest('.modal').remove()">&times;</span><h3>${title}</h3><div class="form-group"><label>Event Name</label><input type="text" id="checkinEventName" value="${title}"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>📅 Start Date</label><input type="date" id="checkinStartDate"></div><div class="form-group"><label>⏰ Start Time</label><input type="time" id="checkinStartTime" value="00:00"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>📆 Total Days</label><input type="number" id="checkinTotalDays" value="${days}" readonly></div><div class="form-group"><label>⏰ Daily Reset Time</label><input type="time" id="checkinResetTime" value="14:30"></div></div><h4 style="color:var(--w);font-size:11px;margin:10px 0">Rewards Configuration</h4><div style="max-height:250px;overflow-y:auto">${rewardsHtml}</div><button class="btn btn-g" onclick="createCheckinEvent('${type}')" style="width:100%;margin-top:10px"><i class="fas fa-save"></i> Create Event</button></div>`;document.body.appendChild(modal);modal.addEventListener('click',function(e){if(e.target===modal)modal.remove()})}
-    async function createCheckinEvent(type){const days=type==='normal'?7:14;const name=document.getElementById('checkinEventName').value;const startDate=document.getElementById('checkinStartDate').value;const startTime=document.getElementById('checkinStartTime').value+':00';const resetTime=document.getElementById('checkinResetTime').value+':00';if(!startDate)return n('❌ Start date required','error');const rewards=[];for(let d=1;d<=days;d++){rewards.push({day:d,type:document.getElementById('rewardType'+d).value,amount:document.getElementById('rewardAmount'+d).value,label:document.getElementById('rewardLabel'+d).value,icon:document.getElementById('rewardIcon'+d).value})}showLoading('Creating...');try{const r=await fetch('/api/admin/checkin_event/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:type,event_name:name,start_date:startDate,start_time:startTime,end_time:resetTime,total_days:days,rewards:rewards})});const d=await r.json();if(d.success){n('✅ Event created!');document.getElementById('checkinEventModal').remove();loadCheckinEvents()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}hideLoading()}
-    async function cancelCheckinEvent(eventId){if(!confirm('Cancel this event?'))return;try{const r=await fetch('/api/admin/checkin_event/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:eventId})});const d=await r.json();if(d.success){n('✅ Cancelled!');loadCheckinEvents()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}}
-    async function editCheckinEvent(eventId, type){
-    try{
-        var r=await fetch('/api/admin/checkin_events');
-        var d=await r.json();
-        var event=null;
-        if(d.events){
-            for(var i=0;i<d.events.length;i++){
-                if(d.events[i].id===eventId){event=d.events[i];break;}
-            }
-        }
-        if(!event){n('Event not found','error');return;}
-        
-        var days=event.total_days;
-        var title='✏️ Edit: '+event.event_name;
-        
-        // ✅ Table header
-        var rewardsHtml='<div style="overflow-x:auto;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;font-size:9px">';
-        rewardsHtml+='<thead><tr style="background:rgba(0,0,0,0.3)">';
-        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Day</th>';
-        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Type</th>';
-        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Amount</th>';
-        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Label</th>';
-        rewardsHtml+='<th style="padding:6px 4px;text-align:center;border-bottom:2px solid rgba(255,255,255,0.15)">Icon</th>';
-        rewardsHtml+='</tr></thead><tbody>';
-        
-        if(event.rewards){
-            for(var j=0;j<event.rewards.length;j++){
-                var rw=event.rewards[j];
-                var d2=rw.day_number;
-                var selMmk=(rw.reward_type==='mmk')?'selected':'';
-                var selUsd=(rw.reward_type==='usd')?'selected':'';
-                var selSpin=(rw.reward_type==='spin')?'selected':'';
-                var bgColor=(j%2===0)?'rgba(255,255,255,0.02)':'rgba(255,255,255,0.04)';
-                
-                rewardsHtml+='<tr style="background:'+bgColor+'">';
-                rewardsHtml+='<td style="padding:4px;text-align:center;font-weight:bold;color:var(--w)">'+d2+'</td>';
-                rewardsHtml+='<td style="padding:4px;text-align:center"><select id="editRewardType'+d2+'" style="width:70px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><option value="mmk" '+selMmk+'>💰 MMK</option><option value="usd" '+selUsd+'>💵 USD</option><option value="spin" '+selSpin+'>🔄 Spin</option></select></td>';
-                rewardsHtml+='<td style="padding:4px;text-align:center"><input type="number" id="editRewardAmount'+d2+'" value="'+rw.reward_amount+'" min="0" step="0.01" style="width:75px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;text-align:center"></td>';
-                rewardsHtml+='<td style="padding:4px;text-align:center"><input type="text" id="editRewardLabel'+d2+'" value="'+(rw.reward_label||'').replace(/"/g,'&quot;')+'" placeholder="Label" style="width:85px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;text-align:center"></td>';
-                rewardsHtml+='<td style="padding:4px;text-align:center"><input type="text" id="editRewardIcon'+d2+'" value="'+(rw.icon_url||'').replace(/"/g,'&quot;')+'" placeholder="🎁" style="width:55px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff;text-align:center"></td>';
-                rewardsHtml+='</tr>';
-            }
-        }
-        
-        rewardsHtml+='</tbody></table></div>';
-        
-        var startTimeVal=event.start_time?event.start_time.substring(0,5):'00:00';
-        var resetTimeVal=event.end_time?event.end_time.substring(0,5):'14:30';
-        
-        var modal=document.createElement('div');
-        modal.className='modal';
-        modal.id='editCheckinEventModal';
-        modal.style.display='flex';
-        modal.innerHTML='<div class="modal-box" style="max-width:600px;max-height:85vh;overflow-y:auto">';
-        modal.innerHTML+='<span class="modal-close" onclick="this.closest(\'.modal\').remove()">&times;</span>';
-        modal.innerHTML+='<h3>'+title+'</h3>';
-        
-        // Event Info
-        modal.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
-        modal.innerHTML+='<div class="form-group"><label>Event Name</label><input type="text" id="editCheckinEventName" value="'+(event.event_name||'').replace(/"/g,'&quot;')+'"></div>';
-        modal.innerHTML+='<div class="form-group"><label>📅 Start Date</label><input type="date" id="editCheckinStartDate" value="'+event.start_date+'"></div>';
-        modal.innerHTML+='<div class="form-group"><label>⏰ Start Time</label><input type="time" id="editCheckinStartTime" value="'+startTimeVal+'"></div>';
-        modal.innerHTML+='<div class="form-group"><label>⏰ Reset Time</label><input type="time" id="editCheckinResetTime" value="'+resetTimeVal+'"></div>';
-        modal.innerHTML+='</div>';
-        
-        // Rewards Table
-        modal.innerHTML+='<h4 style="color:var(--w);font-size:12px;margin:8px 0">📋 Rewards Configuration</h4>';
-        modal.innerHTML+=rewardsHtml;
-        
-        modal.innerHTML+='<button class="btn btn-g" onclick="saveEditCheckinEvent('+eventId+')" style="width:100%;margin-top:8px"><i class="fas fa-save"></i> Save Changes</button>';
-        modal.innerHTML+='</div>';
-        document.body.appendChild(modal);
-        modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
-    }catch(e){n('Error loading event','error');}
-}
-async function saveEditCheckinEvent(eventId){
+    async function saveEditCheckinEvent(eventId){
     var name=document.getElementById('editCheckinEventName').value;
     var startDate=document.getElementById('editCheckinStartDate').value;
     var startTime=document.getElementById('editCheckinStartTime').value+':00';
