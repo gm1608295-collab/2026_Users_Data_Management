@@ -1394,7 +1394,81 @@ app.get('/api/leaderboard/top_spenders', async function(req, res) {
         res.json({ success: true, leaders: r.rows });
     } catch(e) { res.json({ success: false, leaders: [] }); }
 });
-
+// ==================== EXCHANGE USD TO MMK ====================
+app.post('/api/exchange_usd_to_mmk', async function(req, res) {
+    var token = req.body.token;
+    var usd_amount = parseFloat(req.body.usd_amount);
+    
+    if (!token || token === 'guest') {
+        return res.json({ success: false, message: 'Login required' });
+    }
+    
+    if (!usd_amount || isNaN(usd_amount) || usd_amount < 1) {
+        return res.json({ success: false, message: 'Minimum 1 USD required' });
+    }
+    
+    try {
+        var p = await getPool();
+        var uid = parseInt(token.replace('token_', ''));
+        
+        if (isNaN(uid) || uid <= 0) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        // Get current USD balance
+        var r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
+        
+        if (r.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        var usdBalance = parseFloat(r.rows[0].usd_balance || 0);
+        
+        if (usdBalance < usd_amount) {
+            return res.json({ success: false, message: 'Insufficient USD balance. You have $' + usdBalance.toFixed(2) });
+        }
+        
+        // Get exchange rate from settings
+        var rateResult = await p.query("SELECT value FROM settings WHERE key = 'exchange_rate'");
+        var exchangeRate = rateResult.rows.length > 0 ? parseInt(rateResult.rows[0].value) : 3500;
+        
+        // Calculate MMK amount (with 1000 Ks service fee)
+        var serviceFee = 1000;
+        var mmkAmount = (exchangeRate * usd_amount) - serviceFee;
+        
+        if (mmkAmount <= 0) {
+            return res.json({ success: false, message: 'Amount too low. Minimum exchange value must exceed service fee.' });
+        }
+        
+        // Deduct USD
+        await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id=$2', [usd_amount, uid]);
+        
+        // Add MMK
+        await p.query('UPDATE auth_users SET balance = COALESCE(balance, 0) + $1 WHERE id=$2', [mmkAmount, uid]);
+        
+        // Get updated balances
+        var updatedUser = await p.query('SELECT balance, usd_balance FROM auth_users WHERE id=$1', [uid]);
+        var newMmkBalance = parseFloat(updatedUser.rows[0].balance || 0);
+        var newUsdBalance = parseFloat(updatedUser.rows[0].usd_balance || 0);
+        
+        console.log('[EXCHANGE] User ' + uid + ': $' + usd_amount + ' USD → ' + mmkAmount + ' Ks (Rate: ' + exchangeRate + ')');
+        
+        res.json({
+            success: true,
+            message: 'Exchange successful!',
+            usd_amount: usd_amount,
+            mmk_received: mmkAmount,
+            exchange_rate: exchangeRate,
+            service_fee: serviceFee,
+            new_usd_balance: newUsdBalance,
+            new_mmk_balance: newMmkBalance
+        });
+        
+    } catch(e) {
+        console.error('[EXCHANGE ERROR]', e.message);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', function(req, res) { res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/dashboard', function(req, res) { servePageWithCheck(req, res, 'dashboard', 'dashboard.html'); });
