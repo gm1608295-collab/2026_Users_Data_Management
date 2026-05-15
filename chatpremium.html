@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Premium Chat - SOLO M Game Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db;--gold:#FFD700}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto}
+        .container{max-width:450px;margin:0 auto;padding-bottom:30px}
+        
+        .header{display:flex;align-items:center;gap:10px;padding:14px 15px;background:linear-gradient(to right,var(--a),var(--p));border-radius:12px;border-bottom:3px solid var(--w);margin-bottom:15px}
+        .header a{color:var(--w);font-size:18px;text-decoration:none}
+        .header h2{color:var(--w);font-size:16px;font-weight:bold;flex:1}
+        
+        .balance-card{background:linear-gradient(135deg,#1a0a2e,#4a1c7a);border-radius:12px;padding:15px;text-align:center;margin-bottom:15px;border:2px solid rgba(255,215,0,0.3)}
+        .balance-card .bal-label{font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:1px}
+        .balance-card .bal-amount{font-size:28px;font-weight:bold;color:#FFD700;margin:5px 0}
+        .balance-card .bal-sub{font-size:10px;color:rgba(255,255,255,0.4)}
+        
+        .premium-plans{display:flex;flex-direction:column;gap:12px;margin-bottom:15px}
+        .plan-card{background:rgba(26,31,75,0.7);border-radius:12px;padding:18px;border:2px solid rgba(255,255,255,0.1);cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden}
+        .plan-card:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 8px 25px rgba(0,0,0,0.4)}
+        .plan-card.selected{border-color:var(--gold);background:rgba(74,28,122,0.5);box-shadow:0 0 20px rgba(255,215,0,0.3)}
+        .plan-card.popular{border-color:var(--gold)}
+        .plan-card .popular-badge{position:absolute;top:12px;right:-30px;background:var(--gold);color:#000;font-size:9px;font-weight:bold;padding:4px 30px;transform:rotate(45deg)}
+        .plan-card .plan-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+        .plan-card .plan-name{font-size:16px;font-weight:bold;color:var(--t)}
+        .plan-card .plan-price{font-size:22px;font-weight:bold;color:var(--gold)}
+        .plan-card .plan-duration{font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:10px}
+        .plan-card .plan-features{font-size:10px;color:rgba(255,255,255,0.6);line-height:1.8}
+        .plan-card .plan-features i{color:var(--g);margin-right:6px}
+        .plan-card .plan-locked{font-size:10px;color:var(--r)}
+        .plan-card .plan-locked i{color:var(--r);margin-right:6px}
+        
+        .buy-btn{width:100%;padding:14px;border:none;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,var(--gold),#e67e22);color:#000;transition:all 0.3s;margin-top:10px}
+        .buy-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(255,215,0,0.4)}
+        .buy-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+        
+        .current-plan{background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);border-radius:10px;padding:12px 15px;margin-bottom:15px;text-align:center}
+        .current-plan .cp-title{font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase}
+        .current-plan .cp-name{font-size:14px;font-weight:bold;color:var(--gold);margin:4px 0}
+        .current-plan .cp-expiry{font-size:10px;color:rgba(255,255,255,0.6)}
+        
+        .toast{position:fixed;top:15px;right:15px;padding:12px 18px;border-radius:8px;z-index:9999;font-size:12px;font-weight:bold;display:none;box-shadow:0 5px 20px rgba(0,0,0,0.4)}
+        
+        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:1000;justify-content:center;align-items:center}
+        .modal-overlay.active{display:flex}
+        .modal-box{background:var(--p);border:2px solid var(--gold);border-radius:12px;padding:20px;width:90%;max-width:360px;text-align:center}
+        .modal-box h3{color:var(--gold);margin-bottom:10px}
+        .modal-box .success-icon{font-size:60px;margin-bottom:10px}
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast"></div>
+    
+    <div class="container">
+        <div class="header">
+            <a href="/chat.html"><i class="fas fa-arrow-left"></i></a>
+            <h2><i class="fas fa-crown"></i> Premium Chat</h2>
+        </div>
+        
+        <!-- Balance -->
+        <div class="balance-card">
+            <div class="bal-label">💵 USD Balance</div>
+            <div class="bal-amount" id="usdBalance">$0.00</div>
+            <div class="bal-sub">သင့် USD လက်ကျန်</div>
+        </div>
+        
+        <!-- Current Plan -->
+        <div class="current-plan" id="currentPlanBox" style="display:none">
+            <div class="cp-title">⭐ လက်ရှိ Premium Plan</div>
+            <div class="cp-name" id="currentPlanName"></div>
+            <div class="cp-expiry" id="currentPlanExpiry"></div>
+        </div>
+        
+        <!-- Premium Plans -->
+        <div class="premium-plans">
+            <!-- 1 Month -->
+            <div class="plan-card" onclick="selectPlan(1)">
+                <div class="plan-header">
+                    <span class="plan-name">🥉 1 Month</span>
+                    <span class="plan-price">$7.99</span>
+                </div>
+                <div class="plan-duration">ရက် ၃၀ Premium Chat</div>
+                <div class="plan-features">
+                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
+                    <div><i class="fas fa-check-circle"></i> Bronze Chat Theme</div>
+                    <div class="plan-locked"><i class="fas fa-lock"></i> Floating Text Animation</div>
+                    <div class="plan-locked"><i class="fas fa-lock"></i> Gold Badge</div>
+                </div>
+            </div>
+            
+            <!-- 2 Months -->
+            <div class="plan-card popular" onclick="selectPlan(2)">
+                <div class="popular-badge">POPULAR</div>
+                <div class="plan-header">
+                    <span class="plan-name">🥈 2 Months</span>
+                    <span class="plan-price">$14.99</span>
+                </div>
+                <div class="plan-duration">ရက် ၆၀ Premium Chat (Save $0.99)</div>
+                <div class="plan-features">
+                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
+                    <div><i class="fas fa-check-circle"></i> Silver Chat Theme</div>
+                    <div><i class="fas fa-check-circle"></i> Floating Text Animation</div>
+                    <div class="plan-locked"><i class="fas fa-lock"></i> Gold Badge</div>
+                </div>
+            </div>
+            
+            <!-- 3 Months -->
+            <div class="plan-card" onclick="selectPlan(3)">
+                <div class="plan-header">
+                    <span class="plan-name">🥇 3 Months</span>
+                    <span class="plan-price">$20.99</span>
+                </div>
+                <div class="plan-duration">ရက် ၉၀ Premium Chat (Save $2.98)</div>
+                <div class="plan-features">
+                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
+                    <div><i class="fas fa-check-circle"></i> Gold Chat Theme + Animation</div>
+                    <div><i class="fas fa-check-circle"></i> Floating Text Animation</div>
+                    <div><i class="fas fa-check-circle"></i> Gold Badge</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="buy-btn" id="buyBtn" disabled onclick="buyPremium()">
+            <i class="fas fa-shopping-cart"></i> Plan ရွေးပါ
+        </button>
+    </div>
+    
+    <!-- Success Modal -->
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-box">
+            <div class="success-icon">👑</div>
+            <h3 id="successTitle">ဝယ်ယူမှုအောင်မြင်ပါသည်!</h3>
+            <p id="successMsg" style="color:#ccc;font-size:13px;margin:10px 0"></p>
+            <button onclick="closeModal('successModal');window.location.href='/chat.html'" style="padding:10px 25px;background:var(--gold);color:#000;border:none;border-radius:6px;font-weight:bold;cursor:pointer">Chat သို့ပြန်သွားမည်</button>
+        </div>
+    </div>
+
+<script>
+let selectedPlan = null;
+let usdBalance = 0;
+let isPremium = false;
+let premiumTier = 0;
+let premiumExpiry = null;
+
+const PLANS = {
+    1: { months: 1, cost: 7.99, name: '1 Month', tier: 1, tierName: 'Bronze' },
+    2: { months: 2, cost: 14.99, name: '2 Months', tier: 2, tierName: 'Silver' },
+    3: { months: 3, cost: 20.99, name: '3 Months', tier: 3, tierName: 'Gold' }
+};
+
+function n(m, t) {
+    const toast = document.getElementById('toast');
+    toast.textContent = m;
+    toast.style.background = t === 'error' ? '#e74c3c' : '#2ecc71';
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 3000);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+async function loadBalances() {
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') return;
+    
+    try {
+        const [usdRes, premRes] = await Promise.all([
+            fetch('/api/get_usd_balance', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) }).then(r=>r.json()),
+            fetch('/api/get_premium_status', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) }).then(r=>r.json())
+        ]);
+        
+        usdBalance = parseFloat(usdRes.usd_balance || 0);
+        document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
+        
+        if (premRes.success && premRes.premium_active) {
+            isPremium = true;
+            premiumTier = premRes.premium_tier || 1;
+            premiumExpiry = premRes.expires_at;
+            
+            const box = document.getElementById('currentPlanBox');
+            box.style.display = 'block';
+            
+            const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
+            document.getElementById('currentPlanName').textContent = '🥇 Premium ' + tierNames[premiumTier] + ' (Tier ' + premiumTier + ')';
+            
+            if (premiumExpiry) {
+                const exp = new Date(premiumExpiry);
+                const daysLeft = Math.max(0, Math.ceil((exp - new Date()) / (1000*60*60*24)));
+                document.getElementById('currentPlanExpiry').textContent = '⏰ သက်တမ်းကုန်ရန်: ' + exp.toLocaleDateString() + ' (' + daysLeft + ' ရက်ကျန်)';
+            }
+            
+            document.getElementById('buyBtn').textContent = '✅ Already Premium';
+            document.getElementById('buyBtn').disabled = true;
+        }
+        
+        updateBuyButton();
+    } catch(e) {}
+}
+
+function selectPlan(planId) {
+    if (isPremium) {
+        n('Premium ဝယ်ပြီးသားပါ', 'error');
+        return;
+    }
+    
+    document.querySelectorAll('.plan-card').forEach(c => c.classList.remove('selected'));
+    event.target.closest('.plan-card').classList.add('selected');
+    selectedPlan = planId;
+    updateBuyButton();
+}
+
+function updateBuyButton() {
+    const btn = document.getElementById('buyBtn');
+    if (isPremium) {
+        btn.textContent = '✅ Already Premium';
+        btn.disabled = true;
+    } else if (selectedPlan) {
+        const plan = PLANS[selectedPlan];
+        if (usdBalance >= plan.cost) {
+            btn.textContent = '💳 Buy ' + plan.name + ' - $' + plan.cost;
+            btn.disabled = false;
+        } else {
+            btn.textContent = '❌ ငွေမလုံလောက်ပါ (Need $' + plan.cost + ')';
+            btn.disabled = true;
+        }
+    } else {
+        btn.textContent = '👆 Plan ရွေးပါ';
+        btn.disabled = true;
+    }
+}
+
+async function buyPremium() {
+    if (!selectedPlan || isPremium) return;
+    
+    const plan = PLANS[selectedPlan];
+    
+    if (usdBalance < plan.cost) {
+        n('USD ငွေမလုံလောက်ပါ', 'error');
+        return;
+    }
+    
+    const token = localStorage.getItem('auth_token');
+    if (!token) return n('အကောင့်ဝင်ပါ', 'error');
+    
+    try {
+        const r = await fetch('/api/buy_premium', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, months: plan.months, cost: plan.cost, tier: plan.tier })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            document.getElementById('successTitle').textContent = '👑 Premium Activated!';
+            document.getElementById('successMsg').textContent = plan.tierName + ' Tier - ' + plan.name + ' ($' + plan.cost + ')';
+            document.getElementById('successModal').classList.add('active');
+            
+            usdBalance -= plan.cost;
+            document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
+            isPremium = true;
+            updateBuyButton();
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    } catch(e) {
+        n('Connection error', 'error');
+    }
+}
+
+// Init
+loadBalances();
+</script>
+</body>
+</html>
