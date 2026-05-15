@@ -2387,116 +2387,131 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
  // ====================================
 // DAILY CHECK-IN USER APIs
 // ====================================
-
-// Get active check-in events for user
-app.post('/api/daily_checkin/status', async function(req, res) {
-    var token = req.body.token;
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+// ==================== DAILY CHECK-IN STATUS (WITH GRACE PERIOD) ====================
+app.post('/api/daily_checkin/status', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token || token === 'guest') {
+        return res.json({ success: false, events: [] });
+    }
     
     try {
-        var p = await getPool();
-        var uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, events: [] });
         
-        var now = new Date();
-        var today = now.toISOString().split('T')[0];
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
         
-        // Get user premium status
-        var user = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
-        var isPremium = user.rows[0] && user.rows[0].premium_expiry && new Date(user.rows[0].premium_expiry) > new Date();
+        // ✅ Premium Status Check
+        const userRes = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
+        const isPremium = userRes.rows.length > 0 && userRes.rows[0].premium_expiry && new Date(userRes.rows[0].premium_expiry) > now;
         
-        // ✅ Get ALL active events (don't filter by start_time in SQL)
-        var eventQuery;
-        if (isPremium) {
-            eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND (event_type='normal' OR event_type='premium') AND start_date <= $1 AND end_date >= $1 ORDER BY event_type ASC";
-        } else {
-            eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND event_type='normal' AND start_date <= $1 AND end_date >= $1 ORDER BY id ASC";
-        }
+        // ✅ Active Events (Grace Period အတွင်းကိုပါ ပြမယ်)
+        const events = await p.query(
+            `SELECT * FROM daily_checkin_events 
+             WHERE is_active = true 
+             AND (
+                 end_date >= $1 
+                 OR end_date >= $2  -- Grace Period ၂ ရက်
+             )
+             AND (event_type = 'normal' OR (event_type = 'premium' AND $3 = true))
+             ORDER BY id DESC`,
+            [todayStr, 
+             new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],  // ၂ ရက် Grace
+             isPremium]
+        );
         
-        var allEvents = await p.query(eventQuery, [today]);
-        var result = [];
+        const result = [];
         
-        for (var i = 0; i < allEvents.rows.length; i++) {
-            var event = allEvents.rows[i];
+        for (const ev of events.rows) {
+            const endDate = new Date(ev.end_date);
+            const graceEndDate = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000); // +၂ ရက်
+            const isGracePeriod = now > endDate && now <= graceEndDate;
+            const isFullyEnded = now > graceEndDate;
             
-            // ✅ Check if start time has passed (JavaScript comparison)
-            var startTimeStr = event.start_time || '00:00:00';
-            var eventStartDateTime = new Date(event.start_date + 'T' + startTimeStr);
+            // ✅ အပြီးတိုင်ပြီးရင် မပြတော့ဘူး
+            if (isFullyEnded) continue;
             
-            // ✅ If event hasn't started yet, skip it
-            if (eventStartDateTime > now) {
-                continue;
+            // ✅ Grace Period အတွင်း Day ကို မတိုးတော့ဘူး
+            const effectiveEndDate = isGracePeriod ? endDate.toISOString().split('T')[0] : todayStr;
+            
+            // Get user progress
+            const progress = await p.query(
+                "SELECT * FROM daily_checkin_progress WHERE user_id=$1 AND event_id=$2",
+                [uid, ev.id]
+            );
+            
+            let currentDay = progress.rows.length > 0 ? progress.rows[0].current_day : 1;
+            
+            // ✅ Grace Period မှာ current_day က end_date အထိပဲ ပြမယ်
+            if (isGracePeriod && currentDay > ev.total_days) {
+                currentDay = ev.total_days;
             }
             
-            // Check reset time
-            var resetTime = event.end_time || '14:30:00';
-            var todayReset = new Date(today + 'T' + resetTime);
-            
-            // Get today's checkin
-            var todayCheckin = await p.query(
-                'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3',
-                [uid, event.id, today]
+            // Check if checked in today
+            const todayCheck = await p.query(
+                "SELECT * FROM daily_checkin_claims WHERE user_id=$1 AND event_id=$2 AND claim_date = CURRENT_DATE",
+                [uid, ev.id]
             );
             
-            // Calculate current day
-            var currentDay = 1;
-            var startDate = new Date(event.start_date);
-            var daysDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
-            currentDay = Math.max(1, Math.min(daysDiff, event.total_days));
+            const checkedInToday = todayCheck.rows.length > 0;
+            
+            // ✅ Grace Period မှာ Claim မရတော့ဘူး
+            const canClaim = !isGracePeriod && !checkedInToday && currentDay <= ev.total_days;
             
             // Get rewards
-            var rewards = await p.query(
-                'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC',
-                [event.id]
+            const rewards = await p.query(
+                "SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC",
+                [ev.id]
             );
             
-            // Get user's claimed days for this event
-            var claimedDays = await p.query(
-                'SELECT day_number FROM daily_checkins WHERE user_id=$1 AND event_id=$2 ORDER BY day_number ASC',
-                [uid, event.id]
-            );
-            var claimedDayNumbers = claimedDays.rows.map(function(r) { return r.day_number; });
-            
-            // Build day status array
-            var dayStatus = [];
-            for (var d = 1; d <= event.total_days; d++) {
-                var reward = rewards.rows.find(function(r) { return r.day_number === d; });
+            const dayStatus = [];
+            for (let d = 1; d <= ev.total_days; d++) {
+                const dayClaims = await p.query(
+                    "SELECT * FROM daily_checkin_claims WHERE user_id=$1 AND event_id=$2 AND day_number=$3",
+                    [uid, ev.id, d]
+                );
+                
+                const reward = rewards.rows.find(r => r.day_number === d);
+                
                 dayStatus.push({
                     day: d,
-                    claimed: claimedDayNumbers.indexOf(d) !== -1,
+                    claimed: dayClaims.rows.length > 0,
                     reward: reward ? {
                         type: reward.reward_type,
                         amount: parseFloat(reward.reward_amount),
-                        label: reward.reward_label,
-                        icon: reward.icon_url
+                        label: reward.reward_label || '',
+                        icon: reward.reward_icon || ''
                     } : null
                 });
             }
             
             result.push({
-                event_id: event.id,
-                event_type: event.event_type,
-                event_name: event.event_name,
-                start_date: event.start_date,
-                end_date: event.end_date,
-                end_time: event.end_time,
-                total_days: event.total_days,
+                event_id: ev.id,
+                event_name: ev.event_name,
+                event_type: ev.event_type,
+                start_date: ev.start_date,
+                end_date: ev.end_date,
+                grace_end_date: graceEndDate.toISOString().split('T')[0],
+                is_grace_period: isGracePeriod,
+                is_fully_ended: isFullyEnded,
+                total_days: ev.total_days,
                 current_day: currentDay,
-                checked_in_today: todayCheckin.rows.length > 0,
-                claimed_days: claimedDayNumbers,
-                day_status: dayStatus,
-                can_claim: todayCheckin.rows.length === 0 && now < todayReset,
-                next_reset: todayReset.toISOString()
+                checked_in_today: checkedInToday,
+                can_claim: canClaim,
+                reset_time: ev.reset_time || '00:00',
+                day_status: dayStatus
             });
         }
         
-        res.json({ success: true, events: result, is_premium: isPremium });
+        res.json({ success: true, events: result });
+        
     } catch(e) {
-        console.error('[CHECKIN STATUS]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        console.error('[CHECKIN STATUS ERROR]', e.message);
+        res.json({ success: false, events: [] });
     }
 });
-
 app.post('/api/daily_checkin/claim', async function(req, res) {
     var token = req.body.token; var event_id = req.body.event_id;
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
