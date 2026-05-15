@@ -241,6 +241,7 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
         <div class="sidebar-section-title">Game & Exchange</div>
         <a href="/game.html" class="s-item"><i class="fas fa-gamepad"></i> Lucky Spin 🎰</a>
         <a href="/exchange.html" class="s-item"><i class="fas fa-exchange-alt"></i> USD Exchange 💱</a>
+        <a href="/chat.html" class="s-item"><i class="fas fa-comments"></i> Chat <span id="chatBadge" style="display:none;background:var(--r);color:#fff;font-size:9px;padding:2px 7px;border-radius:10px;margin-left:auto">0</span></a>
     </div>
     <div class="sidebar-logout-area"><button class="logout-btn" onclick="closeSidebar(); showLogoutConfirm();"><i class="fas fa-sign-out-alt"></i> Logout</button></div>
 </div>
@@ -534,6 +535,24 @@ setInterval(checkAccountStatus, 10000);
 
 // Check immediately on page load
 checkAccountStatus();
+// Chat unread badge
+function updateChatBadge() {
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') return;
+    fetch('/api/chat/unread', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) })
+    .then(r => r.json())
+    .then(d => {
+        const badge = document.getElementById('chatBadge');
+        if (badge && d.count > 0) {
+            badge.textContent = d.count > 99 ? '99+' : d.count;
+            badge.style.display = 'inline-block';
+        } else if (badge) {
+            badge.style.display = 'none';
+        }
+    });
+}
+setInterval(updateChatBadge, 10000);
+updateChatBadge();
 </script>
 </body>
 </html>
