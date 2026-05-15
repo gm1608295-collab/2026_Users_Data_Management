@@ -3200,29 +3200,6 @@ app.get('/api/leaderboard/top_spenders', async (req, res) => {
         res.json({ success: false, leaders: [] });
     }
 });
-// ==================== PAGE ROUTES ====================
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
-app.get('/topup.html', (req, res) => servePageWithCheck(req, res, 'topup', 'topup.html'));
-app.get('/buycode.html', (req, res) => servePageWithCheck(req, res, 'buycode', 'buycode.html'));
-app.get('/data.html', (req, res) => servePageWithCheck(req, res, 'data', 'data.html'));
-app.get('/history.html', (req, res) => servePageWithCheck(req, res, 'history', 'history.html'));
-app.get('/password.html', (req, res) => servePageWithCheck(req, res, 'password', 'password.html'));
-app.get('/recovery.html', (req, res) => servePageWithCheck(req, res, 'recovery', 'recovery.html'));
-app.get('/contact.html', (req, res) => servePageWithCheck(req, res, 'contact', 'contact.html'));
-app.get('/aboutredeem.html', (req, res) => servePageWithCheck(req, res, 'aboutredeem', 'aboutredeem.html'));
-app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
-app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
-app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
-app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
-app.get('/exchange.html', (req, res) => servePageWithCheck(req, res, 'exchange', 'exchange.html'));
-app.get('/chat.html', (req, res) => res.sendFile(path.join(__dirname, 'chat.html')));
-// Initialize tables on all 5 databases
-pools.forEach(pool => {
-    initTables(pool);
-});
-
 // ==================== SOCKET.IO + SERVER START ====================
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -3411,7 +3388,28 @@ app.post('/api/chat/unread', async (req, res) => {
         res.json({ count: parseInt(r.rows[0].cnt) });
     } catch(e) { res.json({ count: 0 }); }
 });
-
+// ==================== PAGE ROUTES ====================
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/topup.html', (req, res) => servePageWithCheck(req, res, 'topup', 'topup.html'));
+app.get('/buycode.html', (req, res) => servePageWithCheck(req, res, 'buycode', 'buycode.html'));
+app.get('/data.html', (req, res) => servePageWithCheck(req, res, 'data', 'data.html'));
+app.get('/history.html', (req, res) => servePageWithCheck(req, res, 'history', 'history.html'));
+app.get('/password.html', (req, res) => servePageWithCheck(req, res, 'password', 'password.html'));
+app.get('/recovery.html', (req, res) => servePageWithCheck(req, res, 'recovery', 'recovery.html'));
+app.get('/contact.html', (req, res) => servePageWithCheck(req, res, 'contact', 'contact.html'));
+app.get('/aboutredeem.html', (req, res) => servePageWithCheck(req, res, 'aboutredeem', 'aboutredeem.html'));
+app.get('/terms.html', (req, res) => res.sendFile(path.join(__dirname, 'terms.html')));
+app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privacy.html')));
+app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
+app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
+app.get('/exchange.html', (req, res) => servePageWithCheck(req, res, 'exchange', 'exchange.html'));
+app.get('/chat.html', (req, res) => res.sendFile(path.join(__dirname, 'chat.html')));
+// Initialize tables on all 5 databases
+pools.forEach(pool => {
+    initTables(pool);
+});
 // ==================== START SERVER ====================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
