@@ -1252,25 +1252,33 @@ app.post('/api/daily_checkin/status', async function(req, res) {
         
         var now = new Date();
         var today = now.toISOString().split('T')[0];
-        var currentTimeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
         
         // Get user premium status
         var user = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
         var isPremium = user.rows[0] && user.rows[0].premium_expiry && new Date(user.rows[0].premium_expiry) > new Date();
         
-        // ✅ Get active events - Start Time စစ်ပြီးမှ ပြ
+        // ✅ Get ALL active events (don't filter by start_time in SQL)
         var eventQuery;
         if (isPremium) {
-            eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND (event_type='normal' OR event_type='premium') AND start_date <= $1 AND end_date >= $1 AND (start_date < $1 OR (start_date = $1 AND start_time <= $2)) ORDER BY event_type ASC";
+            eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND (event_type='normal' OR event_type='premium') AND start_date <= $1 AND end_date >= $1 ORDER BY event_type ASC";
         } else {
-            eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND event_type='normal' AND start_date <= $1 AND end_date >= $1 AND (start_date < $1 OR (start_date = $1 AND start_time <= $2)) ORDER BY id ASC";
+            eventQuery = "SELECT * FROM daily_checkin_events WHERE is_active=true AND cancelled=false AND event_type='normal' AND start_date <= $1 AND end_date >= $1 ORDER BY id ASC";
         }
         
-        var events = await p.query(eventQuery, [today, currentTimeStr]);
+        var allEvents = await p.query(eventQuery, [today]);
         var result = [];
         
-        for (var i = 0; i < events.rows.length; i++) {
-            var event = events.rows[i];
+        for (var i = 0; i < allEvents.rows.length; i++) {
+            var event = allEvents.rows[i];
+            
+            // ✅ Check if start time has passed (JavaScript comparison)
+            var startTimeStr = event.start_time || '00:00:00';
+            var eventStartDateTime = new Date(event.start_date + 'T' + startTimeStr);
+            
+            // ✅ If event hasn't started yet, skip it
+            if (eventStartDateTime > now) {
+                continue;
+            }
             
             // Check reset time
             var resetTime = event.end_time || '14:30:00';
