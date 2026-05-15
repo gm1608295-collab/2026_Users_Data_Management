@@ -244,52 +244,47 @@ async function initTables(p) {
         
         // ========== GAME ==========
         `CREATE TABLE IF NOT EXISTS spin_history (id SERIAL PRIMARY KEY, user_id INT, reward_type VARCHAR(50), reward_amount DECIMAL DEFAULT 0, segment_label VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS spin_history_v2 (id SERIAL PRIMARY KEY, user_id INT NOT NULL, spin_source VARCHAR(20) NOT NULL, reward_type VARCHAR(20), reward_amount DECIMAL(10,2) DEFAULT 0, balance_before_mmk DECIMAL(10,2) DEFAULT 0, balance_after_mmk DECIMAL(10,2) DEFAULT 0, balance_before_usd DECIMAL(10,2) DEFAULT 0, balance_after_usd DECIMAL(10,2) DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== SPIN RATES ==========
+        `CREATE TABLE IF NOT EXISTS spin_rates (id SERIAL PRIMARY KEY, rate_type VARCHAR(50) NOT NULL, segment_label VARCHAR(50) NOT NULL, reward DECIMAL(10,2) DEFAULT 0, reward_type VARCHAR(20) DEFAULT 'usd', segment_color VARCHAR(20) DEFAULT '#e74c3c', weight INT DEFAULT 10, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(rate_type, segment_label))`,
         
         // ========== PREMIUM ==========
         `CREATE TABLE IF NOT EXISTS premium_draws (user_id INT, draw_date DATE, draw_count INT DEFAULT 1, PRIMARY KEY(user_id, draw_date))`,
         `CREATE TABLE IF NOT EXISTS weekly_bonus (id SERIAL PRIMARY KEY, user_id INT, claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         
+        // ========== PROMO CODES ==========
+        `CREATE TABLE IF NOT EXISTS promo_codes (id SERIAL PRIMARY KEY, api_key VARCHAR(64) UNIQUE NOT NULL, amount DECIMAL DEFAULT 0, currency VARCHAR(10) DEFAULT 'MMK', used BOOLEAN DEFAULT false, used_by INT, used_at TIMESTAMP, expiry_date DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== RESELLER SYSTEM ==========
+        `CREATE TABLE IF NOT EXISTS resellers (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, api_key VARCHAR(64) UNIQUE NOT NULL, balance DECIMAL DEFAULT 0, currency VARCHAR(10) DEFAULT 'MMK', markup_percent INT DEFAULT 0, status VARCHAR(20) DEFAULT 'active', expiry_date DATE, max_daily_transactions INT DEFAULT 50, rate_limit_per_min INT DEFAULT 60, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS reseller_transactions (id SERIAL PRIMARY KEY, reseller_id INT, reseller_name VARCHAR(100), action VARCHAR(50), amount DECIMAL, balance_after DECIMAL, currency VARCHAR(10) DEFAULT 'MMK', product VARCHAR(100), game_uid VARCHAR(50), details TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS settings (key VARCHAR(50) PRIMARY KEY, value TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
         // ========== DAILY CHECK-IN SYSTEM ==========
-        `CREATE TABLE IF NOT EXISTS daily_checkin_events (
-            id SERIAL PRIMARY KEY,
-            event_type VARCHAR(20) NOT NULL DEFAULT 'normal',
-            event_name VARCHAR(100),
-            start_date DATE NOT NULL,
-            start_time TIME DEFAULT '00:00:00',
-            end_date DATE,
-            end_time TIME DEFAULT '14:30:00',
-            total_days INT NOT NULL DEFAULT 7,
-            is_active BOOLEAN DEFAULT true,
-            cancelled BOOLEAN DEFAULT false,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )`,
-        `CREATE TABLE IF NOT EXISTS daily_checkin_rewards (
-            id SERIAL PRIMARY KEY,
-            event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE,
-            day_number INT NOT NULL,
-            reward_type VARCHAR(20) NOT NULL,
-            reward_amount DECIMAL(10,2) DEFAULT 0,
-            reward_label VARCHAR(100),
-            icon_url VARCHAR(500),
-            UNIQUE(event_id, day_number)
-        )`,
-        `CREATE TABLE IF NOT EXISTS daily_checkins (
-            id SERIAL PRIMARY KEY,
-            user_id INT NOT NULL,
-            event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE,
-            checkin_date DATE NOT NULL DEFAULT CURRENT_DATE,
-            day_number INT NOT NULL,
-            reward_type VARCHAR(20),
-            reward_amount DECIMAL(10,2) DEFAULT 0,
-            claimed BOOLEAN DEFAULT true,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_id, event_id, checkin_date)
-        )`
+        `CREATE TABLE IF NOT EXISTS daily_checkin_events (id SERIAL PRIMARY KEY, event_type VARCHAR(20) NOT NULL DEFAULT 'normal', event_name VARCHAR(100), start_date DATE NOT NULL, start_time TIME DEFAULT '00:00:00', end_date DATE, end_time TIME DEFAULT '14:30:00', total_days INT NOT NULL DEFAULT 7, is_active BOOLEAN DEFAULT true, cancelled BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS daily_checkin_rewards (id SERIAL PRIMARY KEY, event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE, day_number INT NOT NULL, reward_type VARCHAR(20) NOT NULL, reward_amount DECIMAL(10,2) DEFAULT 0, reward_label VARCHAR(100), icon_url VARCHAR(500), UNIQUE(event_id, day_number))`,
+        `CREATE TABLE IF NOT EXISTS daily_checkins (id SERIAL PRIMARY KEY, user_id INT NOT NULL, event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE, checkin_date DATE NOT NULL DEFAULT CURRENT_DATE, day_number INT NOT NULL, reward_type VARCHAR(20), reward_amount DECIMAL(10,2) DEFAULT 0, claimed BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, event_id, checkin_date))`,
+        
+        // ========== CHAT PREMIUM ==========
+        `CREATE TABLE IF NOT EXISTS chat_premium (user_id INT PRIMARY KEY, premium_tier INT DEFAULT 1, premium_expiry TIMESTAMP, purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== CHAT SYSTEM ==========
+        `CREATE TABLE IF NOT EXISTS chat_rooms (id SERIAL PRIMARY KEY, room_name VARCHAR(100) NOT NULL, room_type VARCHAR(20) DEFAULT 'private', created_by INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        `CREATE TABLE IF NOT EXISTS chat_participants (room_id INT NOT NULL, user_id INT NOT NULL, joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (room_id, user_id))`,
+        `CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, room_id INT NOT NULL, sender_id INT NOT NULL, username VARCHAR(100), message TEXT, is_read BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+        
+        // ========== INDEXES ==========
+        `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_chat_messages_sender ON chat_messages(sender_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_chat_participants_user ON chat_participants(user_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_spin_history_user ON spin_history_v2(user_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id)`,
+        `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`,
     ];
     
     for (const q of queries) { 
-        await p.query(q).catch(e => console.log('Table create:', e.message)); 
+        await p.query(q).catch(e => console.log('Table create error:', e.message)); 
     }
 }
 initTables(pools[0]);
@@ -3357,24 +3352,54 @@ app.post('/api/admin/revoke_chat_premium', async (req, res) => {
         res.json({ success: true, message: 'Chat premium revoked!' });
     } catch(e) { res.json({ success: false }); }
 });
+        
 // ==================== CHAT API ROUTES ====================
-// Get user's rooms
-app.post('/api/chat/rooms', async (req, res) => {
+
+// Get current user
+app.post('/api/chat/current_user', async (req, res) => {
     const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ rooms: [] });
+    if (!token || token === 'guest') return res.json({ success: false });
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
+        const r = await p.query('SELECT id, username, email FROM auth_users WHERE id=$1', [uid]);
+        if (r.rows.length > 0) {
+            res.json({ success: true, user: r.rows[0] });
+        } else {
+            res.json({ success: false });
+        }
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Get all users (except self)
+app.post('/api/chat/all_users', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.json({ users: [] });
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT id, username FROM auth_users WHERE id != $1 ORDER BY username ASC', [userId]);
+        res.json({ users: r.rows });
+    } catch(e) { res.json({ users: [] }); }
+});
+
+// Get user's rooms
+app.post('/api/chat/rooms', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.json({ rooms: [] });
+    try {
+        const p = await getPool();
         const r = await p.query(`
-            SELECT cr.*, 
-                (SELECT COUNT(*) FROM chat_messages cm WHERE cm.room_id = cr.id AND cm.is_read = false AND cm.sender_id != $1) as unread
+            SELECT 
+                cr.*,
+                (SELECT COUNT(*) FROM chat_messages cm WHERE cm.room_id = cr.id AND cm.is_read = false AND cm.sender_id != $1) as unread,
+                (SELECT message FROM chat_messages WHERE room_id = cr.id ORDER BY id DESC LIMIT 1) as last_message
             FROM chat_rooms cr
             JOIN chat_participants cp ON cr.id = cp.room_id
             WHERE cp.user_id = $1
             ORDER BY cr.id DESC
-        `, [uid]);
-        res.json({ success: true, rooms: r.rows });
-    } catch(e) { res.json({ success: false, rooms: [] }); }
+        `, [userId]);
+        res.json({ rooms: r.rows });
+    } catch(e) { res.json({ rooms: [] }); }
 });
 
 // Get messages
@@ -3383,65 +3408,106 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
     try {
         const p = await getPool();
         const r = await p.query(
-            'SELECT * FROM chat_messages WHERE room_id = $1 ORDER BY id ASC LIMIT 50',
+            'SELECT * FROM chat_messages WHERE room_id = $1 ORDER BY id ASC LIMIT 100',
             [roomId]
         );
-        res.json({ success: true, messages: r.rows });
-    } catch(e) { res.json({ success: false, messages: [] }); }
+        res.json({ messages: r.rows });
+    } catch(e) { res.json({ messages: [] }); }
 });
 
 // Create admin room
 app.post('/api/chat/create_admin_room', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false });
+    const { userId } = req.body;
+    if (!userId) return res.json({ success: false });
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        const uname = (await p.query('SELECT username FROM auth_users WHERE id=$1', [uid])).rows[0]?.username || 'User';
         
-        await p.query(`INSERT INTO auth_users (id, username, email, login_type) VALUES (1, 'Admin', 'admin@sologame.com', 'local') ON CONFLICT (id) DO NOTHING`);
-        
-        const existingRoom = await p.query(`SELECT cr.id FROM chat_rooms cr JOIN chat_participants cp ON cr.id = cp.room_id WHERE cr.room_type = 'admin' AND cp.user_id = $1`, [uid]);
-        
-        if (existingRoom.rows.length > 0) {
-            return res.json({ success: true, room: { id: existingRoom.rows[0].id, room_name: uname + ' - Admin', room_type: 'admin' } });
+        // Get admin user (id=1)
+        const admin = await p.query('SELECT id, username FROM auth_users WHERE id=1');
+        if (admin.rows.length === 0) {
+            await p.query("INSERT INTO auth_users (id, username, email, login_type) VALUES (1, 'Admin', 'admin@solo.com', 'local') ON CONFLICT (id) DO NOTHING");
         }
         
-        const room = await p.query("INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'admin', $2) RETURNING id", [uname + ' - Admin', uid]);
+        const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
+        const userName = user.rows[0]?.username || 'User';
+        
+        // Check if admin room exists
+        const existing = await p.query(`
+            SELECT cr.id, cr.room_name FROM chat_rooms cr
+            JOIN chat_participants cp ON cr.id = cp.room_id
+            WHERE cr.room_type = 'admin' AND cp.user_id = $1
+        `, [userId]);
+        
+        if (existing.rows.length > 0) {
+            return res.json({ success: true, room: existing.rows[0] });
+        }
+        
+        // Create room
+        const room = await p.query(
+            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'admin', $2) RETURNING id, room_name",
+            [userName + ' - Admin', userId]
+        );
         const roomId = room.rows[0].id;
         
-        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, uid]);
-        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, 1]);
+        // Add participants
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2)', [roomId, userId]);
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,1)', [roomId]);
         
-        res.json({ success: true, room: { id: roomId, room_name: uname + ' - Admin', room_type: 'admin' } });
-    } catch(e) { console.error('[CREATE ADMIN ROOM ERROR]', e.message); res.json({ success: false, message: 'Server error' }); }
+        res.json({ success: true, room: room.rows[0] });
+    } catch(e) { res.json({ success: false }); }
 });
 
 // Create private room
 app.post('/api/chat/create_private_room', async (req, res) => {
-    const { token, otherUserId } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!otherUserId) return res.json({ success: false, message: 'Other user ID required' });
+    const { userId, otherUserId } = req.body;
+    if (!userId || !otherUserId) return res.json({ success: false });
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        const myName = (await p.query('SELECT username FROM auth_users WHERE id=$1', [uid])).rows[0]?.username || 'User';
-        const otherName = (await p.query('SELECT username FROM auth_users WHERE id=$1', [otherUserId])).rows[0]?.username || 'User';
         
-        const existingRoom = await p.query(`SELECT cr.id FROM chat_rooms cr JOIN chat_participants cp1 ON cr.id = cp1.room_id AND cp1.user_id = $1 JOIN chat_participants cp2 ON cr.id = cp2.room_id AND cp2.user_id = $2 WHERE cr.room_type = 'private'`, [uid, otherUserId]);
+        // Check if room exists
+        const existing = await p.query(`
+            SELECT cr.id, cr.room_name FROM chat_rooms cr
+            JOIN chat_participants cp1 ON cr.id = cp1.room_id AND cp1.user_id = $1
+            JOIN chat_participants cp2 ON cr.id = cp2.room_id AND cp2.user_id = $2
+            WHERE cr.room_type = 'private'
+        `, [userId, otherUserId]);
         
-        if (existingRoom.rows.length > 0) {
-            return res.json({ success: true, room: { id: existingRoom.rows[0].id, room_name: otherName, room_type: 'private' } });
+        if (existing.rows.length > 0) {
+            return res.json({ success: true, room: existing.rows[0] });
         }
         
-        const room = await p.query("INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'private', $2) RETURNING id", [myName + ' & ' + otherName, uid]);
+        const user1 = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
+        const user2 = await p.query('SELECT username FROM auth_users WHERE id=$1', [otherUserId]);
+        const roomName = (user1.rows[0]?.username || 'User') + ' & ' + (user2.rows[0]?.username || 'User');
+        
+        const room = await p.query(
+            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'private', $2) RETURNING id",
+            [roomName, userId]
+        );
         const roomId = room.rows[0].id;
         
-        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, uid]);
-        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, otherUserId]);
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2)', [roomId, userId]);
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2)', [roomId, otherUserId]);
         
-        res.json({ success: true, room: { id: roomId, room_name: otherName, room_type: 'private' } });
-    } catch(e) { console.error('[CREATE PRIVATE ROOM ERROR]', e.message); res.json({ success: false, message: 'Server error' }); }
+        res.json({ success: true, room: { id: roomId, room_name: roomName } });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Create group
+app.post('/api/chat/create_group', async (req, res) => {
+    const { userId, groupName } = req.body;
+    if (!userId || !groupName) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        const room = await p.query(
+            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id",
+            [groupName, userId]
+        );
+        const roomId = room.rows[0].id;
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2)', [roomId, userId]);
+        
+        res.json({ success: true, room: { id: roomId, room_name: groupName } });
+    } catch(e) { res.json({ success: false }); }
 });
 
 // Mark messages as read
@@ -3454,38 +3520,19 @@ app.post('/api/chat/read', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// Get unread count
-app.post('/api/chat/unread', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ count: 0 });
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        const r = await p.query(`SELECT COUNT(*) as cnt FROM chat_messages cm JOIN chat_participants cp ON cm.room_id = cp.room_id WHERE cp.user_id = $1 AND cm.sender_id != $1 AND cm.is_read = false`, [uid]);
-        res.json({ count: parseInt(r.rows[0].cnt) });
-    } catch(e) { res.json({ count: 0 }); }
-});
-
 // Delete room
-app.post('/api/chat/room/delete', async (req, res) => {
-    const { roomId } = req.body;
-    if (!roomId) return res.json({ success: false });
+app.post('/api/chat/delete_room', async (req, res) => {
+    const { roomId, userId } = req.body;
     try {
         const p = await getPool();
+        // Check if user is participant
+        const check = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        if (check.rows.length === 0) return res.json({ success: false });
+        
         await p.query('DELETE FROM chat_messages WHERE room_id = $1', [roomId]);
         await p.query('DELETE FROM chat_participants WHERE room_id = $1', [roomId]);
         await p.query('DELETE FROM chat_rooms WHERE id = $1', [roomId]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-// Delete message
-app.post('/api/chat/delete', async (req, res) => {
-    const { messageId } = req.body;
-    if (!messageId) return res.json({ success: false });
-    try {
-        const p = await getPool();
-        await p.query('DELETE FROM chat_messages WHERE id = $1', [messageId]);
+        
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
@@ -3512,6 +3559,80 @@ app.get('/chatpremium.html', (req, res) => res.sendFile(path.join(__dirname, 'ch
 pools.forEach(pool => {
     initTables(pool);
 });
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+    
+    socket.on('user_online', async (data) => {
+        socket.userId = data.userId;
+        socket.username = data.username;
+        
+        // Update online status
+        try {
+            const p = await getPool();
+            await p.query(
+                `INSERT INTO chat_online_users (user_id, socket_id, username, last_active) 
+                 VALUES ($1, $2, $3, NOW()) 
+                 ON CONFLICT (user_id) DO UPDATE SET socket_id=$2, last_active=NOW()`,
+                [data.userId, socket.id, data.username]
+            );
+        } catch(e) {}
+        
+        // Broadcast online users
+        const online = await getOnlineUsers();
+        io.emit('online_users', online);
+    });
+    
+    socket.on('join_room', (roomId) => {
+        socket.join('room_' + roomId);
+        console.log('User joined room:', roomId);
+    });
+    
+    socket.on('send_message', async (data) => {
+        const { roomId, message, userId, username } = data;
+        try {
+            const p = await getPool();
+            const result = await p.query(
+                `INSERT INTO chat_messages (room_id, sender_id, username, message) 
+                 VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
+                [roomId, userId, username, message]
+            );
+            
+            const msgData = {
+                id: result.rows[0].id,
+                roomId: roomId,
+                sender_id: userId,
+                username: username,
+                message: message,
+                created_at: result.rows[0].created_at
+            };
+            
+            io.to('room_' + roomId).emit('new_message', msgData);
+        } catch(e) { console.error('Send message error:', e.message); }
+    });
+    
+    socket.on('disconnect', async () => {
+        if (socket.userId) {
+            try {
+                const p = await getPool();
+                await p.query('DELETE FROM chat_online_users WHERE user_id = $1', [socket.userId]);
+            } catch(e) {}
+            
+            const online = await getOnlineUsers();
+            io.emit('online_users', online);
+        }
+        console.log('User disconnected:', socket.id);
+    });
+});
+
+async function getOnlineUsers() {
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            "SELECT user_id, username FROM chat_online_users WHERE last_active > NOW() - INTERVAL '1 minute'"
+        );
+        return r.rows;
+    } catch(e) { return []; }
+}
 // ==================== START SERVER ====================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
