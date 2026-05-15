@@ -4,9 +4,8 @@ const cors = require('cors');
 const path = require('path');
 const https = require('https');
 const UAParser = require('ua-parser-js');
-
-const app = express();
-const PORT = process.env.PORT || 5000;
+const http = require('http');
+const { Server } = require('socket.io');
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '100mb' }));
@@ -17,19 +16,47 @@ app.use(express.static(__dirname));
 setInterval(() => { https.get(`https://two026-users-data-management.onrender.com/api/ping`, (res) => {}); }, 600000);
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
 
-// ==================== DATABASE ====================
+// ==================== DATABASE - 5 POOLS AUTO-SWITCH ====================
 const DB1 = 'postgresql://neondb_owner:npg_3lq1dLYxvgVX@ep-misty-base-amkxcayc-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
 const DB2 = 'postgresql://neondb_owner:npg_6RwnXBl5LKQt@ep-damp-sea-a46t7qil-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB3 = 'postgresql://neondb_owner:npg_LVD3pNxhd1vi@ep-withered-violet-aprnlbey-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB4 = 'postgresql://neondb_owner:npg_ntqgkA5OVL8P@ep-noisy-resonance-aqy8odea-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB5 = 'postgresql://neondb_owner:npg_KuFVvHic4m0Y@ep-orange-paper-aqn9ak7c-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
-const pool1 = new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 5, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 });
-const pool2 = new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 5, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 });
+const pools = [
+    new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 }),
+    new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 }),
+    new Pool({ connectionString: DB3, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 }),
+    new Pool({ connectionString: DB4, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 }),
+    new Pool({ connectionString: DB5, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 })
+];
 
-let currentPool = pool1;
-let pool1Active = true;
+let currentPoolIndex = 0;
 
 async function getPool() {
-    try { await currentPool.query('SELECT 1'); return currentPool; }
-    catch(e) { console.log('âš ï¸ DB Switch:', e.message); currentPool = pool1Active ? pool2 : pool1; pool1Active = !pool1Active; return currentPool; }
+    // Try current pool first
+    try {
+        await pools[currentPoolIndex].query('SELECT 1');
+        return pools[currentPoolIndex];
+    } catch(e) {
+        console.log('DB Switch from pool #' + (currentPoolIndex + 1) + ':', e.message.substring(0, 50));
+        
+        // Try next pools in order
+        for (let i = 0; i < pools.length; i++) {
+            const nextIndex = (currentPoolIndex + i + 1) % pools.length;
+            try {
+                await pools[nextIndex].query('SELECT 1');
+                currentPoolIndex = nextIndex;
+                console.log('Switched to pool #' + (currentPoolIndex + 1));
+                return pools[currentPoolIndex];
+            } catch(e2) {
+                console.log('Pool #' + (nextIndex + 1) + ' also failed');
+            }
+        }
+        
+        // All pools failed, return current anyway
+        return pools[currentPoolIndex];
+    }
 }
 // ==================== DEVICE DETECTION ====================
 function detectDevice(ua) {
@@ -3173,11 +3200,165 @@ app.get('/privacy.html', (req, res) => res.sendFile(path.join(__dirname, 'privac
 app.get('/offline.html', (req, res) => res.sendFile(path.join(__dirname, 'offline.html')));
 app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html')));
 app.get('/exchange.html', (req, res) => servePageWithCheck(req, res, 'exchange', 'exchange.html'));
+// Initialize tables on all 5 databases
+pools.forEach(pool => {
+    initTables(pool);
+});
+
+// ==================== SOCKET.IO + SERVER START ====================
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: '*', methods: ['GET', 'POST'] }
+});
+
+// Online users tracking
+const onlineUsers = new Map();
+
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+    
+    // User joins chat
+    socket.on('join', (data) => {
+        const { userId, username } = data;
+        socket.userId = userId;
+        socket.username = username;
+        onlineUsers.set(userId, { socketId: socket.id, username, online: true });
+        io.emit('online_users', Array.from(onlineUsers.values()));
+    });
+    
+    // Join room
+    socket.on('join_room', (roomId) => {
+        socket.join('room_' + roomId);
+    });
+    
+    // Send message
+    socket.on('send_message', async (data) => {
+        const { roomId, message, userId, username } = data;
+        try {
+            const p = await getPool();
+            const result = await p.query(
+                `INSERT INTO chat_messages (room_id, sender_id, username, message) VALUES ($1,$2,$3,$4) RETURNING id, created_at`,
+                [roomId, userId, username, message]
+            );
+            const msgData = {
+                id: result.rows[0].id,
+                roomId, userId, username, message,
+                created_at: result.rows[0].created_at
+            };
+            io.to('room_' + roomId).emit('new_message', msgData);
+        } catch(e) {
+            console.error('Message save error:', e.message);
+        }
+    });
+    
+    // Typing
+    socket.on('typing', (data) => {
+        socket.to('room_' + data.roomId).emit('user_typing', {
+            userId: data.userId,
+            username: data.username
+        });
+    });
+    
+    // Disconnect
+    socket.on('disconnect', () => {
+        if (socket.userId) {
+            onlineUsers.delete(socket.userId);
+            io.emit('online_users', Array.from(onlineUsers.values()));
+        }
+        console.log('User disconnected:', socket.id);
+    });
+});
+
+// ==================== CHAT API ROUTES ====================
+// Get user's rooms
+app.post('/api/chat/rooms', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ rooms: [] });
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        const r = await p.query(`
+            SELECT cr.*, 
+                (SELECT COUNT(*) FROM chat_messages cm WHERE cm.room_id = cr.id AND cm.is_read = false AND cm.sender_id != $1) as unread
+            FROM chat_rooms cr
+            JOIN chat_participants cp ON cr.id = cp.room_id
+            WHERE cp.user_id = $1
+            ORDER BY cr.id DESC
+        `, [uid]);
+        res.json({ success: true, rooms: r.rows });
+    } catch(e) { res.json({ success: false, rooms: [] }); }
+});
+
+// Get messages
+app.get('/api/chat/messages/:roomId', async (req, res) => {
+    const { roomId } = req.params;
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            'SELECT * FROM chat_messages WHERE room_id = $1 ORDER BY id ASC LIMIT 50',
+            [roomId]
+        );
+        res.json({ success: true, messages: r.rows });
+    } catch(e) { res.json({ success: false, messages: [] }); }
+});
+
+// Create admin room (User -> Admin)
+app.post('/api/chat/create_admin_room', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false });
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        const uname = (await p.query('SELECT username FROM auth_users WHERE id=$1', [uid])).rows[0]?.username || 'User';
+        
+        // Create room
+        const room = await p.query(
+            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'admin', $2) RETURNING id",
+            [uname + ' - Admin', uid]
+        );
+        const roomId = room.rows[0].id;
+        
+        // Add participants
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, uid]);
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, 1]); // Admin ID=1
+        
+        res.json({ success: true, room: { id: roomId, room_name: uname + ' - Admin', room_type: 'admin' } });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Mark messages as read
+app.post('/api/chat/read', async (req, res) => {
+    const { roomId, userId } = req.body;
+    try {
+        const p = await getPool();
+        await p.query('UPDATE chat_messages SET is_read = true WHERE room_id = $1 AND sender_id != $2', [roomId, userId]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Get unread count
+app.post('/api/chat/unread', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ count: 0 });
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        const r = await p.query(
+            `SELECT COUNT(*) as cnt FROM chat_messages cm 
+             JOIN chat_participants cp ON cm.room_id = cp.room_id 
+             WHERE cp.user_id = $1 AND cm.sender_id != $1 AND cm.is_read = false`,
+            [uid]
+        );
+        res.json({ count: parseInt(r.rows[0].cnt) });
+    } catch(e) { res.json({ count: 0 }); }
+});
+
 // ==================== START SERVER ====================
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);     // ✅ Server စပြီ
-    console.log(`DB: DB1 + DB2 Auto-Switch`);           // ဒေတာဘေ့စ် ၂ခု
-    console.log(`Page Control: ${ALL_PAGES.length} pages`); // စာမျက်နှာ ၁၁ ခု
-    console.log(`Bot: Enhanced Long Polling`);           // Telegram Bot
-    console.log(`Redeem Codes: ${REDEEM_CATEGORIES.length} categories`); // Code ၅ မျိုး
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`DB: 5 Pools Auto-Switch (DB1~DB5)`);
+    console.log(`Page Control: ${ALL_PAGES.length} pages`);
+    console.log(`Chat: Socket.io Ready`);
+    console.log(`Bot: Enhanced Long Polling`);
+    console.log(`Redeem Codes: ${REDEEM_CATEGORIES.length} categories`);
 });
