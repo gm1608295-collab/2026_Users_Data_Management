@@ -588,7 +588,6 @@ app.post('/api/admin/bot_message', async function(req, res) {
 async function trackTelegramLogin(userId, username) {
     try { var p = await getPool(); await p.query("INSERT INTO login_history (user_id, username, login_type, device_info, device_type, is_mobile) VALUES ($1,$2,'telegram','Telegram Bot','Bot',true)", [userId, username]); } catch(e) {}
 }
-
 // ==================== TELEGRAM BOT ====================
 var lastUpdateId = 0;
 
@@ -632,8 +631,7 @@ function startLongPolling() {
             [{ text: '🏠 အကောင့်ဝင်ရန်', url: 'https://two026-users-data-management.onrender.com' }],
             [{ text: '💰 ငွေဖြည့်ရန်', url: 'https://two026-users-data-management.onrender.com/topup.html' }],
             [{ text: '🛒 Code ဝယ်ရန်', url: 'https://two026-users-data-management.onrender.com/buycode.html' }],
-            [{ text: '🎰 Lucky Spin', url: 'https://two026-users-data-management.onrender.com/game.html' }],
-            [{ text: '📞 Admin ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }]
+            [{ text: '🎰 Lucky Spin', url: 'https://two026-users-data-management.onrender.com/game.html' }]
         ]
     };
     
@@ -643,8 +641,7 @@ function startLongPolling() {
             [{ text: '🔐 OTP ရယူရန်', callback_data: 'otp' }],
             [{ text: '📋 Order စစ်ရန်', callback_data: 'status' }],
             [{ text: '🛒 Code ဝယ်ရန်', callback_data: 'buycode' }],
-            [{ text: '🎰 Lucky Spin', url: 'https://two026-users-data-management.onrender.com/game.html' }],
-            [{ text: '📞 ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }]
+            [{ text: '🎰 Lucky Spin', url: 'https://two026-users-data-management.onrender.com/game.html' }]
         ]
     };
 
@@ -675,7 +672,7 @@ function startLongPolling() {
                                 '💳 <b>သင့်လက်ကျန်</b>\n\n' +
                                 '💰 <b>' + balance.toLocaleString() + ' ကျပ်</b>\n' +
                                 '💵 ≈ $' + (balance/2100).toFixed(2) + ' USD\n\n' +
-                                'ငွေဖြည့်ရန် Top Up ခလုတ်ကိုနှိပ်ပါ။', 
+                                'ငွေဖြည့်ရန်: /topup', 
                                 quickKeyboard
                             );
                         }
@@ -705,7 +702,9 @@ function startLongPolling() {
                         }
                         else if (data === 'buycode') {
                             sendTelegramMessage(chatId, 
-                                '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', 
+                                '🛒 <b>Code ဝယ်ယူရန်</b>\n\n' +
+                                'အောက်ပါ Link ကိုနှိပ်ပါ:\n' +
+                                'https://two026-users-data-management.onrender.com/buycode.html', 
                                 mainKeyboard
                             );
                         }
@@ -725,29 +724,36 @@ function startLongPolling() {
                     if (text === '/start' || text === '/login') {
                         var u = await createTelegramUser(msg.from.id, firstName);
                         var welcomeMsg = u.isNew ? 
-                            '🎉 <b>SOLO M Game Shop မှ ကြိုဆိုပါတယ်!</b>\n\nမင်္ဂလာပါ ' + firstName + '!\n\nသင့်အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ။' :
-                            '👋 ပြန်လည်ကြိုဆိုပါတယ် ' + firstName + '!';
-                        
-                        sendTelegramMessage(chatId, 
-                            welcomeMsg + '\n\n' +
+                            '🎉 <b>SOLO M Game Shop မှ ကြိုဆိုပါတယ်!</b>\n\n' +
+                            'မင်္ဂလာပါ ' + firstName + '!\n\n' +
+                            'သင့်အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ။\n\n' +
                             '💳 လက်ကျန်: <b>' + (u.balance || 0).toLocaleString() + ' ကျပ်</b>\n\n' +
-                            'အောက်ပါ ခလုတ်များကို အသုံးပြုနိုင်ပါသည်။',
-                            quickKeyboard
-                        );
+                            'အောက်ပါ ဝန်ဆောင်မှုများကို အသုံးပြုနိုင်ပါသည်။' :
+                            '👋 ပြန်လည်ကြိုဆိုပါတယ် ' + firstName + '!\n\n' +
+                            '💳 လက်ကျန်: <b>' + (u.balance || 0).toLocaleString() + ' ကျပ်</b>';
+                        
+                        sendTelegramMessage(chatId, welcomeMsg, mainKeyboard);
                     }
                     else if (text === '/help') {
                         sendTelegramMessage(chatId,
-                            '📖 <b>SOLO M Game Shop</b>\n\n' +
+                            '📖 <b>SOLO M Game Shop - အကူအညီ</b>\n\n' +
                             '<b>Commands များ:</b>\n' +
-                            '/start - အကောင့်ဝင်ရန်\n' +
+                            '/start - အကောင့်စတင်ရန်\n' +
                             '/help - အကူအညီ\n' +
                             '/balance - လက်ကျန်ကြည့်ရန်\n' +
-                            '/otp - OTP Code\n' +
-                            '/status - Order စစ်ရန်\n' +
-                            '/buy - Code ဝယ်ရန်\n' +
-                            '/spin - Lucky Spin\n\n' +
-                            '<b>ဆက်သွယ်ရန်:</b> @Solo_m28',
-                            quickKeyboard
+                            '/otp - OTP Code ရယူရန်\n' +
+                            '/status - Order မှတ်တမ်းကြည့်ရန်\n' +
+                            '/buy - Code ဝယ်ယူရန်\n' +
+                            '/spin - Lucky Spin ကစားရန်\n' +
+                            '/topup - ငွေဖြည့်ရန်\n' +
+                            '/contact - ဆက်သွယ်ရန်\n\n' +
+                            '<b>ဝန်ဆောင်မှုများ:</b>\n' +
+                            '• MLBB Code ဝယ်ယူခြင်း\n' +
+                            '• Lucky Spin ကစားခြင်း\n' +
+                            '• USD/MMK လဲလှယ်ခြင်း\n' +
+                            '• Premium ၀ယ်ယူခြင်း\n\n' +
+                            '📞 Admin: @Solo_m28',
+                            mainKeyboard
                         );
                     }
                     else if (text === '/balance') {
@@ -756,7 +762,8 @@ function startLongPolling() {
                         sendTelegramMessage(chatId, 
                             '💳 <b>သင့်လက်ကျန်</b>\n\n' +
                             '💰 <b>' + bal.toLocaleString() + ' ကျပ်</b>\n' +
-                            '💵 ≈ $' + (bal/2100).toFixed(2) + ' USD', 
+                            '💵 ≈ $' + (bal/2100).toFixed(2) + ' USD\n\n' +
+                            'ငွေဖြည့်ရန်: /topup', 
                             quickKeyboard
                         );
                     }
@@ -765,14 +772,17 @@ function startLongPolling() {
                         if (uo) {
                             var otp2 = await createOTP(uo.id);
                             sendTelegramMessage(chatId, 
-                                '🔐 <b>သင့် OTP ကုဒ်</b>\n\n🔢 <b>' + otp2 + '</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။'
+                                '🔐 <b>သင့် OTP ကုဒ်</b>\n\n' +
+                                '🔢 <b>' + otp2 + '</b>\n\n' +
+                                '⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ။\n' +
+                                '⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်။'
                             );
                         }
                     }
-                    else if (text === '/status') {
+                    else if (text === '/status' || text === '/order' || text === '/orders') {
                         var ord = await getUserOrders(msg.from.id);
                         if (ord.length === 0) {
-                            sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။');
+                            sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။\n\nCode ဝယ်ရန်: /buy');
                         } else {
                             var smsg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
                             for (var k = 0; k < ord.length; k++) {
@@ -783,29 +793,78 @@ function startLongPolling() {
                             sendTelegramMessage(chatId, smsg);
                         }
                     }
-                    else if (text === '/buy') {
+                    else if (text === '/buy' || text === '/code') {
                         sendTelegramMessage(chatId, 
-                            '🛒 <b>Code ဝယ်ယူရန်</b>\n\nhttps://two026-users-data-management.onrender.com/buycode.html', 
+                            '🛒 <b>Code ဝယ်ယူရန်</b>\n\n' +
+                            'အောက်ပါ Link ကိုနှိပ်ပါ:\n' +
+                            'https://two026-users-data-management.onrender.com/buycode.html\n\n' +
+                            'သို့မဟုတ် /spin ဖြင့် Lucky Spin ကစားနိုင်ပါသည်။', 
                             mainKeyboard
                         );
                     }
-                    else if (text === '/spin') {
+                    else if (text === '/spin' || text === '/game') {
                         sendTelegramMessage(chatId, 
-                            '🎰 <b>Lucky Spin</b>\n\nhttps://two026-users-data-management.onrender.com/game.html', 
+                            '🎰 <b>Lucky Spin</b>\n\n' +
+                            'အောက်ပါ Link ကိုနှိပ်ပါ:\n' +
+                            'https://two026-users-data-management.onrender.com/game.html\n\n' +
+                            'နေ့စဉ် အခမဲ့ Spin လှည့်ခွင့်ရှိပါသည်။', 
+                            mainKeyboard
+                        );
+                    }
+                    else if (text === '/topup') {
+                        sendTelegramMessage(chatId, 
+                            '💰 <b>ငွေဖြည့်ရန်</b>\n\n' +
+                            'အောက်ပါ Link ကိုနှိပ်ပါ:\n' +
+                            'https://two026-users-data-management.onrender.com/topup.html', 
+                            mainKeyboard
+                        );
+                    }
+                    else if (text === '/contact' || text === '/admin') {
+                        sendTelegramMessage(chatId, 
+                            '📞 <b>ဆက်သွယ်ရန်</b>\n\n' +
+                            '👤 Admin: @Solo_m28\n' +
+                            '📧 Email: gm1608295@gmail.com\n' +
+                            '📱 Phone: 09672093790\n\n' +
+                            'အကူအညီလိုအပ်ပါက ဆက်သွယ်နိုင်ပါသည်။', 
+                            mainKeyboard
+                        );
+                    }
+                    else if (text === '/exchange') {
+                        sendTelegramMessage(chatId, 
+                            '💱 <b>USD/MMK လဲလှယ်ရန်</b>\n\n' +
+                            'အောက်ပါ Link ကိုနှိပ်ပါ:\n' +
+                            'https://two026-users-data-management.onrender.com/exchange.html', 
+                            mainKeyboard
+                        );
+                    }
+                    else if (text === '/premium') {
+                        sendTelegramMessage(chatId, 
+                            '👑 <b>Premium ဝယ်ယူရန်</b>\n\n' +
+                            'အောက်ပါ Link ကိုနှိပ်ပါ:\n' +
+                            'https://two026-users-data-management.onrender.com/premium.html\n\n' +
+                            'Premium အကျိုးခံစားခွင့်များ:\n' +
+                            '• နေ့စဉ် Spin ပိုမိုလှည့်ခွင့်\n' +
+                            '• ဆုရနိုင်ခြေ ၂ဆ တိုးမြှင့်\n' +
+                            '• အထူး Animation ဒီဇိုင်းများ', 
                             mainKeyboard
                         );
                     }
                     else {
                         sendTelegramMessage(chatId, 
-                            'အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n' +
+                            '👋 <b>SOLO M Game Shop</b>\n\n' +
+                            'အောက်ပါ Commands များကို အသုံးပြုနိုင်ပါသည်:\n\n' +
                             '/start - စတင်ရန်\n' +
                             '/help - အကူအညီ\n' +
                             '/balance - လက်ကျန်ကြည့်ရန်\n' +
                             '/otp - OTP Code\n' +
                             '/status - Order မှတ်တမ်း\n' +
-                            '/buy - Code ဝယ်ယူရန်\n' +
-                            '/spin - Lucky Spin',
-                            quickKeyboard
+                            '/buy - Code ဝယ်ရန်\n' +
+                            '/spin - Lucky Spin\n' +
+                            '/topup - ငွေဖြည့်ရန်\n' +
+                            '/exchange - ငွေလဲရန်\n' +
+                            '/premium - Premium\n' +
+                            '/contact - ဆက်သွယ်ရန်',
+                            mainKeyboard
                         );
                     }
                 }
@@ -819,7 +878,6 @@ function startLongPolling() {
     getUpdates();
     console.log('✅ Bot Long Polling Active');
 }
-
 // ==================== VIDEO SYSTEM ====================
 function getEmbedUrl(url) {
     if (!url) return '';
