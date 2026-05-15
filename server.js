@@ -2779,7 +2779,7 @@ await pools[1].query(q).catch(() => {});
         }
         
         // Init default exchange rate if not exists
-        await pool1.query(
+        await pools[0].query(
             "INSERT INTO settings (key, value) VALUES ('exchange_rate', '3500') ON CONFLICT (key) DO NOTHING"
         ).catch(() => {});
         
