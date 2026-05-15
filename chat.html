@@ -230,13 +230,18 @@
 <script>
 // Check login
 if (!localStorage.getItem('auth_token') || localStorage.getItem('auth_token') === 'guest') {
-    document.body.innerHTML = '...';
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;text-align:center"><div><i class="fas fa-lock" style="font-size:50px;color:#f39c12;margin-bottom:15px"></i><h3>စကားပြောရန် အကောင့်ဝင်ပါ</h3><a href="/" style="color:#f39c12;margin-top:15px;display:inline-block">Login Page သို့သွားရန်</a></div></div>';
 }
-    const socket = io(window.location.origin, {
+
+// Only run if logged in
+if (localStorage.getItem('auth_token') && localStorage.getItem('auth_token') !== 'guest') {
+
+const socket = io(window.location.origin, {
     transports: ['websocket', 'polling'],
     reconnection: true,
     reconnectionAttempts: 5
 });
+
 let user = null;
 let currentRoom = null;
 let messageOffset = 0;
@@ -244,23 +249,16 @@ let hasMoreMessages = false;
 
 // Get user
 try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch(e) { user = {}; }
-if (!user.id && localStorage.getItem('auth_token') !== 'guest') {
-    user = { id: 0, username: 'ဧည့်သည်' };
-}
+if (!user.id) { user = { id: 0, username: 'ဧည့်သည်' }; }
 
 socket.on('connect', () => {
-
     console.log('Socket connected');
-
     socket.emit('join', {
         userId: user.id || 0,
         username: user.username || 'သုံးစွဲသူ'
     });
-
 });
-    console.log('Socket connected');
 
-});
 // ==================== PREMIUM CHECK ====================
 async function checkPremiumStatus() {
     const token = localStorage.getItem('auth_token');
@@ -295,22 +293,8 @@ async function checkPremiumStatus() {
 }
 
 // ==================== EMOJIS ====================
-const EMOJIS = [
-'😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊',
-'😋','😎','😍','😘','🥰','😗','😙','😚','🙂','🤗',
-'🤩','🤔','🫡','🤨','😐','😑','😶','🙄','😏','😣',
-'😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛',
-'😜','🤪','😝','🤑','🤠','😇','🥳','🥺','🤯','😳',
-'😡','😠','🤬','😢','😭','😤','😱','😨','😰','😥',
-'👍','👎','👏','🙌','🫶','🙏','💪','👋','🤝','✌️',
-'🤟','👌','🤌','🖕','☝️','👑','💎','💰','🔥','⭐',
-'🌟','✨','⚡','💥','🎉','🎊','❤️','🧡','💛','💚',
-'💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓',
-'💗','💖','💘','💝','💯','🎮','🕹️','🏆','⚽','🏀',
-'🏈','🎵','🎶','🎤','🎧','📱','💻','⌚','📸','🚗',
-'✈️','🚀','🌍','🌈','☀️','🌙','⭐','🍔','🍕','🍟',
-'🌮','🍩','🍪','☕','🍺','🥤','🍎','🍉','🍇','🍓'
-];
+const EMOJIS = ['😀','😂','😍','😎','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','😊','🤔','😴','🥰','😇','🤗','💪','👋','✌️','🤝','👑','💎','💰','🎮','⚽','🌟','🍕'];
+
 function buildEmojiPicker() {
     document.getElementById('emojiPicker').innerHTML = EMOJIS.map(e => `<span class="emoji-item" onclick="insertEmoji('${e}')">${e}</span>`).join('');
 }
@@ -405,16 +389,16 @@ async function searchUsers() {
     } catch(e) {}
 }
 
-// ==================== PRIVATE CHAT ====================
-async function startPrivateChat(otherUserId, otherUsername) {
+// ==================== ADMIN CHAT ====================
+async function createAdminChat() {
     const token = localStorage.getItem('auth_token');
     if (!token) return alert('အကောင့်ဝင်ပါ');
     
     try {
-        const r = await fetch('/api/chat/create_private_room', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token, otherUserId}) });
+        const r = await fetch('/api/chat/create_admin_room', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) });
         const d = await r.json();
         if (d.success) {
-            openRoom(d.room.id, otherUsername);
+            loadRooms();
         }
     } catch(e) {}
 }
@@ -460,75 +444,6 @@ function closeChat() {
     loadRooms();
 }
 
-async function deleteRoom() {
-    if (!confirm('စကားပြောခန်းကို ဖျက်မှာသေချာပါသလား?')) return;
-    if (!currentRoom) return;
-    try {
-        await fetch('/api/chat/room/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({roomId: currentRoom}) });
-        closeChat();
-    } catch(e) {}
-}
-
-async function loadMoreMessages() {
-    if (!currentRoom) return;
-    messageOffset += 50;
-    try {
-        const r = await fetch('/api/chat/messages/' + currentRoom + '?offset=' + messageOffset);
-        const d = await r.json();
-        if (d.messages && d.messages.length > 0) {
-            const container = document.getElementById('messages');
-            const oldHeight = container.scrollHeight;
-            d.messages.forEach(msg => addMessage(msg, true));
-            container.scrollTop = container.scrollHeight - oldHeight;
-        }
-        if (!d.messages || d.messages.length < 50) {
-            document.getElementById('loadMore').style.display = 'none';
-            hasMoreMessages = false;
-        }
-    } catch(e) {}
-}
-
-// ==================== MESSAGES ====================
-function addMessage(msg, prepend = false) {
-    const isMine = (msg.sender_id === (user.id || 0)) || (msg.userId === (user.id || 0));
-    const container = document.getElementById('messages');
-    const div = document.createElement('div');
-    div.className = 'msg-row ' + (isMine ? 'mine msg-mine' : 'other msg-other');
-    div.innerHTML = `
-        <div class="msg-bubble">
-            ${!isMine ? `<div class="msg-sender">${msg.username || 'သုံးစွဲသူ'}</div>` : ''}
-            ${escapeHtml(msg.message)}
-            <div class="msg-time">
-                ${new Date(msg.created_at || Date.now()).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
-                ${isMine ? `<span class="msg-delete" onclick="deleteMessage(${msg.id})"><i class="fas fa-times"></i></span>` : ''}
-            </div>
-        </div>
-        ${isMine && msg.is_read ? '<div class="read-receipt">✓✓ ဖတ်ပြီး</div>' : ''}
-    `;
-    
-    if (prepend) {
-        container.insertBefore(div, container.firstChild);
-    } else {
-        container.appendChild(div);
-    }
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-async function deleteMessage(msgId) {
-    if (!confirm('စာကိုဖျက်မှာသေချာပါသလား?')) return;
-    try {
-        await fetch('/api/chat/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({messageId: msgId}) });
-        document.querySelectorAll('.msg-row').forEach(row => {
-            if (row.innerHTML.includes('deleteMessage(' + msgId + ')')) row.remove();
-        });
-    } catch(e) {}
-}
-
 function sendMessage() {
     const input = document.getElementById('msgInput');
     const message = input.value.trim();
@@ -547,26 +462,31 @@ function sendMessage() {
 
 function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
 
-let typingTimeout;
-function handleTyping() {
-    if (!currentRoom) return;
-    clearTimeout(typingTimeout);
-    socket.emit('typing', { roomId: currentRoom, userId: user.id || 0, username: user.username || 'သုံးစွဲသူ' });
-    typingTimeout = setTimeout(() => {}, 1000);
+// ==================== MESSAGES ====================
+function addMessage(msg, prepend = false) {
+    const isMine = (msg.sender_id === (user.id || 0)) || (msg.userId === (user.id || 0));
+    const container = document.getElementById('messages');
+    const div = document.createElement('div');
+    div.className = 'msg-row ' + (isMine ? 'mine msg-mine' : 'other msg-other');
+    div.innerHTML = `
+        <div class="msg-bubble">
+            ${!isMine ? `<div class="msg-sender">${msg.username || 'သုံးစွဲသူ'}</div>` : ''}
+            ${escapeHtml(msg.message)}
+            <div class="msg-time">${new Date(msg.created_at || Date.now()).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+    `;
+    
+    if (prepend) {
+        container.insertBefore(div, container.firstChild);
+    } else {
+        container.appendChild(div);
+    }
 }
 
-// ==================== ADMIN CHAT ====================
-async function createAdminChat() {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return alert('အကောင့်ဝင်ပါ');
-    
-    try {
-        const r = await fetch('/api/chat/create_admin_room', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) });
-        const d = await r.json();
-        if (d.success) {
-            loadRooms();
-        }
-    } catch(e) {}
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // ==================== SOCKET EVENTS ====================
@@ -581,17 +501,13 @@ socket.on('new_message', (msg) => {
     loadRooms();
 });
 
-socket.on('user_typing', (data) => {
-    document.getElementById('typingIndicator').textContent = data.username + ' စာရိုက်နေသည်...';
-    setTimeout(() => { document.getElementById('typingIndicator').textContent = ''; }, 2000);
-});
-
 socket.on('online_users', (users) => {
     document.getElementById('onlineCount').textContent = users.length + ' ယောက်ရှိ';
     document.getElementById('onlineList').innerHTML = users.length > 0 
         ? users.map(u => `<div class="room-item"><div class="room-icon">🟢</div><div class="room-info"><div class="room-name">${u.username}</div></div></div>`).join('')
         : '<div class="empty-state"><i class="fas fa-users"></i>အွန်လိုင်းသုံးစွဲသူမရှိပါ</div>';
 });
+
 // ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess() {
     try {
@@ -671,6 +587,7 @@ function getCookie(name) {
     for (let i = 0; i < ca.length; i++) { let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
     return null;
 }
+
 // ==================== INIT ====================
 (async function init() {
     const pageOn = await checkPageAccess();
@@ -680,6 +597,8 @@ function getCookie(name) {
     checkPremiumStatus();
     loadRooms();
 })();
+
+} // ✅ Close the logged-in check
 </script>
 </body>
 </html>
