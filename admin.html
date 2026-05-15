@@ -316,44 +316,18 @@
         if(!c)return;
         if(d.events&&d.events.length>0){
             c.innerHTML=d.events.map(function(evt){
-                // ✅ လက်ရှိအချိန်ကို UTC အနေနဲ့ မဟုတ်ဘဲ Local Time အနေနဲ့ တွက်
                 var now=new Date();
-                
-                // ✅ Event Start DateTime တည်ဆောက်
-                var startDateStr=evt.start_date; // "2026-05-14"
-                var startTimeStr=evt.start_time||'00:00:00'; // "01:50:00"
-                var startDateTime=new Date(startDateStr+'T'+startTimeStr);
-                
-                // ✅ Event End DateTime တည်ဆောက်
-                var endDateStr=evt.end_date; // "2026-05-23"
-                var endTimeStr=evt.end_time||'14:30:00'; // "14:30:00"
-                var endDateTime=new Date(endDateStr+'T'+endTimeStr);
-                
-                // ✅ Status စစ်
+                var startDateTime=new Date(evt.start_date+'T'+(evt.start_time||'00:00:00'));
+                var endDateTime=new Date(evt.end_date+'T'+(evt.end_time||'14:30:00'));
                 var isCancelled=evt.cancelled;
                 var isStarted=startDateTime<=now;
                 var isEnded=endDateTime<=now;
                 
                 var statusColor, statusText;
-                if(isCancelled){
-                    statusColor='var(--r)';
-                    statusText='Cancelled';
-                }else if(isEnded){
-                    statusColor='#7f8c8d';
-                    statusText='Ended';
-                }else if(isStarted){
-                    statusColor='var(--g)';
-                    statusText='Active';
-                }else{
-                    statusColor='var(--w)';
-                    statusText='Pending';
-                }
-                
-                // ✅ Debug - Console မှာ စစ်ကြည့်လို့ရ
-                console.log('Event:',evt.event_name);
-                console.log('Start:',startDateTime.toLocaleString(),'| Now:',now.toLocaleString(),'| Started:',isStarted);
-                console.log('End:',endDateTime.toLocaleString(),'| Ended:',isEnded);
-                console.log('Status:',statusText);
+                if(isCancelled){statusColor='var(--r)';statusText='Cancelled';}
+                else if(isEnded){statusColor='#7f8c8d';statusText='Ended';}
+                else if(isStarted){statusColor='var(--g)';statusText='Active';}
+                else{statusColor='var(--w)';statusText='Pending';}
                 
                 var typeColor=evt.event_type==='premium'?'#9b59b6':'#3498db';
                 var typeIcon=evt.event_type==='premium'?'👑':'🎁';
@@ -369,9 +343,8 @@
                     rewardsHtml+='</div>';
                 }
                 
-                // Time display (HH:MM ပုံစံ)
-                var startTimeDisplay=startTimeStr.substring(0,5);
-                var resetTimeDisplay=endTimeStr.substring(0,5);
+                var startTimeDisplay=(evt.start_time||'00:00:00').substring(0,5);
+                var resetTimeDisplay=(evt.end_time||'14:30:00').substring(0,5);
                 
                 var html='<div style="background:rgba(0,0,0,0.35);border-radius:10px;padding:14px;margin-bottom:10px;border-left:5px solid '+typeColor+'">';
                 html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">';
@@ -383,6 +356,8 @@
                 html+=' | 📆 '+evt.total_days+' days | ⏰ Reset: '+resetTimeDisplay;
                 html+='</small>';
                 html+='</div>';
+                
+                // ✅ Buttons - Start Time မရောက်မှသာ Edit/Cancel ပြ
                 html+='<div style="display:flex;gap:5px;flex-shrink:0">';
                 if(!isStarted&&!isCancelled){
                     html+='<button class="btn btn-w" style="font-size:10px;padding:6px 12px" onclick="editCheckinEvent('+evt.id+',\''+evt.event_type+'\')">✏️ Edit</button>';
