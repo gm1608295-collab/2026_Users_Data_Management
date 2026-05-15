@@ -333,6 +333,7 @@ const ALL_PAGES = [
     { id: 'aboutredeem', name: 'About Redeem' },
     { id: 'game', name: 'Lucky Spin' },        // ✅ ထည့်ပါ
     { id: 'exchange', name: 'Exchange' }         // ✅ ထည့်ပါ
+    { id: 'chat', name: 'Chat' }
 ];
 
 ALL_PAGES.forEach(async (pg) => {
@@ -3322,24 +3323,65 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
 app.post('/api/chat/create_admin_room', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false });
+    
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         const uname = (await p.query('SELECT username FROM auth_users WHERE id=$1', [uid])).rows[0]?.username || 'User';
         
-        // Create room
+        // ✅ Check if admin exists (user_id = 1)
+        const adminCheck = await p.query('SELECT id FROM auth_users WHERE id = 1');
+        if (adminCheck.rows.length === 0) {
+            // Create admin account if not exists
+            await p.query(
+                `INSERT INTO auth_users (id, username, email, login_type) VALUES (1, 'Admin', 'admin@sologame.com', 'local') 
+                 ON CONFLICT (id) DO NOTHING`
+            );
+        }
+        
+        // ✅ Check if room already exists
+        const existingRoom = await p.query(
+            `SELECT cr.id FROM chat_rooms cr 
+             JOIN chat_participants cp ON cr.id = cp.room_id 
+             WHERE cr.room_type = 'admin' AND cp.user_id = $1`,
+            [uid]
+        );
+        
+        if (existingRoom.rows.length > 0) {
+            return res.json({ 
+                success: true, 
+                room: { 
+                    id: existingRoom.rows[0].id, 
+                    room_name: uname + ' - Admin', 
+                    room_type: 'admin' 
+                } 
+            });
+        }
+        
+        // Create new room
         const room = await p.query(
             "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'admin', $2) RETURNING id",
             [uname + ' - Admin', uid]
         );
         const roomId = room.rows[0].id;
         
-        // Add participants
+        // Add participants (user + admin)
         await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, uid]);
         await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, 1]); // Admin ID=1
         
-        res.json({ success: true, room: { id: roomId, room_name: uname + ' - Admin', room_type: 'admin' } });
-    } catch(e) { res.json({ success: false }); }
+        res.json({ 
+            success: true, 
+            room: { 
+                id: roomId, 
+                room_name: uname + ' - Admin', 
+                room_type: 'admin' 
+            } 
+        });
+        
+    } catch(e) {
+        console.error('[CREATE ADMIN ROOM ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
 });
 
 // Mark messages as read
