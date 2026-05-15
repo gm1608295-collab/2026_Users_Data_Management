@@ -3316,6 +3316,112 @@ app.post('/api/chat/create_admin_room', async (req, res) => {
                  ON CONFLICT (id) DO NOTHING`
             );
         }
+
+        // Create private room (User -> User)
+app.post('/api/chat/create_private_room', async (req, res) => {
+    const { token, otherUserId } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!otherUserId) return res.json({ success: false, message: 'Other user ID required' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        const myName = (await p.query('SELECT username FROM auth_users WHERE id=$1', [uid])).rows[0]?.username || 'User';
+        const otherName = (await p.query('SELECT username FROM auth_users WHERE id=$1', [otherUserId])).rows[0]?.username || 'User';
+        
+        // Check if room already exists between these 2 users
+        const existingRoom = await p.query(
+            `SELECT cr.id FROM chat_rooms cr 
+             JOIN chat_participants cp1 ON cr.id = cp1.room_id AND cp1.user_id = $1
+             JOIN chat_participants cp2 ON cr.id = cp2.room_id AND cp2.user_id = $2
+             WHERE cr.room_type = 'private'`,
+            [uid, otherUserId]
+        );
+        
+        if (existingRoom.rows.length > 0) {
+            return res.json({ 
+                success: true, 
+                room: { id: existingRoom.rows[0].id, room_name: otherName, room_type: 'private' } 
+            });
+        }
+        
+        // Create new room
+        const room = await p.query(
+            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'private', $2) RETURNING id",
+            [myName + ' & ' + otherName, uid]
+        );
+        const roomId = room.rows[0].id;
+        
+        // Add both users
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, uid]);
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, otherUserId]);
+        
+        res.json({ success: true, room: { id: roomId, room_name: otherName, room_type: 'private' } });
+        
+    } catch(e) {
+        console.error('[CREATE PRIVATE ROOM ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Create group room
+app.post('/api/chat/create_group_room', async (req, res) => {
+    const { token, roomName, userIds } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!roomName || !userIds || !Array.isArray(userIds) || userIds.length < 2) {
+        return res.json({ success: false, message: 'Room name and at least 2 users required' });
+    }
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        // Create room
+        const room = await p.query(
+            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id",
+            [roomName, uid]
+        );
+        const roomId = room.rows[0].id;
+        
+        // Add all users (including creator)
+        const allUsers = [...new Set([uid, ...userIds])]; // Remove duplicates
+        for (const userId of allUsers) {
+            await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [roomId, userId]);
+        }
+        
+        res.json({ success: true, room: { id: roomId, room_name: roomName, room_type: 'group' } });
+        
+    } catch(e) {
+        console.error('[CREATE GROUP ROOM ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Delete room
+app.post('/api/chat/room/delete', async (req, res) => {
+    const { roomId } = req.body;
+    if (!roomId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM chat_messages WHERE room_id = $1', [roomId]);
+        await p.query('DELETE FROM chat_participants WHERE room_id = $1', [roomId]);
+        await p.query('DELETE FROM chat_rooms WHERE id = $1', [roomId]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// Delete message
+app.post('/api/chat/delete', async (req, res) => {
+    const { messageId } = req.body;
+    if (!messageId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM chat_messages WHERE id = $1', [messageId]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
+});
         
         // ✅ Check if room already exists
         const existingRoom = await p.query(
