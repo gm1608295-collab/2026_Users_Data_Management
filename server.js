@@ -3263,7 +3263,100 @@ io.on('connection', (socket) => {
         console.log('User disconnected:', socket.id);
     });
 });
+// ╔══════════════════════════════════════════════════════════════╗
+// ║              CHAT PREMIUM SYSTEM (SEPARATE)                 ║
+// ╚══════════════════════════════════════════════════════════════╝
 
+// Get chat premium status
+app.post('/api/chat/premium/status', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, premium_active: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        const r = await p.query('SELECT premium_tier, premium_expiry FROM chat_premium WHERE user_id = $1', [uid]);
+        
+        if (r.rows.length > 0) {
+            const isActive = r.rows[0].premium_expiry && new Date(r.rows[0].premium_expiry) > new Date();
+            res.json({
+                success: true,
+                premium_active: isActive,
+                premium_tier: r.rows[0].premium_tier || 1,
+                expires_at: r.rows[0].premium_expiry ? r.rows[0].premium_expiry.toISOString() : null
+            });
+        } else {
+            res.json({ success: true, premium_active: false, premium_tier: 0, expires_at: null });
+        }
+    } catch(e) {
+        res.json({ success: false, premium_active: false });
+    }
+});
+
+// Buy chat premium
+app.post('/api/chat/premium/buy', async (req, res) => {
+    const { token, months, cost, tier } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!months || !cost) return res.json({ success: false, message: 'Missing data' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
+        // Check USD balance
+        const bal = await p.query('SELECT usd_balance FROM auth_users WHERE id = $1', [uid]);
+        const usdBalance = parseFloat(bal.rows[0]?.usd_balance || 0);
+        
+        if (usdBalance < cost) {
+            return res.json({ success: false, message: 'Insufficient USD balance' });
+        }
+        
+        // Calculate expiry
+        const now = new Date();
+        const expiry = new Date(now);
+        expiry.setMonth(expiry.getMonth() + months);
+        
+        // Deduct USD balance
+        await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id = $2', [cost, uid]);
+        
+        // Set chat premium
+        await p.query(
+            `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
+             VALUES ($1, $2, $3, NOW(), NOW())
+             ON CONFLICT (user_id) DO UPDATE SET premium_tier = $2, premium_expiry = $3, updated_at = NOW()`,
+            [uid, tier || 1, expiry]
+        );
+        
+        const newBalance = usdBalance - cost;
+        
+        res.json({ 
+            success: true, 
+            message: 'Chat Premium activated!',
+            expires_at: expiry.toISOString(),
+            premium_tier: tier || 1,
+            new_usd_balance: newBalance
+        });
+        
+    } catch(e) {
+        console.error('[CHAT PREMIUM BUY ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Admin: Revoke chat premium
+app.post('/api/admin/revoke_chat_premium', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM chat_premium WHERE user_id = $1', [userId]);
+        res.json({ success: true, message: 'Chat premium revoked!' });
+    } catch(e) { res.json({ success: false }); }
+});
 // ==================== CHAT API ROUTES ====================
 // Get user's rooms
 app.post('/api/chat/rooms', async (req, res) => {
