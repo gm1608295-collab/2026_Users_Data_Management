@@ -2774,8 +2774,8 @@ async function createResellerTables() {
         ];
         
         for (const q of alterQueries) {
-            await pool1.query(q).catch(() => {});
-            await pool2.query(q).catch(() => {});
+           await pools[0].query(q).catch(() => {});
+await pools[1].query(q).catch(() => {}); 
         }
         
         // Init default exchange rate if not exists
