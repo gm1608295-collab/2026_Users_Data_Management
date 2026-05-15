@@ -1838,8 +1838,8 @@ async function createSpinRatesTable() {
     `;
     
     try {
-        await pool1.query(query);
-        await pool2.query(query);
+        await pools[0].query(query);
+        await pools[1].query(query);
         console.log('✅ spin_rates table created on both databases');
     } catch(e) {
         console.log('⚠️ spin_rates table error:', e.message);
@@ -1916,7 +1916,7 @@ async function initDefaultSpinRates() {
     
     try {
         for (const rate of defaultRates) {
-            await pool1.query(
+            await pools[0].query(
                 `INSERT INTO spin_rates (rate_type, segment_label, reward, reward_type, segment_color, weight) 
                  VALUES ($1,$2,$3,$4,$5,$6) 
                  ON CONFLICT (rate_type, segment_label) DO NOTHING`,
@@ -2015,8 +2015,8 @@ async function createPromoCodesTable() {
     `;
     
     try {
-        await pool1.query(query);
-        await pool2.query(query);
+        await pools[0].query(query);
+        await pools[1].query(query);
         console.log('✅ promo_codes table ready');
     } catch(e) {
         console.log('⚠️ promo_codes table error:', e.message);
@@ -2526,7 +2526,7 @@ async function initDefaultCheckinEvents() {
     
     while (retries > 0) {
         try {
-            const existing = await pool1.query('SELECT COUNT(*) FROM daily_checkin_events');
+            const existing = await pools[0].query('SELECT COUNT(*) FROM daily_checkin_events');
             if (parseInt(existing.rows[0].count) > 0) {
                 console.log('Check-in events already exist');
                 return;
@@ -2549,7 +2549,7 @@ async function initDefaultCheckinEvents() {
         const normalEndDate = new Date();
         normalEndDate.setDate(normalEndDate.getDate() + 9);
         
-        const normalEvent = await pool1.query(
+        const normalEvent = await pools[0].query(
             'INSERT INTO daily_checkin_events (event_type, event_name, start_date, start_time, end_date, end_time, total_days) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
             ['normal', 'Normal Daily Check-In', new Date().toISOString().split('T')[0], '00:00:00', normalEndDate.toISOString().split('T')[0], '14:30:00', 7]
         );
@@ -2565,7 +2565,7 @@ async function initDefaultCheckinEvents() {
         ];
         
         for (const r of normalRewards) {
-            await pool1.query(
+            await pools[0].query(
                 'INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) VALUES ($1,$2,$3,$4,$5,$6)',
                 [normalEvent.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
             );
@@ -2575,12 +2575,12 @@ async function initDefaultCheckinEvents() {
         
         // Skip DB2 if not needed
         try {
-            const normalEvent2 = await pool2.query(
+            const normalEvent2 = await pools[1].query(
                 'INSERT INTO daily_checkin_events (event_type, event_name, start_date, start_time, end_date, end_time, total_days) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
                 ['normal', 'Normal Daily Check-In', new Date().toISOString().split('T')[0], '00:00:00', normalEndDate.toISOString().split('T')[0], '14:30:00', 7]
             );
             for (const r of normalRewards) {
-                await pool2.query(
+                await pools[1].query(
                     'INSERT INTO daily_checkin_rewards (event_id, day_number, reward_type, reward_amount, reward_label, icon_url) VALUES ($1,$2,$3,$4,$5,$6)',
                     [normalEvent2.rows[0].id, r.day, r.type, r.amount, r.label, r.icon]
                 );
@@ -2761,8 +2761,8 @@ async function createResellerTables() {
     
     try {
         for (const q of queries) {
-            await pool1.query(q).catch(() => {});
-            await pool2.query(q).catch(() => {});
+            await pools[0].query(q).catch(() => {});
+            await pools[1].query(q).catch(() => {});
         }
         console.log('✅ Reseller tables ready');
         
