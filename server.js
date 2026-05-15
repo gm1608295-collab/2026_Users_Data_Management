@@ -331,8 +331,8 @@ const ALL_PAGES = [
     { id: 'recovery', name: 'Recovery' },
     { id: 'contact', name: 'Contact' },
     { id: 'aboutredeem', name: 'About Redeem' },
-    { id: 'game', name: 'Lucky Spin' },        // ✅ ထည့်ပါ
-    { id: 'exchange', name: 'Exchange' }         // ✅ ထည့်ပါ
+    { id: 'game', name: 'Lucky Spin' },
+    { id: 'exchange', name: 'Exchange' },
     { id: 'chat', name: 'Chat' }
 ];
 
