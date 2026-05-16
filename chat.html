@@ -139,36 +139,50 @@ async function getCurrentUser() {
 
 // Initialize Socket
 function initSocket() {
+function initSocket() {
+    console.log('🔌 Initializing socket...');
+    
     socket = io(window.location.origin, {
         transports: ['websocket', 'polling'],
-        reconnection: true
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000
     });
     
     socket.on('connect', () => {
-        console.log('Socket connected');
+        console.log('✅ Socket connected!', socket.id);
         if (currentUser) {
-            socket.emit('user_online', { userId: currentUser.id, username: currentUser.username });
+            socket.emit('user_online', { 
+                userId: currentUser.id, 
+                username: currentUser.username 
+            });
         }
     });
     
+    socket.on('connect_error', (err) => {
+        console.error('❌ Socket connection error:', err.message);
+        showToast('Connection error...');
+    });
+    
     socket.on('new_message', (msg) => {
+        console.log('📩 New message received:', msg);
         if (currentRoom === msg.roomId) {
             addMessageToUI(msg, msg.sender_id === currentUser?.id);
             scrollToBottom();
         }
-        loadRooms();
+        loadRooms(); // Refresh room list for unread count
     });
     
     socket.on('online_users', (users) => {
+        console.log('👥 Online users:', users.length);
         document.getElementById('onlineCount').textContent = users.length + ' online';
     });
     
-    socket.on('connect_error', () => {
-        showToast('Connection error, refreshing...');
-        setTimeout(() => location.reload(), 3000);
+    socket.on('error', (err) => {
+        console.error('Socket error:', err);
+        showToast(err.message);
     });
 }
-
 // Switch tabs
 function switchTab(tab) {
     const btns = document.querySelectorAll('.chat-tab');
@@ -355,37 +369,34 @@ function addMessageToUI(msg, isMine) {
 function sendMessage() {
     const input = document.getElementById('msgInput');
     const message = input.value.trim();
-    if (!message || !currentRoom || !currentUser) return;
+    
+    console.log('📤 Send message clicked:', { message, currentRoom, currentUser });
+    
+    if (!message) {
+        console.log('⚠️ Empty message');
+        return;
+    }
+    if (!currentRoom) {
+        console.log('⚠️ No current room');
+        showToast('Please select a chat room first');
+        return;
+    }
+    if (!currentUser) {
+        console.log('⚠️ No user');
+        showToast('Please login');
+        return;
+    }
     
     socket.emit('send_message', {
         roomId: currentRoom,
-        message,
+        message: message,
         userId: currentUser.id,
         username: currentUser.username
     });
     
+    console.log('✅ Message emitted');
     input.value = '';
 }
-
-function closeChat() {
-    currentRoom = null;
-    document.getElementById('chatArea').classList.remove('active');
-    document.getElementById('roomList').classList.add('active');
-    loadRooms();
-}
-
-function scrollToBottom() {
-    const msgs = document.getElementById('messages');
-    msgs.scrollTop = msgs.scrollHeight;
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
 // Init
 async function init() {
     const user = await getCurrentUser();
