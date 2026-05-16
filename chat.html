@@ -97,7 +97,7 @@
 
 <script>
 // ============================================
-// CHAT SYSTEM - WORKING VERSION
+// CHAT SYSTEM - FIXED VERSION
 // ============================================
 
 let socket = null;
@@ -109,6 +109,20 @@ function showToast(msg) {
     t.textContent = msg;
     t.style.display = 'block';
     setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function scrollToBottom() {
+    const msgs = document.getElementById('messages');
+    if (msgs) {
+        msgs.scrollTop = msgs.scrollHeight;
+    }
 }
 
 // Get current user
@@ -137,7 +151,6 @@ async function getCurrentUser() {
     }
 }
 
-// Initialize Socket
 // Initialize Socket
 function initSocket() {
     console.log('🔌 Initializing socket...');
@@ -183,6 +196,7 @@ function initSocket() {
         showToast(err.message);
     });
 }
+
 // Switch tabs
 function switchTab(tab) {
     const btns = document.querySelectorAll('.chat-tab');
@@ -397,12 +411,14 @@ function sendMessage() {
     console.log('✅ Message emitted');
     input.value = '';
 }
-function scrollToBottom() {
-    const msgs = document.getElementById('messages');
-    if (msgs) {
-        msgs.scrollTop = msgs.scrollHeight;
-    }
+
+function closeChat() {
+    currentRoom = null;
+    document.getElementById('chatArea').classList.remove('active');
+    document.getElementById('roomList').classList.add('active');
+    loadRooms();
 }
+
 // Init
 async function init() {
     const user = await getCurrentUser();
