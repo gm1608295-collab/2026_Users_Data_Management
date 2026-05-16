@@ -3204,60 +3204,6 @@ const io = new Server(server, {
 // Online users tracking
 const onlineUsers = new Map();
 
-io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
-    
-    // User joins chat
-    socket.on('join', (data) => {
-        const { userId, username } = data;
-        socket.userId = userId;
-        socket.username = username;
-        onlineUsers.set(userId, { socketId: socket.id, username, online: true });
-        io.emit('online_users', Array.from(onlineUsers.values()));
-    });
-    
-    // Join room
-    socket.on('join_room', (roomId) => {
-        socket.join('room_' + roomId);
-    });
-    
-    // Send message
-    socket.on('send_message', async (data) => {
-        const { roomId, message, userId, username } = data;
-        try {
-            const p = await getPool();
-            const result = await p.query(
-                `INSERT INTO chat_messages (room_id, sender_id, username, message) VALUES ($1,$2,$3,$4) RETURNING id, created_at`,
-                [roomId, userId, username, message]
-            );
-            const msgData = {
-                id: result.rows[0].id,
-                roomId, userId, username, message,
-                created_at: result.rows[0].created_at
-            };
-            io.to('room_' + roomId).emit('new_message', msgData);
-        } catch(e) {
-            console.error('Message save error:', e.message);
-        }
-    });
-    
-    // Typing
-    socket.on('typing', (data) => {
-        socket.to('room_' + data.roomId).emit('user_typing', {
-            userId: data.userId,
-            username: data.username
-        });
-    });
-    
-    // Disconnect
-    socket.on('disconnect', () => {
-        if (socket.userId) {
-            onlineUsers.delete(socket.userId);
-            io.emit('online_users', Array.from(onlineUsers.values()));
-        }
-        console.log('User disconnected:', socket.id);
-    });
-});
 // ╔══════════════════════════════════════════════════════════════╗
 // ║              CHAT PREMIUM SYSTEM (SEPARATE)                 ║
 // ╚══════════════════════════════════════════════════════════════╝
