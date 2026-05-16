@@ -270,9 +270,34 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS chat_premium (user_id INT PRIMARY KEY, premium_tier INT DEFAULT 1, premium_expiry TIMESTAMP, purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         
         // ========== CHAT SYSTEM ==========
-        `CREATE TABLE IF NOT EXISTS chat_rooms (id SERIAL PRIMARY KEY, room_name VARCHAR(100) NOT NULL, room_type VARCHAR(20) DEFAULT 'private', created_by INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        `CREATE TABLE IF NOT EXISTS chat_participants (room_id INT NOT NULL, user_id INT NOT NULL, joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (room_id, user_id))`,
-        `CREATE TABLE IF NOT EXISTS chat_messages (id SERIAL PRIMARY KEY, room_id INT NOT NULL, sender_id INT NOT NULL, username VARCHAR(100), message TEXT, is_read BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+`CREATE TABLE IF NOT EXISTS chat_rooms (
+    id SERIAL PRIMARY KEY, 
+    room_name VARCHAR(100) NOT NULL, 
+    room_type VARCHAR(20) DEFAULT 'private', 
+    created_by INT, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
+`CREATE TABLE IF NOT EXISTS chat_participants (
+    room_id INT NOT NULL, 
+    user_id INT NOT NULL, 
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+    PRIMARY KEY (room_id, user_id)
+)`,
+`CREATE TABLE IF NOT EXISTS chat_messages (
+    id SERIAL PRIMARY KEY, 
+    room_id INT NOT NULL, 
+    sender_id INT NOT NULL, 
+    username VARCHAR(100), 
+    message TEXT, 
+    is_read BOOLEAN DEFAULT false, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
+`CREATE TABLE IF NOT EXISTS chat_online_users (
+    user_id INT PRIMARY KEY,
+    socket_id VARCHAR(100),
+    username VARCHAR(100),
+    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
         
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
@@ -3534,27 +3559,29 @@ io.on('connection', (socket) => {
     });
     
     socket.on('send_message', async (data) => {
-        const { roomId, message, userId, username } = data;
-        try {
-            const p = await getPool();
-            const result = await p.query(
-                `INSERT INTO chat_messages (room_id, sender_id, username, message) 
-                 VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
-                [roomId, userId, username, message]
-            );
-            
-            const msgData = {
-                id: result.rows[0].id,
-                roomId: roomId,
-                sender_id: userId,
-                username: username,
-                message: message,
-                created_at: result.rows[0].created_at
-            };
-            
-            io.to('room_' + roomId).emit('new_message', msgData);
-        } catch(e) { console.error('Send message error:', e.message); }
-    });
+    const { roomId, message, userId, username } = data;
+    try {
+        const p = await getPool();
+        const result = await p.query(
+            `INSERT INTO chat_messages (room_id, sender_id, username, message, created_at) 
+             VALUES ($1, $2, $3, $4, NOW()) RETURNING id, created_at`,
+            [roomId, userId, username, message]
+        );
+        
+        const msgData = {
+            id: result.rows[0].id,
+            roomId: roomId,
+            sender_id: userId,
+            username: username,
+            message: message,
+            created_at: result.rows[0].created_at
+        };
+        
+        io.to('room_' + roomId).emit('new_message', msgData);
+    } catch(e) { 
+        console.error('Send message error:', e.message); 
+    }
+});
     
     socket.on('disconnect', async () => {
         if (socket.userId) {
