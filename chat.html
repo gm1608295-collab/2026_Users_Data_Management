@@ -739,30 +739,90 @@
     function cancelUpload() { uploadCancelled = true; selectedFile = null; document.getElementById('uploadPreviewModal').classList.remove('active'); }
 
     async function confirmUpload() {
-        if (!selectedFile || uploadCancelled || !currentRoom) { if (!currentRoom) showToast('Select a chat room first', true); cancelUpload(); return; }
-        const modal = document.getElementById('uploadPreviewModal'), progressDiv = document.getElementById('uploadProgress'), progressFill = document.getElementById('progressFill'), progressText = document.getElementById('progressText');
-        progressDiv.style.display = 'block'; progressFill.style.width = '0%'; progressText.textContent = 'Uploading 0%';
-        document.getElementById('sendUploadBtn').disabled = true;
-        let progress = 0;
-        const progressInterval = setInterval(() => { if (uploadCancelled) return; progress = Math.min(progress + 8, 90); progressFill.style.width = progress + '%'; progressText.textContent = `Uploading ${progress}%`; }, 150);
-        try {
-            const reader = new FileReader();
-            const base64 = await new Promise((resolve) => { reader.onload = (e) => resolve(e.target.result); reader.readAsDataURL(selectedFile); });
-            if (uploadCancelled) { clearInterval(progressInterval); cancelUpload(); return; }
-            progressFill.style.width = '95%'; progressText.textContent = 'Processing 95%';
-            const res = await fetch('/api/upload_image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ base64 }) });
-            const data = await res.json();
+    if (!selectedFile || uploadCancelled || !currentRoom) {
+        if (!currentRoom) showToast('စကားပြောခန်းမရွေးရသေးပါ', true);
+        cancelUpload();
+        return;
+    }
+    
+    const modal = document.getElementById('uploadPreviewModal');
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    progressDiv.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Uploading 0%';
+    document.getElementById('sendUploadBtn').disabled = true;
+    
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        if (uploadCancelled) return;
+        progress = Math.min(progress + 8, 90);
+        progressFill.style.width = progress + '%';
+        progressText.textContent = `Uploading ${progress}%`;
+    }, 150);
+    
+    try {
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve) => {
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(selectedFile);
+        });
+        
+        if (uploadCancelled) {
             clearInterval(progressInterval);
-            if (uploadCancelled) { cancelUpload(); return; }
-            if (data.success) {
-                progressFill.style.width = '100%'; progressText.textContent = 'Complete! Sending...';
-                await new Promise(r => setTimeout(r, 200));
-                const messageData = { roomId: currentRoom, message: selectedFileType === 'image' ? `📷 IMAGE:${data.url}` : `📎 FILE:${data.url}|${selectedFileName}`, userId: currentUser.id, username: currentUser.username };
-                socket.emit('send_message', messageData);
-                showToast('Sent!');
-                cancelUpload();
-            } else { showToast('Upload failed', true); cancelUpload(); }
-        } catch(err) { clearInterval(progressInterval); showToast('Upload error', true); cancelUpload(); }
+            cancelUpload();
+            return;
+        }
+        
+        progressFill.style.width = '95%';
+        progressText.textContent = 'Processing 95%';
+        
+        // ✅ Use the correct API endpoint
+        const res = await fetch('/api/chat/upload_file', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: localStorage.getItem('auth_token'),
+                base64: base64,
+                fileName: selectedFileName,
+                fileType: selectedFile.type
+            })
+        });
+        
+        const data = await res.json();
+        clearInterval(progressInterval);
+        
+        if (uploadCancelled) {
+            cancelUpload();
+            return;
+        }
+        
+        if (data.success) {
+            progressFill.style.width = '100%';
+            progressText.textContent = 'Complete! Sending...';
+            await new Promise(r => setTimeout(r, 200));
+            
+            const messageData = {
+                roomId: currentRoom,
+                message: selectedFileType === 'image' ? `📷 IMAGE:${data.url}` : `📎 FILE:${data.url}|${data.fileName || selectedFileName}`,
+                userId: currentUser.id,
+                username: currentUser.username
+            };
+            socket.emit('send_message', messageData);
+            showToast('Sent!');
+            cancelUpload();
+        } else {
+            showToast(data.message || 'Upload failed', true);
+            cancelUpload();
+        }
+    } catch(err) {
+        clearInterval(progressInterval);
+        console.error('Upload error:', err);
+        showToast('Upload error: ' + err.message, true);
+        cancelUpload();
+    }
     }
 
     async function getCurrentUser() {
