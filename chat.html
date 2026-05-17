@@ -727,36 +727,49 @@
         }
     }
 
-    // ========== LOAD USERS ==========
-    async function loadUsersList() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/all_users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
-            });
-            const data = await res.json();
-            const container = document.getElementById('usersList');
-            
-            if (data.users && data.users.length > 0) {
-                container.innerHTML = data.users.map(user => `
-                    <div class="user-item" onclick="startPrivateChat(${user.id}, '${escapeHtml(user.username)}')">
-                        <div class="room-icon">👤</div>
-                        <div class="room-info">
-                            <div class="room-name">${escapeHtml(user.username)}</div>
-                            <div class="room-last">Click to start chat</div>
+    // Load users list - ONLINE USERS ONLY with indicators
+async function loadUsersList() {
+    if (!currentUser) return;
+    try {
+        // Get online users from server
+        const onlineRes = await fetch('/api/chat/online_users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        const onlineData = await onlineRes.json();
+        const onlineUsers = onlineData.users || [];
+        
+        // Filter out current user
+        const otherOnlineUsers = onlineUsers.filter(u => u.user_id !== currentUser.id);
+        
+        const container = document.getElementById('usersList');
+        
+        if (otherOnlineUsers.length > 0) {
+            container.innerHTML = otherOnlineUsers.map(user => `
+                <div class="user-item" onclick="startPrivateChat(${user.user_id}, '${escapeHtml(user.username)}')">
+                    <div class="online-indicator" style="width:10px; height:10px; background:#2ecc71; border-radius:50%; box-shadow:0 0 5px #2ecc71;"></div>
+                    <div class="room-info">
+                        <div class="room-name">${escapeHtml(user.username)}</div>
+                        <div class="room-last" style="color:#2ecc71; font-size:9px;">
+                            <i class="fas fa-circle" style="font-size:6px; color:#2ecc71;"></i> Online now
                         </div>
                     </div>
-                `).join('');
-            } else {
-                container.innerHTML = '<div class="empty-state">No other users found</div>';
-            }
-        } catch(e) {
-            console.error(e);
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-user-slash"></i>
+                    <p>No online users at the moment</p>
+                </div>
+            `;
         }
+    } catch(e) { 
+        console.error(e);
+        document.getElementById('usersList').innerHTML = '<div class="empty-state">Error loading users</div>';
     }
-
+}
     // ========== LOAD GROUPS ==========
     async function loadGroupsList() {
         if (!currentUser) return;
