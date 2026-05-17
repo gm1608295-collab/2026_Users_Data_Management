@@ -3355,11 +3355,11 @@ app.post('/api/chat/premium/status', async (req, res) => {
             res.json({ success: true, premium_active: false, premium_tier: 0, expires_at: null });
         }
     } catch(e) {
+        console.error('[PREMIUM STATUS ERROR]', e.message);
         res.json({ success: false, premium_active: false });
     }
 });
-// Buy chat premium
-app.post('/api/chat/premium/buy', async (req, res) => {
+
 // Buy chat premium (1, 2, or 3 months)
 app.post('/api/chat/premium/buy', async (req, res) => {
     const { token, months, cost, tier } = req.body;
@@ -3448,37 +3448,7 @@ app.post('/api/chat/premium/buy', async (req, res) => {
     }
 });
 
-// Admin: Revoke chat premium
-app.post('/api/admin/revoke_chat_premium', async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        await p.query('DELETE FROM chat_premium WHERE user_id = $1', [userId]);
-        res.json({ success: true, message: 'Chat premium revoked!' });
-    } catch(e) { res.json({ success: false }); }
-});
-// Auto cleanup expired premiums (run daily)
-async function cleanupExpiredPremiums() {
-    try {
-        const p = await getPool();
-        const result = await p.query(
-            "DELETE FROM chat_premium WHERE premium_expiry < NOW() RETURNING user_id"
-        );
-        if (result.rows.length > 0) {
-            console.log(`[PREMIUM CLEANUP] Removed ${result.rows.length} expired premiums`);
-        }
-    } catch(e) {
-        console.error('[PREMIUM CLEANUP ERROR]', e.message);
-    }
-}
-
-// Run every hour
-setInterval(cleanupExpiredPremiums, 60 * 60 * 1000);
-// Run once on startup
-cleanupExpiredPremiums();
-// Get premium status with days remaining (for chat page)
+// Get premium details with days remaining
 app.post('/api/chat/premium/details', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false, premium_active: false });
@@ -3501,7 +3471,8 @@ app.post('/api/chat/premium/details', async (req, res) => {
                     success: true, 
                     premium_active: false, 
                     premium_tier: 0, 
-                    days_remaining: 0 
+                    days_remaining: 0,
+                    expires_at: null
                 });
             }
             
@@ -3515,12 +3486,49 @@ app.post('/api/chat/premium/details', async (req, res) => {
                 days_remaining: daysRemaining
             });
         } else {
-            res.json({ success: true, premium_active: false, premium_tier: 0, days_remaining: 0 });
+            res.json({ success: true, premium_active: false, premium_tier: 0, days_remaining: 0, expires_at: null });
         }
     } catch(e) {
+        console.error('[PREMIUM DETAILS ERROR]', e.message);
         res.json({ success: false, premium_active: false });
     }
 });
+
+// Admin: Revoke chat premium
+app.post('/api/admin/revoke_chat_premium', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM chat_premium WHERE user_id = $1', [userId]);
+        console.log(`[ADMIN] Revoked chat premium for user ${userId}`);
+        res.json({ success: true, message: 'Chat premium revoked!' });
+    } catch(e) { 
+        console.error('[REVOKE PREMIUM ERROR]', e.message);
+        res.json({ success: false });
+    }
+});
+
+// Auto cleanup expired premiums (run every hour)
+async function cleanupExpiredPremiums() {
+    try {
+        const p = await getPool();
+        const result = await p.query(
+            "DELETE FROM chat_premium WHERE premium_expiry < NOW() RETURNING user_id"
+        );
+        if (result.rows.length > 0) {
+            console.log(`[PREMIUM CLEANUP] Removed ${result.rows.length} expired premiums: ${result.rows.map(r => r.user_id).join(', ')}`);
+        }
+    } catch(e) {
+        console.error('[PREMIUM CLEANUP ERROR]', e.message);
+    }
+}
+
+// Run cleanup every hour
+setInterval(cleanupExpiredPremiums, 60 * 60 * 1000);
+// Run once on startup
+cleanupExpiredPremiums();
 // ==================== CHAT API ROUTES ====================
 
 // Get current user
