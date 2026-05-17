@@ -3756,6 +3756,128 @@ app.post('/api/chat/online_users', async (req, res) => {
         res.json({ success: true, users: [] });
     }
 });
+// Upload chat image (Premium users only)
+app.post('/api/chat/upload_image', async (req, res) => {
+    const { token, base64 } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!base64) return res.json({ success: false, message: 'No image data' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        // Check if user has chat premium
+        const premCheck = await p.query(
+            "SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_expiry > NOW()",
+            [uid]
+        );
+        
+        if (premCheck.rows.length === 0) {
+            return res.json({ success: false, message: 'Premium required to send images' });
+        }
+        
+        // Upload to ImgBB
+        const imageData = base64.replace(/^data:image\/\w+;base64,/, '');
+        const formData = new URLSearchParams();
+        formData.append('key', IMGBB_API_KEY);
+        formData.append('image', imageData);
+        
+        const response = await fetch('https://api.imgbb.com/1/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString(),
+            signal: AbortSignal.timeout(15000)
+        });
+        const imgData = await response.json();
+        
+        if (imgData.success) {
+            res.json({ 
+                success: true, 
+                url: imgData.data.url,
+                thumb: imgData.data.thumb?.url || imgData.data.url
+            });
+        } else {
+            res.json({ success: false, message: 'Image upload failed' });
+        }
+        
+    } catch(e) {
+        console.error('[CHAT IMAGE UPLOAD ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// Upload chat file/document (Premium users only)
+app.post('/api/chat/upload_file', async (req, res) => {
+    const { token, base64, fileName, fileType } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!base64) return res.json({ success: false, message: 'No file data' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        // Check if user has chat premium
+        const premCheck = await p.query(
+            "SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_expiry > NOW()",
+            [uid]
+        );
+        
+        if (premCheck.rows.length === 0) {
+            return res.json({ success: false, message: 'Premium required to send files' });
+        }
+        
+        // Upload to ImgBB (supports images only) or use Catbox for files
+        const uploadUrl = fileType && fileType.startsWith('image/') 
+            ? 'https://api.imgbb.com/1/upload'
+            : 'https://catbox.moe/user/api.php';
+        
+        let resultUrl = '';
+        
+        if (fileType && fileType.startsWith('image/')) {
+            // Image upload to ImgBB
+            const imageData = base64.replace(/^data:image\/\w+;base64,/, '');
+            const formData = new URLSearchParams();
+            formData.append('key', IMGBB_API_KEY);
+            formData.append('image', imageData);
+            
+            const response = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString(),
+                signal: AbortSignal.timeout(30000)
+            });
+            const imgData = await response.json();
+            if (imgData.success) resultUrl = imgData.data.url;
+        } else {
+            // File upload to Catbox
+            const matches = base64.match(/^data:[^;]+;base64,(.+)$/);
+            let base64Data = matches ? matches[1] : base64.substring(base64.indexOf(',') + 1);
+            const buffer = Buffer.from(base64Data, 'base64');
+            const formData = new FormData();
+            formData.append('reqtype', 'fileupload');
+            formData.append('fileToUpload', new Blob([buffer]), fileName || 'file');
+            
+            const response = await fetch(uploadUrl, {
+                method: 'POST',
+                body: formData,
+                signal: AbortSignal.timeout(30000)
+            });
+            resultUrl = await response.text();
+            resultUrl = resultUrl.trim();
+        }
+        
+        if (resultUrl && resultUrl.startsWith('http')) {
+            res.json({ success: true, url: resultUrl, fileName: fileName || 'file' });
+        } else {
+            res.json({ success: false, message: 'File upload failed' });
+        }
+        
+    } catch(e) {
+        console.error('[CHAT FILE UPLOAD ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== GROUP CHAT APIs ====================
 
 // Get all groups for user
