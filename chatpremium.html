@@ -31,7 +31,6 @@
             transition: all 0.5s ease;
         }
         
-        /* Premium Body Themes */
         body.bronze-premium {
             background: linear-gradient(135deg, #1e0f08, #2d1a0c, #1e0f08);
         }
@@ -53,7 +52,6 @@
             padding-bottom: 30px;
         }
         
-        /* Header */
         .header {
             display: flex;
             align-items: center;
@@ -123,7 +121,6 @@
             50% { box-shadow: 0 0 15px rgba(255,215,0,0.6); }
         }
         
-        /* Balance Card */
         .balance-card {
             border-radius: 16px;
             padding: 18px;
@@ -180,7 +177,6 @@
             color: rgba(255,255,255,0.4);
         }
         
-        /* Current Plan */
         .current-plan {
             border-radius: 12px;
             padding: 12px 15px;
@@ -220,7 +216,6 @@
             color: rgba(255,255,255,0.6);
         }
         
-        /* Premium Plans */
         .premium-plans {
             display: flex;
             flex-direction: column;
@@ -334,7 +329,6 @@
             color: #7f8c8d;
         }
         
-        /* Buy Button */
         .buy-btn {
             width: 100%;
             padding: 14px;
@@ -378,7 +372,6 @@
             transform: none;
         }
         
-        /* Premium Stickers Section */
         .premium-stickers {
             margin-top: 15px;
             padding: 15px;
@@ -435,7 +428,6 @@
             50% { transform: translateY(-3px); }
         }
         
-        /* Toast */
         .toast {
             position: fixed;
             top: 15px;
@@ -449,7 +441,6 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.4);
         }
         
-        /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -498,7 +489,6 @@
             margin-top: 10px;
         }
         
-        /* Processing Modal */
         .processing-modal { text-align: center; }
         .processing-icon { font-size: 50px; animation: procBounce 1s infinite; }
         @keyframes procBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
@@ -547,7 +537,7 @@
     <div class="container">
         <!-- Header with Back Button -->
         <div class="header">
-            <a href="#" onclick="goBack()">
+            <a href="#" onclick="goBack(event)">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <h2><i class="fas fa-crown"></i> Premium Chat</h2>
@@ -711,7 +701,8 @@
         document.getElementById(modalId).classList.remove('active');
     }
     
-    function goBack() {
+    function goBack(event) {
+        if (event) event.preventDefault();
         // Try to go back to chat page
         if (document.referrer && (document.referrer.includes('/chat.html') || document.referrer.includes('/dashboard'))) {
             window.location.href = '/chat.html';
@@ -816,10 +807,17 @@
             return;
         }
         
+        // Remove selected class from all plans
         document.querySelectorAll('.plan-card').forEach(card => {
             card.classList.remove('selected');
         });
-        document.getElementById('plan' + (planId === 1 ? 'Bronze' : planId === 2 ? 'Silver' : 'Gold')).classList.add('selected');
+        
+        // Add selected class to clicked plan
+        const planElement = document.getElementById('plan' + (planId === 1 ? 'Bronze' : planId === 2 ? 'Silver' : 'Gold'));
+        if (planElement) {
+            planElement.classList.add('selected');
+        }
+        
         selectedPlan = planId;
         updateBuyButton();
     }
@@ -873,13 +871,15 @@
         processingModal.classList.add('active');
         
         // Animate progress
-        for (let i = 0; i <= 100; i++) {
-            await new Promise(r => setTimeout(r, 15 + Math.random() * 10));
-            progressBar.style.width = i + '%';
-            progressText.textContent = i + '%';
-        }
+        (async function animate() {
+            for (let i = 0; i <= 100; i++) {
+                await new Promise(r => setTimeout(r, 15 + Math.random() * 10));
+                progressBar.style.width = i + '%';
+                progressText.textContent = i + '%';
+            }
+        })();
         
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise(r => setTimeout(r, 1800));
         
         try {
             const res = await fetch('/api/chat/premium/buy', {
