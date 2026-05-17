@@ -3220,7 +3220,7 @@ app.get('/api/leaderboard/top_spenders', async (req, res) => {
         res.json({ success: false, leaders: [] });
     }
 });
-// ==================== SOCKET.IO + SERVER START ====================
+    // ==================== SOCKET.IO + SERVER START ====================
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: { 
@@ -3234,7 +3234,7 @@ const io = new Server(server, {
     pingInterval: 25000
 });
 
-// Online users tracking (in-memory fallback)
+// Online users tracking (in-memory fallback) - တစ်ခုတည်းသုံးပါ
 const onlineUsersMap = new Map();
 
 io.on('connection', (socket) => {
@@ -3313,10 +3313,6 @@ io.on('connection', (socket) => {
         console.log('❌ User disconnected:', socket.id);
     });
 });
-
-// Online users tracking
-const onlineUsers = new Map();
-
 // ╔══════════════════════════════════════════════════════════════╗
 // ║              CHAT PREMIUM SYSTEM (SEPARATE)                 ║
 // ╚══════════════════════════════════════════════════════════════╝
