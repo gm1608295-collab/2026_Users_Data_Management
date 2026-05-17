@@ -3630,6 +3630,151 @@ app.post('/api/chat/online_users', async (req, res) => {
         res.json({ success: true, users: [] });
     }
 });
+// ==================== GROUP CHAT APIs ====================
+
+// Get all groups for user
+app.post('/api/chat/groups', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.json({ groups: [] });
+    try {
+        const p = await getPool();
+        const r = await p.query(`
+            SELECT 
+                cr.id, cr.room_name, cr.room_type, cr.created_by,
+                (SELECT message FROM chat_messages WHERE room_id = cr.id ORDER BY id DESC LIMIT 1) as last_message
+            FROM chat_rooms cr
+            JOIN chat_participants cp ON cr.id = cp.room_id
+            WHERE cr.room_type = 'group' AND cp.user_id = $1
+            ORDER BY cr.id DESC
+        `, [userId]);
+        res.json({ success: true, groups: r.rows });
+    } catch(e) { res.json({ groups: [] }); }
+});
+
+// Create group
+app.post('/api/chat/create_group', async (req, res) => {
+    const { userId, groupName, members } = req.body;
+    if (!userId || !groupName) return res.json({ success: false, message: 'Group name required' });
+    
+    try {
+        const p = await getPool();
+        
+        // Create group room
+        const room = await p.query(
+            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id",
+            [groupName, userId]
+        );
+        const roomId = room.rows[0].id;
+        
+        // Add creator as participant
+        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
+        
+        // Add additional members
+        if (members && Array.isArray(members) && members.length > 0) {
+            for (const memberId of members) {
+                if (memberId !== userId) {
+                    await p.query(
+                        'INSERT INTO chat_participants (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+                        [roomId, memberId]
+                    );
+                }
+            }
+        }
+        
+        res.json({ success: true, room: { id: roomId, room_name: groupName } });
+    } catch(e) {
+        console.error('[CREATE GROUP ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Add member to group
+app.post('/api/chat/add_member', async (req, res) => {
+    const { roomId, userId, requesterId } = req.body;
+    if (!roomId || !userId) return res.json({ success: false, message: 'Missing data' });
+    
+    try {
+        const p = await getPool();
+        
+        // Check if requester is in group
+        const check = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, requesterId]);
+        if (check.rows.length === 0) {
+            return res.json({ success: false, message: 'You are not in this group' });
+        }
+        
+        // Add new member
+        await p.query(
+            'INSERT INTO chat_participants (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [roomId, userId]
+        );
+        
+        // Get room name for notification
+        const room = await p.query('SELECT room_name FROM chat_rooms WHERE id=$1', [roomId]);
+        const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
+        
+        // Send system message
+        await p.query(
+            `INSERT INTO chat_messages (room_id, sender_id, username, message) 
+             VALUES ($1, 0, 'System', $2)`,
+            [roomId, `${user.rows[0]?.username || 'User'} joined the group`]
+        );
+        
+        res.json({ success: true, message: 'Member added!' });
+    } catch(e) {
+        console.error('[ADD MEMBER ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Get invite link
+app.post('/api/chat/invite_link', async (req, res) => {
+    const { roomId, userId } = req.body;
+    if (!roomId || !userId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        
+        // Check if user is in group
+        const check = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        if (check.rows.length === 0) {
+            return res.json({ success: false, message: 'You are not in this group' });
+        }
+        
+        // Generate invite link (simple - just room id)
+        const inviteLink = `${req.protocol}://${req.get('host')}/join_group?room=${roomId}`;
+        
+        res.json({ success: true, link: inviteLink });
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
+
+// Leave group
+app.post('/api/chat/leave_group', async (req, res) => {
+    const { roomId, userId } = req.body;
+    if (!roomId || !userId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        
+        // Remove participant
+        await p.query('DELETE FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        
+        // Get user name for system message
+        const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
+        
+        // Send system message
+        await p.query(
+            `INSERT INTO chat_messages (room_id, sender_id, username, message) 
+             VALUES ($1, 0, 'System', $2)`,
+            [roomId, `${user.rows[0]?.username || 'User'} left the group`]
+        );
+        
+        res.json({ success: true, message: 'Left group' });
+    } catch(e) {
+        res.json({ success: false });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
