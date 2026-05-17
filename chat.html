@@ -2,946 +2,432 @@
 <html lang="my">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Premium Chat - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
-
-        /* ========== PREMIUM THEMES (Tier based) ========== */
-        /* Tier 1 - Bronze Theme */
-        body.bronze-tier {
-            --premium-glow: rgba(205, 127, 50, 0.6);
-            --premium-gold: #CD7F32;
-            --premium-gold-light: #E8A87C;
-            --premium-gradient: linear-gradient(135deg, #CD7F32, #E8A87C);
-            --premium-bg-start: #1a0f07;
-            --premium-bg-end: #2d1a0a;
-            --premium-glass: rgba(205, 127, 50, 0.12);
-            --premium-border: rgba(205, 127, 50, 0.4);
-            --premium-btn-bg: linear-gradient(135deg, #CD7F32, #8B4513);
-        }
-        /* Tier 2 - Silver Theme */
-        body.silver-tier {
-            --premium-glow: rgba(192, 192, 192, 0.7);
-            --premium-gold: #C0C0C0;
-            --premium-gold-light: #E8E8E8;
-            --premium-gradient: linear-gradient(135deg, #C0C0C0, #E8E8E8);
-            --premium-bg-start: #0a0a0a;
-            --premium-bg-end: #1a1a1a;
-            --premium-glass: rgba(192, 192, 192, 0.12);
-            --premium-border: rgba(192, 192, 192, 0.4);
-            --premium-btn-bg: linear-gradient(135deg, #C0C0C0, #808080);
-        }
-        /* Tier 3 - Gold Theme */
-        body.gold-tier {
-            --premium-glow: rgba(255, 215, 0, 0.7);
-            --premium-gold: #FFD700;
-            --premium-gold-light: #FFF8DC;
-            --premium-gradient: linear-gradient(135deg, #FFD700, #FFF8DC);
-            --premium-bg-start: #1a0a00;
-            --premium-bg-end: #2d1a00;
-            --premium-glass: rgba(255, 215, 0, 0.12);
-            --premium-border: rgba(255, 215, 0, 0.4);
-            --premium-btn-bg: linear-gradient(135deg, #FFD700, #B8860B);
-        }
-        /* Normal Theme (No Premium) */
-        body.normal-theme {
-            --premium-glow: rgba(255, 255, 255, 0.2);
-            --premium-gold: #ffffff;
-            --premium-gold-light: #cccccc;
-            --premium-gradient: linear-gradient(135deg, #4a4a4a, #6a6a6a);
-            --premium-bg-start: #0c0e27;
-            --premium-bg-end: #1a1f4b;
-            --premium-glass: rgba(255, 255, 255, 0.05);
-            --premium-border: rgba(255, 255, 255, 0.15);
-            --premium-btn-bg: linear-gradient(135deg, #4a6fa5, #2c3e50);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, var(--premium-bg-start), var(--premium-bg-end));
+            background: radial-gradient(ellipse at 20% 30%, #0a0a1a, #05050f);
             color: #fff;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            transition: all 0.3s ease;
+            min-height: 100vh;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding-bottom: 20px;
         }
 
         /* Glassmorphism Header */
-        .chat-header {
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--premium-border);
-            padding: 12px 16px;
+        .header {
             display: flex;
             align-items: center;
             gap: 12px;
-            flex-shrink: 0;
-            position: relative;
-            z-index: 10;
+            padding: 16px 18px;
+            background: rgba(20, 25, 55, 0.4);
+            backdrop-filter: blur(16px);
+            border-radius: 28px;
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05);
+            margin-bottom: 20px;
         }
-        .chat-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: var(--premium-gradient);
-            opacity: 0.5;
-        }
-        .chat-header a {
-            color: var(--premium-gold);
+        .header a { color: #FFD966; font-size: 20px; text-decoration: none; transition: 0.2s; }
+        .header a:hover { transform: scale(1.05); text-shadow: 0 0 8px #FFD700; }
+        .header h2 {
             font-size: 18px;
-            text-decoration: none;
-            transition: all 0.2s;
-        }
-        .chat-header a:hover {
-            text-shadow: 0 0 10px var(--premium-glow);
-        }
-        .chat-header h3 {
-            font-size: 16px;
-            font-weight: 600;
+            font-weight: 700;
             flex: 1;
-            background: var(--premium-gradient);
+            background: linear-gradient(135deg, #FFE6A3, #FFD700, #F5A623);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
             letter-spacing: -0.3px;
         }
-        .online-count {
-            font-size: 10px;
-            background: rgba(46, 204, 113, 0.15);
-            padding: 4px 10px;
-            border-radius: 20px;
-            color: #2ecc71;
-            border: 1px solid rgba(46, 204, 113, 0.3);
-        }
-        .premium-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 9px;
-            font-weight: bold;
-            background: var(--premium-gradient);
-            color: #000;
-            box-shadow: 0 0 12px var(--premium-glow);
-            display: none;
-        }
-        body.bronze-tier .premium-badge,
-        body.silver-tier .premium-badge,
-        body.gold-tier .premium-badge {
-            display: inline-block;
-        }
 
-        /* Premium Tabs */
-        .chat-tabs {
-            display: flex;
-            gap: 6px;
-            padding: 10px 16px;
-            background: rgba(0, 0, 0, 0.25);
-            backdrop-filter: blur(10px);
-            flex-shrink: 0;
-        }
-        .chat-tab {
-            flex: 1;
-            padding: 8px 0;
+        /* Modern Balance Card */
+        .balance-card {
+            background: rgba(15, 20, 45, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            padding: 20px;
             text-align: center;
-            font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 30px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid transparent;
-            transition: all 0.2s;
-            letter-spacing: 0.3px;
+            margin-bottom: 18px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
         }
-        .chat-tab.active {
-            background: var(--premium-glass);
-            border-color: var(--premium-border);
-            color: var(--premium-gold-light);
-            box-shadow: 0 0 10px var(--premium-glow);
-        }
-
-        /* Room List */
-        .chat-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .room-list {
-            display: none;
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px;
-        }
-        .room-list.active {
-            display: block;
-        }
-        .room-item {
-            background: rgba(0, 0, 0, 0.25);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 14px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-            transition: all 0.25s;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .room-item:hover {
-            transform: translateX(4px);
-            border-color: var(--premium-border);
-            background: var(--premium-glass);
-        }
-        .room-icon { font-size: 28px; }
-        .room-info { flex: 1; }
-        .room-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
-        .room-last { font-size: 10px; color: rgba(255, 255, 255, 0.4); margin-top: 4px; }
-        .room-badge {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            color: #fff;
-            font-size: 9px;
-            padding: 2px 8px;
-            border-radius: 30px;
-            font-weight: bold;
+        .balance-card .bal-label { font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #aaa; }
+        .balance-card .bal-amount {
+            font-size: 40px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFE6A3, #FFD700);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin: 8px 0;
+            text-shadow: 0 0 15px rgba(255,215,0,0.3);
         }
 
-        /* Chat Area */
-        .chat-area {
-            display: none;
-            flex: 1;
-            flex-direction: column;
-            overflow: hidden;
+        /* Current Plan Glass */
+        .current-plan {
+            background: rgba(255, 215, 0, 0.08);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            border: 1px solid rgba(255, 215, 0, 0.35);
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        .chat-area.active { display: flex; }
-        .chat-area-header {
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(15px);
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 1px solid var(--premium-border);
-        }
-        .back-btn { cursor: pointer; font-size: 18px; color: var(--premium-gold); }
-        .room-title { font-size: 15px; font-weight: 600; flex: 1; background: var(--premium-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .delete-room-btn { color: #e74c3c; cursor: pointer; padding: 4px; }
-
-        /* Premium Messages Container */
-        .messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .msg-row {
-            display: flex;
-            max-width: 85%;
-            margin-bottom: 4px;
-        }
-        .msg-row.mine {
-            align-self: flex-end;
-        }
-        .msg-bubble {
-            padding: 10px 14px;
-            border-radius: 20px;
-            font-size: 13px;
-            line-height: 1.4;
-            word-break: break-word;
-            position: relative;
-            transition: all 0.2s;
-        }
-        /* Sender Premium Bubble Styles */
-        .msg-bubble.bronze-bubble {
-            background: linear-gradient(135deg, rgba(205, 127, 50, 0.85), rgba(139, 69, 19, 0.9));
-            border: 1px solid rgba(205, 127, 50, 0.5);
-            box-shadow: 0 2px 12px rgba(205, 127, 50, 0.3);
-        }
-        .msg-bubble.silver-bubble {
-            background: linear-gradient(135deg, rgba(192, 192, 192, 0.85), rgba(128, 128, 128, 0.9));
-            border: 1px solid rgba(192, 192, 192, 0.5);
-            box-shadow: 0 2px 12px rgba(192, 192, 192, 0.3);
-            color: #0a0a0a;
-        }
-        .msg-bubble.gold-bubble {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.85), rgba(184, 134, 11, 0.9));
-            border: 1px solid rgba(255, 215, 0, 0.6);
-            box-shadow: 0 2px 16px rgba(255, 215, 0, 0.4);
-            color: #1a0a00;
-            animation: goldShine 2s infinite;
-        }
-        .msg-bubble.normal-bubble {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .msg-row.mine .msg-bubble {
-            border-bottom-right-radius: 4px;
-        }
-        .msg-row:not(.mine) .msg-bubble {
-            border-bottom-left-radius: 4px;
-        }
-        @keyframes goldShine {
-            0%, 100% { box-shadow: 0 2px 12px rgba(255, 215, 0, 0.3); }
-            50% { box-shadow: 0 4px 24px rgba(255, 215, 0, 0.7); }
-        }
-        .msg-sender {
-            font-size: 10px;
-            font-weight: 600;
-            margin-bottom: 4px;
-            background: var(--premium-gradient);
+        .current-plan .cp-name {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
         }
-        .msg-time {
-            font-size: 8px;
-            color: rgba(255, 255, 255, 0.4);
-            margin-top: 4px;
-            text-align: right;
-        }
-        .media-message {
-            max-width: 200px;
-            border-radius: 16px;
-            cursor: pointer;
-            position: relative;
-        }
-        .media-message img {
-            width: 100%;
-            border-radius: 16px;
-        }
-        .file-message {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 16px;
-            cursor: pointer;
-        }
+        .current-plan .cp-expiry { font-size: 11px; color: #ccc; margin-top: 4px; }
 
-        /* Premium Input Area - Telegram Style Pill */
-        .msg-input-area {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid var(--premium-border);
-            flex-shrink: 0;
-        }
-        .media-buttons {
-            display: flex;
-            gap: 6px;
-        }
-        .media-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 38px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--premium-gold);
-            font-size: 16px;
+        /* Premium Plan Cards */
+        .premium-plans { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+        .plan-card {
+            background: rgba(20, 28, 55, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 18px;
+            border: 1px solid rgba(255,255,255,0.1);
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
+            transition: all 0.25s ease;
             position: relative;
+            overflow: hidden;
         }
-        .media-btn:hover {
-            background: var(--premium-glass);
-            border-color: var(--premium-gold);
-            transform: scale(1.02);
+        .plan-card:hover { transform: translateY(-3px); border-color: #FFD700; box-shadow: 0 12px 28px rgba(0,0,0,0.5), 0 0 12px rgba(255,215,0,0.3); }
+        .plan-card.selected { border-color: #FFD700; background: rgba(255,215,0,0.1); box-shadow: 0 0 18px rgba(255,215,0,0.2); }
+        .plan-card .popular-badge {
+            position: absolute; top: 14px; right: -28px; background: #FFD700; color: #0a0a1a;
+            font-size: 10px; font-weight: bold; padding: 4px 40px; transform: rotate(45deg);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
-        .media-btn.locked {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .lock-icon {
-            position: absolute;
-            bottom: -2px;
-            right: -2px;
-            background: #e74c3c;
-            border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            font-size: 7px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        /* Pill Shape Input */
-        .input-wrapper {
-            flex: 1;
-            position: relative;
-        }
-        .msg-input-area input {
+        .plan-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+        .plan-name { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, #fff, #ddd); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .plan-price { font-size: 26px; font-weight: 800; color: #FFD700; text-shadow: 0 0 6px rgba(255,215,0,0.4); }
+        .plan-duration { font-size: 11px; color: #aaa; margin-bottom: 12px; }
+        .plan-features { font-size: 11px; display: flex; flex-wrap: wrap; gap: 10px; }
+        .plan-features div { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 40px; }
+        .plan-features i { color: #2ecc71; font-size: 10px; }
+        .locked { opacity: 0.5; }
+        .locked i { color: #e74c3c; }
+
+        /* Premium Glowing Button */
+        .buy-btn {
             width: 100%;
-            padding: 10px 18px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 40px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-            transition: all 0.2s;
-            backdrop-filter: blur(5px);
-        }
-        .msg-input-area input:focus {
-            border-color: var(--premium-gold);
-            box-shadow: 0 0 12px var(--premium-glow);
-            background: rgba(0, 0, 0, 0.4);
-        }
-        .msg-input-area input::placeholder {
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 13px;
-        }
-        /* Premium Send Button */
-        .send-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 40px;
+            padding: 16px;
             border: none;
-            background: var(--premium-btn-bg);
-            color: #000;
-            font-size: 16px;
+            border-radius: 60px;
+            font-size: 17px;
+            font-weight: 800;
             cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 8px var(--premium-glow);
+            background: linear-gradient(135deg, #FFD700, #F5A623);
+            color: #0a0a1a;
+            transition: all 0.3s;
+            box-shadow: 0 6px 20px rgba(255,215,0,0.3);
+            letter-spacing: 0.5px;
         }
-        .send-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 16px var(--premium-glow);
-        }
+        .buy-btn:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(255,215,0,0.5); }
+        .buy-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: grayscale(0.1); }
 
-        /* Emoji Row */
-        .emoji-row {
-            display: flex;
-            overflow-x: auto;
-            gap: 10px;
-            padding: 8px 16px;
-            background: rgba(0, 0, 0, 0.25);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            flex-shrink: 0;
+        /* Toast & Modal */
+        .toast {
+            position: fixed; top: 20px; right: 20px; padding: 12px 20px;
+            border-radius: 60px; background: #2ecc71; color: #000;
+            display: none; z-index: 9999; font-size: 13px; font-weight: bold;
+            backdrop-filter: blur(8px); box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
-        .emoji-item {
-            font-size: 22px;
-            cursor: pointer;
-            transition: all 0.15s;
-            flex-shrink: 0;
-            padding: 4px;
-            border-radius: 30px;
-        }
-        .emoji-item:hover {
-            transform: scale(1.2);
-            background: var(--premium-glass);
-        }
-        .toggle-emoji-btn {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-            padding: 4px 12px;
-            font-size: 12px;
-            cursor: pointer;
-            color: var(--premium-gold);
-            white-space: nowrap;
-        }
-
-        .typing-indicator {
-            padding: 6px 16px;
-            font-size: 10px;
-            background: rgba(0, 0, 0, 0.2);
-            color: var(--premium-gold-light);
-        }
-
-        /* Upload Modal */
-        .upload-preview-modal {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(26, 31, 75, 0.95);
-            backdrop-filter: blur(20px);
-            border-top-left-radius: 24px;
-            border-top-right-radius: 24px;
-            padding: 20px;
-            z-index: 3000;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-        }
-        .upload-preview-modal.active { transform: translateY(0); }
-        .upload-preview-image { max-width: 100%; border-radius: 16px; margin-bottom: 15px; }
-        .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 8px; }
-        .progress-fill { height: 100%; background: var(--premium-gradient); width: 0%; transition: width 0.1s linear; }
-        .upload-buttons { display: flex; gap: 10px; margin-top: 15px; }
-        .upload-buttons button { flex: 1; padding: 12px; border: none; border-radius: 40px; font-weight: bold; cursor: pointer; }
-        .btn-send { background: #2ecc71; color: #000; }
-        .btn-cancel { background: rgba(255,255,255,0.1); color: #fff; }
-
-        /* Modals */
         .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+            z-index: 2000; justify-content: center; align-items: center;
         }
         .modal-overlay.active { display: flex; }
         .modal-box {
-            background: rgba(26, 31, 75, 0.95);
-            backdrop-filter: blur(20px);
-            border: 1px solid var(--premium-border);
-            border-radius: 28px;
-            padding: 24px;
-            width: 90%;
-            max-width: 380px;
+            background: rgba(20, 28, 55, 0.9); backdrop-filter: blur(20px);
+            border: 1px solid #FFD700; border-radius: 48px; padding: 32px 24px;
+            width: 90%; max-width: 340px; text-align: center;
         }
-        .modal-box h3 { color: var(--premium-gold); text-align: center; margin-bottom: 16px; }
-        .form-group { margin-bottom: 12px; }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 40px;
-            color: #fff;
+        .modal-box h3 { color: #FFD700; font-size: 22px; margin-bottom: 12px; }
+        .modal-box button {
+            background: #FFD700; border: none; padding: 12px 24px; border-radius: 60px;
+            font-weight: bold; margin-top: 16px; cursor: pointer;
         }
-        .btn-row { display: flex; gap: 8px; margin-top: 16px; }
-        .btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 40px;
-            font-weight: bold;
-            cursor: pointer;
+        .loading-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); backdrop-filter: blur(12px); z-index: 10000;
+            justify-content: center; align-items: center; flex-direction: column;
         }
-        .btn-g { background: #2ecc71; color: #000; }
-        .btn-r { background: #e74c3c; color: #fff; }
-        .btn-w { background: var(--premium-gold); color: #000; }
-
-        .toast {
-            position: fixed;
-            top: 60px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 20px;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(10px);
-            border-radius: 40px;
-            color: #fff;
-            display: none;
-            z-index: 4000;
-            font-size: 12px;
-            border: 1px solid var(--premium-border);
+        .loading-overlay.active { display: flex; }
+        .loading-spinner {
+            width: 44px; height: 44px; border: 3px solid rgba(255,215,0,0.2);
+            border-top: 3px solid #FFD700; border-radius: 50%; animation: spin 0.8s linear infinite;
         }
-        .empty-state { text-align: center; padding: 40px; color: rgba(255,255,255,0.4); }
-        .admin-btn {
-            width: 100%;
-            padding: 12px;
-            background: var(--premium-gradient);
-            color: #000;
-            border: none;
-            border-radius: 40px;
-            font-weight: bold;
-            margin-top: 10px;
-            cursor: pointer;
-        }
-        .user-item {
-            background: rgba(0,0,0,0.25);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 12px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            cursor: pointer;
-        }
-        .online-indicator {
-            width: 10px;
-            height: 10px;
-            background: #2ecc71;
-            border-radius: 50%;
-            box-shadow: 0 0 6px #2ecc71;
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes bounce { 0%,100%{ transform: scale(0.9); opacity:0; } 50%{ transform: scale(1.1); } 100%{ transform: scale(1); opacity:1; } }
     </style>
 </head>
-<body class="normal-theme">
+<body>
     <div class="toast" id="toast"></div>
-
-    <div class="chat-header">
-        <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-        <a href="/chatpremium.html" style="font-size:11px; font-weight:600">👑 Upgrade</a>
-        <h3><i class="fas fa-crown"></i> SOLO M Chat</h3>
-        <span class="online-count" id="onlineCount">0 online</span>
-        <span class="premium-badge" id="premiumBadge">PREMIUM</span>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div style="color:#FFD700; margin-top: 12px; font-weight: 500;">Processing...</div>
     </div>
 
-    <div class="chat-tabs">
-        <div class="chat-tab active" data-tab="rooms">💬 Rooms</div>
-        <div class="chat-tab" data-tab="users">👥 Users</div>
-        <div class="chat-tab" data-tab="groups">👥 Groups</div>
-    </div>
-
-    <div class="chat-body">
-        <div class="room-list active" id="roomList"><div class="empty-state">Loading...</div></div>
-        <div class="room-list" id="usersList"><div class="empty-state">Loading users...</div></div>
-        <div class="room-list" id="groupsList"><div class="empty-state">No groups yet. Create one!</div></div>
-
-        <div class="chat-area" id="chatArea">
-            <div class="chat-area-header">
-                <span class="back-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></span>
-                <span class="room-title" id="chatRoomTitle">Chat</span>
-                <span class="delete-room-btn" onclick="deleteCurrentRoom()"><i class="fas fa-trash"></i></span>
-            </div>
-            <div class="messages" id="messages"></div>
-            <div class="typing-indicator" id="typingIndicator" style="display:none">✨ Someone is typing...</div>
-            <div class="msg-input-area">
-                <div class="media-buttons" id="mediaButtons">
-                    <button class="media-btn" id="imageBtn"><i class="fas fa-image"></i><span class="lock-icon" id="imageLock" style="display:none">🔒</span></button>
-                    <button class="media-btn" id="fileBtn"><i class="fas fa-paperclip"></i><span class="lock-icon" id="fileLock" style="display:none">🔒</span></button>
+    <div class="container">
+        <div class="header">
+            <a href="/chat.html"><i class="fas fa-arrow-left"></i></a>
+            <h2><i class="fas fa-crown"></i> Premium Chat</h2>
+        </div>
+        
+        <div class="balance-card">
+            <div class="bal-label">💎 USD BALANCE</div>
+            <div class="bal-amount" id="usdBalance">$0.00</div>
+            <div class="bal-sub">secure & instant</div>
+        </div>
+        
+        <div class="current-plan" id="currentPlanBox" style="display:none">
+            <div class="cp-name" id="currentPlanName"></div>
+            <div class="cp-expiry" id="currentPlanExpiry"></div>
+        </div>
+        
+        <div class="premium-plans">
+            <div class="plan-card" data-plan="1" onclick="selectPlan(1)">
+                <div class="plan-header">
+                    <span class="plan-name">🥉 1 Month</span>
+                    <span class="plan-price">$7.99</span>
                 </div>
-                <div class="input-wrapper">
-                    <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key==='Enter') sendMessage()" oninput="onTyping()">
+                <div class="plan-duration">30 days premium access</div>
+                <div class="plan-features">
+                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
+                    <div><i class="fas fa-check-circle"></i> Bronze Theme</div>
+                    <div class="locked"><i class="fas fa-lock"></i> Gold Badge</div>
                 </div>
-                <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
-            <div class="emoji-row">
-                <button class="toggle-emoji-btn" onclick="toggleMoreEmojis()"><i class="fas fa-smile"></i> More</button>
-                <span class="emoji-item" onclick="insertEmoji('😀')">😀</span><span class="emoji-item" onclick="insertEmoji('😂')">😂</span>
-                <span class="emoji-item" onclick="insertEmoji('😍')">😍</span><span class="emoji-item" onclick="insertEmoji('😎')">😎</span>
-                <span class="emoji-item" onclick="insertEmoji('😢')">😢</span><span class="emoji-item" onclick="insertEmoji('😡')">😡</span>
-                <span class="emoji-item" onclick="insertEmoji('👍')">👍</span><span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span>
-                <span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span><span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span>
+            <div class="plan-card popular" data-plan="2" onclick="selectPlan(2)">
+                <div class="popular-badge">POPULAR</div>
+                <div class="plan-header">
+                    <span class="plan-name">🥈 2 Months</span>
+                    <span class="plan-price">$14.99</span>
+                </div>
+                <div class="plan-duration">60 days • save $0.99</div>
+                <div class="plan-features">
+                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
+                    <div><i class="fas fa-check-circle"></i> Silver Theme</div>
+                    <div><i class="fas fa-check-circle"></i> Floating Animation</div>
+                </div>
+            </div>
+            <div class="plan-card" data-plan="3" onclick="selectPlan(3)">
+                <div class="plan-header">
+                    <span class="plan-name">🥇 3 Months</span>
+                    <span class="plan-price">$20.99</span>
+                </div>
+                <div class="plan-duration">90 days • save $2.98</div>
+                <div class="plan-features">
+                    <div><i class="fas fa-check-circle"></i> All Premium Features</div>
+                    <div><i class="fas fa-check-circle"></i> Gold Theme + Glow</div>
+                    <div><i class="fas fa-check-circle"></i> Exclusive Badge</div>
+                </div>
             </div>
         </div>
+        
+        <button class="buy-btn" id="buyBtn" disabled onclick="buyPremium()">
+            <i class="fas fa-gem"></i> Select plan
+        </button>
     </div>
-
-    <div class="upload-preview-modal" id="uploadPreviewModal">
-        <div class="upload-preview-container">
-            <div id="uploadPreviewContent"></div>
-            <div class="upload-progress" id="uploadProgress" style="display:none">
-                <div style="font-size:12px" id="progressText">Uploading 0%</div>
-                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-            </div>
-            <div class="upload-buttons">
-                <button class="btn-cancel" onclick="cancelUpload()">Cancel</button>
-                <button class="btn-send" id="sendUploadBtn" onclick="confirmUpload()">Send</button>
-            </div>
+    
+    <div class="modal-overlay" id="successModal">
+        <div class="modal-box">
+            <div class="success-icon" style="font-size: 56px;">👑</div>
+            <h3 id="successTitle">Activated!</h3>
+            <p id="successMsg" style="color:#ccc; margin: 12px 0;"></p>
+            <button onclick="closeModal('successModal'); window.location.href='/chat.html'">Go to Chat</button>
         </div>
     </div>
-
-    <!-- Modals -->
-    <div class="modal-overlay" id="groupModal"><div class="modal-box"><h3>✨ Create Group</h3><div class="form-group"><input type="text" id="groupName" placeholder="Group name"></div><div class="form-group"><select id="groupMembers" multiple style="height:100px"></select></div><div class="btn-row"><button class="btn btn-g" onclick="createGroup()">Create</button><button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button></div></div></div>
-    <div class="modal-overlay" id="addMemberModal"><div class="modal-box"><h3>➕ Add Member</h3><input type="hidden" id="addMemberRoomId"><select id="addMemberSelect" style="width:100%; padding:12px; border-radius:40px; background:rgba(0,0,0,0.3); color:#fff"></select><div class="btn-row"><button class="btn btn-g" onclick="addMemberToGroup()">Add</button><button class="btn btn-r" onclick="closeModal('addMemberModal')">Cancel</button></div></div></div>
-    <div class="modal-overlay" id="inviteModal"><div class="modal-box"><h3>🔗 Invite Link</h3><div style="display:flex; gap:8px"><input type="text" id="inviteLink" readonly style="flex:1; padding:12px; border-radius:40px; background:rgba(0,0,0,0.3); color:#fff"><button class="btn btn-w" onclick="copyInviteLink()">Copy</button></div><button class="btn" onclick="closeModal('inviteModal')" style="width:100%; margin-top:12px">Close</button></div></div>
-    <div class="modal-overlay" id="groupInfoModal"><div class="modal-box"><h3>ℹ️ Group Info</h3><div id="groupInfoContent"></div><div class="btn-row"><button class="btn btn-w" onclick="showAddMemberModal()">➕ Add</button><button class="btn btn-w" onclick="getInviteLink()">🔗 Invite</button><button class="btn btn-r" onclick="leaveGroup()">🚪 Leave</button></div><button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%; margin-top:12px">Close</button></div></div>
-    <div class="modal-overlay" id="premiumRequiredModal"><div class="modal-box"><h3>👑 Premium Required</h3><p style="margin:15px 0; text-align:center">Upgrade to send images & files</p><div class="btn-row"><button class="btn btn-w" onclick="window.location.href='/chatpremium.html'">Upgrade</button><button class="btn" onclick="closeModal('premiumRequiredModal')">Cancel</button></div></div></div>
-    <div class="modal-overlay" id="moreEmojisModal"><div class="modal-box"><h3>😊 All Emojis</h3><div id="moreEmojisGrid" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; max-height:350px; overflow-y:auto; padding:10px"></div><button class="btn" onclick="closeModal('moreEmojisModal')" style="width:100%; margin-top:12px">Close</button></div></div>
 
     <script>
-    let socket = null, currentUser = null, currentRoom = null, typingTimeout = null;
-    let isPremium = false, premiumTier = 0;
-    let selectedFile = null, selectedFileType = null, selectedFileName = null, uploadCancelled = false;
+    let selectedPlan = null;
+    let usdBalance = 0;
+    let isPremium = false;
+    let premiumTier = 0;
+    let premiumExpiry = null;
 
-    function showToast(msg, isError = false) {
+    const PLANS = {
+        1: { months: 1, cost: 7.99, name: '1 Month', tier: 1, tierName: 'Bronze' },
+        2: { months: 2, cost: 14.99, name: '2 Months', tier: 2, tierName: 'Silver' },
+        3: { months: 3, cost: 20.99, name: '3 Months', tier: 3, tierName: 'Gold' }
+    };
+
+    function showToast(message, isError = false) {
         const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.style.background = isError ? '#e74c3c' : 'rgba(0,0,0,0.8)';
+        toast.textContent = message;
+        toast.style.background = isError ? '#e74c3c' : '#2ecc71';
+        toast.style.color = isError ? '#fff' : '#000';
         toast.style.display = 'block';
         setTimeout(() => toast.style.display = 'none', 3000);
     }
-    function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-    function scrollToBottom() { const m = document.getElementById('messages'); if (m) m.scrollTop = m.scrollHeight; }
-    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    function showLoading(show) {
+        const overlay = document.getElementById('loadingOverlay');
+        if (show) overlay.classList.add('active');
+        else overlay.classList.remove('active');
+    }
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+    function getToken() { return localStorage.getItem('auth_token'); }
 
-    async function checkPremiumStatus() {
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') return;
+    async function loadBalances() {
+        const token = getToken();
+        if (!token || token === 'guest') {
+            showToast('Please login first', true);
+            setTimeout(() => window.location.href = '/', 2000);
+            return;
+        }
         try {
-            const res = await fetch('/api/chat/premium/details', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token })
+            const usdRes = await fetch('/api/get_usd_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const usdData = await usdRes.json();
+            usdBalance = parseFloat(usdData.usd_balance || 0);
+            document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
+            
+            const premRes = await fetch('/api/chat/premium/details', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const premData = await premRes.json();
+            
+            if (premData.success && premData.premium_active) {
+                isPremium = true;
+                premiumTier = premData.premium_tier || 1;
+                premiumExpiry = premData.expires_at;
+                const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
+                const tierEmojis = ['', '🥉', '🥈', '🥇'];
+                document.getElementById('currentPlanBox').style.display = 'block';
+                document.getElementById('currentPlanName').innerHTML = `${tierEmojis[premiumTier]} Premium ${tierNames[premiumTier]} (Tier ${premiumTier})`;
+                if (premiumExpiry) {
+                    const expDate = new Date(premiumExpiry);
+                    const daysLeft = Math.max(0, Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24)));
+                    document.getElementById('currentPlanExpiry').textContent = `Expires: ${expDate.toLocaleDateString()} (${daysLeft} days left)`;
+                }
+            } else {
+                isPremium = false;
+                premiumTier = 0;
+                document.getElementById('currentPlanBox').style.display = 'none';
+            }
+            updateBuyButton();
+        } catch(e) {
+            console.error(e);
+            showToast('Error loading data', true);
+        }
+    }
+
+    function selectPlan(planId) {
+        document.querySelectorAll('.plan-card').forEach(card => card.classList.remove('selected'));
+        document.querySelector(`.plan-card[data-plan="${planId}"]`).classList.add('selected');
+        selectedPlan = planId;
+        updateBuyButton();
+    }
+
+    function updateBuyButton() {
+        const btn = document.getElementById('buyBtn');
+        if (!selectedPlan) {
+            btn.innerHTML = '<i class="fas fa-gem"></i> Select a plan';
+            btn.disabled = true;
+            return;
+        }
+        const plan = PLANS[selectedPlan];
+        if (isPremium && plan.tier <= premiumTier) {
+            btn.innerHTML = `⚠️ Already Tier ${premiumTier} (buy higher tier)`;
+            btn.disabled = true;
+        } else if (isPremium && plan.tier > premiumTier) {
+            if (usdBalance >= plan.cost) {
+                btn.innerHTML = `⬆️ UPGRADE to ${plan.tierName} - $${plan.cost}`;
+                btn.disabled = false;
+            } else {
+                btn.innerHTML = `❌ Need $${plan.cost} to upgrade`;
+                btn.disabled = true;
+            }
+        } else if (!isPremium) {
+            if (usdBalance >= plan.cost) {
+                btn.innerHTML = `💎 Buy ${plan.name} - $${plan.cost}`;
+                btn.disabled = false;
+            } else {
+                btn.innerHTML = `❌ Insufficient balance ($${plan.cost})`;
+                btn.disabled = true;
+            }
+        } else {
+            btn.innerHTML = `<i class="fas fa-gem"></i> Select a plan`;
+            btn.disabled = true;
+        }
+    }
+
+    async function buyPremium() {
+        if (!selectedPlan) return;
+        const plan = PLANS[selectedPlan];
+        if (usdBalance < plan.cost) {
+            showToast(`Need $${plan.cost}`, true);
+            return;
+        }
+        const token = getToken();
+        if (!token || token === 'guest') {
+            showToast('Please login first', true);
+            return;
+        }
+        showLoading(true);
+        try {
+            const res = await fetch('/api/chat/premium/buy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, months: plan.months, cost: plan.cost, tier: plan.tier })
             });
             const data = await res.json();
-            if (data.success && data.premium_active) {
+            if (data.success) {
+                const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
+                document.getElementById('successTitle').textContent = isPremium ? '⬆️ Upgraded!' : '🎉 Activated!';
+                document.getElementById('successMsg').innerHTML = `${tierNames[plan.tier]} Tier — ${plan.name}<br>Expires: ${new Date(data.expires_at).toLocaleDateString()}`;
+                document.getElementById('successModal').classList.add('active');
+                usdBalance -= plan.cost;
+                document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
                 isPremium = true;
-                premiumTier = data.premium_tier || 1;
-                applyPremiumTheme(premiumTier);
-                updateMediaButtons(true);
+                premiumTier = plan.tier;
+                updateBuyButton();
+                const tierEmojis = ['', '🥉', '🥈', '🥇'];
+                document.getElementById('currentPlanBox').style.display = 'block';
+                document.getElementById('currentPlanName').innerHTML = `${tierEmojis[plan.tier]} Premium ${tierNames[plan.tier]} (Tier ${plan.tier})`;
+                const expDate = new Date(data.expires_at);
+                const daysLeft = Math.max(0, Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24)));
+                document.getElementById('currentPlanExpiry').textContent = `Expires: ${expDate.toLocaleDateString()} (${daysLeft} days left)`;
             } else {
-                isPremium = false; premiumTier = 0;
-                applyNormalTheme();
-                updateMediaButtons(false);
+                showToast(data.message || 'Purchase failed', true);
             }
-        } catch(e) { console.error(e); }
-    }
-
-    function applyPremiumTheme(tier) {
-        document.body.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
-        if (tier === 1) { document.body.classList.add('bronze-tier'); document.getElementById('premiumBadge').textContent = '🥉 BRONZE'; }
-        else if (tier === 2) { document.body.classList.add('silver-tier'); document.getElementById('premiumBadge').textContent = '🥈 SILVER'; }
-        else if (tier === 3) { document.body.classList.add('gold-tier'); document.getElementById('premiumBadge').textContent = '🥇 GOLD'; }
-        else { document.body.classList.add('normal-theme'); }
-    }
-    function applyNormalTheme() { document.body.classList.remove('bronze-tier', 'silver-tier', 'gold-tier'); document.body.classList.add('normal-theme'); }
-    function updateMediaButtons(hasPremium) {
-        const imgBtn = document.getElementById('imageBtn'), fileBtn = document.getElementById('fileBtn'), imgLock = document.getElementById('imageLock'), fileLock = document.getElementById('fileLock');
-        if (hasPremium) {
-            imgBtn.disabled = false; fileBtn.disabled = false;
-            imgBtn.classList.remove('locked'); fileBtn.classList.remove('locked');
-            imgLock.style.display = 'none'; fileLock.style.display = 'none';
-        } else {
-            imgBtn.disabled = true; fileBtn.disabled = true;
-            imgBtn.classList.add('locked'); fileBtn.classList.add('locked');
-            imgLock.style.display = 'flex'; fileLock.style.display = 'flex';
+        } catch(e) {
+            showToast('Server error', true);
+        } finally {
+            showLoading(false);
         }
     }
 
-    function selectImage() { if (!isPremium) { document.getElementById('premiumRequiredModal').classList.add('active'); return; } const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = e => { if (e.target.files[0]) { selectedFile = e.target.files[0]; selectedFileType = 'image'; selectedFileName = selectedFile.name; showUploadPreview(selectedFile, 'image'); } }; inp.click(); }
-    function selectFile() { if (!isPremium) { document.getElementById('premiumRequiredModal').classList.add('active'); return; } const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = e => { if (e.target.files[0]) { selectedFile = e.target.files[0]; selectedFileType = 'file'; selectedFileName = selectedFile.name; showUploadPreview(selectedFile, 'file'); } }; inp.click(); }
-    function showUploadPreview(file, type) {
-        const container = document.getElementById('uploadPreviewContent'), modal = document.getElementById('uploadPreviewModal');
-        if (type === 'image') { const r = new FileReader(); r.onload = e => { container.innerHTML = `<img src="${e.target.result}" class="upload-preview-image">`; modal.classList.add('active'); }; r.readAsDataURL(file); }
-        else { container.innerHTML = `<div class="upload-preview-file"><i class="fas fa-file" style="font-size:40px"></i><div style="flex:1"><div style="font-weight:bold">${escapeHtml(file.name)}</div><div>${(file.size/1024).toFixed(1)} KB</div></div></div>`; modal.classList.add('active'); }
-        document.getElementById('uploadProgress').style.display = 'none'; document.getElementById('sendUploadBtn').disabled = false; uploadCancelled = false;
-    }
-    function cancelUpload() { uploadCancelled = true; selectedFile = null; document.getElementById('uploadPreviewModal').classList.remove('active'); }
-    async function confirmUpload() {
-    if (!selectedFile || uploadCancelled || !currentRoom) {
-        if (!currentRoom) showToast('စကားပြောခန်းမရွေးရသေးပါ', true);
-        cancelUpload();
-        return;
-    }
-    
-    const modal = document.getElementById('uploadPreviewModal');
-    const progressDiv = document.getElementById('uploadProgress');
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-    
-    progressDiv.style.display = 'block';
-    progressFill.style.width = '0%';
-    progressText.textContent = 'Uploading 0%';
-    document.getElementById('sendUploadBtn').disabled = true;
-    
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-        if (uploadCancelled) return;
-        progress = Math.min(progress + 8, 90);
-        progressFill.style.width = progress + '%';
-        progressText.textContent = `Uploading ${progress}%`;
-    }, 150);
-    
-    try {
-        const reader = new FileReader();
-        const base64 = await new Promise((resolve) => {
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(selectedFile);
-        });
-        
-        if (uploadCancelled) {
-            clearInterval(progressInterval);
-            cancelUpload();
-            return;
-        }
-        
-        progressFill.style.width = '95%';
-        progressText.textContent = 'Processing 95%';
-        
-        // ✅ Make sure token exists
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            throw new Error('Not logged in');
-        }
-        
-        console.log('Uploading file:', {
-            fileName: selectedFileName,
-            fileType: selectedFile.type,
-            fileSize: selectedFile.size
-        });
-        
-        const res = await fetch('/api/upload_image', {  // ← CHANGE: Use /api/upload_image instead
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                base64: base64
-            })
-        });
-        
-        const data = await res.json();
-        console.log('Upload response:', data);
-        
-        clearInterval(progressInterval);
-        
-        if (uploadCancelled) {
-            cancelUpload();
-            return;
-        }
-        
-        if (data.success) {
-            progressFill.style.width = '100%';
-            progressText.textContent = 'Complete! Sending...';
-            await new Promise(r => setTimeout(r, 200));
-            
-            const messageData = {
-                roomId: currentRoom,
-                message: selectedFileType === 'image' ? `📷 IMAGE:${data.url}` : `📎 FILE:${data.url}|${selectedFileName}`,
-                userId: currentUser.id,
-                username: currentUser.username,
-                senderPremiumTier: premiumTier
-            };
-            socket.emit('send_message', messageData);
-            showToast('Sent!');
-            cancelUpload();
-        } else {
-            showToast(data.message || 'Upload failed', true);
-            cancelUpload();
-        }
-    } catch(err) {
-        clearInterval(progressInterval);
-        console.error('Upload error:', err);
-        showToast('Upload error: ' + err.message, true);
-        cancelUpload();
-    }
-    }
-    async function getCurrentUser() {
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') { document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-lock" style="font-size:50px"></i><h3>Please login</h3><a href="/">Login</a></div>'; return null; }
-        try {
-            const res = await fetch('/api/chat/current_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
-            const data = await res.json();
-            if (data.success) { currentUser = data.user; return currentUser; }
-        } catch(e) { return null; }
-    }
-
-    function initSocket() {
-        socket = io(window.location.origin, { transports: ['polling', 'websocket'], reconnection: true });
-        socket.on('connect', () => { if (currentUser) socket.emit('user_online', { userId: currentUser.id, username: currentUser.username }); });
-        socket.on('new_message', (msg) => {
-            if (currentRoom === msg.roomId) {
-                addMessageUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
-                scrollToBottom();
-            }
-            loadRooms();
-        });
-        socket.on('online_users', (users) => { document.getElementById('onlineCount').innerHTML = (users?.length || 0) + ' online'; loadUsersList(); });
-        socket.on('user_typing', (data) => { if (currentRoom === data.roomId && data.userId !== currentUser?.id) { const ind = document.getElementById('typingIndicator'); ind.style.display = 'block'; ind.innerHTML = `✨ ${escapeHtml(data.username)} is typing...`; clearTimeout(typingTimeout); typingTimeout = setTimeout(() => ind.style.display = 'none', 2000); } });
-    }
-    function onTyping() { if (!currentRoom || !currentUser) return; socket.emit('typing', { roomId: currentRoom, userId: currentUser.id, username: currentUser.username }); }
-
-    function switchTab(tab) {
-        document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.chat-tab[data-tab="${tab}"]`).classList.add('active');
-        document.getElementById('roomList').classList.remove('active');
-        document.getElementById('usersList').classList.remove('active');
-        document.getElementById('groupsList').classList.remove('active');
-        if (tab === 'rooms') { document.getElementById('roomList').classList.add('active'); loadRooms(); }
-        else if (tab === 'users') { document.getElementById('usersList').classList.add('active'); loadUsersList(); }
-        else if (tab === 'groups') { document.getElementById('groupsList').classList.add('active'); loadGroupsList(); }
-    }
-
-    async function loadRooms() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            document.getElementById('roomList').innerHTML = data.rooms?.length ? data.rooms.map(r => `<div class="room-item" onclick="openRoom(${r.id}, '${escapeHtml(r.room_name)}', '${r.room_type}')"><div class="room-icon">${r.room_type === 'admin' ? '👑' : r.room_type === 'group' ? '👥' : '💬'}</div><div class="room-info"><div class="room-name">${escapeHtml(r.room_name)}</div><div class="room-last">${escapeHtml(r.last_message || 'No messages')}</div></div>${r.unread > 0 ? `<div class="room-badge">${r.unread}</div>` : ''}</div>`).join('') : '<div class="empty-state"><i class="fas fa-comments"></i><p>No rooms yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>';
-        } catch(e) {}
-    }
-    async function loadUsersList() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/online_users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            const users = (data.users || []).filter(u => u.user_id !== currentUser.id);
-            document.getElementById('usersList').innerHTML = users.length ? users.map(u => `<div class="user-item" onclick="startPrivateChat(${u.user_id}, '${escapeHtml(u.username)}')"><div class="online-indicator"></div><div class="room-info"><div class="room-name">${escapeHtml(u.username)}</div><div class="room-last">🟢 Online</div></div></div>`).join('') : '<div class="empty-state">No online users</div>';
-        } catch(e) {}
-    }
-    async function loadGroupsList() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/groups', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            document.getElementById('groupsList').innerHTML = data.groups?.length ? data.groups.map(g => `<div class="room-item" onclick="openRoom(${g.id}, '${escapeHtml(g.room_name)}', 'group')"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(g.room_name)}</div><div class="room-last">${escapeHtml(g.last_message || 'No messages')}</div></div></div>`).join('') : '<div class="empty-state"><i class="fas fa-users"></i><p>No groups</p><button class="admin-btn" onclick="openCreateGroupModal()">➕ Create Group</button></div>';
-        } catch(e) {}
-    }
-
-    async function openCreateGroupModal() { await loadUsersForSelect('groupMembers'); document.getElementById('groupModal').classList.add('active'); }
-    async function loadUsersForSelect(id) { if (!currentUser) return; try { const r = await fetch('/api/chat/all_users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) }); const d = await r.json(); const sel = document.getElementById(id); if (sel && d.users) sel.innerHTML = d.users.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join(''); } catch(e) {} }
-    async function createGroup() { const name = document.getElementById('groupName').value.trim(); if (!name) { showToast('Group name required', true); return; } const members = Array.from(document.getElementById('groupMembers').selectedOptions).map(o => parseInt(o.value)); try { const r = await fetch('/api/chat/create_group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, groupName: name, members }) }); const d = await r.json(); if (d.success) { showToast('Group created!'); closeModal('groupModal'); loadGroupsList(); loadRooms(); } else showToast(d.message || 'Error', true); } catch(e) { showToast('Server error', true); } }
-    async function startAdminChat() { if (!currentUser) return; try { const r = await fetch('/api/chat/create_admin_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) }); const d = await r.json(); if (d.success) openRoom(d.room.id, d.room.room_name, 'admin'); else showToast('Error', true); } catch(e) { showToast('Server error', true); } }
-    async function startPrivateChat(id, name) { if (!currentUser) return; try { const r = await fetch('/api/chat/create_private_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, otherUserId: id }) }); const d = await r.json(); if (d.success) openRoom(d.room.id, name, 'private'); } catch(e) { showToast('Error', true); } }
-    async function openRoom(id, name, type) { currentRoom = id; document.querySelectorAll('.room-list').forEach(l => l.classList.remove('active')); document.getElementById('chatArea').classList.add('active'); document.getElementById('chatRoomTitle').textContent = name; document.getElementById('messages').innerHTML = '<div style="text-align:center;padding:20px">Loading...</div>'; if (socket) socket.emit('join_room', id); try { const r = await fetch(`/api/chat/messages/${id}`); const d = await r.json(); const container = document.getElementById('messages'); if (d.messages?.length) { container.innerHTML = ''; d.messages.forEach(m => addMessageUI(m, m.sender_id === currentUser?.id, m.sender_premium_tier || 0)); scrollToBottom(); } else container.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet</div>'; await fetch('/api/chat/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: id, userId: currentUser.id }) }); } catch(e) { document.getElementById('messages').innerHTML = '<div style="text-align:center;padding:20px;color:#e74c3c">Error</div>'; } }
-
-    function addMessageUI(msg, isMine, senderTier) {
-        const container = document.getElementById('messages');
-        if (container.innerHTML.includes('No messages') || container.innerHTML.includes('Loading')) container.innerHTML = '';
-        let html = '';
-        const text = msg.message || '';
-        if (text.startsWith('📷 IMAGE:')) { const url = text.replace('📷 IMAGE:', ''); html = `<div class="media-message" onclick="window.open('${url}','_blank')"><img src="${url}" loading="lazy"><div class="download-icon" style="position:absolute; bottom:6px; right:6px; background:rgba(0,0,0,0.5); border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center"><i class="fas fa-download"></i></div></div>`; }
-        else if (text.startsWith('📎 FILE:')) { const parts = text.replace('📎 FILE:', '').split('|'); const url = parts[0], fname = parts[1] || 'File'; html = `<div class="file-message" onclick="window.open('${url}','_blank')"><i class="fas fa-file"></i> ${escapeHtml(fname)}<i class="fas fa-download download-icon"></i></div>`; }
-        else { html = escapeHtml(text); }
-        let bubbleClass = 'normal-bubble';
-        if (senderTier === 1) bubbleClass = 'bronze-bubble';
-        else if (senderTier === 2) bubbleClass = 'silver-bubble';
-        else if (senderTier === 3) bubbleClass = 'gold-bubble';
-        const div = document.createElement('div');
-        div.className = `msg-row ${isMine ? 'mine' : ''}`;
-        div.innerHTML = `<div class="msg-bubble ${bubbleClass}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${html}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
-        container.appendChild(div);
-    }
-
-    function sendMessage() {
-        const input = document.getElementById('msgInput'), msg = input.value.trim();
-        if (!msg) { showToast('Type a message', true); return; }
-        if (!currentRoom) { showToast('Select a room first', true); return; }
-        if (!currentUser) { showToast('Please login', true); return; }
-        socket.emit('send_message', { roomId: currentRoom, message: msg, userId: currentUser.id, username: currentUser.username, senderPremiumTier: premiumTier });
-        input.value = '';
-    }
-    function closeChat() { currentRoom = null; document.getElementById('chatArea').classList.remove('active'); document.getElementById('roomList').classList.add('active'); loadRooms(); }
-    function deleteCurrentRoom() { if (!currentRoom || !confirm('Delete this room?')) return; fetch('/api/chat/delete_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) }).then(() => { showToast('Room deleted'); closeChat(); }); }
-    function showAddMemberModal() { document.getElementById('addMemberRoomId').value = currentRoom; loadUsersForSelect('addMemberSelect'); document.getElementById('addMemberModal').classList.add('active'); }
-    async function addMemberToGroup() { const rid = document.getElementById('addMemberRoomId').value, uid = document.getElementById('addMemberSelect').value; if (!uid) { showToast('Select user', true); return; } try { const r = await fetch('/api/chat/add_member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: rid, userId: uid, requesterId: currentUser.id }) }); const d = await r.json(); if (d.success) { showToast('Member added!'); closeModal('addMemberModal'); } else showToast(d.message || 'Error', true); } catch(e) { showToast('Error', true); } }
-    async function getInviteLink() { try { const r = await fetch('/api/chat/invite_link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) }); const d = await r.json(); if (d.success) { document.getElementById('inviteLink').value = d.link; document.getElementById('inviteModal').classList.add('active'); } else showToast(d.message || 'Error', true); } catch(e) { showToast('Error', true); } }
-    function copyInviteLink() { const inp = document.getElementById('inviteLink'); inp.select(); document.execCommand('copy'); showToast('Link copied!'); }
-    async function leaveGroup() { if (!confirm('Leave group?')) return; try { const r = await fetch('/api/chat/leave_group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) }); const d = await r.json(); if (d.success) { showToast('Left group'); closeModal('groupInfoModal'); closeChat(); loadGroupsList(); loadRooms(); } else showToast(d.message || 'Error', true); } catch(e) { showToast('Error', true); } }
-
-    function insertEmoji(emoji) { const inp = document.getElementById('msgInput'); const pos = inp.selectionStart; inp.value = inp.value.substring(0, pos) + emoji + inp.value.substring(pos); inp.focus(); inp.setSelectionRange(pos + emoji.length, pos + emoji.length); }
-    function toggleMoreEmojis() { const all = ['😀','😂','😍','😎','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','😊','🤔','😴','🥰','😇','🤗','💪','👋','✌️','🤝','👑','💎','💰','🎮','⚽','🌟','🍕','🍺','☕','🏆','🎯','📱','💻','🎵','📷','✨','⭐','🌙','🌈','🔥','💧','🌸','🇲🇲','🇹🇭','🇯🇵','🇰🇷','🇺🇸','🇬🇧']; const grid = document.getElementById('moreEmojisGrid'); grid.innerHTML = all.map(e => `<span class="emoji-item" style="font-size:32px; cursor:pointer; padding:6px" onclick="insertEmoji('${e}'); closeModal('moreEmojisModal');">${e}</span>`).join(''); document.getElementById('moreEmojisModal').classList.add('active'); }
-
-    async function init() {
-        document.querySelectorAll('.chat-tab').forEach(t => t.addEventListener('click', () => switchTab(t.getAttribute('data-tab'))));
-        const user = await getCurrentUser();
-        if (!user) return;
-        await checkPremiumStatus();
-        initSocket();
-        loadRooms();
-    }
-    init();
+    loadBalances();
     </script>
 </body>
 </html>
