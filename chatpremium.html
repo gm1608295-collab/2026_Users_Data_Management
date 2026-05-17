@@ -523,26 +523,33 @@
         updateBuyButton();
     }
 
-    function updateBuyButton() {
-        const btn = document.getElementById('buyBtn');
+    // Update buy button for upgrade case
+function updateBuyButton() {
+    const btn = document.getElementById('buyBtn');
+    
+    if (selectedPlan) {
+        const plan = PLANS[selectedPlan];
         
-        if (isPremium) {
-            btn.textContent = '✅ Already Premium';
+        // Check if trying to upgrade to same or lower tier
+        if (isPremium && plan.tier <= premiumTier) {
+            btn.textContent = `⚠️ You already have Tier ${premiumTier} (Buy higher tier to upgrade)`;
             btn.disabled = true;
-        } else if (selectedPlan) {
-            const plan = PLANS[selectedPlan];
-            if (usdBalance >= plan.cost) {
-                btn.textContent = `💳 Buy ${plan.name} - $${plan.cost}`;
-                btn.disabled = false;
+        } else if (usdBalance >= plan.cost) {
+            if (isPremium && plan.tier > premiumTier) {
+                btn.textContent = `⬆️ UPGRADE to ${plan.tierName} (${plan.name}) - $${plan.cost}`;
             } else {
-                btn.textContent = `❌ Insufficient balance (Need $${plan.cost})`;
-                btn.disabled = true;
+                btn.textContent = `💳 Buy ${plan.name} - $${plan.cost}`;
             }
+            btn.disabled = false;
         } else {
-            btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Select a plan';
+            btn.textContent = `❌ Insufficient balance (Need $${plan.cost})`;
             btn.disabled = true;
         }
+    } else {
+        btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Select a plan';
+        btn.disabled = true;
     }
+}
 
     async function buyPremium() {
         if (!selectedPlan || isPremium) return;
