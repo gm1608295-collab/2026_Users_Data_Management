@@ -3220,6 +3220,7 @@ app.get('/api/leaderboard/top_spenders', async (req, res) => {
         res.json({ success: false, leaders: [] });
     }
 });
+
 // ==================== SOCKET.IO + SERVER START ====================
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -3277,15 +3278,16 @@ io.on('connection', (socket) => {
         }
     });
     
+    // ========== SEND MESSAGE (WITH PREMIUM TIER) ==========
     socket.on('send_message', async (data) => {
-        const { roomId, message, userId, username, messageType } = data;
+        const { roomId, message, userId, username, senderPremiumTier } = data;
         
         if (!roomId || !message || !userId) {
             console.log('⚠️ Invalid message data:', data);
             return;
         }
         
-        console.log('📨 Message received:', { roomId, userId, message: message?.substring(0,30) });
+        console.log('📨 Message received:', { roomId, userId, message: message?.substring(0,30), tier: senderPremiumTier });
         
         try {
             const p = await getPool();
@@ -3302,11 +3304,11 @@ io.on('connection', (socket) => {
                 return;
             }
             
-            // Save message to database
+            // Save message to database with sender_premium_tier
             const result = await p.query(
-                `INSERT INTO chat_messages (room_id, sender_id, username, message, created_at) 
-                 VALUES ($1, $2, $3, $4, NOW()) RETURNING id`,
-                [roomId, userId, username, message]
+                `INSERT INTO chat_messages (room_id, sender_id, username, message, sender_premium_tier, created_at) 
+                 VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id`,
+                [roomId, userId, username, message, senderPremiumTier || 0]
             );
             
             const msgData = {
@@ -3315,6 +3317,7 @@ io.on('connection', (socket) => {
                 sender_id: userId,
                 username: username,
                 message: message,
+                sender_premium_tier: senderPremiumTier || 0,
                 created_at: new Date().toISOString()
             };
             
