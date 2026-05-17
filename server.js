@@ -3919,7 +3919,88 @@ app.get('/api/debug/chat', async (req, res) => {
         res.json({ success: false, error: e.message });
     }
 });
-
+// ==================== CHAT FILE UPLOAD API ====================
+app.post('/api/chat/upload_file', async (req, res) => {
+    const { token, base64, fileName, fileType } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!base64) return res.json({ success: false, message: 'No file data' });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        // Check if user has chat premium
+        const premCheck = await p.query(
+            "SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_expiry > NOW()",
+            [uid]
+        );
+        
+        if (premCheck.rows.length === 0) {
+            return res.json({ success: false, message: 'Premium required to send files' });
+        }
+        
+        let resultUrl = '';
+        
+        // Check if it's an image
+        const isImage = fileType && fileType.startsWith('image/');
+        
+        if (isImage) {
+            // Upload to ImgBB
+            const imageData = base64.replace(/^data:image\/\w+;base64,/, '');
+            const formData = new URLSearchParams();
+            formData.append('key', IMGBB_API_KEY);
+            formData.append('image', imageData);
+            
+            const response = await fetch('https://api.imgbb.com/1/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString(),
+                signal: AbortSignal.timeout(30000)
+            });
+            const imgData = await response.json();
+            if (imgData.success) {
+                resultUrl = imgData.data.url;
+            } else {
+                return res.json({ success: false, message: 'Image upload failed' });
+            }
+        } else {
+            // Upload file to Catbox
+            let base64Data = base64;
+            if (base64.includes(',')) {
+                base64Data = base64.split(',')[1];
+            }
+            const buffer = Buffer.from(base64Data, 'base64');
+            const blob = new Blob([buffer]);
+            const formData = new FormData();
+            formData.append('reqtype', 'fileupload');
+            formData.append('fileToUpload', blob, fileName || 'file');
+            
+            const response = await fetch('https://catbox.moe/user/api.php', {
+                method: 'POST',
+                body: formData,
+                signal: AbortSignal.timeout(60000)
+            });
+            resultUrl = await response.text();
+            resultUrl = resultUrl.trim();
+            
+            if (!resultUrl || !resultUrl.startsWith('https://')) {
+                return res.json({ success: false, message: 'File upload failed' });
+            }
+        }
+        
+        res.json({ 
+            success: true, 
+            url: resultUrl, 
+            fileName: fileName || 'file',
+            fileType: fileType
+        });
+        
+    } catch(e) {
+        console.error('[CHAT FILE UPLOAD ERROR]', e.message);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
