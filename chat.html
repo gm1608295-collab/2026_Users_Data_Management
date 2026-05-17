@@ -153,20 +153,20 @@ async function getCurrentUser() {
         return null;
     }
 }
-
-// Initialize Socket
+// Initialize Socket - FIXED for all browsers
 function initSocket() {
-    console.log('🔌 Initializing socket...');
-    
     socket = io(window.location.origin, {
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 10,
-        reconnectionDelay: 1000
+        reconnectionDelay: 1000,
+        timeout: 20000,
+        forceNew: true
     });
     
     socket.on('connect', () => {
-        console.log('✅ Socket connected!', socket.id);
+        console.log('✅ Socket connected:', socket.id);
+        showToast('Connected to chat server');
         if (currentUser) {
             socket.emit('user_online', { 
                 userId: currentUser.id, 
@@ -175,13 +175,8 @@ function initSocket() {
         }
     });
     
-    socket.on('connect_error', (err) => {
-        console.error('❌ Socket connection error:', err.message);
-        showToast('Connection error...');
-    });
-    
     socket.on('new_message', (msg) => {
-        console.log('📩 New message received:', msg);
+        console.log('📨 New message received:', msg);
         if (currentRoom === msg.roomId) {
             addMessageToUI(msg, msg.sender_id === currentUser?.id);
             scrollToBottom();
@@ -194,9 +189,14 @@ function initSocket() {
         document.getElementById('onlineCount').textContent = users.length + ' online';
     });
     
-    socket.on('error', (err) => {
-        console.error('Socket error:', err);
-        showToast(err.message);
+    socket.on('disconnect', () => {
+        console.log('❌ Socket disconnected');
+        showToast('Reconnecting...');
+    });
+    
+    socket.on('connect_error', (err) => {
+        console.log('Socket error:', err.message);
+        showToast('Connection issue, retrying...');
     });
 }
 
