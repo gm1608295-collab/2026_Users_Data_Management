@@ -153,20 +153,25 @@ async function getCurrentUser() {
         return null;
     }
 }
-// Initialize Socket - FIXED for all browsers
+// Initialize Socket - FORCE POLLING ONLY (MOST COMPATIBLE)
 function initSocket() {
+    // Force polling first, then upgrade to websocket
     socket = io(window.location.origin, {
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         reconnection: true,
-        reconnectionAttempts: 10,
+        reconnectionAttempts: 20,
         reconnectionDelay: 1000,
-        timeout: 20000,
-        forceNew: true
+        reconnectionDelayMax: 5000,
+        timeout: 30000,
+        forceNew: true,
+        upgrade: true,
+        rememberUpgrade: false
     });
     
     socket.on('connect', () => {
         console.log('✅ Socket connected:', socket.id);
-        showToast('Connected to chat server');
+        console.log('✅ Transport:', socket.io.engine.transport.name);
+        showToast('Connected to chat');
         if (currentUser) {
             socket.emit('user_online', { 
                 userId: currentUser.id, 
@@ -176,7 +181,7 @@ function initSocket() {
     });
     
     socket.on('new_message', (msg) => {
-        console.log('📨 New message received:', msg);
+        console.log('📨 New message:', msg);
         if (currentRoom === msg.roomId) {
             addMessageToUI(msg, msg.sender_id === currentUser?.id);
             scrollToBottom();
@@ -184,20 +189,25 @@ function initSocket() {
         loadRooms();
     });
     
-    // initSocket() ထဲမှာ online_users event ကို ဒီလိုပြင်ပါ
-socket.on('online_users', (users) => {
-    const count = Array.isArray(users) ? users.length : 0;
-    document.getElementById('onlineCount').innerHTML = count + ' online';
-});
+    socket.on('online_users', (users) => {
+        const count = Array.isArray(users) ? users.length : 0;
+        document.getElementById('onlineCount').innerHTML = count + ' online';
+    });
     
-    socket.on('disconnect', () => {
-        console.log('❌ Socket disconnected');
-        showToast('Reconnecting...');
+    socket.on('disconnect', (reason) => {
+        console.log('❌ Disconnected:', reason);
+        if (reason === 'io server disconnect') {
+            socket.connect();
+        }
     });
     
     socket.on('connect_error', (err) => {
         console.log('Socket error:', err.message);
-        showToast('Connection issue, retrying...');
+        // Try polling only as fallback
+        if (socket.io.engine.transport.name !== 'polling') {
+            socket.io.opts.transports = ['polling'];
+            socket.connect();
+        }
     });
 }
 
