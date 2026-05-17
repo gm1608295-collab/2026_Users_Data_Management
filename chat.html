@@ -2,8 +2,8 @@
 <html lang="my">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>စကားပြော - SOLO M Game Shop</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Premium Chat - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <style>
@@ -11,185 +11,166 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        /* ========== PREMIUM THEMES (Tier based) ========== */
+        /* Tier 1 - Bronze Theme */
+        body.bronze-tier {
+            --premium-glow: rgba(205, 127, 50, 0.6);
+            --premium-gold: #CD7F32;
+            --premium-gold-light: #E8A87C;
+            --premium-gradient: linear-gradient(135deg, #CD7F32, #E8A87C);
+            --premium-bg-start: #1a0f07;
+            --premium-bg-end: #2d1a0a;
+            --premium-glass: rgba(205, 127, 50, 0.12);
+            --premium-border: rgba(205, 127, 50, 0.4);
+            --premium-btn-bg: linear-gradient(135deg, #CD7F32, #8B4513);
+        }
+        /* Tier 2 - Silver Theme */
+        body.silver-tier {
+            --premium-glow: rgba(192, 192, 192, 0.7);
+            --premium-gold: #C0C0C0;
+            --premium-gold-light: #E8E8E8;
+            --premium-gradient: linear-gradient(135deg, #C0C0C0, #E8E8E8);
+            --premium-bg-start: #0a0a0a;
+            --premium-bg-end: #1a1a1a;
+            --premium-glass: rgba(192, 192, 192, 0.12);
+            --premium-border: rgba(192, 192, 192, 0.4);
+            --premium-btn-bg: linear-gradient(135deg, #C0C0C0, #808080);
+        }
+        /* Tier 3 - Gold Theme */
+        body.gold-tier {
+            --premium-glow: rgba(255, 215, 0, 0.7);
+            --premium-gold: #FFD700;
+            --premium-gold-light: #FFF8DC;
+            --premium-gradient: linear-gradient(135deg, #FFD700, #FFF8DC);
+            --premium-bg-start: #1a0a00;
+            --premium-bg-end: #2d1a00;
+            --premium-glass: rgba(255, 215, 0, 0.12);
+            --premium-border: rgba(255, 215, 0, 0.4);
+            --premium-btn-bg: linear-gradient(135deg, #FFD700, #B8860B);
+        }
+        /* Normal Theme (No Premium) */
+        body.normal-theme {
+            --premium-glow: rgba(255, 255, 255, 0.2);
+            --premium-gold: #ffffff;
+            --premium-gold-light: #cccccc;
+            --premium-gradient: linear-gradient(135deg, #4a4a4a, #6a6a6a);
+            --premium-bg-start: #0c0e27;
+            --premium-bg-end: #1a1f4b;
+            --premium-glass: rgba(255, 255, 255, 0.05);
+            --premium-border: rgba(255, 255, 255, 0.15);
+            --premium-btn-bg: linear-gradient(135deg, #4a6fa5, #2c3e50);
         }
 
         body {
-            background: #0c0e27;
+            background: linear-gradient(135deg, var(--premium-bg-start), var(--premium-bg-end));
             color: #fff;
             height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            transition: all 0.3s ease;
         }
 
-        /* ========== GLOBAL MESSAGE BUBBLE STYLES (sender tier based) ========== */
-        /* Bronze Tier (Tier 1) */
-        .msg-bubble.bronze-tier {
-            background: linear-gradient(135deg, #CD7F32, #E8A87C);
-            border: 1px solid #FFD700;
-            box-shadow: 0 2px 8px rgba(205,127,50,0.3);
-            position: relative;
-        }
-        .msg-bubble.bronze-tier::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #CD7F32, #E8A87C, #CD7F32);
-            border-radius: 18px 18px 0 0;
-        }
-        /* Silver Tier (Tier 2) */
-        .msg-bubble.silver-tier {
-            background: linear-gradient(135deg, #C0C0C0, #E8E8E8);
-            border: 1px solid #FFFFFF;
-            box-shadow: 0 2px 8px rgba(192,192,192,0.4);
-            color: #1a1a1a;
-        }
-        .msg-bubble.silver-tier::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #C0C0C0, #FFFFFF, #C0C0C0);
-            border-radius: 18px 18px 0 0;
-        }
-        /* Gold Tier (Tier 3) */
-        .msg-bubble.gold-tier {
-            background: linear-gradient(135deg, #FFD700, #FFF8DC);
-            border: 1px solid #FFE066;
-            box-shadow: 0 2px 12px rgba(255,215,0,0.5);
-            color: #1a0a00;
-            animation: goldPulse 2s infinite;
-        }
-        .msg-bubble.gold-tier::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #FFD700, #FFF8DC, #FFD700);
-            border-radius: 18px 18px 0 0;
-            animation: goldShine 1.5s infinite;
-        }
-        @keyframes goldPulse {
-            0% { box-shadow: 0 2px 8px rgba(255,215,0,0.3); }
-            50% { box-shadow: 0 4px 20px rgba(255,215,0,0.7); }
-            100% { box-shadow: 0 2px 8px rgba(255,215,0,0.3); }
-        }
-        @keyframes goldShine {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
-        /* Normal user message (no premium) */
-        .msg-bubble.normal-tier {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        /* ========== PREMIUM THEMES FOR UI (header, tabs, buttons) ========== */
-        body.bronze-tier {
-            background: linear-gradient(135deg, #1a0f07 0%, #2d1a0a 100%);
-        }
-        body.bronze-tier .chat-header {
-            background: linear-gradient(135deg, #6b3410, #8b4513, #6b3410);
-            border-bottom: 3px solid #CD7F32;
-        }
-        body.bronze-tier .chat-header h3, body.bronze-tier .chat-header a { color: #E8A87C; }
-        body.bronze-tier .chat-tab.active { background: #8B4513; color: #E8A87C; }
-        body.bronze-tier .msg-input-area button { background: linear-gradient(135deg, #CD7F32, #8B4513); color: #1a0f07; }
-        body.bronze-tier .premium-badge { background: #CD7F32; color: #1a0f07; }
-
-        body.silver-tier {
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-        }
-        body.silver-tier .chat-header {
-            background: linear-gradient(135deg, #4a4a4a, #808080, #4a4a4a);
-            border-bottom: 3px solid #C0C0C0;
-        }
-        body.silver-tier .chat-header h3, body.silver-tier .chat-header a { color: #E8E8E8; }
-        body.silver-tier .chat-tab.active { background: #808080; color: #E8E8E8; }
-        body.silver-tier .msg-input-area button { background: linear-gradient(135deg, #C0C0C0, #808080); color: #0a0a0a; }
-        body.silver-tier .premium-badge { background: #C0C0C0; color: #0a0a0a; }
-
-        body.gold-tier {
-            background: linear-gradient(135deg, #1a0a00 0%, #2d1a00 100%);
-        }
-        body.gold-tier .chat-header {
-            background: linear-gradient(135deg, #6d4c00, #b8860b, #6d4c00);
-            border-bottom: 3px solid #FFD700;
-            animation: goldBorderPulse 1.5s infinite;
-        }
-        body.gold-tier .chat-header h3, body.gold-tier .chat-header a {
-            color: #FFF8DC;
-            text-shadow: 0 0 10px rgba(255,215,0,0.5);
-        }
-        body.gold-tier .chat-tab.active { background: #B8860B; color: #FFF8DC; }
-        body.gold-tier .msg-input-area button { background: linear-gradient(135deg, #FFD700, #B8860B); color: #0a0a05; animation: goldBtnPulse 1s infinite; }
-        body.gold-tier .premium-badge { background: #FFD700; color: #0a0a05; animation: goldBadgePulse 1s infinite; }
-        @keyframes goldBorderPulse {
-            0%,100% { border-color: #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
-            50% { border-color: #FFF8DC; box-shadow: 0 0 25px #FFD700; }
-        }
-        @keyframes goldBtnPulse {
-            0%,100% { transform: scale(1); box-shadow: 0 0 5px rgba(255,215,0,0.4); }
-            50% { transform: scale(1.03); box-shadow: 0 0 15px rgba(255,215,0,0.8); }
-        }
-        @keyframes goldBadgePulse {
-            0%,100% { transform: scale(1); box-shadow: 0 0 5px #FFD700; }
-            50% { transform: scale(1.05); box-shadow: 0 0 20px #FFD700; }
-        }
-
-        body.normal-theme {
-            background: linear-gradient(135deg, #0c0e27, #1a1f4b);
-        }
-        body.normal-theme .premium-badge { display: none; }
-
-        /* ========== HEADER ========== */
+        /* Glassmorphism Header */
         .chat-header {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--premium-border);
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
+            gap: 12px;
             flex-shrink: 0;
+            position: relative;
+            z-index: 10;
         }
-        .chat-header a { text-decoration: none; font-size: 18px; }
-        .chat-header h3 { flex: 1; font-size: 14px; }
-        .chat-header .online-count { font-size: 10px; color: #2ecc71; }
+        .chat-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--premium-gradient);
+            opacity: 0.5;
+        }
+        .chat-header a {
+            color: var(--premium-gold);
+            font-size: 18px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .chat-header a:hover {
+            text-shadow: 0 0 10px var(--premium-glow);
+        }
+        .chat-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            flex: 1;
+            background: var(--premium-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+        }
+        .online-count {
+            font-size: 10px;
+            background: rgba(46, 204, 113, 0.15);
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
         .premium-badge {
-            display: none;
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 9px;
             font-weight: bold;
+            background: var(--premium-gradient);
+            color: #000;
+            box-shadow: 0 0 12px var(--premium-glow);
+            display: none;
+        }
+        body.bronze-tier .premium-badge,
+        body.silver-tier .premium-badge,
+        body.gold-tier .premium-badge {
+            display: inline-block;
         }
 
-        /* ========== TABS ========== */
+        /* Premium Tabs */
         .chat-tabs {
             display: flex;
-            gap: 4px;
-            padding: 8px 10px;
-            background: rgba(0,0,0,0.3);
+            gap: 6px;
+            padding: 10px 16px;
+            background: rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(10px);
             flex-shrink: 0;
         }
         .chat-tab {
             flex: 1;
-            padding: 8px;
+            padding: 8px 0;
             text-align: center;
             font-size: 11px;
+            font-weight: 500;
             cursor: pointer;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.05);
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid transparent;
             transition: all 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .chat-tab.active {
+            background: var(--premium-glass);
+            border-color: var(--premium-border);
+            color: var(--premium-gold-light);
+            box-shadow: 0 0 10px var(--premium-glow);
         }
 
-        /* ========== ROOM LIST ========== */
+        /* Room List */
         .chat-body {
             flex: 1;
             display: flex;
@@ -200,28 +181,43 @@
             display: none;
             flex: 1;
             overflow-y: auto;
-            padding: 10px;
+            padding: 12px;
         }
-        .room-list.active { display: block; }
+        .room-list.active {
+            display: block;
+        }
         .room-item {
+            background: rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 14px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 14px;
-            margin-bottom: 8px;
+            gap: 12px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .room-item:hover { background: rgba(74,28,122,0.4); transform: translateX(3px); }
-        .room-item .room-icon { font-size: 22px; }
-        .room-item .room-info { flex: 1; }
-        .room-item .room-name { font-size: 13px; font-weight: bold; }
-        .room-item .room-last { font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 3px; }
-        .room-item .room-badge { background: #e74c3c; color: #fff; font-size: 9px; padding: 2px 8px; border-radius: 20px; }
+        .room-item:hover {
+            transform: translateX(4px);
+            border-color: var(--premium-border);
+            background: var(--premium-glass);
+        }
+        .room-icon { font-size: 28px; }
+        .room-info { flex: 1; }
+        .room-name { font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+        .room-last { font-size: 10px; color: rgba(255, 255, 255, 0.4); margin-top: 4px; }
+        .room-badge {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: #fff;
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-weight: bold;
+        }
 
-        /* ========== CHAT AREA ========== */
+        /* Chat Area */
         .chat-area {
             display: none;
             flex: 1;
@@ -230,133 +226,150 @@
         }
         .chat-area.active { display: flex; }
         .chat-area-header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px);
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 15px;
-            background: rgba(0,0,0,0.3);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            flex-shrink: 0;
+            gap: 12px;
+            border-bottom: 1px solid var(--premium-border);
         }
-        .chat-area-header .back-btn { cursor: pointer; font-size: 16px; }
-        .chat-area-header .room-title { font-size: 14px; font-weight: bold; flex: 1; }
-        .chat-area-header .delete-room-btn { color: #e74c3c; cursor: pointer; padding: 5px; }
+        .back-btn { cursor: pointer; font-size: 18px; color: var(--premium-gold); }
+        .room-title { font-size: 15px; font-weight: 600; flex: 1; background: var(--premium-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .delete-room-btn { color: #e74c3c; cursor: pointer; padding: 4px; }
 
-        /* ========== MESSAGES ========== */
+        /* Premium Messages Container */
         .messages {
             flex: 1;
             overflow-y: auto;
-            padding: 15px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
         }
         .msg-row {
             display: flex;
-            gap: 8px;
             max-width: 85%;
             margin-bottom: 4px;
         }
-        .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
+        .msg-row.mine {
+            align-self: flex-end;
+        }
         .msg-bubble {
             padding: 10px 14px;
-            border-radius: 18px;
+            border-radius: 20px;
             font-size: 13px;
+            line-height: 1.4;
             word-break: break-word;
             position: relative;
             transition: all 0.2s;
         }
+        /* Sender Premium Bubble Styles */
+        .msg-bubble.bronze-bubble {
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.85), rgba(139, 69, 19, 0.9));
+            border: 1px solid rgba(205, 127, 50, 0.5);
+            box-shadow: 0 2px 12px rgba(205, 127, 50, 0.3);
+        }
+        .msg-bubble.silver-bubble {
+            background: linear-gradient(135deg, rgba(192, 192, 192, 0.85), rgba(128, 128, 128, 0.9));
+            border: 1px solid rgba(192, 192, 192, 0.5);
+            box-shadow: 0 2px 12px rgba(192, 192, 192, 0.3);
+            color: #0a0a0a;
+        }
+        .msg-bubble.gold-bubble {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.85), rgba(184, 134, 11, 0.9));
+            border: 1px solid rgba(255, 215, 0, 0.6);
+            box-shadow: 0 2px 16px rgba(255, 215, 0, 0.4);
+            color: #1a0a00;
+            animation: goldShine 2s infinite;
+        }
+        .msg-bubble.normal-bubble {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .msg-row.mine .msg-bubble {
+            border-bottom-right-radius: 4px;
+        }
+        .msg-row:not(.mine) .msg-bubble {
+            border-bottom-left-radius: 4px;
+        }
+        @keyframes goldShine {
+            0%, 100% { box-shadow: 0 2px 12px rgba(255, 215, 0, 0.3); }
+            50% { box-shadow: 0 4px 24px rgba(255, 215, 0, 0.7); }
+        }
         .msg-sender {
-            font-size: 9px;
+            font-size: 10px;
+            font-weight: 600;
             margin-bottom: 4px;
-            font-weight: bold;
+            background: var(--premium-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
         .msg-time {
             font-size: 8px;
-            color: rgba(255,255,255,0.4);
+            color: rgba(255, 255, 255, 0.4);
             margin-top: 4px;
             text-align: right;
         }
         .media-message {
-            max-width: 220px;
-            border-radius: 14px;
+            max-width: 200px;
+            border-radius: 16px;
             cursor: pointer;
             position: relative;
         }
         .media-message img {
-            max-width: 100%;
-            border-radius: 14px;
+            width: 100%;
+            border-radius: 16px;
         }
         .file-message {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px 14px;
-            background: rgba(0,0,0,0.25);
-            border-radius: 14px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
             cursor: pointer;
         }
-        .file-message:hover { background: rgba(0,0,0,0.4); }
-        .download-icon { margin-left: auto; opacity: 0.7; }
 
-        /* ========== INPUT AREA ========== */
+        /* Premium Input Area - Telegram Style Pill */
         .msg-input-area {
             display: flex;
-            gap: 10px;
-            padding: 12px 15px;
-            background: #11152d;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--premium-border);
             flex-shrink: 0;
         }
-        .input-wrapper {
-            position: relative;
-            flex: 1;
-        }
-        .msg-input-area input {
-            width: 100%;
-            padding: 12px 15px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 25px;
-            color: #fff;
-            font-size: 13px;
-            outline: none;
-        }
-        .msg-input-area input:focus { border-color: #f39c12; }
-        .msg-input-area button {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        /* ========== MEDIA BUTTONS ========== */
         .media-buttons {
             display: flex;
             gap: 6px;
-            margin-right: 6px;
         }
         .media-btn {
-            width: 44px;
-            height: 44px;
-            border-radius: 25px;
-            border: none;
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            font-size: 18px;
+            width: 38px;
+            height: 38px;
+            border-radius: 38px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--premium-gold);
+            font-size: 16px;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s;
             position: relative;
         }
+        .media-btn:hover {
+            background: var(--premium-glass);
+            border-color: var(--premium-gold);
+            transform: scale(1.02);
+        }
         .media-btn.locked {
-            background: rgba(231, 76, 60, 0.2);
-            border: 1px solid rgba(231, 76, 60, 0.4);
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         .lock-icon {
             position: absolute;
@@ -364,59 +377,109 @@
             right: -2px;
             background: #e74c3c;
             border-radius: 50%;
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
+            font-size: 7px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8px;
+        }
+        /* Pill Shape Input */
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+        .msg-input-area input {
+            width: 100%;
+            padding: 10px 18px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 40px;
+            color: #fff;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+            backdrop-filter: blur(5px);
+        }
+        .msg-input-area input:focus {
+            border-color: var(--premium-gold);
+            box-shadow: 0 0 12px var(--premium-glow);
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .msg-input-area input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 13px;
+        }
+        /* Premium Send Button */
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 40px;
+            border: none;
+            background: var(--premium-btn-bg);
+            color: #000;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 8px var(--premium-glow);
+        }
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 16px var(--premium-glow);
         }
 
-        /* ========== EMOJI ROW ========== */
+        /* Emoji Row */
         .emoji-row {
             display: flex;
             overflow-x: auto;
             gap: 10px;
-            padding: 8px 12px;
-            background: #0f1125;
-            border-top: 1px solid rgba(255,255,255,0.08);
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
             flex-shrink: 0;
-            scrollbar-width: thin;
         }
         .emoji-item {
-            font-size: 24px;
+            font-size: 22px;
             cursor: pointer;
-            transition: transform 0.15s;
+            transition: all 0.15s;
             flex-shrink: 0;
             padding: 4px;
-            border-radius: 10px;
+            border-radius: 30px;
         }
-        .emoji-item:hover { transform: scale(1.25); background: rgba(255,255,255,0.1); }
+        .emoji-item:hover {
+            transform: scale(1.2);
+            background: var(--premium-glass);
+        }
         .toggle-emoji-btn {
-            background: rgba(255,255,255,0.08);
-            border: none;
-            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
             padding: 4px 12px;
-            font-size: 13px;
+            font-size: 12px;
             cursor: pointer;
-            color: #f39c12;
+            color: var(--premium-gold);
             white-space: nowrap;
         }
 
-        /* ========== TYPING INDICATOR ========== */
         .typing-indicator {
-            padding: 5px 15px;
+            padding: 6px 16px;
             font-size: 10px;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--premium-gold-light);
         }
 
-        /* ========== UPLOAD PREVIEW MODAL ========== */
+        /* Upload Modal */
         .upload-preview-modal {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: #1a1f4b;
+            background: rgba(26, 31, 75, 0.95);
+            backdrop-filter: blur(20px);
             border-top-left-radius: 24px;
             border-top-right-radius: 24px;
             padding: 20px;
@@ -425,18 +488,15 @@
             transition: transform 0.3s ease;
         }
         .upload-preview-modal.active { transform: translateY(0); }
-        .upload-preview-container { max-height: 400px; overflow-y: auto; }
         .upload-preview-image { max-width: 100%; border-radius: 16px; margin-bottom: 15px; }
-        .upload-preview-file { display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 14px; margin-bottom: 15px; }
-        .upload-progress { margin: 15px 0; }
-        .progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-top: 5px; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #f39c12); width: 0%; transition: width 0.1s linear; }
+        .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+        .progress-fill { height: 100%; background: var(--premium-gradient); width: 0%; transition: width 0.1s linear; }
         .upload-buttons { display: flex; gap: 10px; margin-top: 15px; }
-        .upload-buttons button { flex: 1; padding: 12px; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; }
+        .upload-buttons button { flex: 1; padding: 12px; border: none; border-radius: 40px; font-weight: bold; cursor: pointer; }
         .btn-send { background: #2ecc71; color: #000; }
         .btn-cancel { background: rgba(255,255,255,0.1); color: #fff; }
 
-        /* ========== MODALS ========== */
+        /* Modals */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -444,80 +504,81 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
             z-index: 2000;
             justify-content: center;
             align-items: center;
         }
         .modal-overlay.active { display: flex; }
         .modal-box {
-            background: linear-gradient(135deg, #1a1f4b, #11112a);
-            border: 2px solid #f39c12;
-            border-radius: 24px;
+            background: rgba(26, 31, 75, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--premium-border);
+            border-radius: 28px;
             padding: 24px;
             width: 90%;
             max-width: 380px;
         }
-        .modal-box h3 { color: #f39c12; margin-bottom: 15px; text-align: center; }
+        .modal-box h3 { color: var(--premium-gold); text-align: center; margin-bottom: 16px; }
         .form-group { margin-bottom: 12px; }
         .form-group input, .form-group select {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 40px;
             color: #fff;
         }
-        .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+        .btn-row { display: flex; gap: 8px; margin-top: 16px; }
         .btn {
+            flex: 1;
             padding: 10px;
             border: none;
-            border-radius: 30px;
-            font-size: 12px;
+            border-radius: 40px;
             font-weight: bold;
             cursor: pointer;
-            flex: 1;
-            text-align: center;
         }
         .btn-g { background: #2ecc71; color: #000; }
         .btn-r { background: #e74c3c; color: #fff; }
-        .btn-b { background: #3498db; color: #fff; }
-        .btn-w { background: #f39c12; color: #000; }
-        
+        .btn-w { background: var(--premium-gold); color: #000; }
+
         .toast {
             position: fixed;
-            top: 15px;
-            right: 15px;
-            padding: 12px 18px;
-            border-radius: 30px;
-            background: #2ecc71;
-            color: #000;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            color: #fff;
             display: none;
             z-index: 4000;
             font-size: 12px;
-            font-weight: bold;
+            border: 1px solid var(--premium-border);
         }
-        .empty-state { text-align: center; padding: 40px; color: rgba(255,255,255,0.3); }
+        .empty-state { text-align: center; padding: 40px; color: rgba(255,255,255,0.4); }
         .admin-btn {
             width: 100%;
             padding: 12px;
-            background: #2ecc71;
+            background: var(--premium-gradient);
             color: #000;
             border: none;
-            border-radius: 30px;
-            font-size: 13px;
+            border-radius: 40px;
             font-weight: bold;
-            cursor: pointer;
             margin-top: 10px;
+            cursor: pointer;
         }
         .user-item {
+            background: rgba(0,0,0,0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 12px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 14px;
-            margin-bottom: 6px;
+            gap: 12px;
             cursor: pointer;
         }
         .online-indicator {
@@ -525,11 +586,7 @@
             height: 10px;
             background: #2ecc71;
             border-radius: 50%;
-            box-shadow: 0 0 5px #2ecc71;
-        }
-        @media (max-width: 380px) {
-            .msg-row { max-width: 90%; }
-            .media-btn { width: 38px; height: 38px; font-size: 16px; }
+            box-shadow: 0 0 6px #2ecc71;
         }
     </style>
 </head>
@@ -538,10 +595,10 @@
 
     <div class="chat-header">
         <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-        <a href="/chatpremium.html" style="color:#FFD700;text-decoration:none;font-size:11px;font-weight:bold">👑 Premium</a>
-        <h3 class="animated-text"><i class="fas fa-comments"></i> စကားပြော</h3>
+        <a href="/chatpremium.html" style="font-size:11px; font-weight:600">👑 Upgrade</a>
+        <h3><i class="fas fa-crown"></i> SOLO M Chat</h3>
         <span class="online-count" id="onlineCount">0 online</span>
-        <span class="premium-badge" id="premiumBadge"></span>
+        <span class="premium-badge" id="premiumBadge">PREMIUM</span>
     </div>
 
     <div class="chat-tabs">
@@ -558,41 +615,28 @@
         <div class="chat-area" id="chatArea">
             <div class="chat-area-header">
                 <span class="back-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></span>
-                <span class="room-title animated-text" id="chatRoomTitle">Chat</span>
+                <span class="room-title" id="chatRoomTitle">Chat</span>
                 <span class="delete-room-btn" onclick="deleteCurrentRoom()"><i class="fas fa-trash"></i></span>
             </div>
-            <div class="messages" id="messages">
-                <div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Select a chat room to start</div>
-            </div>
-            <div class="typing-indicator" id="typingIndicator" style="display:none">
-                <i class="fas fa-ellipsis-h"></i> Someone is typing...
-            </div>
+            <div class="messages" id="messages"></div>
+            <div class="typing-indicator" id="typingIndicator" style="display:none">✨ Someone is typing...</div>
             <div class="msg-input-area">
                 <div class="media-buttons" id="mediaButtons">
-                    <button class="media-btn" id="imageBtn" onclick="selectImage()">
-                        <i class="fas fa-image"></i>
-                        <span class="lock-icon" id="imageLock" style="display:none">🔒</span>
-                    </button>
-                    <button class="media-btn" id="fileBtn" onclick="selectFile()">
-                        <i class="fas fa-paperclip"></i>
-                        <span class="lock-icon" id="fileLock" style="display:none">🔒</span>
-                    </button>
+                    <button class="media-btn" id="imageBtn"><i class="fas fa-image"></i><span class="lock-icon" id="imageLock" style="display:none">🔒</span></button>
+                    <button class="media-btn" id="fileBtn"><i class="fas fa-paperclip"></i><span class="lock-icon" id="fileLock" style="display:none">🔒</span></button>
                 </div>
                 <div class="input-wrapper">
-                    <input type="text" id="msgInput" placeholder="စာရိုက်ပါ..." onkeypress="if(event.key==='Enter') sendMessage()" oninput="onTyping()">
+                    <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key==='Enter') sendMessage()" oninput="onTyping()">
                 </div>
-                <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
-            
             <div class="emoji-row">
                 <button class="toggle-emoji-btn" onclick="toggleMoreEmojis()"><i class="fas fa-smile"></i> More</button>
                 <span class="emoji-item" onclick="insertEmoji('😀')">😀</span><span class="emoji-item" onclick="insertEmoji('😂')">😂</span>
                 <span class="emoji-item" onclick="insertEmoji('😍')">😍</span><span class="emoji-item" onclick="insertEmoji('😎')">😎</span>
                 <span class="emoji-item" onclick="insertEmoji('😢')">😢</span><span class="emoji-item" onclick="insertEmoji('😡')">😡</span>
-                <span class="emoji-item" onclick="insertEmoji('👍')">👍</span><span class="emoji-item" onclick="insertEmoji('👎')">👎</span>
-                <span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span><span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span>
-                <span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span><span class="emoji-item" onclick="insertEmoji('💯')">💯</span>
-                <span class="emoji-item" onclick="insertEmoji('🙏')">🙏</span><span class="emoji-item" onclick="insertEmoji('😊')">😊</span>
+                <span class="emoji-item" onclick="insertEmoji('👍')">👍</span><span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span>
+                <span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span><span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span>
             </div>
         </div>
     </div>
@@ -601,7 +645,7 @@
         <div class="upload-preview-container">
             <div id="uploadPreviewContent"></div>
             <div class="upload-progress" id="uploadProgress" style="display:none">
-                <div style="font-size:12px; margin-bottom:5px" id="progressText">Uploading 0%</div>
+                <div style="font-size:12px" id="progressText">Uploading 0%</div>
                 <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
             </div>
             <div class="upload-buttons">
@@ -612,12 +656,12 @@
     </div>
 
     <!-- Modals -->
-    <div class="modal-overlay" id="groupModal"><div class="modal-box"><h3><i class="fas fa-users"></i> Create New Group</h3><div class="form-group"><label>Group Name</label><input type="text" id="groupName" placeholder="Enter group name..."></div><div class="form-group"><label>Add Members</label><select id="groupMembers" multiple style="height:100px;"></select><small>Hold Ctrl/Cmd to select multiple</small></div><div class="btn-row"><button class="btn btn-g" onclick="createGroup()">Create</button><button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button></div></div></div>
-    <div class="modal-overlay" id="addMemberModal"><div class="modal-box"><h3><i class="fas fa-user-plus"></i> Add Member</h3><input type="hidden" id="addMemberRoomId"><select id="addMemberSelect" style="width:100%; padding:10px; background:rgba(0,0,0,0.3); border-radius:10px; color:#fff"></select><div class="btn-row"><button class="btn btn-g" onclick="addMemberToGroup()">Add</button><button class="btn btn-r" onclick="closeModal('addMemberModal')">Cancel</button></div></div></div>
-    <div class="modal-overlay" id="inviteModal"><div class="modal-box"><h3><i class="fas fa-link"></i> Invite Link</h3><div style="display:flex; gap:8px;"><input type="text" id="inviteLink" readonly style="flex:1; padding:10px; background:rgba(0,0,0,0.3); border-radius:10px; color:#fff"><button class="btn btn-b" onclick="copyInviteLink()">Copy</button></div><button class="btn btn-g" onclick="closeModal('inviteModal')" style="width:100%; margin-top:10px">Close</button></div></div>
-    <div class="modal-overlay" id="groupInfoModal"><div class="modal-box"><h3><i class="fas fa-info-circle"></i> Group Info</h3><div id="groupInfoContent"></div><div class="btn-row"><button class="btn btn-w" onclick="showAddMemberModal()">➕ Add Member</button><button class="btn btn-b" onclick="getInviteLink()">🔗 Invite Link</button><button class="btn btn-r" onclick="leaveGroup()">🚪 Leave Group</button></div><button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%; margin-top:10px">Close</button></div></div>
-    <div class="modal-overlay" id="premiumRequiredModal"><div class="modal-box"><h3><i class="fas fa-crown"></i> Premium Required</h3><p style="margin:15px 0; text-align:center">ဤ feature ကို အသုံးပြုရန် Premium ဝယ်ယူထားရပါမည်။<br><br>Upgrade to send images and files!</p><div class="btn-row"><button class="btn btn-w" onclick="window.location.href='/chatpremium.html'">Upgrade Now</button><button class="btn" onclick="closeModal('premiumRequiredModal')">Cancel</button></div></div></div>
-    <div class="modal-overlay" id="moreEmojisModal"><div class="modal-box"><h3><i class="fas fa-smile"></i> All Emojis</h3><div class="more-emojis-grid" id="moreEmojisGrid" style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; max-height:400px; overflow-y:auto; padding:10px;"></div><button class="btn" onclick="closeModal('moreEmojisModal')" style="width:100%; margin-top:10px">Close</button></div></div>
+    <div class="modal-overlay" id="groupModal"><div class="modal-box"><h3>✨ Create Group</h3><div class="form-group"><input type="text" id="groupName" placeholder="Group name"></div><div class="form-group"><select id="groupMembers" multiple style="height:100px"></select></div><div class="btn-row"><button class="btn btn-g" onclick="createGroup()">Create</button><button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button></div></div></div>
+    <div class="modal-overlay" id="addMemberModal"><div class="modal-box"><h3>➕ Add Member</h3><input type="hidden" id="addMemberRoomId"><select id="addMemberSelect" style="width:100%; padding:12px; border-radius:40px; background:rgba(0,0,0,0.3); color:#fff"></select><div class="btn-row"><button class="btn btn-g" onclick="addMemberToGroup()">Add</button><button class="btn btn-r" onclick="closeModal('addMemberModal')">Cancel</button></div></div></div>
+    <div class="modal-overlay" id="inviteModal"><div class="modal-box"><h3>🔗 Invite Link</h3><div style="display:flex; gap:8px"><input type="text" id="inviteLink" readonly style="flex:1; padding:12px; border-radius:40px; background:rgba(0,0,0,0.3); color:#fff"><button class="btn btn-w" onclick="copyInviteLink()">Copy</button></div><button class="btn" onclick="closeModal('inviteModal')" style="width:100%; margin-top:12px">Close</button></div></div>
+    <div class="modal-overlay" id="groupInfoModal"><div class="modal-box"><h3>ℹ️ Group Info</h3><div id="groupInfoContent"></div><div class="btn-row"><button class="btn btn-w" onclick="showAddMemberModal()">➕ Add</button><button class="btn btn-w" onclick="getInviteLink()">🔗 Invite</button><button class="btn btn-r" onclick="leaveGroup()">🚪 Leave</button></div><button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%; margin-top:12px">Close</button></div></div>
+    <div class="modal-overlay" id="premiumRequiredModal"><div class="modal-box"><h3>👑 Premium Required</h3><p style="margin:15px 0; text-align:center">Upgrade to send images & files</p><div class="btn-row"><button class="btn btn-w" onclick="window.location.href='/chatpremium.html'">Upgrade</button><button class="btn" onclick="closeModal('premiumRequiredModal')">Cancel</button></div></div></div>
+    <div class="modal-overlay" id="moreEmojisModal"><div class="modal-box"><h3>😊 All Emojis</h3><div id="moreEmojisGrid" style="display:flex; flex-wrap:wrap; gap:12px; justify-content:center; max-height:350px; overflow-y:auto; padding:10px"></div><button class="btn" onclick="closeModal('moreEmojisModal')" style="width:100%; margin-top:12px">Close</button></div></div>
 
     <script>
     let socket = null, currentUser = null, currentRoom = null, typingTimeout = null;
@@ -627,23 +671,20 @@
     function showToast(msg, isError = false) {
         const toast = document.getElementById('toast');
         toast.textContent = msg;
-        toast.style.background = isError ? '#e74c3c' : '#2ecc71';
-        toast.style.color = isError ? '#fff' : '#000';
+        toast.style.background = isError ? '#e74c3c' : 'rgba(0,0,0,0.8)';
         toast.style.display = 'block';
         setTimeout(() => toast.style.display = 'none', 3000);
     }
-
-    function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-    function scrollToBottom() { const msgs = document.getElementById('messages'); if (msgs) msgs.scrollTop = msgs.scrollHeight; }
-    function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+    function escapeHtml(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+    function scrollToBottom() { const m = document.getElementById('messages'); if (m) m.scrollTop = m.scrollHeight; }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
     async function checkPremiumStatus() {
         const token = localStorage.getItem('auth_token');
         if (!token || token === 'guest') return;
         try {
             const res = await fetch('/api/chat/premium/details', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token })
             });
             const data = await res.json();
             if (data.success && data.premium_active) {
@@ -652,8 +693,7 @@
                 applyPremiumTheme(premiumTier);
                 updateMediaButtons(true);
             } else {
-                isPremium = false;
-                premiumTier = 0;
+                isPremium = false; premiumTier = 0;
                 applyNormalTheme();
                 updateMediaButtons(false);
             }
@@ -661,103 +701,67 @@
     }
 
     function applyPremiumTheme(tier) {
-        const body = document.body;
-        body.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
-        if (tier === 1) { body.classList.add('bronze-tier'); document.getElementById('premiumBadge').textContent = '🥉 PREMIUM BRONZE'; }
-        else if (tier === 2) { body.classList.add('silver-tier'); document.getElementById('premiumBadge').textContent = '🥈 PREMIUM SILVER'; }
-        else if (tier === 3) { body.classList.add('gold-tier'); document.getElementById('premiumBadge').textContent = '🥇 PREMIUM GOLD'; }
-        else { body.classList.add('normal-theme'); }
+        document.body.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
+        if (tier === 1) { document.body.classList.add('bronze-tier'); document.getElementById('premiumBadge').textContent = '🥉 BRONZE'; }
+        else if (tier === 2) { document.body.classList.add('silver-tier'); document.getElementById('premiumBadge').textContent = '🥈 SILVER'; }
+        else if (tier === 3) { document.body.classList.add('gold-tier'); document.getElementById('premiumBadge').textContent = '🥇 GOLD'; }
+        else { document.body.classList.add('normal-theme'); }
     }
-
     function applyNormalTheme() { document.body.classList.remove('bronze-tier', 'silver-tier', 'gold-tier'); document.body.classList.add('normal-theme'); }
-
     function updateMediaButtons(hasPremium) {
-        const imageBtn = document.getElementById('imageBtn');
-        const fileBtn = document.getElementById('fileBtn');
-        const imageLock = document.getElementById('imageLock');
-        const fileLock = document.getElementById('fileLock');
+        const imgBtn = document.getElementById('imageBtn'), fileBtn = document.getElementById('fileBtn'), imgLock = document.getElementById('imageLock'), fileLock = document.getElementById('fileLock');
         if (hasPremium) {
-            imageBtn.disabled = false; fileBtn.disabled = false;
-            imageBtn.classList.remove('locked'); fileBtn.classList.remove('locked');
-            imageLock.style.display = 'none'; fileLock.style.display = 'none';
+            imgBtn.disabled = false; fileBtn.disabled = false;
+            imgBtn.classList.remove('locked'); fileBtn.classList.remove('locked');
+            imgLock.style.display = 'none'; fileLock.style.display = 'none';
         } else {
-            imageBtn.disabled = true; fileBtn.disabled = true;
-            imageBtn.classList.add('locked'); fileBtn.classList.add('locked');
-            imageLock.style.display = 'flex'; fileLock.style.display = 'flex';
+            imgBtn.disabled = true; fileBtn.disabled = true;
+            imgBtn.classList.add('locked'); fileBtn.classList.add('locked');
+            imgLock.style.display = 'flex'; fileLock.style.display = 'flex';
         }
     }
 
-    function selectImage() {
-        if (!isPremium) { document.getElementById('premiumRequiredModal').classList.add('active'); return; }
-        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
-        input.onchange = (e) => { if (e.target.files[0]) { selectedFile = e.target.files[0]; selectedFileType = 'image'; selectedFileName = selectedFile.name; showUploadPreview(selectedFile, 'image'); } };
-        input.click();
-    }
-
-    function selectFile() {
-        if (!isPremium) { document.getElementById('premiumRequiredModal').classList.add('active'); return; }
-        const input = document.createElement('input'); input.type = 'file';
-        input.onchange = (e) => { if (e.target.files[0]) { selectedFile = e.target.files[0]; selectedFileType = 'file'; selectedFileName = selectedFile.name; showUploadPreview(selectedFile, 'file'); } };
-        input.click();
-    }
-
+    function selectImage() { if (!isPremium) { document.getElementById('premiumRequiredModal').classList.add('active'); return; } const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.onchange = e => { if (e.target.files[0]) { selectedFile = e.target.files[0]; selectedFileType = 'image'; selectedFileName = selectedFile.name; showUploadPreview(selectedFile, 'image'); } }; inp.click(); }
+    function selectFile() { if (!isPremium) { document.getElementById('premiumRequiredModal').classList.add('active'); return; } const inp = document.createElement('input'); inp.type = 'file'; inp.onchange = e => { if (e.target.files[0]) { selectedFile = e.target.files[0]; selectedFileType = 'file'; selectedFileName = selectedFile.name; showUploadPreview(selectedFile, 'file'); } }; inp.click(); }
     function showUploadPreview(file, type) {
-        const container = document.getElementById('uploadPreviewContent');
-        const modal = document.getElementById('uploadPreviewModal');
-        if (type === 'image') {
-            const reader = new FileReader();
-            reader.onload = (e) => { container.innerHTML = `<img src="${e.target.result}" class="upload-preview-image">`; modal.classList.add('active'); };
-            reader.readAsDataURL(file);
-        } else {
-            container.innerHTML = `<div class="upload-preview-file"><i class="fas fa-file" style="font-size:40px"></i><div style="flex:1"><div style="font-weight:bold">${escapeHtml(file.name)}</div><div style="font-size:10px; color:rgba(255,255,255,0.5)">${(file.size / 1024).toFixed(1)} KB</div></div></div>`;
-            modal.classList.add('active');
-        }
-        document.getElementById('uploadProgress').style.display = 'none';
-        document.getElementById('sendUploadBtn').disabled = false;
-        uploadCancelled = false;
+        const container = document.getElementById('uploadPreviewContent'), modal = document.getElementById('uploadPreviewModal');
+        if (type === 'image') { const r = new FileReader(); r.onload = e => { container.innerHTML = `<img src="${e.target.result}" class="upload-preview-image">`; modal.classList.add('active'); }; r.readAsDataURL(file); }
+        else { container.innerHTML = `<div class="upload-preview-file"><i class="fas fa-file" style="font-size:40px"></i><div style="flex:1"><div style="font-weight:bold">${escapeHtml(file.name)}</div><div>${(file.size/1024).toFixed(1)} KB</div></div></div>`; modal.classList.add('active'); }
+        document.getElementById('uploadProgress').style.display = 'none'; document.getElementById('sendUploadBtn').disabled = false; uploadCancelled = false;
     }
-
     function cancelUpload() { uploadCancelled = true; selectedFile = null; document.getElementById('uploadPreviewModal').classList.remove('active'); }
-
     async function confirmUpload() {
-        if (!selectedFile || uploadCancelled || !currentRoom) { if (!currentRoom) showToast('Select a chat room first', true); cancelUpload(); return; }
-        const modal = document.getElementById('uploadPreviewModal'), progressDiv = document.getElementById('uploadProgress'), progressFill = document.getElementById('progressFill'), progressText = document.getElementById('progressText');
-        progressDiv.style.display = 'block'; progressFill.style.width = '0%'; progressText.textContent = 'Uploading 0%';
+        if (!selectedFile || uploadCancelled || !currentRoom) { if (!currentRoom) showToast('Select a room first', true); cancelUpload(); return; }
+        const progDiv = document.getElementById('uploadProgress'), progFill = document.getElementById('progressFill'), progText = document.getElementById('progressText');
+        progDiv.style.display = 'block'; progFill.style.width = '0%'; progText.textContent = 'Uploading 0%';
         document.getElementById('sendUploadBtn').disabled = true;
-        let progress = 0;
-        const progressInterval = setInterval(() => { if (uploadCancelled) return; progress = Math.min(progress + 8, 90); progressFill.style.width = progress + '%'; progressText.textContent = `Uploading ${progress}%`; }, 150);
+        let progress = 0; const interval = setInterval(() => { if (uploadCancelled) return; progress = Math.min(progress + 8, 90); progFill.style.width = progress + '%'; progText.textContent = `Uploading ${progress}%`; }, 150);
         try {
             const reader = new FileReader();
-            const base64 = await new Promise((resolve) => { reader.onload = (e) => resolve(e.target.result); reader.readAsDataURL(selectedFile); });
-            if (uploadCancelled) { clearInterval(progressInterval); cancelUpload(); return; }
-            progressFill.style.width = '95%'; progressText.textContent = 'Processing 95%';
-            const res = await fetch('/api/chat/upload_file', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: localStorage.getItem('auth_token'), base64, fileName: selectedFileName, fileType: selectedFile.type })
-            });
+            const base64 = await new Promise(r => { reader.onload = e => r(e.target.result); reader.readAsDataURL(selectedFile); });
+            if (uploadCancelled) { clearInterval(interval); cancelUpload(); return; }
+            progFill.style.width = '95%'; progText.textContent = 'Processing...';
+            const res = await fetch('/api/chat/upload_file', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token'), base64, fileName: selectedFileName, fileType: selectedFile.type }) });
             const data = await res.json();
-            clearInterval(progressInterval);
+            clearInterval(interval);
             if (uploadCancelled) { cancelUpload(); return; }
             if (data.success) {
-                progressFill.style.width = '100%'; progressText.textContent = 'Complete! Sending...';
+                progFill.style.width = '100%'; progText.textContent = 'Complete! Sending...';
                 await new Promise(r => setTimeout(r, 200));
-                const messageData = { roomId: currentRoom, message: selectedFileType === 'image' ? `📷 IMAGE:${data.url}` : `📎 FILE:${data.url}|${data.fileName || selectedFileName}`, userId: currentUser.id, username: currentUser.username };
-                socket.emit('send_message', messageData);
-                showToast('Sent!');
-                cancelUpload();
+                socket.emit('send_message', { roomId: currentRoom, message: selectedFileType === 'image' ? `📷 IMAGE:${data.url}` : `📎 FILE:${data.url}|${data.fileName || selectedFileName}`, userId: currentUser.id, username: currentUser.username, senderPremiumTier: premiumTier });
+                showToast('Sent!'); cancelUpload();
             } else { showToast(data.message || 'Upload failed', true); cancelUpload(); }
-        } catch(err) { clearInterval(progressInterval); showToast('Upload error', true); cancelUpload(); }
+        } catch(e) { clearInterval(interval); showToast('Upload error', true); cancelUpload(); }
     }
 
     async function getCurrentUser() {
         const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') { document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-lock" style="font-size:50px"></i><h3>Please login to chat</h3><a href="/">Login</a></div>'; return null; }
+        if (!token || token === 'guest') { document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-lock" style="font-size:50px"></i><h3>Please login</h3><a href="/">Login</a></div>'; return null; }
         try {
             const res = await fetch('/api/chat/current_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
             const data = await res.json();
             if (data.success) { currentUser = data.user; return currentUser; }
-            throw new Error('User not found');
-        } catch(e) { document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-exclamation-triangle" style="font-size:50px"></i><h3>Error loading user</h3><a href="/">Back</a></div>'; return null; }
+        } catch(e) { return null; }
     }
 
     function initSocket() {
@@ -765,34 +769,25 @@
         socket.on('connect', () => { if (currentUser) socket.emit('user_online', { userId: currentUser.id, username: currentUser.username }); });
         socket.on('new_message', (msg) => {
             if (currentRoom === msg.roomId) {
-                addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
+                addMessageUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
                 scrollToBottom();
             }
             loadRooms();
         });
         socket.on('online_users', (users) => { document.getElementById('onlineCount').innerHTML = (users?.length || 0) + ' online'; loadUsersList(); });
-        socket.on('user_typing', (data) => {
-            if (currentRoom === data.roomId && data.userId !== currentUser?.id) {
-                const ind = document.getElementById('typingIndicator');
-                ind.style.display = 'block';
-                ind.innerHTML = `<i class="fas fa-ellipsis-h"></i> ${escapeHtml(data.username)} is typing...`;
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => ind.style.display = 'none', 2000);
-            }
-        });
+        socket.on('user_typing', (data) => { if (currentRoom === data.roomId && data.userId !== currentUser?.id) { const ind = document.getElementById('typingIndicator'); ind.style.display = 'block'; ind.innerHTML = `✨ ${escapeHtml(data.username)} is typing...`; clearTimeout(typingTimeout); typingTimeout = setTimeout(() => ind.style.display = 'none', 2000); } });
     }
-
     function onTyping() { if (!currentRoom || !currentUser) return; socket.emit('typing', { roomId: currentRoom, userId: currentUser.id, username: currentUser.username }); }
 
-    function switchTab(tabName) {
+    function switchTab(tab) {
         document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.chat-tab[data-tab="${tabName}"]`).classList.add('active');
+        document.querySelector(`.chat-tab[data-tab="${tab}"]`).classList.add('active');
         document.getElementById('roomList').classList.remove('active');
         document.getElementById('usersList').classList.remove('active');
         document.getElementById('groupsList').classList.remove('active');
-        if (tabName === 'rooms') { document.getElementById('roomList').classList.add('active'); loadRooms(); }
-        else if (tabName === 'users') { document.getElementById('usersList').classList.add('active'); loadUsersList(); }
-        else if (tabName === 'groups') { document.getElementById('groupsList').classList.add('active'); loadGroupsList(); }
+        if (tab === 'rooms') { document.getElementById('roomList').classList.add('active'); loadRooms(); }
+        else if (tab === 'users') { document.getElementById('usersList').classList.add('active'); loadUsersList(); }
+        else if (tab === 'groups') { document.getElementById('groupsList').classList.add('active'); loadGroupsList(); }
     }
 
     async function loadRooms() {
@@ -800,189 +795,73 @@
         try {
             const res = await fetch('/api/chat/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
             const data = await res.json();
-            const container = document.getElementById('roomList');
-            if (data.rooms?.length) {
-                container.innerHTML = data.rooms.map(room => `<div class="room-item" onclick="openRoom(${room.id}, '${escapeHtml(room.room_name)}', '${room.room_type}')"><div class="room-icon">${room.room_type === 'admin' ? '👑' : room.room_type === 'group' ? '👥' : '💬'}</div><div class="room-info"><div class="room-name">${escapeHtml(room.room_name)}</div><div class="room-last">${escapeHtml(room.last_message || 'No messages')}</div></div>${room.unread > 0 ? `<div class="room-badge">${room.unread}</div>` : ''}</div>`).join('');
-            } else { container.innerHTML = `<div class="empty-state"><i class="fas fa-comments"></i><p>No chat rooms yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>`; }
-        } catch(e) { console.error(e); }
+            document.getElementById('roomList').innerHTML = data.rooms?.length ? data.rooms.map(r => `<div class="room-item" onclick="openRoom(${r.id}, '${escapeHtml(r.room_name)}', '${r.room_type}')"><div class="room-icon">${r.room_type === 'admin' ? '👑' : r.room_type === 'group' ? '👥' : '💬'}</div><div class="room-info"><div class="room-name">${escapeHtml(r.room_name)}</div><div class="room-last">${escapeHtml(r.last_message || 'No messages')}</div></div>${r.unread > 0 ? `<div class="room-badge">${r.unread}</div>` : ''}</div>`).join('') : '<div class="empty-state"><i class="fas fa-comments"></i><p>No rooms yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>';
+        } catch(e) {}
     }
-
     async function loadUsersList() {
         if (!currentUser) return;
         try {
             const res = await fetch('/api/chat/online_users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
             const data = await res.json();
-            const onlineUsers = (data.users || []).filter(u => u.user_id !== currentUser.id);
-            document.getElementById('usersList').innerHTML = onlineUsers.length ? onlineUsers.map(user => `<div class="user-item" onclick="startPrivateChat(${user.user_id}, '${escapeHtml(user.username)}')"><div class="online-indicator"></div><div class="room-info"><div class="room-name">${escapeHtml(user.username)}</div><div class="room-last" style="color:#2ecc71;">🟢 Online now</div></div></div>`).join('') : '<div class="empty-state"><i class="fas fa-user-slash"></i><p>No online users</p></div>';
-        } catch(e) { console.error(e); }
+            const users = (data.users || []).filter(u => u.user_id !== currentUser.id);
+            document.getElementById('usersList').innerHTML = users.length ? users.map(u => `<div class="user-item" onclick="startPrivateChat(${u.user_id}, '${escapeHtml(u.username)}')"><div class="online-indicator"></div><div class="room-info"><div class="room-name">${escapeHtml(u.username)}</div><div class="room-last">🟢 Online</div></div></div>`).join('') : '<div class="empty-state">No online users</div>';
+        } catch(e) {}
     }
-
     async function loadGroupsList() {
         if (!currentUser) return;
         try {
             const res = await fetch('/api/chat/groups', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
             const data = await res.json();
-            document.getElementById('groupsList').innerHTML = data.groups?.length ? data.groups.map(group => `<div class="room-item" onclick="openRoom(${group.id}, '${escapeHtml(group.room_name)}', 'group')"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(group.room_name)}</div><div class="room-last">${escapeHtml(group.last_message || 'No messages')}</div></div></div>`).join('') : `<div class="empty-state"><i class="fas fa-users"></i><p>No groups yet</p><button class="admin-btn" onclick="openCreateGroupModal()">➕ Create New Group</button></div>`;
-        } catch(e) { console.error(e); }
-    }
-
-    function openCreateGroupModal() { loadUsersForSelect('groupMembers'); document.getElementById('groupModal').classList.add('active'); }
-    async function loadUsersForSelect(selectId) {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/all_users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            const select = document.getElementById(selectId);
-            if (select && data.users) select.innerHTML = data.users.map(user => `<option value="${user.id}">${escapeHtml(user.username)}</option>`).join('');
+            document.getElementById('groupsList').innerHTML = data.groups?.length ? data.groups.map(g => `<div class="room-item" onclick="openRoom(${g.id}, '${escapeHtml(g.room_name)}', 'group')"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(g.room_name)}</div><div class="room-last">${escapeHtml(g.last_message || 'No messages')}</div></div></div>`).join('') : '<div class="empty-state"><i class="fas fa-users"></i><p>No groups</p><button class="admin-btn" onclick="openCreateGroupModal()">➕ Create Group</button></div>';
         } catch(e) {}
     }
-    async function createGroup() {
-        const groupName = document.getElementById('groupName').value.trim();
-        if (!groupName) { showToast('Group name required', true); return; }
-        const members = Array.from(document.getElementById('groupMembers').selectedOptions).map(opt => parseInt(opt.value));
-        try {
-            const res = await fetch('/api/chat/create_group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, groupName, members }) });
-            const data = await res.json();
-            if (data.success) { showToast('Group created!'); closeModal('groupModal'); document.getElementById('groupName').value = ''; loadGroupsList(); loadRooms(); }
-            else showToast(data.message || 'Error', true);
-        } catch(e) { showToast('Server error', true); }
-    }
 
-    async function startAdminChat() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/create_admin_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            if (data.success) { openRoom(data.room.id, data.room.room_name, 'admin'); loadRooms(); }
-            else showToast('Error creating admin chat', true);
-        } catch(e) { showToast('Server error', true); }
-    }
+    async function openCreateGroupModal() { await loadUsersForSelect('groupMembers'); document.getElementById('groupModal').classList.add('active'); }
+    async function loadUsersForSelect(id) { if (!currentUser) return; try { const r = await fetch('/api/chat/all_users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) }); const d = await r.json(); const sel = document.getElementById(id); if (sel && d.users) sel.innerHTML = d.users.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join(''); } catch(e) {} }
+    async function createGroup() { const name = document.getElementById('groupName').value.trim(); if (!name) { showToast('Group name required', true); return; } const members = Array.from(document.getElementById('groupMembers').selectedOptions).map(o => parseInt(o.value)); try { const r = await fetch('/api/chat/create_group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, groupName: name, members }) }); const d = await r.json(); if (d.success) { showToast('Group created!'); closeModal('groupModal'); loadGroupsList(); loadRooms(); } else showToast(d.message || 'Error', true); } catch(e) { showToast('Server error', true); } }
+    async function startAdminChat() { if (!currentUser) return; try { const r = await fetch('/api/chat/create_admin_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) }); const d = await r.json(); if (d.success) openRoom(d.room.id, d.room.room_name, 'admin'); else showToast('Error', true); } catch(e) { showToast('Server error', true); } }
+    async function startPrivateChat(id, name) { if (!currentUser) return; try { const r = await fetch('/api/chat/create_private_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, otherUserId: id }) }); const d = await r.json(); if (d.success) openRoom(d.room.id, name, 'private'); } catch(e) { showToast('Error', true); } }
+    async function openRoom(id, name, type) { currentRoom = id; document.querySelectorAll('.room-list').forEach(l => l.classList.remove('active')); document.getElementById('chatArea').classList.add('active'); document.getElementById('chatRoomTitle').textContent = name; document.getElementById('messages').innerHTML = '<div style="text-align:center;padding:20px">Loading...</div>'; if (socket) socket.emit('join_room', id); try { const r = await fetch(`/api/chat/messages/${id}`); const d = await r.json(); const container = document.getElementById('messages'); if (d.messages?.length) { container.innerHTML = ''; d.messages.forEach(m => addMessageUI(m, m.sender_id === currentUser?.id, m.sender_premium_tier || 0)); scrollToBottom(); } else container.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet</div>'; await fetch('/api/chat/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: id, userId: currentUser.id }) }); } catch(e) { document.getElementById('messages').innerHTML = '<div style="text-align:center;padding:20px;color:#e74c3c">Error</div>'; } }
 
-    async function startPrivateChat(otherUserId, otherUsername) {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/create_private_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, otherUserId }) });
-            const data = await res.json();
-            if (data.success) openRoom(data.room.id, otherUsername, 'private');
-        } catch(e) { showToast('Error', true); }
-    }
-
-    async function openRoom(roomId, roomName, roomType) {
-        currentRoom = roomId;
-        document.querySelectorAll('.room-list').forEach(l => l.classList.remove('active'));
-        document.getElementById('chatArea').classList.add('active');
-        document.getElementById('chatRoomTitle').textContent = roomName;
-        const msgContainer = document.getElementById('messages');
-        msgContainer.innerHTML = '<div style="text-align:center;padding:20px">Loading messages...</div>';
-        if (socket && socket.connected) socket.emit('join_room', roomId);
-        try {
-            const res = await fetch(`/api/chat/messages/${roomId}`);
-            const data = await res.json();
-            if (data.messages?.length) {
-                msgContainer.innerHTML = '';
-                data.messages.forEach(msg => {
-                    const senderTier = msg.sender_premium_tier || 0;
-                    addMessageToUI(msg, msg.sender_id === currentUser?.id, senderTier);
-                });
-                scrollToBottom();
-            } else msgContainer.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet. Say hi!</div>';
-            await fetch('/api/chat/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId, userId: currentUser.id }) });
-        } catch(e) { msgContainer.innerHTML = '<div style="text-align:center;padding:20px;color:#e74c3c">Error loading messages</div>'; }
-    }
-
-    function addMessageToUI(msg, isMine, senderPremiumTier = 0) {
+    function addMessageUI(msg, isMine, senderTier) {
         const container = document.getElementById('messages');
         if (container.innerHTML.includes('No messages') || container.innerHTML.includes('Loading')) container.innerHTML = '';
-        let messageHtml = '';
-        const msgText = msg.message || '';
-        if (msgText.startsWith('📷 IMAGE:')) {
-            const url = msgText.replace('📷 IMAGE:', '');
-            messageHtml = `<div class="media-message" onclick="downloadMedia('${url}', 'image')"><img src="${url}" alt="Image" loading="lazy"><div class="download-icon" style="position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.5); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center"><i class="fas fa-download"></i></div></div>`;
-        } else if (msgText.startsWith('📎 FILE:')) {
-            const parts = msgText.replace('📎 FILE:', '').split('|');
-            const url = parts[0], fname = parts[1] || 'File';
-            messageHtml = `<div class="file-message" onclick="downloadMedia('${url}', 'file', '${fname}')"><i class="fas fa-file"></i> ${escapeHtml(fname)}<i class="fas fa-download download-icon"></i></div>`;
-        } else { messageHtml = escapeHtml(msgText); }
+        let html = '';
+        const text = msg.message || '';
+        if (text.startsWith('📷 IMAGE:')) { const url = text.replace('📷 IMAGE:', ''); html = `<div class="media-message" onclick="window.open('${url}','_blank')"><img src="${url}" loading="lazy"><div class="download-icon" style="position:absolute; bottom:6px; right:6px; background:rgba(0,0,0,0.5); border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center"><i class="fas fa-download"></i></div></div>`; }
+        else if (text.startsWith('📎 FILE:')) { const parts = text.replace('📎 FILE:', '').split('|'); const url = parts[0], fname = parts[1] || 'File'; html = `<div class="file-message" onclick="window.open('${url}','_blank')"><i class="fas fa-file"></i> ${escapeHtml(fname)}<i class="fas fa-download download-icon"></i></div>`; }
+        else { html = escapeHtml(text); }
+        let bubbleClass = 'normal-bubble';
+        if (senderTier === 1) bubbleClass = 'bronze-bubble';
+        else if (senderTier === 2) bubbleClass = 'silver-bubble';
+        else if (senderTier === 3) bubbleClass = 'gold-bubble';
         const div = document.createElement('div');
-        div.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
-        let bubbleClass = '';
-        if (senderPremiumTier === 1) bubbleClass = 'bronze-tier';
-        else if (senderPremiumTier === 2) bubbleClass = 'silver-tier';
-        else if (senderPremiumTier === 3) bubbleClass = 'gold-tier';
-        else bubbleClass = 'normal-tier';
-        div.innerHTML = `<div class="msg-bubble ${bubbleClass}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${messageHtml}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
+        div.className = `msg-row ${isMine ? 'mine' : ''}`;
+        div.innerHTML = `<div class="msg-bubble ${bubbleClass}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${html}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
         container.appendChild(div);
     }
 
-    function downloadMedia(url, type, filename = 'file') {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = type === 'image' ? 'image.jpg' : filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showToast('Download started');
-    }
-
     function sendMessage() {
-        const input = document.getElementById('msgInput');
-        const message = input.value.trim();
-        if (!message) { showToast('စာရိုက်ပါ', true); return; }
-        if (!currentRoom) { showToast('စကားပြောခန်းမရွေးရသေးပါ', true); return; }
-        if (!currentUser) { showToast('အကောင့်ဝင်ထားပါ', true); return; }
-        socket.emit('send_message', { roomId: currentRoom, message, userId: currentUser.id, username: currentUser.username, senderPremiumTier: premiumTier });
+        const input = document.getElementById('msgInput'), msg = input.value.trim();
+        if (!msg) { showToast('Type a message', true); return; }
+        if (!currentRoom) { showToast('Select a room first', true); return; }
+        if (!currentUser) { showToast('Please login', true); return; }
+        socket.emit('send_message', { roomId: currentRoom, message: msg, userId: currentUser.id, username: currentUser.username, senderPremiumTier: premiumTier });
         input.value = '';
     }
-
     function closeChat() { currentRoom = null; document.getElementById('chatArea').classList.remove('active'); document.getElementById('roomList').classList.add('active'); loadRooms(); }
-    function deleteCurrentRoom() { if (!currentRoom || !confirm('Delete this chat room?')) return; fetch('/api/chat/delete_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) }).then(() => { showToast('Room deleted'); closeChat(); }).catch(() => showToast('Error', true)); }
+    function deleteCurrentRoom() { if (!currentRoom || !confirm('Delete this room?')) return; fetch('/api/chat/delete_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) }).then(() => { showToast('Room deleted'); closeChat(); }); }
     function showAddMemberModal() { document.getElementById('addMemberRoomId').value = currentRoom; loadUsersForSelect('addMemberSelect'); document.getElementById('addMemberModal').classList.add('active'); }
-    async function addMemberToGroup() {
-        const roomId = document.getElementById('addMemberRoomId').value, newMemberId = document.getElementById('addMemberSelect').value;
-        if (!newMemberId) { showToast('Select a user', true); return; }
-        try {
-            const res = await fetch('/api/chat/add_member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId, userId: newMemberId, requesterId: currentUser.id }) });
-            const data = await res.json();
-            if (data.success) { showToast('Member added!'); closeModal('addMemberModal'); }
-            else showToast(data.message || 'Error', true);
-        } catch(e) { showToast('Server error', true); }
-    }
-    async function getInviteLink() {
-        try {
-            const res = await fetch('/api/chat/invite_link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) });
-            const data = await res.json();
-            if (data.success) { document.getElementById('inviteLink').value = data.link; document.getElementById('inviteModal').classList.add('active'); }
-            else showToast(data.message || 'Error', true);
-        } catch(e) { showToast('Server error', true); }
-    }
-    function copyInviteLink() { const input = document.getElementById('inviteLink'); input.select(); document.execCommand('copy'); showToast('Link copied!'); }
-    async function leaveGroup() {
-        if (!confirm('Leave this group?')) return;
-        try {
-            const res = await fetch('/api/chat/leave_group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) });
-            const data = await res.json();
-            if (data.success) { showToast('Left group'); closeModal('groupInfoModal'); closeChat(); loadGroupsList(); loadRooms(); }
-            else showToast(data.message || 'Error', true);
-        } catch(e) { showToast('Server error', true); }
-    }
+    async function addMemberToGroup() { const rid = document.getElementById('addMemberRoomId').value, uid = document.getElementById('addMemberSelect').value; if (!uid) { showToast('Select user', true); return; } try { const r = await fetch('/api/chat/add_member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: rid, userId: uid, requesterId: currentUser.id }) }); const d = await r.json(); if (d.success) { showToast('Member added!'); closeModal('addMemberModal'); } else showToast(d.message || 'Error', true); } catch(e) { showToast('Error', true); } }
+    async function getInviteLink() { try { const r = await fetch('/api/chat/invite_link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) }); const d = await r.json(); if (d.success) { document.getElementById('inviteLink').value = d.link; document.getElementById('inviteModal').classList.add('active'); } else showToast(d.message || 'Error', true); } catch(e) { showToast('Error', true); } }
+    function copyInviteLink() { const inp = document.getElementById('inviteLink'); inp.select(); document.execCommand('copy'); showToast('Link copied!'); }
+    async function leaveGroup() { if (!confirm('Leave group?')) return; try { const r = await fetch('/api/chat/leave_group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) }); const d = await r.json(); if (d.success) { showToast('Left group'); closeModal('groupInfoModal'); closeChat(); loadGroupsList(); loadRooms(); } else showToast(d.message || 'Error', true); } catch(e) { showToast('Error', true); } }
 
-    function insertEmoji(emoji) {
-        const input = document.getElementById('msgInput');
-        const cursorPos = input.selectionStart;
-        input.value = input.value.substring(0, cursorPos) + emoji + input.value.substring(cursorPos);
-        input.focus();
-        input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
-    }
-
-    function toggleMoreEmojis() {
-        const allEmojis = ['😀','😂','😍','😎','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','😊','🤔','😴','🥰','😇','🤗','💪','👋','✌️','🤝','👑','💎','💰','🎮','⚽','🌟','🍕','🍺','☕','🏆','🎯','📱','💻','🎵','📷','🔒','✅','❌','⚠️','💡','🔑','🔔','📢','💬','💭','🕒','📍','🔗','🐱','🐶','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🇲🇲','🇹🇭','🇯🇵','🇰🇷','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇮🇳','🇨🇳','🏳️‍🌈','🏴‍☠️','⭐','🌙','☀️','🌈','⚡','❄️','💧','🔥','🌊','🌸','🌺','🌻','🌹','🍎','🍕','🍔','🥤','🎂','🎁','🎈','🎊'];
-        const grid = document.getElementById('moreEmojisGrid');
-        grid.innerHTML = allEmojis.map(e => `<span class="emoji-item" style="font-size:32px; cursor:pointer; padding:6px" onclick="insertEmoji('${e}'); closeModal('moreEmojisModal');">${e}</span>`).join('');
-        document.getElementById('moreEmojisModal').classList.add('active');
-    }
+    function insertEmoji(emoji) { const inp = document.getElementById('msgInput'); const pos = inp.selectionStart; inp.value = inp.value.substring(0, pos) + emoji + inp.value.substring(pos); inp.focus(); inp.setSelectionRange(pos + emoji.length, pos + emoji.length); }
+    function toggleMoreEmojis() { const all = ['😀','😂','😍','😎','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','😊','🤔','😴','🥰','😇','🤗','💪','👋','✌️','🤝','👑','💎','💰','🎮','⚽','🌟','🍕','🍺','☕','🏆','🎯','📱','💻','🎵','📷','✨','⭐','🌙','🌈','🔥','💧','🌸','🇲🇲','🇹🇭','🇯🇵','🇰🇷','🇺🇸','🇬🇧']; const grid = document.getElementById('moreEmojisGrid'); grid.innerHTML = all.map(e => `<span class="emoji-item" style="font-size:32px; cursor:pointer; padding:6px" onclick="insertEmoji('${e}'); closeModal('moreEmojisModal');">${e}</span>`).join(''); document.getElementById('moreEmojisModal').classList.add('active'); }
 
     async function init() {
-        document.querySelectorAll('.chat-tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab'))));
+        document.querySelectorAll('.chat-tab').forEach(t => t.addEventListener('click', () => switchTab(t.getAttribute('data-tab'))));
         const user = await getCurrentUser();
         if (!user) return;
         await checkPremiumStatus();
