@@ -417,8 +417,8 @@
 
     <div class="container">
         <div class="header">
-            <a class="back-btn" href="/chat.html" onclick="goBack(event)">
-                <i class="fas fa-arrow-left"></i>
+            <a href="/chat.html" class="back-btn" onclick="goBack(event); return false;">
+            <i class="fas fa-arrow-left"></i>
             </a>
             <h2><i class="fas fa-crown"></i> Premium Chat</h2>
             <span class="premium-badge">PREMIUM</span>
@@ -560,13 +560,22 @@ function goBack(event) {
         event.stopPropagation();
     }
 
-    if (window.history.length > 1 && document.referrer) {
-        window.history.back();
-        return false;
-    }
+    // Mobile Browser Fix
+    try {
+        if (document.referrer && window.history.length > 1) {
+            window.history.back();
 
-    window.location.href = '/chat.html';
-    return false;
+            // backup redirect
+            setTimeout(() => {
+                window.location.replace('/chat.html');
+            }, 500);
+
+        } else {
+            window.location.replace('/chat.html');
+        }
+    } catch (e) {
+        window.location.replace('/chat.html');
+    }
 }
 
 function applyTheme(tier) {
