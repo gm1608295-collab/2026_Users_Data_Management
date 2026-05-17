@@ -3228,12 +3228,18 @@ const io = new Server(server, {
         methods: ['GET', 'POST'],
         credentials: true 
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'],
     allowEIO3: true,
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    httpCompression: true,
+    maxHttpBufferSize: 1e6
 });
 
+// Add health check for socket
+io.engine.on('connection_error', (err) => {
+    console.log('Socket connection error:', err.message);
+});
 // Online users tracking (in-memory fallback) - တစ်ခုတည်းသုံးပါ
 const onlineUsersMap = new Map();
 
