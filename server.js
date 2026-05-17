@@ -3223,7 +3223,95 @@ app.get('/api/leaderboard/top_spenders', async (req, res) => {
 // ==================== SOCKET.IO + SERVER START ====================
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: '*', methods: ['GET', 'POST'] }
+    cors: { 
+        origin: '*', 
+        methods: ['GET', 'POST'],
+        credentials: true 
+    },
+    transports: ['websocket', 'polling'],
+    allowEIO3: true,
+    pingTimeout: 60000,
+    pingInterval: 25000
+});
+
+// Online users tracking (in-memory fallback)
+const onlineUsersMap = new Map();
+
+io.on('connection', (socket) => {
+    console.log('✅ User connected:', socket.id);
+    
+    socket.on('user_online', async (data) => {
+        socket.userId = data.userId;
+        socket.username = data.username;
+        
+        // Store in memory
+        onlineUsersMap.set(data.userId, { socketId: socket.id, username: data.username, online: true });
+        
+        // Try DB but don't fail if error
+        try {
+            const p = await getPool();
+            await p.query(
+                `INSERT INTO chat_online_users (user_id, socket_id, username, last_active) 
+                 VALUES ($1, $2, $3, NOW()) 
+                 ON CONFLICT (user_id) DO UPDATE SET socket_id=$2, last_active=NOW()`,
+                [data.userId, socket.id, data.username]
+            );
+        } catch(e) { console.log('DB online error:', e.message); }
+        
+        // Broadcast online users
+        const online = Array.from(onlineUsersMap.values());
+        io.emit('online_users', online);
+    });
+    
+    socket.on('join_room', (roomId) => {
+        socket.join('room_' + roomId);
+        console.log('📌 User joined room:', roomId);
+    });
+    
+    socket.on('send_message', async (data) => {
+        const { roomId, message, userId, username } = data;
+        console.log('📨 Message received:', { roomId, userId, message: message?.substring(0,30) });
+        
+        try {
+            const p = await getPool();
+            const result = await p.query(
+                `INSERT INTO chat_messages (room_id, sender_id, username, message) 
+                 VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
+                [roomId, userId, username, message]
+            );
+            
+            const msgData = {
+                id: result.rows[0].id,
+                roomId: roomId,
+                sender_id: userId,
+                username: username,
+                message: message,
+                created_at: result.rows[0].created_at
+            };
+            
+            io.to('room_' + roomId).emit('new_message', msgData);
+            console.log('✅ Message sent to room:', roomId);
+            
+        } catch(e) { 
+            console.error('Send message error:', e.message);
+            socket.emit('error', { message: 'Failed to send message' });
+        }
+    });
+    
+    socket.on('disconnect', async () => {
+        if (socket.userId) {
+            onlineUsersMap.delete(socket.userId);
+            
+            try {
+                const p = await getPool();
+                await p.query('DELETE FROM chat_online_users WHERE user_id = $1', [socket.userId]);
+            } catch(e) {}
+            
+            const online = Array.from(onlineUsersMap.values());
+            io.emit('online_users', online);
+        }
+        console.log('❌ User disconnected:', socket.id);
+    });
 });
 
 // Online users tracking
