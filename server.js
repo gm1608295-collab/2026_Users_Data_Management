@@ -3617,6 +3617,19 @@ app.get('/api/debug/chat', async (req, res) => {
         res.json({ success: false, error: e.message });
     }
 });
+// Get online users list
+app.post('/api/chat/online_users', async (req, res) => {
+    const { userId } = req.body;
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            "SELECT user_id, username, last_active FROM chat_online_users WHERE last_active > NOW() - INTERVAL '1 minute'"
+        );
+        res.json({ success: true, users: r.rows });
+    } catch(e) {
+        res.json({ success: true, users: [] });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
