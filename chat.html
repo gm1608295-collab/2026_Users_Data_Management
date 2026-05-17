@@ -7,1691 +7,329 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', sans-serif;
-        }
-
-        body {
-            background: #0c0e27;
-            color: #fff;
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        /* ========== PREMIUM THEMES ========== */
-        /* BRONZE TIER 1 */
-        body.bronze-tier {
-            background: linear-gradient(135deg, #1a0f07 0%, #2d1a0a 100%);
-        }
-        body.bronze-tier .chat-header {
-            background: linear-gradient(135deg, #6b3410, #8b4513, #6b3410);
-            border-bottom: 3px solid #CD7F32;
-        }
-        body.bronze-tier .chat-header h3,
-        body.bronze-tier .chat-header a {
-            color: #E8A87C;
-        }
-        body.bronze-tier .chat-tab.active {
-            background: #8B4513;
-            color: #E8A87C;
-        }
-        body.bronze-tier .room-item:hover {
-            background: rgba(205, 127, 50, 0.3);
-        }
-        body.bronze-tier .msg-mine .msg-bubble {
-            background: linear-gradient(135deg, #8B4513, #CD7F32);
-            color: #fff;
-        }
-        body.bronze-tier .msg-other .msg-bubble {
-            background: rgba(205, 127, 50, 0.2);
-            border: 1px solid rgba(205, 127, 50, 0.3);
-        }
-        body.bronze-tier .msg-input-area button {
-            background: linear-gradient(135deg, #CD7F32, #8B4513);
-            color: #1a0f07;
-        }
-        body.bronze-tier .msg-input-area input:focus {
-            border-color: #CD7F32;
-        }
-        body.bronze-tier .premium-badge {
-            background: #CD7F32;
-            color: #1a0f07;
-        }
-        body.bronze-tier .animated-text {
-            animation: bronzeGlow 2s ease-in-out infinite;
-        }
-        body.bronze-tier .room-name {
-            animation: bronzeFloat 3s ease-in-out infinite;
-        }
-        @keyframes bronzeGlow {
-            0%, 100% { text-shadow: 0 0 5px #CD7F32; }
-            50% { text-shadow: 0 0 15px #E8A87C; }
-        }
-        @keyframes bronzeFloat {
-            0%, 100% { transform: translateX(0px); }
-            50% { transform: translateX(3px); }
-        }
-
-        /* SILVER TIER 2 */
-        body.silver-tier {
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
-        }
-        body.silver-tier .chat-header {
-            background: linear-gradient(135deg, #4a4a4a, #808080, #4a4a4a);
-            border-bottom: 3px solid #C0C0C0;
-        }
-        body.silver-tier .chat-header h3,
-        body.silver-tier .chat-header a {
-            color: #E8E8E8;
-        }
-        body.silver-tier .chat-tab.active {
-            background: #808080;
-            color: #E8E8E8;
-        }
-        body.silver-tier .room-item:hover {
-            background: rgba(192, 192, 192, 0.3);
-        }
-        body.silver-tier .msg-mine .msg-bubble {
-            background: linear-gradient(135deg, #808080, #C0C0C0);
-            color: #0a0a0a;
-        }
-        body.silver-tier .msg-other .msg-bubble {
-            background: rgba(192, 192, 192, 0.15);
-            border: 1px solid rgba(192, 192, 192, 0.3);
-        }
-        body.silver-tier .msg-input-area button {
-            background: linear-gradient(135deg, #C0C0C0, #808080);
-            color: #0a0a0a;
-        }
-        body.silver-tier .msg-input-area input:focus {
-            border-color: #C0C0C0;
-        }
-        body.silver-tier .premium-badge {
-            background: #C0C0C0;
-            color: #0a0a0a;
-        }
-        body.silver-tier .animated-text {
-            animation: silverShine 1.8s ease-in-out infinite;
-        }
-        body.silver-tier .room-name {
-            animation: silverPulse 2s ease-in-out infinite;
-        }
-        @keyframes silverShine {
-            0%, 100% { text-shadow: 0 0 5px #C0C0C0; letter-spacing: 0px; }
-            50% { text-shadow: 0 0 20px #E8E8E8; letter-spacing: 1px; }
-        }
-        @keyframes silverPulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.02); opacity: 0.95; }
-        }
-
-        /* GOLD TIER 3 */
-        body.gold-tier {
-            background: linear-gradient(135deg, #1a0a00 0%, #2d1a00 100%);
-        }
-        body.gold-tier .chat-header {
-            background: linear-gradient(135deg, #6d4c00, #b8860b, #6d4c00);
-            border-bottom: 3px solid #FFD700;
-            animation: goldBorderPulse 1.5s infinite;
-        }
-        body.gold-tier .chat-header h3,
-        body.gold-tier .chat-header a {
-            color: #FFF8DC;
-            text-shadow: 0 0 10px rgba(255,215,0,0.5);
-        }
-        body.gold-tier .chat-header h3 {
-            animation: goldTextWave 1.2s ease-in-out infinite;
-        }
-        body.gold-tier .chat-tab.active {
-            background: #B8860B;
-            color: #FFF8DC;
-        }
-        body.gold-tier .room-item {
-            animation: goldCardGlow 2s infinite;
-        }
-        body.gold-tier .room-item:hover {
-            background: rgba(255, 215, 0, 0.25);
-            transform: translateX(5px);
-        }
-        body.gold-tier .msg-mine .msg-bubble {
-            background: linear-gradient(135deg, #B8860B, #FFD700);
-            color: #0a0a05;
-            animation: goldBubbleGlow 1s infinite;
-        }
-        body.gold-tier .msg-other .msg-bubble {
-            background: rgba(255, 215, 0, 0.12);
-            border: 1px solid rgba(255, 215, 0, 0.4);
-        }
-        body.gold-tier .msg-input-area button {
-            background: linear-gradient(135deg, #FFD700, #B8860B);
-            color: #0a0a05;
-            animation: goldBtnPulse 1s infinite;
-        }
-        body.gold-tier .msg-input-area input:focus {
-            border-color: #FFD700;
-            box-shadow: 0 0 15px rgba(255,215,0,0.3);
-        }
-        body.gold-tier .premium-badge {
-            background: #FFD700;
-            color: #0a0a05;
-            animation: goldBadgePulse 1s infinite;
-        }
-        body.gold-tier .animated-text {
-            animation: goldFancyWave 1.4s ease-in-out infinite;
-        }
-        body.gold-tier .room-name {
-            animation: goldTitleMove 2s infinite;
-        }
-        @keyframes goldBorderPulse {
-            0%, 100% { border-color: #FFD700; box-shadow: 0 0 10px rgba(255,215,0,0.4); }
-            50% { border-color: #FFF8DC; box-shadow: 0 0 25px #FFD700; }
-        }
-        @keyframes goldTextWave {
-            0%, 100% { transform: translateX(0px); text-shadow: 0 0 5px #FFD700; }
-            25% { transform: translateX(3px); text-shadow: 0 0 20px #FFD700; }
-            75% { transform: translateX(-3px); text-shadow: 0 0 20px #FFD700; }
-        }
-        @keyframes goldBubbleGlow {
-            0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.3); }
-            50% { box-shadow: 0 0 15px rgba(255,215,0,0.6); }
-        }
-        @keyframes goldBtnPulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 5px rgba(255,215,0,0.4); }
-            50% { transform: scale(1.03); box-shadow: 0 0 15px rgba(255,215,0,0.8); }
-        }
-        @keyframes goldBadgePulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 5px #FFD700; }
-            50% { transform: scale(1.05); box-shadow: 0 0 20px #FFD700; }
-        }
-        @keyframes goldFancyWave {
-            0%, 100% { opacity: 1; text-shadow: 0 0 5px #FFD700; letter-spacing: 0px; }
-            50% { opacity: 0.95; text-shadow: 0 0 25px #FFF8DC; letter-spacing: 1px; }
-        }
-        @keyframes goldTitleMove {
-            0%, 100% { transform: translateX(0px); }
-            50% { transform: translateX(4px); }
-        }
-        @keyframes goldCardGlow {
-            0%, 100% { border-color: rgba(255,215,0,0.2); box-shadow: 0 0 5px rgba(255,215,0,0.2); }
-            50% { border-color: rgba(255,215,0,0.6); box-shadow: 0 0 15px rgba(255,215,0,0.4); }
-        }
-
-        /* Normal theme */
-        body.normal-theme {
-            background: linear-gradient(135deg, #0c0e27, #1a1f4b);
-        }
-        body.normal-theme .premium-badge,
-        body.normal-theme .media-buttons {
-            display: none;
-        }
-
-        /* ========== HEADER ========== */
-        .chat-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 15px;
-            flex-shrink: 0;
-            transition: all 0.3s;
-        }
-        .chat-header a {
-            text-decoration: none;
-            font-size: 18px;
-            transition: all 0.3s;
-        }
-        .chat-header h3 {
-            flex: 1;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        .chat-header .online-count {
-            font-size: 10px;
-            color: #2ecc71;
-        }
-        .premium-badge {
-            display: none;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 9px;
-            font-weight: bold;
-        }
-        body.bronze-tier .premium-badge,
-        body.silver-tier .premium-badge,
-        body.gold-tier .premium-badge {
-            display: inline-block;
-        }
-
-        /* ========== TABS ========== */
-        .chat-tabs {
-            display: flex;
-            gap: 4px;
-            padding: 8px 10px;
-            background: rgba(0,0,0,0.3);
-            flex-shrink: 0;
-        }
-        .chat-tab {
-            flex: 1;
-            padding: 8px;
-            text-align: center;
-            font-size: 11px;
-            cursor: pointer;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.05);
-            transition: all 0.2s;
-        }
-
-        /* ========== BODY ========== */
-        .chat-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
-        }
-        .room-list {
-            display: none;
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px;
-        }
-        .room-list.active {
-            display: block;
-        }
-        .room-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .room-item .room-icon {
-            font-size: 22px;
-        }
-        .room-item .room-info {
-            flex: 1;
-        }
-        .room-item .room-name {
-            font-size: 13px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        .room-item .room-last {
-            font-size: 9px;
-            color: rgba(255,255,255,0.4);
-            margin-top: 3px;
-        }
-        .room-item .room-badge {
-            background: #e74c3c;
-            color: #fff;
-            font-size: 9px;
-            padding: 2px 8px;
-            border-radius: 20px;
-        }
-
-        /* ========== CHAT AREA ========== */
-        .chat-area {
-            display: none;
-            flex: 1;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 0;
-        }
-        .chat-area.active {
-            display: flex;
-        }
-        .chat-area-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 15px;
-            background: rgba(0,0,0,0.3);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            flex-shrink: 0;
-        }
-        .chat-area-header .back-btn {
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .chat-area-header .room-title {
-            font-size: 14px;
-            font-weight: bold;
-            flex: 1;
-            transition: all 0.3s;
-        }
-        .chat-area-header .delete-room-btn {
-            color: #e74c3c;
-            cursor: pointer;
-            padding: 5px;
-        }
-
-        /* ========== MESSAGES ========== */
-        .messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .msg-row {
-            display: flex;
-            gap: 8px;
-            max-width: 85%;
-        }
-        .msg-row.mine {
-            align-self: flex-end;
-            flex-direction: row-reverse;
-        }
-        .msg-bubble {
-            padding: 10px 14px;
-            border-radius: 16px;
-            font-size: 12px;
-            word-break: break-word;
-            transition: all 0.3s;
-        }
-        .msg-mine .msg-bubble {
-            border-bottom-right-radius: 4px;
-        }
-        .msg-other .msg-bubble {
-            border-bottom-left-radius: 4px;
-        }
-        .msg-sender {
-            font-size: 9px;
-            margin-bottom: 4px;
-        }
-        .msg-time {
-            font-size: 8px;
-            color: rgba(255,255,255,0.4);
-            margin-top: 4px;
-            text-align: right;
-        }
-        /* Media message styles */
-        .media-message {
-            max-width: 200px;
-            border-radius: 12px;
-            cursor: pointer;
-        }
-        .media-message img {
-            max-width: 100%;
-            border-radius: 12px;
-        }
-        .file-message {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 8px;
-        }
-
-        /* ========== INPUT AREA ========== */
-        .msg-input-area {
-            display: flex;
-            gap: 8px;
-            padding: 10px 15px;
-            background: #11152d;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            flex-shrink: 0;
-        }
-        .input-wrapper {
-            position: relative;
-            flex: 1;
-        }
-        .msg-input-area input {
-            width: 100%;
-            padding: 12px 15px;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 30px;
-            color: #fff;
-            font-size: 13px;
-            outline: none;
-            transition: all 0.3s;
-        }
-        .msg-input-area button {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .msg-input-area button:hover {
-            transform: scale(1.05);
-        }
-
-        /* ========== MEDIA BUTTONS ========== */
-        .media-buttons {
-            display: flex;
-            gap: 5px;
-            margin-right: 5px;
-        }
-        .media-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            font-size: 18px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .media-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            background: rgba(255,255,255,0.2);
-        }
-        .media-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            position: relative;
-        }
-        .media-btn.locked {
-            background: rgba(231, 76, 60, 0.2);
-            border: 1px solid rgba(231, 76, 60, 0.5);
-        }
-        .lock-overlay {
-            position: absolute;
-            font-size: 10px;
-            top: -2px;
-            right: -2px;
-            background: #e74c3c;
-            border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-        }
-
-        /* ========== EMOJI ROW ========== */
-        .emoji-row {
-            display: flex;
-            overflow-x: auto;
-            gap: 12px;
-            padding: 8px 12px;
-            background: #0f1125;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            flex-shrink: 0;
-            scrollbar-width: thin;
-        }
-        .emoji-row::-webkit-scrollbar {
-            height: 3px;
-        }
-        .emoji-row::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        }
-        .emoji-row::-webkit-scrollbar-thumb {
-            background: #f39c12;
-            border-radius: 10px;
-        }
-        .emoji-item {
-            font-size: 24px;
-            cursor: pointer;
-            transition: transform 0.15s;
-            flex-shrink: 0;
-            padding: 4px;
-            border-radius: 12px;
-        }
-        .emoji-item:hover {
-            transform: scale(1.25);
-            background: rgba(255,255,255,0.1);
-        }
-        .toggle-emoji-btn {
-            background: rgba(255,255,255,0.08);
-            border: none;
-            border-radius: 20px;
-            padding: 4px 12px;
-            font-size: 13px;
-            cursor: pointer;
-            color: #f39c12;
-            white-space: nowrap;
-            transition: 0.2s;
-        }
-
-        /* ========== TYPING INDICATOR ========== */
-        .typing-indicator {
-            padding: 5px 15px;
-            font-size: 10px;
-            background: rgba(0,0,0,0.2);
-        }
-
-        /* ========== EMPTY STATE ========== */
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: rgba(255,255,255,0.3);
-        }
-        .admin-btn {
-            width: 100%;
-            padding: 12px;
-            background: #2ecc71;
-            color: #000;
-            border: none;
-            border-radius: 30px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .user-item:hover {
-            background: rgba(74,28,122,0.4);
-            transform: translateX(3px);
-        }
-        .online-indicator {
-            width: 10px;
-            height: 10px;
-            background: #2ecc71;
-            border-radius: 50%;
-            box-shadow: 0 0 5px #2ecc71;
-            flex-shrink: 0;
-        }
-
-        /* ========== TOAST ========== */
-        .toast {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            padding: 12px 18px;
-            border-radius: 30px;
-            background: #2ecc71;
-            color: #000;
-            display: none;
-            z-index: 2000;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        /* ========== MODALS ========== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal-box {
-            background: linear-gradient(135deg, #1a1f4b, #11112a);
-            border: 2px solid #f39c12;
-            border-radius: 20px;
-            padding: 20px;
-            width: 90%;
-            max-width: 400px;
-        }
-        .modal-box h3 {
-            color: #f39c12;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 12px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 10px;
-            margin-bottom: 4px;
-            color: rgba(255,255,255,0.7);
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 12px;
-        }
-        .btn-row {
-            display: flex;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        .btn {
-            padding: 10px;
-            border: none;
-            border-radius: 30px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            flex: 1;
-            text-align: center;
-        }
-        .btn-g { background: #2ecc71; color: #000; }
-        .btn-r { background: #e74c3c; color: #fff; }
-        .btn-b { background: #3498db; color: #fff; }
-        .btn-w { background: #f39c12; color: #000; }
-
-        /* ========== MORE EMOJIS GRID ========== */
-        .more-emojis-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            justify-content: center;
-            max-height: 400px;
-            overflow-y: auto;
-            padding: 10px;
-        }
-        .more-emojis-grid .emoji-item {
-            font-size: 32px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 12px;
-        }
-        .more-emojis-grid .emoji-item:hover {
-            background: rgba(255,255,255,0.15);
-            transform: scale(1.1);
-        }
-
-        /* ========== RESPONSIVE ========== */
-        @media (max-width: 380px) {
-            .msg-row { max-width: 90%; }
-            .chat-header { padding: 10px 12px; }
-            .messages { padding: 12px; }
-            .emoji-item { font-size: 20px; }
-            .media-btn { width: 35px; height: 35px; font-size: 14px; }
-        }
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        body{background:#0c0e27;color:var(--t);height:100vh;display:flex;flex-direction:column;overflow:hidden;transition:all 0.5s ease}
+        
+        .chat-header{display:flex;align-items:center;gap:10px;padding:12px 15px;background:linear-gradient(to right,var(--a),var(--p));border-bottom:2px solid var(--w);flex-shrink:0;z-index:10}
+        .chat-header a{color:var(--w);text-decoration:none;font-size:18px;pointer-events:auto;cursor:pointer}
+        .chat-header h3{color:var(--w);font-size:14px;flex:1}
+        .chat-header .online-count{font-size:10px;color:var(--g)}
+        
+        .chat-tabs{display:flex;gap:4px;padding:8px 10px;background:rgba(0,0,0,0.3);flex-shrink:0}
+        .chat-tab{flex:1;padding:8px;text-align:center;font-size:11px;cursor:pointer;border-radius:6px;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5);transition:all 0.2s}
+        .chat-tab.active{background:var(--a);color:var(--w)}
+        
+        .chat-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
+        
+        .room-list{display:none;flex:1;overflow-y:auto;padding:10px}
+        .room-list.active{display:block}
+        
+        .room-item{display:flex;align-items:center;gap:10px;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;margin-bottom:6px;cursor:pointer;transition:all 0.2s}
+        .room-item:hover{background:rgba(74,28,122,0.3)}
+        .room-item .room-icon{font-size:20px}
+        .room-item .room-info{flex:1}
+        .room-item .room-name{font-size:12px;font-weight:bold}
+        .room-item .room-last{font-size:9px;color:rgba(255,255,255,0.4);margin-top:3px}
+        .room-item .room-badge{background:var(--r);color:#fff;font-size:9px;padding:2px 8px;border-radius:10px;min-width:20px;text-align:center}
+        
+        .chat-area{display:none;flex:1;flex-direction:column;overflow:hidden}
+        .chat-area.active{display:flex}
+        
+        .chat-area-header{display:flex;align-items:center;gap:10px;padding:10px 15px;background:rgba(0,0,0,0.3);border-bottom:1px solid rgba(255,255,255,0.1);flex-shrink:0}
+        .chat-area-header .back-btn{color:var(--w);cursor:pointer;font-size:16px;pointer-events:auto}
+        .chat-area-header .room-title{font-size:13px;font-weight:bold;flex:1}
+        .chat-area-header .typing-indicator{font-size:9px;color:var(--g)}
+        
+        .messages{flex:1;overflow-y:auto;padding:15px;display:flex;flex-direction:column;gap:8px}
+        
+        .msg-row{display:flex;gap:8px;max-width:85%}
+        .msg-row.mine{align-self:flex-end;flex-direction:row-reverse}
+        .msg-row.other{align-self:flex-start}
+        
+        .msg-bubble{padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.5;word-break:break-word;position:relative}
+        .msg-mine .msg-bubble{background:var(--a);border-bottom-right-radius:4px}
+        .msg-other .msg-bubble{background:rgba(255,255,255,0.1);border-bottom-left-radius:4px}
+        
+        .msg-sender{font-size:9px;color:var(--w);margin-bottom:4px;font-weight:bold}
+        .msg-time{font-size:8px;color:rgba(255,255,255,0.3);margin-top:4px;text-align:right}
+        
+        .msg-image{max-width:200px;max-height:200px;border-radius:10px;cursor:pointer;display:block}
+        .msg-file{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,0,0,0.3);border-radius:8px;cursor:pointer}
+        .msg-file i{font-size:20px;color:var(--b)}
+        .msg-file .file-info{flex:1}
+        .msg-file .file-name{font-size:11px;color:var(--t)}
+        .msg-file .file-size{font-size:9px;color:rgba(255,255,255,0.4)}
+        
+        .upload-progress{display:none;padding:10px 15px;background:rgba(0,0,0,0.5);border-top:1px solid rgba(255,255,255,0.1);align-items:center;gap:10px;flex-shrink:0}
+        .upload-progress.active{display:flex}
+        .upload-progress .progress-bar{flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden}
+        .upload-progress .progress-fill{height:100%;background:var(--g);border-radius:2px;transition:width 0.3s;width:0%}
+        .upload-progress .progress-text{font-size:10px;color:rgba(255,255,255,0.6);white-space:nowrap}
+        .upload-progress .cancel-upload{color:var(--r);cursor:pointer;font-size:14px}
+        
+        .msg-input-area{display:flex;gap:8px;padding:10px 15px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.1);flex-shrink:0;align-items:center}
+        .input-wrapper{position:relative;flex:1}
+        .msg-input-area input{width:100%;padding:12px 40px 12px 15px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:#fff;font-size:13px;outline:none}
+        .emoji-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;color:rgba(255,255,255,0.5)}
+        .msg-input-area button{width:40px;height:40px;border-radius:50%;border:none;background:var(--w);color:#000;font-size:16px;cursor:pointer;flex-shrink:0}
+        
+        .attach-btn{width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,0.1);color:var(--t);font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+        .attach-btn:hover{background:rgba(255,255,255,0.2)}
+        .attach-btn.locked{opacity:0.4;cursor:not-allowed;background:rgba(255,255,255,0.05)}
+        
+        .emoji-picker{display:none;position:absolute;bottom:60px;right:0;background:var(--p);border:2px solid var(--w);border-radius:10px;padding:10px;z-index:100;width:300px;max-height:250px;overflow-y:auto;flex-wrap:wrap;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+        .emoji-picker.active{display:flex}
+        .emoji-item{font-size:24px;cursor:pointer;padding:4px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all 0.2s}
+        .emoji-item:hover{transform:scale(1.3);background:rgba(255,255,255,0.1)}
+        
+        .admin-btn{width:100%;padding:12px;background:var(--g);color:#000;border:none;border-radius:8px;font-size:13px;font-weight:bold;cursor:pointer;margin-top:10px}
+        
+        .search-bar{padding:8px 10px;background:rgba(0,0,0,0.2);flex-shrink:0}
+        .search-bar input{width:100%;padding:10px 15px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:20px;color:#fff;font-size:12px;outline:none}
+        
+        .empty-state{text-align:center;padding:40px 20px;color:rgba(255,255,255,0.3)}
+        .empty-state i{font-size:50px;margin-bottom:15px;display:block}
+        
+        .load-more{text-align:center;padding:10px;color:var(--b);font-size:11px;cursor:pointer}
+        
+        .image-preview-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:99999;justify-content:center;align-items:center;cursor:pointer}
+        .image-preview-modal.active{display:flex}
+        .image-preview-modal img{max-width:95%;max-height:95%;border-radius:10px}
+        
+        .toast{position:fixed;top:15px;right:15px;padding:12px 18px;border-radius:25px;z-index:99999;font-size:12px;font-weight:bold;display:none;box-shadow:0 5px 20px rgba(0,0,0,0.4)}
+        
+        @media(max-width:380px){.msg-row{max-width:90%}.msg-image{max-width:150px;max-height:150px}}
     </style>
 </head>
-<body class="normal-theme">
-    <div class="toast" id="toast"></div>
+<body>
+    <audio id="msgSound" preload="auto" style="display:none">
+        <source src="https://www.soundjay.com/buttons/sounds/button-09.mp3" type="audio/mpeg">
+    </audio>
 
-    <!-- Header -->
+    <div class="toast" id="toast"></div>
+    
+    <div class="image-preview-modal" id="imagePreviewModal" onclick="this.classList.remove('active')">
+        <img id="previewImage" src="">
+    </div>
+
     <div class="chat-header">
         <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-        <a href="/chatpremium.html" style="color:#FFD700;text-decoration:none;font-size:11px;font-weight:bold">👑 Premium</a>
-        <h3 class="animated-text"><i class="fas fa-comments"></i> စကားပြော</h3>
-        <span class="online-count" id="onlineCount">0 online</span>
-        <span class="premium-badge" id="premiumBadge"></span>
+        <h3><i class="fas fa-comments"></i> စကားပြော</h3>
+        <span class="online-count" id="onlineCount">0 ယောက်ရှိ</span>
     </div>
-
-    <!-- Tabs -->
+    
     <div class="chat-tabs">
-        <div class="chat-tab active" data-tab="rooms">💬 Rooms</div>
-        <div class="chat-tab" data-tab="users">👥 Users</div>
-        <div class="chat-tab" data-tab="groups">👥 Groups</div>
+        <div class="chat-tab active" onclick="switchTab('rooms')">💬 စကားပြောများ</div>
+        <div class="chat-tab" onclick="switchTab('online')">🟢 အွန်လိုင်း</div>
+        <div class="chat-tab" onclick="switchTab('search')">🔍 ရှာရန်</div>
     </div>
-
-    <!-- Body -->
+    
     <div class="chat-body">
-        <div class="room-list active" id="roomList">
-            <div class="empty-state">Loading...</div>
+        <div class="room-list active" id="roomList"></div>
+        <div class="room-list" id="onlineList"><div class="empty-state"><i class="fas fa-users"></i>အွန်လိုင်းသုံးစွဲသူများ စောင့်ဆိုင်းနေသည်...</div></div>
+        <div class="room-list" id="searchList">
+            <div class="search-bar"><input type="text" id="searchInput" placeholder="သုံးစွဲသူအမည် ရှာရန်..." onkeyup="searchUsers()"></div>
+            <div id="searchResults" style="padding:10px"><div class="empty-state"><i class="fas fa-search"></i>သုံးစွဲသူအမည် ရိုက်ထည့်ပါ</div></div>
         </div>
-        <div class="room-list" id="usersList">
-            <div class="empty-state">Loading users...</div>
-        </div>
-        <div class="room-list" id="groupsList">
-            <div class="empty-state">No groups yet. Create one!</div>
-        </div>
-
-        <!-- Chat Area -->
+        
         <div class="chat-area" id="chatArea">
             <div class="chat-area-header">
                 <span class="back-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></span>
-                <span class="room-title animated-text" id="chatRoomTitle">Chat</span>
-                <span class="delete-room-btn" onclick="deleteCurrentRoom()"><i class="fas fa-trash"></i></span>
+                <span class="room-title" id="chatRoomTitle">စကားပြော</span>
+                <span class="typing-indicator" id="typingIndicator"></span>
             </div>
-            <div class="messages" id="messages">
-                <div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Select a chat room to start</div>
+            <div class="messages" id="messages"></div>
+            <div class="load-more" id="loadMore" style="display:none" onclick="loadMoreMessages()">⏳ နောက်ထပ်စာများ ကြည့်ရန်...</div>
+            
+            <div class="upload-progress" id="uploadProgress">
+                <span>📤</span>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                <span class="progress-text" id="progressText">0%</span>
+                <span class="cancel-upload" onclick="cancelUpload()"><i class="fas fa-times"></i></span>
             </div>
-            <div class="typing-indicator" id="typingIndicator" style="display:none">
-                <i class="fas fa-ellipsis-h"></i> Someone is typing...
-            </div>
+            
             <div class="msg-input-area">
-                <div class="media-buttons" id="mediaButtons">
-                    <button class="media-btn" id="imageBtn" onclick="sendImage()" title="Send Image">
-                        <i class="fas fa-image"></i>
-                    </button>
-                    <button class="media-btn" id="fileBtn" onclick="sendFile()" title="Send File">
-                        <i class="fas fa-paperclip"></i>
-                    </button>
-                </div>
-                <div class="input-wrapper" style="position:relative; flex:1">
-                    <input type="text" id="msgInput" placeholder="စာရိုက်ပါ..." onkeypress="if(event.key==='Enter') sendMessage()" oninput="onTyping()">
+                <input type="file" id="imageInput" accept="image/*" onchange="handleFileSelect('image')" style="display:none">
+                <input type="file" id="fileInput" accept="*/*" onchange="handleFileSelect('file')" style="display:none">
+                <button class="attach-btn" id="imageBtn" onclick="document.getElementById('imageInput').click()" title="ပုံပို့ရန်"><i class="fas fa-image"></i></button>
+                <button class="attach-btn" id="fileBtn" onclick="document.getElementById('fileInput').click()" title="ဖိုင်ပို့ရန်"><i class="fas fa-paperclip"></i></button>
+                <div class="input-wrapper">
+                    <input type="text" id="msgInput" placeholder="စာရိုက်ပါ..." onkeypress="if(event.key==='Enter')sendMessage()">
+                    <span class="emoji-btn" onclick="toggleEmoji()">😊</span>
+                    <div class="emoji-picker" id="emojiPicker"></div>
                 </div>
                 <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
-            
-            <!-- Emoji Quick Row -->
-            <div class="emoji-row" id="emojiRow">
-                <button class="toggle-emoji-btn" onclick="toggleMoreEmojis()">
-                    <i class="fas fa-smile"></i> More
-                </button>
-                <span class="emoji-item" onclick="insertEmoji('😀')">😀</span>
-                <span class="emoji-item" onclick="insertEmoji('😂')">😂</span>
-                <span class="emoji-item" onclick="insertEmoji('😍')">😍</span>
-                <span class="emoji-item" onclick="insertEmoji('😎')">😎</span>
-                <span class="emoji-item" onclick="insertEmoji('😢')">😢</span>
-                <span class="emoji-item" onclick="insertEmoji('😡')">😡</span>
-                <span class="emoji-item" onclick="insertEmoji('👍')">👍</span>
-                <span class="emoji-item" onclick="insertEmoji('👎')">👎</span>
-                <span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span>
-                <span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span>
-                <span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span>
-                <span class="emoji-item" onclick="insertEmoji('💯')">💯</span>
-                <span class="emoji-item" onclick="insertEmoji('🙏')">🙏</span>
-                <span class="emoji-item" onclick="insertEmoji('😊')">😊</span>
-                <span class="emoji-item" onclick="insertEmoji('🤔')">🤔</span>
-                <span class="emoji-item" onclick="insertEmoji('😴')">😴</span>
-                <span class="emoji-item" onclick="insertEmoji('🥰')">🥰</span>
-                <span class="emoji-item" onclick="insertEmoji('😇')">😇</span>
-                <span class="emoji-item" onclick="insertEmoji('🤗')">🤗</span>
-                <span class="emoji-item" onclick="insertEmoji('💪')">💪</span>
-                <span class="emoji-item" onclick="insertEmoji('👑')">👑</span>
-                <span class="emoji-item" onclick="insertEmoji('💎')">💎</span>
-                <span class="emoji-item" onclick="insertEmoji('💰')">💰</span>
-                <span class="emoji-item" onclick="insertEmoji('🎮')">🎮</span>
-                <span class="emoji-item" onclick="insertEmoji('⚽')">⚽</span>
-                <span class="emoji-item" onclick="insertEmoji('🌟')">🌟</span>
-                <span class="emoji-item" onclick="insertEmoji('🍕')">🍕</span>
-            </div>
         </div>
     </div>
 
-    <!-- Group Modal -->
-    <div class="modal-overlay" id="groupModal">
-        <div class="modal-box">
-            <h3><i class="fas fa-users"></i> Create New Group</h3>
-            <div class="form-group">
-                <label>Group Name</label>
-                <input type="text" id="groupName" placeholder="Enter group name...">
-            </div>
-            <div class="form-group">
-                <label>Add Members (optional)</label>
-                <select id="groupMembers" multiple style="height:100px;">
-                    <option value="">Loading users...</option>
-                </select>
-                <small style="font-size:9px; color:rgba(255,255,255,0.4)">Hold Ctrl/Cmd to select multiple</small>
-            </div>
-            <div class="btn-row">
-                <button class="btn btn-g" onclick="createGroup()">Create Group</button>
-                <button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button>
-            </div>
-        </div>
-    </div>
+<script>
+// Check login
+if (!localStorage.getItem('auth_token') || localStorage.getItem('auth_token') === 'guest') {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:#fff;text-align:center"><div><i class="fas fa-lock" style="font-size:50px;color:#f39c12;margin-bottom:15px"></i><h3>စကားပြောရန် အကောင့်ဝင်ပါ</h3><a href="/" style="color:#f39c12;margin-top:15px;display:inline-block">Login Page သို့သွားရန်</a></div></div>';
+}
 
-    <!-- Add Member Modal -->
-    <div class="modal-overlay" id="addMemberModal">
-        <div class="modal-box">
-            <h3><i class="fas fa-user-plus"></i> Add Member</h3>
-            <input type="hidden" id="addMemberRoomId">
-            <div class="form-group">
-                <label>Select User</label>
-                <select id="addMemberSelect">
-                    <option value="">Loading users...</option>
-                </select>
-            </div>
-            <div class="btn-row">
-                <button class="btn btn-g" onclick="addMemberToGroup()">Add Member</button>
-                <button class="btn btn-r" onclick="closeModal('addMemberModal')">Cancel</button>
-            </div>
-        </div>
-    </div>
+if (localStorage.getItem('auth_token') && localStorage.getItem('auth_token') !== 'guest') {
 
-    <!-- Invite Modal -->
-    <div class="modal-overlay" id="inviteModal">
-        <div class="modal-box">
-            <h3><i class="fas fa-link"></i> Invite Link</h3>
-            <div class="form-group">
-                <label>Share this link</label>
-                <div style="display:flex; gap:8px;">
-                    <input type="text" id="inviteLink" readonly style="flex:1;">
-                    <button class="btn btn-b" onclick="copyInviteLink()">Copy</button>
-                </div>
-            </div>
-            <button class="btn btn-g" onclick="closeModal('inviteModal')" style="width:100%">Close</button>
-        </div>
-    </div>
+const socket = io(window.location.origin, {transports:['websocket','polling'],reconnection:true,reconnectionAttempts:5});
 
-    <!-- Group Info Modal -->
-    <div class="modal-overlay" id="groupInfoModal">
-        <div class="modal-box">
-            <h3><i class="fas fa-info-circle"></i> Group Info</h3>
-            <div id="groupInfoContent" style="margin:10px 0"></div>
-            <div class="btn-row">
-                <button class="btn btn-w" onclick="showAddMemberModal()">➕ Add Member</button>
-                <button class="btn btn-b" onclick="getInviteLink()">🔗 Invite Link</button>
-                <button class="btn btn-r" onclick="leaveGroup()">🚪 Leave Group</button>
-            </div>
-            <button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%; margin-top:10px; background:rgba(255,255,255,0.1)">Close</button>
-        </div>
-    </div>
+let user=null,currentRoom=null,messageOffset=0,hasMoreMessages=false,chatPremiumActive=false;
 
-    <!-- More Emojis Modal -->
-    <div class="modal-overlay" id="moreEmojisModal">
-        <div class="modal-box" style="max-width: 380px;">
-            <h3><i class="fas fa-smile"></i> All Emojis</h3>
-            <div class="more-emojis-grid" id="moreEmojisGrid"></div>
-            <button class="btn" onclick="closeModal('moreEmojisModal')" style="width: 100%; margin-top: 10px;">Close</button>
-        </div>
-    </div>
+try{user=JSON.parse(localStorage.getItem('user')||'{}')}catch(e){user={}}
+if(!user.id)user={id:0,username:'ဧည့်သည်'};
 
-    <!-- Premium Required Modal -->
-    <div class="modal-overlay" id="premiumRequiredModal">
-        <div class="modal-box">
-            <h3><i class="fas fa-crown"></i> Premium Required</h3>
-            <p style="margin:15px 0; text-align:center">This feature requires Premium membership.<br><br>Upgrade to Premium to send images and files!</p>
-            <div class="btn-row">
-                <button class="btn btn-w" onclick="window.location.href='/chatpremium.html'">Upgrade Now</button>
-                <button class="btn" onclick="closeModal('premiumRequiredModal')">Cancel</button>
-            </div>
-        </div>
-    </div>
+socket.on('connect',()=>{socket.emit('join',{userId:user.id||0,username:user.username||'သုံးစွဲသူ'})});
 
-    <script>
-    // ============================================
-    // COMPLETE CHAT SYSTEM - WITH PREMIUM THEMES & MEDIA
-    // ============================================
+// ==================== TOAST ====================
+function showToast(msg,isError){const t=document.getElementById('toast');t.textContent=msg;t.style.background=isError?'#e74c3c':'#2ecc71';t.style.display='block';setTimeout(()=>t.style.display='none',3000)}
 
-    let socket = null;
-    let currentUser = null;
-    let currentRoom = null;
-    let currentRoomType = null;
-    let typingTimeout = null;
-    let isPremium = false;
-    let premiumTier = 0;
+// ==================== EMOJI ====================
+const EMOJIS=['😀','😃','😄','😁','😅','🤣','😂','🙂','😉','😊','😇','🥰','😍','🤩','😘','😋','😛','😜','🤪','😝','🤑','🤗','🤔','😐','😑','😶','😏','😒','🙄','😬','😌','😔','😴','😷','🤒','🤕','🤢','🤮','🥵','🥶','😵','🤯','🥳','😎','🤓','🧐','😕','😟','😮','😯','😲','😳','🥺','😢','😭','😱','😡','😠','🤬','💀','👻','👽','🤖','👍','👎','👌','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','👋','🤝','🙌','👏','🙏','💪','❤️','🧡','💛','💚','💙','💜','🖤','💔','💕','💞','💓','💗','💖','💘','💝','💯','⭐','🌟','✨','⚡','🔥','💫','🎉','🎊','🎁','🎂','🏆','🥇','🥈','🥉','🎖️','🏅','👑','💎','💰','🎮','📱','💻','🍔','🍕','🍟','☕','🍺','⚽','🏀','🎵','🎶','🌈','☀️','🌙','🚗','✈️','🚀'];
 
-    // ========== UTILITIES ==========
-    function showToast(msg, isError = false) {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.style.background = isError ? '#e74c3c' : '#2ecc71';
-        toast.style.color = isError ? '#fff' : '#000';
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 3000);
-    }
+function buildEmojiPicker(){document.getElementById('emojiPicker').innerHTML=EMOJIS.map(e=>`<span class="emoji-item" onclick="insertEmoji('${e}')">${e}</span>`).join('')}
+buildEmojiPicker();
+function toggleEmoji(){document.getElementById('emojiPicker').classList.toggle('active')}
+function insertEmoji(e){const i=document.getElementById('msgInput');i.value+=e;document.getElementById('emojiPicker').classList.remove('active');i.focus()}
 
-    function escapeHtml(text) {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+// ==================== PREMIUM CHECK ====================
+async function checkChatPremium(){
+    const token=localStorage.getItem('auth_token');if(!token||token==='guest')return;
+    try{const r=await fetch('/api/chat/premium/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});const d=await r.json();
+        chatPremiumActive=d.success&&d.premium_active;
+        ['imageBtn','fileBtn'].forEach(id=>{const btn=document.getElementById(id);if(btn){if(chatPremiumActive){btn.classList.remove('locked');btn.title='ပုံ/ဖိုင်ပို့ရန်'}else{btn.classList.add('locked');btn.title='ပုံ/ဖိုင်ပို့ရန် Premium လိုပါသည်'}}})
+    }catch(e){}
+}
 
-    function scrollToBottom() {
-        const messages = document.getElementById('messages');
-        if (messages) {
-            messages.scrollTop = messages.scrollHeight;
-        }
-    }
+// ==================== FILE UPLOAD ====================
+function showUploadProgress(s){document.getElementById('uploadProgress').classList.toggle('active',s)}
+function updateUploadProgress(p){document.getElementById('progressFill').style.width=p+'%';document.getElementById('progressText').textContent=p+'%'}
+function cancelUpload(){showUploadProgress(false);updateUploadProgress(0)}
 
-    function closeModal(modalId) {
-        document.getElementById(modalId).classList.remove('active');
-    }
+async function handleFileSelect(type){
+    const input=document.getElementById(type==='image'?'imageInput':'fileInput');
+    const file=input.files[0];if(!file)return;
+    
+    if(!chatPremiumActive){showToast('ပုံ/ဖိုင်ပို့ရန် Chat Premium လိုအပ်ပါသည်!',true);input.value='';return}
+    if(file.size>10*1024*1024){showToast('ဖိုင်အရွယ်အစား 10MB အောက်သာခွင့်ပြုပါသည်',true);input.value='';return}
+    
+    const token=localStorage.getItem('auth_token');if(!token){showToast('အကောင့်ဝင်ပါ',true);return}
+    
+    showUploadProgress(true);updateUploadProgress(10);
+    try{
+        updateUploadProgress(30);
+        const base64=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=e=>resolve(e.target.result);r.onerror=reject;r.readAsDataURL(file)});
+        updateUploadProgress(60);
+        const r=await fetch('/api/chat/upload_file',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,base64,fileName:file.name,fileType:file.type})});
+        updateUploadProgress(90);
+        const d=await r.json();
+        if(d.success){updateUploadProgress(100);
+            const prefix=file.type.startsWith('image/')?'[IMAGE]':'[FILE]';
+            const display=file.type.startsWith('image/')?d.url:`${d.url}|${file.name}|${(file.size/1024).toFixed(1)} KB`;
+            socket.emit('send_message',{roomId:currentRoom,message:prefix+display,userId:user.id||0,username:user.username||'သုံးစွဲသူ',messageType:file.type.startsWith('image/')?'image':'file'});
+            showToast('ဖိုင်ပို့ပြီးပါပြီ ✅');
+        }else{showToast(d.message||'ဖိုင်တင်မအောင်မြင်ပါ',true)}
+    }catch(e){showToast('ချိတ်ဆက်မှုပြဿနာ',true)}
+    setTimeout(()=>{showUploadProgress(false);updateUploadProgress(0)},1000);
+    input.value='';
+}
 
-    // ========== PREMIUM CHECK ==========
-    async function checkPremiumStatus() {
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') return;
-        
-        try {
-            const res = await fetch('/api/chat/premium/details', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-            const data = await res.json();
-            
-            if (data.success && data.premium_active) {
-                isPremium = true;
-                premiumTier = data.premium_tier || 1;
-                applyPremiumTheme(premiumTier);
-                updateMediaButtons(true);
-            } else {
-                isPremium = false;
-                premiumTier = 0;
-                applyNormalTheme();
-                updateMediaButtons(false);
-            }
-        } catch(e) {
-            console.error('Premium check error:', e);
-        }
-    }
+// ==================== TABS ====================
+function switchTab(tab){
+    document.querySelectorAll('.chat-tab').forEach(t=>t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('roomList').classList.remove('active');
+    document.getElementById('onlineList').classList.remove('active');
+    document.getElementById('searchList').classList.remove('active');
+    if(tab==='rooms'){document.getElementById('roomList').classList.add('active');loadRooms()}
+    if(tab==='online')document.getElementById('onlineList').classList.add('active');
+    if(tab==='search')document.getElementById('searchList').classList.add('active');
+}
 
-    function applyPremiumTheme(tier) {
-        const body = document.body;
-        body.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
-        
-        if (tier === 1) {
-            body.classList.add('bronze-tier');
-            document.getElementById('premiumBadge').textContent = '🥉 PREMIUM BRONZE';
-        } else if (tier === 2) {
-            body.classList.add('silver-tier');
-            document.getElementById('premiumBadge').textContent = '🥈 PREMIUM SILVER';
-        } else if (tier === 3) {
-            body.classList.add('gold-tier');
-            document.getElementById('premiumBadge').textContent = '🥇 PREMIUM GOLD';
-        } else {
-            body.classList.add('normal-theme');
-        }
-    }
+// ==================== ROOMS ====================
+async function loadRooms(){
+    const token=localStorage.getItem('auth_token');
+    if(!token||token==='guest'){document.getElementById('roomList').innerHTML='<div class="empty-state"><i class="fas fa-lock"></i>စကားပြောရန် အကောင့်ဝင်ပါ</div>';return}
+    try{
+        const r=await fetch('/api/chat/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
+        const d=await r.json();const c=document.getElementById('roomList');
+        if(d.rooms&&d.rooms.length>0){c.innerHTML=d.rooms.map(room=>`<div class="room-item" onclick="openRoom(${room.id},'${room.room_name.replace(/'/g,"\\'")}')"><div class="room-icon">${room.room_type==='admin'?'👨‍💼':room.room_type==='group'?'👥':'💬'}</div><div class="room-info"><div class="room-name">${room.room_name}</div><div class="room-last">${room.room_type==='admin'?'Admin နှင့် စကားပြော':room.room_type==='group'?'အုပ်စုစကားပြော':'တစ်ဦးချင်းစကားပြော'}</div></div>${room.unread>0?`<div class="room-badge">${room.unread>99?'99+':room.unread}</div>`:''}</div>`).join('')}
+        else{c.innerHTML='<div class="empty-state"><i class="fas fa-comments"></i>စကားပြောခန်းမရှိသေးပါ<button class="admin-btn" onclick="createAdminChat()"><i class="fas fa-headset"></i> Admin နှင့် စကားပြောမည်</button></div>'}
+    }catch(e){}
+}
 
-    function applyNormalTheme() {
-        const body = document.body;
-        body.classList.remove('bronze-tier', 'silver-tier', 'gold-tier');
-        body.classList.add('normal-theme');
-    }
+// ==================== SEARCH ====================
+async function searchUsers(){
+    const q=document.getElementById('searchInput').value.trim();
+    if(q.length<2){document.getElementById('searchResults').innerHTML='<div class="empty-state"><i class="fas fa-search"></i>သုံးစွဲသူအမည် ရိုက်ထည့်ပါ</div>';return}
+    try{const r=await fetch('/api/admin/search_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();
+        document.getElementById('searchResults').innerHTML=d.users&&d.users.length>0?d.users.map(u=>`<div class="room-item" onclick="startPrivateChat(${u.id},'${u.username}')"><div class="room-icon">💬</div><div class="room-info"><div class="room-name">${u.username}</div><div class="room-last">စကားပြော စတင်ရန် နှိပ်ပါ</div></div></div>`).join(''):'<div class="empty-state"><i class="fas fa-search"></i>ရှာမတွေ့ပါ</div>'
+    }catch(e){}
+}
 
-    function updateMediaButtons(hasPremium) {
-        const imageBtn = document.getElementById('imageBtn');
-        const fileBtn = document.getElementById('fileBtn');
-        
-        if (hasPremium) {
-            imageBtn.disabled = false;
-            fileBtn.disabled = false;
-            imageBtn.classList.remove('locked');
-            fileBtn.classList.remove('locked');
-        } else {
-            imageBtn.disabled = true;
-            fileBtn.disabled = true;
-            imageBtn.classList.add('locked');
-            fileBtn.classList.add('locked');
-            imageBtn.innerHTML = '<i class="fas fa-image"></i><span class="lock-overlay">🔒</span>';
-            fileBtn.innerHTML = '<i class="fas fa-paperclip"></i><span class="lock-overlay">🔒</span>';
-        }
-    }
+async function startPrivateChat(otherUserId,otherUsername){
+    const token=localStorage.getItem('auth_token');if(!token)return alert('အကောင့်ဝင်ပါ');
+    try{const r=await fetch('/api/chat/create_private_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,otherUserId})});const d=await r.json();if(d.success)openRoom(d.room.id,otherUsername)}catch(e){}
+}
 
-    // ========== MEDIA SENDING ==========
-    function sendImage() {
-        if (!isPremium) {
-            document.getElementById('premiumRequiredModal').classList.add('active');
-            return;
-        }
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            showToast('Uploading image...');
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const base64 = event.target.result;
-                try {
-                    const res = await fetch('/api/upload_image', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ base64 })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        sendMediaMessage(data.url, 'image');
-                    } else {
-                        showToast('Upload failed', true);
-                    }
-                } catch(err) {
-                    showToast('Upload error', true);
-                }
-            };
-            reader.readAsDataURL(file);
-        };
-        input.click();
-    }
+// ==================== ADMIN CHAT ====================
+async function createAdminChat(){
+    const token=localStorage.getItem('auth_token');if(!token)return alert('အကောင့်ဝင်ပါ');
+    try{const r=await fetch('/api/chat/create_admin_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});const d=await r.json();if(d.success)loadRooms()}catch(e){}
+}
 
-    function sendFile() {
-        if (!isPremium) {
-            document.getElementById('premiumRequiredModal').classList.add('active');
-            return;
-        }
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            // Check file size (max 10MB)
-            if (file.size > 10 * 1024 * 1024) {
-                showToast('File too large (max 10MB)', true);
-                return;
-            }
-            
-            showToast('Uploading file...');
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const base64 = event.target.result;
-                try {
-                    const res = await fetch('/api/upload_image', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ base64 })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        sendMediaMessage(data.url, 'file', file.name);
-                    } else {
-                        showToast('Upload failed', true);
-                    }
-                } catch(err) {
-                    showToast('Upload error', true);
-                }
-            };
-            reader.readAsDataURL(file);
-        };
-        input.click();
-    }
+// ==================== OPEN ROOM ====================
+async function openRoom(roomId,roomName){
+    currentRoom=roomId;messageOffset=0;
+    document.getElementById('roomList').classList.remove('active');document.getElementById('onlineList').classList.remove('active');document.getElementById('searchList').classList.remove('active');
+    document.getElementById('chatArea').classList.add('active');document.getElementById('chatRoomTitle').textContent=roomName;
+    document.getElementById('messages').innerHTML='';document.getElementById('loadMore').style.display='none';
+    socket.emit('join_room',roomId);
+    try{const r=await fetch('/api/chat/messages/'+roomId);const d=await r.json();if(d.messages){if(d.messages.length>=50){hasMoreMessages=true;document.getElementById('loadMore').style.display='block'}d.messages.forEach(msg=>addMessage(msg,false));setTimeout(()=>{document.getElementById('messages').scrollTop=document.getElementById('messages').scrollHeight},100)}}
+    catch(e){}
+    const token=localStorage.getItem('auth_token');const uid=user.id||0;
+    fetch('/api/chat/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId,userId:uid})});
+}
 
-    function sendMediaMessage(url, type, filename = '') {
-        if (!currentRoom || !currentUser) {
-            showToast('Select a chat room first', true);
-            return;
-        }
-        
-        const messageData = {
-            roomId: currentRoom,
-            message: type === 'image' ? `📷 IMAGE:${url}` : `📎 FILE:${url}|${filename}`,
-            userId: currentUser.id,
-            username: currentUser.username,
-            messageType: type
-        };
-        
-        socket.emit('send_message', messageData);
-    }
+function closeChat(){currentRoom=null;document.getElementById('chatArea').classList.remove('active');document.getElementById('roomList').classList.add('active');loadRooms()}
 
-    // ========== GET CURRENT USER ==========
-    async function getCurrentUser() {
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') {
-            document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-lock" style="font-size:50px"></i><h3>Please login to chat</h3><a href="/">Login</a></div>';
-            return null;
-        }
-        
-        try {
-            const res = await fetch('/api/chat/current_user', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-            const data = await res.json();
-            if (data.success) {
-                currentUser = data.user;
-                return currentUser;
-            }
-            throw new Error('User not found');
-        } catch(e) {
-            document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-exclamation-triangle" style="font-size:50px"></i><h3>Error loading user</h3><a href="/">Back</a></div>';
-            return null;
-        }
-    }
+async function loadMoreMessages(){
+    if(!currentRoom)return;messageOffset+=50;
+    try{const r=await fetch('/api/chat/messages/'+currentRoom+'?offset='+messageOffset);const d=await r.json();if(d.messages&&d.messages.length>0){const c=document.getElementById('messages');const oh=c.scrollHeight;d.messages.forEach(msg=>addMessage(msg,true));c.scrollTop=c.scrollHeight-oh}
+        if(!d.messages||d.messages.length<50){document.getElementById('loadMore').style.display='none';hasMoreMessages=false}
+    }catch(e){}
+}
 
-    // ========== SOCKET INIT ==========
-    function initSocket() {
-        socket = io(window.location.origin, {
-            transports: ['polling', 'websocket'],
-            reconnection: true,
-            reconnectionAttempts: 20,
-            reconnectionDelay: 1000,
-            timeout: 30000
-        });
+// ==================== MESSAGES ====================
+function addMessage(msg,prepend=false){
+    const isMine=(msg.sender_id===(user.id||0))||(msg.userId===(user.id||0));
+    const container=document.getElementById('messages');const div=document.createElement('div');
+    div.className='msg-row '+(isMine?'mine msg-mine':'other msg-other');
+    let content=escapeHtml(msg.message||'');
+    if(content.startsWith('[IMAGE]')){const url=content.replace('[IMAGE]','');content=`<img src="${url}" class="msg-image" onclick="previewImage('${url}')" loading="lazy">`}
+    else if(content.startsWith('[FILE]')){const parts=content.replace('[FILE]','').split('|');content=`<div class="msg-file" onclick="window.open('${parts[0]}','_blank')"><i class="fas fa-file"></i><div class="file-info"><div class="file-name">📄 ${parts[1]||'file'}</div><div class="file-size">${parts[2]||''} - ဒေါင်းလုဒ်ရန် နှိပ်ပါ</div></div></div>`}
+    div.innerHTML=`<div class="msg-bubble">${!isMine?`<div class="msg-sender">${msg.username||'သုံးစွဲသူ'}</div>`:''}${content}<div class="msg-time">${new Date(msg.created_at||Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;
+    if(prepend)container.insertBefore(div,container.firstChild);else container.appendChild(div);
+}
 
-        socket.on('connect', () => {
-            console.log('✅ Socket connected:', socket.id);
-            if (currentUser) {
-                socket.emit('user_online', { 
-                    userId: currentUser.id, 
-                    username: currentUser.username 
-                });
-            }
-        });
+function escapeHtml(text){const d=document.createElement('div');d.textContent=text;return d.innerHTML}
+function previewImage(url){document.getElementById('previewImage').src=url;document.getElementById('imagePreviewModal').classList.add('active')}
 
-        socket.on('new_message', (msg) => {
-            console.log('📨 New message:', msg);
-            if (currentRoom === msg.roomId) {
-                addMessageToUI(msg, msg.sender_id === currentUser?.id);
-                scrollToBottom();
-            }
-            loadRooms();
-        });
+function sendMessage(){
+    const input=document.getElementById('msgInput');const message=input.value.trim();
+    if(!message||!currentRoom)return;
+    socket.emit('send_message',{roomId:currentRoom,message,userId:user.id||0,username:user.username||'သုံးစွဲသူ',messageType:'text'});
+    input.value='';document.getElementById('emojiPicker').classList.remove('active');
+}
 
-        socket.on('online_users', (users) => {
-            const count = Array.isArray(users) ? users.length : 0;
-            document.getElementById('onlineCount').innerHTML = count + ' online';
-            loadUsersList();
-        });
+// ==================== SOCKET EVENTS ====================
+socket.on('new_message',(msg)=>{if(currentRoom===msg.roomId){addMessage(msg,false);document.getElementById('messages').scrollTop=document.getElementById('messages').scrollHeight}if(msg.userId!==(user.id||0)&&msg.sender_id!==(user.id||0)){try{document.getElementById('msgSound').play().catch(()=>{})}catch(e){}}loadRooms()});
+socket.on('online_users',(users)=>{document.getElementById('onlineCount').textContent=users.length+' ယောက်ရှိ';document.getElementById('onlineList').innerHTML=users.length>0?users.map(u=>`<div class="room-item"><div class="room-icon">🟢</div><div class="room-info"><div class="room-name">${u.username}</div></div></div>`).join(''):'<div class="empty-state"><i class="fas fa-users"></i>အွန်လိုင်းသုံးစွဲသူမရှိပါ</div>'});
 
-        socket.on('user_typing', (data) => {
-            if (currentRoom === data.roomId && data.userId !== currentUser?.id) {
-                const indicator = document.getElementById('typingIndicator');
-                indicator.style.display = 'block';
-                indicator.innerHTML = `<i class="fas fa-ellipsis-h"></i> ${escapeHtml(data.username)} is typing...`;
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    indicator.style.display = 'none';
-                }, 2000);
-            }
-        });
+// ==================== INIT ====================
+checkChatPremium();loadRooms();
 
-        socket.on('connect_error', (err) => {
-            console.log('Socket error:', err.message);
-        });
-    }
-
-    // ========== TYPING ==========
-    function onTyping() {
-        if (!currentRoom || !currentUser) return;
-        socket.emit('typing', {
-            roomId: currentRoom,
-            userId: currentUser.id,
-            username: currentUser.username
-        });
-    }
-
-    // ========== TAB SWITCH ==========
-    function switchTab(tabName) {
-        document.querySelectorAll('.chat-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.querySelector(`.chat-tab[data-tab="${tabName}"]`).classList.add('active');
-        
-        document.getElementById('roomList').classList.remove('active');
-        document.getElementById('usersList').classList.remove('active');
-        document.getElementById('groupsList').classList.remove('active');
-        
-        if (tabName === 'rooms') {
-            document.getElementById('roomList').classList.add('active');
-            loadRooms();
-        } else if (tabName === 'users') {
-            document.getElementById('usersList').classList.add('active');
-            loadUsersList();
-        } else if (tabName === 'groups') {
-            document.getElementById('groupsList').classList.add('active');
-            loadGroupsList();
-        }
-    }
-
-    // ========== LOAD ROOMS ==========
-    async function loadRooms() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/rooms', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
-            });
-            const data = await res.json();
-            const container = document.getElementById('roomList');
-            
-            if (data.rooms && data.rooms.length > 0) {
-                container.innerHTML = data.rooms.map(room => `
-                    <div class="room-item" onclick="openRoom(${room.id}, '${escapeHtml(room.room_name)}', '${room.room_type}')">
-                        <div class="room-icon">${room.room_type === 'admin' ? '👑' : room.room_type === 'group' ? '👥' : '💬'}</div>
-                        <div class="room-info">
-                            <div class="room-name">${escapeHtml(room.room_name)}</div>
-                            <div class="room-last">${escapeHtml(room.last_message || 'No messages')}</div>
-                        </div>
-                        ${room.unread > 0 ? `<div class="room-badge">${room.unread}</div>` : ''}
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-comments"></i>
-                        <p>No chat rooms yet</p>
-                        <button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button>
-                    </div>
-                `;
-            }
-        } catch(e) {
-            console.error(e);
-        }
-    }
-
-    // ========== LOAD USERS (ONLINE USERS ONLY) ==========
-    async function loadUsersList() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/online_users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
-            });
-            const data = await res.json();
-            const onlineUsers = data.users || [];
-            const otherOnlineUsers = onlineUsers.filter(u => u.user_id !== currentUser.id);
-            
-            const container = document.getElementById('usersList');
-            
-            if (otherOnlineUsers.length > 0) {
-                container.innerHTML = otherOnlineUsers.map(user => `
-                    <div class="user-item" onclick="startPrivateChat(${user.user_id}, '${escapeHtml(user.username)}')">
-                        <div class="online-indicator"></div>
-                        <div class="room-info">
-                            <div class="room-name">${escapeHtml(user.username)}</div>
-                            <div class="room-last" style="color:#2ecc71;">🟢 Online now</div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = `<div class="empty-state"><i class="fas fa-user-slash"></i><p>No online users at the moment</p></div>`;
-            }
-        } catch(e) { 
-            console.error(e);
-        }
-    }
-
-    // ========== LOAD GROUPS ==========
-    async function loadGroupsList() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/groups', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
-            });
-            const data = await res.json();
-            const container = document.getElementById('groupsList');
-            
-            if (data.groups && data.groups.length > 0) {
-                container.innerHTML = data.groups.map(group => `
-                    <div class="room-item" onclick="openRoom(${group.id}, '${escapeHtml(group.room_name)}', 'group')">
-                        <div class="room-icon">👥</div>
-                        <div class="room-info">
-                            <div class="room-name">${escapeHtml(group.room_name)}</div>
-                            <div class="room-last">${escapeHtml(group.last_message || 'No messages')}</div>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-users"></i>
-                        <p>No groups yet</p>
-                        <button class="admin-btn" onclick="openCreateGroupModal()">➕ Create New Group</button>
-                    </div>
-                `;
-            }
-        } catch(e) {
-            console.error(e);
-        }
-    }
-
-    // ========== CREATE GROUP ==========
-    function openCreateGroupModal() {
-        loadUsersForSelect('groupMembers');
-        document.getElementById('groupModal').classList.add('active');
-    }
-
-    async function loadUsersForSelect(selectId) {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/all_users', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
-            });
-            const data = await res.json();
-            const select = document.getElementById(selectId);
-            if (select && data.users) {
-                select.innerHTML = data.users.map(user => 
-                    `<option value="${user.id}">${escapeHtml(user.username)}</option>`
-                ).join('');
-            }
-        } catch(e) {}
-    }
-
-    async function createGroup() {
-        const groupName = document.getElementById('groupName').value.trim();
-        if (!groupName) {
-            showToast('Group name required', true);
-            return;
-        }
-        
-        const select = document.getElementById('groupMembers');
-        const members = Array.from(select.selectedOptions).map(opt => parseInt(opt.value));
-        
-        try {
-            const res = await fetch('/api/chat/create_group', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId: currentUser.id, 
-                    groupName,
-                    members 
-                })
-            });
-            const data = await res.json();
-            if (data.success) {
-                showToast('Group created!');
-                closeModal('groupModal');
-                document.getElementById('groupName').value = '';
-                loadGroupsList();
-                loadRooms();
-            } else {
-                showToast(data.message || 'Error', true);
-            }
-        } catch(e) {
-            showToast('Server error', true);
-        }
-    }
-
-    // ========== START CHATS ==========
-    async function startAdminChat() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/create_admin_room', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id })
-            });
-            const data = await res.json();
-            if (data.success) {
-                openRoom(data.room.id, data.room.room_name, 'admin');
-                loadRooms();
-            } else {
-                showToast('Error creating admin chat', true);
-            }
-        } catch(e) {
-            showToast('Server error', true);
-        }
-    }
-
-    async function startPrivateChat(otherUserId, otherUsername) {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/create_private_room', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: currentUser.id, otherUserId })
-            });
-            const data = await res.json();
-            if (data.success) {
-                openRoom(data.room.id, otherUsername, 'private');
-                loadRooms();
-            }
-        } catch(e) {
-            showToast('Error', true);
-        }
-    }
-
-    // ========== OPEN ROOM ==========
-    async function openRoom(roomId, roomName, roomType) {
-        console.log('Opening room:', roomId, roomName);
-        currentRoom = roomId;
-        currentRoomType = roomType;
-        
-        document.querySelectorAll('.room-list').forEach(list => list.classList.remove('active'));
-        document.getElementById('chatArea').classList.add('active');
-        document.getElementById('chatRoomTitle').textContent = roomName;
-        
-        const messagesContainer = document.getElementById('messages');
-        messagesContainer.innerHTML = '<div style="text-align:center;padding:20px">Loading messages...</div>';
-        
-        if (socket && socket.connected) {
-            socket.emit('join_room', roomId);
-        }
-        
-        try {
-            const res = await fetch(`/api/chat/messages/${roomId}`);
-            const data = await res.json();
-            
-            if (data.messages && data.messages.length > 0) {
-                messagesContainer.innerHTML = '';
-                data.messages.forEach(msg => {
-                    addMessageToUI(msg, msg.sender_id === currentUser?.id);
-                });
-                scrollToBottom();
-            } else {
-                messagesContainer.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet. Say hi!</div>';
-            }
-            
-            await fetch('/api/chat/read', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, userId: currentUser.id })
-            });
-        } catch(e) {
-            console.error(e);
-            messagesContainer.innerHTML = '<div style="text-align:center;padding:20px;color:#e74c3c">Error loading messages</div>';
-        }
-    }
-
-    function addMessageToUI(msg, isMine) {
-        const container = document.getElementById('messages');
-        if (container.innerHTML.includes('No messages') || container.innerHTML.includes('Loading')) {
-            container.innerHTML = '';
-        }
-        
-        let messageHtml = '';
-        const messageText = msg.message || '';
-        
-        // Check if message is media
-        if (messageText.startsWith('📷 IMAGE:')) {
-            const imageUrl = messageText.replace('📷 IMAGE:', '');
-            messageHtml = `<div class="media-message" onclick="window.open('${imageUrl}', '_blank')"><img src="${imageUrl}" alt="Image" loading="lazy"></div>`;
-        } else if (messageText.startsWith('📎 FILE:')) {
-            const parts = messageText.replace('📎 FILE:', '').split('|');
-            const fileUrl = parts[0];
-            const fileName = parts[1] || 'File';
-            messageHtml = `<div class="file-message" onclick="window.open('${fileUrl}', '_blank')"><i class="fas fa-file"></i> ${escapeHtml(fileName)}</div>`;
-        } else {
-            messageHtml = escapeHtml(messageText);
-        }
-        
-        const div = document.createElement('div');
-        div.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
-        div.innerHTML = `
-            <div class="msg-bubble">
-                ${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}
-                ${messageHtml}
-                <div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
-            </div>
-        `;
-        container.appendChild(div);
-    }
-
-    function sendMessage() {
-        const input = document.getElementById('msgInput');
-        const message = input.value.trim();
-        
-        if (!message) {
-            showToast('စာရိုက်ပါ', true);
-            return;
-        }
-        if (!currentRoom) {
-            showToast('စကားပြောခန်းမရွေးရသေးပါ', true);
-            return;
-        }
-        if (!currentUser) {
-            showToast('အကောင့်ဝင်ထားပါ', true);
-            return;
-        }
-        
-        socket.emit('send_message', {
-            roomId: currentRoom,
-            message: message,
-            userId: currentUser.id,
-            username: currentUser.username
-        });
-        
-        input.value = '';
-    }
-
-    function closeChat() {
-        currentRoom = null;
-        document.getElementById('chatArea').classList.remove('active');
-        document.getElementById('roomList').classList.add('active');
-        loadRooms();
-    }
-
-    function deleteCurrentRoom() {
-        if (!currentRoom) return;
-        if (!confirm('Delete this chat room? All messages will be lost.')) return;
-        
-        fetch('/api/chat/delete_room', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id })
-        }).then(() => {
-            showToast('Room deleted');
-            closeChat();
-        }).catch(() => showToast('Error', true));
-    }
-
-    // ========== GROUP FUNCTIONS ==========
-    function showAddMemberModal() {
-        document.getElementById('addMemberRoomId').value = currentRoom;
-        loadUsersForSelect('addMemberSelect');
-        document.getElementById('addMemberModal').classList.add('active');
-    }
-
-    async function addMemberToGroup() {
-        const roomId = document.getElementById('addMemberRoomId').value;
-        const select = document.getElementById('addMemberSelect');
-        const newMemberId = select.value;
-        
-        if (!newMemberId) {
-            showToast('Select a user', true);
-            return;
-        }
-        
-        try {
-            const res = await fetch('/api/chat/add_member', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, userId: newMemberId, requesterId: currentUser.id })
-            });
-            const data = await res.json();
-            if (data.success) {
-                showToast('Member added!');
-                closeModal('addMemberModal');
-            } else {
-                showToast(data.message || 'Error', true);
-            }
-        } catch(e) {
-            showToast('Server error', true);
-        }
-    }
-
-    async function getInviteLink() {
-        try {
-            const res = await fetch('/api/chat/invite_link', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id })
-            });
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('inviteLink').value = data.link;
-                document.getElementById('inviteModal').classList.add('active');
-            } else {
-                showToast(data.message || 'Error', true);
-            }
-        } catch(e) {
-            showToast('Server error', true);
-        }
-    }
-
-    function copyInviteLink() {
-        const input = document.getElementById('inviteLink');
-        input.select();
-        document.execCommand('copy');
-        showToast('Link copied!');
-    }
-
-    async function leaveGroup() {
-        if (!confirm('Are you sure you want to leave this group?')) return;
-        
-        try {
-            const res = await fetch('/api/chat/leave_group', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id })
-            });
-            const data = await res.json();
-            if (data.success) {
-                showToast('Left group');
-                closeModal('groupInfoModal');
-                closeChat();
-                loadGroupsList();
-                loadRooms();
-            } else {
-                showToast(data.message || 'Error', true);
-            }
-        } catch(e) {
-            showToast('Server error', true);
-        }
-    }
-
-    // ========== EMOJI FUNCTIONS ==========
-    function insertEmoji(emoji) {
-        const input = document.getElementById('msgInput');
-        const cursorPos = input.selectionStart;
-        const textBefore = input.value.substring(0, cursorPos);
-        const textAfter = input.value.substring(cursorPos);
-        input.value = textBefore + emoji + textAfter;
-        input.focus();
-        const newPos = cursorPos + emoji.length;
-        input.setSelectionRange(newPos, newPos);
-    }
-
-    function toggleMoreEmojis() {
-        const modal = document.getElementById('moreEmojisModal');
-        const grid = document.getElementById('moreEmojisGrid');
-        
-        const allEmojis = [
-            '😀','😂','😍','😎','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','😊','🤔','😴','🥰','😇','🤗','💪',
-            '👋','✌️','🤝','👑','💎','💰','🎮','⚽','🌟','🍕','🍺','☕','🏆','🎯','📱','💻','🎵','📷','🔒','✅',
-            '❌','⚠️','💡','🔑','🔔','📢','💬','💭','🕒','📍','🔗','📎','✂️','📌','🧩','🎨','🧠','💊','🏥','🚑',
-            '🐱','🐶','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐸','🐒','🐔','🐧','🐦','🐤','🐴','🐗','🐺','🐝','🐛'
-        ];
-        
-        grid.innerHTML = allEmojis.map(emoji => 
-            `<span class="emoji-item" style="font-size: 32px; cursor: pointer;" onclick="insertEmoji('${emoji}'); closeModal('moreEmojisModal');">${emoji}</span>`
-        ).join('');
-        
-        modal.classList.add('active');
-    }
-
-    // ========== INIT ==========
-    async function init() {
-        // Setup tab click handlers
-        document.querySelectorAll('.chat-tab').forEach(tab => {
-            tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab')));
-        });
-        
-        const user = await getCurrentUser();
-        if (!user) return;
-        
-        await checkPremiumStatus();
-        initSocket();
-        loadRooms();
-    }
-
-    init();
-    </script>
+}
+</script>
 </body>
 </html>
