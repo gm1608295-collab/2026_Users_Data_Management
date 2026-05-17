@@ -3360,7 +3360,7 @@ app.post('/api/chat/premium/status', async (req, res) => {
     }
 });
 
-// Buy chat premium (1, 2, or 3 months)
+// Buy chat premium (1, 2, or 3 months) - WITH UPGRADE SUPPORT
 app.post('/api/chat/premium/buy', async (req, res) => {
     const { token, months, cost, tier } = req.body;
     
@@ -3389,33 +3389,42 @@ app.post('/api/chat/premium/buy', async (req, res) => {
         const existing = await p.query('SELECT premium_expiry, premium_tier FROM chat_premium WHERE user_id = $1', [uid]);
         
         let newExpiry;
+        let newTier;
         const now = new Date();
         
         if (existing.rows.length > 0 && existing.rows[0].premium_expiry > now) {
-            // Extend existing premium
+            // User has active premium - EXTEND + UPGRADE
             const currentExpiry = new Date(existing.rows[0].premium_expiry);
+            const currentTier = existing.rows[0].premium_tier || 1;
+            
+            // ✅ Extend expiry by months
             newExpiry = new Date(currentExpiry);
             newExpiry.setMonth(newExpiry.getMonth() + months);
             
-            // Update tier if higher
-            const currentTier = existing.rows[0].premium_tier || 1;
-            const newTier = Math.max(currentTier, tier || 1);
+            // ✅ Upgrade tier to higher level (if buying higher tier)
+            newTier = Math.max(currentTier, tier || 1);
             
             await p.query(
                 `UPDATE chat_premium SET premium_tier = $1, premium_expiry = $2, updated_at = NOW() WHERE user_id = $3`,
                 [newTier, newExpiry, uid]
             );
+            
+            console.log(`[PREMIUM UPGRADE] User ${uid}: Tier ${currentTier} → ${newTier}, Expiry extended to ${newExpiry}`);
+            
         } else {
             // New premium purchase
             newExpiry = new Date(now);
             newExpiry.setMonth(newExpiry.getMonth() + months);
+            newTier = tier || 1;
             
             await p.query(
                 `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
                  VALUES ($1, $2, $3, NOW(), NOW())
                  ON CONFLICT (user_id) DO UPDATE SET premium_tier = $2, premium_expiry = $3, updated_at = NOW()`,
-                [uid, tier || 1, newExpiry]
+                [uid, newTier, newExpiry]
             );
+            
+            console.log(`[PREMIUM NEW] User ${uid}: Tier ${newTier}, Expires ${newExpiry}`);
         }
         
         // Deduct USD balance
@@ -3429,22 +3438,24 @@ app.post('/api/chat/premium/buy', async (req, res) => {
         );
         
         const newBalance = usdBalance - cost;
-        
-        // Calculate days remaining
         const daysRemaining = Math.ceil((newExpiry - new Date()) / (1000 * 60 * 60 * 24));
+        
+        // Get tier name
+        const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
         
         res.json({ 
             success: true, 
-            message: `Premium activated for ${months} month(s)!`,
+            message: `Premium ${tierNames[newTier]} activated for ${months} month(s)!`,
             expires_at: newExpiry.toISOString(),
-            premium_tier: tier || 1,
+            premium_tier: newTier,
             days_remaining: daysRemaining,
-            new_usd_balance: newBalance
+            new_usd_balance: newBalance,
+            was_upgrade: existing.rows.length > 0 && existing.rows[0].premium_expiry > now
         });
         
     } catch(e) {
         console.error('[CHAT PREMIUM BUY ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
