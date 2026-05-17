@@ -3591,6 +3591,26 @@ app.post('/api/chat/delete_room', async (req, res) => {
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
+// Add this before server.listen()
+app.get('/api/debug/chat', async (req, res) => {
+    try {
+        const p = await getPool();
+        const messages = await p.query('SELECT COUNT(*) FROM chat_messages');
+        const rooms = await p.query('SELECT COUNT(*) FROM chat_rooms');
+        const participants = await p.query('SELECT COUNT(*) FROM chat_participants');
+        
+        res.json({
+            success: true,
+            messages: parseInt(messages.rows[0].count),
+            rooms: parseInt(rooms.rows[0].count),
+            participants: parseInt(participants.rows[0].count),
+            db_connected: true,
+            socket_ready: true
+        });
+    } catch(e) {
+        res.json({ success: false, error: e.message });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
