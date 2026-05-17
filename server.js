@@ -3336,10 +3336,18 @@ app.post('/api/chat/premium/status', async (req, res) => {
         const r = await p.query('SELECT premium_tier, premium_expiry FROM chat_premium WHERE user_id = $1', [uid]);
         
         if (r.rows.length > 0) {
-            const isActive = r.rows[0].premium_expiry && new Date(r.rows[0].premium_expiry) > new Date();
+            const expiry = new Date(r.rows[0].premium_expiry);
+            const isActive = expiry > new Date();
+            
+            // If expired, delete or mark as inactive
+            if (!isActive) {
+                await p.query('DELETE FROM chat_premium WHERE user_id = $1', [uid]);
+                return res.json({ success: true, premium_active: false, premium_tier: 0, expires_at: null });
+            }
+            
             res.json({
                 success: true,
-                premium_active: isActive,
+                premium_active: true,
                 premium_tier: r.rows[0].premium_tier || 1,
                 expires_at: r.rows[0].premium_expiry ? r.rows[0].premium_expiry.toISOString() : null
             });
@@ -3350,12 +3358,19 @@ app.post('/api/chat/premium/status', async (req, res) => {
         res.json({ success: false, premium_active: false });
     }
 });
-
 // Buy chat premium
 app.post('/api/chat/premium/buy', async (req, res) => {
+// Buy chat premium (1, 2, or 3 months)
+app.post('/api/chat/premium/buy', async (req, res) => {
     const { token, months, cost, tier } = req.body;
+    
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!months || !cost) return res.json({ success: false, message: 'Missing data' });
+    
+    // Validate months (1, 2, or 3 only)
+    if (![1, 2, 3].includes(months)) {
+        return res.json({ success: false, message: 'Invalid plan. Choose 1, 2, or 3 months.' });
+    }
     
     try {
         const p = await getPool();
@@ -3367,32 +3382,63 @@ app.post('/api/chat/premium/buy', async (req, res) => {
         const usdBalance = parseFloat(bal.rows[0]?.usd_balance || 0);
         
         if (usdBalance < cost) {
-            return res.json({ success: false, message: 'Insufficient USD balance' });
+            return res.json({ success: false, message: `Insufficient USD balance. Need $${cost}` });
         }
         
-        // Calculate expiry
+        // Check existing premium
+        const existing = await p.query('SELECT premium_expiry, premium_tier FROM chat_premium WHERE user_id = $1', [uid]);
+        
+        let newExpiry;
         const now = new Date();
-        const expiry = new Date(now);
-        expiry.setMonth(expiry.getMonth() + months);
+        
+        if (existing.rows.length > 0 && existing.rows[0].premium_expiry > now) {
+            // Extend existing premium
+            const currentExpiry = new Date(existing.rows[0].premium_expiry);
+            newExpiry = new Date(currentExpiry);
+            newExpiry.setMonth(newExpiry.getMonth() + months);
+            
+            // Update tier if higher
+            const currentTier = existing.rows[0].premium_tier || 1;
+            const newTier = Math.max(currentTier, tier || 1);
+            
+            await p.query(
+                `UPDATE chat_premium SET premium_tier = $1, premium_expiry = $2, updated_at = NOW() WHERE user_id = $3`,
+                [newTier, newExpiry, uid]
+            );
+        } else {
+            // New premium purchase
+            newExpiry = new Date(now);
+            newExpiry.setMonth(newExpiry.getMonth() + months);
+            
+            await p.query(
+                `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
+                 VALUES ($1, $2, $3, NOW(), NOW())
+                 ON CONFLICT (user_id) DO UPDATE SET premium_tier = $2, premium_expiry = $3, updated_at = NOW()`,
+                [uid, tier || 1, newExpiry]
+            );
+        }
         
         // Deduct USD balance
         await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id = $2', [cost, uid]);
         
-        // Set chat premium
+        // Log transaction
         await p.query(
-            `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
-             VALUES ($1, $2, $3, NOW(), NOW())
-             ON CONFLICT (user_id) DO UPDATE SET premium_tier = $2, premium_expiry = $3, updated_at = NOW()`,
-            [uid, tier || 1, expiry]
+            `INSERT INTO orders (user_id, username, amount, payment_method, status) 
+             VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Chat Premium', 'approved')`,
+            [uid, -cost]
         );
         
         const newBalance = usdBalance - cost;
         
+        // Calculate days remaining
+        const daysRemaining = Math.ceil((newExpiry - new Date()) / (1000 * 60 * 60 * 24));
+        
         res.json({ 
             success: true, 
-            message: 'Chat Premium activated!',
-            expires_at: expiry.toISOString(),
+            message: `Premium activated for ${months} month(s)!`,
+            expires_at: newExpiry.toISOString(),
             premium_tier: tier || 1,
+            days_remaining: daysRemaining,
             new_usd_balance: newBalance
         });
         
@@ -3413,7 +3459,68 @@ app.post('/api/admin/revoke_chat_premium', async (req, res) => {
         res.json({ success: true, message: 'Chat premium revoked!' });
     } catch(e) { res.json({ success: false }); }
 });
+// Auto cleanup expired premiums (run daily)
+async function cleanupExpiredPremiums() {
+    try {
+        const p = await getPool();
+        const result = await p.query(
+            "DELETE FROM chat_premium WHERE premium_expiry < NOW() RETURNING user_id"
+        );
+        if (result.rows.length > 0) {
+            console.log(`[PREMIUM CLEANUP] Removed ${result.rows.length} expired premiums`);
+        }
+    } catch(e) {
+        console.error('[PREMIUM CLEANUP ERROR]', e.message);
+    }
+}
+
+// Run every hour
+setInterval(cleanupExpiredPremiums, 60 * 60 * 1000);
+// Run once on startup
+cleanupExpiredPremiums();
+// Get premium status with days remaining (for chat page)
+app.post('/api/chat/premium/details', async (req, res) => {
+    const { token } = req.body;
+    if (!token || token === 'guest') return res.json({ success: false, premium_active: false });
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
         
+        const r = await p.query('SELECT premium_tier, premium_expiry FROM chat_premium WHERE user_id = $1', [uid]);
+        
+        if (r.rows.length > 0) {
+            const expiry = new Date(r.rows[0].premium_expiry);
+            const now = new Date();
+            const isActive = expiry > now;
+            
+            if (!isActive) {
+                await p.query('DELETE FROM chat_premium WHERE user_id = $1', [uid]);
+                return res.json({ 
+                    success: true, 
+                    premium_active: false, 
+                    premium_tier: 0, 
+                    days_remaining: 0 
+                });
+            }
+            
+            const daysRemaining = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+            
+            res.json({
+                success: true,
+                premium_active: true,
+                premium_tier: r.rows[0].premium_tier || 1,
+                expires_at: expiry.toISOString(),
+                days_remaining: daysRemaining
+            });
+        } else {
+            res.json({ success: true, premium_active: false, premium_tier: 0, days_remaining: 0 });
+        }
+    } catch(e) {
+        res.json({ success: false, premium_active: false });
+    }
+});
 // ==================== CHAT API ROUTES ====================
 
 // Get current user
