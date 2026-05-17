@@ -3220,7 +3220,7 @@ app.get('/api/leaderboard/top_spenders', async (req, res) => {
         res.json({ success: false, leaders: [] });
     }
 });
-    // ==================== SOCKET.IO + SERVER START ====================
+// ==================== SOCKET.IO + SERVER START ====================
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: { 
@@ -3233,14 +3233,10 @@ const io = new Server(server, {
     pingTimeout: 60000,
     pingInterval: 25000,
     httpCompression: true,
-    maxHttpBufferSize: 1e6
+    maxHttpBufferSize: 1e7 // 10MB for file uploads
 });
 
-// Add health check for socket
-io.engine.on('connection_error', (err) => {
-    console.log('Socket connection error:', err.message);
-});
-// Online users tracking (in-memory fallback) - တစ်ခုတည်းသုံးပါ
+// Online users tracking (in-memory)
 const onlineUsersMap = new Map();
 
 io.on('connection', (socket) => {
@@ -3251,9 +3247,14 @@ io.on('connection', (socket) => {
         socket.username = data.username;
         
         // Store in memory
-        onlineUsersMap.set(data.userId, { socketId: socket.id, username: data.username, online: true });
+        onlineUsersMap.set(data.userId, { 
+            socketId: socket.id, 
+            username: data.username, 
+            online: true,
+            last_active: Date.now()
+        });
         
-        // Try DB but don't fail if error
+        // Update DB
         try {
             const p = await getPool();
             await p.query(
@@ -3265,24 +3266,46 @@ io.on('connection', (socket) => {
         } catch(e) { console.log('DB online error:', e.message); }
         
         // Broadcast online users
-        const online = Array.from(onlineUsersMap.values());
-        io.emit('online_users', online);
+        const onlineList = Array.from(onlineUsersMap.values());
+        io.emit('online_users', onlineList);
     });
     
     socket.on('join_room', (roomId) => {
-        socket.join('room_' + roomId);
-        console.log('📌 User joined room:', roomId);
+        if (roomId) {
+            socket.join('room_' + roomId);
+            console.log('📌 User joined room:', roomId);
+        }
     });
     
     socket.on('send_message', async (data) => {
-        const { roomId, message, userId, username } = data;
+        const { roomId, message, userId, username, messageType } = data;
+        
+        if (!roomId || !message || !userId) {
+            console.log('⚠️ Invalid message data:', data);
+            return;
+        }
+        
         console.log('📨 Message received:', { roomId, userId, message: message?.substring(0,30) });
         
         try {
             const p = await getPool();
+            
+            // Check if user is in room
+            const check = await p.query(
+                'SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2',
+                [roomId, userId]
+            );
+            
+            if (check.rows.length === 0) {
+                console.log('⚠️ User not in room:', userId, roomId);
+                socket.emit('error', { message: 'You are not in this chat room' });
+                return;
+            }
+            
+            // Save message to database
             const result = await p.query(
-                `INSERT INTO chat_messages (room_id, sender_id, username, message) 
-                 VALUES ($1, $2, $3, $4) RETURNING id, created_at`,
+                `INSERT INTO chat_messages (room_id, sender_id, username, message, created_at) 
+                 VALUES ($1, $2, $3, $4, NOW()) RETURNING id`,
                 [roomId, userId, username, message]
             );
             
@@ -3292,15 +3315,23 @@ io.on('connection', (socket) => {
                 sender_id: userId,
                 username: username,
                 message: message,
-                created_at: result.rows[0].created_at
+                created_at: new Date().toISOString()
             };
             
+            // Send to room
             io.to('room_' + roomId).emit('new_message', msgData);
             console.log('✅ Message sent to room:', roomId);
             
         } catch(e) { 
             console.error('Send message error:', e.message);
             socket.emit('error', { message: 'Failed to send message' });
+        }
+    });
+    
+    socket.on('typing', (data) => {
+        const { roomId, userId, username } = data;
+        if (roomId && userId) {
+            socket.to('room_' + roomId).emit('user_typing', { userId, username, roomId });
         }
     });
     
@@ -3311,17 +3342,18 @@ io.on('connection', (socket) => {
             try {
                 const p = await getPool();
                 await p.query('DELETE FROM chat_online_users WHERE user_id = $1', [socket.userId]);
-            } catch(e) {}
+            } catch(e) {
+                console.log('DB disconnect error:', e.message);
+            }
             
-            const online = Array.from(onlineUsersMap.values());
-            io.emit('online_users', online);
+            const onlineList = Array.from(onlineUsersMap.values());
+            io.emit('online_users', onlineList);
         }
         console.log('❌ User disconnected:', socket.id);
     });
 });
-// ╔══════════════════════════════════════════════════════════════╗
-// ║              CHAT PREMIUM SYSTEM (SEPARATE)                 ║
-// ╚══════════════════════════════════════════════════════════════╝
+
+// ==================== CHAT PREMIUM SYSTEM ====================
 
 // Get chat premium status
 app.post('/api/chat/premium/status', async (req, res) => {
@@ -3339,7 +3371,6 @@ app.post('/api/chat/premium/status', async (req, res) => {
             const expiry = new Date(r.rows[0].premium_expiry);
             const isActive = expiry > new Date();
             
-            // If expired, delete or mark as inactive
             if (!isActive) {
                 await p.query('DELETE FROM chat_premium WHERE user_id = $1', [uid]);
                 return res.json({ success: true, premium_active: false, premium_tier: 0, expires_at: null });
@@ -3349,7 +3380,7 @@ app.post('/api/chat/premium/status', async (req, res) => {
                 success: true,
                 premium_active: true,
                 premium_tier: r.rows[0].premium_tier || 1,
-                expires_at: r.rows[0].premium_expiry ? r.rows[0].premium_expiry.toISOString() : null
+                expires_at: expiry.toISOString()
             });
         } else {
             res.json({ success: true, premium_active: false, premium_tier: 0, expires_at: null });
@@ -3357,105 +3388,6 @@ app.post('/api/chat/premium/status', async (req, res) => {
     } catch(e) {
         console.error('[PREMIUM STATUS ERROR]', e.message);
         res.json({ success: false, premium_active: false });
-    }
-});
-
-// Buy chat premium (1, 2, or 3 months) - WITH UPGRADE SUPPORT
-app.post('/api/chat/premium/buy', async (req, res) => {
-    const { token, months, cost, tier } = req.body;
-    
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!months || !cost) return res.json({ success: false, message: 'Missing data' });
-    
-    // Validate months (1, 2, or 3 only)
-    if (![1, 2, 3].includes(months)) {
-        return res.json({ success: false, message: 'Invalid plan. Choose 1, 2, or 3 months.' });
-    }
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
-        
-        // Check USD balance
-        const bal = await p.query('SELECT usd_balance FROM auth_users WHERE id = $1', [uid]);
-        const usdBalance = parseFloat(bal.rows[0]?.usd_balance || 0);
-        
-        if (usdBalance < cost) {
-            return res.json({ success: false, message: `Insufficient USD balance. Need $${cost}` });
-        }
-        
-        // Check existing premium
-        const existing = await p.query('SELECT premium_expiry, premium_tier FROM chat_premium WHERE user_id = $1', [uid]);
-        
-        let newExpiry;
-        let newTier;
-        const now = new Date();
-        
-        if (existing.rows.length > 0 && existing.rows[0].premium_expiry > now) {
-            // User has active premium - EXTEND + UPGRADE
-            const currentExpiry = new Date(existing.rows[0].premium_expiry);
-            const currentTier = existing.rows[0].premium_tier || 1;
-            
-            // ✅ Extend expiry by months
-            newExpiry = new Date(currentExpiry);
-            newExpiry.setMonth(newExpiry.getMonth() + months);
-            
-            // ✅ Upgrade tier to higher level (if buying higher tier)
-            newTier = Math.max(currentTier, tier || 1);
-            
-            await p.query(
-                `UPDATE chat_premium SET premium_tier = $1, premium_expiry = $2, updated_at = NOW() WHERE user_id = $3`,
-                [newTier, newExpiry, uid]
-            );
-            
-            console.log(`[PREMIUM UPGRADE] User ${uid}: Tier ${currentTier} → ${newTier}, Expiry extended to ${newExpiry}`);
-            
-        } else {
-            // New premium purchase
-            newExpiry = new Date(now);
-            newExpiry.setMonth(newExpiry.getMonth() + months);
-            newTier = tier || 1;
-            
-            await p.query(
-                `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
-                 VALUES ($1, $2, $3, NOW(), NOW())
-                 ON CONFLICT (user_id) DO UPDATE SET premium_tier = $2, premium_expiry = $3, updated_at = NOW()`,
-                [uid, newTier, newExpiry]
-            );
-            
-            console.log(`[PREMIUM NEW] User ${uid}: Tier ${newTier}, Expires ${newExpiry}`);
-        }
-        
-        // Deduct USD balance
-        await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id = $2', [cost, uid]);
-        
-        // Log transaction
-        await p.query(
-            `INSERT INTO orders (user_id, username, amount, payment_method, status) 
-             VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Chat Premium', 'approved')`,
-            [uid, -cost]
-        );
-        
-        const newBalance = usdBalance - cost;
-        const daysRemaining = Math.ceil((newExpiry - new Date()) / (1000 * 60 * 60 * 24));
-        
-        // Get tier name
-        const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
-        
-        res.json({ 
-            success: true, 
-            message: `Premium ${tierNames[newTier]} activated for ${months} month(s)!`,
-            expires_at: newExpiry.toISOString(),
-            premium_tier: newTier,
-            days_remaining: daysRemaining,
-            new_usd_balance: newBalance,
-            was_upgrade: existing.rows.length > 0 && existing.rows[0].premium_expiry > now
-        });
-        
-    } catch(e) {
-        console.error('[CHAT PREMIUM BUY ERROR]', e.message);
-        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
@@ -3505,6 +3437,92 @@ app.post('/api/chat/premium/details', async (req, res) => {
     }
 });
 
+// Buy chat premium (1, 2, or 3 months) - WITH UPGRADE SUPPORT
+app.post('/api/chat/premium/buy', async (req, res) => {
+    const { token, months, cost, tier } = req.body;
+    
+    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    if (!months || !cost) return res.json({ success: false, message: 'Missing data' });
+    
+    if (![1, 2, 3].includes(months)) {
+        return res.json({ success: false, message: 'Invalid plan. Choose 1, 2, or 3 months.' });
+    }
+    
+    try {
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
+        // Check USD balance
+        const bal = await p.query('SELECT usd_balance FROM auth_users WHERE id = $1', [uid]);
+        const usdBalance = parseFloat(bal.rows[0]?.usd_balance || 0);
+        
+        if (usdBalance < cost) {
+            return res.json({ success: false, message: `Insufficient USD balance. Need $${cost}` });
+        }
+        
+        // Check existing premium
+        const existing = await p.query('SELECT premium_expiry, premium_tier FROM chat_premium WHERE user_id = $1', [uid]);
+        
+        let newExpiry;
+        let newTier;
+        const now = new Date();
+        
+        if (existing.rows.length > 0 && existing.rows[0].premium_expiry > now) {
+            // Extend existing premium
+            const currentExpiry = new Date(existing.rows[0].premium_expiry);
+            const currentTier = existing.rows[0].premium_tier || 1;
+            
+            newExpiry = new Date(currentExpiry);
+            newExpiry.setMonth(newExpiry.getMonth() + months);
+            newTier = Math.max(currentTier, tier || 1);
+            
+            await p.query(
+                `UPDATE chat_premium SET premium_tier = $1, premium_expiry = $2, updated_at = NOW() WHERE user_id = $3`,
+                [newTier, newExpiry, uid]
+            );
+        } else {
+            // New premium purchase
+            newExpiry = new Date(now);
+            newExpiry.setMonth(newExpiry.getMonth() + months);
+            newTier = tier || 1;
+            
+            await p.query(
+                `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
+                 VALUES ($1, $2, $3, NOW(), NOW())
+                 ON CONFLICT (user_id) DO UPDATE SET premium_tier = $2, premium_expiry = $3, updated_at = NOW()`,
+                [uid, newTier, newExpiry]
+            );
+        }
+        
+        // Deduct USD balance
+        await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id = $2', [cost, uid]);
+        
+        // Log transaction
+        await p.query(
+            `INSERT INTO orders (user_id, username, amount, payment_method, status) 
+             VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Chat Premium', 'approved')`,
+            [uid, -cost]
+        );
+        
+        const daysRemaining = Math.ceil((newExpiry - new Date()) / (1000 * 60 * 60 * 24));
+        const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
+        
+        res.json({ 
+            success: true, 
+            message: `Premium ${tierNames[newTier]} activated for ${months} month(s)!`,
+            expires_at: newExpiry.toISOString(),
+            premium_tier: newTier,
+            days_remaining: daysRemaining,
+            new_usd_balance: usdBalance - cost
+        });
+        
+    } catch(e) {
+        console.error('[CHAT PREMIUM BUY ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
 // Admin: Revoke chat premium
 app.post('/api/admin/revoke_chat_premium', async (req, res) => {
     const { userId } = req.body;
@@ -3521,7 +3539,7 @@ app.post('/api/admin/revoke_chat_premium', async (req, res) => {
     }
 });
 
-// Auto cleanup expired premiums (run every hour)
+// Auto cleanup expired premiums
 async function cleanupExpiredPremiums() {
     try {
         const p = await getPool();
@@ -3529,17 +3547,15 @@ async function cleanupExpiredPremiums() {
             "DELETE FROM chat_premium WHERE premium_expiry < NOW() RETURNING user_id"
         );
         if (result.rows.length > 0) {
-            console.log(`[PREMIUM CLEANUP] Removed ${result.rows.length} expired premiums: ${result.rows.map(r => r.user_id).join(', ')}`);
+            console.log(`[PREMIUM CLEANUP] Removed ${result.rows.length} expired premiums`);
         }
     } catch(e) {
         console.error('[PREMIUM CLEANUP ERROR]', e.message);
     }
 }
-
-// Run cleanup every hour
 setInterval(cleanupExpiredPremiums, 60 * 60 * 1000);
-// Run once on startup
 cleanupExpiredPremiums();
+
 // ==================== CHAT API ROUTES ====================
 
 // Get current user
@@ -3555,7 +3571,10 @@ app.post('/api/chat/current_user', async (req, res) => {
         } else {
             res.json({ success: false });
         }
-    } catch(e) { res.json({ success: false }); }
+    } catch(e) { 
+        console.error('[CURRENT USER ERROR]', e.message);
+        res.json({ success: false }); 
+    }
 });
 
 // Get all users (except self)
@@ -3566,7 +3585,24 @@ app.post('/api/chat/all_users', async (req, res) => {
         const p = await getPool();
         const r = await p.query('SELECT id, username FROM auth_users WHERE id != $1 ORDER BY username ASC', [userId]);
         res.json({ users: r.rows });
-    } catch(e) { res.json({ users: [] }); }
+    } catch(e) { 
+        console.error('[ALL USERS ERROR]', e.message);
+        res.json({ users: [] }); 
+    }
+});
+
+// Get online users list
+app.post('/api/chat/online_users', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            "SELECT user_id, username, last_active FROM chat_online_users WHERE last_active > NOW() - INTERVAL '1 minute'"
+        );
+        res.json({ success: true, users: r.rows });
+    } catch(e) {
+        console.error('[ONLINE USERS ERROR]', e.message);
+        res.json({ success: true, users: [] });
+    }
 });
 
 // Get user's rooms
@@ -3586,7 +3622,10 @@ app.post('/api/chat/rooms', async (req, res) => {
             ORDER BY cr.id DESC
         `, [userId]);
         res.json({ rooms: r.rows });
-    } catch(e) { res.json({ rooms: [] }); }
+    } catch(e) { 
+        console.error('[ROOMS ERROR]', e.message);
+        res.json({ rooms: [] }); 
+    }
 });
 
 // Get messages
@@ -3599,7 +3638,10 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
             [roomId]
         );
         res.json({ messages: r.rows });
-    } catch(e) { res.json({ messages: [] }); }
+    } catch(e) { 
+        console.error('[MESSAGES ERROR]', e.message);
+        res.json({ messages: [] }); 
+    }
 });
 
 // Create admin room
@@ -3609,7 +3651,7 @@ app.post('/api/chat/create_admin_room', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Get admin user (id=1)
+        // Check if admin exists
         const admin = await p.query('SELECT id, username FROM auth_users WHERE id=1');
         if (admin.rows.length === 0) {
             await p.query("INSERT INTO auth_users (id, username, email, login_type) VALUES (1, 'Admin', 'admin@solo.com', 'local') ON CONFLICT (id) DO NOTHING");
@@ -3636,12 +3678,14 @@ app.post('/api/chat/create_admin_room', async (req, res) => {
         );
         const roomId = room.rows[0].id;
         
-        // Add participants
         await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2)', [roomId, userId]);
         await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,1)', [roomId]);
         
         res.json({ success: true, room: room.rows[0] });
-    } catch(e) { res.json({ success: false }); }
+    } catch(e) { 
+        console.error('[CREATE ADMIN ROOM ERROR]', e.message);
+        res.json({ success: false }); 
+    }
 });
 
 // Create private room
@@ -3677,208 +3721,11 @@ app.post('/api/chat/create_private_room', async (req, res) => {
         await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2)', [roomId, otherUserId]);
         
         res.json({ success: true, room: { id: roomId, room_name: roomName } });
-    } catch(e) { res.json({ success: false }); }
-});
-
-// Create group
-app.post('/api/chat/create_group', async (req, res) => {
-    const { userId, groupName } = req.body;
-    if (!userId || !groupName) return res.json({ success: false });
-    try {
-        const p = await getPool();
-        const room = await p.query(
-            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id",
-            [groupName, userId]
-        );
-        const roomId = room.rows[0].id;
-        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1,$2)', [roomId, userId]);
-        
-        res.json({ success: true, room: { id: roomId, room_name: groupName } });
-    } catch(e) { res.json({ success: false }); }
-});
-
-// Mark messages as read
-app.post('/api/chat/read', async (req, res) => {
-    const { roomId, userId } = req.body;
-    try {
-        const p = await getPool();
-        await p.query('UPDATE chat_messages SET is_read = true WHERE room_id = $1 AND sender_id != $2', [roomId, userId]);
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-
-// Delete room
-app.post('/api/chat/delete_room', async (req, res) => {
-    const { roomId, userId } = req.body;
-    try {
-        const p = await getPool();
-        // Check if user is participant
-        const check = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
-        if (check.rows.length === 0) return res.json({ success: false });
-        
-        await p.query('DELETE FROM chat_messages WHERE room_id = $1', [roomId]);
-        await p.query('DELETE FROM chat_participants WHERE room_id = $1', [roomId]);
-        await p.query('DELETE FROM chat_rooms WHERE id = $1', [roomId]);
-        
-        res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
-});
-// Add this before server.listen()
-app.get('/api/debug/chat', async (req, res) => {
-    try {
-        const p = await getPool();
-        const messages = await p.query('SELECT COUNT(*) FROM chat_messages');
-        const rooms = await p.query('SELECT COUNT(*) FROM chat_rooms');
-        const participants = await p.query('SELECT COUNT(*) FROM chat_participants');
-        
-        res.json({
-            success: true,
-            messages: parseInt(messages.rows[0].count),
-            rooms: parseInt(rooms.rows[0].count),
-            participants: parseInt(participants.rows[0].count),
-            db_connected: true,
-            socket_ready: true
-        });
-    } catch(e) {
-        res.json({ success: false, error: e.message });
+    } catch(e) { 
+        console.error('[CREATE PRIVATE ROOM ERROR]', e.message);
+        res.json({ success: false }); 
     }
 });
-// Get online users list
-app.post('/api/chat/online_users', async (req, res) => {
-    const { userId } = req.body;
-    try {
-        const p = await getPool();
-        const r = await p.query(
-            "SELECT user_id, username, last_active FROM chat_online_users WHERE last_active > NOW() - INTERVAL '1 minute'"
-        );
-        res.json({ success: true, users: r.rows });
-    } catch(e) {
-        res.json({ success: true, users: [] });
-    }
-});
-// Upload chat image (Premium users only)
-app.post('/api/chat/upload_image', async (req, res) => {
-    const { token, base64 } = req.body;
-    
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!base64) return res.json({ success: false, message: 'No image data' });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        
-        // Check if user has chat premium
-        const premCheck = await p.query(
-            "SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_expiry > NOW()",
-            [uid]
-        );
-        
-        if (premCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Premium required to send images' });
-        }
-        
-        // Upload to ImgBB
-        const imageData = base64.replace(/^data:image\/\w+;base64,/, '');
-        const formData = new URLSearchParams();
-        formData.append('key', IMGBB_API_KEY);
-        formData.append('image', imageData);
-        
-        const response = await fetch('https://api.imgbb.com/1/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString(),
-            signal: AbortSignal.timeout(15000)
-        });
-        const imgData = await response.json();
-        
-        if (imgData.success) {
-            res.json({ 
-                success: true, 
-                url: imgData.data.url,
-                thumb: imgData.data.thumb?.url || imgData.data.url
-            });
-        } else {
-            res.json({ success: false, message: 'Image upload failed' });
-        }
-        
-    } catch(e) {
-        console.error('[CHAT IMAGE UPLOAD ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-// Upload chat file/document (Premium users only)
-app.post('/api/chat/upload_file', async (req, res) => {
-    const { token, base64, fileName, fileType } = req.body;
-    
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!base64) return res.json({ success: false, message: 'No file data' });
-    
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        
-        // Check if user has chat premium
-        const premCheck = await p.query(
-            "SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_expiry > NOW()",
-            [uid]
-        );
-        
-        if (premCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Premium required to send files' });
-        }
-        
-        // Upload to ImgBB (supports images only) or use Catbox for files
-        const uploadUrl = fileType && fileType.startsWith('image/') 
-            ? 'https://api.imgbb.com/1/upload'
-            : 'https://catbox.moe/user/api.php';
-        
-        let resultUrl = '';
-        
-        if (fileType && fileType.startsWith('image/')) {
-            // Image upload to ImgBB
-            const imageData = base64.replace(/^data:image\/\w+;base64,/, '');
-            const formData = new URLSearchParams();
-            formData.append('key', IMGBB_API_KEY);
-            formData.append('image', imageData);
-            
-            const response = await fetch(uploadUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: formData.toString(),
-                signal: AbortSignal.timeout(30000)
-            });
-            const imgData = await response.json();
-            if (imgData.success) resultUrl = imgData.data.url;
-        } else {
-            // File upload to Catbox
-            const matches = base64.match(/^data:[^;]+;base64,(.+)$/);
-            let base64Data = matches ? matches[1] : base64.substring(base64.indexOf(',') + 1);
-            const buffer = Buffer.from(base64Data, 'base64');
-            const formData = new FormData();
-            formData.append('reqtype', 'fileupload');
-            formData.append('fileToUpload', new Blob([buffer]), fileName || 'file');
-            
-            const response = await fetch(uploadUrl, {
-                method: 'POST',
-                body: formData,
-                signal: AbortSignal.timeout(30000)
-            });
-            resultUrl = await response.text();
-            resultUrl = resultUrl.trim();
-        }
-        
-        if (resultUrl && resultUrl.startsWith('http')) {
-            res.json({ success: true, url: resultUrl, fileName: fileName || 'file' });
-        } else {
-            res.json({ success: false, message: 'File upload failed' });
-        }
-        
-    } catch(e) {
-        console.error('[CHAT FILE UPLOAD ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-// ==================== GROUP CHAT APIs ====================
 
 // Get all groups for user
 app.post('/api/chat/groups', async (req, res) => {
@@ -3896,7 +3743,10 @@ app.post('/api/chat/groups', async (req, res) => {
             ORDER BY cr.id DESC
         `, [userId]);
         res.json({ success: true, groups: r.rows });
-    } catch(e) { res.json({ groups: [] }); }
+    } catch(e) { 
+        console.error('[GROUPS ERROR]', e.message);
+        res.json({ groups: [] }); 
+    }
 });
 
 // Create group
@@ -3956,11 +3806,7 @@ app.post('/api/chat/add_member', async (req, res) => {
             [roomId, userId]
         );
         
-        // Get room name for notification
-        const room = await p.query('SELECT room_name FROM chat_rooms WHERE id=$1', [roomId]);
         const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
-        
-        // Send system message
         await p.query(
             `INSERT INTO chat_messages (room_id, sender_id, username, message) 
              VALUES ($1, 0, 'System', $2)`,
@@ -3982,17 +3828,15 @@ app.post('/api/chat/invite_link', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Check if user is in group
         const check = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
         if (check.rows.length === 0) {
             return res.json({ success: false, message: 'You are not in this group' });
         }
         
-        // Generate invite link (simple - just room id)
         const inviteLink = `${req.protocol}://${req.get('host')}/join_group?room=${roomId}`;
-        
         res.json({ success: true, link: inviteLink });
     } catch(e) {
+        console.error('[INVITE LINK ERROR]', e.message);
         res.json({ success: false });
     }
 });
@@ -4005,13 +3849,9 @@ app.post('/api/chat/leave_group', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Remove participant
         await p.query('DELETE FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
         
-        // Get user name for system message
         const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
-        
-        // Send system message
         await p.query(
             `INSERT INTO chat_messages (room_id, sender_id, username, message) 
              VALUES ($1, 0, 'System', $2)`,
@@ -4020,9 +3860,66 @@ app.post('/api/chat/leave_group', async (req, res) => {
         
         res.json({ success: true, message: 'Left group' });
     } catch(e) {
+        console.error('[LEAVE GROUP ERROR]', e.message);
         res.json({ success: false });
     }
 });
+
+// Mark messages as read
+app.post('/api/chat/read', async (req, res) => {
+    const { roomId, userId } = req.body;
+    try {
+        const p = await getPool();
+        await p.query('UPDATE chat_messages SET is_read = true WHERE room_id = $1 AND sender_id != $2', [roomId, userId]);
+        res.json({ success: true });
+    } catch(e) { 
+        console.error('[READ ERROR]', e.message);
+        res.json({ success: false }); 
+    }
+});
+
+// Delete room
+app.post('/api/chat/delete_room', async (req, res) => {
+    const { roomId, userId } = req.body;
+    try {
+        const p = await getPool();
+        
+        const check = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        if (check.rows.length === 0) return res.json({ success: false });
+        
+        await p.query('DELETE FROM chat_messages WHERE room_id = $1', [roomId]);
+        await p.query('DELETE FROM chat_participants WHERE room_id = $1', [roomId]);
+        await p.query('DELETE FROM chat_rooms WHERE id = $1', [roomId]);
+        
+        res.json({ success: true });
+    } catch(e) { 
+        console.error('[DELETE ROOM ERROR]', e.message);
+        res.json({ success: false }); 
+    }
+});
+
+// Debug endpoint
+app.get('/api/debug/chat', async (req, res) => {
+    try {
+        const p = await getPool();
+        const messages = await p.query('SELECT COUNT(*) FROM chat_messages');
+        const rooms = await p.query('SELECT COUNT(*) FROM chat_rooms');
+        const participants = await p.query('SELECT COUNT(*) FROM chat_participants');
+        
+        res.json({
+            success: true,
+            messages: parseInt(messages.rows[0].count),
+            rooms: parseInt(rooms.rows[0].count),
+            participants: parseInt(participants.rows[0].count),
+            db_connected: true,
+            socket_ready: true
+        });
+    } catch(e) {
+        console.error('[DEBUG ERROR]', e.message);
+        res.json({ success: false, error: e.message });
+    }
+});
+
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
@@ -4042,17 +3939,20 @@ app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html
 app.get('/exchange.html', (req, res) => servePageWithCheck(req, res, 'exchange', 'exchange.html'));
 app.get('/chat.html', (req, res) => res.sendFile(path.join(__dirname, 'chat.html')));
 app.get('/chatpremium.html', (req, res) => res.sendFile(path.join(__dirname, 'chatpremium.html')));
-// Initialize tables on all 5 databases
+
+// Initialize tables on all databases
 pools.forEach(pool => {
     initTables(pool);
 });
+
 // ==================== START SERVER ====================
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`DB: 5 Pools Auto-Switch (DB1~DB5)`);
-    console.log(`Page Control: ${ALL_PAGES.length} pages`);
-    console.log(`Chat: Socket.io Ready`);
-    console.log(`Bot: Enhanced Long Polling`);
-    console.log(`Redeem Codes: ${REDEEM_CATEGORIES.length} categories`);
+    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`📊 DB: 5 Pools Auto-Switch`);
+    console.log(`📄 Page Control: ${ALL_PAGES.length} pages`);
+    console.log(`💬 Chat: Socket.io Ready`);
+    console.log(`🤖 Bot: Enhanced Long Polling`);
+    console.log(`🎮 Redeem Codes: ${REDEEM_CATEGORIES.length} categories`);
+    console.log(`👑 Premium Chat System: Ready`);
 });
