@@ -731,29 +731,102 @@
     }
     function cancelUpload() { uploadCancelled = true; selectedFile = null; document.getElementById('uploadPreviewModal').classList.remove('active'); }
     async function confirmUpload() {
-        if (!selectedFile || uploadCancelled || !currentRoom) { if (!currentRoom) showToast('Select a room first', true); cancelUpload(); return; }
-        const progDiv = document.getElementById('uploadProgress'), progFill = document.getElementById('progressFill'), progText = document.getElementById('progressText');
-        progDiv.style.display = 'block'; progFill.style.width = '0%'; progText.textContent = 'Uploading 0%';
-        document.getElementById('sendUploadBtn').disabled = true;
-        let progress = 0; const interval = setInterval(() => { if (uploadCancelled) return; progress = Math.min(progress + 8, 90); progFill.style.width = progress + '%'; progText.textContent = `Uploading ${progress}%`; }, 150);
-        try {
-            const reader = new FileReader();
-            const base64 = await new Promise(r => { reader.onload = e => r(e.target.result); reader.readAsDataURL(selectedFile); });
-            if (uploadCancelled) { clearInterval(interval); cancelUpload(); return; }
-            progFill.style.width = '95%'; progText.textContent = 'Processing...';
-            const res = await fetch('/api/chat/upload_file', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token'), base64, fileName: selectedFileName, fileType: selectedFile.type }) });
-            const data = await res.json();
-            clearInterval(interval);
-            if (uploadCancelled) { cancelUpload(); return; }
-            if (data.success) {
-                progFill.style.width = '100%'; progText.textContent = 'Complete! Sending...';
-                await new Promise(r => setTimeout(r, 200));
-                socket.emit('send_message', { roomId: currentRoom, message: selectedFileType === 'image' ? `📷 IMAGE:${data.url}` : `📎 FILE:${data.url}|${data.fileName || selectedFileName}`, userId: currentUser.id, username: currentUser.username, senderPremiumTier: premiumTier });
-                showToast('Sent!'); cancelUpload();
-            } else { showToast(data.message || 'Upload failed', true); cancelUpload(); }
-        } catch(e) { clearInterval(interval); showToast('Upload error', true); cancelUpload(); }
+    if (!selectedFile || uploadCancelled || !currentRoom) {
+        if (!currentRoom) showToast('စကားပြောခန်းမရွေးရသေးပါ', true);
+        cancelUpload();
+        return;
     }
-
+    
+    const modal = document.getElementById('uploadPreviewModal');
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    progressDiv.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Uploading 0%';
+    document.getElementById('sendUploadBtn').disabled = true;
+    
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        if (uploadCancelled) return;
+        progress = Math.min(progress + 8, 90);
+        progressFill.style.width = progress + '%';
+        progressText.textContent = `Uploading ${progress}%`;
+    }, 150);
+    
+    try {
+        const reader = new FileReader();
+        const base64 = await new Promise((resolve) => {
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(selectedFile);
+        });
+        
+        if (uploadCancelled) {
+            clearInterval(progressInterval);
+            cancelUpload();
+            return;
+        }
+        
+        progressFill.style.width = '95%';
+        progressText.textContent = 'Processing 95%';
+        
+        // ✅ Make sure token exists
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            throw new Error('Not logged in');
+        }
+        
+        console.log('Uploading file:', {
+            fileName: selectedFileName,
+            fileType: selectedFile.type,
+            fileSize: selectedFile.size
+        });
+        
+        const res = await fetch('/api/upload_image', {  // ← CHANGE: Use /api/upload_image instead
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                base64: base64
+            })
+        });
+        
+        const data = await res.json();
+        console.log('Upload response:', data);
+        
+        clearInterval(progressInterval);
+        
+        if (uploadCancelled) {
+            cancelUpload();
+            return;
+        }
+        
+        if (data.success) {
+            progressFill.style.width = '100%';
+            progressText.textContent = 'Complete! Sending...';
+            await new Promise(r => setTimeout(r, 200));
+            
+            const messageData = {
+                roomId: currentRoom,
+                message: selectedFileType === 'image' ? `📷 IMAGE:${data.url}` : `📎 FILE:${data.url}|${selectedFileName}`,
+                userId: currentUser.id,
+                username: currentUser.username,
+                senderPremiumTier: premiumTier
+            };
+            socket.emit('send_message', messageData);
+            showToast('Sent!');
+            cancelUpload();
+        } else {
+            showToast(data.message || 'Upload failed', true);
+            cancelUpload();
+        }
+    } catch(err) {
+        clearInterval(progressInterval);
+        console.error('Upload error:', err);
+        showToast('Upload error: ' + err.message, true);
+        cancelUpload();
+    }
+    }
     async function getCurrentUser() {
         const token = localStorage.getItem('auth_token');
         if (!token || token === 'guest') { document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-lock" style="font-size:50px"></i><h3>Please login</h3><a href="/">Login</a></div>'; return null; }
