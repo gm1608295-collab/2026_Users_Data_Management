@@ -7,544 +7,193 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bronze: #CD7F32;
-            --bronze-light: #E8A87C;
-            --bronze-dark: #8B4513;
-            --bronze-metallic: linear-gradient(135deg, #6b3410, #8B4513, #CD7F32, #E8A87C, #8B4513);
-            --silver: #A8A8A8;
-            --silver-light: #E8E8E8;
-            --silver-dark: #707070;
-            --silver-metallic: linear-gradient(135deg, #5a5a5a, #808080, #C0C0C0, #E8E8E8, #808080);
-            --gold: #FFD700;
-            --gold-light: #FFF8DC;
-            --gold-dark: #B8860B;
-            --gold-metallic: linear-gradient(135deg, #8B6914, #B8860B, #FFD700, #FFF8DC, #DAA520);
+            --bg:#0a0a1a; --p:#1a1f4b; --a:#4a1c7a; --w:#f39c12; --g:#2ecc71;
+            --t:#fff; --r:#e74c3c; --b:#3498db; --gold:#FFD700;
+            --bronze:#CD7F32; --silver:#C0C0C0;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        html,body{height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch}
+        body{
+            background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);
+            color:var(--t);min-height:100vh;padding:15px;
+        }
+        body.bronze-premium{background:linear-gradient(135deg,#1e0f08,#2d1a0c,#1e0f08)}
+        body.silver-premium{background:linear-gradient(135deg,#121212,#1e1e1e,#121212)}
+        body.gold-premium{background:linear-gradient(135deg,#1e1506,#2d2008,#1e1506)}
+        
+        .container{max-width:450px;margin:0 auto;padding-bottom:30px}
+        
+        /* ✅ HEADER - FIXED z-index & pointer-events */
+        .header{
+            display:flex;align-items:center;gap:10px;
+            padding:14px 15px;border-radius:12px;margin-bottom:15px;
+            background:linear-gradient(to right,var(--a),var(--p));
+            border-bottom:3px solid var(--w);
+            position:relative;z-index:10;
+        }
+        body.bronze-premium .header{
+            background:linear-gradient(135deg,#6b3410,#CD7F32,#6b3410);
+            border-bottom:3px solid #E8A87C;
+        }
+        body.silver-premium .header{
+            background:linear-gradient(135deg,#4a4a4a,#C0C0C0,#4a4a4a);
+            border-bottom:3px solid #E8E8E8;
+        }
+        body.gold-premium .header{
+            background:linear-gradient(135deg,#6d4c00,#FFD700,#6d4c00);
+            border-bottom:3px solid #FFF8DC;
         }
         
-        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', system-ui, sans-serif; }
+        /* ✅ BACK BUTTON - Always clickable */
+        .back-btn{
+            color:var(--w);font-size:20px;text-decoration:none;
+            cursor:pointer;z-index:20;pointer-events:auto;
+            padding:5px;display:inline-block;
+            -webkit-tap-highlight-color:transparent;
+        }
+        body.bronze-premium .back-btn{color:#E8A87C}
+        body.silver-premium .back-btn{color:#E8E8E8}
+        body.gold-premium .back-btn{color:#FFF8DC}
         
-        body {
-            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
-            color: #fff;
-            min-height: 100vh;
-            padding: 15px;
-            transition: all 0.5s ease;
-        }
+        .header h2{color:var(--w);font-size:16px;font-weight:700;flex:1}
+        body.bronze-premium .header h2{color:#E8A87C}
+        body.silver-premium .header h2{color:#E8E8E8}
+        body.gold-premium .header h2{color:#FFF8DC}
         
-        body.bronze-premium {
-            background: linear-gradient(135deg, #1e0f08, #2d1a0c, #1e0f08);
-        }
-        body.silver-premium {
-            background: linear-gradient(135deg, #121212, #1e1e1e, #121212);
-        }
-        body.gold-premium {
-            background: linear-gradient(135deg, #1e1506, #2d2008, #1e1506);
-            animation: goldBgPulse 3s infinite;
-        }
-        @keyframes goldBgPulse {
-            0%, 100% { background: linear-gradient(135deg, #1e1506, #2d2008, #1e1506); }
-            50% { background: linear-gradient(135deg, #2a1a00, #3d2a10, #2a1a00); }
+        .premium-badge{
+            background:var(--gold);color:#000;padding:4px 12px;
+            border-radius:20px;font-size:9px;font-weight:bold;z-index:10;
         }
         
-        .container {
-            max-width: 450px;
-            margin: 0 auto;
-            padding-bottom: 30px;
+        /* ✅ MODAL - FIXED z-index higher than header */
+        .modal-overlay{
+            display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+            background:rgba(0,0,0,0.9);z-index:9999;
+            justify-content:center;align-items:center;
+        }
+        .modal-overlay.active{display:flex}
+        .modal-box{
+            background:linear-gradient(135deg,#1a1f4b,#11112a);
+            border:2px solid var(--gold);border-radius:16px;
+            padding:24px;width:90%;max-width:360px;text-align:center;
+            position:relative;z-index:10000;
+        }
+        .modal-box h3{color:var(--gold);margin-bottom:12px}
+        .modal-box .success-icon{font-size:60px;margin-bottom:10px}
+        .modal-btn{
+            padding:10px 25px;background:var(--gold);color:#000;
+            border:none;border-radius:30px;font-weight:bold;cursor:pointer;
+            pointer-events:auto;z-index:10001;
         }
         
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 15px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            transition: all 0.3s;
+        /* Balance Card */
+        .balance-card{
+            border-radius:16px;padding:18px;text-align:center;margin-bottom:15px;
+            background:linear-gradient(135deg,#1a0a2e,#4a1c7a);
+            border:2px solid rgba(255,215,0,0.3);
         }
-        body.bronze-premium .header {
-            background: linear-gradient(135deg, #6b3410, #CD7F32, #6b3410);
-            border: 2px solid var(--bronze-light);
-            box-shadow: 0 0 20px rgba(205,127,50,0.3);
+        body.bronze-premium .balance-card{
+            background:linear-gradient(135deg,#3a2010,#2a1a0e);
+            border:2px solid var(--bronze);
         }
-        body.silver-premium .header {
-            background: linear-gradient(135deg, #4a4a4a, #C0C0C0, #4a4a4a);
-            border: 2px solid var(--silver-light);
-            box-shadow: 0 0 20px rgba(192,192,192,0.3);
+        body.silver-premium .balance-card{
+            background:linear-gradient(135deg,#2a2a2a,#1a1a1a);
+            border:2px solid var(--silver);
         }
-        body.gold-premium .header {
-            background: linear-gradient(135deg, #6d4c00, #FFD700, #6d4c00);
-            border: 2px solid var(--gold-light);
-            box-shadow: 0 0 30px rgba(255,215,0,0.5);
-            animation: goldHeaderGlow 2s infinite;
+        body.gold-premium .balance-card{
+            background:linear-gradient(135deg,#3a2a00,#2a1a00);
+            border:2px solid var(--gold);
         }
-        @keyframes goldHeaderGlow {
-            0%, 100% { box-shadow: 0 0 20px rgba(255,215,0,0.3); }
-            50% { box-shadow: 0 0 50px rgba(255,215,0,0.6); }
+        .balance-card .bal-label{font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:2px}
+        .balance-card .bal-amount{font-size:32px;font-weight:bold;margin:8px 0}
+        body.bronze-premium .balance-card .bal-amount{color:var(--bronze)}
+        body.silver-premium .balance-card .bal-amount{color:var(--silver)}
+        body.gold-premium .balance-card .bal-amount{color:var(--gold)}
+        .balance-card .bal-sub{font-size:9px;color:rgba(255,255,255,0.4)}
+        
+        /* Current Plan */
+        .current-plan{
+            border-radius:12px;padding:12px 15px;margin-bottom:15px;text-align:center;
+            background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.3);
+        }
+        body.bronze-premium .current-plan{background:rgba(205,127,50,0.15);border:1px solid var(--bronze)}
+        body.silver-premium .current-plan{background:rgba(192,192,192,0.15);border:1px solid var(--silver)}
+        body.gold-premium .current-plan{background:rgba(255,215,0,0.15);border:1px solid var(--gold)}
+        .current-plan .cp-title{font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px}
+        .current-plan .cp-name{font-size:14px;font-weight:bold;margin:4px 0}
+        .current-plan .cp-expiry{font-size:10px;color:rgba(255,255,255,0.6)}
+        
+        /* Plans */
+        .premium-plans{display:flex;flex-direction:column;gap:12px;margin-bottom:15px}
+        .plan-card{
+            background:rgba(26,31,75,0.7);border-radius:16px;padding:16px;
+            cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;
+            border:2px solid rgba(255,255,255,0.1);
+        }
+        .plan-card:hover{transform:translateY(-2px);border-color:var(--gold)}
+        .plan-card.selected{border-color:var(--gold);background:rgba(74,28,122,0.5)}
+        .plan-card.popular{border-color:var(--gold)}
+        .plan-card .popular-badge{
+            position:absolute;top:10px;right:-30px;background:var(--gold);
+            color:#000;font-size:8px;font-weight:bold;padding:3px 30px;transform:rotate(45deg);
+        }
+        .plan-card .plan-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+        .plan-card .plan-name{font-size:15px;font-weight:bold}
+        .plan-card .plan-price{font-size:20px;font-weight:bold;color:var(--gold)}
+        .plan-card .plan-duration{font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:10px}
+        .plan-card .plan-features{font-size:10px;color:rgba(255,255,255,0.6);line-height:1.7}
+        .plan-card .plan-features i{margin-right:6px}
+        .plan-card .plan-features .fa-check-circle{color:var(--g)}
+        .plan-card .plan-features .fa-lock{color:#7f8c8d}
+        
+        /* Buy Button */
+        .buy-btn{
+            width:100%;padding:14px;border:none;border-radius:40px;
+            font-size:15px;font-weight:bold;cursor:pointer;transition:all 0.3s;
+            background:linear-gradient(135deg,var(--gold),#e67e22);color:#000;
+            display:flex;align-items:center;justify-content:center;gap:8px;
+        }
+        .buy-btn:hover:not(:disabled){transform:translateY(-2px)}
+        .buy-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+        
+        /* Toast */
+        .toast{
+            position:fixed;top:15px;right:15px;padding:12px 18px;
+            border-radius:25px;z-index:99999;font-size:12px;font-weight:bold;
+            display:none;box-shadow:0 5px 20px rgba(0,0,0,0.4);
         }
         
-        .header a {
-            font-size: 18px;
-            text-decoration: none;
-            transition: 0.2s;
+        /* Stickers */
+        .premium-stickers{
+            margin-top:15px;padding:15px;border-radius:16px;text-align:center;
+            background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.2);
         }
-        body.bronze-premium .header a { color: var(--bronze-light); }
-        body.silver-premium .header a { color: var(--silver-light); }
-        body.gold-premium .header a { color: var(--gold-light); }
+        .premium-stickers h4{font-size:12px;margin-bottom:10px;color:var(--gold)}
+        .sticker-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+        .sticker{font-size:30px;cursor:pointer;padding:5px;background:rgba(0,0,0,0.2);border-radius:10px;transition:transform 0.2s}
+        .sticker:hover{transform:scale(1.2)}
         
-        .header h2 {
-            font-size: 16px;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        body.bronze-premium .header h2 { color: var(--bronze-light); }
-        body.silver-premium .header h2 { color: var(--silver-light); }
-        body.gold-premium .header h2 { 
-            color: var(--gold-light);
-            text-shadow: 0 0 10px #FFD700;
-        }
-        
-        .premium-badge {
-            background: var(--gold);
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 9px;
-            font-weight: bold;
-        }
-        body.bronze-premium .premium-badge { background: var(--bronze); color: #1a0c00; }
-        body.silver-premium .premium-badge { background: var(--silver); color: #0a0a0a; }
-        body.gold-premium .premium-badge { background: var(--gold); color: #1a1000; animation: badgeGlow 1.5s infinite; }
-        @keyframes badgeGlow {
-            0%, 100% { box-shadow: 0 0 5px rgba(255,215,0,0.3); }
-            50% { box-shadow: 0 0 15px rgba(255,215,0,0.6); }
-        }
-        
-        .balance-card {
-            border-radius: 16px;
-            padding: 18px;
-            text-align: center;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-        }
-        body.bronze-premium .balance-card {
-            background: linear-gradient(135deg, #3a2010, #2a1a0e);
-            border: 2px solid var(--bronze);
-            box-shadow: 0 0 15px rgba(205,127,50,0.3);
-        }
-        body.silver-premium .balance-card {
-            background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
-            border: 2px solid var(--silver);
-            box-shadow: 0 0 15px rgba(192,192,192,0.3);
-        }
-        body.gold-premium .balance-card {
-            background: linear-gradient(135deg, #3a2a00, #2a1a00);
-            border: 2px solid var(--gold);
-            box-shadow: 0 0 25px rgba(255,215,0,0.4);
-            animation: goldCardPulse 2s infinite;
-        }
-        @keyframes goldCardPulse {
-            0%, 100% { box-shadow: 0 0 15px rgba(255,215,0,0.3); }
-            50% { box-shadow: 0 0 35px rgba(255,215,0,0.6); }
-        }
-        
-        .balance-card .bal-label {
-            font-size: 10px;
-            color: rgba(255,255,255,0.6);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .balance-card .bal-amount {
-            font-size: 32px;
-            font-weight: bold;
-            margin: 8px 0;
-        }
-        body.bronze-premium .balance-card .bal-amount { color: var(--bronze); }
-        body.silver-premium .balance-card .bal-amount { color: var(--silver); }
-        body.gold-premium .balance-card .bal-amount { 
-            color: var(--gold);
-            text-shadow: 0 0 10px #FFD700;
-            animation: goldAmountGlow 1s infinite;
-        }
-        @keyframes goldAmountGlow {
-            0%, 100% { text-shadow: 0 0 5px #FFD700; }
-            50% { text-shadow: 0 0 20px #FFF8DC; }
-        }
-        
-        .balance-card .bal-sub {
-            font-size: 9px;
-            color: rgba(255,255,255,0.4);
-        }
-        
-        .current-plan {
-            border-radius: 12px;
-            padding: 12px 15px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        body.bronze-premium .current-plan {
-            background: rgba(205,127,50,0.15);
-            border: 1px solid var(--bronze);
-        }
-        body.silver-premium .current-plan {
-            background: rgba(192,192,192,0.15);
-            border: 1px solid var(--silver);
-        }
-        body.gold-premium .current-plan {
-            background: rgba(255,215,0,0.15);
-            border: 1px solid var(--gold);
-        }
-        
-        .current-plan .cp-title {
-            font-size: 10px;
-            color: rgba(255,255,255,0.5);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .current-plan .cp-name {
-            font-size: 14px;
-            font-weight: bold;
-            margin: 4px 0;
-        }
-        body.bronze-premium .current-plan .cp-name { color: var(--bronze); }
-        body.silver-premium .current-plan .cp-name { color: var(--silver); }
-        body.gold-premium .current-plan .cp-name { color: var(--gold); }
-        
-        .current-plan .cp-expiry {
-            font-size: 10px;
-            color: rgba(255,255,255,0.6);
-        }
-        
-        .premium-plans {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 15px;
-        }
-        
-        .plan-card {
-            border-radius: 16px;
-            padding: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-        body.bronze-premium .plan-card {
-            background: rgba(61, 40, 20, 0.7);
-            border: 2px solid rgba(205,127,50,0.3);
-        }
-        body.silver-premium .plan-card {
-            background: rgba(60, 60, 60, 0.7);
-            border: 2px solid rgba(192,192,192,0.3);
-        }
-        body.gold-premium .plan-card {
-            background: rgba(80, 60, 10, 0.7);
-            border: 2px solid rgba(255,215,0,0.3);
-        }
-        
-        .plan-card:hover {
-            transform: translateY(-3px);
-        }
-        body.bronze-premium .plan-card:hover {
-            border-color: var(--bronze);
-            box-shadow: 0 8px 25px rgba(205,127,50,0.3);
-        }
-        body.silver-premium .plan-card:hover {
-            border-color: var(--silver);
-            box-shadow: 0 8px 25px rgba(192,192,192,0.3);
-        }
-        body.gold-premium .plan-card:hover {
-            border-color: var(--gold);
-            box-shadow: 0 8px 30px rgba(255,215,0,0.4);
-        }
-        
-        .plan-card.selected {
-            border-color: var(--gold);
-        }
-        body.bronze-premium .plan-card.selected { border-color: var(--bronze); background: rgba(205,127,50,0.15); }
-        body.silver-premium .plan-card.selected { border-color: var(--silver); background: rgba(192,192,192,0.15); }
-        body.gold-premium .plan-card.selected { border-color: var(--gold); background: rgba(255,215,0,0.15); }
-        
-        .plan-card.popular {
-            border-color: var(--gold);
-        }
-        body.gold-premium .plan-card.popular {
-            animation: popularGlow 1.5s infinite;
-        }
-        @keyframes popularGlow {
-            0%, 100% { box-shadow: 0 0 10px rgba(255,215,0,0.3); }
-            50% { box-shadow: 0 0 25px rgba(255,215,0,0.6); }
-        }
-        
-        .plan-card .popular-badge {
-            position: absolute;
-            top: 10px;
-            right: -30px;
-            background: var(--gold);
-            color: #000;
-            font-size: 8px;
-            font-weight: bold;
-            padding: 3px 30px;
-            transform: rotate(45deg);
-        }
-        
-        .plan-card .plan-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        .plan-card .plan-name {
-            font-size: 15px;
-            font-weight: bold;
-        }
-        .plan-card .plan-price {
-            font-size: 20px;
-            font-weight: bold;
-        }
-        body.bronze-premium .plan-card .plan-price { color: var(--bronze); }
-        body.silver-premium .plan-card .plan-price { color: var(--silver); }
-        body.gold-premium .plan-card .plan-price { color: var(--gold); }
-        
-        .plan-card .plan-duration {
-            font-size: 10px;
-            color: rgba(255,255,255,0.5);
-            margin-bottom: 10px;
-        }
-        .plan-card .plan-features {
-            font-size: 10px;
-            color: rgba(255,255,255,0.6);
-            line-height: 1.7;
-        }
-        .plan-card .plan-features i {
-            margin-right: 6px;
-        }
-        body.bronze-premium .plan-card .plan-features i.fa-check-circle { color: var(--bronze); }
-        body.silver-premium .plan-card .plan-features i.fa-check-circle { color: var(--silver); }
-        body.gold-premium .plan-card .plan-features i.fa-check-circle { color: var(--gold); }
-        
-        .plan-card .plan-features i.fa-lock {
-            color: #7f8c8d;
-        }
-        
-        .buy-btn {
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 40px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        body.bronze-premium .buy-btn {
-            background: linear-gradient(135deg, #8B4513, #CD7F32);
-            color: #1a0f07;
-        }
-        body.silver-premium .buy-btn {
-            background: linear-gradient(135deg, #606060, #C0C0C0);
-            color: #0a0a0a;
-        }
-        body.gold-premium .buy-btn {
-            background: linear-gradient(135deg, #B8860B, #FFD700);
-            color: #0a0a05;
-            animation: goldBtnShine 1.5s infinite;
-        }
-        @keyframes goldBtnShine {
-            0%, 100% { background: linear-gradient(135deg, #B8860B, #FFD700); }
-            50% { background: linear-gradient(135deg, #FFD700, #FFF8DC); }
-        }
-        
-        .buy-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            filter: brightness(1.05);
-        }
-        .buy-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .premium-stickers {
-            margin-top: 15px;
-            padding: 15px;
-            border-radius: 16px;
-            text-align: center;
-        }
-        body.bronze-premium .premium-stickers {
-            background: rgba(205,127,50,0.1);
-            border: 1px solid rgba(205,127,50,0.3);
-        }
-        body.silver-premium .premium-stickers {
-            background: rgba(192,192,192,0.1);
-            border: 1px solid rgba(192,192,192,0.3);
-        }
-        body.gold-premium .premium-stickers {
-            background: rgba(255,215,0,0.1);
-            border: 1px solid rgba(255,215,0,0.3);
-        }
-        
-        .premium-stickers h4 {
-            font-size: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        body.bronze-premium .premium-stickers h4 { color: var(--bronze); }
-        body.silver-premium .premium-stickers h4 { color: var(--silver); }
-        body.gold-premium .premium-stickers h4 { color: var(--gold); }
-        
-        .sticker-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-        }
-        .sticker {
-            font-size: 30px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            padding: 5px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 10px;
-        }
-        .sticker:hover {
-            transform: scale(1.2);
-        }
-        body.gold-premium .sticker {
-            animation: stickerFloat 2s infinite;
-        }
-        @keyframes stickerFloat {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-3px); }
-        }
-        
-        .toast {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            padding: 12px 18px;
-            border-radius: 25px;
-            z-index: 9999;
-            font-size: 12px;
-            font-weight: bold;
-            display: none;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
-        }
-        
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal-box {
-            background: linear-gradient(135deg, #1a1f4b, #11112a);
-            border: 2px solid var(--gold);
-            border-radius: 16px;
-            padding: 24px;
-            width: 90%;
-            max-width: 360px;
-            text-align: center;
-        }
-        .modal-box h3 {
-            color: var(--gold);
-            margin-bottom: 12px;
-        }
-        .modal-box .success-icon {
-            font-size: 60px;
-            margin-bottom: 10px;
-        }
-        .modal-box p {
-            color: #ccc;
-            font-size: 13px;
-            margin: 10px 0;
-        }
-        .modal-btn {
-            padding: 10px 25px;
-            background: var(--gold);
-            color: #000;
-            border: none;
-            border-radius: 30px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        
-        .processing-modal { text-align: center; }
-        .processing-icon { font-size: 50px; animation: procBounce 1s infinite; }
-        @keyframes procBounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-        .processing-title { font-size: 16px; color: var(--gold); margin: 10px 0; font-weight: bold; }
-        .progress-bar-container {
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 15px 0;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #ffd700, #ff8c00);
-            border-radius: 10px;
-            transition: width 0.1s ease;
-            width: 0%;
-        }
-        .progress-text { font-size: 14px; color: #fff; font-weight: bold; }
-        .progress-subtext { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 5px; }
-        
-        @media (max-width: 380px) {
-            body { padding: 10px; }
-            .plan-card .plan-price { font-size: 18px; }
-            .sticker { font-size: 26px; }
+        @media(max-width:380px){
+            body{padding:10px}
+            .plan-card .plan-price{font-size:18px}
+            .sticker{font-size:26px}
         }
     </style>
 </head>
 <body id="mainBody">
     <div class="toast" id="toast"></div>
     
-    <!-- Processing Modal -->
-    <div class="modal-overlay" id="processingModal">
-        <div class="modal-box processing-modal">
-            <div class="processing-icon">👑</div>
-            <div class="processing-title" id="processingTitle">Processing...</div>
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="progressBarFill"></div>
-            </div>
-            <div class="progress-text" id="progressText">0%</div>
-            <div class="progress-subtext">Please wait while we activate your premium features...</div>
-        </div>
-    </div>
-    
     <div class="container">
-        <!-- Header with Back Button -->
+        <!-- ✅ FIXED HEADER -->
         <div class="header">
-            <a href="#" onclick="goBack(event)">
+            <a class="back-btn" onclick="goBack(event)">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <h2><i class="fas fa-crown"></i> Premium Chat</h2>
-            <span class="premium-badge" id="premiumBadge">PREMIUM</span>
+            <span class="premium-badge">PREMIUM</span>
         </div>
         
-        <!-- Balance Card -->
+        <!-- Balance -->
         <div class="balance-card">
             <div class="bal-label">💵 USD BALANCE</div>
             <div class="bal-amount" id="usdBalance">$0.00</div>
@@ -558,54 +207,51 @@
             <div class="cp-expiry" id="currentPlanExpiry"></div>
         </div>
         
-        <!-- Premium Plans -->
+        <!-- Plans -->
         <div class="premium-plans">
-            <!-- Bronze Plan - 1 Month -->
-            <div class="plan-card" id="planBronze" onclick="selectPlan(1)">
+            <div class="plan-card" onclick="selectPlan(1)">
                 <div class="plan-header">
                     <span class="plan-name">🥉 BRONZE TIER</span>
                     <span class="plan-price">$7.99</span>
                 </div>
                 <div class="plan-duration">30 Days Premium Access</div>
                 <div class="plan-features">
-                    <div><i class="fas fa-check-circle"></i> Premium Stickers Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Bronze Chat Theme</div>
-                    <div><i class="fas fa-lock"></i> Floating Text Animation</div>
-                    <div><i class="fas fa-lock"></i> Gold Badge Profile</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Emoji</div>
+                    <div><i class="fas fa-check-circle"></i> Bronze Theme</div>
+                    <div><i class="fas fa-lock"></i> Floating Text</div>
+                    <div><i class="fas fa-lock"></i> Gold Badge</div>
                 </div>
             </div>
             
-            <!-- Silver Plan - 2 Months (Popular) -->
-            <div class="plan-card popular" id="planSilver" onclick="selectPlan(2)">
+            <div class="plan-card popular" onclick="selectPlan(2)">
                 <div class="popular-badge">🔥 POPULAR</div>
                 <div class="plan-header">
                     <span class="plan-name">🥈 SILVER TIER</span>
                     <span class="plan-price">$14.99</span>
                 </div>
-                <div class="plan-duration">60 Days Premium Access (Save $0.99)</div>
+                <div class="plan-duration">60 Days (Save $0.99)</div>
                 <div class="plan-features">
-                    <div><i class="fas fa-check-circle"></i> Premium Stickers Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Silver Chat Theme</div>
-                    <div><i class="fas fa-check-circle"></i> Floating Text Animation</div>
-                    <div><i class="fas fa-lock"></i> Gold Badge Profile</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Emoji</div>
+                    <div><i class="fas fa-check-circle"></i> Silver Theme</div>
+                    <div><i class="fas fa-check-circle"></i> Floating Text</div>
+                    <div><i class="fas fa-lock"></i> Gold Badge</div>
                 </div>
             </div>
             
-            <!-- Gold Plan - 3 Months -->
-            <div class="plan-card" id="planGold" onclick="selectPlan(3)">
+            <div class="plan-card" onclick="selectPlan(3)">
                 <div class="plan-header">
                     <span class="plan-name">🥇 GOLD TIER</span>
                     <span class="plan-price">$20.99</span>
                 </div>
-                <div class="plan-duration">90 Days Premium Access (Save $2.98)</div>
+                <div class="plan-duration">90 Days (Save $2.98)</div>
                 <div class="plan-features">
-                    <div><i class="fas fa-check-circle"></i> Premium Stickers Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Gold Chat Theme + Animation</div>
-                    <div><i class="fas fa-check-circle"></i> Floating Text Animation</div>
-                    <div><i class="fas fa-check-circle"></i> Gold Badge Profile</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
+                    <div><i class="fas fa-check-circle"></i> Premium Emoji</div>
+                    <div><i class="fas fa-check-circle"></i> Gold Theme + Animation</div>
+                    <div><i class="fas fa-check-circle"></i> Floating Text</div>
+                    <div><i class="fas fa-check-circle"></i> Gold Badge</div>
                 </div>
             </div>
         </div>
@@ -614,9 +260,9 @@
             <i class="fas fa-shopping-cart"></i> SELECT A PLAN
         </button>
         
-        <!-- Premium Stickers Section -->
+        <!-- Stickers -->
         <div class="premium-stickers">
-            <h4><i class="fas fa-smile"></i> PREMIUM STICKERS <i class="fas fa-gem"></i></h4>
+            <h4><i class="fas fa-smile"></i> PREMIUM STICKERS</h4>
             <div class="sticker-grid">
                 <span class="sticker" onclick="copySticker('😎')">😎</span>
                 <span class="sticker" onclick="copySticker('🔥')">🔥</span>
@@ -628,300 +274,212 @@
                 <span class="sticker" onclick="copySticker('💪')">💪</span>
                 <span class="sticker" onclick="copySticker('🏆')">🏆</span>
                 <span class="sticker" onclick="copySticker('🌟')">🌟</span>
-                <span class="sticker" onclick="copySticker('⭐')">⭐</span>
                 <span class="sticker" onclick="copySticker('💯')">💯</span>
                 <span class="sticker" onclick="copySticker('😍')">😍</span>
-                <span class="sticker" onclick="copySticker('🥳')">🥳</span>
-                <span class="sticker" onclick="copySticker('🤩')">🤩</span>
-                <span class="sticker" onclick="copySticker('🎯')">🎯</span>
-            </div>
-            <p style="font-size: 9px; color: rgba(255,255,255,0.4); margin-top: 10px;">
-                <i class="fas fa-info-circle"></i> Click any sticker to copy to chat
-            </p>
-        </div>
-        
-        <!-- Premium Emojis Section -->
-        <div class="premium-stickers" style="margin-top: 10px;">
-            <h4><i class="fas fa-smile-beam"></i> PREMIUM EMOJIS <i class="fas fa-heart" style="color: #ff6b6b;"></i></h4>
-            <div class="sticker-grid">
-                <span class="sticker" onclick="copySticker('🥇')">🥇</span>
-                <span class="sticker" onclick="copySticker('🥈')">🥈</span>
-                <span class="sticker" onclick="copySticker('🥉')">🥉</span>
-                <span class="sticker" onclick="copySticker('🎖️')">🎖️</span>
-                <span class="sticker" onclick="copySticker('🏅')">🏅</span>
-                <span class="sticker" onclick="copySticker('🎭')">🎭</span>
-                <span class="sticker" onclick="copySticker('🎪')">🎪</span>
-                <span class="sticker" onclick="copySticker('🎨')">🎨</span>
-                <span class="sticker" onclick="copySticker('🪄')">🪄</span>
-                <span class="sticker" onclick="copySticker('🔮')">🔮</span>
             </div>
         </div>
     </div>
     
-    <!-- Success Modal -->
+    <!-- ✅ MODAL - High z-index -->
     <div class="modal-overlay" id="successModal">
         <div class="modal-box">
             <div class="success-icon">👑</div>
             <h3 id="successTitle">Premium Activated!</h3>
-            <p id="successMsg"></p>
-            <button class="modal-btn" onclick="closeModal('successModal'); goToChat();">
+            <p id="successMsg" style="color:#ccc;font-size:13px;margin:10px 0"></p>
+            <button class="modal-btn" onclick="closeModal('successModal');window.location.href='/chat.html'">
                 Go to Chat <i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </div>
 
-    <script>
-    // ============================================
-    // COMPLETE CHAT PREMIUM - WORKING VERSION
-    // ============================================
-    
-    let selectedPlan = null;
-    let usdBalance = 0;
-    let isPremium = false;
-    let premiumTier = 0;
-    let premiumExpiry = null;
-    
-    const PLANS = {
-        1: { months: 1, cost: 7.99, name: 'Bronze Tier', tier: 1, tierName: 'Bronze' },
-        2: { months: 2, cost: 14.99, name: 'Silver Tier', tier: 2, tierName: 'Silver' },
-        3: { months: 3, cost: 20.99, name: 'Gold Tier', tier: 3, tierName: 'Gold' }
-    };
-    
-    // ========== UTILITIES ==========
-    function showToast(msg, isError = false) {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.style.background = isError ? '#e74c3c' : '#2ecc71';
-        toast.style.color = '#fff';
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 3000);
-    }
-    
-    function closeModal(modalId) {
-        document.getElementById(modalId).classList.remove('active');
-    }
-    
-    function goBack(event) {
-        if (event) event.preventDefault();
-        // Try to go back to chat page
-        if (document.referrer && (document.referrer.includes('/chat.html') || document.referrer.includes('/dashboard'))) {
-            window.location.href = '/chat.html';
-        } else {
-            window.history.back();
-        }
-    }
-    
-    function goToChat() {
-        window.location.href = '/chat.html';
-    }
-    
-    function copySticker(sticker) {
-        navigator.clipboard.writeText(sticker).then(() => {
-            showToast('✓ Sticker copied: ' + sticker);
-        }).catch(() => {
-            showToast('Tap to copy: ' + sticker);
+<script>
+// ============================================
+// FIXED CHAT PREMIUM - WORKING BACK BUTTON
+// ============================================
+
+let selectedPlan = null;
+let usdBalance = 0;
+let isPremium = false;
+let premiumTier = 0;
+
+const PLANS = {
+    1: { months: 1, cost: 7.99, name: 'Bronze Tier', tier: 1, tierName: 'Bronze' },
+    2: { months: 2, cost: 14.99, name: 'Silver Tier', tier: 2, tierName: 'Silver' },
+    3: { months: 3, cost: 20.99, name: 'Gold Tier', tier: 3, tierName: 'Gold' }
+};
+
+// ========== UTILITIES ==========
+function showToast(msg, isError) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = isError ? '#e74c3c' : '#2ecc71';
+    toast.style.display = 'block';
+    setTimeout(function(){ toast.style.display = 'none'; }, 3000);
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+function copySticker(sticker) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(sticker).then(function(){
+            showToast('Sticker copied!');
         });
+    } else {
+        showToast('Sticker: ' + sticker);
+    }
+}
+
+// ✅ FIXED BACK BUTTON
+function goBack(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
     }
     
-    // ========== APPLY PREMIUM THEME ==========
-    function applyPremiumTheme(tier) {
-        const body = document.getElementById('mainBody');
-        body.classList.remove('bronze-premium', 'silver-premium', 'gold-premium');
-        
-        if (tier === 1) body.classList.add('bronze-premium');
-        else if (tier === 2) body.classList.add('silver-premium');
-        else if (tier === 3) body.classList.add('gold-premium');
+    // Try browser history first
+    if (window.history.length > 1 && document.referrer) {
+        window.history.back();
+        return;
     }
     
-    // ========== LOAD BALANCES ==========
-    async function loadBalances() {
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') {
-            showToast('Please login first', true);
-            setTimeout(() => { window.location.href = '/'; }, 2000);
-            return;
-        }
+    // Fallback: go to chat page
+    window.location.href = '/chat.html';
+}
+
+// ========== THEME ==========
+function applyTheme(tier) {
+    var body = document.getElementById('mainBody');
+    body.classList.remove('bronze-premium', 'silver-premium', 'gold-premium');
+    if (tier === 1) body.classList.add('bronze-premium');
+    else if (tier === 2) body.classList.add('silver-premium');
+    else if (tier === 3) body.classList.add('gold-premium');
+}
+
+// ========== LOAD ==========
+async function loadBalances() {
+    var token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') {
+        showToast('Please login first', true);
+        setTimeout(function(){ window.location.href = '/'; }, 2000);
+        return;
+    }
+    
+    try {
+        var results = await Promise.all([
+            fetch('/api/get_usd_balance', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({token:token})
+            }).then(function(r){return r.json()}),
+            fetch('/api/chat/premium/status', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({token:token})
+            }).then(function(r){return r.json()})
+        ]);
         
-        try {
-            const [usdRes, premRes] = await Promise.all([
-                fetch('/api/get_usd_balance', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ token }) 
-                }).then(r => r.json()),
-                fetch('/api/chat/premium/status', { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ token }) 
-                }).then(r => r.json())
-            ]);
+        usdBalance = parseFloat(results[0].usd_balance || 0);
+        document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
+        
+        var premRes = results[1];
+        if (premRes.success && premRes.premium_active) {
+            isPremium = true;
+            premiumTier = premRes.premium_tier || 1;
+            applyTheme(premiumTier);
             
-            usdBalance = parseFloat(usdRes.usd_balance || 0);
-            document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
+            document.getElementById('currentPlanBox').style.display = 'block';
+            var tierNames = ['','Bronze','Silver','Gold'];
+            var tierIcons = ['','🥉','🥈','🥇'];
+            document.getElementById('currentPlanName').innerHTML = tierIcons[premiumTier] + ' Premium ' + tierNames[premiumTier];
             
-            if (premRes.success && premRes.premium_active) {
-                isPremium = true;
-                premiumTier = premRes.premium_tier || 1;
-                premiumExpiry = premRes.expires_at;
-                
-                applyPremiumTheme(premiumTier);
-                
-                const box = document.getElementById('currentPlanBox');
-                box.style.display = 'block';
-                
-                const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
-                const tierIcons = ['', '🥉', '🥈', '🥇'];
-                document.getElementById('currentPlanName').innerHTML = 
-                    tierIcons[premiumTier] + ' Premium ' + tierNames[premiumTier] + ' (Tier ' + premiumTier + ')';
-                
-                if (premiumExpiry) {
-                    const exp = new Date(premiumExpiry);
-                    const daysLeft = Math.max(0, Math.ceil((exp - new Date()) / (1000*60*60*24)));
-                    document.getElementById('currentPlanExpiry').textContent = 
-                        '⏰ Expires: ' + exp.toLocaleDateString() + ' (' + daysLeft + ' days left)';
-                }
-                
-                document.getElementById('buyBtn').innerHTML = '<i class="fas fa-check-circle"></i> Already Premium';
-                document.getElementById('buyBtn').disabled = true;
-                
-                // Highlight current plan
-                document.getElementById('planBronze').classList.remove('selected');
-                document.getElementById('planSilver').classList.remove('selected');
-                document.getElementById('planGold').classList.remove('selected');
-                if (premiumTier === 1) document.getElementById('planBronze').classList.add('selected');
-                else if (premiumTier === 2) document.getElementById('planSilver').classList.add('selected');
-                else if (premiumTier === 3) document.getElementById('planGold').classList.add('selected');
+            if (premRes.expires_at) {
+                var exp = new Date(premRes.expires_at);
+                var daysLeft = Math.max(0, Math.ceil((exp - new Date()) / (1000*60*60*24)));
+                document.getElementById('currentPlanExpiry').textContent = 'Expires: ' + exp.toLocaleDateString() + ' (' + daysLeft + ' days left)';
             }
             
-            updateBuyButton();
-        } catch(e) {
-            console.error(e);
-            showToast('Error loading data', true);
-        }
-    }
-    
-    // ========== SELECT PLAN ==========
-    function selectPlan(planId) {
-        if (isPremium) {
-            showToast('You already have premium!', true);
-            return;
+            document.getElementById('buyBtn').innerHTML = '<i class="fas fa-check-circle"></i> Already Premium';
+            document.getElementById('buyBtn').disabled = true;
         }
         
-        // Remove selected class from all plans
-        document.querySelectorAll('.plan-card').forEach(card => {
-            card.classList.remove('selected');
-        });
-        
-        // Add selected class to clicked plan
-        const planElement = document.getElementById('plan' + (planId === 1 ? 'Bronze' : planId === 2 ? 'Silver' : 'Gold'));
-        if (planElement) {
-            planElement.classList.add('selected');
-        }
-        
-        selectedPlan = planId;
         updateBuyButton();
+    } catch(e) {
+        console.error(e);
     }
+}
+
+// ========== SELECT PLAN ==========
+function selectPlan(planId) {
+    if (isPremium) { showToast('Already premium!', true); return; }
     
-    function updateBuyButton() {
-        const btn = document.getElementById('buyBtn');
-        if (isPremium) {
-            btn.innerHTML = '<i class="fas fa-check-circle"></i> Already Premium';
-            btn.disabled = true;
-        } else if (selectedPlan) {
-            const plan = PLANS[selectedPlan];
-            if (usdBalance >= plan.cost) {
-                btn.innerHTML = '<i class="fas fa-crown"></i> Buy ' + plan.name + ' - $' + plan.cost;
-                btn.disabled = false;
-            } else {
-                btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Need $' + plan.cost + ' (You have $' + usdBalance.toFixed(2) + ')';
-                btn.disabled = true;
-            }
+    document.querySelectorAll('.plan-card').forEach(function(c){c.classList.remove('selected')});
+    var planElement = document.getElementById('plan' + (planId===1?'Bronze':planId===2?'Silver':'Gold'));
+    if (planElement) planElement.classList.add('selected');
+    
+    selectedPlan = planId;
+    updateBuyButton();
+}
+
+function updateBuyButton() {
+    var btn = document.getElementById('buyBtn');
+    if (isPremium) {
+        btn.innerHTML = '<i class="fas fa-check-circle"></i> Already Premium';
+        btn.disabled = true;
+    } else if (selectedPlan) {
+        var plan = PLANS[selectedPlan];
+        if (usdBalance >= plan.cost) {
+            btn.innerHTML = '<i class="fas fa-crown"></i> Buy ' + plan.name + ' - $' + plan.cost;
+            btn.disabled = false;
         } else {
-            btn.innerHTML = '<i class="fas fa-hand-pointer"></i> Select a Plan';
+            btn.innerHTML = 'Need $' + plan.cost + ' (You have $' + usdBalance.toFixed(2) + ')';
             btn.disabled = true;
         }
+    } else {
+        btn.innerHTML = '<i class="fas fa-hand-pointer"></i> Select a Plan';
+        btn.disabled = true;
     }
+}
+
+// ========== BUY ==========
+async function buyPremium() {
+    if (!selectedPlan || isPremium) return;
+    var plan = PLANS[selectedPlan];
+    var token = localStorage.getItem('auth_token');
+    if (!token) { showToast('Please login', true); return; }
     
-    // ========== BUY PREMIUM ==========
-    async function buyPremium() {
-        if (!selectedPlan || isPremium) return;
+    showToast('Processing...');
+    
+    try {
+        var res = await fetch('/api/chat/premium/buy', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({token:token, months:plan.months, cost:plan.cost, tier:plan.tier})
+        });
+        var data = await res.json();
         
-        const plan = PLANS[selectedPlan];
-        
-        if (usdBalance < plan.cost) {
-            showToast('Insufficient USD balance!', true);
-            return;
-        }
-        
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            showToast('Please login', true);
-            return;
-        }
-        
-        // Show processing modal
-        const processingModal = document.getElementById('processingModal');
-        const processingTitle = document.getElementById('processingTitle');
-        const progressBar = document.getElementById('progressBarFill');
-        const progressText = document.getElementById('progressText');
-        
-        processingTitle.textContent = 'Activating ' + plan.tierName + ' Premium...';
-        progressBar.style.width = '0%';
-        progressText.textContent = '0%';
-        processingModal.classList.add('active');
-        
-        // Animate progress
-        (async function animate() {
-            for (let i = 0; i <= 100; i++) {
-                await new Promise(r => setTimeout(r, 15 + Math.random() * 10));
-                progressBar.style.width = i + '%';
-                progressText.textContent = i + '%';
-            }
-        })();
-        
-        await new Promise(r => setTimeout(r, 1800));
-        
-        try {
-            const res = await fetch('/api/chat/premium/buy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    token, 
-                    months: plan.months, 
-                    cost: plan.cost, 
-                    tier: plan.tier 
-                })
-            });
-            const data = await res.json();
+        if (data.success) {
+            document.getElementById('successTitle').textContent = plan.tierName + ' Premium Activated!';
+            document.getElementById('successMsg').innerHTML = 
+                plan.tierName + ' Tier - ' + plan.months + ' Month<br>' +
+                '$' + plan.cost + ' deducted<br>' +
+                'Expires: ' + new Date(data.expires_at).toLocaleDateString();
+            document.getElementById('successModal').classList.add('active');
             
-            processingModal.classList.remove('active');
-            
-            if (data.success) {
-                document.getElementById('successTitle').innerHTML = '👑 ' + plan.tierName + ' Premium Activated!';
-                document.getElementById('successMsg').innerHTML = 
-                    plan.tierName + ' Tier - ' + plan.months + ' Month Plan<br>' +
-                    '<i class="fas fa-check-circle" style="color:#2ecc71"></i> $' + plan.cost + ' deducted<br>' +
-                    '<i class="fas fa-clock"></i> Expires: ' + new Date(data.expires_at).toLocaleDateString();
-                document.getElementById('successModal').classList.add('active');
-                
-                usdBalance -= plan.cost;
-                document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
-                isPremium = true;
-                premiumTier = plan.tier;
-                applyPremiumTheme(premiumTier);
-                updateBuyButton();
-            } else {
-                showToast(data.message || 'Purchase failed', true);
-            }
-        } catch(e) {
-            processingModal.classList.remove('active');
-            console.error(e);
-            showToast('Connection error', true);
+            usdBalance -= plan.cost;
+            document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
+            isPremium = true;
+            premiumTier = plan.tier;
+            applyTheme(premiumTier);
+            updateBuyButton();
+        } else {
+            showToast(data.message || 'Failed', true);
         }
+    } catch(e) {
+        showToast('Connection error', true);
     }
-    
-    // ========== INIT ==========
-    loadBalances();
-    </script>
+}
+
+// Init
+loadBalances();
+</script>
 </body>
 </html>
