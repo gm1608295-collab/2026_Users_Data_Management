@@ -1315,16 +1315,164 @@
         grid.innerHTML = allEmojis.map(e => `<span class="emoji-item" style="font-size:28px; cursor:pointer; padding:5px" onclick="insertEmoji('${e}'); closeModal('moreEmojisModal');">${e}</span>`).join('');
         document.getElementById('moreEmojisModal').classList.add('active');
     }
+        
+    function setCookie(name, value, days) {
+    var expires = '';
+    if (days) { var date = new Date(); date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000)); expires = '; expires=' + date.toUTCString(); }
+    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
+}
+function getCookie(name) {
+    var nameEQ = name + '=';
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) { var c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
+    return null;
+}
 
-    async function init() {
-        document.querySelectorAll('.chat-tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab'))));
-        const user = await getCurrentUser();
-        if (!user) return;
-        await checkPremiumStatus();
-        initSocket();
-        loadRooms();
+        async function checkPageTimer() {
+    const pageId = 'chat'; // Chat Page ID
+    let timer = null;
+    try {
+        const saved = localStorage.getItem('pageTimers');
+        if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
+        if (!timer) { const cookieTimers = getCookie('pageTimers'); if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; } }
+        if (!timer) { const sessionTimers = sessionStorage.getItem('pageTimers'); if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; } }
+    } catch(e) {}
+    
+    if (timer && timer > Date.now()) {
+        // Timer active - Show maintenance with countdown
+        showMaintenanceMode(timer);
+        return false;
     }
-    init();
+    return true;
+}
+
+function showMaintenanceMode(timerEnd) {
+    // Hide normal content
+    document.querySelector('.chat-header').style.display = 'none';
+    document.querySelector('.chat-tabs').style.display = 'none';
+    document.querySelector('.chat-body').style.display = 'none';
+    
+    // Create maintenance view
+    const maintHTML = `
+        <div id="maintContainer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px">
+            <div style="font-size:70px;color:#f39c12;margin-bottom:20px;animation:pulse 2s infinite">
+                <i class="fas fa-tools"></i>
+            </div>
+            <div style="font-size:20px;font-weight:bold;color:#f39c12;margin-bottom:10px">
+                ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်
+            </div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:8px">
+                စာမျက်နှာ ပြန်ဖွင့်ရန်
+            </div>
+            <div id="maintCountdown" style="font-size:28px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace;margin:15px 0">
+                --:--:--
+            </div>
+            <a href="/dashboard" style="display:inline-block;padding:12px 30px;background:#f39c12;color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px">
+                <i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့
+            </a>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', maintHTML);
+    
+    // Start countdown
+    const countdownEl = document.getElementById('maintCountdown');
+    const update = () => {
+        const rem = timerEnd - Date.now();
+        if (rem <= 0) {
+            // Timer expired - clear and reload
+            try {
+                const saved = localStorage.getItem('pageTimers');
+                if (saved) { const timers = JSON.parse(saved); delete timers['chat']; localStorage.setItem('pageTimers', JSON.stringify(timers)); }
+                setCookie('pageTimers', '', -1);
+                sessionStorage.removeItem('pageTimers');
+            } catch(e) {}
+            location.reload();
+            return;
+        }
+        const s = Math.floor(rem / 1000);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        countdownEl.textContent = 
+            String(h).padStart(2, '0') + ':' + 
+            String(m).padStart(2, '0') + ':' + 
+            String(sec).padStart(2, '0');
+    };
+    update();
+    setInterval(update, 1000);
+    
+    // CSS Animation
+    const style = document.createElement('style');
+    style.textContent = '@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}';
+    document.head.appendChild(style);
+            }
+
+        async function checkPageAccess() {
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const cp = d.pages.find(p => p.id === 'chat');
+            if (cp && cp.status === 'off') {
+                // Check if timer exists
+                const hasTimer = await checkPageTimer();
+                if (hasTimer === false) return false; // Timer is active, maintenance shown
+                
+                // Page is OFF without timer - show simple maintenance
+                document.querySelector('.chat-header').style.display = 'none';
+                document.querySelector('.chat-tabs').style.display = 'none';
+                document.querySelector('.chat-body').style.display = 'none';
+                
+                const maintHTML = `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px">
+                        <div style="font-size:70px;color:#f39c12;margin-bottom:20px">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <div style="font-size:20px;font-weight:bold;color:#f39c12;margin-bottom:10px">
+                            ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်
+                        </div>
+                        <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:20px">
+                            Admin မှ စာမျက်နှာအား ပိတ်ထားပါသည်
+                        </div>
+                        <a href="/dashboard" style="display:inline-block;padding:12px 30px;background:#f39c12;color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px">
+                            <i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့
+                        </a>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', maintHTML);
+                return false;
+            }
+        }
+        return true;
+    } catch(e) { return true; }
+        }
+        // Check every 30 seconds if page status changed
+setInterval(async () => {
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const cp = d.pages.find(p => p.id === 'chat');
+            if (cp && cp.status === 'off') {
+                location.reload(); // Reload to trigger maintenance check
+            }
+        }
+    } catch(e) {}
+}, 30000);
+        
+    async function init() {
+    // ✅ Page Access Check FIRST
+    var pageOn = await checkPageAccess();
+    if (!pageOn) return; // Stop if page is off/timer
+    
+    // Original init code...
+    document.querySelectorAll('.chat-tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab'))));
+    const user = await getCurrentUser();
+    if (!user) return;
+    await checkPremiumStatus();
+    initSocket();
+    loadRooms();
+    }
     </script>
 </body>
 </html>
