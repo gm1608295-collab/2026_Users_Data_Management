@@ -1635,9 +1635,9 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
         // 3. Calculate Premium Expiry
         const now = new Date();
         
-        // ✅ ဒီ Tier အတွက် ရှိပြီးသား Record ရှာမယ်
+        // ✅ ဒီ Tier အတွက် ရှိပြီးသား Record ရှာမယ် (id မသုံးဘဲ)
         const existing = await p.query(
-            'SELECT id, premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
+            'SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
             [uid, premium_tier]
         );
         
@@ -1647,26 +1647,23 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
             const currentExpiry = new Date(existing.rows[0].premium_expiry);
             
             if (currentExpiry > now) {
-                // Extend from current expiry + 30 days
                 newExpiry = new Date(currentExpiry);
                 newExpiry.setDate(newExpiry.getDate() + 30);
             } else {
-                // Expired - start fresh
                 newExpiry = new Date(now);
                 newExpiry.setDate(newExpiry.getDate() + 30);
             }
             
-            // ✅ UPDATE (ရှိပြီးသား Record ကို ပြင်)
+            // ✅ UPDATE (user_id + premium_tier နဲ့ ပြင်)
             await p.query(
                 `UPDATE chat_premium SET 
                     premium_expiry = $1,
                     updated_at = NOW()
-                 WHERE id = $2`,
-                [newExpiry, existing.rows[0].id]
+                 WHERE user_id = $2 AND premium_tier = $3`,
+                [newExpiry, uid, premium_tier]
             );
             
         } else {
-            // No existing premium for this tier - start fresh
             newExpiry = new Date(now);
             newExpiry.setDate(newExpiry.getDate() + 30);
             
