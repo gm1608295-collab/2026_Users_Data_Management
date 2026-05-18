@@ -2408,7 +2408,7 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
  // ====================================
 // DAILY CHECK-IN USER APIs
 // ====================================
-// ==================== DAILY CHECK-IN STATUS (WITH GRACE PERIOD) ====================
+// ==================== DAILY CHECK-IN STATUS (FIXED) ====================
 app.post('/api/daily_checkin/status', async (req, res) => {
     const { token } = req.body;
     
@@ -2423,51 +2423,61 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
+        const currentTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
         
-        // ✅ Premium Status Check
+        // Premium Status Check
         const userRes = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
         const isPremium = userRes.rows.length > 0 && userRes.rows[0].premium_expiry && new Date(userRes.rows[0].premium_expiry) > now;
         
-        // ✅ Active Events (Grace Period အတွင်းကိုပါ ပြမယ်)
+        // ✅ Active Events - start_date ပြည့်ပြီးသားကိုပဲ ပြမယ်
         const events = await p.query(
             `SELECT * FROM daily_checkin_events 
              WHERE is_active = true 
+             AND start_date <= $1  -- ✅ start_date ပြည့်ပြီးမှ ပြမယ်
              AND (
-                 end_date >= $1 
+                 end_date >= $1  -- end_date မပြည့်သေးရင် ပြမယ်
                  OR end_date >= $2  -- Grace Period ၂ ရက်
              )
              AND (event_type = 'normal' OR (event_type = 'premium' AND $3 = true))
              ORDER BY id DESC`,
-            [todayStr, 
-             new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],  // ၂ ရက် Grace
-             isPremium]
+            [
+                todayStr,  // start_date <= today
+                new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],  // Grace Period
+                isPremium
+            ]
         );
+        
+        console.log('[CHECKIN STATUS] User:', uid, 'Premium:', isPremium, 'Events Found:', events.rows.length, 'Time:', currentTime);
         
         const result = [];
         
         for (const ev of events.rows) {
+            const startDate = new Date(ev.start_date);
             const endDate = new Date(ev.end_date);
-            const graceEndDate = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000); // +၂ ရက်
+            const graceEndDate = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000);
             const isGracePeriod = now > endDate && now <= graceEndDate;
             const isFullyEnded = now > graceEndDate;
+            const hasStarted = now >= startDate;  // ✅ start_date ပြည့်ပြီးလား
             
-            // ✅ အပြီးတိုင်ပြီးရင် မပြတော့ဘူး
+            // အပြီးတိုင်ပြီးရင် မပြတော့ဘူး
             if (isFullyEnded) continue;
             
-            // ✅ Grace Period အတွင်း Day ကို မတိုးတော့ဘူး
-            const effectiveEndDate = isGracePeriod ? endDate.toISOString().split('T')[0] : todayStr;
+            // ✅ မစသေးရင်လည်း မပြတော့ဘူး
+            if (!hasStarted) continue;
             
-            // Get user progress
+            // Grace Period အတွင်း Day ကို မတိုးတော့ဘူး
+            let currentDay = 1;
+            
             const progress = await p.query(
                 "SELECT * FROM daily_checkin_progress WHERE user_id=$1 AND event_id=$2",
                 [uid, ev.id]
             );
             
-            let currentDay = progress.rows.length > 0 ? progress.rows[0].current_day : 1;
-            
-            // ✅ Grace Period မှာ current_day က end_date အထိပဲ ပြမယ်
-            if (isGracePeriod && currentDay > ev.total_days) {
-                currentDay = ev.total_days;
+            if (progress.rows.length > 0) {
+                currentDay = progress.rows[0].current_day;
+                if (isGracePeriod && currentDay > ev.total_days) {
+                    currentDay = ev.total_days;
+                }
             }
             
             // Check if checked in today
@@ -2517,6 +2527,7 @@ app.post('/api/daily_checkin/status', async (req, res) => {
                 grace_end_date: graceEndDate.toISOString().split('T')[0],
                 is_grace_period: isGracePeriod,
                 is_fully_ended: isFullyEnded,
+                has_started: hasStarted,
                 total_days: ev.total_days,
                 current_day: currentDay,
                 checked_in_today: checkedInToday,
