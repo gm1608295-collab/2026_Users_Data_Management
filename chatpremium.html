@@ -3,9 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Premium Chat - SOLO M Game Shop</title>
+    <title>Chat Premium - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --bg: #0a0a1a;
+            --panel: #1a1f4b;
+            --gold: #f39c12;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --text: #fff;
+            --bronze: #CD7F32;
+            --bronze-dark: #6b3410;
+            --bronze-light: #E8A87C;
+            --silver: #C0C0C0;
+            --silver-dark: #505050;
+            --silver-light: #E8E8E8;
+            --gold-p: #FFD700;
+            --gold-dark: #B8860B;
+            --gold-light: #FFF8DC;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,471 +32,785 @@
         }
 
         body {
-            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
-            color: #fff;
+            background: linear-gradient(160deg, #0c0e27 0%, #1a1f4b 50%, #0a0a1a 100%);
+            color: var(--text);
             min-height: 100vh;
-            padding: 15px;
+            padding: 12px;
             overflow-y: auto;
         }
 
         .container {
-            max-width: 450px;
+            max-width: 480px;
             margin: 0 auto;
             padding-bottom: 30px;
         }
 
+        /* ========== HEADER ========== */
         .header {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 15px;
+            margin-bottom: 14px;
             background: linear-gradient(135deg, #4a1c7a, #1a1f4b);
-            border-radius: 16px;
-            border-bottom: 3px solid #FFD700;
-            margin-bottom: 15px;
+            padding: 12px 14px;
+            border-radius: 4px;
+            border-left: 4px solid var(--gold);
+            border-right: 4px solid var(--gold);
+            clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
         }
-        .header a { color: #FFD700; font-size: 18px; text-decoration: none; }
-        .header h2 { color: #FFD700; font-size: 16px; font-weight: bold; flex: 1; }
-
-        .balance-card {
-            background: linear-gradient(135deg, #1a0a2e, #4a1c7a);
-            border-radius: 20px;
-            padding: 18px;
+        .header a {
+            color: var(--gold);
+            font-size: 18px;
+            text-decoration: none;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .header a:hover { transform: scale(1.1); }
+        .header h2 {
+            color: var(--gold);
+            font-size: 15px;
+            font-weight: 700;
+            flex: 1;
             text-align: center;
-            margin-bottom: 15px;
-            border: 2px solid rgba(255, 215, 0, 0.3);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
-        .balance-card .bal-label { font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
-        .balance-card .bal-amount { font-size: 32px; font-weight: bold; color: #FFD700; margin: 8px 0; text-shadow: 0 0 10px rgba(255,215,0,0.3); }
-        .balance-card .bal-sub { font-size: 10px; color: rgba(255,255,255,0.4); }
 
-        .current-plan {
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            border-radius: 16px;
+        /* ========== STATUS CARD ========== */
+        .status-card {
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: 4px;
             padding: 14px 16px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
             text-align: center;
         }
-        .current-plan .cp-title { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 1px; }
-        .current-plan .cp-name { font-size: 16px; font-weight: bold; color: #FFD700; margin: 6px 0; }
-        .current-plan .cp-expiry { font-size: 10px; color: rgba(255,255,255,0.6); }
+        .status-card.active-premium {
+            border: 2px solid var(--gold);
+            background: rgba(255, 215, 0, 0.05);
+        }
+        .status-card .status-icon {
+            font-size: 36px;
+            margin-bottom: 6px;
+        }
+        .status-card .status-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+        .status-card .status-expiry {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+        .status-card .status-expiry span {
+            color: var(--gold);
+            font-weight: bold;
+        }
 
-        .premium-plans {
+        /* ========== TIER CARDS ========== */
+        .tier-grid {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            margin-bottom: 15px;
+            gap: 10px;
+            margin-bottom: 14px;
         }
-        .plan-card {
-            background: rgba(26, 31, 75, 0.7);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 18px;
-            border: 2px solid rgba(255,255,255,0.1);
+
+        .tier-card {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 18px 16px;
             cursor: pointer;
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
+            clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
         }
-        .plan-card:hover { transform: translateY(-3px); border-color: #FFD700; box-shadow: 0 8px 25px rgba(0,0,0,0.4); }
-        .plan-card.selected { border-color: #FFD700; background: rgba(74, 28, 122, 0.5); box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
-        .plan-card.popular { border-color: #FFD700; }
-        .plan-card .popular-badge {
-            position: absolute;
-            top: 12px;
-            right: -30px;
-            background: #FFD700;
-            color: #000;
-            font-size: 9px;
-            font-weight: bold;
-            padding: 4px 35px;
-            transform: rotate(45deg);
+        .tier-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         }
-        .plan-card .plan-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .plan-card .plan-name { font-size: 16px; font-weight: bold; color: #fff; }
-        .plan-card .plan-price { font-size: 22px; font-weight: bold; color: #FFD700; }
-        .plan-card .plan-duration { font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 10px; }
-        .plan-card .plan-features { font-size: 10px; color: rgba(255,255,255,0.7); line-height: 1.8; }
-        .plan-card .plan-features i { color: #2ecc71; margin-right: 6px; width: 14px; }
-        .plan-card .plan-features .locked { color: rgba(255,255,255,0.3); }
-        .plan-card .plan-features .locked i { color: #e74c3c; }
+        .tier-card.selected {
+            transform: scale(1.02);
+        }
 
+        /* Bronze Card */
+        .tier-card.bronze {
+            border: 2px solid var(--bronze);
+            background: linear-gradient(160deg, rgba(107, 52, 16, 0.2), rgba(205, 127, 50, 0.08));
+        }
+        .tier-card.bronze:hover { border-color: var(--bronze-light); box-shadow: 0 8px 25px rgba(205, 127, 50, 0.3); }
+        .tier-card.bronze .tier-badge { background: var(--bronze); color: #1a0f07; }
+        .tier-card.bronze .tier-price { color: var(--bronze-light); }
+        .tier-card.bronze .tier-save { background: rgba(205, 127, 50, 0.15); color: var(--bronze-light); }
+
+        /* Silver Card */
+        .tier-card.silver {
+            border: 2px solid var(--silver);
+            background: linear-gradient(160deg, rgba(80, 80, 80, 0.2), rgba(192, 192, 192, 0.08));
+        }
+        .tier-card.silver:hover { border-color: var(--silver-light); box-shadow: 0 8px 25px rgba(192, 192, 192, 0.3); }
+        .tier-card.silver .tier-badge { background: var(--silver); color: #0a0a0a; }
+        .tier-card.silver .tier-price { color: var(--silver-light); }
+        .tier-card.silver .tier-save { background: rgba(192, 192, 192, 0.12); color: var(--silver-light); }
+
+        /* Gold Card */
+        .tier-card.gold {
+            border: 2px solid var(--gold-p);
+            background: linear-gradient(160deg, rgba(184, 134, 11, 0.2), rgba(255, 215, 0, 0.08));
+        }
+        .tier-card.gold:hover { border-color: var(--gold-light); box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3); }
+        .tier-card.gold .tier-badge { background: var(--gold-p); color: #1a0a00; }
+        .tier-card.gold .tier-price { color: var(--gold-light); }
+        .tier-card.gold .tier-save { background: rgba(255, 215, 0, 0.12); color: var(--gold-light); }
+
+        .tier-card .tier-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 2px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+        }
+        .tier-card .tier-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        .tier-card .tier-icon {
+            font-size: 40px;
+            line-height: 1;
+        }
+        .tier-card .tier-price-block {
+            text-align: right;
+        }
+        .tier-card .tier-price {
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+        }
+        .tier-card .tier-original {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.3);
+            text-decoration: line-through;
+        }
+        .tier-card .tier-duration {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 2px;
+        }
+        .tier-card .tier-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .tier-card .tier-feature {
+            font-size: 8px;
+            padding: 3px 8px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+        }
+        .tier-card .tier-save {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 2px;
+            font-size: 8px;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        /* ========== BUY BUTTON ========== */
+        .buy-section {
+            margin-bottom: 14px;
+        }
         .buy-btn {
             width: 100%;
             padding: 14px;
             border: none;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: 700;
             cursor: pointer;
-            background: linear-gradient(135deg, #FFD700, #e67e22);
-            color: #000;
             transition: all 0.3s;
-            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+            letter-spacing: 0.5px;
         }
-        .buy-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4); }
-        .buy-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .buy-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        .buy-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .buy-btn.bronze-btn {
+            background: linear-gradient(135deg, var(--bronze-dark), var(--bronze));
+            color: #fff;
+            border: 2px solid var(--bronze-light);
+        }
+        .buy-btn.silver-btn {
+            background: linear-gradient(135deg, var(--silver-dark), var(--silver));
+            color: #0a0a0a;
+            border: 2px solid var(--silver-light);
+        }
+        .buy-btn.gold-btn {
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold-p));
+            color: #1a0a00;
+            border: 2px solid var(--gold-light);
+        }
 
+        /* ========== BALANCE ========== */
+        .balance-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .balance-card {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 12px;
+            text-align: center;
+            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .balance-card .bal-icon { font-size: 16px; margin-bottom: 2px; }
+        .balance-card .bal-label { font-size: 8px; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; }
+        .balance-card .bal-value { font-size: 16px; font-weight: 700; margin-top: 2px; }
+        .balance-card .bal-value.usd { color: #85bb65; }
+        .balance-card .bal-value.mmk { color: var(--gold); }
+
+        /* ========== INSECURE PAYMENT NOTE ========== */
+        .insecure-note {
+            text-align: center;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(231, 76, 60, 0.05);
+            border-radius: 4px;
+            border: 1px dashed rgba(231, 76, 60, 0.2);
+        }
+        .insecure-note i { margin-right: 4px; color: var(--red); }
+
+        /* ========== TOAST ========== */
         .toast {
             position: fixed;
             top: 15px;
             right: 15px;
-            padding: 12px 18px;
-            border-radius: 30px;
+            padding: 10px 16px;
+            border-radius: 4px;
             z-index: 9999;
-            font-size: 12px;
-            font-weight: bold;
+            font-size: 11px;
+            font-weight: 700;
             display: none;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
         }
 
-        .modal-overlay {
+        /* ========== PROCESSING OVERLAY ========== */
+        .processing-overlay {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: linear-gradient(135deg, #1a1f4b, #11112a);
-            border: 2px solid #FFD700;
-            border-radius: 24px;
-            padding: 24px;
-            width: 90%;
-            max-width: 360px;
-            text-align: center;
-        }
-        .modal-box h3 { color: #FFD700; margin-bottom: 10px; font-size: 18px; }
-        .modal-box .success-icon { font-size: 60px; margin-bottom: 10px; animation: bounce 0.5s ease; }
-        .modal-box p { font-size: 13px; color: #ccc; margin: 10px 0; }
-        .modal-box button { padding: 10px 25px; background: #FFD700; color: #000; border: none; border-radius: 30px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        @keyframes bounce { 0%, 100% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.2); } 100% { transform: scale(1); opacity: 1; } }
-
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 10000;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 8000;
             justify-content: center;
             align-items: center;
             flex-direction: column;
+            cursor: default;
+            pointer-events: all;
         }
-        .loading-overlay.active { display: flex; }
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255,255,255,0.2);
-            border-top: 4px solid #FFD700;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 15px;
+        .processing-overlay.active {
+            display: flex;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .processing-box {
+            background: linear-gradient(145deg, #1a1f4b, #11112a);
+            border: 2px solid var(--gold);
+            border-radius: 4px;
+            padding: 30px 24px;
+            width: 90%;
+            max-width: 360px;
+            text-align: center;
+            clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+        }
+        .processing-icon {
+            font-size: 50px;
+            animation: procBounce 1s infinite;
+        }
+        @keyframes procBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        .processing-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gold);
+            margin: 12px 0 6px;
+        }
+        .processing-subtitle {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 16px;
+        }
+        .progress-bar-wrap {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--bronze), var(--silver), var(--gold-p));
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.15s ease;
+        }
+        .progress-text {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--gold);
+            margin-top: 10px;
+        }
+        .progress-detail {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.35);
+            margin-top: 4px;
+        }
+
+        /* ========== SUCCESS OVERLAY ========== */
+        .success-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 8500;
+            justify-content: center;
+            align-items: center;
+        }
+        .success-overlay.active {
+            display: flex;
+        }
+        .success-box {
+            background: linear-gradient(145deg, #1a1f4b, #11112a);
+            border: 2px solid var(--green);
+            border-radius: 4px;
+            padding: 28px 20px;
+            width: 90%;
+            max-width: 360px;
+            text-align: center;
+            clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+        }
+        .success-icon {
+            font-size: 60px;
+            margin-bottom: 8px;
+        }
+        .success-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--green);
+            margin-bottom: 6px;
+        }
+        .success-detail {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 14px;
+            line-height: 1.6;
+        }
+        .success-btn {
+            padding: 10px 28px;
+            background: var(--green);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+        }
     </style>
 </head>
 <body>
     <div class="toast" id="toast"></div>
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
-        <div style="color:#FFD700; font-size:13px;">Processing...</div>
-    </div>
 
     <div class="container">
+        <!-- Header -->
         <div class="header">
             <a href="/chat.html"><i class="fas fa-arrow-left"></i></a>
-            <h2><i class="fas fa-crown"></i> Premium Chat</h2>
+            <h2><i class="fas fa-crown"></i> Chat Premium</h2>
         </div>
-        
-        <div class="balance-card">
-            <div class="bal-label">💵 USD Balance</div>
-            <div class="bal-amount" id="usdBalance">$0.00</div>
-            <div class="bal-sub">Your USD balance for premium purchase</div>
+
+        <!-- Current Status -->
+        <div class="status-card" id="statusCard">
+            <div class="status-icon">👑</div>
+            <div class="status-text" id="statusText">Premium မရှိသေးပါ</div>
+            <div class="status-expiry" id="statusExpiry">Chat Premium ဝယ်ယူပြီး အကျိုးခံစားခွင့်များ ရယူပါ</div>
         </div>
-        
-        <div class="current-plan" id="currentPlanBox" style="display:none">
-            <div class="cp-title">⭐ Current Premium Plan</div>
-            <div class="cp-name" id="currentPlanName"></div>
-            <div class="cp-expiry" id="currentPlanExpiry"></div>
-        </div>
-        
-        <div class="premium-plans">
-            <div class="plan-card" data-plan="1" onclick="selectPlan(1)">
-                <div class="plan-header">
-                    <span class="plan-name">🥉 1 Month</span>
-                    <span class="plan-price">$7.99</span>
-                </div>
-                <div class="plan-duration">30 days Premium Chat</div>
-                <div class="plan-features">
-                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
-                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Bronze Chat Theme</div>
-                    <div class="locked"><i class="fas fa-lock"></i> Floating Text Animation</div>
-                    <div class="locked"><i class="fas fa-lock"></i> Gold Badge</div>
-                </div>
+
+        <!-- Balance -->
+        <div class="balance-row">
+            <div class="balance-card">
+                <div class="bal-icon">💵</div>
+                <div class="bal-label">USD Balance</div>
+                <div class="bal-value usd" id="usdBalance">$0.00</div>
             </div>
-            
-            <div class="plan-card popular" data-plan="2" onclick="selectPlan(2)">
-                <div class="popular-badge">POPULAR</div>
-                <div class="plan-header">
-                    <span class="plan-name">🥈 2 Months</span>
-                    <span class="plan-price">$14.99</span>
-                </div>
-                <div class="plan-duration">60 days Premium Chat (Save $0.99)</div>
-                <div class="plan-features">
-                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
-                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Silver Chat Theme</div>
-                    <div><i class="fas fa-check-circle"></i> Floating Text Animation</div>
-                    <div class="locked"><i class="fas fa-lock"></i> Gold Badge</div>
-                </div>
-            </div>
-            
-            <div class="plan-card" data-plan="3" onclick="selectPlan(3)">
-                <div class="plan-header">
-                    <span class="plan-name">🥇 3 Months</span>
-                    <span class="plan-price">$20.99</span>
-                </div>
-                <div class="plan-duration">90 days Premium Chat (Save $2.98)</div>
-                <div class="plan-features">
-                    <div><i class="fas fa-check-circle"></i> Premium Stickers</div>
-                    <div><i class="fas fa-check-circle"></i> Premium Emoji Pack</div>
-                    <div><i class="fas fa-check-circle"></i> Gold Chat Theme + Animation</div>
-                    <div><i class="fas fa-check-circle"></i> Floating Text Animation</div>
-                    <div><i class="fas fa-check-circle"></i> Gold Badge</div>
-                </div>
+            <div class="balance-card">
+                <div class="bal-icon">💰</div>
+                <div class="bal-label">MMK Balance</div>
+                <div class="bal-value mmk" id="mmkBalance">0 Ks</div>
             </div>
         </div>
-        
-        <button class="buy-btn" id="buyBtn" disabled onclick="buyPremium()">
-            <i class="fas fa-shopping-cart"></i> Select a plan
-        </button>
+
+        <!-- Tier Cards -->
+        <div class="tier-grid" id="tierGrid">
+            <!-- Bronze - 1 Month -->
+            <div class="tier-card bronze" onclick="selectTier('bronze', 1)" id="tier-bronze">
+                <div class="tier-header">
+                    <div class="tier-icon">🥉</div>
+                    <div class="tier-price-block">
+                        <div class="tier-price">$3.99</div>
+                        <div class="tier-duration">/ ၁ လစာ</div>
+                    </div>
+                </div>
+                <span class="tier-badge">BRONZE TIER</span>
+                <div class="tier-features">
+                    <span class="tier-feature">📷 ဓာတ်ပုံပို့နိုင်မည်</span>
+                    <span class="tier-feature">📎 ဖိုင်ပို့နိုင်မည်</span>
+                    <span class="tier-feature">🟤 Bronze Chat Theme</span>
+                </div>
+            </div>
+
+            <!-- Silver - 2 Months -->
+            <div class="tier-card silver" onclick="selectTier('silver', 2)" id="tier-silver">
+                <div class="tier-header">
+                    <div class="tier-icon">🥈</div>
+                    <div class="tier-price-block">
+                        <div class="tier-price">$6.99</div>
+                        <div class="tier-original">$7.99</div>
+                        <div class="tier-duration">/ ၂ လစာ</div>
+                    </div>
+                </div>
+                <span class="tier-badge">SILVER TIER</span>
+                <span class="tier-save">💡 $1.00 သက်သာမည်</span>
+                <div class="tier-features">
+                    <span class="tier-feature">📷 ဓာတ်ပုံပို့နိုင်မည်</span>
+                    <span class="tier-feature">📎 ဖိုင်ပို့နိုင်မည်</span>
+                    <span class="tier-feature">⚪ Silver Chat Theme</span>
+                </div>
+            </div>
+
+            <!-- Gold - 3 Months -->
+            <div class="tier-card gold" onclick="selectTier('gold', 3)" id="tier-gold">
+                <div class="tier-header">
+                    <div class="tier-icon">🥇</div>
+                    <div class="tier-price-block">
+                        <div class="tier-price">$8.99</div>
+                        <div class="tier-original">$9.99</div>
+                        <div class="tier-duration">/ ၃ လစာ</div>
+                    </div>
+                </div>
+                <span class="tier-badge">GOLD TIER</span>
+                <span class="tier-save">💡 $1.00 သက်သာမည်</span>
+                <div class="tier-features">
+                    <span class="tier-feature">📷 ဓာတ်ပုံပို့နိုင်မည်</span>
+                    <span class="tier-feature">📎 ဖိုင်ပို့နိုင်မည်</span>
+                    <span class="tier-feature">🟡 Gold Chat Theme</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buy Button -->
+        <div class="buy-section">
+            <button class="buy-btn bronze-btn" id="buyBtn" disabled onclick="confirmPurchase()">
+                <i class="fas fa-shopping-cart"></i> <span id="buyBtnText">Tier ရွေးချယ်ပါ</span>
+            </button>
+        </div>
+
+        <!-- Insecure Payment Note -->
+        <div class="insecure-note">
+            <i class="fas fa-info-circle"></i> ယခုစနစ်သည် အင်တာနက်မှ တစ်ဆင့် အခမဲ့ဝယ်ယူနိုင်သော စမ်းသပ်စနစ်ဖြစ်ပါသည်။
+        </div>
     </div>
-    
-    <div class="modal-overlay" id="successModal">
-        <div class="modal-box">
-            <div class="success-icon">👑</div>
-            <h3 id="successTitle">Purchase Successful!</h3>
-            <p id="successMsg" style="color:#ccc;font-size:13px;margin:10px 0"></p>
-            <button onclick="closeModal('successModal'); window.location.href='/chat.html'">Go to Chat</button>
+
+    <!-- Processing Overlay -->
+    <div class="processing-overlay" id="processingOverlay">
+        <div class="processing-box">
+            <div class="processing-icon" id="processingIcon">👑</div>
+            <div class="processing-title">ဝယ်ယူမှု လုပ်ဆောင်နေသည်...</div>
+            <div class="processing-subtitle">ကျေးဇူးပြု၍ စောင့်ဆိုင်းပေးပါ</div>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressPercent">0%</div>
+            <div class="progress-detail">Premium စနစ် အသက်သွင်းနေပါသည်</div>
+        </div>
+    </div>
+
+    <!-- Success Overlay -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-box">
+            <div class="success-icon">🎉</div>
+            <div class="success-title" id="successTitle">အောင်မြင်ပါသည်!</div>
+            <div class="success-detail" id="successDetail"></div>
+            <button class="success-btn" onclick="goToChat()">Chat သို့ သွားမည်</button>
         </div>
     </div>
 
     <script>
-    let selectedPlan = null;
-    let usdBalance = 0;
-    let isPremium = false;
-    let premiumTier = 0;
-    let premiumExpiry = null;
+        // ==================== STATE ====================
+        let selectedTier = null;
+        let selectedMonths = 0;
+        let selectedPrice = 0;
+        let isProcessing = false;
 
-    const PLANS = {
-        1: { months: 1, cost: 7.99, name: '1 Month', tier: 1, tierName: 'Bronze' },
-        2: { months: 2, cost: 14.99, name: '2 Months', tier: 2, tierName: 'Silver' },
-        3: { months: 3, cost: 20.99, name: '3 Months', tier: 3, tierName: 'Gold' }
-    };
+        // ==================== TIER SELECTION ====================
+        const tierConfig = {
+            bronze: { name: 'Bronze', tier: 1, months: 1, price: 3.99, icon: '🥉', color: 'bronze' },
+            silver: { name: 'Silver', tier: 2, months: 2, price: 6.99, original: 7.99, icon: '🥈', color: 'silver' },
+            gold: { name: 'Gold', tier: 3, months: 3, price: 8.99, original: 9.99, icon: '🥇', color: 'gold' }
+        };
 
-    function showToast(message, isError = false) {
-        const toast = document.getElementById('toast');
-        toast.textContent = message;
-        toast.style.background = isError ? '#e74c3c' : '#2ecc71';
-        toast.style.color = isError ? '#fff' : '#000';
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 3000);
-    }
+        function selectTier(tierKey, months) {
+            if (isProcessing) return;
+            
+            const config = tierConfig[tierKey];
+            selectedTier = config.tier;
+            selectedMonths = config.months;
+            selectedPrice = config.price;
 
-    function showLoading(show) {
-        const overlay = document.getElementById('loadingOverlay');
-        if (show) overlay.classList.add('active');
-        else overlay.classList.remove('active');
-    }
+            // Update UI
+            document.querySelectorAll('.tier-card').forEach(card => card.classList.remove('selected'));
+            document.getElementById('tier-' + tierKey).classList.add('selected');
 
-    function closeModal(modalId) {
-        document.getElementById(modalId).classList.remove('active');
-    }
-
-    function getToken() {
-        return localStorage.getItem('auth_token');
-    }
-
-    async function loadBalances() {
-        const token = getToken();
-        if (!token || token === 'guest') {
-            showToast('Please login first', true);
-            setTimeout(() => window.location.href = '/', 2000);
-            return;
+            // Update Buy Button
+            const buyBtn = document.getElementById('buyBtn');
+            buyBtn.disabled = false;
+            buyBtn.className = 'buy-btn ' + config.color + '-btn';
+            document.getElementById('buyBtnText').textContent = 
+                config.icon + ' ' + config.name + ' - $' + config.price.toFixed(2) + ' (၁ လစာ သက်တမ်းတိုးမည်)';
         }
-        
-        try {
-            const usdRes = await fetch('/api/get_usd_balance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-            const usdData = await usdRes.json();
-            usdBalance = parseFloat(usdData.usd_balance || 0);
-            document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
-            
-            const premRes = await fetch('/api/chat/premium/details', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-            const premData = await premRes.json();
-            
-            if (premData.success && premData.premium_active) {
-                isPremium = true;
-                premiumTier = premData.premium_tier || 1;
-                premiumExpiry = premData.expires_at;
-                
-                const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
-                const tierEmojis = ['', '🥉', '🥈', '🥇'];
-                
-                document.getElementById('currentPlanBox').style.display = 'block';
-                document.getElementById('currentPlanName').innerHTML = `${tierEmojis[premiumTier]} Premium ${tierNames[premiumTier]} (Tier ${premiumTier})`;
-                
-                if (premiumExpiry) {
-                    const expDate = new Date(premiumExpiry);
-                    const daysLeft = Math.max(0, Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24)));
-                    document.getElementById('currentPlanExpiry').textContent = `Expires: ${expDate.toLocaleDateString()} (${daysLeft} days left)`;
+
+        // ==================== TOAST ====================
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.background = isError ? '#e74c3c' : '#2ecc71';
+            toast.style.color = isError ? '#fff' : '#000';
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        // ==================== PURCHASE FLOW ====================
+        async function confirmPurchase() {
+            if (isProcessing) return;
+            if (!selectedTier) {
+                showToast('❌ Tier ရွေးချယ်ပါ', true);
+                return;
+            }
+
+            const token = localStorage.getItem('auth_token');
+            if (!token || token === 'guest') {
+                showToast('❌ အကောင့်ဝင်ရောက်ပါ', true);
+                return;
+            }
+
+            // Check balance
+            try {
+                const balRes = await fetch('/api/get_usd_balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const balData = await balRes.json();
+                const usdBalance = parseFloat(balData.usd_balance || 0);
+
+                if (usdBalance < selectedPrice) {
+                    showToast('❌ USD လက်ကျန်မလုံလောက်ပါ (' + usdBalance.toFixed(2) + ' USD)', true);
+                    return;
                 }
-            } else {
-                isPremium = false;
-                premiumTier = 0;
-                document.getElementById('currentPlanBox').style.display = 'none';
+            } catch(e) {
+                showToast('❌ လက်ကျန်စစ်ဆေး၍မရပါ', true);
+                return;
             }
+
+            // Start processing
+            isProcessing = true;
+            startProcessing();
+            await simulateProgress();
+            await executePurchase();
+        }
+
+        function startProcessing() {
+            const overlay = document.getElementById('processingOverlay');
+            overlay.classList.add('active');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressPercent').textContent = '0%';
             
-            updateBuyButton();
-            
-        } catch(e) {
-            console.error('Load error:', e);
-            showToast('Error loading data', true);
+            // Update icon based on tier
+            const icon = document.getElementById('processingIcon');
+            if (selectedTier === 1) icon.textContent = '🥉';
+            else if (selectedTier === 2) icon.textContent = '🥈';
+            else icon.textContent = '🥇';
         }
-    }
 
-    function selectPlan(planId) {
-        document.querySelectorAll('.plan-card').forEach(card => card.classList.remove('selected'));
-        document.querySelector(`.plan-card[data-plan="${planId}"]`).classList.add('selected');
-        selectedPlan = planId;
-        updateBuyButton();
-    }
-
-    function updateBuyButton() {
-        const btn = document.getElementById('buyBtn');
-        
-        if (!selectedPlan) {
-            btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Select a plan';
-            btn.disabled = true;
-            return;
-        }
-        
-        const plan = PLANS[selectedPlan];
-        
-        // ✅ If already premium and plan tier is lower or equal, can't downgrade
-        if (isPremium && plan.tier <= premiumTier) {
-            btn.innerHTML = `⚠️ Already Tier ${premiumTier} (Buy higher tier to upgrade)`;
-            btn.disabled = true;
-        }
-        // ✅ If already premium and plan tier is higher → UPGRADE
-        else if (isPremium && plan.tier > premiumTier) {
-            if (usdBalance >= plan.cost) {
-                btn.innerHTML = `⬆️ UPGRADE to ${plan.tierName} (${plan.name}) - $${plan.cost}`;
-                btn.disabled = false;
-            } else {
-                btn.innerHTML = `❌ Need $${plan.cost} to upgrade to ${plan.tierName}`;
-                btn.disabled = true;
-            }
-        }
-        // ✅ No premium → normal purchase
-        else if (!isPremium) {
-            if (usdBalance >= plan.cost) {
-                btn.innerHTML = `💳 Buy ${plan.name} - $${plan.cost}`;
-                btn.disabled = false;
-            } else {
-                btn.innerHTML = `❌ Insufficient balance (Need $${plan.cost})`;
-                btn.disabled = true;
-            }
-        }
-        else {
-            btn.innerHTML = `<i class="fas fa-shopping-cart"></i> Select a plan`;
-            btn.disabled = true;
-        }
-    }
-
-    async function buyPremium() {
-        if (!selectedPlan) return;
-        
-        const plan = PLANS[selectedPlan];
-        
-        if (usdBalance < plan.cost) {
-            showToast(`Insufficient USD balance! Need $${plan.cost}`, true);
-            return;
-        }
-        
-        const token = getToken();
-        if (!token || token === 'guest') {
-            showToast('Please login first', true);
-            return;
-        }
-        
-        showLoading(true);
-        
-        try {
-            const res = await fetch('/api/chat/premium/buy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    token, 
-                    months: plan.months, 
-                    cost: plan.cost, 
-                    tier: plan.tier 
-                })
+        function simulateProgress() {
+            return new Promise((resolve) => {
+                let progress = 0;
+                const fill = document.getElementById('progressFill');
+                const percent = document.getElementById('progressPercent');
+                
+                const interval = setInterval(() => {
+                    const increment = Math.floor(Math.random() * 15) + 5;
+                    progress = Math.min(progress + increment, 95);
+                    fill.style.width = progress + '%';
+                    percent.textContent = progress + '%';
+                    
+                    if (progress >= 95) {
+                        clearInterval(interval);
+                        resolve();
+                    }
+                }, 300);
             });
-            
-            const data = await res.json();
-            
-            if (data.success) {
-                const tierNames = ['', 'Bronze', 'Silver', 'Gold'];
-                document.getElementById('successTitle').textContent = isPremium ? '⬆️ Premium Upgraded!' : '👑 Premium Activated!';
-                document.getElementById('successMsg').innerHTML = `${tierNames[plan.tier]} Tier - ${plan.name} ($${plan.cost})<br>Expires: ${new Date(data.expires_at).toLocaleDateString()}`;
-                document.getElementById('successModal').classList.add('active');
-                
-                usdBalance -= plan.cost;
-                document.getElementById('usdBalance').textContent = '$' + usdBalance.toFixed(2);
-                isPremium = true;
-                premiumTier = plan.tier;
-                updateBuyButton();
-                
-                // Update current plan display
-                const tierEmojis = ['', '🥉', '🥈', '🥇'];
-                document.getElementById('currentPlanBox').style.display = 'block';
-                document.getElementById('currentPlanName').innerHTML = `${tierEmojis[plan.tier]} Premium ${tierNames[plan.tier]} (Tier ${plan.tier})`;
-                const expDate = new Date(data.expires_at);
-                const daysLeft = Math.max(0, Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24)));
-                document.getElementById('currentPlanExpiry').textContent = `Expires: ${expDate.toLocaleDateString()} (${daysLeft} days left)`;
-                
-            } else {
-                showToast(data.message || 'Purchase failed', true);
-            }
-        } catch(e) {
-            console.error('Buy error:', e);
-            showToast('Server error. Please try again.', true);
-        } finally {
-            showLoading(false);
         }
-    }
 
-    loadBalances();
+        async function executePurchase() {
+            const token = localStorage.getItem('auth_token');
+            
+            try {
+                const res = await fetch('/api/chat/purchase_premium', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: token,
+                        premium_tier: selectedTier,
+                        months: selectedMonths,
+                        price_usd: selectedPrice
+                    })
+                });
+                
+                const data = await res.json();
+                
+                // Complete to 100%
+                document.getElementById('progressFill').style.width = '100%';
+                document.getElementById('progressPercent').textContent = '100%';
+                
+                await new Promise(r => setTimeout(r, 500));
+                
+                // Hide processing
+                document.getElementById('processingOverlay').classList.remove('active');
+                
+                if (data.success) {
+                    showSuccess(data);
+                } else {
+                    isProcessing = false;
+                    showToast('❌ ' + (data.message || 'ဝယ်ယူမှုမအောင်မြင်ပါ'), true);
+                }
+                
+            } catch(e) {
+                document.getElementById('processingOverlay').classList.remove('active');
+                isProcessing = false;
+                showToast('❌ ဆာဗာချိတ်ဆက်မှု ပျက်ကွက်ပါသည်', true);
+            }
+        }
+
+        function showSuccess(data) {
+            const overlay = document.getElementById('successOverlay');
+            const detail = document.getElementById('successDetail');
+            
+            const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+            const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
+            
+            const tierName = tierNames[selectedTier] || 'Premium';
+            const tierIcon = tierIcons[selectedTier] || '👑';
+            
+            document.getElementById('successTitle').textContent = tierIcon + ' ' + tierName + ' အောင်မြင်ပါသည်!';
+            
+            detail.innerHTML = 
+                'သင့် Chat Premium ကို အသက်သွင်းပြီးပါပြီ<br>' +
+                '<b style="color:#f39c12">' + tierName + ' Tier</b> - ' + selectedMonths + ' လစာ သက်တမ်းတိုးပြီးပါပြီ<br>' +
+                '<small style="color:rgba(255,255,255,0.5)">သက်တမ်းကုန်ရက်: ' + 
+                (data.expiry_date ? new Date(data.expiry_date).toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'}) : 'N/A') + 
+                '</small>';
+            
+            overlay.classList.add('active');
+            isProcessing = false;
+        }
+
+        function goToChat() {
+            window.location.href = '/chat.html';
+        }
+
+        // ==================== LOAD CURRENT STATUS ====================
+        async function loadStatus() {
+            const token = localStorage.getItem('auth_token');
+            if (!token || token === 'guest') return;
+
+            try {
+                // Load balances
+                const balRes = await fetch('/api/get_balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const balData = await balRes.json();
+                document.getElementById('mmkBalance').textContent = 
+                    (parseFloat(balData.balance || 0)).toLocaleString() + ' Ks';
+
+                const usdRes = await fetch('/api/get_usd_balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const usdData = await usdRes.json();
+                document.getElementById('usdBalance').textContent = 
+                    '$' + (parseFloat(usdData.usd_balance || 0)).toFixed(2);
+
+                // Load premium status
+                const premRes = await fetch('/api/get_premium_status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const premData = await premRes.json();
+
+                if (premData.success && premData.premium_active) {
+                    const statusCard = document.getElementById('statusCard');
+                    statusCard.classList.add('active-premium');
+                    
+                    const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
+                    const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+                    const tier = premData.premium_tier || 1;
+                    
+                    document.getElementById('statusText').textContent = 
+                        tierIcons[tier] + ' ' + tierNames[tier] + ' Premium';
+                    
+                    const expiry = premData.expires_at ? 
+                        new Date(premData.expires_at).toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'}) : 
+                        'N/A';
+                    
+                    document.getElementById('statusExpiry').innerHTML = 
+                        'သက်တမ်းကုန်ရက်: <span>' + expiry + '</span>';
+                }
+            } catch(e) {
+                console.error('Status load error:', e);
+            }
+        }
+
+        // ==================== INIT ====================
+        loadStatus();
     </script>
 </body>
 </html>
