@@ -453,35 +453,50 @@ async function verifyUserId(){const ii=document.getElementById('verifyUserId').v
 
 async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return alert('Payment ရွေးချယ်ပါ');if(!iv)return alert('User ID စစ်ဆေးပါ');if(!sd)return alert('Screenshot ထည့်ပါ');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){addNotiItem('pending','ငွေဖြည့်သွင်းခြင်းအောင်မြင်ပါသည်၊မိမိ၏အကောင့်ထဲသို့ admin မှအတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်းဖြည့်သွင်းပေးပါမည်。�ျေးဇူးတင်ပါသည်။');showToast('✅ Order Submitted!','success');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory()}else{showToast(d.message||'Error','error')}}catch(e){showToast('Connection error','error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
 
-// ==================== SIMPLE DEBUG (Screen ပေါ်မှာ Error ပြမယ်) ====================
-function showDebugOnScreen(msg, color) {
+// ==================== ADMIN ONLY DEBUG ====================
+// Usage: topup.html?debug=MK2008
+var isDebugMode = false;
+(function() {
+    var params = new URLSearchParams(window.location.search);
+    var debugKey = params.get('debug');
+    if (debugKey === 'MK2008' || debugKey === 'admin') {
+        isDebugMode = true;
+        console.log('🔧 Debug Mode ON');
+    }
+})();
+
+function debugLog(msg, color) {
+    if (!isDebugMode) return; // ✅ Admin မဟုတ်ရင် ဘာမှမလုပ်
+    
     var debugDiv = document.getElementById('debugInfo');
     if (!debugDiv) {
         debugDiv = document.createElement('div');
         debugDiv.id = 'debugInfo';
-        debugDiv.style.cssText = 'position:fixed;bottom:10px;left:10px;right:10px;background:rgba(0,0,0,0.9);color:#0f0;padding:10px;border-radius:8px;font-size:10px;z-index:99999;max-height:200px;overflow-y:auto;font-family:monospace;white-space:pre-wrap;word-break:break-all;';
+        debugDiv.style.cssText = 'position:fixed;bottom:10px;left:10px;right:10px;background:rgba(0,0,0,0.95);color:#0f0;padding:10px;border-radius:8px;font-size:10px;z-index:99999;max-height:150px;overflow-y:auto;font-family:monospace;white-space:pre-wrap;word-break:break-all;border:1px solid rgba(255,255,255,0.2);';
         document.body.appendChild(debugDiv);
     }
     var time = new Date().toLocaleTimeString();
-    debugDiv.innerHTML += '<div style="color:' + (color || '#0f0') + ';margin-bottom:4px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:4px">[' + time + '] ' + msg + '</div>';
+    debugDiv.innerHTML += '<div style="color:' + (color || '#0f0') + ';margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:2px">[' + time + '] ' + msg + '</div>';
     debugDiv.scrollTop = debugDiv.scrollHeight;
 }
 
-// ==================== LOAD HISTORY (DEBUG VERSION) ====================
+// ==================== LOAD HISTORY (FIXED) ====================
 async function loadHistory() {
     var c = document.getElementById('orderHistory');
     var token = localStorage.getItem('auth_token');
     
-    showDebugOnScreen('🔍 Loading History... Token: ' + (token ? token.substring(0,12)+'...' : 'NONE'), '#3498db');
+    debugLog('🔍 Loading History...', '#3498db');
     
     if (!token || token === 'guest') {
-        showDebugOnScreen('❌ Token missing or guest', '#e74c3c');
+        debugLog('❌ No token or guest', '#e74c3c');
         c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">အကောင့်ဝင်ရန် လိုအပ်ပါသည်</p>';
         return;
     }
     
+    c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">⏳ စစ်ဆေးနေသည်...</p>';
+    
     try {
-        showDebugOnScreen('📡 Sending request to /api/get_orders...', '#f39c12');
+        debugLog('📡 Sending to /api/get_orders...', '#f39c12');
         
         var r = await fetch('/api/get_orders', {
             method: 'POST',
@@ -489,23 +504,26 @@ async function loadHistory() {
             body: JSON.stringify({ token: token })
         });
         
-        showDebugOnScreen('📡 Response Status: ' + r.status + ' ' + r.statusText, r.ok ? '#2ecc71' : '#e74c3c');
+        debugLog('📡 Status: ' + r.status, r.ok ? '#2ecc71' : '#e74c3c');
         
         var d = await r.json();
         
-        showDebugOnScreen('📦 Orders Count: ' + (d.orders ? d.orders.length : 'NULL'), '#3498db');
+        debugLog('📦 Orders: ' + (d.orders ? d.orders.length : 'NULL'), '#3498db');
         
         if (d.orders && d.orders.length > 0) {
-            showDebugOnScreen('✅ Rendering ' + d.orders.length + ' orders', '#2ecc71');
             renderOrderHistory(d.orders);
             checkOrderNoti(d.orders);
-        } else {
-            showDebugOnScreen('ℹ️ No orders found', '#f39c12');
+            debugLog('✅ Done! ' + d.orders.length + ' orders', '#2ecc71');
+        } else if (d.orders && d.orders.length === 0) {
             c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">📋 အော်ဒါမှတ်တမ်း မရှိသေးပါ</p>';
+            debugLog('ℹ️ No orders', '#f39c12');
+        } else {
+            c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">📋 အော်ဒါမှတ်တမ်း မရှိသေးပါ</p>';
+            debugLog('⚠️ Unknown response', '#e74c3c');
         }
     } catch (e) {
-        showDebugOnScreen('❌ ERROR: ' + e.message, '#e74c3c');
-        c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">❌ ချိတ်ဆက်မှု ပြဿနာ: ' + e.message + '</p>';
+        debugLog('❌ ' + e.message, '#e74c3c');
+        c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">❌ ဆာဗာနှင့် ချိတ်ဆက်မရပါ</p>';
     }
 }
         
