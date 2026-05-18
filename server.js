@@ -2738,12 +2738,14 @@ app.get('/api/admin/users_with_logins', async (req, res) => {
                 u.id, u.username, u.email, u.phone, u.login_type, 
                 u.balance, u.usd_balance, u.premium_expiry, u.premium_tier,
                 u.last_login, u.created_at as registered_at,
+                cp.premium_expiry as chat_premium_expiry,
                 (SELECT COUNT(*) FROM device_sessions ds WHERE ds.user_id = u.id AND ds.is_active = true AND ds.last_activity > NOW() - INTERVAL '7 days') as active_devices,
                 (SELECT login_at FROM login_history lh WHERE lh.user_id = u.id ORDER BY lh.login_at DESC LIMIT 1) as last_login_time,
                 (SELECT CONCAT(COALESCE(device_brand,''), ' ', COALESCE(device_model,''), ' • ', COALESCE(browser,'')) FROM login_history lh WHERE lh.user_id = u.id AND device_brand IS NOT NULL ORDER BY lh.login_at DESC LIMIT 1) as last_device,
                 (SELECT ip_address FROM login_history lh WHERE lh.user_id = u.id ORDER BY lh.login_at DESC LIMIT 1) as last_ip,
                 (SELECT COUNT(*) FROM login_history lh WHERE lh.user_id = u.id) as total_logins
             FROM auth_users u
+            LEFT JOIN chat_premium cp ON u.id = cp.user_id
             ORDER BY u.last_login DESC NULLS LAST
             LIMIT 100
         `);
@@ -3523,22 +3525,6 @@ app.post('/api/chat/premium/buy', async (req, res) => {
     } catch(e) {
         console.error('[CHAT PREMIUM BUY ERROR]', e.message);
         res.json({ success: false, message: 'Server error' });
-    }
-});
-
-// Admin: Revoke chat premium
-app.post('/api/admin/revoke_chat_premium', async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) return res.json({ success: false });
-    
-    try {
-        const p = await getPool();
-        await p.query('DELETE FROM chat_premium WHERE user_id = $1', [userId]);
-        console.log(`[ADMIN] Revoked chat premium for user ${userId}`);
-        res.json({ success: true, message: 'Chat premium revoked!' });
-    } catch(e) { 
-        console.error('[REVOKE PREMIUM ERROR]', e.message);
-        res.json({ success: false });
     }
 });
 
