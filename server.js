@@ -265,6 +265,13 @@ async function initTables(p) {
         `CREATE TABLE IF NOT EXISTS daily_checkin_events (id SERIAL PRIMARY KEY, event_type VARCHAR(20) NOT NULL DEFAULT 'normal', event_name VARCHAR(100), start_date DATE NOT NULL, start_time TIME DEFAULT '00:00:00', end_date DATE, end_time TIME DEFAULT '14:30:00', total_days INT NOT NULL DEFAULT 7, is_active BOOLEAN DEFAULT true, cancelled BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS daily_checkin_rewards (id SERIAL PRIMARY KEY, event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE, day_number INT NOT NULL, reward_type VARCHAR(20) NOT NULL, reward_amount DECIMAL(10,2) DEFAULT 0, reward_label VARCHAR(100), icon_url VARCHAR(500), UNIQUE(event_id, day_number))`,
         `CREATE TABLE IF NOT EXISTS daily_checkins (id SERIAL PRIMARY KEY, user_id INT NOT NULL, event_id INT REFERENCES daily_checkin_events(id) ON DELETE CASCADE, checkin_date DATE NOT NULL DEFAULT CURRENT_DATE, day_number INT NOT NULL, reward_type VARCHAR(20), reward_amount DECIMAL(10,2) DEFAULT 0, claimed BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, event_id, checkin_date))`,
+         `CREATE TABLE IF NOT EXISTS daily_checkin_progress (
+    user_id INT NOT NULL,
+    event_id INT NOT NULL,
+    current_day INT DEFAULT 1,
+    last_claim_date DATE,
+    PRIMARY KEY (user_id, event_id)
+)`,
         
         // ========== CHAT PREMIUM ==========
         `CREATE TABLE IF NOT EXISTS chat_premium (user_id INT PRIMARY KEY, premium_tier INT DEFAULT 1, premium_expiry TIMESTAMP, purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
