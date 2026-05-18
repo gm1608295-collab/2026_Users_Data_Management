@@ -460,7 +460,7 @@ async function loadHistory() {
     console.log('[HISTORY] Loading... Token:', token ? token.substring(0,10)+'...' : 'none');
     
     if (!token || token === 'guest') {
-        c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">အကောင့်ဝင်ရန် လိုအပ်ပါသည်</p>';
+        c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">⏳ အကောင့်ဝင်ရန် လိုအပ်ပါသည်</p>';
         return;
     }
     
@@ -472,6 +472,14 @@ async function loadHistory() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: token })
         });
+        
+        // ✅ Response Status စစ်
+        console.log('[HISTORY] Status:', r.status);
+        
+        if (!r.ok) {
+            throw new Error('Server error: ' + r.status);
+        }
+        
         var d = await r.json();
         
         console.log('[HISTORY] Response:', d);
@@ -479,12 +487,14 @@ async function loadHistory() {
         if (d.orders && d.orders.length > 0) {
             renderOrderHistory(d.orders);
             checkOrderNoti(d.orders);
+        } else if (d.orders && d.orders.length === 0) {
+            c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">📋 အော်ဒါမှတ်တမ်း မရှိသေးပါ</p>';
         } else {
             c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">📋 အော်ဒါမှတ်တမ်း မရှိသေးပါ</p>';
         }
     } catch (e) {
-        console.error('[HISTORY ERROR]', e);
-        c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">❌ ချိတ်ဆက်မှု ပြဿနာရှိနေပါသည်</p>';
+        console.error('[HISTORY ERROR]', e.message);
+        c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">❌ ဆာဗာနှင့် ချိတ်ဆက်မရပါ။ အင်တာနက် စစ်ဆေးပါ။<br><small style="color:#3498db;cursor:pointer" onclick="loadHistory()">🔄 ပြန်ကြိုးစားရန် နှိပ်ပါ</small></p>';
     }
 }
         
