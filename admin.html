@@ -30,9 +30,50 @@
     .user-row:hover{background:rgba(0,0,0,0.3)}.user-row.banned{border-left-color:var(--r);opacity:0.7}
     .user-info{flex:1;min-width:0}.user-info b{color:var(--w);font-size:11px}
     .user-info small{color:rgba(255,255,255,0.5);font-size:9px;display:block;margin-top:3px;word-break:break-all}
-    .user-btns{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
-    .user-btns .btn-row{display:flex;gap:3px}
-    .user-btns .btn-micro{padding:5px 8px;font-size:9px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;white-space:nowrap;transition:all 0.2s}
+     /* User Buttons - Better Layout */
+.user-btns {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+.user-btns .btn-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.btn-micro {
+    padding: 4px 8px;
+    font-size: 9px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    white-space: nowrap;
+}
+  
+    /* Premium Badges */
+.premium-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 8px;
+    font-weight: bold;
+    margin-left: 4px;
+}
+.premium-badge.spin {
+    background: rgba(243,156,18,0.2);
+    color: #f39c12;
+}
+.premium-badge.chat {
+    background: rgba(46,204,113,0.2);
+    color: #2ecc71;
+}
+.username {
+    font-size: 11px;
+    color: #fff;
+}
     .user-btns .btn-micro:hover{transform:translateY(-1px)}
     .btn-micro.edit{background:var(--w);color:#000}.btn-micro.pass{background:#9b59b6;color:#fff}.btn-micro.ban{background:var(--r);color:#fff}.btn-micro.unban{background:var(--g);color:#000}.btn-micro.del{background:#c0392b;color:#fff}.btn-micro.revoke{background:#e74c3c;color:#fff}
     .btn-micro.revoke-chat { background: #e74c3c; color: #fff; }
@@ -268,41 +309,48 @@
     container.innerHTML = list.map(u => {
         const isBanned = banned.includes(u.id.toString());
         const isPremium = u.premium_expiry && new Date(u.premium_expiry) > new Date();
-        // ✅ Chat premium check - ဒီမှာ ပြင်ပါ
         const isChatPremium = u.chat_premium_expiry && new Date(u.chat_premium_expiry) > new Date();
         const lastLogin = u.last_login_time ? new Date(u.last_login_time) : null;
         const timeAgo = lastLogin ? getTimeAgo(lastLogin) : 'Never';
         const activeDevices = parseInt(u.active_devices) || 0;
         const lastDevice = u.last_device || 'Unknown';
         
+        // Build badge HTML
+        let badges = '';
+        if (isPremium) badges += '<span class="premium-badge spin">🎰 Spin</span>';
+        if (isChatPremium) badges += '<span class="premium-badge chat">💬 Chat</span>';
+        
+        // Build button HTML
+        let editBtn = editable ? `<button class="btn-micro edit" onclick="openEditModal('${u.id}','${escapeHtml(u.username||'')}','${escapeHtml(u.email||'')}','${escapeHtml(u.phone||'')}')">✏️Edit</button>` : '';
+        let passBtn = `<button class="btn-micro pass" onclick="openDataPassModal('${u.id}','${escapeHtml(u.username||'User')}')">🔑Pass</button>`;
+        let revokeSpinBtn = isPremium ? `<button class="btn-micro revoke" onclick="revokePremium('${u.id}','${escapeHtml(u.username||'User')}')">🎰Revoke Spin</button>` : '';
+        let revokeChatBtn = isChatPremium ? `<button class="btn-micro revoke-chat" onclick="revokeChatPremium('${u.id}','${escapeHtml(u.username||'User')}')">💬Revoke Chat</button>` : '';
+        let banBtn = `<button class="btn-micro ${isBanned ? 'unban' : 'ban'}" onclick="toggleBanUser('${u.id}', this)">${isBanned ? '✅Unban' : '🚫Ban'}</button>`;
+        let delBtn = `<button class="btn-micro del" onclick="delUserById('${u.id}')">🗑️Del</button>`;
+        
         return `
             <div class="user-row ${isBanned ? 'banned' : ''}">
                 <div class="user-info">
                     <div class="user-name">
                         🆔 ${u.id.toString().padStart(6,'0')}
-                        <span style="font-size:11px;color:#fff">${escapeHtml(u.username||'N/A')}</span>
-                        ${isPremium ? '<span style="background:rgba(243,156,18,0.2);color:#f39c12;font-size:8px;padding:2px 8px;border-radius:20px">🎰 Spin Premium</span>' : ''}
-                        ${isChatPremium ? '<span style="background:rgba(46,204,113,0.2);color:#2ecc71;font-size:8px;padding:2px 8px;border-radius:20px">💬 Chat Premium</span>' : ''}
+                        <span class="username">${escapeHtml(u.username||'N/A')}</span>
+                        ${badges}
                     </div>
                     <div class="user-details">
                         📧 ${escapeHtml(u.email||'N/A')} | 💰 ${(u.balance||0).toLocaleString()} Ks
                     </div>
                     <div class="device-info">
                         <span class="device-dot ${activeDevices>0 ? 'online' : 'offline'}"></span>
-                        📱 ${activeDevices} active | 🕐 ${timeAgo} | 📱 ${escapeHtml(lastDevice)}
+                        📱 ${activeDevices} active | 🕐 ${timeAgo} | ${escapeHtml(lastDevice)}
                     </div>
                 </div>
                 <div class="user-btns">
-                    <div class="btn-row">
-                        ${editable ? `<button class="btn-micro edit" onclick="openEditModal('${u.id}','${escapeHtml(u.username||'')}','${escapeHtml(u.email||'')}','${escapeHtml(u.phone||'')}')">✏️ Edit</button>` : ''}
-                        <button class="btn-micro pass" onclick="openDataPassModal('${u.id}','${escapeHtml(u.username||'User')}')">🔑 Pass</button>
-                        ${isPremium ? `<button class="btn-micro revoke" onclick="revokePremium('${u.id}','${escapeHtml(u.username||'User')}')">🎰 Revoke Spin</button>` : ''}
-                        ${isChatPremium ? `<button class="btn-micro revoke-chat" onclick="revokeChatPremium('${u.id}','${escapeHtml(u.username||'User')}')">💬 Revoke Chat</button>` : ''}
-                    </div>
-                    <div class="btn-row">
-                        <button class="btn-micro ${isBanned ? 'unban' : 'ban'}" onclick="toggleBanUser('${u.id}', this)">${isBanned ? '✅ Unban' : '🚫 Ban'}</button>
-                        <button class="btn-micro del" onclick="delUserById('${u.id}')">🗑️ Del</button>
-                    </div>
+                    ${editBtn}
+                    ${passBtn}
+                    ${revokeSpinBtn}
+                    ${revokeChatBtn}
+                    ${banBtn}
+                    ${delBtn}
                 </div>
             </div>
         `;
