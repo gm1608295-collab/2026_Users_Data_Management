@@ -584,23 +584,32 @@
         };
 
         function selectTier(tierKey, months) {
-            if (isProcessing) return;
-            
-            const config = tierConfig[tierKey];
-            selectedTier = config.tier;
-            selectedMonths = config.months;
-            selectedPrice = config.price;
+    if (isProcessing) return;
+    
+    // ✅ Active Tier ကို ပြန်ရွေးလို့မရအောင်
+    const tierMapping = { 1: 'bronze', 2: 'silver', 3: 'gold' };
+    const activeTierKey = tierMapping[currentActiveTier];
+    
+    if (tierKey === activeTierKey) {
+        showToast('⚠️ ဤ Tier ကို ဝယ်ယူပြီးပါပြီ။ သက်တမ်းကုန်မှ ထပ်ဝယ်နိုင်ပါမည်', true);
+        return;
+    }
+    
+    const config = tierConfig[tierKey];
+    selectedTier = config.tier;
+    selectedMonths = config.months;
+    selectedPrice = config.price;
 
-            // Update UI
-            document.querySelectorAll('.tier-card').forEach(card => card.classList.remove('selected'));
-            document.getElementById('tier-' + tierKey).classList.add('selected');
+    // Update UI
+    document.querySelectorAll('.tier-card').forEach(card => card.classList.remove('selected'));
+    document.getElementById('tier-' + tierKey).classList.add('selected');
 
-            // Update Buy Button
-            const buyBtn = document.getElementById('buyBtn');
-            buyBtn.disabled = false;
-            buyBtn.className = 'buy-btn ' + config.color + '-btn';
-            document.getElementById('buyBtnText').textContent = 
-                config.icon + ' ' + config.name + ' - $' + config.price.toFixed(2) + ' (၁ လစာ သက်တမ်းတိုးမည်)';
+    // Update Buy Button
+    const buyBtn = document.getElementById('buyBtn');
+    buyBtn.disabled = false;
+    buyBtn.className = 'buy-btn ' + config.color + '-btn';
+    document.getElementById('buyBtnText').textContent = 
+        config.icon + ' ' + config.name + ' - $' + config.price.toFixed(2) + ' (+30 ရက် သက်တမ်းတိုးမည်)';
         }
 
         // ==================== TOAST ====================
@@ -822,60 +831,129 @@
         }
 
         // ==================== LOAD CURRENT STATUS ====================
-        async function loadStatus() {
-            const token = localStorage.getItem('auth_token');
-            if (!token || token === 'guest') return;
+let currentActiveTier = 0; // ✅ လက်ရှိ Active ဖြစ်နေတဲ့ Tier
 
-            try {
-                // Load balances
-                const balRes = await fetch('/api/get_balance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
-                });
-                const balData = await balRes.json();
-                document.getElementById('mmkBalance').textContent = 
-                    (parseFloat(balData.balance || 0)).toLocaleString() + ' Ks';
+async function loadStatus() {
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') return;
 
-                const usdRes = await fetch('/api/get_usd_balance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
-                });
-                const usdData = await usdRes.json();
-                document.getElementById('usdBalance').textContent = 
-                    '$' + (parseFloat(usdData.usd_balance || 0)).toFixed(2);
+    try {
+        // Load balances
+        const balRes = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const balData = await balRes.json();
+        document.getElementById('mmkBalance').textContent = 
+            (parseFloat(balData.balance || 0)).toLocaleString() + ' Ks';
 
-                // Load premium status
-                const premRes = await fetch('/api/get_premium_status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
-                });
-                const premData = await premRes.json();
+        const usdRes = await fetch('/api/get_usd_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const usdData = await usdRes.json();
+        document.getElementById('usdBalance').textContent = 
+            '$' + (parseFloat(usdData.usd_balance || 0)).toFixed(2);
 
-                if (premData.success && premData.premium_active) {
-                    const statusCard = document.getElementById('statusCard');
-                    statusCard.classList.add('active-premium');
-                    
-                    const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
-                    const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
-                    const tier = premData.premium_tier || 1;
-                    
-                    document.getElementById('statusText').textContent = 
-                        tierIcons[tier] + ' ' + tierNames[tier] + ' Premium';
-                    
-                    const expiry = premData.expires_at ? 
-                        new Date(premData.expires_at).toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'}) : 
-                        'N/A';
-                    
-                    document.getElementById('statusExpiry').innerHTML = 
-                        'သက်တမ်းကုန်ရက်: <span>' + expiry + '</span>';
-                }
-            } catch(e) {
-                console.error('Status load error:', e);
+        // Load premium status
+        const premRes = await fetch('/api/chat/premium/details', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const premData = await premRes.json();
+
+        if (premData.success && premData.premium_active) {
+            currentActiveTier = premData.premium_tier || 1;
+            
+            const statusCard = document.getElementById('statusCard');
+            statusCard.classList.add('active-premium');
+            
+            const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
+            const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+            
+            document.getElementById('statusText').textContent = 
+                tierIcons[currentActiveTier] + ' ' + tierNames[currentActiveTier] + ' Premium';
+            
+            const expiry = premData.expires_at ? 
+                new Date(premData.expires_at).toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'}) : 
+                'N/A';
+            
+            document.getElementById('statusExpiry').innerHTML = 
+                'သက်တမ်းကုန်ရက်: <span>' + expiry + '</span> (' + 
+                (premData.days_remaining || 0) + ' ရက် ကျန်ပါသည်)';
+            
+            // ✅ လက်ရှိ Active Tier ကို Disable လုပ်
+            disableActiveTier(currentActiveTier);
+        } else {
+            currentActiveTier = 0;
+            enableAllTiers();
+        }
+    } catch(e) {
+        console.error('Status load error:', e);
+    }
+}
+
+// ✅ လက်ရှိ Active Tier ကို Disable လုပ်မယ့် Function
+function disableActiveTier(activeTier) {
+    const tierMapping = { 1: 'bronze', 2: 'silver', 3: 'gold' };
+    const activeTierKey = tierMapping[activeTier];
+    
+    // Tier Card တွေကို Disable/Enable
+    document.querySelectorAll('.tier-card').forEach(card => {
+        card.classList.remove('selected');
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
+        card.style.cursor = 'pointer';
+    });
+    
+    // Active Tier ကို Disable + "ဝယ်ပြီးပါပြီ" ပြ
+    if (activeTierKey) {
+        const activeCard = document.getElementById('tier-' + activeTierKey);
+        if (activeCard) {
+            activeCard.style.opacity = '0.5';
+            activeCard.style.pointerEvents = 'none';
+            activeCard.style.cursor = 'not-allowed';
+            
+            // "ဝယ်ပြီးပါပြီ" Badge ထည့်
+            const existingBadge = activeCard.querySelector('.owned-badge');
+            if (!existingBadge) {
+                const badge = document.createElement('div');
+                badge.className = 'owned-badge';
+                badge.style.cssText = `
+                    position: absolute; top: 10px; right: 10px;
+                    background: #2ecc71; color: #000; padding: 3px 10px;
+                    border-radius: 4px; font-size: 9px; font-weight: 700;
+                `;
+                badge.textContent = '✅ ဝယ်ပြီး';
+                activeCard.style.position = 'relative';
+                activeCard.appendChild(badge);
             }
         }
+    }
+    
+    // Buy Button ကိုလည်း Disable
+    document.getElementById('buyBtn').disabled = true;
+    document.getElementById('buyBtnText').textContent = 'သက်တမ်းကုန်မှ ထပ်ဝယ်နိုင်ပါမည်';
+}
+
+// ✅ Tier အားလုံး Enable ပြန်လုပ်
+function enableAllTiers() {
+    document.querySelectorAll('.tier-card').forEach(card => {
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
+        card.style.cursor = 'pointer';
+        
+        // "ဝယ်ပြီး" Badge ဖျက်
+        const badge = card.querySelector('.owned-badge');
+        if (badge) badge.remove();
+    });
+    
+    document.getElementById('buyBtn').disabled = true;
+    document.getElementById('buyBtnText').textContent = 'Tier ရွေးချယ်ပါ';
+}
 
         // ==================== INIT ====================
         loadStatus();
