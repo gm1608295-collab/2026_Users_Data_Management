@@ -1708,35 +1708,59 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
 // ==================== GET ALL PREMIUM TIERS STATUS ====================
 app.post('/api/chat/premium/all_tiers', async (req, res) => {
     const { token } = req.body;
+    
     if (!token || token === 'guest') {
-        return res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
+        return res.json({ 
+            success: true, 
+            tiers: { 1: false, 2: false, 3: false }, 
+            expiry_dates: {} 
+        });
     }
     
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
+        if (isNaN(uid)) {
+            return res.json({ 
+                success: true, 
+                tiers: { 1: false, 2: false, 3: false }, 
+                expiry_dates: {} 
+            });
+        }
         
-        // ✅ Tier 1, 2, 3 အားလုံးရဲ့ Status စစ်
         const tiers = { 1: false, 2: false, 3: false };
         const expiryDates = {};
         const now = new Date();
         
+        // ✅ Tier 1, 2, 3 တစ်ခုချင်းစီရဲ့ Status စစ်
         for (let tier = 1; tier <= 3; tier++) {
             const r = await p.query(
-                'SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2 AND premium_expiry > NOW()',
+                `SELECT premium_expiry FROM chat_premium 
+                 WHERE user_id = $1 AND premium_tier = $2 AND premium_expiry > NOW()`,
                 [uid, tier]
             );
+            
             if (r.rows.length > 0) {
                 tiers[tier] = true;
                 expiryDates[tier] = r.rows[0].premium_expiry.toISOString();
             }
         }
         
-        res.json({ success: true, tiers, expiry_dates: expiryDates });
+        console.log('[ALL TIERS] User:', uid, 'Tiers:', tiers);
+        
+        res.json({ 
+            success: true, 
+            tiers: tiers, 
+            expiry_dates: expiryDates 
+        });
+        
     } catch(e) {
         console.error('[ALL TIERS STATUS ERROR]', e.message);
-        res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
+        res.json({ 
+            success: true, 
+            tiers: { 1: false, 2: false, 3: false }, 
+            expiry_dates: {} 
+        });
     }
 });
 // ==================== CLAIM WEEKLY BONUS ====================
