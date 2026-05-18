@@ -321,6 +321,28 @@ async function initTables(p) {
 }
 initTables(pools[0]);
 initTables(pools[1]);
+
+// ==================== CREATE DAILY CHECK-IN PROGRESS TABLE ====================
+async function createDailyCheckinProgressTable() {
+    const query = `
+        CREATE TABLE IF NOT EXISTS daily_checkin_progress (
+            user_id INT NOT NULL,
+            event_id INT NOT NULL,
+            current_day INT DEFAULT 1,
+            last_claim_date DATE,
+            PRIMARY KEY (user_id, event_id)
+        )
+    `;
+    
+    try {
+        await pool1.query(query);
+        await pool2.query(query);
+        console.log('✅ daily_checkin_progress table created');
+    } catch(e) {
+        console.log('⚠️ daily_checkin_progress table error:', e.message);
+    }
+}
+createDailyCheckinProgressTable();
 // ==================== CREATE SPIN HISTORY V2 TABLE ====================
 async function createSpinHistoryV2Table() {
     const query = `
