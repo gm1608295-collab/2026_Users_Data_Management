@@ -554,7 +554,7 @@ function checkOrderNoti(orders){
     if(hasNew)renderNotiDropdown();
 }
 
-// ==================== BALANCE CHANGE NOTIFICATION (မြန်မာလို - FIXED) ====================
+// ==================== BALANCE CHANGE NOTIFICATION (Amount ပါအောင် ပြင်ဆင်) ====================
 let lastNotifiedBalance = 0;
 let lastNotifiedAmount = 0;
 let lastNotifiedTime = 0;
@@ -572,49 +572,47 @@ async function checkBalanceChanges() {
         const d = await r.json();
         const currentBalance = parseFloat(d.balance || 0);
         
-        // ========== UI ကို အမြဲ Update လုပ် ==========
+        // UI ကို အမြဲ Update လုပ်
         document.getElementById('myBalance').textContent = fm(currentBalance) + ' ကျပ်';
         document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
         
-        // ========== ပထမဆုံးအကြိမ်ဆိုရင် သိမ်းပြီး return ==========
+        // ပထမဆုံးအကြိမ်
         if (lastNotifiedBalance === 0) {
             lastNotifiedBalance = currentBalance;
             localStorage.setItem('topupLastBalance', currentBalance.toString());
             return;
         }
         
-        const diff = currentBalance - lastNotifiedBalance;
+        var diff = currentBalance - lastNotifiedBalance;
         
-        // ========== 1 Ks အောက် ပြောင်းလဲမှုကို ignore ==========
+        // 1 Ks အောက် ignore
         if (Math.abs(diff) < 1) return;
         
-        // ========== ၁ မိနစ်အတွင်း တူညီတဲ့ Amount အတွက် ထပ်မပြနဲ့ ==========
+        // ၁ မိနစ်အတွင်း တူညီတဲ့ Amount ထပ်မပြ
         if (Math.abs(diff - lastNotifiedAmount) < 1 && (Date.now() - lastNotifiedTime) < 60000) {
-            // Balance ကိုပဲ Update လုပ်၊ Noti မပြနဲ့
             lastNotifiedBalance = currentBalance;
             localStorage.setItem('topupLastBalance', currentBalance.toString());
             return;
         }
         
-        // ========== Noti ပြမယ် (မြန်မာလို) ==========
+        // ✅ ငွေတိုးလာရင် (Amount ပါမယ်)
         if (diff > 0) {
-            // ✅ ငွေတိုးလာရင်
             addNotiItem('success', 
                 '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
-                '💰 ပမာဏ: <b>+' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
-                '💳 လက်ကျန်: <b>' + fm(currentBalance) + ' ကျပ်</b><br>' +
+                '💰 ဖြည့်သွင်းငွေ: <b style="color:#2ecc71">+' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
+                '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b><br>' +
                 '<small style="color:#2ecc71">Admin မှ အတည်ပြုပြီးပါပြီ</small>'
             );
-        } else if (diff < -50) {
-            // ✅ ငွေ 50 ကျပ်ထက်ပိုကျရင် သတိပေး
+        } 
+        // ✅ ငွေလျော့ရင် (50 Ks ထက်ပိုကျမှ)
+        else if (diff < -50) {
             addNotiItem('rejected', 
                 '⚠️ <b>ငွေလျော့သွားပါသည်</b><br>' +
-                '💰 ပမာဏ: <b>' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
-                '💳 လက်ကျန်: <b>' + fm(currentBalance) + ' ကျပ်</b>'
+                '💰 လျော့ငွေ: <b style="color:#e74c3c">' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
+                '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b>'
             );
         }
         
-        // ========== နောက်ဆုံး Balance ကို သိမ်း ==========
         lastNotifiedBalance = currentBalance;
         lastNotifiedAmount = diff;
         lastNotifiedTime = Date.now();
@@ -624,7 +622,7 @@ async function checkBalanceChanges() {
         console.error('Balance check error:', e);
     }
 }
-// ==================== ORDER STATUS CHECK (Reject Noti ပါအောင် ပြင်ဆင်) ====================
+// ==================== ORDER STATUS CHECK (Amount ပါအောင် ပြင်ဆင်) ====================
 let lastOrderCheckId = parseInt(localStorage.getItem('topupLastOrderCheck') || '0');
 
 async function checkOrderUpdates() {
@@ -644,29 +642,26 @@ async function checkOrderUpdates() {
                 if (o.id > lastOrderCheckId) {
                     lastOrderCheckId = o.id;
                     
+                    // ✅ ငွေပမာဏ (အနှုတ်ပြင်ရင် အပေါင်းပြန်)
+                    var amount = Math.abs(o.amount || 0);
+                    var amountText = fm(amount) + ' ကျပ်';
+                    
                     if (o.status === 'approved') {
-                        // ✅ Approved Noti
+                        // ✅ Approved Noti - ငွေပမာဏ ပါမယ်
                         addNotiItem('success', 
-                            '✅ <b>အော်ဒါ အတည်ပြုပြီးပါပြီ</b><br>' +
+                            '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
                             '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
-                            '💰 ပမာဏ: <b>' + fm(Math.abs(o.amount || 0)) + ' ကျပ်</b><br>' +
-                            '<small style="color:#2ecc71">သင့်အကောင့်ထဲသို့ ငွေဖြည့်သွင်းပြီးပါပြီ</small>'
+                            '💰 ဖြည့်သွင်းငွေ: <b style="color:#2ecc71">+' + amountText + '</b><br>' +
+                            '<small style="color:#2ecc71">Admin မှ အတည်ပြုပြီးပါပြီ</small>'
                         );
                     } else if (o.status === 'rejected') {
-                        // ✅ Rejected Noti - သတိပေးစာသားအပြည့်အစုံ
+                        // ✅ Rejected Noti
                         addNotiItem('rejected', 
                             '❌ <b>အော်ဒါ ငြင်းပယ်ခံရပါသည်</b><br>' +
                             '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
                             '📝 အကြောင်းရင်း: <b>' + (o.reject_reason || 'အတည်မပြုနိုင်ပါ') + '</b><br>' +
                             '<small style="color:#e74c3c">⚠️ ငွေလွှဲပြေစာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါတင်ခြင်းကြောင့်ဖြစ်သည်</small><br>' +
                             '<small style="color:#e74c3c">⚠️ နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါက သင့်အကောင့်အား ပိတ်ခံရနိုင်ပြီး အကောင့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်</small>'
-                        );
-                    } else if (o.status === 'pending') {
-                        // ✅ Pending Noti
-                        addNotiItem('pending', 
-                            '⏳ <b>အော်ဒါ တင်သွင်းပြီးပါပြီ</b><br>' +
-                            '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
-                            '<small style="color:#f39c12">Admin မှ အတည်ပြုရန် စောင့်ဆိုင်းပါ (၁၀ မိနစ်အတွင်း)</small>'
                         );
                     }
                 }
@@ -677,7 +672,7 @@ async function checkOrderUpdates() {
     } catch (e) {
         console.error('Order check error:', e);
     }
-     }
+}
 // ==================== နံပါတ် Format လုပ်တဲ့ Function ====================
 function fm(n) {
     return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
