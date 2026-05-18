@@ -450,79 +450,164 @@ function checkOrderNoti(orders){
     if(hasNew)renderNotiDropdown();
 }
 
-// ==================== BALANCE CHANGE NOTIFICATION ====================
-async function checkBalanceChanges(){
-    const savedBalance = parseFloat(localStorage.getItem('topupLastBalance')||'0');
+// ==================== BALANCE CHANGE NOTIFICATION (မြန်မာလို - FIXED) ====================
+let lastNotifiedBalance = 0;
+let lastNotifiedAmount = 0;
+let lastNotifiedTime = 0;
+
+async function checkBalanceChanges() {
     const token = localStorage.getItem('auth_token');
-    if(!token || token === 'guest') return;
+    if (!token || token === 'guest') return;
     
     try {
         const r = await fetch('/api/get_balance', {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({token})
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
         });
         const d = await r.json();
         const currentBalance = parseFloat(d.balance || 0);
         
-        // ✅ ပထမဆုံးအကြိမ်ဆိုရင် သိမ်းပြီး return
-        if(savedBalance === 0 || isNaN(savedBalance)) {
+        // ========== UI ကို အမြဲ Update လုပ် ==========
+        document.getElementById('myBalance').textContent = fm(currentBalance) + ' ကျပ်';
+        document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
+        
+        // ========== ပထမဆုံးအကြိမ်ဆိုရင် သိမ်းပြီး return ==========
+        if (lastNotifiedBalance === 0) {
+            lastNotifiedBalance = currentBalance;
             localStorage.setItem('topupLastBalance', currentBalance.toString());
             return;
         }
         
-        const diff = currentBalance - savedBalance;
+        const diff = currentBalance - lastNotifiedBalance;
         
-        // ✅ 1 Ks ထက်နည်းရင် noti မပြနဲ့ (rounding error ကြောင့်)
-        if(Math.abs(diff) < 1) {
+        // ========== 1 Ks အောက် ပြောင်းလဲမှုကို ignore ==========
+        if (Math.abs(diff) < 1) return;
+        
+        // ========== ၁ မိနစ်အတွင်း တူညီတဲ့ Amount အတွက် ထပ်မပြနဲ့ ==========
+        if (Math.abs(diff - lastNotifiedAmount) < 1 && (Date.now() - lastNotifiedTime) < 60000) {
+            // Balance ကိုပဲ Update လုပ်၊ Noti မပြနဲ့
+            lastNotifiedBalance = currentBalance;
             localStorage.setItem('topupLastBalance', currentBalance.toString());
             return;
         }
         
-        if(diff > 0){
-            // Balance increased
-            const lastAdd = localStorage.getItem('topupLastAddAmount');
-            const lastAddTime = parseInt(localStorage.getItem('topupLastAddTime')||'0');
-            
-            // ✅ ၁ မိနစ်အတွင်း တူညီတဲ့ amount အတွက် ထပ်မပြနဲ့
-            if(!lastAdd || Math.abs(diff - parseFloat(lastAdd)) > 1 || Date.now() - lastAddTime > 60000){
-                addNotiItem('success', 'Balance updated: +' + fm(diff) + ' Ks');
-                localStorage.setItem('topupLastAddAmount', diff.toString());
-                localStorage.setItem('topupLastAddTime', Date.now().toString());
-                renderNotiDropdown();
-            }
-        } else if(diff < -10) {
-            // ✅ 10 Ks ထက်ပိုကျမှပဲ noti ပြ (small adjustment တွေ ignore)
-            addNotiItem('rejected', 'Balance adjustment: ' + fm(diff) + ' Ks');
-            renderNotiDropdown();
+        // ========== Noti ပြမယ် (မြန်မာလို) ==========
+        if (diff > 0) {
+            // ✅ ငွေတိုးလာရင်
+            addNotiItem('success', 
+                '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
+                '💰 ပမာဏ: <b>+' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
+                '💳 လက်ကျန်: <b>' + fm(currentBalance) + ' ကျပ်</b><br>' +
+                '<small style="color:#2ecc71">Admin မှ အတည်ပြုပြီးပါပြီ</small>'
+            );
+        } else if (diff < -50) {
+            // ✅ ငွေ 50 ကျပ်ထက်ပိုကျရင် သတိပေး
+            addNotiItem('rejected', 
+                '⚠️ <b>ငွေလျော့သွားပါသည်</b><br>' +
+                '💰 ပမာဏ: <b>' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
+                '💳 လက်ကျန်: <b>' + fm(currentBalance) + ' ကျပ်</b>'
+            );
         }
         
+        // ========== နောက်ဆုံး Balance ကို သိမ်း ==========
+        lastNotifiedBalance = currentBalance;
+        lastNotifiedAmount = diff;
+        lastNotifiedTime = Date.now();
         localStorage.setItem('topupLastBalance', currentBalance.toString());
-    } catch(e) {}
-}
-function renderOrderHistory(orders){const c=document.getElementById('orderHistory');c.innerHTML=orders.map((o,i)=>{const sc=o.status==='approved'?'status-approved':o.status==='rejected'?'status-rejected':'status-pending';const st=o.status==='approved'?'APPROVED':o.status==='rejected'?'REJECTED':'PENDING';const rejectBox=o.status==='rejected'&&o.reject_reason?`<div class="reject-reason-box"><div class="reject-title"><i class="fas fa-exclamation-triangle"></i> ငြင်းပယ်ခံရသည့်အကြောင်းရင်း</div><div class="reject-msg">${o.reject_reason}</div></div>`:'';return`<div class="history-item" onclick="toggleDetail(${i})"><div><b>💳 ${o.payment_method}</b><br><small>${new Date(o.created_at).toLocaleString()}</small></div><span class="status-badge ${sc}">${st}</span></div><div class="history-detail" id="detail${i}"><p>Status: ${st}</p><p>Payment: ${o.payment_method}</p>${rejectBox}${o.screenshot?`<img src="${o.screenshot}">`:'<p>No screenshot</p>'}</div>`}).join('')}
-function toggleDetail(i){const d=document.getElementById('detail'+i);if(d)d.style.display=d.style.display==='block'?'none':'block'}
-function fm(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
-
-async function loadBalance(){
-    try{
-        const r=await fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});
-        const d=await r.json();
-        const b=d.balance||0;
-        document.getElementById('myBalance').textContent=fm(b)+' Ks';
-        document.getElementById('usdBalance').textContent=`≈ $${(b/2100).toFixed(2)} USD`;
         
-        // Store initial balance
-        const saved=localStorage.getItem('topupLastBalance');
-        if(!saved||parseFloat(saved)===0){
-            localStorage.setItem('topupLastBalance',b.toString());
+    } catch (e) {
+        console.error('Balance check error:', e);
+    }
+}
+// ==================== ORDER STATUS CHECK (Reject Noti ပါအောင် ပြင်ဆင်) ====================
+let lastOrderCheckId = parseInt(localStorage.getItem('topupLastOrderCheck') || '0');
+
+async function checkOrderUpdates() {
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') return;
+    
+    try {
+        const r = await fetch('/api/get_orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const d = await r.json();
+        
+        if (d.orders && d.orders.length > 0) {
+            d.orders.forEach(o => {
+                if (o.id > lastOrderCheckId) {
+                    lastOrderCheckId = o.id;
+                    
+                    if (o.status === 'approved') {
+                        // ✅ Approved Noti
+                        addNotiItem('success', 
+                            '✅ <b>အော်ဒါ အတည်ပြုပြီးပါပြီ</b><br>' +
+                            '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
+                            '💰 ပမာဏ: <b>' + fm(Math.abs(o.amount || 0)) + ' ကျပ်</b><br>' +
+                            '<small style="color:#2ecc71">သင့်အကောင့်ထဲသို့ ငွေဖြည့်သွင်းပြီးပါပြီ</small>'
+                        );
+                    } else if (o.status === 'rejected') {
+                        // ✅ Rejected Noti - သတိပေးစာသားအပြည့်အစုံ
+                        addNotiItem('rejected', 
+                            '❌ <b>အော်ဒါ ငြင်းပယ်ခံရပါသည်</b><br>' +
+                            '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
+                            '📝 အကြောင်းရင်း: <b>' + (o.reject_reason || 'အတည်မပြုနိုင်ပါ') + '</b><br>' +
+                            '<small style="color:#e74c3c">⚠️ ငွေလွှဲပြေစာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါတင်ခြင်းကြောင့်ဖြစ်သည်</small><br>' +
+                            '<small style="color:#e74c3c">⚠️ နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါက သင့်အကောင့်အား ပိတ်ခံရနိုင်ပြီး အကောင့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်</small>'
+                        );
+                    } else if (o.status === 'pending') {
+                        // ✅ Pending Noti
+                        addNotiItem('pending', 
+                            '⏳ <b>အော်ဒါ တင်သွင်းပြီးပါပြီ</b><br>' +
+                            '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
+                            '<small style="color:#f39c12">Admin မှ အတည်ပြုရန် စောင့်ဆိုင်းပါ (၁၀ မိနစ်အတွင်း)</small>'
+                        );
+                    }
+                }
+            });
+            
+            localStorage.setItem('topupLastOrderCheck', lastOrderCheckId.toString());
         }
-    }catch(e){}
+    } catch (e) {
+        console.error('Order check error:', e);
+    }
+     }
+// ==================== နံပါတ် Format လုပ်တဲ့ Function ====================
+function fm(n) {
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-// Initialize balance + check changes
+// ==================== Balance ကို စပြီး Load လုပ် ====================
+async function loadBalance() {
+    try {
+        const r = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: localStorage.getItem('auth_token') })
+        });
+        const d = await r.json();
+        const b = d.balance || 0;
+        
+        document.getElementById('myBalance').textContent = fm(b) + ' ကျပ်';
+        document.getElementById('usdBalance').textContent = '≈ $' + (b / 2100).toFixed(2) + ' USD';
+        
+        // ပထမဆုံး Balance သိမ်း
+        if (lastNotifiedBalance === 0) {
+            lastNotifiedBalance = b;
+            localStorage.setItem('topupLastBalance', b.toString());
+        }
+    } catch (e) {}
+}
+
+// ==================== Init ====================
 loadBalance();
-setInterval(checkBalanceChanges,5000);
+
+// ✅ ၁၀ စက္ကန့်တိုင်း Balance Update + ၃၀ စက္ကန့်တိုင်း Order Check
+setInterval(checkBalanceChanges, 10000);
+setInterval(checkOrderUpdates, 30000);
+checkOrderUpdates();
     </script>
 </body>
 </html>
