@@ -3559,6 +3559,31 @@ async function cleanupExpiredPremiums() {
 setInterval(cleanupExpiredPremiums, 60 * 60 * 1000);
 cleanupExpiredPremiums();
 
+// Admin: Revoke chat premium (remove immediately, no expiry wait)
+app.post('/api/admin/revoke_chat_premium', async (req, res) => {
+    const { userId } = req.body;
+    if (!userId) return res.json({ success: false, message: 'User ID required' });
+    
+    try {
+        const p = await getPool();
+        
+        // Delete chat premium record immediately
+        const result = await p.query(
+            'DELETE FROM chat_premium WHERE user_id = $1 RETURNING user_id',
+            [userId]
+        );
+        
+        if (result.rows.length > 0) {
+            console.log(`[ADMIN] Revoked chat premium for user ${userId}`);
+            res.json({ success: true, message: 'Chat premium revoked!' });
+        } else {
+            res.json({ success: false, message: 'User does not have chat premium' });
+        }
+    } catch(e) {
+        console.error('[REVOKE CHAT PREMIUM ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== CHAT API ROUTES ====================
 
 // Get current user
