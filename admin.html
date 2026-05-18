@@ -1396,6 +1396,338 @@ async function rejectAllPendingInModal() {
     } catch(e) { n('Error', 'error'); }
     hideLoading();
     }
+    // ==================== FULL ORDER MODAL FUNCTIONS ====================
+let fullOrderModalFilter = 'all';
+let allModalOrders = [];
+
+function openFullOrderModal() {
+    document.getElementById('fullOrderOverlay').classList.add('active');
+    document.body.classList.add('modal-open');
+    fullOrderModalFilter = 'all';
+    // Reset filter buttons
+    document.querySelectorAll('.full-order-toolbar .filter-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === 0);
+    });
+    loadFullOrderModal('all');
+}
+
+function closeFullOrderModal(event) {
+    if (event && event.target !== document.getElementById('fullOrderOverlay')) return;
+    document.getElementById('fullOrderOverlay').classList.remove('active');
+    document.body.classList.remove('modal-open');
+    document.getElementById('batchActionBar').classList.remove('active');
+    // Refresh mini order list
+    loadAdminOrders(currentOrderFilter);
+}
+
+async function loadFullOrderModal(filter) {
+    fullOrderModalFilter = filter;
+    const wrap = document.getElementById('fullOrderTableWrap');
+    wrap.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);"><i class="fas fa-spinner fa-spin" style="font-size: 30px;"></i><p style="margin-top: 12px;">Loading...</p></div>';
+    
+    try {
+        const r = await fetch(`/api/admin/orders?filter=${filter}`);
+        
+        if (!r.ok) {
+            throw new Error(`HTTP ${r.status}`);
+        }
+        
+        const d = await r.json();
+        allModalOrders = d.orders || [];
+        
+        document.getElementById('fullOrderTotal').textContent = d.total || 0;
+        document.getElementById('fullOrderToday').textContent = d.today || 0;
+        
+        const pendingCount = allModalOrders.filter(o => o.status === 'pending').length;
+        document.getElementById('fullOrderPending').textContent = pendingCount;
+        
+        if (!allModalOrders.length) {
+            wrap.innerHTML = '<div style="text-align: center; padding: 60px; color: rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size: 40px;"></i><p style="margin-top: 12px;">No orders found</p></div>';
+            return;
+        }
+        
+        renderFullOrderTable(allModalOrders);
+    } catch(e) {
+        console.error('Full order modal error:', e);
+        wrap.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--r);">
+            <i class="fas fa-exclamation-triangle" style="font-size: 30px;"></i>
+            <p style="margin-top: 12px;">Error loading orders</p>
+            <p style="font-size: 10px; color: rgba(255,255,255,0.5);">${e.message}</p>
+            <button class="btn btn-b" onclick="loadFullOrderModal('${filter}')" style="margin-top: 10px;">🔄 Retry</button>
+        </div>`;
+    }
+}
+
+function renderFullOrderTable(orders) {
+    const wrap = document.getElementById('fullOrderTableWrap');
+    
+    let html = `<table class="full-order-table">
+        <thead>
+            <tr>
+                <th style="width: 35px;"><input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes(this)" title="Select All"></th>
+                <th>Order</th>
+                <th>User</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Status</th>
+                <th style="text-align:center;">📷</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>`;
+    
+    orders.forEach(o => {
+        const amount = Math.abs(o.amount) || 0;
+        const dateStr = new Date(o.created_at).toLocaleDateString('my-MM', {year: 'numeric', month: 'short', day: 'numeric'});
+        const timeStr = new Date(o.created_at).toLocaleTimeString('my-MM', {hour: '2-digit', minute: '2-digit'});
+        
+        html += `
+            <tr id="modalOrderRow${o.id}" data-status="${o.status}">
+                <td style="text-align:center;">
+                    ${o.status === 'pending' ? `<input type="checkbox" class="order-checkbox" value="${o.id}" data-user-id="${o.user_id}" data-amount="${amount}" onchange="updateBatchBar()">` : ''}
+                </td>
+                <td><b style="color: var(--w);">#${o.id}</b></td>
+                <td>
+                    <div style="font-weight: bold; color: #fff; font-size: 11px;">${escapeHtml(o.username || 'N/A')}</div>
+                    <div style="font-size: 8px; color: rgba(255,255,255,0.5);">🆔 ${o.submitted_user_id || o.user_id}</div>
+                </td>
+                <td><b style="color: var(--w);">${amount.toLocaleString()} Ks</b></td>
+                <td>💳 ${escapeHtml(o.payment_method || 'N/A')}</td>
+                <td><span class="status-badge-full ${o.status}">${o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳'} ${o.status.toUpperCase()}</span></td>
+                <td style="text-align:center;">
+                    ${o.screenshot 
+                        ? `<img src="${o.screenshot}" class="screenshot-thumb" onclick="zoomImage('${o.screenshot}')" title="Click to zoom" onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\\'no-screenshot\\'>📷</span>'">` 
+                        : '<span class="no-screenshot">📷</span>'}
+                </td>
+                <td style="font-size: 10px; white-space: nowrap;">
+                    <div>${dateStr}</div>
+                    <div style="color: rgba(255,255,255,0.5);">${timeStr}</div>
+                </td>
+                <td>
+                    ${o.status === 'pending' ? `
+                        <div class="table-action-cell">
+                            <input type="number" id="modalApproveAmt${o.id}" value="${amount}" placeholder="Ks">
+                            <button class="btn btn-g" onclick="modalApproveOrder(${o.id}, ${o.user_id})">✓</button>
+                            <button class="btn btn-r" onclick="modalRejectOrder(${o.id})">✕</button>
+                        </div>
+                    ` : `<span style="font-size: 9px; color: rgba(255,255,255,0.4);">—</span>`}
+                </td>
+            </tr>`;
+    });
+    
+    html += '</tbody></table>';
+    wrap.innerHTML = html;
+    document.getElementById('batchActionBar').classList.remove('active');
+    updateBatchBar();
+}
+
+function filterModalOrders(filter, btn) {
+    document.querySelectorAll('.full-order-toolbar .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadFullOrderModal(filter);
+}
+
+function toggleAllCheckboxes(masterCheckbox) {
+    const checkboxes = document.querySelectorAll('.order-checkbox');
+    checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+    updateBatchBar();
+}
+
+function updateBatchBar() {
+    const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+    const bar = document.getElementById('batchActionBar');
+    const countEl = document.getElementById('batchCount');
+    
+    if (checkboxes.length > 0) {
+        bar.classList.add('active');
+        countEl.textContent = `${checkboxes.length} order(s) selected`;
+    } else {
+        bar.classList.remove('active');
+    }
+}
+
+function getSelectedOrders() {
+    const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+    return Array.from(checkboxes).map(cb => ({
+        id: parseInt(cb.value),
+        userId: parseInt(cb.dataset.userId),
+        amount: parseInt(cb.dataset.amount)
+    }));
+}
+
+async function batchApprove() {
+    const selected = getSelectedOrders();
+    if (!selected.length) return n('❌ No orders selected', 'error');
+    if (!confirm(`✅ Approve ${selected.length} order(s)?`)) return;
+    
+    showLoading(`Approving ${selected.length} orders...`);
+    try {
+        for (const order of selected) {
+            const amtInput = document.getElementById('modalApproveAmt' + order.id);
+            const amount = amtInput ? parseInt(amtInput.value) || order.amount : order.amount;
+            
+            await fetch('/api/admin/order_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: order.id, status: 'approved' })
+            });
+            await fetch('/api/admin/update_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: order.userId, amount: parseFloat(amount) })
+            });
+        }
+        n(`✅ ${selected.length} orders approved!`);
+        loadFullOrderModal(fullOrderModalFilter);
+        loadAdminOrders(currentOrderFilter);
+        loadAdminData();
+    } catch(e) {
+        console.error(e);
+        n('Error', 'error');
+    }
+    hideLoading();
+}
+
+async function batchReject() {
+    const selected = getSelectedOrders();
+    if (!selected.length) return n('❌ No orders selected', 'error');
+    const reason = prompt(`❌ Reject ${selected.length} order(s)? Reason:`);
+    if (!reason || !reason.trim()) return;
+    if (!confirm(`⚠️ Reject ${selected.length} order(s)?`)) return;
+    
+    showLoading(`Rejecting ${selected.length} orders...`);
+    try {
+        for (const order of selected) {
+            await fetch('/api/admin/order_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: order.id, status: 'rejected', reason: reason.trim() })
+            });
+        }
+        n(`❌ ${selected.length} orders rejected!`);
+        loadFullOrderModal(fullOrderModalFilter);
+        loadAdminOrders(currentOrderFilter);
+    } catch(e) {
+        console.error(e);
+        n('Error', 'error');
+    }
+    hideLoading();
+}
+
+function selectAllOrders() {
+    const masterCheckbox = document.getElementById('selectAllCheckbox');
+    if (masterCheckbox) masterCheckbox.checked = true;
+    toggleAllCheckboxes(masterCheckbox);
+}
+
+async function modalApproveOrder(id, userId) {
+    const amtInput = document.getElementById('modalApproveAmt' + id);
+    const amount = parseInt(amtInput?.value) || 0;
+    if (amount <= 0) return n('❌ Enter amount', 'error');
+    
+    showLoading('Approving...');
+    try {
+        await fetch('/api/admin/order_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, status: 'approved' })
+        });
+        await fetch('/api/admin/update_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: userId, amount: parseFloat(amount) })
+        });
+        n('✅ Approved! +' + amount + ' Ks');
+        loadFullOrderModal(fullOrderModalFilter);
+        loadAdminOrders(currentOrderFilter);
+        loadAdminData();
+    } catch(e) {
+        console.error(e);
+        n('Error', 'error');
+    }
+    hideLoading();
+}
+
+function modalRejectOrder(id) {
+    const reason = prompt('❌ Reject reason for Order #' + id + ':');
+    if (!reason || !reason.trim()) return;
+    
+    showLoading('Rejecting...');
+    fetch('/api/admin/order_status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status: 'rejected', reason: reason.trim() })
+    }).then(r => r.json()).then(d => {
+        if (d.success) {
+            n('❌ Order #' + id + ' rejected!');
+            loadFullOrderModal(fullOrderModalFilter);
+            loadAdminOrders(currentOrderFilter);
+        } else {
+            n(d.message || 'Error', 'error');
+        }
+    }).catch(e => {
+        console.error(e);
+        n('Error', 'error');
+    }).finally(() => hideLoading());
+}
+
+async function approveAllPendingInModal() {
+    const pending = allModalOrders.filter(o => o.status === 'pending');
+    if (!pending.length) return n('⚠️ No pending orders', 'error');
+    if (!confirm(`⚠️ Approve ALL ${pending.length} pending orders?`)) return;
+    
+    showLoading(`Approving ${pending.length} orders...`);
+    try {
+        for (const order of pending) {
+            const amount = Math.abs(order.amount) || 10000;
+            await fetch('/api/admin/order_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: order.id, status: 'approved' })
+            });
+            await fetch('/api/admin/update_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: order.user_id, amount: parseFloat(amount) })
+            });
+        }
+        n(`✅ ${pending.length} orders approved!`);
+        loadFullOrderModal(fullOrderModalFilter);
+        loadAdminOrders(currentOrderFilter);
+        loadAdminData();
+    } catch(e) {
+        console.error(e);
+        n('Error', 'error');
+    }
+    hideLoading();
+}
+
+async function rejectAllPendingInModal() {
+    const pending = allModalOrders.filter(o => o.status === 'pending');
+    if (!pending.length) return n('⚠️ No pending orders', 'error');
+    const reason = prompt(`❌ Reject ALL ${pending.length} pending orders? Reason:`);
+    if (!reason || !reason.trim()) return;
+    if (!confirm(`⚠️ Reject ALL ${pending.length} pending orders?`)) return;
+    
+    showLoading(`Rejecting ${pending.length} orders...`);
+    try {
+        for (const order of pending) {
+            await fetch('/api/admin/order_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: order.id, status: 'rejected', reason: reason.trim() })
+            });
+        }
+        n(`❌ ${pending.length} orders rejected!`);
+        loadFullOrderModal(fullOrderModalFilter);
+        loadAdminOrders(currentOrderFilter);
+    } catch(e) {
+        console.error(e);
+        n('Error', 'error');
+    }
+    hideLoading();
+}
  </script>
 </body>
 </html>
