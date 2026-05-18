@@ -382,6 +382,34 @@
             word-break: break-word;
             position: relative;
         }
+        /* ========== MESSAGE BUBBLE TIER COLORS (Sender ပေါ်မူတည်) ========== */
+.msg-bubble.bronze-tier {
+    background: linear-gradient(150deg, #6b3410, #8B4513) !important;
+    color: #fff !important;
+    border: 2px solid #CD7F32 !important;
+    box-shadow: inset 0 1px 0 rgba(232,168,124,0.3) !important;
+}
+.msg-bubble.silver-tier {
+    background: linear-gradient(150deg, #707070, #5a5a5a) !important;
+    color: #fff !important;
+    border: 2px solid #C0C0C0 !important;
+    box-shadow: inset 0 1px 0 rgba(232,232,232,0.3) !important;
+}
+.msg-bubble.gold-tier {
+    background: linear-gradient(150deg, #B8860B, #8B6914) !important;
+    color: #fff !important;
+    border: 2px solid #FFD700 !important;
+    box-shadow: inset 0 1px 0 rgba(255,248,220,0.3) !important;
+}
+.msg-bubble.normal-tier {
+    background: rgba(255,255,255,0.08) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    color: #fff !important;
+}
+.msg-mine .msg-bubble.normal-tier {
+    background: rgba(46, 204, 113, 0.2) !important;
+    border: 1px solid rgba(46, 204, 113, 0.3) !important;
+}
         .msg-mine .msg-bubble { border-bottom-right-radius: 4px; }
         .msg-other .msg-bubble { border-bottom-left-radius: 4px; }
         .msg-sender { font-size: 9px; margin-bottom: 3px; font-weight: 600; opacity: 0.8; }
@@ -1141,20 +1169,17 @@
     const div = document.createElement('div');
     div.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
     
-    // ✅ Premium User ကိုယ်တိုင်က ကိုယ့် Bubble ကို Premium အရောင်နဲ့ မြင်ရမယ်
-    // ✅ Normal User ကလည်း Premium User ရဲ့ Bubble ကို Premium အရောင်နဲ့ မြင်ရမယ်
-    // ✅ Normal User ရဲ့ ကိုယ်ပိုင် Bubble ကိုတော့ Normal အရောင်နဲ့ပဲ မြင်ရမယ်
-    let bubbleExtraClass = '';
+    // ✅ Sender ရဲ့ Premium Tier ပေါ်မူတည်ပြီး Bubble Class သတ်မှတ်
+    let bubbleTierClass = 'normal-tier';  // Default
     if (senderPremiumTier === 1) {
-        bubbleExtraClass = 'bronze-tier';
+        bubbleTierClass = 'bronze-tier';
     } else if (senderPremiumTier === 2) {
-        bubbleExtraClass = 'silver-tier';
+        bubbleTierClass = 'silver-tier';
     } else if (senderPremiumTier === 3) {
-        bubbleExtraClass = 'gold-tier';
+        bubbleTierClass = 'gold-tier';
     }
-    // senderPremiumTier === 0 ဆိုရင် bubbleExtraClass က '' (Normal)
     
-    div.innerHTML = `<div class="msg-bubble ${bubbleExtraClass}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${messageHtml}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
+    div.innerHTML = `<div class="msg-bubble ${bubbleTierClass}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${messageHtml}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
     container.appendChild(div);
     }
         
