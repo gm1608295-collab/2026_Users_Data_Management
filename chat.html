@@ -744,6 +744,37 @@
             .msg-input-area input { height: 34px; font-size: 12px; padding: 0 12px; }
             .msg-input-area button { width: 34px; height: 34px; font-size: 14px; }
         }
+        /* ========== PREMIUM BUTTON WAVE ANIMATION ========== */
+.wave-text {
+    display: inline-block;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.wave-letter {
+    display: inline-block;
+    animation: waveJump 1.2s ease-in-out infinite;
+}
+.wave-letter:nth-child(1) { animation-delay: 0s; }
+.wave-letter:nth-child(2) { animation-delay: 0.08s; }
+.wave-letter:nth-child(3) { animation-delay: 0.16s; }
+.wave-letter:nth-child(4) { animation-delay: 0.24s; }
+.wave-letter:nth-child(5) { animation-delay: 0.32s; }
+.wave-letter:nth-child(6) { animation-delay: 0.40s; }
+.wave-letter:nth-child(7) { animation-delay: 0.48s; }
+
+@keyframes waveJump {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+/* Premium Button က Wave လုပ်နေတုန်း Size မပြောင်းအောင် */
+#premiumBtn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+}
     </style>
 </head>
 <body class="normal-theme">
@@ -751,7 +782,9 @@
 
     <div class="chat-header">
         <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-        <a href="/chatpremium.html" style="color:#FFD700;text-decoration:none;font-size:10px;font-weight:bold">👑 Premium</a>
+         <a href="/chatpremium.html" id="premiumBtn" style="display:inline-flex; align-items:center; gap:4px; padding:6px 14px; background:linear-gradient(135deg, #f39c12, #e67e22); color:#000; text-decoration:none; font-size:10px; font-weight:700; border-radius:20px; border:2px solid #fff; letter-spacing:0.5px; transition:all 0.3s; box-shadow:0 2px 10px rgba(243,156,18,0.3); white-space:nowrap; overflow:hidden;">
+         <span class="wave-text"><span class="wave-letter">P</span><span class="wave-letter">r</span><span class="wave-letter">e</span><span class="wave-letter">m</span><span class="wave-letter">i</span><span class="wave-letter">u</span><span class="wave-letter">m</span></span>
+         </a>
         <h3 class="animated-text"><i class="fas fa-comments"></i> စကားပြော</h3>
         <span class="online-count" id="onlineCount">0 online</span>
         <span class="premium-badge" id="premiumBadge"></span>
@@ -911,33 +944,66 @@
     }
 
     function applyPremiumTheme(tier) {
-        const body = document.body;
-        body.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
-        const badge = document.getElementById('premiumBadge');
-        if (tier === 1) {
-            body.classList.add('bronze-tier');
-            badge.textContent = '🥉 BRONZE';
-            badge.style.display = 'inline-block';
-        } else if (tier === 2) {
-            body.classList.add('silver-tier');
-            badge.textContent = '🥈 SILVER';
-            badge.style.display = 'inline-block';
-        } else if (tier === 3) {
-            body.classList.add('gold-tier');
-            badge.textContent = '🥇 GOLD';
-            badge.style.display = 'inline-block';
-        } else {
-            body.classList.add('normal-theme');
-            badge.style.display = 'none';
+    const body = document.body;
+    body.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
+    const badge = document.getElementById('premiumBadge');
+    const premiumBtn = document.getElementById('premiumBtn');
+    
+    // Wave text helper function
+    function makeWaveText(text, icon) {
+        let html = icon + ' <span class="wave-text">';
+        for (let i = 0; i < text.length; i++) {
+            html += `<span class="wave-letter">${text[i]}</span>`;
+        }
+        html += '</span>';
+        return html;
+    }
+    
+    if (tier === 1) {
+        body.classList.add('bronze-tier');
+        badge.textContent = '🥉 BRONZE';
+        badge.style.display = 'inline-block';
+        if (premiumBtn) {
+            premiumBtn.style.background = 'linear-gradient(135deg, #CD7F32, #8B4513)';
+            premiumBtn.style.color = '#fff';
+            premiumBtn.style.border = '2px solid #E8A87C';
+            premiumBtn.style.boxShadow = '0 2px 12px rgba(205,127,50,0.4)';
+            premiumBtn.innerHTML = makeWaveText('Bronze', '🥉');
+        }
+    } else if (tier === 2) {
+        body.classList.add('silver-tier');
+        badge.textContent = '🥈 SILVER';
+        badge.style.display = 'inline-block';
+        if (premiumBtn) {
+            premiumBtn.style.background = 'linear-gradient(135deg, #C0C0C0, #808080)';
+            premiumBtn.style.color = '#0a0a0a';
+            premiumBtn.style.border = '2px solid #E8E8E8';
+            premiumBtn.style.boxShadow = '0 2px 12px rgba(192,192,192,0.4)';
+            premiumBtn.innerHTML = makeWaveText('Silver', '🥈');
+        }
+    } else if (tier === 3) {
+        body.classList.add('gold-tier');
+        badge.textContent = '🥇 GOLD';
+        badge.style.display = 'inline-block';
+        if (premiumBtn) {
+            premiumBtn.style.background = 'linear-gradient(135deg, #FFD700, #B8860B)';
+            premiumBtn.style.color = '#1a0a00';
+            premiumBtn.style.border = '2px solid #FFF8DC';
+            premiumBtn.style.boxShadow = '0 2px 16px rgba(255,215,0,0.5)';
+            premiumBtn.innerHTML = makeWaveText('Gold', '🥇');
+        }
+    } else {
+        body.classList.add('normal-theme');
+        badge.style.display = 'none';
+        if (premiumBtn) {
+            premiumBtn.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+            premiumBtn.style.color = '#000';
+            premiumBtn.style.border = '2px solid #fff';
+            premiumBtn.style.boxShadow = '0 2px 10px rgba(243,156,18,0.3)';
+            premiumBtn.innerHTML = makeWaveText('Premium');
         }
     }
-
-    function applyNormalTheme() {
-        document.body.classList.remove('bronze-tier', 'silver-tier', 'gold-tier');
-        document.body.classList.add('normal-theme');
-        document.getElementById('premiumBadge').style.display = 'none';
     }
-
     function updateMediaButtons(hasPremium) {
         const imageBtn = document.getElementById('imageBtn');
         const fileBtn = document.getElementById('fileBtn');
