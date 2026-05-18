@@ -897,10 +897,14 @@ let activeTiers = { 1: false, 2: false, 3: false };
 
 async function loadStatus() {
     const token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest') return;
+    if (!token || token === 'guest') {
+        document.getElementById('usdBalance').textContent = '$0.00';
+        document.getElementById('mmkBalance').textContent = '0 Ks';
+        return;
+    }
 
     try {
-        // Load balances
+        // ✅ Load MMK Balance
         const balRes = await fetch('/api/get_balance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -910,6 +914,7 @@ async function loadStatus() {
         document.getElementById('mmkBalance').textContent = 
             (parseFloat(balData.balance || 0)).toLocaleString() + ' Ks';
 
+        // ✅ Load USD Balance
         const usdRes = await fetch('/api/get_usd_balance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -919,19 +924,16 @@ async function loadStatus() {
         document.getElementById('usdBalance').textContent = 
             '$' + (parseFloat(usdData.usd_balance || 0)).toFixed(2);
 
-        // ✅ Load ALL premium tiers status
-        console.log('[LOAD STATUS] Fetching all tiers...');
+        // Load premium tiers status
         const allPremRes = await fetch('/api/chat/premium/all_tiers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
         const allPremData = await allPremRes.json();
-        console.log('[LOAD STATUS] All Tiers Response:', allPremData);
         
         if (allPremData.success) {
             activeTiers = allPremData.tiers || {};
-            console.log('[LOAD STATUS] Active Tiers:', activeTiers);
             
             const hasAnyActive = Object.values(activeTiers).some(v => v === true);
             
@@ -943,36 +945,20 @@ async function loadStatus() {
                 const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
                 
                 let activeList = [];
-                let soonestExpiry = null;
                 
                 for (let tier = 1; tier <= 3; tier++) {
                     if (activeTiers[tier]) {
                         activeList.push(tierIcons[tier] + ' ' + tierNames[tier]);
-                        if (allPremData.expiry_dates && allPremData.expiry_dates[tier]) {
-                            const expDate = new Date(allPremData.expiry_dates[tier]);
-                            if (!soonestExpiry || expDate < soonestExpiry) {
-                                soonestExpiry = expDate;
-                            }
-                        }
                     }
                 }
                 
-                document.getElementById('statusText').textContent = 
-                    activeList.join(' | ') + ' Active';
-                
-                if (soonestExpiry) {
-                    const expiry = soonestExpiry.toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'});
-                    const daysRemaining = Math.ceil((soonestExpiry - new Date()) / (1000 * 60 * 60 * 24));
-                    document.getElementById('statusExpiry').innerHTML = 
-                        'သက်တမ်းကုန်ရက်: <span>' + expiry + '</span> (' + daysRemaining + ' ရက် ကျန်ပါသည်)';
-                }
+                document.getElementById('statusText').textContent = activeList.join(' | ') + ' Active';
             }
             
-            // ✅ Tier Status Update
             updateAllTierStatuses(allPremData.expiry_dates || {});
         }
     } catch(e) {
-        console.error('[LOAD STATUS ERROR]', e);
+        console.error('Status load error:', e);
     }
 }
 
