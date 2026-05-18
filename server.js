@@ -1637,7 +1637,7 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
         
         // ✅ ဒီ Tier အတွက် ရှိပြီးသား Record ရှာမယ်
         const existing = await p.query(
-            'SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
+            'SELECT id, premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
             [uid, premium_tier]
         );
         
@@ -1655,25 +1655,30 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
                 newExpiry = new Date(now);
                 newExpiry.setDate(newExpiry.getDate() + 30);
             }
+            
+            // ✅ UPDATE (ရှိပြီးသား Record ကို ပြင်)
+            await p.query(
+                `UPDATE chat_premium SET 
+                    premium_expiry = $1,
+                    updated_at = NOW()
+                 WHERE id = $2`,
+                [newExpiry, existing.rows[0].id]
+            );
+            
         } else {
             // No existing premium for this tier - start fresh
             newExpiry = new Date(now);
             newExpiry.setDate(newExpiry.getDate() + 30);
+            
+            // ✅ INSERT (Record အသစ်)
+            await p.query(
+                `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
+                 VALUES ($1, $2, $3, NOW(), NOW())`,
+                [uid, premium_tier, newExpiry]
+            );
         }
         
-        // ✅ Tier အလိုက် Record သီးသန့် Insert/Update
-        // user_id + premium_tier ကို Unique Key အဖြစ်သုံး
-        await p.query(
-            `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
-             VALUES ($1, $2, $3, NOW(), NOW())
-             ON CONFLICT (user_id, premium_tier) 
-             DO UPDATE SET 
-                premium_expiry = EXCLUDED.premium_expiry,
-                updated_at = NOW()`,
-            [uid, premium_tier, newExpiry]
-        );
-        
-        // 5. Log Transaction
+        // 4. Log Transaction
         await p.query(
             `INSERT INTO orders (user_id, username, amount, payment_method, status) 
              VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Chat Premium USD', 'approved')`,
@@ -1698,6 +1703,7 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
         res.json({ success: false, message: 'ဆာဗာချိတ်ဆက်မှု ပျက်ကွက်ပါသည်' });
     }
 });
+
 // ==================== GET ALL PREMIUM TIERS STATUS ====================
 app.post('/api/chat/premium/all_tiers', async (req, res) => {
     const { token } = req.body;
