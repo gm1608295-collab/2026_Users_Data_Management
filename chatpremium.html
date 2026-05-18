@@ -975,8 +975,438 @@ async function loadStatus() {
         console.error('[LOAD STATUS ERROR]', e);
     }
 }
-        // ==================== INIT ====================
-        loadStatus();
+
+        // ==================== ADMIN ONLY DEBUG ====================
+var isDebugMode = false;
+(function() {
+    var params = new URLSearchParams(window.location.search);
+    var debugKey = params.get('debug');
+    if (debugKey === 'MK2008' || debugKey === 'admin') {
+        isDebugMode = true;
+        console.log('🔧 Debug Mode ON');
+    }
+})();
+
+function debugLog(msg, color) {
+    if (!isDebugMode) return;
+    
+    var debugDiv = document.getElementById('debugInfo');
+    if (!debugDiv) {
+        debugDiv = document.createElement('div');
+        debugDiv.id = 'debugInfo';
+        debugDiv.style.cssText = 'position:fixed;bottom:10px;left:10px;right:10px;background:rgba(0,0,0,0.95);color:#0f0;padding:10px;border-radius:8px;font-size:10px;z-index:99999;max-height:150px;overflow-y:auto;font-family:monospace;white-space:pre-wrap;word-break:break-all;border:1px solid rgba(255,255,255,0.2);';
+        document.body.appendChild(debugDiv);
+    }
+    var time = new Date().toLocaleTimeString();
+    debugDiv.innerHTML += '<div style="color:' + (color || '#0f0') + ';margin-bottom:2px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:2px">[' + time + '] ' + msg + '</div>';
+    debugDiv.scrollTop = debugDiv.scrollHeight;
+}
+
+// ==================== STATE ====================
+let selectedTier = null;
+let selectedMonths = 0;
+let selectedPrice = 0;
+let isProcessing = false;
+let activeTiers = { 1: false, 2: false, 3: false };
+
+// ==================== TIER CONFIG ====================
+const tierConfig = {
+    bronze: { name: 'Bronze', tier: 1, months: 1, price: 3.99, icon: '🥉', color: 'bronze' },
+    silver: { name: 'Silver', tier: 2, months: 2, price: 6.99, original: 7.99, icon: '🥈', color: 'silver' },
+    gold: { name: 'Gold', tier: 3, months: 3, price: 8.99, original: 9.99, icon: '🥇', color: 'gold' }
+};
+
+// ==================== TIER SELECTION ====================
+function selectTier(tierKey, months) {
+    if (isProcessing) return;
+    
+    const tierMapping = { 'bronze': 1, 'silver': 2, 'gold': 3 };
+    const tier = tierMapping[tierKey];
+    
+    if (activeTiers[tier]) {
+        const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+        showToast('⚠️ ' + tierNames[tier] + ' Tier ကို ဝယ်ယူပြီးပါပြီ။ သက်တမ်းကုန်မှ ထပ်ဝယ်နိုင်ပါမည်', true);
+        return;
+    }
+    
+    const config = tierConfig[tierKey];
+    selectedTier = config.tier;
+    selectedMonths = config.months;
+    selectedPrice = config.price;
+
+    document.querySelectorAll('.tier-card').forEach(card => card.classList.remove('selected'));
+    document.getElementById('tier-' + tierKey).classList.add('selected');
+
+    const buyBtn = document.getElementById('buyBtn');
+    buyBtn.disabled = false;
+    buyBtn.className = 'buy-btn ' + config.color + '-btn';
+    document.getElementById('buyBtnText').textContent = 
+        config.icon + ' ' + config.name + ' - $' + config.price.toFixed(2) + ' (+30 ရက် သက်တမ်းတိုးမည်)';
+}
+
+// ==================== UPDATE ALL TIER STATUSES ====================
+function updateAllTierStatuses(expiryDates) {
+    const tierMapping = { 1: 'bronze', 2: 'silver', 3: 'gold' };
+    const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
+    const tierColors = {
+        bronze: { bg: '#CD7F32', color: '#1a0f07', border: '#E8A87C' },
+        silver: { bg: '#C0C0C0', color: '#0a0a0a', border: '#E8E8E8' },
+        gold: { bg: '#FFD700', color: '#1a0a00', border: '#FFF8DC' }
+    };
+    
+    for (let tier = 1; tier <= 3; tier++) {
+        const tierKey = tierMapping[tier];
+        const card = document.getElementById('tier-' + tierKey);
+        if (!card) continue;
+        
+        const existingBadge = card.querySelector('.owned-badge');
+        if (existingBadge) existingBadge.remove();
+        
+        if (activeTiers[tier]) {
+            card.style.opacity = '0.55';
+            card.style.pointerEvents = 'none';
+            card.style.cursor = 'not-allowed';
+            card.style.position = 'relative';
+            
+            const colors = tierColors[tierKey];
+            
+            let expiryText = '';
+            if (expiryDates[tier]) {
+                const expDate = new Date(expiryDates[tier]);
+                const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
+                expiryText = '<br><small style="font-size:7px;opacity:0.8">' + daysLeft + ' ရက် ကျန်</small>';
+            }
+            
+            const badge = document.createElement('div');
+            badge.className = 'owned-badge';
+            badge.style.cssText = `
+                position: absolute; top: 8px; right: 8px;
+                background: ${colors.bg}; color: ${colors.color};
+                padding: 4px 10px; border-radius: 4px; font-size: 8px; 
+                font-weight: 700; border: 1px solid ${colors.border};
+                text-align: center; z-index: 10;
+            `;
+            badge.innerHTML = tierIcons[tier] + ' ဝယ်ပြီး' + expiryText;
+            card.appendChild(badge);
+        } else {
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+            card.style.cursor = 'pointer';
+        }
+    }
+    
+    document.getElementById('buyBtn').disabled = true;
+    document.getElementById('buyBtnText').textContent = 'Tier ရွေးချယ်ပါ';
+    document.getElementById('buyBtn').className = 'buy-btn bronze-btn';
+}
+
+// ==================== TOAST ====================
+function showToast(msg, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.background = isError ? '#e74c3c' : '#2ecc71';
+    toast.style.color = isError ? '#fff' : '#000';
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 3000);
+}
+
+// ==================== PURCHASE FLOW ====================
+async function confirmPurchase() {
+    if (isProcessing) return;
+    if (!selectedTier) {
+        showToast('❌ Tier ရွေးချယ်ပါ', true);
+        return;
+    }
+
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') {
+        showToast('❌ အကောင့်ဝင်ရောက်ပါ', true);
+        return;
+    }
+
+    const config = tierConfig[Object.keys(tierConfig).find(k => tierConfig[k].tier === selectedTier)];
+    const tierIcon = config ? config.icon : '👑';
+    const tierName = config ? config.name : 'Premium';
+    
+    const confirmBox = document.createElement('div');
+    confirmBox.id = 'customConfirmBox';
+    confirmBox.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 9000;
+        display: flex; justify-content: center; align-items: center;
+    `;
+    confirmBox.onclick = function(e) {
+        if (e.target === confirmBox) confirmBox.remove();
+    };
+    
+    confirmBox.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1f4b, #11112a);
+            border: 2px solid #f39c12;
+            border-radius: 4px;
+            padding: 24px 20px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+        " onclick="event.stopPropagation()">
+            <div style="font-size: 50px; margin-bottom: 10px;">${tierIcon}</div>
+            <div style="font-size: 18px; font-weight: 700; color: #f39c12; margin-bottom: 6px;">
+                ဝယ်ယူမှု အတည်ပြုမည်လား?
+            </div>
+            <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 6px; line-height: 1.6;">
+                <b>${tierName} Tier</b><br>
+                ဈေးနှုန်း: <b style="color: #f39c12;">$${selectedPrice.toFixed(2)} USD</b><br>
+                သက်တမ်း: <b>+30 ရက်</b> တိုးမည်
+            </div>
+            <div style="font-size: 9px; color: rgba(255,255,255,0.4); margin-bottom: 16px;">
+                ဝယ်ယူပြီးပါက ပြန်လည်ရုပ်သိမ်း၍မရပါ
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button id="confirmYesBtn" style="
+                    flex: 1; padding: 10px; border: none; border-radius: 4px;
+                    background: #2ecc71; color: #000; font-weight: 700;
+                    font-size: 13px; cursor: pointer;
+                    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+                ">✅ အတည်ပြုမည်</button>
+                <button id="confirmNoBtn" style="
+                    flex: 1; padding: 10px; border: none; border-radius: 4px;
+                    background: rgba(255,255,255,0.1); color: #fff; font-weight: 700;
+                    font-size: 13px; cursor: pointer;
+                    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+                ">❌ ပယ်ဖျက်မည်</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(confirmBox);
+    
+    document.getElementById('confirmYesBtn').onclick = async function() {
+        confirmBox.remove();
+        
+        try {
+            const balRes = await fetch('/api/get_usd_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const balData = await balRes.json();
+            const usdBalance = parseFloat(balData.usd_balance || 0);
+
+            if (usdBalance < selectedPrice) {
+                showToast('❌ USD လက်ကျန်မလုံလောက်ပါ ($' + usdBalance.toFixed(2) + ')', true);
+                return;
+            }
+        } catch(e) {
+            showToast('❌ လက်ကျန်စစ်ဆေး၍မရပါ', true);
+            return;
+        }
+
+        isProcessing = true;
+        startProcessing();
+        await simulateProgress();
+        await executePurchase();
+    };
+    
+    document.getElementById('confirmNoBtn').onclick = function() {
+        confirmBox.remove();
+    };
+}
+
+function startProcessing() {
+    const overlay = document.getElementById('processingOverlay');
+    overlay.classList.add('active');
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressPercent').textContent = '0%';
+    
+    const icon = document.getElementById('processingIcon');
+    if (selectedTier === 1) icon.textContent = '🥉';
+    else if (selectedTier === 2) icon.textContent = '🥈';
+    else icon.textContent = '🥇';
+}
+
+function simulateProgress() {
+    return new Promise((resolve) => {
+        let progress = 0;
+        const fill = document.getElementById('progressFill');
+        const percent = document.getElementById('progressPercent');
+        
+        const interval = setInterval(() => {
+            const increment = Math.floor(Math.random() * 15) + 5;
+            progress = Math.min(progress + increment, 95);
+            fill.style.width = progress + '%';
+            percent.textContent = progress + '%';
+            
+            if (progress >= 95) {
+                clearInterval(interval);
+                resolve();
+            }
+        }, 300);
+    });
+}
+
+async function executePurchase() {
+    const token = localStorage.getItem('auth_token');
+    
+    debugLog('📡 Sending to /api/chat/purchase_premium...', '#f39c12');
+    debugLog('📦 Data: tier=' + selectedTier + ' months=' + selectedMonths + ' price=' + selectedPrice, '#3498db');
+    
+    try {
+        const res = await fetch('/api/chat/purchase_premium', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: token,
+                premium_tier: selectedTier,
+                months: selectedMonths,
+                price_usd: selectedPrice
+            })
+        });
+        
+        debugLog('📡 Status: ' + res.status, res.ok ? '#2ecc71' : '#e74c3c');
+        
+        const data = await res.json();
+        debugLog('📦 Response: ' + JSON.stringify(data).substring(0, 200), '#3498db');
+        
+        document.getElementById('progressFill').style.width = '100%';
+        document.getElementById('progressPercent').textContent = '100%';
+        
+        await new Promise(r => setTimeout(r, 600));
+        
+        document.getElementById('processingOverlay').classList.remove('active');
+        
+        if (data.success) {
+            debugLog('✅ Purchase Success!', '#2ecc71');
+            showSuccess(data);
+        } else {
+            isProcessing = false;
+            debugLog('❌ Failed: ' + (data.message || 'Unknown'), '#e74c3c');
+            showToast('❌ ' + (data.message || 'ဝယ်ယူမှုမအောင်မြင်ပါ'), true);
+        }
+        
+    } catch(e) {
+        document.getElementById('processingOverlay').classList.remove('active');
+        isProcessing = false;
+        debugLog('❌ Error: ' + e.message, '#e74c3c');
+        showToast('❌ ဆာဗာချိတ်ဆက်မှု ပျက်ကွက်ပါသည်', true);
+    }
+}
+
+function showSuccess(data) {
+    const overlay = document.getElementById('successOverlay');
+    const detail = document.getElementById('successDetail');
+    
+    const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+    const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
+    
+    const tierName = tierNames[selectedTier] || 'Premium';
+    const tierIcon = tierIcons[selectedTier] || '👑';
+    
+    document.getElementById('successTitle').textContent = tierIcon + ' ' + tierName + ' အောင်မြင်ပါသည်!';
+    
+    detail.innerHTML = 
+        'သင့် Chat Premium ကို အသက်သွင်းပြီးပါပြီ<br>' +
+        '<b style="color:#f39c12">' + tierName + ' Tier</b> - ' + selectedMonths + ' လစာ သက်တမ်းတိုးပြီးပါပြီ<br>' +
+        '<small style="color:rgba(255,255,255,0.5)">သက်တမ်းကုန်ရက်: ' + 
+        (data.expiry_date ? new Date(data.expiry_date).toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'}) : 'N/A') + 
+        '</small>';
+    
+    overlay.classList.add('active');
+    isProcessing = false;
+}
+
+function goToChat() {
+    window.location.href = '/chat.html';
+}
+
+// ==================== LOAD CURRENT STATUS ====================
+async function loadStatus() {
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') return;
+
+    debugLog('🔍 Loading Premium Status...', '#3498db');
+
+    try {
+        const balRes = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const balData = await balRes.json();
+        document.getElementById('mmkBalance').textContent = 
+            (parseFloat(balData.balance || 0)).toLocaleString() + ' Ks';
+
+        const usdRes = await fetch('/api/get_usd_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const usdData = await usdRes.json();
+        document.getElementById('usdBalance').textContent = 
+            '$' + (parseFloat(usdData.usd_balance || 0)).toFixed(2);
+
+        debugLog('📡 Fetching /api/chat/premium/all_tiers...', '#f39c12');
+        
+        const allPremRes = await fetch('/api/chat/premium/all_tiers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        
+        debugLog('📡 Status: ' + allPremRes.status, allPremRes.ok ? '#2ecc71' : '#e74c3c');
+        
+        const allPremData = await allPremRes.json();
+        debugLog('📦 Tiers: ' + JSON.stringify(allPremData.tiers), '#3498db');
+        
+        if (allPremData.success) {
+            activeTiers = allPremData.tiers || {};
+            debugLog('✅ Active Tiers: ' + JSON.stringify(activeTiers), '#2ecc71');
+            
+            const hasAnyActive = Object.values(activeTiers).some(v => v === true);
+            
+            if (hasAnyActive) {
+                const statusCard = document.getElementById('statusCard');
+                statusCard.classList.add('active-premium');
+                
+                const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
+                const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+                
+                let activeList = [];
+                let soonestExpiry = null;
+                
+                for (let tier = 1; tier <= 3; tier++) {
+                    if (activeTiers[tier]) {
+                        activeList.push(tierIcons[tier] + ' ' + tierNames[tier]);
+                        if (allPremData.expiry_dates && allPremData.expiry_dates[tier]) {
+                            const expDate = new Date(allPremData.expiry_dates[tier]);
+                            if (!soonestExpiry || expDate < soonestExpiry) {
+                                soonestExpiry = expDate;
+                            }
+                        }
+                    }
+                }
+                
+                document.getElementById('statusText').textContent = 
+                    activeList.join(' | ') + ' Active';
+                
+                if (soonestExpiry) {
+                    const expiry = soonestExpiry.toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'});
+                    const daysRemaining = Math.ceil((soonestExpiry - new Date()) / (1000 * 60 * 60 * 24));
+                    document.getElementById('statusExpiry').innerHTML = 
+                        'သက်တမ်းကုန်ရက်: <span>' + expiry + '</span> (' + daysRemaining + ' ရက် ကျန်ပါသည်)';
+                }
+            }
+            
+            updateAllTierStatuses(allPremData.expiry_dates || {});
+        }
+    } catch(e) {
+        debugLog('❌ ' + e.message, '#e74c3c');
+        console.error('[LOAD STATUS ERROR]', e);
+    }
+}
+
+// ==================== INIT ====================
+loadStatus();
     </script>
 </body>
 </html>
