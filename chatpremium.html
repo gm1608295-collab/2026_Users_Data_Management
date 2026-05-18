@@ -615,44 +615,112 @@
 
         // ==================== PURCHASE FLOW ====================
         async function confirmPurchase() {
-            if (isProcessing) return;
-            if (!selectedTier) {
-                showToast('❌ Tier ရွေးချယ်ပါ', true);
+    if (isProcessing) return;
+    if (!selectedTier) {
+        showToast('❌ Tier ရွေးချယ်ပါ', true);
+        return;
+    }
+
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') {
+        showToast('❌ အကောင့်ဝင်ရောက်ပါ', true);
+        return;
+    }
+
+    // ✅ Confirm Box ပြပါ
+    const config = tierConfig[Object.keys(tierConfig).find(k => tierConfig[k].tier === selectedTier)];
+    const tierIcon = config ? config.icon : '👑';
+    const tierName = config ? config.name : 'Premium';
+    
+    const confirmBox = document.createElement('div');
+    confirmBox.id = 'customConfirmBox';
+    confirmBox.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 9000;
+        display: flex; justify-content: center; align-items: center;
+    `;
+    confirmBox.onclick = function(e) {
+        if (e.target === confirmBox) confirmBox.remove();
+    };
+    
+    confirmBox.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #1a1f4b, #11112a);
+            border: 2px solid #f39c12;
+            border-radius: 4px;
+            padding: 24px 20px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+            clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+        " onclick="event.stopPropagation()">
+            <div style="font-size: 50px; margin-bottom: 10px;">${tierIcon}</div>
+            <div style="font-size: 18px; font-weight: 700; color: #f39c12; margin-bottom: 6px;">
+                ဝယ်ယူမှု အတည်ပြုမည်လား?
+            </div>
+            <div style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 6px; line-height: 1.6;">
+                <b>${tierName} Tier</b><br>
+                ဈေးနှုန်း: <b style="color: #f39c12;">$${selectedPrice.toFixed(2)} USD</b><br>
+                သက်တမ်း: <b>+30 ရက်</b> တိုးမည်
+            </div>
+            <div style="font-size: 9px; color: rgba(255,255,255,0.4); margin-bottom: 16px;">
+                ဝယ်ယူပြီးပါက ပြန်လည်ရုပ်သိမ်း၍မရပါ
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button id="confirmYesBtn" style="
+                    flex: 1; padding: 10px; border: none; border-radius: 4px;
+                    background: #2ecc71; color: #000; font-weight: 700;
+                    font-size: 13px; cursor: pointer;
+                    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+                ">✅ အတည်ပြုမည်</button>
+                <button id="confirmNoBtn" style="
+                    flex: 1; padding: 10px; border: none; border-radius: 4px;
+                    background: rgba(255,255,255,0.1); color: #fff; font-weight: 700;
+                    font-size: 13px; cursor: pointer;
+                    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+                ">❌ ပယ်ဖျက်မည်</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(confirmBox);
+    
+    // ✅ Confirm Yes
+    document.getElementById('confirmYesBtn').onclick = async function() {
+        confirmBox.remove();
+        
+        // Check balance
+        try {
+            const balRes = await fetch('/api/get_usd_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token })
+            });
+            const balData = await balRes.json();
+            const usdBalance = parseFloat(balData.usd_balance || 0);
+
+            if (usdBalance < selectedPrice) {
+                showToast('❌ USD လက်ကျန်မလုံလောက်ပါ ($' + usdBalance.toFixed(2) + ')', true);
                 return;
             }
-
-            const token = localStorage.getItem('auth_token');
-            if (!token || token === 'guest') {
-                showToast('❌ အကောင့်ဝင်ရောက်ပါ', true);
-                return;
-            }
-
-            // Check balance
-            try {
-                const balRes = await fetch('/api/get_usd_balance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
-                });
-                const balData = await balRes.json();
-                const usdBalance = parseFloat(balData.usd_balance || 0);
-
-                if (usdBalance < selectedPrice) {
-                    showToast('❌ USD လက်ကျန်မလုံလောက်ပါ (' + usdBalance.toFixed(2) + ' USD)', true);
-                    return;
-                }
-            } catch(e) {
-                showToast('❌ လက်ကျန်စစ်ဆေး၍မရပါ', true);
-                return;
-            }
-
-            // Start processing
-            isProcessing = true;
-            startProcessing();
-            await simulateProgress();
-            await executePurchase();
+        } catch(e) {
+            showToast('❌ လက်ကျန်စစ်ဆေး၍မရပါ', true);
+            return;
         }
 
+        // Start processing
+        isProcessing = true;
+        startProcessing();
+        await simulateProgress();
+        await executePurchase();
+    };
+    
+    // ✅ Confirm No
+    document.getElementById('confirmNoBtn').onclick = function() {
+        confirmBox.remove();
+    };
+        }
+        
         function startProcessing() {
             const overlay = document.getElementById('processingOverlay');
             overlay.classList.add('active');
@@ -687,43 +755,43 @@
         }
 
         async function executePurchase() {
-            const token = localStorage.getItem('auth_token');
-            
-            try {
-                const res = await fetch('/api/chat/purchase_premium', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        token: token,
-                        premium_tier: selectedTier,
-                        months: selectedMonths,
-                        price_usd: selectedPrice
-                    })
-                });
-                
-                const data = await res.json();
-                
-                // Complete to 100%
-                document.getElementById('progressFill').style.width = '100%';
-                document.getElementById('progressPercent').textContent = '100%';
-                
-                await new Promise(r => setTimeout(r, 500));
-                
-                // Hide processing
-                document.getElementById('processingOverlay').classList.remove('active');
-                
-                if (data.success) {
-                    showSuccess(data);
-                } else {
-                    isProcessing = false;
-                    showToast('❌ ' + (data.message || 'ဝယ်ယူမှုမအောင်မြင်ပါ'), true);
-                }
-                
-            } catch(e) {
-                document.getElementById('processingOverlay').classList.remove('active');
-                isProcessing = false;
-                showToast('❌ ဆာဗာချိတ်ဆက်မှု ပျက်ကွက်ပါသည်', true);
-            }
+    const token = localStorage.getItem('auth_token');
+    
+    try {
+        const res = await fetch('/api/chat/purchase_premium', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: token,
+                premium_tier: selectedTier,
+                months: selectedMonths,
+                price_usd: selectedPrice
+            })
+        });
+        
+        const data = await res.json();
+        
+        // Complete to 100%
+        document.getElementById('progressFill').style.width = '100%';
+        document.getElementById('progressPercent').textContent = '100%';
+        
+        await new Promise(r => setTimeout(r, 600));
+        
+        // Hide processing
+        document.getElementById('processingOverlay').classList.remove('active');
+        
+        if (data.success) {
+            showSuccess(data);
+        } else {
+            isProcessing = false;
+            showToast('❌ ' + (data.message || 'ဝယ်ယူမှုမအောင်မြင်ပါ'), true);
+        }
+        
+    } catch(e) {
+        document.getElementById('processingOverlay').classList.remove('active');
+        isProcessing = false;
+        showToast('❌ ဆာဗာချိတ်ဆက်မှု ပျက်ကွက်ပါသည်', true);
+    }
         }
 
         function showSuccess(data) {
