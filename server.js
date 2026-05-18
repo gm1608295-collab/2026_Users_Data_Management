@@ -1620,27 +1620,25 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
         }
         
         const usdBalance = parseFloat(user.rows[0]?.usd_balance || 0);
-        console.log('[CHAT PREMIUM PURCHASE] USD Balance:', usdBalance, 'Price:', price_usd);
         
         if (usdBalance < price_usd) {
             return res.json({ 
                 success: false, 
-                message: 'USD လက်ကျန်မလုံလောက်ပါ။ လိုအပ်ငွေ: $' + price_usd.toFixed(2) + ' | ရှိငွေ: $' + usdBalance.toFixed(2)
+                message: 'USD လက်ကျန်မလုံလောက်ပါ'
             });
         }
         
         // 2. Deduct USD Balance
         const newUsdBalance = usdBalance - price_usd;
         await p.query('UPDATE auth_users SET usd_balance = $1 WHERE id = $2', [newUsdBalance, uid]);
-        console.log('[CHAT PREMIUM PURCHASE] USD Deducted. New Balance:', newUsdBalance);
         
         // 3. Calculate Premium Expiry
         const now = new Date();
         
-        // Check existing chat premium
+        // ✅ ဒီ Tier အတွက် ရှိပြီးသား Record ရှာမယ်
         const existing = await p.query(
-            'SELECT premium_expiry, premium_tier FROM chat_premium WHERE user_id = $1',
-            [uid]
+            'SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
+            [uid, premium_tier]
         );
         
         let newExpiry;
@@ -1649,30 +1647,27 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
             const currentExpiry = new Date(existing.rows[0].premium_expiry);
             
             if (currentExpiry > now) {
-                // ✅ Extend from current expiry + 30 days (NOT months * 30)
+                // Extend from current expiry + 30 days
                 newExpiry = new Date(currentExpiry);
                 newExpiry.setDate(newExpiry.getDate() + 30);
-                console.log('[CHAT PREMIUM PURCHASE] Extending from:', currentExpiry.toISOString(), 'to:', newExpiry.toISOString());
             } else {
                 // Expired - start fresh
                 newExpiry = new Date(now);
                 newExpiry.setDate(newExpiry.getDate() + 30);
-                console.log('[CHAT PREMIUM PURCHASE] Expired. Fresh start:', newExpiry.toISOString());
             }
         } else {
-            // No existing premium - start fresh
+            // No existing premium for this tier - start fresh
             newExpiry = new Date(now);
             newExpiry.setDate(newExpiry.getDate() + 30);
-            console.log('[CHAT PREMIUM PURCHASE] New premium. Expiry:', newExpiry.toISOString());
         }
         
-        // 4. Update Chat Premium
+        // ✅ Tier အလိုက် Record သီးသန့် Insert/Update
+        // user_id + premium_tier ကို Unique Key အဖြစ်သုံး
         await p.query(
             `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
              VALUES ($1, $2, $3, NOW(), NOW())
-             ON CONFLICT (user_id) 
+             ON CONFLICT (user_id, premium_tier) 
              DO UPDATE SET 
-                premium_tier = EXCLUDED.premium_tier,
                 premium_expiry = EXCLUDED.premium_expiry,
                 updated_at = NOW()`,
             [uid, premium_tier, newExpiry]
@@ -1685,18 +1680,16 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
             [uid, -price_usd]
         );
         
-        const daysRemaining = Math.ceil((newExpiry - now) / (1000 * 60 * 60 * 24));
         const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
         const tierName = tierNames[premium_tier] || 'Premium';
         
-        console.log('[CHAT PREMIUM PURCHASE] ✅ SUCCESS! Tier:', tierName, 'Expiry:', newExpiry.toISOString(), 'Days:', daysRemaining);
+        console.log('[CHAT PREMIUM PURCHASE] ✅ SUCCESS! Tier:', tierName, 'Expiry:', newExpiry.toISOString());
         
         res.json({
             success: true,
             message: `✅ ${tierName} Premium အောင်မြင်ပါသည်!`,
             premium_tier: premium_tier,
             expiry_date: newExpiry.toISOString(),
-            days_remaining: daysRemaining,
             new_usd_balance: newUsdBalance
         });
         
