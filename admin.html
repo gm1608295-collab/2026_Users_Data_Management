@@ -244,7 +244,26 @@
     function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active')}
     function zoomImage(src){const m=document.createElement('div');m.className='zoom-overlay';m.onclick=()=>m.remove();m.innerHTML=`<img src="${src}">`;document.body.appendChild(m)}
     async function unlockAdmin(){if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");document.getElementById("adminBox").style.display="block";showLoading('Loading...');try{await Promise.all([loadAdminData(),loadAdminOrders('all'),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes(),loadSpinRates(),loadResellers(),loadResellerTransactions(),loadExchangeRate(),loadPromoCodes(),loadCheckinEvents()]);updateBackupInfo();hideLoading();n('✅ Loaded');startAutoRefresh()}catch(e){hideLoading();n('Error','error')}}
-    function startAutoRefresh(){if(autoRefreshInterval)clearInterval(autoRefreshInterval);autoRefreshInterval=setInterval(async()=>{await Promise.all([loadAdminData(),loadAdminOrders(currentOrderFilter),loadPageToggles(),loadSpinRates(),loadResellers(),loadResellerTransactions(),loadPromoCodes(),loadCheckinEvents()])},5000)}
+    function startAutoRefresh(){
+    if(autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(async() => {
+        const activeEl = document.activeElement;
+        if (activeEl && activeEl.tagName === 'INPUT' && activeEl.id && activeEl.id.startsWith('approveAmt')) {
+            return; // ✅ Focus ရှိနေရင် skip
+        }
+        
+        await Promise.all([
+            loadAdminData(),
+            loadAdminOrders(currentOrderFilter),
+            loadPageToggles(),
+            loadSpinRates(),
+            loadResellers(),
+            loadResellerTransactions(),
+            loadPromoCodes(),
+            loadCheckinEvents()
+        ]);
+    }, 5000);
+}
     async function backupDatabase(){showLoading('Backing up...');try{const r=await fetch('/api/admin/backup');const d=await r.json();if(d.success&&d.data){const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);n('✅ Downloaded!');localStorage.setItem('lastBackup',new Date().toLocaleString());updateBackupInfo()}else n('Failed','error')}catch(e){n('Error','error')}hideLoading()}
     function restoreDatabase(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{pendingRestoreData=JSON.parse(e.target.result);if(!pendingRestoreData.tables){n('Invalid','error');return}document.getElementById('restoreConfirmModal').classList.add('active')}catch(e){n('Invalid JSON','error')}};reader.readAsText(file);input.value=''}
     async function confirmRestore(){if(!pendingRestoreData)return;showLoading('Restoring...');try{const r=await fetch('/api/admin/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:pendingRestoreData})});const d=await r.json();d.success?(n('✅ Restored!'),closeRestoreConfirm(),unlockAdmin(),updateBackupInfo()):n(d.message||'Error','error')}catch(e){n('Error','error')}hideLoading()}
