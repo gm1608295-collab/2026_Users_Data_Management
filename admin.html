@@ -642,9 +642,14 @@ body.modal-open .container {
     function startAutoRefresh(){
     if(autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async() => {
+        // ✅ Input တစ်ခုခုကို Focus လုပ်ထားရင် Refresh မလုပ်
         const activeEl = document.activeElement;
-        if (activeEl && activeEl.tagName === 'INPUT' && activeEl.id && activeEl.id.startsWith('approveAmt')) {
-            return; // ✅ Focus ရှိနေရင် skip
+        if (activeEl && (
+            activeEl.tagName === 'INPUT' || 
+            activeEl.tagName === 'TEXTAREA' || 
+            activeEl.tagName === 'SELECT'
+        )) {
+            return; // Skip refresh
         }
         
         await Promise.all([
@@ -658,7 +663,7 @@ body.modal-open .container {
             loadCheckinEvents()
         ]);
     }, 5000);
-}
+        }
     async function backupDatabase(){showLoading('Backing up...');try{const r=await fetch('/api/admin/backup');const d=await r.json();if(d.success&&d.data){const blob=new Blob([JSON.stringify(d.data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`backup_${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);n('✅ Downloaded!');localStorage.setItem('lastBackup',new Date().toLocaleString());updateBackupInfo()}else n('Failed','error')}catch(e){n('Error','error')}hideLoading()}
     function restoreDatabase(input){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{pendingRestoreData=JSON.parse(e.target.result);if(!pendingRestoreData.tables){n('Invalid','error');return}document.getElementById('restoreConfirmModal').classList.add('active')}catch(e){n('Invalid JSON','error')}};reader.readAsText(file);input.value=''}
     async function confirmRestore(){if(!pendingRestoreData)return;showLoading('Restoring...');try{const r=await fetch('/api/admin/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:pendingRestoreData})});const d=await r.json();d.success?(n('✅ Restored!'),closeRestoreConfirm(),unlockAdmin(),updateBackupInfo()):n(d.message||'Error','error')}catch(e){n('Error','error')}hideLoading()}
@@ -1324,6 +1329,36 @@ async function rejectAllPendingInModal() {
     } catch(e) { n('Error', 'error'); }
     hideLoading();
 }
+// ✅ Mobile Keyboard မပျောက်အောင် Focus ရှိတဲ့ Input ကို မှတ်ထား
+let savedFocusId = null;
+
+document.addEventListener('focusin', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        savedFocusId = e.target.id;
+    }
+});
+
+document.addEventListener('focusout', function(e) {
+    savedFocusId = null;
+});
+
+// loadAdminOrders ပြီးတိုင်း Focus ပြန်ထည့်
+const originalLoadAdminOrders = loadAdminOrders;
+loadAdminOrders = async function(f) {
+    await originalLoadAdminOrders(f);
+    if (savedFocusId) {
+        setTimeout(() => {
+            const el = document.getElementById(savedFocusId);
+            if (el) {
+                el.focus();
+                // Cursor ကို အဆုံးမှာထား
+                if (el.type === 'number' || el.type === 'text') {
+                    el.setSelectionRange(el.value.length, el.value.length);
+                }
+            }
+        }, 200);
+    }
+};
  </script>
 </body>
 </html>
