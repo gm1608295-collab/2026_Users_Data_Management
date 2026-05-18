@@ -1141,20 +1141,23 @@
     const div = document.createElement('div');
     div.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
     
-    // ✅ Normal User က Premium User ရဲ့ Message ကို သာမန် Bubble နဲ့ပဲ မြင်ရမယ်
-    // ✅ ကိုယ့် Message ကိုပဲ ကိုယ့် Premium Tier အရောင်နဲ့ မြင်ရမယ်
+    // ✅ Premium User ကိုယ်တိုင်က ကိုယ့် Bubble ကို Premium အရောင်နဲ့ မြင်ရမယ်
+    // ✅ Normal User ကလည်း Premium User ရဲ့ Bubble ကို Premium အရောင်နဲ့ မြင်ရမယ်
+    // ✅ Normal User ရဲ့ ကိုယ်ပိုင် Bubble ကိုတော့ Normal အရောင်နဲ့ပဲ မြင်ရမယ်
     let bubbleExtraClass = '';
-    if (isMine && isPremium && premiumTier > 0) {
-        // ကိုယ်က Premium ဆိုရင် ကိုယ့် Bubble မှာ Premium အရောင်ပြမယ်
-        if (premiumTier === 1) bubbleExtraClass = 'bronze-tier';
-        else if (premiumTier === 2) bubbleExtraClass = 'silver-tier';
-        else if (premiumTier === 3) bubbleExtraClass = 'gold-tier';
+    if (senderPremiumTier === 1) {
+        bubbleExtraClass = 'bronze-tier';
+    } else if (senderPremiumTier === 2) {
+        bubbleExtraClass = 'silver-tier';
+    } else if (senderPremiumTier === 3) {
+        bubbleExtraClass = 'gold-tier';
     }
-    // ❌ Normal User က တစ်ခြား Premium User ရဲ့ Message ကို Normal Bubble နဲ့ပဲ မြင်ရမယ်
+    // senderPremiumTier === 0 ဆိုရင် bubbleExtraClass က '' (Normal)
     
     div.innerHTML = `<div class="msg-bubble ${bubbleExtraClass}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${messageHtml}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
     container.appendChild(div);
     }
+        
     function downloadMedia(url, type, filename = 'file') {
         const a = document.createElement('a');
         a.href = url;
