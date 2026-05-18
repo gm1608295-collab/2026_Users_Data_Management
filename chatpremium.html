@@ -541,7 +541,7 @@
 
         <!-- Insecure Payment Note -->
         <div class="insecure-note">
-            <i class="fas fa-info-circle"></i> ယခုစနစ်သည် အင်တာနက်မှ တစ်ဆင့် အခမဲ့ဝယ်ယူနိုင်သော စမ်းသပ်စနစ်ဖြစ်ပါသည်။
+            <i class="fas fa-info-circle"></i> ယခုစနစ်သည် အင်တာနက်မှ တစ်ဆင့် ဝယ်ယူရရှိနိုင်သော စနစ်တစ်ခုဖြစ်ပါသည်။
         </div>
     </div>
 
@@ -587,11 +587,12 @@
     if (isProcessing) return;
     
     // ✅ Active Tier ကို ပြန်ရွေးလို့မရအောင်
-    const tierMapping = { 1: 'bronze', 2: 'silver', 3: 'gold' };
-    const activeTierKey = tierMapping[currentActiveTier];
+    const tierMapping = { 'bronze': 1, 'silver': 2, 'gold': 3 };
+    const tier = tierMapping[tierKey];
     
-    if (tierKey === activeTierKey) {
-        showToast('⚠️ ဤ Tier ကို ဝယ်ယူပြီးပါပြီ။ သက်တမ်းကုန်မှ ထပ်ဝယ်နိုင်ပါမည်', true);
+    if (activeTiers[tier]) {
+        const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+        showToast('⚠️ ' + tierNames[tier] + ' Tier ကို ဝယ်ယူပြီးပါပြီ။ သက်တမ်းကုန်မှ ထပ်ဝယ်နိုင်ပါမည်', true);
         return;
     }
     
@@ -612,6 +613,68 @@
         config.icon + ' ' + config.name + ' - $' + config.price.toFixed(2) + ' (+30 ရက် သက်တမ်းတိုးမည်)';
         }
 
+        // ✅ Tier တစ်ခုချင်းစီရဲ့ Status ကို UI မှာ Update
+function updateAllTierStatuses(expiryDates) {
+    const tierMapping = { 1: 'bronze', 2: 'silver', 3: 'gold' };
+    const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
+    const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+    const tierColors = {
+        bronze: { bg: '#CD7F32', color: '#1a0f07', border: '#E8A87C' },
+        silver: { bg: '#C0C0C0', color: '#0a0a0a', border: '#E8E8E8' },
+        gold: { bg: '#FFD700', color: '#1a0a00', border: '#FFF8DC' }
+    };
+    
+    for (let tier = 1; tier <= 3; tier++) {
+        const tierKey = tierMapping[tier];
+        const card = document.getElementById('tier-' + tierKey);
+        if (!card) continue;
+        
+        // Remove existing badge
+        const existingBadge = card.querySelector('.owned-badge');
+        if (existingBadge) existingBadge.remove();
+        
+        if (activeTiers[tier]) {
+            // ✅ Active - Disable + Badge
+            card.style.opacity = '0.55';
+            card.style.pointerEvents = 'none';
+            card.style.cursor = 'not-allowed';
+            card.style.position = 'relative';
+            
+            const colors = tierColors[tierKey];
+            
+            // Expiry date
+            let expiryText = '';
+            if (expiryDates[tier]) {
+                const expDate = new Date(expiryDates[tier]);
+                const daysLeft = Math.ceil((expDate - new Date()) / (1000 * 60 * 60 * 24));
+                expiryText = '<br><small style="font-size:7px;opacity:0.8">' + daysLeft + ' ရက် ကျန်</small>';
+            }
+            
+            const badge = document.createElement('div');
+            badge.className = 'owned-badge';
+            badge.style.cssText = `
+                position: absolute; top: 8px; right: 8px;
+                background: ${colors.bg}; color: ${colors.color};
+                padding: 4px 10px; border-radius: 4px; font-size: 8px; 
+                font-weight: 700; border: 1px solid ${colors.border};
+                text-align: center; z-index: 10;
+            `;
+            badge.innerHTML = tierIcons[tier] + ' ဝယ်ပြီး' + expiryText;
+            card.appendChild(badge);
+            
+        } else {
+            // ✅ Not Active - Enable
+            card.style.opacity = '1';
+            card.style.pointerEvents = 'auto';
+            card.style.cursor = 'pointer';
+        }
+    }
+    
+    // Reset buy button if no tier selected
+    document.getElementById('buyBtn').disabled = true;
+    document.getElementById('buyBtnText').textContent = 'Tier ရွေးချယ်ပါ';
+    document.getElementById('buyBtn').className = 'buy-btn bronze-btn';
+}
         // ==================== TOAST ====================
         function showToast(msg, isError = false) {
             const toast = document.getElementById('toast');
@@ -828,10 +891,9 @@
 
         function goToChat() {
             window.location.href = '/chat.html';
-        }
-
+        }        
         // ==================== LOAD CURRENT STATUS ====================
-let currentActiveTier = 0; // ✅ လက်ရှိ Active ဖြစ်နေတဲ့ Tier
+let activeTiers = {}; // ✅ { 1: true, 2: false, 3: true } - Tier အလိုက် Active ရှိမရှိ
 
 async function loadStatus() {
     const token = localStorage.getItem('auth_token');
@@ -857,104 +919,65 @@ async function loadStatus() {
         document.getElementById('usdBalance').textContent = 
             '$' + (parseFloat(usdData.usd_balance || 0)).toFixed(2);
 
-        // Load premium status
-        const premRes = await fetch('/api/chat/premium/details', {
+        // ✅ Load ALL premium tiers status
+        const allPremRes = await fetch('/api/chat/premium/all_tiers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
-        const premData = await premRes.json();
-
-        if (premData.success && premData.premium_active) {
-            currentActiveTier = premData.premium_tier || 1;
+        const allPremData = await allPremRes.json();
+        
+        if (allPremData.success) {
+            activeTiers = allPremData.tiers || {};
             
-            const statusCard = document.getElementById('statusCard');
-            statusCard.classList.add('active-premium');
+            // ဘယ် Tier မှ မဝယ်ရသေးရင်
+            const hasAnyActive = Object.values(activeTiers).some(v => v === true);
             
-            const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
-            const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+            if (hasAnyActive) {
+                const statusCard = document.getElementById('statusCard');
+                statusCard.classList.add('active-premium');
+                
+                const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
+                const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
+                
+                // Active Tier တွေကို ပြ
+                let activeList = [];
+                let soonestExpiry = null;
+                
+                for (let tier = 1; tier <= 3; tier++) {
+                    if (activeTiers[tier]) {
+                        activeList.push(tierIcons[tier] + ' ' + tierNames[tier]);
+                        // အစောဆုံး ကုန်မယ့်ရက်ကို ရှာ
+                        if (allPremData.expiry_dates && allPremData.expiry_dates[tier]) {
+                            const expDate = new Date(allPremData.expiry_dates[tier]);
+                            if (!soonestExpiry || expDate < soonestExpiry) {
+                                soonestExpiry = expDate;
+                            }
+                        }
+                    }
+                }
+                
+                document.getElementById('statusText').textContent = 
+                    activeList.join(' | ') + ' Active';
+                
+                if (soonestExpiry) {
+                    const expiry = soonestExpiry.toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'});
+                    const daysRemaining = Math.ceil((soonestExpiry - new Date()) / (1000 * 60 * 60 * 24));
+                    document.getElementById('statusExpiry').innerHTML = 
+                        'သက်တမ်းကုန်ရက်: <span>' + expiry + '</span> (' + daysRemaining + ' ရက် ကျန်ပါသည်)';
+                }
+            } else {
+                document.getElementById('statusText').textContent = 'Premium မရှိသေးပါ';
+                document.getElementById('statusExpiry').textContent = 'Chat Premium ဝယ်ယူပြီး အကျိုးခံစားခွင့်များ ရယူပါ';
+            }
             
-            document.getElementById('statusText').textContent = 
-                tierIcons[currentActiveTier] + ' ' + tierNames[currentActiveTier] + ' Premium';
-            
-            const expiry = premData.expires_at ? 
-                new Date(premData.expires_at).toLocaleDateString('my-MM', {year:'numeric', month:'long', day:'numeric'}) : 
-                'N/A';
-            
-            document.getElementById('statusExpiry').innerHTML = 
-                'သက်တမ်းကုန်ရက်: <span>' + expiry + '</span> (' + 
-                (premData.days_remaining || 0) + ' ရက် ကျန်ပါသည်)';
-            
-            // ✅ လက်ရှိ Active Tier ကို Disable လုပ်
-            disableActiveTier(currentActiveTier);
-        } else {
-            currentActiveTier = 0;
-            enableAllTiers();
+            // ✅ Tier တစ်ခုချင်းစီရဲ့ Status ကို UI မှာ ပြ
+            updateAllTierStatuses(allPremData.expiry_dates || {});
         }
     } catch(e) {
         console.error('Status load error:', e);
     }
 }
-
-// ✅ လက်ရှိ Active Tier ကို Disable လုပ်မယ့် Function
-function disableActiveTier(activeTier) {
-    const tierMapping = { 1: 'bronze', 2: 'silver', 3: 'gold' };
-    const activeTierKey = tierMapping[activeTier];
-    
-    // Tier Card တွေကို Disable/Enable
-    document.querySelectorAll('.tier-card').forEach(card => {
-        card.classList.remove('selected');
-        card.style.opacity = '1';
-        card.style.pointerEvents = 'auto';
-        card.style.cursor = 'pointer';
-    });
-    
-    // Active Tier ကို Disable + "ဝယ်ပြီးပါပြီ" ပြ
-    if (activeTierKey) {
-        const activeCard = document.getElementById('tier-' + activeTierKey);
-        if (activeCard) {
-            activeCard.style.opacity = '0.5';
-            activeCard.style.pointerEvents = 'none';
-            activeCard.style.cursor = 'not-allowed';
-            
-            // "ဝယ်ပြီးပါပြီ" Badge ထည့်
-            const existingBadge = activeCard.querySelector('.owned-badge');
-            if (!existingBadge) {
-                const badge = document.createElement('div');
-                badge.className = 'owned-badge';
-                badge.style.cssText = `
-                    position: absolute; top: 10px; right: 10px;
-                    background: #2ecc71; color: #000; padding: 3px 10px;
-                    border-radius: 4px; font-size: 9px; font-weight: 700;
-                `;
-                badge.textContent = '✅ ဝယ်ပြီး';
-                activeCard.style.position = 'relative';
-                activeCard.appendChild(badge);
-            }
-        }
-    }
-    
-    // Buy Button ကိုလည်း Disable
-    document.getElementById('buyBtn').disabled = true;
-    document.getElementById('buyBtnText').textContent = 'သက်တမ်းကုန်မှ ထပ်ဝယ်နိုင်ပါမည်';
-}
-
-// ✅ Tier အားလုံး Enable ပြန်လုပ်
-function enableAllTiers() {
-    document.querySelectorAll('.tier-card').forEach(card => {
-        card.style.opacity = '1';
-        card.style.pointerEvents = 'auto';
-        card.style.cursor = 'pointer';
-        
-        // "ဝယ်ပြီး" Badge ဖျက်
-        const badge = card.querySelector('.owned-badge');
-        if (badge) badge.remove();
-    });
-    
-    document.getElementById('buyBtn').disabled = true;
-    document.getElementById('buyBtnText').textContent = 'Tier ရွေးချယ်ပါ';
-}
-
         // ==================== INIT ====================
         loadStatus();
     </script>
