@@ -1128,8 +1128,19 @@ async function loadFullOrderModal(filter) {
     wrap.innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);"><i class="fas fa-spinner fa-spin" style="font-size: 30px;"></i><p style="margin-top: 12px;">Loading...</p></div>';
     
     try {
-        const r = await fetch(`/api/admin/orders?filter=${filter}`);
+        const url = `/api/admin/orders?filter=${filter}`;
+        console.log('Fetching:', url);  // Debug
+        
+        const r = await fetch(url);
+        console.log('Response status:', r.status);  // Debug
+        
+        if (!r.ok) {
+            throw new Error(`HTTP ${r.status}`);
+        }
+        
         const d = await r.json();
+        console.log('Data:', d);  // Debug
+        
         allModalOrders = d.orders || [];
         
         document.getElementById('fullOrderTotal').textContent = d.total || 0;
@@ -1145,10 +1156,15 @@ async function loadFullOrderModal(filter) {
         
         renderFullOrderTable(allModalOrders);
     } catch(e) {
-        wrap.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--r);">Error loading orders</div>';
+        console.error('Full order modal error:', e);  // Debug
+        wrap.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--r);">
+            <i class="fas fa-exclamation-triangle" style="font-size: 30px;"></i>
+            <p style="margin-top: 12px;">Error loading orders</p>
+            <p style="font-size: 10px; color: rgba(255,255,255,0.5);">${e.message}</p>
+            <button class="btn btn-b" onclick="loadFullOrderModal('${filter}')" style="margin-top: 10px;">🔄 Retry</button>
+        </div>`;
     }
 }
-
 function renderFullOrderTable(orders) {
     const wrap = document.getElementById('fullOrderTableWrap');
     
