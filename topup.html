@@ -395,13 +395,28 @@ document.addEventListener('click',function(e){const dd=document.getElementById('
 function renderTopupNotice(d){const b=document.getElementById('topupNoticeBanner'),m=document.getElementById('topupNoticeMsg'),t=document.getElementById('topupNoticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
 async function loadTopupNotice(){try{const r=await fetch("/api/topup_notice");const d=await r.json();if(d.success&&d.message){renderTopupNotice(d)}else{document.getElementById('topupNoticeBanner').style.display='none'}}catch(e){}}
 
-// ==================== INIT ====================
-(async function init(){
-    const pageOn=await checkPageAccess();if(!pageOn)return;
-    const token=localStorage.getItem('auth_token'),user=localStorage.getItem('user');
-    if(!token||!user||token==='guest'){document.getElementById('loginCheckMessage').style.display='block';document.getElementById('topupContent').style.display='none';return}
-    document.getElementById('loginCheckMessage').style.display='none';document.getElementById('topupContent').style.display='block';
-    loadTopupNotice();setInterval(loadTopupNotice,5000);
+// ✅ Init function ထဲမှာ ဒါကိုထည့်ပါ
+(async function init() {
+    const pageOn = await checkPageAccess();
+    if (!pageOn) return;
+    
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+    
+    if (!token || !user || token === 'guest') {
+        document.getElementById('loginCheckMessage').style.display = 'block';
+        document.getElementById('topupContent').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('loginCheckMessage').style.display = 'none';
+    document.getElementById('topupContent').style.display = 'block';
+    
+    loadTopupNotice();
+    setInterval(loadTopupNotice, 5000);
+    
+    // ✅ History ကို Page Load မှာ ကြိုတင် Load လုပ်
+    loadHistory();
 })();
 
 // ==================== VARIABLES ====================
@@ -410,7 +425,24 @@ try{cu=JSON.parse(localStorage.getItem('user')||'{}')}catch(e){cu={}}
 
 // ==================== FUNCTIONS ====================
 function n(m,t="success"){const e=document.getElementById("copyNotif");e.textContent=m;e.style.background=t==="success"?"#2ecc71":"#e74c3c";e.style.display="block";setTimeout(()=>e.style.display="none",3000)}
-function showTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));event.target.classList.add('active');document.getElementById(t).classList.add('active');if(t==='history')loadHistory()}
+function showTab(t) {
+    document.querySelectorAll('.tab').forEach(function(x) { x.classList.remove('active'); });
+    document.querySelectorAll('.tab-content').forEach(function(x) { x.classList.remove('active'); });
+    
+    // Tab ကို ID နဲ့ ရှာပြီး Active လုပ်
+    var tabs = document.querySelectorAll('.tab');
+    tabs.forEach(function(tab) {
+        if (tab.textContent.trim().toLowerCase().includes(t)) {
+            tab.classList.add('active');
+        }
+    });
+    
+    document.getElementById(t).classList.add('active');
+    
+    if (t === 'history') {
+        loadHistory();
+    }
+}
 function togglePayment(){const ps=document.getElementById('paymentSection'),gb=document.getElementById('guideBox');if(ps.style.display==='block'){ps.style.display='none';gb.style.display='none'}else{ps.style.display='block';gb.style.display='block'}}
 function copyText(t){navigator.clipboard.writeText(t).then(()=>n('✅ Copied!')).catch(()=>prompt('Copy:',t))}
 if(cu&&cu.id)document.getElementById('verifyUserId').value=cu.id.toString().padStart(6,'0')
@@ -421,8 +453,41 @@ async function verifyUserId(){const ii=document.getElementById('verifyUserId').v
 
 async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return alert('Payment ရွေးချယ်ပါ');if(!iv)return alert('User ID စစ်ဆေးပါ');if(!sd)return alert('Screenshot ထည့်ပါ');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){addNotiItem('pending','ငွေဖြည့်သွင်းခြင်းအောင်မြင်ပါသည်၊မိမိ၏အကောင့်ထဲသို့ admin မှအတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်းဖြည့်သွင်းပေးပါမည်。�ျေးဇူးတင်ပါသည်။');showToast('✅ Order Submitted!','success');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory()}else{showToast(d.message||'Error','error')}}catch(e){showToast('Connection error','error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
 
-async function loadHistory(){const c=document.getElementById('orderHistory');try{const r=await fetch('/api/get_orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})});const d=await r.json();if(d.orders&&d.orders.length>0){renderOrderHistory(d.orders);checkOrderNoti(d.orders)}else{c.innerHTML='<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">No topup history yet.</p>'}}catch(e){c.innerHTML='<p style="text-align:center;padding:20px">No history</p>'}}
-
+async function loadHistory() {
+    var c = document.getElementById('orderHistory');
+    var token = localStorage.getItem('auth_token');
+    
+    console.log('[HISTORY] Loading... Token:', token ? token.substring(0,10)+'...' : 'none');
+    
+    if (!token || token === 'guest') {
+        c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">အကောင့်ဝင်ရန် လိုအပ်ပါသည်</p>';
+        return;
+    }
+    
+    c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">⏳ စစ်ဆေးနေသည်...</p>';
+    
+    try {
+        var r = await fetch('/api/get_orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        var d = await r.json();
+        
+        console.log('[HISTORY] Response:', d);
+        
+        if (d.orders && d.orders.length > 0) {
+            renderOrderHistory(d.orders);
+            checkOrderNoti(d.orders);
+        } else {
+            c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">📋 အော်ဒါမှတ်တမ်း မရှိသေးပါ</p>';
+        }
+    } catch (e) {
+        console.error('[HISTORY ERROR]', e);
+        c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">❌ ချိတ်ဆက်မှု ပြဿနာရှိနေပါသည်</p>';
+    }
+}
+        
 function checkOrderNoti(orders){
     const lastNoti=localStorage.getItem('topupLastOrderCheck');
     let lastId=lastNoti?parseInt(lastNoti):0;
