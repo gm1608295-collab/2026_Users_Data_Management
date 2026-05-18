@@ -893,7 +893,7 @@ function updateAllTierStatuses(expiryDates) {
             window.location.href = '/chat.html';
         }        
         // ==================== LOAD CURRENT STATUS ====================
-let activeTiers = {}; // ✅ { 1: true, 2: false, 3: true } - Tier အလိုက် Active ရှိမရှိ
+let activeTiers = { 1: false, 2: false, 3: false };
 
 async function loadStatus() {
     const token = localStorage.getItem('auth_token');
@@ -920,17 +920,19 @@ async function loadStatus() {
             '$' + (parseFloat(usdData.usd_balance || 0)).toFixed(2);
 
         // ✅ Load ALL premium tiers status
+        console.log('[LOAD STATUS] Fetching all tiers...');
         const allPremRes = await fetch('/api/chat/premium/all_tiers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
         const allPremData = await allPremRes.json();
+        console.log('[LOAD STATUS] All Tiers Response:', allPremData);
         
         if (allPremData.success) {
             activeTiers = allPremData.tiers || {};
+            console.log('[LOAD STATUS] Active Tiers:', activeTiers);
             
-            // ဘယ် Tier မှ မဝယ်ရသေးရင်
             const hasAnyActive = Object.values(activeTiers).some(v => v === true);
             
             if (hasAnyActive) {
@@ -940,14 +942,12 @@ async function loadStatus() {
                 const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
                 const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
                 
-                // Active Tier တွေကို ပြ
                 let activeList = [];
                 let soonestExpiry = null;
                 
                 for (let tier = 1; tier <= 3; tier++) {
                     if (activeTiers[tier]) {
                         activeList.push(tierIcons[tier] + ' ' + tierNames[tier]);
-                        // အစောဆုံး ကုန်မယ့်ရက်ကို ရှာ
                         if (allPremData.expiry_dates && allPremData.expiry_dates[tier]) {
                             const expDate = new Date(allPremData.expiry_dates[tier]);
                             if (!soonestExpiry || expDate < soonestExpiry) {
@@ -966,16 +966,13 @@ async function loadStatus() {
                     document.getElementById('statusExpiry').innerHTML = 
                         'သက်တမ်းကုန်ရက်: <span>' + expiry + '</span> (' + daysRemaining + ' ရက် ကျန်ပါသည်)';
                 }
-            } else {
-                document.getElementById('statusText').textContent = 'Premium မရှိသေးပါ';
-                document.getElementById('statusExpiry').textContent = 'Chat Premium ဝယ်ယူပြီး အကျိုးခံစားခွင့်များ ရယူပါ';
             }
             
-            // ✅ Tier တစ်ခုချင်းစီရဲ့ Status ကို UI မှာ ပြ
+            // ✅ Tier Status Update
             updateAllTierStatuses(allPremData.expiry_dates || {});
         }
     } catch(e) {
-        console.error('Status load error:', e);
+        console.error('[LOAD STATUS ERROR]', e);
     }
 }
         // ==================== INIT ====================
