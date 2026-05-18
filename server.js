@@ -2437,7 +2437,7 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
  // ====================================
 // DAILY CHECK-IN USER APIs
 // ====================================
-// ==================== DAILY CHECK-IN STATUS (FIXED - CHECK START DATE PROPERLY) ====================
+ // ==================== DAILY CHECK-IN STATUS (FIXED - SHOW UPCOMING EVENTS TOO) ====================
 app.post('/api/daily_checkin/status', async (req, res) => {
     const { token } = req.body;
     
@@ -2452,16 +2452,14 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
-        
-        // Get server time for consistent comparison
-        const serverTimeRes = await p.query("SELECT NOW() as now");
-        const serverNow = new Date(serverTimeRes.rows[0].now);
+        const currentTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
         
         // Premium Status Check
         const userRes = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
-        const isPremium = userRes.rows.length > 0 && userRes.rows[0].premium_expiry && new Date(userRes.rows[0].premium_expiry) > serverNow;
+        const isPremium = userRes.rows.length > 0 && userRes.rows[0].premium_expiry && new Date(userRes.rows[0].premium_expiry) > now;
         
-        // Get all active events (not cancelled, not ended)
+        // ✅ Show events that are not yet ended (including future events)
+        // Removed start_date <= today condition so that upcoming events appear as well
         const events = await p.query(
             `SELECT * FROM daily_checkin_events 
              WHERE is_active = true 
@@ -2472,30 +2470,22 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             [todayStr, isPremium]
         );
         
-        console.log('[CHECKIN STATUS] Events found:', events.rows.length);
+        console.log('[CHECKIN STATUS] User:', uid, 'Premium:', isPremium, 'Events Found:', events.rows.length);
         
         const result = [];
         
         for (const ev of events.rows) {
-            // Parse dates
             const startDate = new Date(ev.start_date);
-            const startDateTime = new Date(ev.start_date + 'T' + (ev.start_time || '00:00:00'));
             const endDate = new Date(ev.end_date);
-            const endDateTime = new Date(ev.end_date + 'T' + (ev.end_time || '14:30:00'));
+            const graceEndDate = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000);
+            const isGracePeriod = now > endDate && now <= graceEndDate;
+            const isFullyEnded = now > graceEndDate;
+            const hasStarted = now >= startDate;
             
-            // Check if event has started
-            const hasStarted = serverNow >= startDateTime;
+            // If fully ended, skip
+            if (isFullyEnded) continue;
             
-            // Check if event has ended (no grace period here)
-            const hasEnded = serverNow > endDateTime;
-            
-            // Grace period (2 days after end date)
-            const graceEndDate = new Date(endDateTime);
-            graceEndDate.setDate(graceEndDate.getDate() + 2);
-            const isGracePeriod = hasEnded && serverNow <= graceEndDate;
-            const isFullyEnded = serverNow > graceEndDate;
-            
-            // Calculate current day based on progress
+            // Determine current day based on progress or start date difference
             let currentDay = 1;
             const progress = await p.query(
                 "SELECT * FROM daily_checkin_progress WHERE user_id=$1 AND event_id=$2",
@@ -2504,9 +2494,9 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             
             if (progress.rows.length > 0) {
                 currentDay = progress.rows[0].current_day;
-            } else if (hasStarted && !hasEnded) {
-                // Calculate from start date
-                const daysSinceStart = Math.floor((serverNow - startDateTime) / (1000 * 60 * 60 * 24)) + 1;
+            } else if (hasStarted) {
+                // If no progress but event started, calculate day from start date
+                const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
                 currentDay = Math.min(daysSinceStart, ev.total_days);
                 if (currentDay < 1) currentDay = 1;
             }
@@ -2521,12 +2511,12 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             );
             const checkedInToday = todayCheck.rows.length > 0;
             
-            // ✅ IMPORTANT: Can claim ONLY if:
-            // 1. Event has started (serverNow >= startDateTime)
-            // 2. Event not ended (serverNow <= endDateTime)
-            // 3. Not already claimed today
-            // 4. Current day <= total days
-            const canClaim = hasStarted && !hasEnded && !checkedInToday && currentDay <= ev.total_days;
+            // Can claim only if:
+            // - event has started (hasStarted)
+            // - not grace period
+            // - not already claimed today
+            // - current day <= total days
+            const canClaim = hasStarted && !isGracePeriod && !checkedInToday && currentDay <= ev.total_days;
             
             // Get rewards
             const rewards = await p.query(
@@ -2558,14 +2548,11 @@ app.post('/api/daily_checkin/status', async (req, res) => {
                 event_name: ev.event_name,
                 event_type: ev.event_type,
                 start_date: ev.start_date,
-                start_time: ev.start_time || '00:00:00',
                 end_date: ev.end_date,
-                end_time: ev.end_time || '14:30:00',
                 grace_end_date: graceEndDate.toISOString().split('T')[0],
                 is_grace_period: isGracePeriod,
                 is_fully_ended: isFullyEnded,
                 has_started: hasStarted,
-                has_ended: hasEnded,
                 total_days: ev.total_days,
                 current_day: currentDay,
                 checked_in_today: checkedInToday,
