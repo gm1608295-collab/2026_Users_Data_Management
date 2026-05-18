@@ -1125,24 +1125,36 @@
     }
 
     function addMessageToUI(msg, isMine, senderPremiumTier = 0) {
-        const container = document.getElementById('messages');
-        if (container.innerHTML.includes('No messages') || container.innerHTML.includes('Loading')) container.innerHTML = '';
-        let messageHtml = '';
-        const msgText = msg.message || '';
-        if (msgText.startsWith('📷 IMAGE:')) {
-            const url = msgText.replace('📷 IMAGE:', '');
-            messageHtml = `<div class="media-message" onclick="downloadMedia('${url}', 'image')"><img src="${url}" alt="Image" loading="lazy"><div class="download-icon" style="position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.5); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center"><i class="fas fa-download"></i></div></div>`;
-        } else if (msgText.startsWith('📎 FILE:')) {
-            const parts = msgText.replace('📎 FILE:', '').split('|');
-            const url = parts[0], fname = parts[1] || 'File';
-            messageHtml = `<div class="file-message" onclick="downloadMedia('${url}', 'file', '${fname}')"><i class="fas fa-file"></i> ${escapeHtml(fname)}<i class="fas fa-download download-icon"></i></div>`;
-        } else { messageHtml = escapeHtml(msgText); }
-        const div = document.createElement('div');
-        div.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
-        div.innerHTML = `<div class="msg-bubble">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${messageHtml}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
-        container.appendChild(div);
+    const container = document.getElementById('messages');
+    if (container.innerHTML.includes('No messages') || container.innerHTML.includes('Loading')) container.innerHTML = '';
+    let messageHtml = '';
+    const msgText = msg.message || '';
+    if (msgText.startsWith('📷 IMAGE:')) {
+        const url = msgText.replace('📷 IMAGE:', '');
+        messageHtml = `<div class="media-message" onclick="downloadMedia('${url}', 'image')"><img src="${url}" alt="Image" loading="lazy"><div class="download-icon" style="position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.5); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center"><i class="fas fa-download"></i></div></div>`;
+    } else if (msgText.startsWith('📎 FILE:')) {
+        const parts = msgText.replace('📎 FILE:', '').split('|');
+        const url = parts[0], fname = parts[1] || 'File';
+        messageHtml = `<div class="file-message" onclick="downloadMedia('${url}', 'file', '${fname}')"><i class="fas fa-file"></i> ${escapeHtml(fname)}<i class="fas fa-download download-icon"></i></div>`;
+    } else { messageHtml = escapeHtml(msgText); }
+    
+    const div = document.createElement('div');
+    div.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
+    
+    // ✅ Normal User က Premium User ရဲ့ Message ကို သာမန် Bubble နဲ့ပဲ မြင်ရမယ်
+    // ✅ ကိုယ့် Message ကိုပဲ ကိုယ့် Premium Tier အရောင်နဲ့ မြင်ရမယ်
+    let bubbleExtraClass = '';
+    if (isMine && isPremium && premiumTier > 0) {
+        // ကိုယ်က Premium ဆိုရင် ကိုယ့် Bubble မှာ Premium အရောင်ပြမယ်
+        if (premiumTier === 1) bubbleExtraClass = 'bronze-tier';
+        else if (premiumTier === 2) bubbleExtraClass = 'silver-tier';
+        else if (premiumTier === 3) bubbleExtraClass = 'gold-tier';
     }
-
+    // ❌ Normal User က တစ်ခြား Premium User ရဲ့ Message ကို Normal Bubble နဲ့ပဲ မြင်ရမယ်
+    
+    div.innerHTML = `<div class="msg-bubble ${bubbleExtraClass}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${messageHtml}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
+    container.appendChild(div);
+    }
     function downloadMedia(url, type, filename = 'file') {
         const a = document.createElement('a');
         a.href = url;
