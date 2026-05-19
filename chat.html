@@ -8,777 +8,158 @@
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <style>
         :root {
-            --bronze-solid: #6b3410;
-            --bronze-light: #CD7F32;
-            --bronze-bright: #E8A87C;
-            --chocolate: #3d1c00;
-            --silver-solid: #707070;
-            --silver-light: #C0C0C0;
-            --silver-bright: #E8E8E8;
-            --lead: #2d2d2d;
-            --gold-solid: #B8860B;
-            --gold-light: #FFD700;
-            --gold-bright: #FFF8DC;
-            --gold-choco: #6d4c00;
+            --bronze-solid: #6b3410; --bronze-light: #CD7F32; --bronze-bright: #E8A87C; --chocolate: #3d1c00;
+            --silver-solid: #707070; --silver-light: #C0C0C0; --silver-bright: #E8E8E8; --lead: #2d2d2d;
+            --gold-solid: #B8860B; --gold-light: #FFD700; --gold-bright: #FFF8DC; --gold-choco: #6d4c00;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-        }
-
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
         body {
-    background: radial-gradient(ellipse at 20% 30%, #0c0e27, #05050f);
-    color: #fff;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    /* ✅ Safe Area အတွက် */
-    padding-top: env(safe-area-inset-top, 0px);
-}
-
-        /* ========== NORMAL THEME ========== */
-        body.normal-theme {
-            background: linear-gradient(135deg, #0c0e27, #1a1f4b);
+            background: radial-gradient(ellipse at 20% 30%, #0c0e27, #05050f); color: #fff;
+            height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
+            padding-top: env(safe-area-inset-top, 0px);
         }
-        body.normal-theme .chat-header {
-            background: linear-gradient(135deg, #4a1c7a, #1a1f4b);
-            border-bottom: 2px solid #f39c12;
-        }
+        body.normal-theme { background: linear-gradient(135deg, #0c0e27, #1a1f4b); }
+        body.normal-theme .chat-header { background: linear-gradient(135deg, #4a1c7a, #1a1f4b); border-bottom: 2px solid #f39c12; }
         body.normal-theme .chat-header h3, body.normal-theme .chat-header a { color: #fff; }
         body.normal-theme .chat-tab.active { background: #f39c12; color: #000; }
         body.normal-theme .premium-badge { display: none; }
 
-        /* ========== BRONZE TIER (Solid + Chocolate) ========== */
-        body.bronze-tier {
-            background: linear-gradient(160deg, var(--chocolate) 0%, #2d1a0a 40%, #1a0f07 100%);
-        }
-        body.bronze-tier .chat-header {
-            background: linear-gradient(135deg, var(--chocolate), var(--bronze-solid));
-            border-bottom: 3px solid var(--bronze-light);
-            border-left: 3px solid var(--bronze-light);
-            border-right: 3px solid var(--bronze-light);
-        }
-        body.bronze-tier .chat-header h3 { color: var(--bronze-bright); font-weight: 700; letter-spacing: 1px; }
-        body.bronze-tier .chat-header a { color: var(--bronze-light); }
-        body.bronze-tier .chat-tab { background: rgba(205,127,50,0.08); border: 1px solid rgba(205,127,50,0.2); color: var(--bronze-light); }
-        body.bronze-tier .chat-tab.active {
-            background: var(--bronze-solid);
-            color: var(--bronze-bright);
-            border-color: var(--bronze-light);
-            font-weight: 700;
-            animation: bronzeTabShine 3s ease-in-out infinite;
-        }
-        @keyframes bronzeTabShine {
-            0%, 100% { box-shadow: 0 0 0 rgba(205,127,50,0); }
-            50% { box-shadow: 0 0 12px rgba(205,127,50,0.5); }
-        }
-        body.bronze-tier .room-item {
-            background: rgba(107,52,16,0.2);
-            border: 1px solid rgba(205,127,50,0.2);
-            border-left: 4px solid var(--bronze-light);
-        }
-        body.bronze-tier .room-item:hover {
-            background: rgba(205,127,50,0.15);
-            border-left: 4px solid var(--bronze-bright);
-            animation: bronzeRoomPulse 0.4s ease;
-        }
-        @keyframes bronzeRoomPulse {
-            0% { transform: translateX(0); }
-            50% { transform: translateX(6px); }
-            100% { transform: translateX(3px); }
-        }
-        body.bronze-tier .msg-mine .msg-bubble {
-            background: linear-gradient(150deg, var(--bronze-solid), #8B4513);
-            color: #fff;
-            border: 2px solid var(--bronze-light);
-            box-shadow: inset 0 1px 0 rgba(232,168,124,0.3);
-        }
-        body.bronze-tier .msg-other .msg-bubble {
-            background: rgba(205,127,50,0.1);
-            border: 2px solid rgba(205,127,50,0.4);
-            color: #fff;
-        }
-        body.bronze-tier .msg-input-area {
-            background: linear-gradient(180deg, rgba(61,28,0,0.8), rgba(26,15,7,0.95));
-            border-top: 2px solid var(--bronze-light);
-        }
-        body.bronze-tier .msg-input-area input {
-            background: rgba(107,52,16,0.3);
-            border: 2px solid rgba(205,127,50,0.4);
-            color: var(--bronze-bright);
-        }
-        body.bronze-tier .msg-input-area input:focus { border-color: var(--bronze-light); }
-        body.bronze-tier .msg-input-area button {
-            background: linear-gradient(135deg, var(--bronze-solid), var(--bronze-light));
-            color: #fff;
-            border: 2px solid var(--bronze-bright);
-        }
-        body.bronze-tier .premium-badge {
-            background: var(--bronze-solid);
-            color: var(--bronze-bright);
-            border: 1px solid var(--bronze-light);
-            display: inline-block;
-        }
-        body.bronze-tier .online-count { color: var(--bronze-bright); background: rgba(205,127,50,0.15); }
+        body.bronze-tier { background: linear-gradient(160deg, var(--chocolate) 0%, #2d1a0a 40%, #1a0f07 100%); }
+        body.bronze-tier .chat-header { background: linear-gradient(135deg, var(--chocolate), var(--bronze-solid)); border-bottom: 3px solid var(--bronze-light); border-left: 3px solid var(--bronze-light); border-right: 3px solid var(--bronze-light); }
+        body.bronze-tier .chat-header h3 { color: var(--bronze-bright); font-weight: 700; }
+        body.bronze-tier .chat-tab.active { background: var(--bronze-solid); color: var(--bronze-bright); border-color: var(--bronze-light); }
+        body.bronze-tier .msg-mine .msg-bubble { background: linear-gradient(150deg, var(--bronze-solid), #8B4513); color: #fff; border: 2px solid var(--bronze-light); }
+        body.bronze-tier .msg-other .msg-bubble { background: rgba(205,127,50,0.1); border: 2px solid rgba(205,127,50,0.4); }
+        body.bronze-tier .msg-input-area { background: linear-gradient(180deg, rgba(61,28,0,0.8), rgba(26,15,7,0.95)); border-top: 2px solid var(--bronze-light); }
+        body.bronze-tier .premium-badge { background: var(--bronze-solid); color: var(--bronze-bright); border: 1px solid var(--bronze-light); display: inline-block; }
 
-        /* ========== SILVER TIER (Silver + Lead) ========== */
-        body.silver-tier {
-            background: linear-gradient(160deg, var(--lead) 0%, #1a1a1a 40%, #0a0a0a 100%);
-        }
-        body.silver-tier .chat-header {
-            background: linear-gradient(135deg, var(--lead), var(--silver-solid));
-            border-bottom: 3px solid var(--silver-light);
-            border-left: 3px solid var(--silver-light);
-            border-right: 3px solid var(--silver-light);
-        }
-        body.silver-tier .chat-header h3 { color: var(--silver-bright); font-weight: 700; letter-spacing: 1px; }
-        body.silver-tier .chat-header a { color: var(--silver-light); }
-        body.silver-tier .chat-tab { background: rgba(192,192,192,0.06); border: 1px solid rgba(192,192,192,0.2); color: var(--silver-light); }
-        body.silver-tier .chat-tab.active {
-            background: var(--silver-solid);
-            color: var(--silver-bright);
-            border-color: var(--silver-light);
-            font-weight: 700;
-            animation: silverTabRipple 2.5s ease-in-out infinite;
-        }
-        @keyframes silverTabRipple {
-            0%, 100% { box-shadow: 0 0 0 rgba(192,192,192,0); transform: scale(1); }
-            50% { box-shadow: 0 0 15px rgba(192,192,192,0.4); transform: scale(1.02); }
-        }
-        body.silver-tier .room-item {
-            background: rgba(112,112,112,0.15);
-            border: 1px solid rgba(192,192,192,0.2);
-            border-left: 4px solid var(--silver-light);
-        }
-        body.silver-tier .room-item:hover {
-            background: rgba(192,192,192,0.12);
-            border-left: 4px solid var(--silver-bright);
-            animation: silverRoomSlide 0.5s ease;
-        }
-        @keyframes silverRoomSlide {
-            0% { transform: translateX(0); opacity: 0.7; }
-            100% { transform: translateX(5px); opacity: 1; }
-        }
-        body.silver-tier .msg-mine .msg-bubble {
-            background: linear-gradient(150deg, var(--silver-solid), #5a5a5a);
-            color: #fff;
-            border: 2px solid var(--silver-light);
-            box-shadow: inset 0 1px 0 rgba(232,232,232,0.3);
-        }
-        body.silver-tier .msg-other .msg-bubble {
-            background: rgba(192,192,192,0.08);
-            border: 2px solid rgba(192,192,192,0.4);
-            color: #fff;
-        }
-        body.silver-tier .msg-input-area {
-            background: linear-gradient(180deg, rgba(45,45,45,0.8), rgba(10,10,10,0.95));
-            border-top: 2px solid var(--silver-light);
-        }
-        body.silver-tier .msg-input-area input {
-            background: rgba(112,112,112,0.25);
-            border: 2px solid rgba(192,192,192,0.4);
-            color: var(--silver-bright);
-        }
-        body.silver-tier .msg-input-area input:focus { border-color: var(--silver-light); }
-        body.silver-tier .msg-input-area button {
-            background: linear-gradient(135deg, var(--silver-solid), var(--silver-light));
-            color: #0a0a0a;
-            border: 2px solid var(--silver-bright);
-        }
-        body.silver-tier .premium-badge {
-            background: var(--silver-solid);
-            color: var(--silver-bright);
-            border: 1px solid var(--silver-light);
-            display: inline-block;
-        }
-        body.silver-tier .online-count { color: var(--silver-bright); background: rgba(192,192,192,0.12); }
+        body.silver-tier { background: linear-gradient(160deg, var(--lead) 0%, #1a1a1a 40%, #0a0a0a 100%); }
+        body.silver-tier .chat-header { background: linear-gradient(135deg, var(--lead), var(--silver-solid)); border-bottom: 3px solid var(--silver-light); border-left: 3px solid var(--silver-light); border-right: 3px solid var(--silver-light); }
+        body.silver-tier .chat-header h3 { color: var(--silver-bright); font-weight: 700; }
+        body.silver-tier .chat-tab.active { background: var(--silver-solid); color: var(--silver-bright); border-color: var(--silver-light); }
+        body.silver-tier .msg-mine .msg-bubble { background: linear-gradient(150deg, var(--silver-solid), #5a5a5a); color: #fff; border: 2px solid var(--silver-light); }
+        body.silver-tier .msg-other .msg-bubble { background: rgba(192,192,192,0.08); border: 2px solid rgba(192,192,192,0.4); }
+        body.silver-tier .msg-input-area { background: linear-gradient(180deg, rgba(45,45,45,0.8), rgba(10,10,10,0.95)); border-top: 2px solid var(--silver-light); }
+        body.silver-tier .premium-badge { background: var(--silver-solid); color: var(--silver-bright); border: 1px solid var(--silver-light); display: inline-block; }
 
-        /* ========== GOLD TIER (Gold + Chocolate) ========== */
-        body.gold-tier {
-            background: linear-gradient(160deg, var(--gold-choco) 0%, #3d2a00 40%, #1a0a00 100%);
-        }
-        body.gold-tier .chat-header {
-            background: linear-gradient(135deg, var(--gold-choco), var(--gold-solid));
-            border-bottom: 3px solid var(--gold-light);
-            border-left: 3px solid var(--gold-light);
-            border-right: 3px solid var(--gold-light);
-        }
-        body.gold-tier .chat-header h3 {
-            color: var(--gold-bright);
-            font-weight: 800;
-            letter-spacing: 1.5px;
-            animation: goldHeaderText 2s ease-in-out infinite;
-        }
-        @keyframes goldHeaderText {
-            0%, 100% { text-shadow: 0 0 2px rgba(255,215,0,0.3); }
-            50% { text-shadow: 0 0 8px rgba(255,215,0,0.7); }
-        }
-        body.gold-tier .chat-header a { color: var(--gold-light); }
-        body.gold-tier .chat-tab { background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.2); color: var(--gold-light); }
-        body.gold-tier .chat-tab.active {
-            background: var(--gold-solid);
-            color: var(--gold-bright);
-            border-color: var(--gold-light);
-            font-weight: 800;
-            animation: goldTabWave 2s ease-in-out infinite;
-        }
-        @keyframes goldTabWave {
-            0%, 100% { transform: translateY(0); box-shadow: 0 2px 8px rgba(255,215,0,0.3); }
-            50% { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(255,215,0,0.6); }
-        }
-        body.gold-tier .room-item {
-            background: rgba(184,134,11,0.15);
-            border: 1px solid rgba(255,215,0,0.2);
-            border-left: 4px solid var(--gold-light);
-        }
-        body.gold-tier .room-item:hover {
-            background: rgba(255,215,0,0.1);
-            border-left: 4px solid var(--gold-bright);
-            animation: goldRoomGlow 0.6s ease;
-        }
-        @keyframes goldRoomGlow {
-            0% { transform: translateX(0); }
-            50% { transform: translateX(8px); border-color: var(--gold-bright); }
-            100% { transform: translateX(4px); }
-        }
-        body.gold-tier .msg-mine .msg-bubble {
-            background: linear-gradient(150deg, var(--gold-solid), #8B6914);
-            color: #fff;
-            border: 2px solid var(--gold-light);
-            box-shadow: inset 0 1px 0 rgba(255,248,220,0.3);
-        }
-        body.gold-tier .msg-other .msg-bubble {
-            background: rgba(255,215,0,0.08);
-            border: 2px solid rgba(255,215,0,0.4);
-            color: #fff;
-        }
-        body.gold-tier .msg-input-area {
-            background: linear-gradient(180deg, rgba(109,76,0,0.8), rgba(26,10,0,0.95));
-            border-top: 2px solid var(--gold-light);
-        }
-        body.gold-tier .msg-input-area input {
-            background: rgba(184,134,11,0.25);
-            border: 2px solid rgba(255,215,0,0.4);
-            color: var(--gold-bright);
-        }
-        body.gold-tier .msg-input-area input:focus { border-color: var(--gold-light); }
-        body.gold-tier .msg-input-area button {
-            background: linear-gradient(135deg, var(--gold-solid), var(--gold-light));
-            color: #1a0a00;
-            border: 2px solid var(--gold-bright);
-        }
-        body.gold-tier .premium-badge {
-            background: var(--gold-solid);
-            color: var(--gold-bright);
-            border: 1px solid var(--gold-light);
-            display: inline-block;
-            animation: goldBadgeFloat 3s ease-in-out infinite;
-        }
-        @keyframes goldBadgeFloat {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-3px); }
-        }
-        body.gold-tier .online-count { color: var(--gold-bright); background: rgba(255,215,0,0.12); }
+        body.gold-tier { background: linear-gradient(160deg, var(--gold-choco) 0%, #3d2a00 40%, #1a0a00 100%); }
+        body.gold-tier .chat-header { background: linear-gradient(135deg, var(--gold-choco), var(--gold-solid)); border-bottom: 3px solid var(--gold-light); border-left: 3px solid var(--gold-light); border-right: 3px solid var(--gold-light); }
+        body.gold-tier .chat-header h3 { color: var(--gold-bright); font-weight: 800; }
+        body.gold-tier .chat-tab.active { background: var(--gold-solid); color: var(--gold-bright); border-color: var(--gold-light); }
+        body.gold-tier .msg-mine .msg-bubble { background: linear-gradient(150deg, var(--gold-solid), #8B6914); color: #fff; border: 2px solid var(--gold-light); }
+        body.gold-tier .msg-other .msg-bubble { background: rgba(255,215,0,0.08); border: 2px solid rgba(255,215,0,0.4); }
+        body.gold-tier .msg-input-area { background: linear-gradient(180deg, rgba(109,76,0,0.8), rgba(26,10,0,0.95)); border-top: 2px solid var(--gold-light); }
+        body.gold-tier .premium-badge { background: var(--gold-solid); color: var(--gold-bright); border: 1px solid var(--gold-light); display: inline-block; }
 
-        /* ========== SHARED ========== */
-        .chat-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    /* ✅ Safe Area အတွက် ထပ်ထည့် */
-    padding-top: calc(10px + env(safe-area-inset-top, 0px));
-    flex-shrink: 0;
-    border-radius: 0 0 4px 4px;
-        }
-        .chat-header a { text-decoration: none; font-size: 16px; transition: 0.2s; }
-        .chat-header a:hover { transform: scale(1.05); }
-        .chat-header h3 { flex: 1; font-size: 14px; font-weight: 600; }
-        .chat-header .online-count { font-size: 9px; padding: 3px 10px; border-radius: 40px; font-weight: 500; }
-        .premium-badge {
-            display: none;
-            padding: 3px 10px;
-            border-radius: 40px;
-            font-size: 8px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-        }
+        .chat-header { display:flex; align-items:center; gap:8px; padding:8px 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); flex-shrink:0; border-radius:0 0 4px 4px; }
+        .chat-header a { text-decoration:none; font-size:15px; transition:0.2s; }
+        .chat-header h3 { flex:1; font-size:13px; font-weight:600; }
+        .chat-header .online-count { font-size:8px; padding:2px 8px; border-radius:40px; font-weight:500; }
+        .premium-badge { display:none; padding:2px 8px; border-radius:40px; font-size:7px; font-weight:700; }
 
-        .chat-tabs {
-            display: flex;
-            gap: 5px;
-            padding: 6px 12px;
-            background: rgba(0,0,0,0.15);
-            flex-shrink: 0;
-        }
-        .chat-tab {
-            flex: 1;
-            padding: 7px;
-            text-align: center;
-            font-size: 11px;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
+        .chat-tabs { display:flex; gap:4px; padding:5px 10px; background:rgba(0,0,0,0.15); flex-shrink:0; overflow-x:auto; }
+        .chat-tab { flex:1; padding:6px 4px; text-align:center; font-size:10px; font-weight:500; cursor:pointer; border-radius:6px; transition:all 0.2s; white-space:nowrap; min-width:fit-content; }
+        .profile-tab { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); }
 
-        .chat-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .room-list { display: none; flex: 1; overflow-y: auto; padding: 10px; }
-        .room-list.active { display: block; }
-        .room-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 10px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .room-item .room-icon { font-size: 22px; }
-        .room-item .room-info { flex: 1; }
-        .room-item .room-name { font-size: 13px; font-weight: 600; }
-        .room-item .room-last {
-            font-size: 9px;
-            color: rgba(255,255,255,0.35);
-            margin-top: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 180px;
-        }
-        .room-item .room-badge {
-            background: #e74c3c;
-            color: #fff;
-            font-size: 8px;
-            padding: 2px 7px;
-            border-radius: 30px;
-            font-weight: 600;
-        }
+        .chat-body { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+        .room-list { display:none; flex:1; overflow-y:auto; padding:8px; }
+        .room-list.active { display:block; }
+        .room-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; margin-bottom:4px; cursor:pointer; transition:all 0.2s; background:rgba(0,0,0,0.2); border-left:3px solid transparent; }
+        .room-item:hover { background:rgba(255,255,255,0.05); }
+        .room-item .room-icon { font-size:20px; }
+        .room-item .room-info { flex:1; min-width:0; }
+        .room-item .room-name { font-size:12px; font-weight:600; }
+        .room-item .room-last { font-size:8px; color:rgba(255,255,255,0.35); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .room-item .room-badge { background:#e74c3c; color:#fff; font-size:7px; padding:1px 6px; border-radius:30px; font-weight:600; }
 
-        .chat-area { display: none; flex: 1; flex-direction: column; overflow: hidden; }
-        .chat-area.active { display: flex; }
-        .chat-area-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            background: rgba(0,0,0,0.15);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            flex-shrink: 0;
-        }
-        .chat-area-header .back-btn { cursor: pointer; font-size: 16px; }
-        .chat-area-header .room-title { font-size: 14px; font-weight: 600; flex: 1; }
-        .chat-area-header .delete-room-btn { color: #e74c3c; cursor: pointer; padding: 5px; opacity: 0.6; }
-        .chat-area-header .delete-room-btn:hover { opacity: 1; }
+        .chat-area { display:none; flex:1; flex-direction:column; overflow:hidden; }
+        .chat-area.active { display:flex; }
+        .chat-area-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(0,0,0,0.15); border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0; }
+        .chat-area-header .back-btn { cursor:pointer; font-size:15px; }
+        .chat-area-header .room-title { font-size:13px; font-weight:600; flex:1; }
+        .chat-area-header .report-btn { color:#f39c12; cursor:pointer; padding:4px; font-size:12px; opacity:0.7; }
+        .chat-area-header .report-btn:hover { opacity:1; }
 
-        .messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 5px; }
-        .msg-row { display: flex; gap: 6px; max-width: 80%; margin-bottom: 3px; }
-        .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
-        .msg-bubble {
-            padding: 8px 14px;
-            border-radius: 16px;
-            font-size: 12px;
-            word-break: break-word;
-            position: relative;
-        }
-        /* ========== MESSAGE BUBBLE TIER COLORS (Sender ပေါ်မူတည်) ========== */
-.msg-bubble.bronze-tier {
-    background: linear-gradient(150deg, #6b3410, #8B4513) !important;
-    color: #fff !important;
-    border: 2px solid #CD7F32 !important;
-    box-shadow: inset 0 1px 0 rgba(232,168,124,0.3) !important;
-}
-.msg-bubble.silver-tier {
-    background: linear-gradient(150deg, #707070, #5a5a5a) !important;
-    color: #fff !important;
-    border: 2px solid #C0C0C0 !important;
-    box-shadow: inset 0 1px 0 rgba(232,232,232,0.3) !important;
-}
-.msg-bubble.gold-tier {
-    background: linear-gradient(150deg, #B8860B, #8B6914) !important;
-    color: #fff !important;
-    border: 2px solid #FFD700 !important;
-    box-shadow: inset 0 1px 0 rgba(255,248,220,0.3) !important;
-}
-.msg-bubble.normal-tier {
-    background: rgba(255,255,255,0.08) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
-    color: #fff !important;
-}
-.msg-mine .msg-bubble.normal-tier {
-    background: rgba(46, 204, 113, 0.2) !important;
-    border: 1px solid rgba(46, 204, 113, 0.3) !important;
-}
-        .msg-mine .msg-bubble { border-bottom-right-radius: 4px; }
-        .msg-other .msg-bubble { border-bottom-left-radius: 4px; }
-        .msg-sender { font-size: 9px; margin-bottom: 3px; font-weight: 600; opacity: 0.8; }
-        .msg-time { font-size: 7px; color: rgba(255,255,255,0.35); margin-top: 3px; text-align: right; }
-        .media-message { max-width: 200px; border-radius: 12px; cursor: pointer; }
-        .media-message img { max-width: 100%; border-radius: 12px; }
-        .file-message {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 12px;
-            cursor: pointer;
-        }
-        .file-message:hover { background: rgba(0,0,0,0.3); }
-        .download-icon { margin-left: auto; opacity: 0.7; }
+        .messages { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:4px; }
+        .msg-row { display:flex; gap:5px; max-width:80%; margin-bottom:2px; }
+        .msg-row.mine { align-self:flex-end; flex-direction:row-reverse; }
+        .msg-bubble { padding:6px 12px; border-radius:14px; font-size:11px; word-break:break-word; position:relative; }
+        .msg-bubble.bronze-tier { background:linear-gradient(150deg,#6b3410,#8B4513)!important; color:#fff!important; border:2px solid #CD7F32!important; }
+        .msg-bubble.silver-tier { background:linear-gradient(150deg,#707070,#5a5a5a)!important; color:#fff!important; border:2px solid #C0C0C0!important; }
+        .msg-bubble.gold-tier { background:linear-gradient(150deg,#B8860B,#8B6914)!important; color:#fff!important; border:2px solid #FFD700!important; }
+        .msg-bubble.normal-tier { background:rgba(255,255,255,0.08)!important; border:1px solid rgba(255,255,255,0.15)!important; color:#fff!important; }
+        .msg-mine .msg-bubble.normal-tier { background:rgba(46,204,113,0.2)!important; border:1px solid rgba(46,204,113,0.3)!important; }
+        .msg-mine .msg-bubble { border-bottom-right-radius:3px; }
+        .msg-other .msg-bubble { border-bottom-left-radius:3px; }
+        .msg-sender { font-size:8px; margin-bottom:2px; font-weight:600; opacity:0.8; }
+        .msg-time { font-size:6px; color:rgba(255,255,255,0.35); margin-top:2px; text-align:right; }
+        .media-message { max-width:180px; border-radius:10px; cursor:pointer; }
+        .media-message img { max-width:100%; border-radius:10px; }
+        .file-message { display:flex; align-items:center; gap:6px; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:10px; cursor:pointer; font-size:10px; }
 
-        /* ========== INPUT AREA ========== */
-        .msg-input-area {
-            display: flex;
-            gap: 8px;
-            padding: 8px 12px;
-            flex-shrink: 0;
-        }
-        .input-wrapper { flex: 1; }
-        .msg-input-area input {
-            width: 100%;
-            height: 38px;
-            padding: 0 14px;
-            border-radius: 8px;
-            font-size: 13px;
-            outline: none;
-            transition: all 0.2s;
-        }
-        .msg-input-area input::placeholder { color: rgba(255,255,255,0.3); font-size: 12px; }
-        .msg-input-area button {
-            width: 38px;
-            height: 38px;
-            border-radius: 8px;
-            border: none;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-        }
-        .msg-input-area button:hover { transform: scale(1.03); }
+        .msg-input-area { display:flex; gap:6px; padding:6px 10px; flex-shrink:0; }
+        .input-wrapper { flex:1; }
+        .msg-input-area input { width:100%; height:32px; padding:0 12px; border-radius:6px; font-size:12px; outline:none; transition:all 0.2s; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; }
+        .msg-input-area input::placeholder { color:rgba(255,255,255,0.3); font-size:11px; }
+        .msg-input-area button { width:32px; height:32px; border-radius:6px; border:none; font-size:13px; cursor:pointer; transition:all 0.2s; flex-shrink:0; background:rgba(255,255,255,0.1); color:#fff; }
 
-        .media-buttons { display: flex; gap: 6px; }
-        .media-btn {
-            width: 38px;
-            height: 38px;
-            border-radius: 8px;
-            border: none;
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: #fff;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-        .media-btn:hover { background: rgba(255,255,255,0.12); transform: scale(1.03); }
-        .media-btn.locked { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.25); opacity: 0.7; }
-        .lock-icon {
-            position: absolute;
-            bottom: -1px;
-            right: -1px;
-            background: #e74c3c;
-            border-radius: 50%;
-            width: 12px;
-            height: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 6px;
-        }
+        .media-buttons { display:flex; gap:4px; }
+        .media-btn { width:32px; height:32px; border-radius:6px; border:none; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative; }
+        .media-btn.locked { background:rgba(231,76,60,0.1); border:1px solid rgba(231,76,60,0.25); opacity:0.7; }
+        .lock-icon { position:absolute; bottom:-1px; right:-1px; background:#e74c3c; border-radius:50%; width:10px; height:10px; display:flex; align-items:center; justify-content:center; font-size:5px; }
 
-        .emoji-row {
-            display: flex;
-            overflow-x: auto;
-            gap: 8px;
-            padding: 6px 12px;
-            background: rgba(0,0,0,0.15);
-            border-top: 1px solid rgba(255,255,255,0.04);
-            flex-shrink: 0;
-            scrollbar-width: thin;
-        }
-        .emoji-row::-webkit-scrollbar { height: 2px; }
-        .emoji-item {
-            font-size: 20px;
-            cursor: pointer;
-            transition: transform 0.15s;
-            flex-shrink: 0;
-            padding: 3px;
-            border-radius: 6px;
-        }
-        .emoji-item:hover { transform: scale(1.15); background: rgba(255,255,255,0.08); }
-        .toggle-emoji-btn {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 6px;
-            padding: 4px 10px;
-            font-size: 10px;
-            cursor: pointer;
-            color: #f39c12;
-            white-space: nowrap;
-        }
+        .emoji-row { display:flex; overflow-x:auto; gap:6px; padding:4px 10px; background:rgba(0,0,0,0.15); border-top:1px solid rgba(255,255,255,0.04); flex-shrink:0; }
+        .emoji-item { font-size:18px; cursor:pointer; transition:transform 0.15s; flex-shrink:0; padding:2px; border-radius:4px; }
+        .emoji-item:hover { transform:scale(1.15); background:rgba(255,255,255,0.08); }
+        .toggle-emoji-btn { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:3px 8px; font-size:9px; cursor:pointer; color:#f39c12; white-space:nowrap; }
 
-        .typing-indicator { padding: 4px 14px; font-size: 10px; color: #f39c12; font-weight: 500; }
+        .typing-indicator { padding:3px 12px; font-size:9px; color:#f39c12; font-weight:500; }
 
-        /* ========== MODALS ========== */
-        .upload-preview-modal {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #1a1f4b;
-            border-top-left-radius: 20px;
-            border-top-right-radius: 20px;
-            padding: 16px;
-            z-index: 3000;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            border-top: 2px solid #f39c12;
-        }
-        .upload-preview-modal.active { transform: translateY(0); }
-        .upload-preview-container { max-height: 350px; overflow-y: auto; }
-        .upload-preview-image { max-width: 100%; border-radius: 12px; margin-bottom: 12px; }
-        .upload-preview-file {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
-            margin-bottom: 12px;
-        }
-        .upload-progress { margin: 12px 0; }
-        .progress-bar { height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 4px; }
-        .progress-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #f39c12); width: 0%; transition: width 0.1s linear; }
-        .upload-buttons { display: flex; gap: 8px; margin-top: 12px; }
-        .upload-buttons button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; }
-        .btn-send { background: #2ecc71; color: #000; }
-        .btn-cancel { background: rgba(255,255,255,0.08); color: #fff; }
+        .premium-req-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2500; justify-content:center; align-items:center; }
+        .premium-req-overlay.active { display:flex; }
+        .premium-req-card { background:linear-gradient(145deg,#1a1f4b,#11112a); border:2px solid #f39c12; border-radius:16px; padding:20px; width:90%; max-width:320px; text-align:center; }
+        .premium-req-card h3 { font-size:15px; color:#f39c12; margin-bottom:8px; }
+        .premium-req-card .btn-upgrade { background:linear-gradient(135deg,#f39c12,#e67e22); color:#000; padding:8px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; width:100%; margin-top:8px; }
 
-        /* ========== PREMIUM REQUIRED MODAL (အလှ) ========== */
-        .premium-req-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.7);
-            z-index: 2500;
-            justify-content: center;
-            align-items: center;
-        }
-        .premium-req-overlay.active { display: flex; }
-        .premium-req-card {
-            background: linear-gradient(145deg, #1a1f4b, #11112a);
-            border: 2px solid #f39c12;
-            border-radius: 20px;
-            padding: 24px 20px;
-            width: 90%;
-            max-width: 340px;
-            text-align: center;
-            animation: popIn 0.4s ease;
-        }
-        @keyframes popIn {
-            0% { transform: scale(0.8); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        .premium-req-card .req-icon {
-            font-size: 50px;
-            margin-bottom: 12px;
-        }
-        .premium-req-card h3 {
-            font-size: 16px;
-            color: #f39c12;
-            margin-bottom: 8px;
-        }
-        .premium-req-card p {
-            font-size: 11px;
-            color: rgba(255,255,255,0.7);
-            margin-bottom: 6px;
-            line-height: 1.6;
-        }
-        .premium-req-card .tier-icons {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin: 12px 0;
-        }
-        .premium-req-card .tier-icon-item {
-            text-align: center;
-            font-size: 10px;
-            padding: 6px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .premium-req-card .tier-icon-item.bronze { border-color: #CD7F32; color: #E8A87C; }
-        .premium-req-card .tier-icon-item.silver { border-color: #C0C0C0; color: #E8E8E8; }
-        .premium-req-card .tier-icon-item.gold { border-color: #FFD700; color: #FFF8DC; }
-        .premium-req-card button {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 13px;
-            margin-top: 4px;
-        }
-        .premium-req-card .btn-upgrade {
-            background: linear-gradient(135deg, #f39c12, #e67e22);
-            color: #000;
-        }
-        .premium-req-card .btn-close-req {
-            background: rgba(255,255,255,0.08);
-            color: rgba(255,255,255,0.5);
-            font-size: 10px;
-            margin-top: 6px;
-        }
+        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center; }
+        .modal-overlay.active { display:flex; }
+        .modal-box { background:linear-gradient(135deg,#1a1f4b,#11112a); border:2px solid #f39c12; border-radius:12px; padding:16px; width:90%; max-width:360px; }
+        .modal-box h3 { color:#f39c12; margin-bottom:10px; text-align:center; font-size:15px; }
+        .form-group { margin-bottom:8px; }
+        .form-group label { display:block; font-size:8px; margin-bottom:2px; color:rgba(255,255,255,0.5); }
+        .form-group input { width:100%; padding:8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#fff; font-size:11px; }
+        .btn-row { display:flex; gap:6px; margin-top:8px; }
+        .btn { padding:8px; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; flex:1; text-align:center; }
+        .btn-g { background:#2ecc71; color:#000; } .btn-r { background:#e74c3c; color:#fff; } .btn-b { background:#3498db; color:#fff; } .btn-w { background:#f39c12; color:#000; }
+        .toast { position:fixed; top:15px; right:15px; padding:8px 14px; border-radius:6px; background:#2ecc71; color:#000; display:none; z-index:4000; font-size:10px; font-weight:600; }
+        .empty-state { text-align:center; padding:25px; color:rgba(255,255,255,0.25); font-size:11px; }
+        .admin-btn { width:100%; padding:8px; background:#2ecc71; color:#000; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; margin-top:6px; }
+        .user-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:rgba(0,0,0,0.2); border-radius:8px; margin-bottom:4px; cursor:pointer; }
+        .online-indicator { width:7px; height:7px; background:#2ecc71; border-radius:50%; }
 
-        /* ========== OTHER MODALS ========== */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: linear-gradient(135deg, #1a1f4b, #11112a);
-            border: 2px solid #f39c12;
-            border-radius: 16px;
-            padding: 20px;
-            width: 90%;
-            max-width: 360px;
-        }
-        .modal-box h3 { color: #f39c12; margin-bottom: 12px; text-align: center; font-size: 16px; }
-        .form-group { margin-bottom: 10px; }
-        .form-group label { display: block; font-size: 9px; margin-bottom: 3px; color: rgba(255,255,255,0.5); }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 8px;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 11px;
-        }
-        .btn-row { display: flex; gap: 6px; margin-top: 8px; }
-        .btn {
-            padding: 8px;
-            border: none;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: bold;
-            cursor: pointer;
-            flex: 1;
-            text-align: center;
-        }
-        .btn-g { background: #2ecc71; color: #000; }
-        .btn-r { background: #e74c3c; color: #fff; }
-        .btn-b { background: #3498db; color: #fff; }
-        .btn-w { background: #f39c12; color: #000; }
-        .toast {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            padding: 8px 16px;
-            border-radius: 8px;
-            background: #2ecc71;
-            color: #000;
-            display: none;
-            z-index: 4000;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .empty-state { text-align: center; padding: 30px; color: rgba(255,255,255,0.25); font-size: 12px; }
-        .admin-btn {
-            width: 100%;
-            padding: 10px;
-            background: #2ecc71;
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 10px;
-            margin-bottom: 6px;
-            cursor: pointer;
-        }
-        .user-item:hover { background: rgba(74,28,122,0.25); }
-        .online-indicator {
-            width: 8px;
-            height: 8px;
-            background: #2ecc71;
-            border-radius: 50%;
-            box-shadow: 0 0 4px #2ecc71;
-        }
-        .more-emojis-grid {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            max-height: 300px;
-            overflow-y: auto;
-            padding: 8px;
-        }
+        /* Username Search Dropdown */
+        .username-search-wrap { position:relative; }
+        .username-dropdown { position:absolute; top:100%; left:0; right:0; background:#1a1f4b; border:1px solid rgba(255,255,255,0.2); border-radius:6px; max-height:150px; overflow-y:auto; z-index:10; display:none; }
+        .username-dropdown.active { display:block; }
+        .username-dropdown-item { padding:8px 10px; cursor:pointer; font-size:11px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; gap:6px; }
+        .username-dropdown-item:hover { background:rgba(255,255,255,0.1); }
+        .username-dropdown-item .prem-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .prem-dot.bronze { background:#CD7F32; } .prem-dot.silver { background:#C0C0C0; } .prem-dot.gold { background:#FFD700; }
 
-        @media (max-width: 380px) {
-            .msg-row { max-width: 88%; }
-            .media-btn { width: 34px; height: 34px; font-size: 13px; }
-            .msg-input-area input { height: 34px; font-size: 12px; padding: 0 12px; }
-            .msg-input-area button { width: 34px; height: 34px; font-size: 14px; }
-        }
-        /* ========== PREMIUM BUTTON WAVE ANIMATION ========== */
-.wave-text {
-    display: inline-block;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-}
-.wave-letter {
-    display: inline-block;
-    animation: waveJump 1.2s ease-in-out infinite;
-}
-.wave-letter:nth-child(1) { animation-delay: 0s; }
-.wave-letter:nth-child(2) { animation-delay: 0.08s; }
-.wave-letter:nth-child(3) { animation-delay: 0.16s; }
-.wave-letter:nth-child(4) { animation-delay: 0.24s; }
-.wave-letter:nth-child(5) { animation-delay: 0.32s; }
-.wave-letter:nth-child(6) { animation-delay: 0.40s; }
-.wave-letter:nth-child(7) { animation-delay: 0.48s; }
+        /* Report Warning */
+        .report-warning-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:5000; justify-content:center; align-items:center; }
+        .report-warning-overlay.active { display:flex; }
+        .report-warning-box { text-align:center; padding:20px; }
+        .report-warning-box .warn-icon { font-size:60px; color:#e74c3c; animation:pulse 0.5s infinite; }
+        .report-warning-box .warn-text { font-size:16px; color:#e74c3c; margin:10px 0; font-weight:bold; }
+        .report-warning-box .warn-countdown { font-size:30px; color:#f39c12; font-weight:bold; font-family:'Courier New',monospace; }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.1)} }
 
-@keyframes waveJump {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
-}
-
-/* Premium Button က Wave လုပ်နေတုန်း Size မပြောင်းအောင် */
-#premiumBtn {
-    display: inline-flex !important;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-}
+        .wave-text { display:inline-block; font-weight:700; }
+        .wave-letter { display:inline-block; animation:waveJump 1.2s ease-in-out infinite; }
+        .wave-letter:nth-child(1){animation-delay:0s} .wave-letter:nth-child(2){animation-delay:0.08s} .wave-letter:nth-child(3){animation-delay:0.16s} .wave-letter:nth-child(4){animation-delay:0.24s} .wave-letter:nth-child(5){animation-delay:0.32s} .wave-letter:nth-child(6){animation-delay:0.40s} .wave-letter:nth-child(7){animation-delay:0.48s}
+        @keyframes waveJump { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+        #premiumBtn { display:inline-flex!important; align-items:center; gap:3px; white-space:nowrap; overflow:hidden; }
     </style>
 </head>
 <body class="normal-theme">
@@ -786,11 +167,9 @@
 
     <div class="chat-header">
         <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-         <a href="/chatpremium.html" id="premiumBtn" style="display:inline-flex; align-items:center; gap:4px; padding:6px 14px; background:linear-gradient(135deg, #f39c12, #e67e22); color:#000; text-decoration:none; font-size:10px; font-weight:700; border-radius:20px; border:2px solid #fff; letter-spacing:0.5px; transition:all 0.3s; box-shadow:0 2px 10px rgba(243,156,18,0.3); white-space:nowrap; overflow:hidden;">
-         <span class="wave-text"><span class="wave-letter">P</span><span class="wave-letter">r</span><span class="wave-letter">e</span><span class="wave-letter">m</span><span class="wave-letter">i</span><span class="wave-letter">u</span><span class="wave-letter">m</span></span>
-         </a>
-        <h3 class="animated-text"><i class="fas fa-comments"></i> စကားပြော</h3>
-        <span class="online-count" id="onlineCount">0 online</span>
+        <a href="/chatpremium.html" id="premiumBtn" style="display:inline-flex;align-items:center;gap:3px;padding:4px 10px;background:linear-gradient(135deg,#f39c12,#e67e22);color:#000;text-decoration:none;font-size:9px;font-weight:700;border-radius:14px;border:2px solid #fff;transition:all 0.3s;box-shadow:0 2px 8px rgba(243,156,18,0.3);white-space:nowrap;overflow:hidden;"><span class="wave-text"><span class="wave-letter">P</span><span class="wave-letter">r</span><span class="wave-letter">e</span><span class="wave-letter">m</span><span class="wave-letter">i</span><span class="wave-letter">u</span><span class="wave-letter">m</span></span></a>
+        <h3><i class="fas fa-comments"></i> စကားပြော</h3>
+        <span class="online-count" id="onlineCount">0</span>
         <span class="premium-badge" id="premiumBadge"></span>
     </div>
 
@@ -798,736 +177,287 @@
         <div class="chat-tab active" data-tab="rooms">💬 Rooms</div>
         <div class="chat-tab" data-tab="users">👥 Users</div>
         <div class="chat-tab" data-tab="groups">👥 Groups</div>
+        <div class="chat-tab profile-tab" data-tab="profile">👤 Profile</div>
     </div>
 
     <div class="chat-body">
         <div class="room-list active" id="roomList"><div class="empty-state">Loading...</div></div>
         <div class="room-list" id="usersList"><div class="empty-state">Loading users...</div></div>
         <div class="room-list" id="groupsList"><div class="empty-state">No groups yet. Create one!</div></div>
+        <div class="room-list" id="profilePanel"><div class="empty-state">Loading profile...</div></div>
 
         <div class="chat-area" id="chatArea">
             <div class="chat-area-header">
                 <span class="back-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></span>
-                <span class="room-title animated-text" id="chatRoomTitle">Chat</span>
+                <span class="room-title" id="chatRoomTitle">Chat</span>
+                <span class="report-btn" id="reportBtn" onclick="reportGroup()" title="Report Group"><i class="fas fa-flag"></i></span>
                 <span class="delete-room-btn" onclick="deleteCurrentRoom()"><i class="fas fa-trash"></i></span>
             </div>
-            <div class="messages" id="messages">
-                <div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Select a chat room to start</div>
-            </div>
-            <div class="typing-indicator" id="typingIndicator" style="display:none">
-                <i class="fas fa-ellipsis-h"></i> Someone is typing...
-            </div>
+            <div class="messages" id="messages"><div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Select a chat room to start</div></div>
+            <div class="typing-indicator" id="typingIndicator" style="display:none"><i class="fas fa-ellipsis-h"></i> Someone is typing...</div>
             <div class="msg-input-area">
                 <div class="media-buttons" id="mediaButtons">
-                    <button class="media-btn" id="imageBtn" onclick="handleImageClick()">
-                        <i class="fas fa-image"></i>
-                        <span class="lock-icon" id="imageLock" style="display:none">🔒</span>
-                    </button>
-                    <button class="media-btn" id="fileBtn" onclick="handleFileClick()">
-                        <i class="fas fa-paperclip"></i>
-                        <span class="lock-icon" id="fileLock" style="display:none">🔒</span>
-                    </button>
+                    <button class="media-btn" id="imageBtn" onclick="handleImageClick()"><i class="fas fa-image"></i><span class="lock-icon" id="imageLock" style="display:none">🔒</span></button>
+                    <button class="media-btn" id="fileBtn" onclick="handleFileClick()"><i class="fas fa-paperclip"></i><span class="lock-icon" id="fileLock" style="display:none">🔒</span></button>
                 </div>
-                <div class="input-wrapper">
-                    <input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key==='Enter') sendMessage()" oninput="onTyping()">
-                </div>
+                <div class="input-wrapper"><input type="text" id="msgInput" placeholder="Message..." onkeypress="if(event.key==='Enter')sendMessage()" oninput="onTyping()"></div>
                 <button onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
             </div>
-            
             <div class="emoji-row">
                 <button class="toggle-emoji-btn" onclick="toggleMoreEmojis()"><i class="fas fa-smile"></i> More</button>
-                <span class="emoji-item" onclick="insertEmoji('😀')">😀</span><span class="emoji-item" onclick="insertEmoji('😂')">😂</span>
-                <span class="emoji-item" onclick="insertEmoji('😍')">😍</span><span class="emoji-item" onclick="insertEmoji('😎')">😎</span>
-                <span class="emoji-item" onclick="insertEmoji('😢')">😢</span><span class="emoji-item" onclick="insertEmoji('😡')">😡</span>
-                <span class="emoji-item" onclick="insertEmoji('👍')">👍</span><span class="emoji-item" onclick="insertEmoji('👎')">👎</span>
-                <span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span><span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span>
-                <span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span><span class="emoji-item" onclick="insertEmoji('💯')">💯</span>
-                <span class="emoji-item" onclick="insertEmoji('🙏')">🙏</span><span class="emoji-item" onclick="insertEmoji('😊')">😊</span>
+                <span class="emoji-item" onclick="insertEmoji('😀')">😀</span><span class="emoji-item" onclick="insertEmoji('😂')">😂</span><span class="emoji-item" onclick="insertEmoji('😍')">😍</span><span class="emoji-item" onclick="insertEmoji('😎')">😎</span><span class="emoji-item" onclick="insertEmoji('❤️')">❤️</span><span class="emoji-item" onclick="insertEmoji('🔥')">🔥</span><span class="emoji-item" onclick="insertEmoji('🎉')">🎉</span><span class="emoji-item" onclick="insertEmoji('👍')">👍</span>
             </div>
         </div>
     </div>
 
-    <!-- ========== PREMIUM REQUIRED MODAL (အလှ) ========== -->
-    <div class="premium-req-overlay" id="premiumReqOverlay" onclick="closePremiumReqModal(event)">
-        <div class="premium-req-card" onclick="event.stopPropagation()">
-            <div class="req-icon">👑</div>
-            <h3>Premium Feature</h3>
-            <p>ဓာတ်ပုံနှင့် ဖိုင်များ ပေးပို့ရန်<br>မည်သည့် Premium ကိုမဆို ဝယ်ယူထားရပါမည်</p>
-            <div class="tier-icons">
-                <div class="tier-icon-item bronze">🥉 Bronze</div>
-                <div class="tier-icon-item silver">🥈 Silver</div>
-                <div class="tier-icon-item gold">🥇 Gold</div>
-            </div>
-            <button class="btn-upgrade" onclick="window.location.href='/chatpremium.html'">
-                <i class="fas fa-crown"></i> Upgrade Now
-            </button>
-            <button class="btn-close-req" onclick="document.getElementById('premiumReqOverlay').classList.remove('active')">
-                ပယ်ဖျက်မည်
-            </button>
-        </div>
-    </div>
+    <!-- Premium Required Modal -->
+    <div class="premium-req-overlay" id="premiumReqOverlay" onclick="closePremiumReqModal(event)"><div class="premium-req-card" onclick="event.stopPropagation()"><div style="font-size:45px">👑</div><h3>Premium Feature</h3><p style="font-size:10px;color:rgba(255,255,255,0.7);margin-bottom:8px">ဓာတ်ပုံနှင့် ဖိုင်များ ပေးပို့ရန် Premium ဝယ်ယူထားရပါမည်</p><button class="btn-upgrade" onclick="window.location.href='/chatpremium.html'">👑 Upgrade Now</button><button style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:9px;padding:6px;border:none;border-radius:6px;cursor:pointer;width:100%;margin-top:4px" onclick="document.getElementById('premiumReqOverlay').classList.remove('active')">ပယ်ဖျက်မည်</button></div></div>
 
-    <!-- ========== OTHER MODALS ========== -->
-    <div class="upload-preview-modal" id="uploadPreviewModal">
-        <div class="upload-preview-container">
-            <div id="uploadPreviewContent"></div>
-            <div class="upload-progress" id="uploadProgress" style="display:none">
-                <div style="font-size:11px; margin-bottom:4px" id="progressText">Uploading 0%</div>
-                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-            </div>
-            <div class="upload-buttons">
-                <button class="btn-cancel" onclick="cancelUpload()">Cancel</button>
-                <button class="btn-send" id="sendUploadBtn" onclick="confirmUpload()">Send</button>
-            </div>
-        </div>
-    </div>
+    <!-- Create Group Modal -->
+    <div class="modal-overlay" id="groupModal"><div class="modal-box"><h3><i class="fas fa-users"></i> Create New Group</h3><div class="form-group"><label>Group Name</label><input type="text" id="groupName" placeholder="Enter group name..."></div><div class="form-group"><label>Add Members</label><div class="username-search-wrap"><input type="text" id="memberSearch" placeholder="Search username..." oninput="searchUsernames()" autocomplete="off"><div class="username-dropdown" id="usernameDropdown"></div></div><div id="selectedMembers" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;min-height:20px"></div></div><div class="btn-row"><button class="btn btn-g" onclick="createGroup()">Create</button><button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button></div></div></div>
 
-    <div class="modal-overlay" id="groupModal"><div class="modal-box"><h3><i class="fas fa-users"></i> Create New Group</h3><div class="form-group"><label>Group Name</label><input type="text" id="groupName" placeholder="Enter group name..."></div><div class="form-group"><label>Add Members</label><select id="groupMembers" multiple style="height:100px;"></select><small>Hold Ctrl/Cmd to select multiple</small></div><div class="btn-row"><button class="btn btn-g" onclick="createGroup()">Create</button><button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button></div></div></div>
-    <div class="modal-overlay" id="addMemberModal"><div class="modal-box"><h3><i class="fas fa-user-plus"></i> Add Member</h3><input type="hidden" id="addMemberRoomId"><select id="addMemberSelect" style="width:100%; padding:10px; background:rgba(0,0,0,0.3); border-radius:8px; color:#fff"></select><div class="btn-row"><button class="btn btn-g" onclick="addMemberToGroup()">Add</button><button class="btn btn-r" onclick="closeModal('addMemberModal')">Cancel</button></div></div></div>
-    <div class="modal-overlay" id="inviteModal"><div class="modal-box"><h3><i class="fas fa-link"></i> Invite Link</h3><div style="display:flex; gap:8px;"><input type="text" id="inviteLink" readonly style="flex:1; padding:10px; background:rgba(0,0,0,0.3); border-radius:8px; color:#fff"><button class="btn btn-b" onclick="copyInviteLink()">Copy</button></div><button class="btn btn-g" onclick="closeModal('inviteModal')" style="width:100%; margin-top:10px">Close</button></div></div>
-    <div class="modal-overlay" id="groupInfoModal"><div class="modal-box"><h3><i class="fas fa-info-circle"></i> Group Info</h3><div id="groupInfoContent"></div><div class="btn-row"><button class="btn btn-w" onclick="showAddMemberModal()">➕ Add Member</button><button class="btn btn-b" onclick="getInviteLink()">🔗 Invite Link</button><button class="btn btn-r" onclick="leaveGroup()">🚪 Leave Group</button></div><button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%; margin-top:10px">Close</button></div></div>
-    <div class="modal-overlay" id="moreEmojisModal"><div class="modal-box"><h3><i class="fas fa-smile"></i> All Emojis</h3><div class="more-emojis-grid" id="moreEmojisGrid"></div><button class="btn" onclick="closeModal('moreEmojisModal')" style="width:100%; margin-top:10px">Close</button></div></div>
+    <!-- Group Info Modal -->
+    <div class="modal-overlay" id="groupInfoModal"><div class="modal-box"><h3><i class="fas fa-info-circle"></i> Group Info</h3><div id="groupInfoContent"></div><div class="btn-row"><button class="btn btn-w" onclick="showAddMemberModal()">➕ Add</button><button class="btn btn-r" onclick="leaveGroup()">🚪 Leave</button></div><button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%;margin-top:6px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
 
-    <script>
-    // ============================================
-    // COMPLETE CHAT SYSTEM
-    // ============================================
-    let socket = null, currentUser = null, currentRoom = null, typingTimeout = null;
-    let isPremium = false, premiumTier = 0;
-    let selectedFile = null, selectedFileType = null, selectedFileName = null, uploadCancelled = false;
+    <!-- Add Member Modal -->
+    <div class="modal-overlay" id="addMemberModal"><div class="modal-box"><h3><i class="fas fa-user-plus"></i> Add Member</h3><input type="hidden" id="addMemberRoomId"><div class="form-group"><label>Username</label><div class="username-search-wrap"><input type="text" id="addMemberSearch" placeholder="Search username..." oninput="searchUsernameForAdd()" autocomplete="off"><div class="username-dropdown" id="addMemberDropdown"></div></div></div><div class="btn-row"><button class="btn btn-g" onclick="addMemberToGroup()">Add</button><button class="btn btn-r" onclick="closeModal('addMemberModal')">Cancel</button></div></div></div>
 
-    function showToast(msg, isError = false) {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.style.background = isError ? '#e74c3c' : '#2ecc71';
-        toast.style.color = isError ? '#fff' : '#000';
-        toast.style.display = 'block';
-        setTimeout(() => toast.style.display = 'none', 2500);
-    }
+    <!-- Profile Modal -->
+    <div class="modal-overlay" id="profileModal"><div class="modal-box"><h3><i class="fas fa-user-circle"></i> My Profile</h3><div id="profileContent"></div></div></div>
 
-    function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
-    function scrollToBottom() { const msgs = document.getElementById('messages'); if (msgs) msgs.scrollTop = msgs.scrollHeight; }
-    function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+    <!-- Report Warning Overlay -->
+    <div class="report-warning-overlay" id="reportWarningOverlay"><div class="report-warning-box"><div class="warn-icon">⚠️</div><div class="warn-text" id="reportWarnText">ဤ Group ကို Report 50 ကြိမ်ပြည့်သွားပါပြီ</div><div class="warn-countdown" id="reportCountdown">10</div><div style="color:rgba(255,255,255,0.5);font-size:10px">စက္ကန့်အတွင်း Group ပျက်သွားပါမည်</div></div></div>
 
-    function closePremiumReqModal(event) {
-        if (event && event.target !== document.getElementById('premiumReqOverlay')) return;
-        document.getElementById('premiumReqOverlay').classList.remove('active');
-    }
+    <!-- More Emojis Modal -->
+    <div class="modal-overlay" id="moreEmojisModal"><div class="modal-box"><h3><i class="fas fa-smile"></i> All Emojis</h3><div class="more-emojis-grid" id="moreEmojisGrid" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-height:250px;overflow-y:auto;padding:8px"></div><button class="btn" onclick="closeModal('moreEmojisModal')" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
 
-    function handleImageClick() {
-        if (!isPremium) { document.getElementById('premiumReqOverlay').classList.add('active'); return; }
-        selectImage();
-    }
+    <!-- Upload Preview Modal -->
+    <div class="upload-preview-modal" id="uploadPreviewModal" style="position:fixed;bottom:0;left:0;right:0;background:#1a1f4b;border-radius:16px 16px 0 0;padding:14px;z-index:3000;transform:translateY(100%);transition:transform 0.3s ease;border-top:2px solid #f39c12"><div class="upload-preview-container"><div id="uploadPreviewContent"></div><div class="upload-progress" id="uploadProgress" style="display:none"><div style="font-size:10px;margin-bottom:4px" id="progressText">Uploading 0%</div><div class="progress-bar" style="height:3px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden"><div class="progress-fill" id="progressFill" style="height:100%;background:linear-gradient(90deg,#2ecc71,#f39c12);width:0%"></div></div></div><div class="upload-buttons" style="display:flex;gap:6px;margin-top:10px"><button class="btn-cancel" onclick="cancelUpload()" style="flex:1;padding:8px;border:none;border-radius:6px;background:rgba(255,255,255,0.08);color:#fff;font-weight:bold;cursor:pointer">Cancel</button><button class="btn-send" id="sendUploadBtn" onclick="confirmUpload()" style="flex:1;padding:8px;border:none;border-radius:6px;background:#2ecc71;color:#000;font-weight:bold;cursor:pointer">Send</button></div></div></div>
 
-    function handleFileClick() {
-        if (!isPremium) { document.getElementById('premiumReqOverlay').classList.add('active'); return; }
-        selectFile();
-    }
+<script>
+// ============================================
+// COMPLETE CHAT SYSTEM V3
+// ============================================
+let socket=null,currentUser=null,currentRoom=null,typingTimeout=null,isPremium=false,premiumTier=0;
+let selectedFile=null,selectedFileType=null,selectedFileName=null,uploadCancelled=false,isProcessing=false;
+let selectedMembers=[],currentRoomType=null;
 
-    async function checkPremiumStatus() {
-    const token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest') return;
-    
-    try {
-        // ✅ ALL TIERS API ကို သုံးပါ
-        const res = await fetch('/api/chat/premium/all_tiers', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-        });
-        const data = await res.json();
-        
-        if (data.success && data.tiers) {
-            // ✅ အမြင့်ဆုံး Active Tier ကို ရှာပါ
-            let highestActiveTier = 0;
-            for (let tier = 3; tier >= 1; tier--) {
-                if (data.tiers[tier]) {
-                    highestActiveTier = tier;
-                    break;
-                }
-            }
-            
-            if (highestActiveTier > 0) {
-                isPremium = true;
-                premiumTier = highestActiveTier;
-                applyPremiumTheme(premiumTier);
-                updateMediaButtons(true);
-            } else {
-                isPremium = false;
-                premiumTier = 0;
-                applyNormalTheme();
-                updateMediaButtons(false);
-            }
-        } else {
-            isPremium = false;
-            premiumTier = 0;
-            applyNormalTheme();
-            updateMediaButtons(false);
-        }
-    } catch(e) {
-        console.error(e);
-    }
-    }
-    function applyPremiumTheme(tier) {
-    const body = document.body;
-    body.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
-    const badge = document.getElementById('premiumBadge');
-    const premiumBtn = document.getElementById('premiumBtn');
-    
-    // Wave text helper function
-    function makeWaveText(text, icon) {
-        let html = icon + ' <span class="wave-text">';
-        for (let i = 0; i < text.length; i++) {
-            html += `<span class="wave-letter">${text[i]}</span>`;
-        }
-        html += '</span>';
-        return html;
-    }
-    
-    if (tier === 1) {
-        body.classList.add('bronze-tier');
-        badge.textContent = '🥉 BRONZE';
-        badge.style.display = 'inline-block';
-        if (premiumBtn) {
-            premiumBtn.style.background = 'linear-gradient(135deg, #CD7F32, #8B4513)';
-            premiumBtn.style.color = '#fff';
-            premiumBtn.style.border = '2px solid #E8A87C';
-            premiumBtn.style.boxShadow = '0 2px 12px rgba(205,127,50,0.4)';
-            premiumBtn.innerHTML = makeWaveText('Bronze', '🥉');
-        }
-    } else if (tier === 2) {
-        body.classList.add('silver-tier');
-        badge.textContent = '🥈 SILVER';
-        badge.style.display = 'inline-block';
-        if (premiumBtn) {
-            premiumBtn.style.background = 'linear-gradient(135deg, #C0C0C0, #808080)';
-            premiumBtn.style.color = '#0a0a0a';
-            premiumBtn.style.border = '2px solid #E8E8E8';
-            premiumBtn.style.boxShadow = '0 2px 12px rgba(192,192,192,0.4)';
-            premiumBtn.innerHTML = makeWaveText('Silver', '🥈');
-        }
-    } else if (tier === 3) {
-        body.classList.add('gold-tier');
-        badge.textContent = '🥇 GOLD';
-        badge.style.display = 'inline-block';
-        if (premiumBtn) {
-            premiumBtn.style.background = 'linear-gradient(135deg, #FFD700, #B8860B)';
-            premiumBtn.style.color = '#1a0a00';
-            premiumBtn.style.border = '2px solid #FFF8DC';
-            premiumBtn.style.boxShadow = '0 2px 16px rgba(255,215,0,0.5)';
-            premiumBtn.innerHTML = makeWaveText('Gold', '🥇');
-        }
-    } else {
-        body.classList.add('normal-theme');
-        badge.style.display = 'none';
-        if (premiumBtn) {
-            premiumBtn.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
-            premiumBtn.style.color = '#000';
-            premiumBtn.style.border = '2px solid #fff';
-            premiumBtn.style.boxShadow = '0 2px 10px rgba(243,156,18,0.3)';
-            premiumBtn.innerHTML = makeWaveText('Premium');
-        }
-    }
-    }
-    function updateMediaButtons(hasPremium) {
-        const imageBtn = document.getElementById('imageBtn');
-        const fileBtn = document.getElementById('fileBtn');
-        const imageLock = document.getElementById('imageLock');
-        const fileLock = document.getElementById('fileLock');
-        if (hasPremium) {
-            imageBtn.disabled = false; fileBtn.disabled = false;
-            imageBtn.classList.remove('locked'); fileBtn.classList.remove('locked');
-            imageLock.style.display = 'none'; fileLock.style.display = 'none';
-        } else {
-            imageBtn.disabled = true; fileBtn.disabled = true;
-            imageBtn.classList.add('locked'); fileBtn.classList.add('locked');
-            imageLock.style.display = 'flex'; fileLock.style.display = 'flex';
-        }
-    }
+function showToast(m,e){e=e||false;const t=document.getElementById('toast');t.textContent=m;t.style.background=e?'#e74c3c':'#2ecc71';t.style.color=e?'#fff':'#000';t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
+function escapeHtml(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+function scrollToBottom(){const m=document.getElementById('messages');if(m)m.scrollTop=m.scrollHeight}
+function closeModal(id){document.getElementById(id).classList.remove('active')}
+function closePremiumReqModal(e){if(e&&e.target!==document.getElementById('premiumReqOverlay'))return;document.getElementById('premiumReqOverlay').classList.remove('active')}
+function handleImageClick(){if(!isPremium){document.getElementById('premiumReqOverlay').classList.add('active');return}selectImage()}
+function handleFileClick(){if(!isPremium){document.getElementById('premiumReqOverlay').classList.add('active');return}selectFile()}
 
-    function selectImage() {
-        const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*';
-        input.onchange = (e) => { if (e.target.files[0]) { selectedFile = e.target.files[0]; selectedFileType = 'image'; selectedFileName = selectedFile.name; showUploadPreview(selectedFile, 'image'); } };
-        input.click();
-    }
-
-    function selectFile() {
-        const input = document.createElement('input'); input.type = 'file';
-        input.onchange = (e) => { if (e.target.files[0]) { selectedFile = e.target.files[0]; selectedFileType = 'file'; selectedFileName = selectedFile.name; showUploadPreview(selectedFile, 'file'); } };
-        input.click();
-    }
-
-    function showUploadPreview(file, type) {
-        const container = document.getElementById('uploadPreviewContent');
-        const modal = document.getElementById('uploadPreviewModal');
-        if (type === 'image') {
-            const reader = new FileReader();
-            reader.onload = (e) => { container.innerHTML = `<img src="${e.target.result}" class="upload-preview-image">`; modal.classList.add('active'); };
-            reader.readAsDataURL(file);
-        } else {
-            container.innerHTML = `<div class="upload-preview-file"><i class="fas fa-file" style="font-size:40px"></i><div style="flex:1"><div style="font-weight:bold">${escapeHtml(file.name)}</div><div style="font-size:10px; color:rgba(255,255,255,0.5)">${(file.size / 1024).toFixed(1)} KB</div></div></div>`;
-            modal.classList.add('active');
-        }
-        document.getElementById('uploadProgress').style.display = 'none';
-        document.getElementById('sendUploadBtn').disabled = false;
-        uploadCancelled = false;
-    }
-
-    function cancelUpload() { uploadCancelled = true; selectedFile = null; document.getElementById('uploadPreviewModal').classList.remove('active'); }
-
-    async function confirmUpload() {
-        if (!selectedFile || uploadCancelled || !currentRoom) { if (!currentRoom) showToast('Select a chat room first', true); cancelUpload(); return; }
-        const modal = document.getElementById('uploadPreviewModal'), progressDiv = document.getElementById('uploadProgress'), progressFill = document.getElementById('progressFill'), progressText = document.getElementById('progressText');
-        progressDiv.style.display = 'block'; progressFill.style.width = '0%'; progressText.textContent = 'Uploading 0%';
-        document.getElementById('sendUploadBtn').disabled = true;
-        let progress = 0;
-        const progressInterval = setInterval(() => { if (uploadCancelled) return; progress = Math.min(progress + 8, 90); progressFill.style.width = progress + '%'; progressText.textContent = `Uploading ${progress}%`; }, 150);
-        try {
-            const reader = new FileReader();
-            const base64 = await new Promise((resolve) => { reader.onload = (e) => resolve(e.target.result); reader.readAsDataURL(selectedFile); });
-            if (uploadCancelled) { clearInterval(progressInterval); cancelUpload(); return; }
-            progressFill.style.width = '95%'; progressText.textContent = 'Processing 95%';
-            const res = await fetch('/api/chat/upload_file', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: localStorage.getItem('auth_token'), base64, fileName: selectedFileName, fileType: selectedFile.type })
-            });
-            const data = await res.json();
-            clearInterval(progressInterval);
-            if (uploadCancelled) { cancelUpload(); return; }
-            if (data.success) {
-                progressFill.style.width = '100%'; progressText.textContent = 'Complete! Sending...';
-                await new Promise(r => setTimeout(r, 200));
-                const messageData = { roomId: currentRoom, message: selectedFileType === 'image' ? `📷 IMAGE:${data.url}` : `📎 FILE:${data.url}|${data.fileName || selectedFileName}`, userId: currentUser.id, username: currentUser.username, senderPremiumTier: premiumTier };
-                socket.emit('send_message', messageData);
-                showToast('Sent!');
-                cancelUpload();
-            } else { showToast(data.message || 'Upload failed', true); cancelUpload(); }
-        } catch(err) { clearInterval(progressInterval); showToast('Upload error', true); cancelUpload(); }
-    }
-
-    async function getCurrentUser() {
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') { document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-lock" style="font-size:50px"></i><h3>Please login to chat</h3><a href="/">Login</a></div>'; return null; }
-        try {
-            const res = await fetch('/api/chat/current_user', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
-            const data = await res.json();
-            if (data.success) { currentUser = data.user; return currentUser; }
-            throw new Error('User not found');
-        } catch(e) { document.body.innerHTML = '<div style="text-align:center;padding:50px"><i class="fas fa-exclamation-triangle" style="font-size:50px"></i><h3>Error loading user</h3><a href="/">Back</a></div>'; return null; }
-    }
-
-    function initSocket() {
-        socket = io(window.location.origin, { transports: ['polling', 'websocket'], reconnection: true });
-        socket.on('connect', () => { if (currentUser) socket.emit('user_online', { userId: currentUser.id, username: currentUser.username }); });
-        socket.on('new_message', (msg) => {
-            if (currentRoom === msg.roomId) {
-                addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
-                scrollToBottom();
-            }
-            loadRooms();
-        });
-        socket.on('online_users', (users) => { document.getElementById('onlineCount').innerHTML = (users?.length || 0) + ' online'; loadUsersList(); });
-        socket.on('user_typing', (data) => {
-            if (currentRoom === data.roomId && data.userId !== currentUser?.id) {
-                const ind = document.getElementById('typingIndicator');
-                ind.style.display = 'block';
-                ind.innerHTML = `<i class="fas fa-ellipsis-h"></i> ${escapeHtml(data.username)} is typing...`;
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => ind.style.display = 'none', 2000);
-            }
-        });
-    }
-
-    function onTyping() { if (!currentRoom || !currentUser) return; socket.emit('typing', { roomId: currentRoom, userId: currentUser.id, username: currentUser.username }); }
-
-    function switchTab(tabName) {
-        document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
-        document.querySelector(`.chat-tab[data-tab="${tabName}"]`).classList.add('active');
-        document.getElementById('roomList').classList.remove('active');
-        document.getElementById('usersList').classList.remove('active');
-        document.getElementById('groupsList').classList.remove('active');
-        if (tabName === 'rooms') { document.getElementById('roomList').classList.add('active'); loadRooms(); }
-        else if (tabName === 'users') { document.getElementById('usersList').classList.add('active'); loadUsersList(); }
-        else if (tabName === 'groups') { document.getElementById('groupsList').classList.add('active'); loadGroupsList(); }
-    }
-
-    async function loadRooms() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            const container = document.getElementById('roomList');
-            if (data.rooms?.length) {
-                container.innerHTML = data.rooms.map(room => `<div class="room-item" onclick="openRoom(${room.id}, '${escapeHtml(room.room_name)}', '${room.room_type}')"><div class="room-icon">${room.room_type === 'admin' ? '👑' : room.room_type === 'group' ? '👥' : '💬'}</div><div class="room-info"><div class="room-name">${escapeHtml(room.room_name)}</div><div class="room-last">${escapeHtml(room.last_message || 'No messages')}</div></div>${room.unread > 0 ? `<div class="room-badge">${room.unread}</div>` : ''}</div>`).join('');
-            } else { container.innerHTML = `<div class="empty-state"><i class="fas fa-comments"></i><p>No chat rooms yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>`; }
-        } catch(e) { console.error(e); }
-    }
-
-    async function loadUsersList() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/online_users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            const onlineUsers = (data.users || []).filter(u => u.user_id !== currentUser.id);
-            document.getElementById('usersList').innerHTML = onlineUsers.length ? onlineUsers.map(user => `<div class="user-item" onclick="startPrivateChat(${user.user_id}, '${escapeHtml(user.username)}')"><div class="online-indicator"></div><div class="room-info"><div class="room-name">${escapeHtml(user.username)}</div><div class="room-last" style="color:#2ecc71;">🟢 Online now</div></div></div>`).join('') : '<div class="empty-state"><i class="fas fa-user-slash"></i><p>No online users</p></div>';
-        } catch(e) { console.error(e); }
-    }
-
-    async function loadGroupsList() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/groups', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            document.getElementById('groupsList').innerHTML = data.groups?.length ? data.groups.map(group => `<div class="room-item" onclick="openRoom(${group.id}, '${escapeHtml(group.room_name)}', 'group')"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(group.room_name)}</div><div class="room-last">${escapeHtml(group.last_message || 'No messages')}</div></div></div>`).join('') : `<div class="empty-state"><i class="fas fa-users"></i><p>No groups yet</p><button class="admin-btn" onclick="openCreateGroupModal()">➕ Create New Group</button></div>`;
-        } catch(e) { console.error(e); }
-    }
-
-    function openCreateGroupModal() { loadUsersForSelect('groupMembers'); document.getElementById('groupModal').classList.add('active'); }
-    async function loadUsersForSelect(selectId) {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/all_users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            const select = document.getElementById(selectId);
-            if (select && data.users) select.innerHTML = data.users.map(user => `<option value="${user.id}">${escapeHtml(user.username)}</option>`).join('');
-        } catch(e) {}
-    }
-    async function createGroup() {
-        const groupName = document.getElementById('groupName').value.trim();
-        if (!groupName) { showToast('Group name required', true); return; }
-        const members = Array.from(document.getElementById('groupMembers').selectedOptions).map(opt => parseInt(opt.value));
-        try {
-            const res = await fetch('/api/chat/create_group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, groupName, members }) });
-            const data = await res.json();
-            if (data.success) { showToast('Group created!'); closeModal('groupModal'); document.getElementById('groupName').value = ''; loadGroupsList(); loadRooms(); }
-            else showToast(data.message || 'Error', true);
-        } catch(e) { showToast('Server error', true); }
-    }
-
-    async function startAdminChat() {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/create_admin_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id }) });
-            const data = await res.json();
-            if (data.success) { openRoom(data.room.id, data.room.room_name, 'admin'); loadRooms(); }
-            else showToast('Error creating admin chat', true);
-        } catch(e) { showToast('Server error', true); }
-    }
-
-    async function startPrivateChat(otherUserId, otherUsername) {
-        if (!currentUser) return;
-        try {
-            const res = await fetch('/api/chat/create_private_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: currentUser.id, otherUserId }) });
-            const data = await res.json();
-            if (data.success) openRoom(data.room.id, otherUsername, 'private');
-        } catch(e) { showToast('Error', true); }
-    }
-
-    async function openRoom(roomId, roomName, roomType) {
-        currentRoom = roomId;
-        document.querySelectorAll('.room-list').forEach(l => l.classList.remove('active'));
-        document.getElementById('chatArea').classList.add('active');
-        document.getElementById('chatRoomTitle').textContent = roomName;
-        const msgContainer = document.getElementById('messages');
-        msgContainer.innerHTML = '<div style="text-align:center;padding:20px">Loading messages...</div>';
-        if (socket && socket.connected) socket.emit('join_room', roomId);
-        try {
-            const res = await fetch(`/api/chat/messages/${roomId}`);
-            const data = await res.json();
-            if (data.messages?.length) {
-                msgContainer.innerHTML = '';
-                data.messages.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
-                scrollToBottom();
-            } else msgContainer.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet. Say hi!</div>';
-            await fetch('/api/chat/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId, userId: currentUser.id }) });
-        } catch(e) { msgContainer.innerHTML = '<div style="text-align:center;padding:20px;color:#e74c3c">Error loading messages</div>'; }
-    }
-
-    function addMessageToUI(msg, isMine, senderPremiumTier = 0) {
-    const container = document.getElementById('messages');
-    if (container.innerHTML.includes('No messages') || container.innerHTML.includes('Loading')) container.innerHTML = '';
-    let messageHtml = '';
-    const msgText = msg.message || '';
-    if (msgText.startsWith('📷 IMAGE:')) {
-        const url = msgText.replace('📷 IMAGE:', '');
-        messageHtml = `<div class="media-message" onclick="downloadMedia('${url}', 'image')"><img src="${url}" alt="Image" loading="lazy"><div class="download-icon" style="position:absolute; bottom:5px; right:5px; background:rgba(0,0,0,0.5); border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center"><i class="fas fa-download"></i></div></div>`;
-    } else if (msgText.startsWith('📎 FILE:')) {
-        const parts = msgText.replace('📎 FILE:', '').split('|');
-        const url = parts[0], fname = parts[1] || 'File';
-        messageHtml = `<div class="file-message" onclick="downloadMedia('${url}', 'file', '${fname}')"><i class="fas fa-file"></i> ${escapeHtml(fname)}<i class="fas fa-download download-icon"></i></div>`;
-    } else { messageHtml = escapeHtml(msgText); }
-    
-    const div = document.createElement('div');
-    div.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
-    
-    // ✅ Sender ရဲ့ Premium Tier ပေါ်မူတည်ပြီး Bubble Class သတ်မှတ်
-    let bubbleTierClass = 'normal-tier';  // Default
-    if (senderPremiumTier === 1) {
-        bubbleTierClass = 'bronze-tier';
-    } else if (senderPremiumTier === 2) {
-        bubbleTierClass = 'silver-tier';
-    } else if (senderPremiumTier === 3) {
-        bubbleTierClass = 'gold-tier';
-    }
-    
-    div.innerHTML = `<div class="msg-bubble ${bubbleTierClass}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${messageHtml}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div>`;
-    container.appendChild(div);
-    }
-        
-    function downloadMedia(url, type, filename = 'file') {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = type === 'image' ? 'image.jpg' : filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showToast('Download started');
-    }
-
-    function sendMessage() {
-        const input = document.getElementById('msgInput');
-        const message = input.value.trim();
-        if (!message) return;
-        if (!currentRoom) { showToast('Select a chat room first', true); return; }
-        if (!currentUser) { showToast('Please login', true); return; }
-        socket.emit('send_message', { roomId: currentRoom, message, userId: currentUser.id, username: currentUser.username, senderPremiumTier: premiumTier });
-        input.value = '';
-    }
-
-    function closeChat() { currentRoom = null; document.getElementById('chatArea').classList.remove('active'); document.getElementById('roomList').classList.add('active'); loadRooms(); }
-    function deleteCurrentRoom() { if (!currentRoom || !confirm('Delete this chat room?')) return; fetch('/api/chat/delete_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) }).then(() => { showToast('Room deleted'); closeChat(); }).catch(() => showToast('Error', true)); }
-    function showAddMemberModal() { document.getElementById('addMemberRoomId').value = currentRoom; loadUsersForSelect('addMemberSelect'); document.getElementById('addMemberModal').classList.add('active'); }
-    async function addMemberToGroup() {
-        const roomId = document.getElementById('addMemberRoomId').value, newMemberId = document.getElementById('addMemberSelect').value;
-        if (!newMemberId) { showToast('Select a user', true); return; }
-        try {
-            const res = await fetch('/api/chat/add_member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId, userId: newMemberId, requesterId: currentUser.id }) });
-            const data = await res.json();
-            if (data.success) { showToast('Member added!'); closeModal('addMemberModal'); }
-            else showToast(data.message || 'Error', true);
-        } catch(e) { showToast('Server error', true); }
-    }
-    async function getInviteLink() {
-        try {
-            const res = await fetch('/api/chat/invite_link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) });
-            const data = await res.json();
-            if (data.success) { document.getElementById('inviteLink').value = data.link; document.getElementById('inviteModal').classList.add('active'); }
-            else showToast(data.message || 'Error', true);
-        } catch(e) { showToast('Server error', true); }
-    }
-    function copyInviteLink() { const input = document.getElementById('inviteLink'); input.select(); document.execCommand('copy'); showToast('Link copied!'); }
-    async function leaveGroup() {
-        if (!confirm('Leave this group?')) return;
-        try {
-            const res = await fetch('/api/chat/leave_group', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id }) });
-            const data = await res.json();
-            if (data.success) { showToast('Left group'); closeModal('groupInfoModal'); closeChat(); loadGroupsList(); loadRooms(); }
-            else showToast(data.message || 'Error', true);
-        } catch(e) { showToast('Server error', true); }
-    }
-
-    function insertEmoji(emoji) {
-        const input = document.getElementById('msgInput');
-        const cursorPos = input.selectionStart;
-        input.value = input.value.substring(0, cursorPos) + emoji + input.value.substring(cursorPos);
-        input.focus();
-        input.setSelectionRange(cursorPos + emoji.length, cursorPos + emoji.length);
-    }
-
-    function toggleMoreEmojis() {
-        const allEmojis = ['😀','😂','😍','😎','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','😊','🤔','😴','🥰','😇','🤗','💪','👋','✌️','🤝','👑','💎','💰','🎮','⚽','🌟','🍕','🍺','☕','🏆','🎯','📱','💻','🎵','📷','🔒','✅','❌','⚠️','💡','🔑','🔔','📢','💬','💭','🕒','📍','🔗','🐱','🐶','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🇲🇲','🇹🇭','🇯🇵','🇰🇷','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇮🇳','🇨🇳','🏳️‍🌈','🏴‍☠️','⭐','🌙','☀️','🌈','⚡','❄️','💧','🔥','🌊','🌸','🌺','🌻','🌹','🍎','🍕','🍔','🥤','🎂','🎁','🎈','🎊'];
-        const grid = document.getElementById('moreEmojisGrid');
-        grid.innerHTML = allEmojis.map(e => `<span class="emoji-item" style="font-size:28px; cursor:pointer; padding:5px" onclick="insertEmoji('${e}'); closeModal('moreEmojisModal');">${e}</span>`).join('');
-        document.getElementById('moreEmojisModal').classList.add('active');
-    }
-        
-    function setCookie(name, value, days) {
-    var expires = '';
-    if (days) { var date = new Date(); date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000)); expires = '; expires=' + date.toUTCString(); }
-    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
+async function checkPremiumStatus(){
+    const t=localStorage.getItem('auth_token');if(!t||t==='guest')return;
+    try{
+        const r=await fetch('/api/chat/premium/all_tiers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+        const d=await r.json();
+        if(d.success&&d.tiers){let h=0;for(let i=3;i>=1;i--){if(d.tiers[i]){h=i;break}}isPremium=h>0;premiumTier=h;isPremium?(applyPremiumTheme(premiumTier),updateMediaButtons(true)):(applyNormalTheme(),updateMediaButtons(false))}
+        else{isPremium=false;premiumTier=0;applyNormalTheme();updateMediaButtons(false)}
+    }catch(e){}
 }
-function getCookie(name) {
-    var nameEQ = name + '=';
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) { var c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
-    return null;
+function applyNormalTheme(){document.body.classList.remove('bronze-tier','silver-tier','gold-tier');document.body.classList.add('normal-theme');document.getElementById('premiumBadge').style.display='none'}
+function applyPremiumTheme(t){
+    const b=document.body,ba=document.getElementById('premiumBadge'),pb=document.getElementById('premiumBtn');
+    b.classList.remove('normal-theme','bronze-tier','silver-tier','gold-tier');
+    function w(tx,ic){let h=ic+' <span class="wave-text">';for(let i=0;i<tx.length;i++)h+=`<span class="wave-letter">${tx[i]}</span>`;return h+='</span>'}
+    if(t===1){b.classList.add('bronze-tier');ba.textContent='🥉 BRONZE';ba.style.display='inline-block';if(pb){pb.style.background='linear-gradient(135deg,#CD7F32,#8B4513)';pb.style.color='#fff';pb.style.border='2px solid #E8A87C';pb.innerHTML=w('Bronze','🥉')}}
+    else if(t===2){b.classList.add('silver-tier');ba.textContent='🥈 SILVER';ba.style.display='inline-block';if(pb){pb.style.background='linear-gradient(135deg,#C0C0C0,#808080)';pb.style.color='#0a0a0a';pb.style.border='2px solid #E8E8E8';pb.innerHTML=w('Silver','🥈')}}
+    else if(t===3){b.classList.add('gold-tier');ba.textContent='🥇 GOLD';ba.style.display='inline-block';if(pb){pb.style.background='linear-gradient(135deg,#FFD700,#B8860B)';pb.style.color='#1a0a00';pb.style.border='2px solid #FFF8DC';pb.innerHTML=w('Gold','🥇')}}
+    else{applyNormalTheme()}
+}
+function updateMediaButtons(h){const i=document.getElementById('imageBtn'),f=document.getElementById('fileBtn'),il=document.getElementById('imageLock'),fl=document.getElementById('fileLock');if(h){i.disabled=false;f.disabled=false;i.classList.remove('locked');f.classList.remove('locked');il.style.display='none';fl.style.display='none'}else{i.disabled=true;f.disabled=true;i.classList.add('locked');f.classList.add('locked');il.style.display='flex';fl.style.display='flex'}}
+function selectImage(){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=e=>{if(e.target.files[0]){selectedFile=e.target.files[0];selectedFileType='image';selectedFileName=selectedFile.name;showUploadPreview(selectedFile,'image')}};i.click()}
+function selectFile(){const i=document.createElement('input');i.type='file';i.onchange=e=>{if(e.target.files[0]){selectedFile=e.target.files[0];selectedFileType='file';selectedFileName=selectedFile.name;showUploadPreview(selectedFile,'file')}};i.click()}
+function showUploadPreview(f,t){const c=document.getElementById('uploadPreviewContent'),m=document.getElementById('uploadPreviewModal');m.classList.add('active');if(t==='image'){const r=new FileReader();r.onload=e=>{c.innerHTML=`<img src="${e.target.result}" class="upload-preview-image" style="max-width:100%;border-radius:10px;margin-bottom:10px">`};r.readAsDataURL(f)}else{c.innerHTML=`<div class="upload-preview-file" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:10px"><i class="fas fa-file" style="font-size:35px"></i><div style="flex:1"><div style="font-weight:bold;font-size:11px">${escapeHtml(f.name)}</div><div style="font-size:9px;color:rgba(255,255,255,0.5)">${(f.size/1024).toFixed(1)} KB</div></div></div>`}document.getElementById('uploadProgress').style.display='none';document.getElementById('sendUploadBtn').disabled=false;uploadCancelled=false}
+function cancelUpload(){uploadCancelled=true;selectedFile=null;document.getElementById('uploadPreviewModal').classList.remove('active')}
+async function confirmUpload(){
+    if(!selectedFile||uploadCancelled||!currentRoom){if(!currentRoom)showToast('Select a chat room first',true);cancelUpload();return}
+    const pd=document.getElementById('uploadProgress'),pf=document.getElementById('progressFill'),pt=document.getElementById('progressText');pd.style.display='block';pf.style.width='0%';pt.textContent='Uploading 0%';document.getElementById('sendUploadBtn').disabled=true;
+    let p=0;const pi=setInterval(()=>{if(uploadCancelled)return;p=Math.min(p+8,90);pf.style.width=p+'%';pt.textContent=`Uploading ${p}%`},150);
+    try{
+        const r=new FileReader();const b64=await new Promise(r=>{r.onload=e=>r(e.target.result);r.readAsDataURL(selectedFile)});
+        if(uploadCancelled){clearInterval(pi);cancelUpload();return}pf.style.width='95%';pt.textContent='Processing 95%';
+        const res=await fetch('/api/chat/upload_file',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),base64:b64,fileName:selectedFileName,fileType:selectedFile.type})});
+        const d=await res.json();clearInterval(pi);if(uploadCancelled){cancelUpload();return}
+        if(d.success){pf.style.width='100%';pt.textContent='Complete! Sending...';await new Promise(r=>setTimeout(r,200));socket.emit('send_message',{roomId:currentRoom,message:selectedFileType==='image'?`📷 IMAGE:${d.url}`:`📎 FILE:${d.url}|${d.fileName||selectedFileName}`,userId:currentUser.id,username:currentUser.username,senderPremiumTier:premiumTier});showToast('Sent!');cancelUpload()}
+        else{showToast(d.message||'Upload failed',true);cancelUpload()}
+    }catch(e){clearInterval(pi);showToast('Upload error',true);cancelUpload()}
 }
 
-        async function checkPageTimer() {
-    const pageId = 'chat'; // Chat Page ID
-    let timer = null;
-    try {
-        const saved = localStorage.getItem('pageTimers');
-        if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
-        if (!timer) { const cookieTimers = getCookie('pageTimers'); if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; } }
-        if (!timer) { const sessionTimers = sessionStorage.getItem('pageTimers'); if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; } }
-    } catch(e) {}
-    
-    if (timer && timer > Date.now()) {
-        // Timer active - Show maintenance with countdown
-        showMaintenanceMode(timer);
-        return false;
-    }
-    return true;
+async function getCurrentUser(){
+    const t=localStorage.getItem('auth_token');if(!t||t==='guest'){document.body.innerHTML='<div style="text-align:center;padding:50px"><i class="fas fa-lock" style="font-size:40px"></i><h3>Please login to chat</h3><a href="/">Login</a></div>';return null}
+    try{const r=await fetch('/api/chat/current_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});const d=await r.json();if(d.success){currentUser=d.user;return currentUser}throw new Error('User not found')}
+    catch(e){document.body.innerHTML='<div style="text-align:center;padding:50px"><i class="fas fa-exclamation-triangle" style="font-size:40px"></i><h3>Error loading user</h3><a href="/">Back</a></div>';return null}
+}
+function initSocket(){
+    socket=io(window.location.origin,{transports:['polling','websocket'],reconnection:true});
+    socket.on('connect',()=>{if(currentUser)socket.emit('user_online',{userId:currentUser.id,username:currentUser.username})});
+    socket.on('new_message',msg=>{if(currentRoom===msg.roomId){addMessageToUI(msg,msg.sender_id===currentUser?.id,msg.sender_premium_tier||0);scrollToBottom()}loadRooms()});
+    socket.on('online_users',u=>{document.getElementById('onlineCount').innerHTML=(u?.length||0)+' online';loadUsersList()});
+    socket.on('user_typing',d=>{if(currentRoom===d.roomId&&d.userId!==currentUser?.id){const ind=document.getElementById('typingIndicator');ind.style.display='block';ind.innerHTML=`<i class="fas fa-ellipsis-h"></i> ${escapeHtml(d.username)} is typing...`;clearTimeout(typingTimeout);typingTimeout=setTimeout(()=>ind.style.display='none',2000)}});
+}
+function onTyping(){if(!currentRoom||!currentUser)return;socket.emit('typing',{roomId:currentRoom,userId:currentUser.id,username:currentUser.username})}
+function switchTab(t){
+    document.querySelectorAll('.chat-tab').forEach(x=>x.classList.remove('active'));
+    document.querySelector(`.chat-tab[data-tab="${t}"]`).classList.add('active');
+    ['roomList','usersList','groupsList','profilePanel'].forEach(id=>document.getElementById(id).classList.remove('active'));
+    document.getElementById('chatArea').classList.remove('active');
+    if(t==='rooms'){document.getElementById('roomList').classList.add('active');loadRooms()}
+    else if(t==='users'){document.getElementById('usersList').classList.add('active');loadUsersList()}
+    else if(t==='groups'){document.getElementById('groupsList').classList.add('active');loadGroupsList()}
+    else if(t==='profile'){document.getElementById('profilePanel').classList.add('active');loadProfile()}
 }
 
-function showMaintenanceMode(timerEnd) {
-    // Hide normal content
-    document.querySelector('.chat-header').style.display = 'none';
-    document.querySelector('.chat-tabs').style.display = 'none';
-    document.querySelector('.chat-body').style.display = 'none';
-    
-    // Create maintenance view WITH countdown
-    const maintHTML = `
-        <div id="maintContainer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px">
-            <div style="font-size:70px;color:#f39c12;margin-bottom:20px;animation:pulse 2s infinite">
-                <i class="fas fa-tools"></i>
-            </div>
-            <div style="font-size:20px;font-weight:bold;color:#f39c12;margin-bottom:10px">
-                ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်
-            </div>
-            <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:8px">
-                စာမျက်နှာ ပြန်ဖွင့်ရန်
-            </div>
-            <div id="maintCountdown" style="font-size:28px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace;margin:15px 0">
-                --:--:--
-            </div>
-            <a href="/dashboard" style="display:inline-block;padding:12px 30px;background:#f39c12;color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px">
-                <i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့
-            </a>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', maintHTML);
-    
-    // Start countdown
-    const countdownEl = document.getElementById('maintCountdown');
-    
-    function updateCountdown() {
-        const rem = timerEnd - Date.now();
-        if (rem <= 0) {
-            // Timer expired - clear and reload
-            try {
-                const saved = localStorage.getItem('pageTimers');
-                if (saved) { 
-                    const timers = JSON.parse(saved); 
-                    delete timers['chat']; 
-                    localStorage.setItem('pageTimers', JSON.stringify(timers)); 
-                }
-                setCookie('pageTimers', '', -1);
-                sessionStorage.removeItem('pageTimers');
-            } catch(e) {}
-            location.reload();
-            return;
-        }
-        const s = Math.floor(rem / 1000);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const sec = s % 60;
-        countdownEl.textContent = 
-            String(h).padStart(2, '0') + ':' + 
-            String(m).padStart(2, '0') + ':' + 
-            String(sec).padStart(2, '0');
-    }
-    
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
-    
-    // CSS Animation
-    const style = document.createElement('style');
-    style.textContent = '@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}';
-    document.head.appendChild(style);
+async function loadRooms(){
+    if(!currentUser)return;
+    try{const r=await fetch('/api/chat/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();const c=document.getElementById('roomList');
+    if(d.rooms?.length){c.innerHTML=d.rooms.map(room=>`<div class="room-item" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')"><div class="room-icon">${room.room_type==='admin'?'👑':room.room_type==='group'?'👥':'💬'}</div><div class="room-info"><div class="room-name">${escapeHtml(room.room_name)}</div><div class="room-last">${escapeHtml(room.last_message||'No messages')}</div></div>${room.unread>0?`<div class="room-badge">${room.unread}</div>`:''}</div>`).join('')}
+    else{c.innerHTML='<div class="empty-state"><i class="fas fa-comments"></i><p>No chat rooms yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>'}}catch(e){}
+}
+async function loadUsersList(){
+    if(!currentUser)return;
+    try{const r=await fetch('/api/chat/online_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();const ou=(d.users||[]).filter(u=>u.user_id!==currentUser.id);
+    document.getElementById('usersList').innerHTML=ou.length?ou.map(u=>`<div class="user-item" onclick="startPrivateChat(${u.user_id},'${escapeHtml(u.username)}')"><div class="online-indicator"></div><div class="room-info"><div class="room-name">${escapeHtml(u.username)}</div><div class="room-last" style="color:#2ecc71">🟢 Online</div></div></div>`).join(''):'<div class="empty-state"><i class="fas fa-user-slash"></i><p>No online users</p></div>'}catch(e){}
+}
+async function loadGroupsList(){
+    if(!currentUser)return;
+    try{const r=await fetch('/api/chat/groups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();
+    document.getElementById('groupsList').innerHTML=d.groups?.length?d.groups.map(g=>`<div class="room-item" onclick="openRoom(${g.id},'${escapeHtml(g.room_name)}','group')"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(g.room_name)}</div><div class="room-last">${escapeHtml(g.last_message||'No messages')}</div></div></div>`).join(''):'<div class="empty-state"><i class="fas fa-users"></i><p>No groups yet</p><button class="admin-btn" onclick="openCreateGroupModal()">➕ Create New Group</button></div>'}catch(e){}
 }
 
-        async function checkPageAccess() {
-    try {
-        const r = await fetch('/api/admin/page_status');
-        const d = await r.json();
-        if (d.pages) {
-            const cp = d.pages.find(p => p.id === 'chat');
-            if (cp && cp.status === 'off') {
-                // Check if timer exists
-                const hasTimer = await checkPageTimer();
-                if (hasTimer === false) return false; // Timer is active, maintenance shown
-                
-                // Page is OFF without timer - show simple maintenance
-                document.querySelector('.chat-header').style.display = 'none';
-                document.querySelector('.chat-tabs').style.display = 'none';
-                document.querySelector('.chat-body').style.display = 'none';
-                
-                const maintHTML = `
-                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px">
-                        <div style="font-size:70px;color:#f39c12;margin-bottom:20px">
-                            <i class="fas fa-tools"></i>
-                        </div>
-                        <div style="font-size:20px;font-weight:bold;color:#f39c12;margin-bottom:10px">
-                            ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်
-                        </div>
-                        <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:20px">
-                            Admin မှ စာမျက်နှာအား ပိတ်ထားပါသည်
-                        </div>
-                        <a href="/dashboard" style="display:inline-block;padding:12px 30px;background:#f39c12;color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px">
-                            <i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့
-                        </a>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', maintHTML);
-                return false;
-            }
-        }
-        return true;
-    } catch(e) { return true; }
-        }
-        // Check every 30 seconds if page status changed
-setInterval(async () => {
-    try {
-        const r = await fetch('/api/admin/page_status');
-        const d = await r.json();
-        if (d.pages) {
-            const cp = d.pages.find(p => p.id === 'chat');
-            if (cp && cp.status === 'off') {
-                location.reload(); // Reload to trigger maintenance check
-            }
-        }
-    } catch(e) {}
-}, 30000);
+// ==================== PROFILE ====================
+async function loadProfile(){
+    if(!currentUser){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Login required</div>';return}
+    try{
+        const r=await fetch('/api/chat/my_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});
+        const d=await r.json();
+        let h='<div style="text-align:center;padding:15px"><div style="font-size:50px;margin-bottom:8px">👤</div><div style="font-size:16px;font-weight:bold;color:#f39c12">@'+escapeHtml(d.username||currentUser.username)+'</div><div style="font-size:9px;color:rgba(255,255,255,0.4)">ID: '+currentUser.id.toString().padStart(6,'0')+'</div></div>';
+        h+='<div style="padding:10px"><div class="form-group"><label>Change Username (@)</label><div style="display:flex;gap:6px"><input type="text" id="newUsername" value="'+escapeHtml(d.username||'')+'" placeholder="@username"><button class="btn btn-w" onclick="updateUsername()" style="flex:1">Save</button></div></div></div>';
+        if(d.groups&&d.groups.length>0){h+='<div style="padding:10px"><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:6px">My Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+=`<div class="room-item" onclick="openRoom(${g.id},'${escapeHtml(g.room_name)}','group')"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(g.room_name)}</div></div></div>`});h+='</div>'}
+        document.getElementById('profilePanel').innerHTML=h
+    }catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error loading profile</div>'}
+}
+async function updateUsername(){
+    const nu=document.getElementById('newUsername').value.trim();
+    if(!nu||!nu.startsWith('@')){showToast('Username must start with @',true);return}
+    try{const r=await fetch('/api/chat/update_username',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,username:nu.substring(1)})});const d=await r.json();if(d.success){showToast('Username updated!');currentUser.username=nu.substring(1);loadProfile()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
+}
 
-        
-        async function init() {
-        // ✅ Page Access Check FIRST
-        var pageOn = await checkPageAccess();
-        if (!pageOn) return; // Stop if page is off/timer
-        
-        // Original init code...
-        document.querySelectorAll('.chat-tab').forEach(tab => tab.addEventListener('click', () => switchTab(tab.getAttribute('data-tab'))));
-        const user = await getCurrentUser();
-        if (!user) return;
-        await checkPremiumStatus();
-        initSocket();
-        loadRooms();
-    }
-    
-    // ✅✅✅ ဒီတစ်ကြောင်း ထည့်ပါ ✅✅✅
-    init();
-    // ✅ Page Visibility Change - Auto Resume Processing
-document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && isProcessing) {
-        // User ပြန်ဝင်လာရင် Processing ကို ပြန်ပြ
-        document.getElementById('processingOverlay').classList.add('active');
-    }
-});
+// ==================== GROUP WITH USERNAME SEARCH ====================
+function openCreateGroupModal(){selectedMembers=[];document.getElementById('groupName').value='';document.getElementById('memberSearch').value='';document.getElementById('usernameDropdown').classList.remove('active');updateSelectedMembersUI();document.getElementById('groupModal').classList.add('active')}
+async function searchUsernames(){
+    const q=document.getElementById('memberSearch').value.trim();const dd=document.getElementById('usernameDropdown');
+    if(q.length<1){dd.classList.remove('active');return}
+    try{const r=await fetch('/api/chat/search_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,excludeIds:selectedMembers.map(m=>m.id)})});const d=await r.json();
+    if(d.users&&d.users.length>0){dd.innerHTML=d.users.map(u=>{let pc='';if(u.premium_tier===1)pc='bronze';else if(u.premium_tier===2)pc='silver';else if(u.premium_tier===3)pc='gold';return`<div class="username-dropdown-item" onclick="addSelectedMember(${u.id},'${escapeHtml(u.username)}','${pc}')">${pc?`<span class="prem-dot ${pc}"></span>`:''}@${escapeHtml(u.username)}</div>`}).join('');dd.classList.add('active')}else{dd.innerHTML='<div class="username-dropdown-item" style="color:rgba(255,255,255,0.3)">No users found</div>';dd.classList.add('active')}}catch(e){}
+}
+function addSelectedMember(id,un,pc){if(selectedMembers.find(m=>m.id===id))return;selectedMembers.push({id,username:un,premiumClass:pc});document.getElementById('memberSearch').value='';document.getElementById('usernameDropdown').classList.remove('active');updateSelectedMembersUI()}
+function updateSelectedMembersUI(){const c=document.getElementById('selectedMembers');c.innerHTML=selectedMembers.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);padding:3px 8px;border-radius:12px;font-size:9px">${m.premiumClass?`<span class="prem-dot ${m.premiumClass}" style="width:6px;height:6px;border-radius:50%"></span>`:''}@${escapeHtml(m.username)}<span onclick="removeSelectedMember(${m.id})" style="cursor:pointer;color:#e74c3c;margin-left:2px">×</span></span>`).join('')}
+function removeSelectedMember(id){selectedMembers=selectedMembers.filter(m=>m.id!==id);updateSelectedMembersUI()}
+async function createGroup(){
+    const gn=document.getElementById('groupName').value.trim();if(!gn){showToast('Group name required',true);return}
+    try{const r=await fetch('/api/chat/create_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,groupName:gn,members:selectedMembers.map(m=>m.id)})});const d=await r.json();if(d.success){showToast('Group created!');closeModal('groupModal');loadGroupsList();loadRooms()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
+}
+async function searchUsernameForAdd(){
+    const q=document.getElementById('addMemberSearch').value.trim();const dd=document.getElementById('addMemberDropdown');
+    if(q.length<1){dd.classList.remove('active');return}
+    try{const r=await fetch('/api/chat/search_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();
+    if(d.users&&d.users.length>0){dd.innerHTML=d.users.map(u=>`<div class="username-dropdown-item" onclick="selectMemberToAdd(${u.id},'${escapeHtml(u.username)}')">@${escapeHtml(u.username)}</div>`).join('');dd.classList.add('active')}else{dd.innerHTML='<div class="username-dropdown-item" style="color:rgba(255,255,255,0.3)">No users found</div>';dd.classList.add('active')}}catch(e){}
+}
+function selectMemberToAdd(id,un){document.getElementById('addMemberSearch').value='@'+un;document.getElementById('addMemberSearch').dataset.userId=id;document.getElementById('addMemberDropdown').classList.remove('active')}
+function showAddMemberModal(){document.getElementById('addMemberRoomId').value=currentRoom;document.getElementById('addMemberSearch').value='';document.getElementById('addMemberSearch').dataset.userId='';document.getElementById('addMemberDropdown').classList.remove('active');document.getElementById('addMemberModal').classList.add('active')}
+async function addMemberToGroup(){
+    const rid=document.getElementById('addMemberRoomId').value;const nid=document.getElementById('addMemberSearch').dataset.userId;
+    if(!nid){showToast('Search and select a user first',true);return}
+    try{const r=await fetch('/api/chat/add_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:parseInt(nid),requesterId:currentUser.id})});const d=await r.json();if(d.success){showToast('Member added!');closeModal('addMemberModal')}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
+}
 
-// ✅ Prevent Back Button နှိပ်လို့ ပျောက်မသွားအောင်
-window.addEventListener('popstate', function(event) {
-    if (isProcessing) {
-        // Back နှိပ်ရင် ပြန်တားမယ်
-        history.pushState(null, null, location.href);
-        showToast('⏳ လုပ်ဆောင်နေဆဲဖြစ်ပါသည်', true);
-    }
-});
+// ==================== REPORT SYSTEM ====================
+async function reportGroup(){
+    if(!currentRoom||currentRoomType!=='group'){showToast('Only groups can be reported',true);return}
+    if(!confirm('Report this group?'))return;
+    try{const r=await fetch('/api/chat/report_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})});const d=await r.json();
+    if(d.success){if(d.warning){showReportWarning(currentRoom)}else{showToast('Report submitted! ('+d.reportCount+'/50)')}}else{showToast(d.message||'Already reported',true)}}catch(e){showToast('Server error',true)}
+}
+function showReportWarning(roomId){
+    const ov=document.getElementById('reportWarningOverlay');ov.classList.add('active');let count=10;const el=document.getElementById('reportCountdown');el.textContent=count;
+    const iv=setInterval(()=>{count--;el.textContent=count;if(count<=0){clearInterval(iv);ov.classList.remove('active');deleteGroupAfterReport(roomId)}},1000)
+}
+async function deleteGroupAfterReport(roomId){
+    try{await fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId,userId:currentUser.id})});showToast('Group deleted due to reports');closeChat();loadGroupsList();loadRooms()}catch(e){}
+}
 
-// Page ဝင်လာတဲ့အခါ History State ထည့်ထား
-history.pushState(null, null, location.href);
-        
+// ==================== CHAT CORE ====================
+async function startAdminChat(){
+    if(!currentUser)return;
+    try{const r=await fetch('/api/chat/create_admin_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();if(d.success){openRoom(d.room.id,d.room.room_name,'admin');loadRooms()}else showToast('Error',true)}catch(e){showToast('Server error',true)}
+}
+async function startPrivateChat(oid,oun){
+    if(!currentUser)return;
+    try{const r=await fetch('/api/chat/create_private_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,otherUserId:oid})});const d=await r.json();if(d.success)openRoom(d.room.id,oun,'private')}catch(e){showToast('Error',true)}
+}
+async function openRoom(rid,rn,rt){
+    currentRoom=rid;currentRoomType=rt;
+    document.querySelectorAll('.room-list').forEach(l=>l.classList.remove('active'));document.getElementById('profilePanel').classList.remove('active');
+    document.getElementById('chatArea').classList.add('active');document.getElementById('chatRoomTitle').textContent=rn;
+    document.getElementById('reportBtn').style.display=rt==='group'?'inline-block':'none';
+    const mc=document.getElementById('messages');mc.innerHTML='<div style="text-align:center;padding:20px">Loading messages...</div>';
+    if(socket&&socket.connected)socket.emit('join_room',rid);
+    try{const r=await fetch(`/api/chat/messages/${rid}`);const d=await r.json();if(d.messages?.length){mc.innerHTML='';d.messages.forEach(msg=>addMessageToUI(msg,msg.sender_id===currentUser?.id,msg.sender_premium_tier||0));scrollToBottom()}else mc.innerHTML='<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet. Say hi!</div>';
+    await fetch('/api/chat/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})})}catch(e){mc.innerHTML='<div style="text-align:center;padding:20px;color:#e74c3c">Error</div>'}
+}
+function addMessageToUI(msg,isMine,spt=0){
+    const c=document.getElementById('messages');if(c.innerHTML.includes('No messages')||c.innerHTML.includes('Loading'))c.innerHTML='';
+    let mh='';const mt=msg.message||'';
+    if(mt.startsWith('📷 IMAGE:')){const u=mt.replace('📷 IMAGE:','');mh=`<div class="media-message" onclick="downloadMedia('${u}','image')"><img src="${u}" alt="Image" loading="lazy"></div>`}
+    else if(mt.startsWith('📎 FILE:')){const p=mt.replace('📎 FILE:','').split('|');mh=`<div class="file-message" onclick="downloadMedia('${p[0]}','file','${p[1]||'File'}')"><i class="fas fa-file"></i> ${escapeHtml(p[1]||'File')}<i class="fas fa-download" style="margin-left:auto;opacity:0.7"></i></div>`}
+    else{mh=escapeHtml(mt)}
+    const d=document.createElement('div');d.className=`msg-row ${isMine?'mine msg-mine':'other msg-other'}`;
+    let bc='normal-tier';if(spt===1)bc='bronze-tier';else if(spt===2)bc='silver-tier';else if(spt===3)bc='gold-tier';
+    d.innerHTML=`<div class="msg-bubble ${bc}">${!isMine?`<div class="msg-sender">${escapeHtml(msg.username||'User')}</div>`:''}${mh}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;c.appendChild(d)
+}
+function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('Download started')}
+function sendMessage(){const i=document.getElementById('msgInput');const m=i.value.trim();if(!m)return;if(!currentRoom){showToast('Select a chat room first',true);return}if(!currentUser){showToast('Please login',true);return}socket.emit('send_message',{roomId:currentRoom,message:m,userId:currentUser.id,username:currentUser.username,senderPremiumTier:premiumTier});i.value=''}
+function closeChat(){currentRoom=null;currentRoomType=null;document.getElementById('chatArea').classList.remove('active');document.getElementById('roomList').classList.add('active');loadRooms()}
+function deleteCurrentRoom(){if(!currentRoom||!confirm('Delete this chat room?'))return;fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})}).then(()=>{showToast('Room deleted');closeChat()}).catch(()=>showToast('Error',true))}
+async function leaveGroup(){if(!confirm('Leave this group?'))return;try{const r=await fetch('/api/chat/leave_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})});const d=await r.json();if(d.success){showToast('Left group');closeModal('groupInfoModal');closeChat();loadGroupsList();loadRooms()}else showToast(d.message||'Error',true)}catch(e){showToast('Server error',true)}}
+function insertEmoji(e){const i=document.getElementById('msgInput');const p=i.selectionStart;i.value=i.value.substring(0,p)+e+i.value.substring(p);i.focus();i.setSelectionRange(p+e.length,p+e.length)}
+function toggleMoreEmojis(){const ae=['😀','😂','😍','😎','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','😊','🤔','😴','🥰','😇','🤗','💪','👋','✌️','🤝','👑','💎','💰','🎮','⚽','🌟','🍕','🍺','☕','🏆','🎯','📱','💻','🎵','📷','🔒','✅','❌','⚠️','💡','🔑','🔔','📢','💬','🕒','📍','🔗','🐱','🐶','🇲🇲','⭐','🌙','☀️','🌈','⚡','🔥','🌸','🍎','🎂','🎁','🎈'];const g=document.getElementById('moreEmojisGrid');g.innerHTML=ae.map(e=>`<span class="emoji-item" style="font-size:24px;cursor:pointer;padding:4px" onclick="insertEmoji('${e}');closeModal('moreEmojisModal')">${e}</span>`).join('');document.getElementById('moreEmojisModal').classList.add('active')}
+
+// ==================== PAGE TIMER ====================
+function setCookie(n,v,d){let e='';if(d){const dt=new Date();dt.setTime(dt.getTime()+(d*24*60*60*1000));e='; expires='+dt.toUTCString()}document.cookie=n+'='+encodeURIComponent(v||'')+e+'; path=/'}
+function getCookie(n){const ne=n+'=';const ca=document.cookie.split(';');for(let i=0;i<ca.length;i++){let c=ca[i];while(c.charAt(0)===' ')c=c.substring(1);if(c.indexOf(ne)===0)return c.substring(ne.length)}return null}
+async function checkPageTimer(){
+    const pid='chat';let t=null;
+    try{const s=localStorage.getItem('pageTimers');if(s){const tm=JSON.parse(s);t=tm[pid]}if(!t){const ck=getCookie('pageTimers');if(ck){const tm=JSON.parse(decodeURIComponent(ck));t=tm[pid]}}if(!t){const ss=sessionStorage.getItem('pageTimers');if(ss){const tm=JSON.parse(ss);t=tm[pid]}}}catch(e){}
+    if(t&&t>Date.now()){showMaintenanceMode(t);return false}return true
+}
+function showMaintenanceMode(te){
+    document.querySelector('.chat-header').style.display='none';document.querySelector('.chat-tabs').style.display='none';document.querySelector('.chat-body').style.display='none';
+    document.body.insertAdjacentHTML('beforeend',`<div id="maintContainer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:#f39c12;margin-bottom:15px;animation:pulse 2s infinite"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:bold;color:#f39c12;margin-bottom:8px">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div><div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px">စာမျက်နှာ ပြန်ဖွင့်ရန်</div><div id="maintCountdown" style="font-size:26px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace;margin:12px 0">--:--:--</div><a href="/dashboard" style="display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px;margin-top:8px"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div>`);
+    const ce=document.getElementById('maintCountdown');
+    function up(){const r=te-Date.now();if(r<=0){try{const s=localStorage.getItem('pageTimers');if(s){const tm=JSON.parse(s);delete tm['chat'];localStorage.setItem('pageTimers',JSON.stringify(tm))}setCookie('pageTimers','',-1);sessionStorage.removeItem('pageTimers')}catch(e){}location.reload();return}const ss=Math.floor(r/1000),h=Math.floor(ss/3600),m=Math.floor((ss%3600)/60),s=ss%60;ce.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
+    up();setInterval(up,1000);const st=document.createElement('style');st.textContent='@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}';document.head.appendChild(st)
+}
+async function checkPageAccess(){
+    try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const cp=d.pages.find(p=>p.id==='chat');if(cp&&cp.status==='off'){const ht=await checkPageTimer();if(ht===false)return false;
+    document.querySelector('.chat-header').style.display='none';document.querySelector('.chat-tabs').style.display='none';document.querySelector('.chat-body').style.display='none';
+    document.body.insertAdjacentHTML('beforeend','<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:#f39c12;margin-bottom:15px"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:bold;color:#f39c12;margin-bottom:8px">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div><div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:15px">Admin မှ စာမျက်နှာအား ပိတ်ထားပါသည်</div><a href="/dashboard" style="display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div>');return false}}return true}catch(e){return true}
+}
+setInterval(async()=>{try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const cp=d.pages.find(p=>p.id==='chat');if(cp&&cp.status==='off')location.reload()}}catch(e){}},30000);
+
+// ==================== INIT ====================
+async function init(){
+    const po=await checkPageAccess();if(!po)return;
+    document.querySelectorAll('.chat-tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.getAttribute('data-tab'))));
+    const u=await getCurrentUser();if(!u)return;
+    await checkPremiumStatus();initSocket();loadRooms();
+}
+init();
 </script>
 </body>
 </html>
