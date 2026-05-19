@@ -342,8 +342,8 @@ async function createDailyCheckinProgressTable() {
     `;
     
     try {
-        await pool1.query(query);
-        await pool2.query(query);
+        await pools[0].query(query);
+        await pools[1].query(query);
         console.log('✅ daily_checkin_progress table created');
     } catch(e) {
         console.log('⚠️ daily_checkin_progress table error:', e.message);
@@ -1600,6 +1600,7 @@ app.post('/api/buy_premium', async (req, res) => {
         res.json({ success: true, expires_at: expiry.toISOString(), premium_tier: premiumTier });
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
+    
 // ==================== CHAT PREMIUM PURCHASE (For ChatPremium Page) ====================
 app.post('/api/chat/purchase_premium', async (req, res) => {
     const { token, premium_tier, months, price_usd } = req.body;
@@ -1629,10 +1630,7 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
         const usdBalance = parseFloat(user.rows[0]?.usd_balance || 0);
         
         if (usdBalance < price_usd) {
-            return res.json({ 
-                success: false, 
-                message: 'USD လက်ကျန်မလုံလောက်ပါ'
-            });
+            return res.json({ success: false, message: `USD လက်ကျန်မလုံလောက်ပါ ($${usdBalance})` });
         }
         
         // 2. Deduct USD Balance
@@ -1640,56 +1638,53 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
         await p.query('UPDATE auth_users SET usd_balance = $1 WHERE id = $2', [newUsdBalance, uid]);
         
         // 3. Calculate Premium Expiry
-const now = new Date();
-
-// ✅ ဒီ Tier အတွက် ရှိပြီးသား Record ရှာမယ်
-const existing = await p.query(
-    'SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
-    [uid, premium_tier]
-);
-
-let newExpiry;
-
-if (existing.rows.length > 0 && existing.rows[0].premium_expiry) {
-    const currentExpiry = new Date(existing.rows[0].premium_expiry);
-    
-    if (currentExpiry > now) {
-        // သက်တမ်းမကုန်သေးရင် ထပ်တိုး
-        newExpiry = new Date(currentExpiry);
-        newExpiry.setDate(newExpiry.getDate() + 30);
-    } else {
-        // သက်တမ်းကုန်သွားရင် အသစ်စတယ်
-        newExpiry = new Date(now);
-        newExpiry.setDate(newExpiry.getDate() + 30);
-    }
-    
-    // ✅ UPDATE
-    await p.query(
-        `UPDATE chat_premium SET 
-            premium_expiry = $1,
-            updated_at = NOW()
-         WHERE user_id = $2 AND premium_tier = $3`,
-        [newExpiry, uid, premium_tier]
-    );
-    
-} else {
-    // ✅ မရှိသေးရင် INSERT အသစ်
-    newExpiry = new Date(now);
-    newExpiry.setDate(newExpiry.getDate() + 30);
-    
-    await p.query(
-        `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
-         VALUES ($1, $2, $3, NOW(), NOW())`,
-        [uid, premium_tier, newExpiry]
-    );
-}
-
-// 4. Log Transaction
-await p.query(
-    `INSERT INTO orders (user_id, username, amount, payment_method, status) 
-     VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Chat Premium USD', 'approved')`,
-    [uid, -price_usd]
-);
+        const now = new Date();
+        
+        // Check if this specific tier already exists
+        const existing = await p.query(
+            'SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
+            [uid, premium_tier]
+        );
+        
+        let newExpiry;
+        
+        if (existing.rows.length > 0 && existing.rows[0].premium_expiry) {
+            const currentExpiry = new Date(existing.rows[0].premium_expiry);
+            
+            if (currentExpiry > now) {
+                // Extend existing premium (add months)
+                newExpiry = new Date(currentExpiry);
+                newExpiry.setMonth(newExpiry.getMonth() + months);
+            } else {
+                // Expired, start fresh
+                newExpiry = new Date(now);
+                newExpiry.setMonth(newExpiry.getMonth() + months);
+            }
+            
+            // Update
+            await p.query(
+                `UPDATE chat_premium SET premium_expiry = $1, updated_at = NOW()
+                 WHERE user_id = $2 AND premium_tier = $3`,
+                [newExpiry, uid, premium_tier]
+            );
+        } else {
+            // No existing, insert new
+            newExpiry = new Date(now);
+            newExpiry.setMonth(newExpiry.getMonth() + months);
+            
+            await p.query(
+                `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
+                 VALUES ($1, $2, $3, NOW(), NOW())`,
+                [uid, premium_tier, newExpiry]
+            );
+        }
+        
+        // 4. Log Transaction
+        await p.query(
+            `INSERT INTO orders (user_id, username, amount, payment_method, status) 
+             VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Chat Premium USD', 'approved')`,
+            [uid, -price_usd]
+        );
         
         const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
         const tierName = tierNames[premium_tier] || 'Premium';
@@ -1709,35 +1704,25 @@ await p.query(
         res.json({ success: false, message: 'ဆာဗာချိတ်ဆက်မှု ပျက်ကွက်ပါသည်' });
     }
 });
-
 // ==================== GET ALL PREMIUM TIERS STATUS ====================
 app.post('/api/chat/premium/all_tiers', async (req, res) => {
     const { token } = req.body;
     
     if (!token || token === 'guest') {
-        return res.json({ 
-            success: true, 
-            tiers: { 1: false, 2: false, 3: false }, 
-            expiry_dates: {} 
-        });
+        return res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
     }
     
     try {
         const p = await getPool();
         const uid = parseInt(token.replace('token_', ''));
         if (isNaN(uid)) {
-            return res.json({ 
-                success: true, 
-                tiers: { 1: false, 2: false, 3: false }, 
-                expiry_dates: {} 
-            });
+            return res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
         }
         
         const tiers = { 1: false, 2: false, 3: false };
         const expiryDates = {};
         const now = new Date();
         
-        // ✅ Tier 1, 2, 3 တစ်ခုချင်းစီရဲ့ Status စစ်
         for (let tier = 1; tier <= 3; tier++) {
             const r = await p.query(
                 `SELECT premium_expiry FROM chat_premium 
@@ -1753,19 +1738,11 @@ app.post('/api/chat/premium/all_tiers', async (req, res) => {
         
         console.log('[ALL TIERS] User:', uid, 'Tiers:', tiers);
         
-        res.json({ 
-            success: true, 
-            tiers: tiers, 
-            expiry_dates: expiryDates 
-        });
+        res.json({ success: true, tiers: tiers, expiry_dates: expiryDates });
         
     } catch(e) {
         console.error('[ALL TIERS STATUS ERROR]', e.message);
-        res.json({ 
-            success: true, 
-            tiers: { 1: false, 2: false, 3: false }, 
-            expiry_dates: {} 
-        });
+        res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
     }
 });
 // ==================== CLAIM WEEKLY BONUS ====================
