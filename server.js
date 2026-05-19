@@ -25,13 +25,12 @@ const DB4 = 'postgresql://neondb_owner:npg_ntqgkA5OVL8P@ep-noisy-resonance-aqy8o
 const DB5 = 'postgresql://neondb_owner:npg_KuFVvHic4m0Y@ep-orange-paper-aqn9ak7c-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
 
 const pools = [
-    new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 }),
-    new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 }),
-    new Pool({ connectionString: DB3, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 }),
-    new Pool({ connectionString: DB4, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 }),
-    new Pool({ connectionString: DB5, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 5000 })
+    new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }), // 5s ကနေ 10s သို့
+    new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
+    new Pool({ connectionString: DB3, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
+    new Pool({ connectionString: DB4, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
+    new Pool({ connectionString: DB5, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 })
 ];
-
 let currentPoolIndex = 0;
 
 async function getPool() {
