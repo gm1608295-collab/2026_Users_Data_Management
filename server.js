@@ -4196,7 +4196,6 @@ app.post('/api/chat/upload_file', async (req, res) => {
     }
 });
 // ==================== CHAT PROFILE APIs ====================
-
 // Get My Profile (with groups)
 app.post('/api/chat/my_profile', async (req, res) => {
     const { userId } = req.body;
@@ -4206,9 +4205,11 @@ app.post('/api/chat/my_profile', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Get user info
+        // ✅ Get user info WITH avatar_url
         const user = await p.query(
-            'SELECT id, username, email, premium_tier FROM auth_users WHERE id = $1',
+            `SELECT u.id, u.username, u.email,
+             (SELECT avatar_url FROM user_avatars WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1) as avatar_url
+             FROM auth_users u WHERE u.id = $1`,
             [userId]
         );
         
@@ -4225,11 +4226,14 @@ app.post('/api/chat/my_profile', async (req, res) => {
             ORDER BY cr.id DESC
         `, [userId]);
         
+        console.log('[MY PROFILE] User:', userId, 'Avatar:', user.rows[0].avatar_url?.substring(0, 50) || 'NULL');
+        
         res.json({
             success: true,
             username: user.rows[0].username,
+            name: user.rows[0].username,
             email: user.rows[0].email,
-            premium_tier: user.rows[0].premium_tier || 0,
+            avatar_url: user.rows[0].avatar_url || '',  // ✅ ဒါ အဓိက
             groups: groups.rows
         });
         
@@ -4238,7 +4242,6 @@ app.post('/api/chat/my_profile', async (req, res) => {
         res.json({ success: false });
     }
 });
-
 // Update Username
 app.post('/api/chat/update_username', async (req, res) => {
     const { userId, username } = req.body;
