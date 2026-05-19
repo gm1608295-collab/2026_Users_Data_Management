@@ -334,8 +334,6 @@ async function loadMyProfile(){
     if(d.groups&&d.groups.length>0){h+='<div class="profile-groups"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px">📋 My Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+='<div class="group-item" onclick="viewGroupInfo('+g.id+')">👥 '+escapeHtml(g.room_name)+'</div>'});h+='</div>'}else{h+='<div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:10px">No groups yet</div>'}
     h+='</div>';document.getElementById('profilePanel').innerHTML=h}catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error loading profile</div>'}
 }
-
-// ==================== AVATAR UPLOAD (FIXED) ====================
 // ==================== AVATAR UPLOAD (FULLY REWRITTEN - STABLE) ====================
 let avatarFile = null;
 let avatarType = null;
@@ -712,38 +710,115 @@ async function deleteGroup(gid){
 }
 
 async function showManageMembers(gid){
-    document.getElementById('manageMembersContent').innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Loading...</div>';
+    document.getElementById('manageMembersContent').innerHTML='<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Loading...</div>';
     document.getElementById('manageMembersModal').classList.add('active');
-    document.getElementById('manageMembersModal').querySelector('.modal-box').style.maxWidth = '95%';
-    document.getElementById('manageMembersModal').querySelector('.modal-box').style.maxHeight = '90vh';
+    document.getElementById('manageMembersModal').querySelector('.modal-box').style.maxWidth='95%';
+    document.getElementById('manageMembersModal').querySelector('.modal-box').style.maxHeight='90vh';
+    
     try {
-        var r = await fetch('/api/chat/group_members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: gid, userId: currentUser.id }) });
-        var d = await r.json();
-        if (!d.success) { showToast(d.message || 'Error', true); closeModal('manageMembersModal'); return; }
-        var h = '<div style="max-height:65vh;overflow-y:auto">';
-        d.members.forEach(function(m){
-            var a = '';
-            if (d.userRole === 'owner' && m.user_id !== currentUser.id) {
-                a += '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
-                if (m.role === 'member') a += '<button class="btn btn-b" style="font-size:7px;padding:3px 6px;flex:0" onclick="promoteToAdmin(' + gid + ',' + m.user_id + ')">👑 Admin</button>';
-                if (m.role === 'admin') a += '<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="demoteToMember(' + gid + ',' + m.user_id + ')">👤 Member</button>';
-                a += '<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(' + gid + ',' + m.user_id + ')">🚫 Kick</button>';
-                a += '<button style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="banMember(' + gid + ',' + m.user_id + ')">⛔ Ban</button>';
-                a += '<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="transferOwner(' + gid + ',' + m.user_id + ')">⭐ Transfer</button>';
-                a += '</div>';
-            } else if (d.userRole === 'admin' && m.user_id !== currentUser.id && m.role === 'member') {
-                a += '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
-                a += '<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(' + gid + ',' + m.user_id + ')">🚫 Kick</button>';
-                a += '<button style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="banMember(' + gid + ',' + m.user_id + ')">⛔ Ban</button>';
-                a += '</div>';
-            }
-            var rb = ''; if (m.role === 'owner') rb = '<span class="member-badge owner">Owner</span>'; else if (m.role === 'admin') rb = '<span class="member-badge admin">Admin</span>'; else rb = '<span class="member-badge member">Member</span>';
-            h += '<div class="member-item" style="flex-wrap:wrap"><img src="' + (m.avatar_url || '') + '" class="member-avatar" onerror="this.style.display=\'none\'" onclick="viewUserProfile(' + m.user_id + ')"><div style="flex:1;min-width:100px;cursor:pointer" onclick="viewUserProfile(' + m.user_id + ')"><b>@' + escapeHtml(m.username) + '</b></div>' + rb + a + '</div>';
+        var r = await fetch('/api/chat/group_members', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId: gid, userId: currentUser.id })
         });
+        var d = await r.json();
+        
+        if (!d.success) { showToast(d.message || 'Error', true); closeModal('manageMembersModal'); return; }
+        
+        var h = '<div style="max-height:65vh;overflow-y:auto">';
+        
+        d.members.forEach(function(m){
+            var actions = '';
+            
+            // ✅ OWNER က အားလုံးလုပ်နိုင် (ကိုယ့်ကိုယ်တိုင်ကလွဲ)
+            if (d.userRole === 'owner' && m.user_id !== currentUser.id) {
+                actions += '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
+                
+                if (m.role === 'member') {
+                    actions += '<button class="btn btn-b" style="font-size:7px;padding:3px 6px;flex:0" onclick="promoteToAdmin('+gid+','+m.user_id+')">👑 Admin</button>';
+                }
+                if (m.role === 'admin') {
+                    actions += '<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="demoteToMember('+gid+','+m.user_id+')">👤 Member</button>';
+                }
+                actions += '<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember('+gid+','+m.user_id+')">🚫 Kick</button>';
+                actions += '<button style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="banMemberAsk('+gid+','+m.user_id+')">⛔ Ban</button>';
+                actions += '<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="transferOwner('+gid+','+m.user_id+')">⭐ Transfer</button>';
+                actions += '</div>';
+            }
+            
+            // ✅ ADMIN က Kick/Ban ပဲရ (Member တွေကိုပဲ)
+            else if (d.userRole === 'admin' && m.user_id !== currentUser.id && m.role === 'member') {
+                actions += '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
+                actions += '<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember('+gid+','+m.user_id+')">🚫 Kick</button>';
+                actions += '<button style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="banMemberAsk('+gid+','+m.user_id+')">⛔ Ban</button>';
+                actions += '</div>';
+            }
+            
+            var rb = '';
+            if (m.role === 'owner') rb = '<span class="member-badge owner">👑 Owner</span>';
+            else if (m.role === 'admin') rb = '<span class="member-badge admin">🛡️ Admin</span>';
+            else rb = '<span class="member-badge member">👤 Member</span>';
+            
+            h += '<div class="member-item" style="flex-wrap:wrap">';
+            h += '<img src="' + (m.avatar_url || '') + '" class="member-avatar" onerror="this.style.display=\'none\'" onclick="viewUserProfile(' + m.user_id + ')">';
+            h += '<div style="flex:1;min-width:100px;cursor:pointer" onclick="viewUserProfile(' + m.user_id + ')"><b>@' + escapeHtml(m.username) + '</b></div>';
+            h += rb + actions;
+            h += '</div>';
+        });
+        
         h += '</div>';
         document.getElementById('manageMembersContent').innerHTML = h;
     } catch(e) {}
 }
+
+// ✅ Ban with Duration Prompt
+function banMemberAsk(gid, uid) {
+    var duration = prompt('⛔ Ban duration (minutes)?\n\n• Enter number for temporary ban\n• Enter 0 or leave empty for permanent ban\n• Example: 60 = 1 hour, 1440 = 1 day');
+    
+    if (duration === null) return; // Cancel
+    
+    var minutes = parseInt(duration) || 0;
+    var msg = minutes > 0 ? 'Ban for ' + minutes + ' minutes?' : 'Permanent ban?';
+    
+    if (!confirm(msg)) return;
+    
+    fetch('/api/chat/ban_member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id, durationMinutes: minutes })
+    }).then(function(r){ return r.json(); }).then(function(d){
+        if (d.success) { showToast(d.message || 'Banned!'); showManageMembers(gid); }
+        else { showToast(d.message || 'Error', true); }
+    });
+}
+
+// Rest of action functions
+async function promoteToAdmin(gid, uid) {
+    var r = await fetch('/api/chat/promote_admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id }) });
+    var d = await r.json();
+    if (d.success) { showToast('Promoted!'); showManageMembers(gid); }
+    else { showToast(d.message || 'Error', true); }
+}
+async function demoteToMember(gid, uid) {
+    var r = await fetch('/api/chat/demote_member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id }) });
+    var d = await r.json();
+    if (d.success) { showToast('Demoted!'); showManageMembers(gid); }
+    else { showToast(d.message || 'Error', true); }
+}
+async function kickMember(gid, uid) {
+    if (!confirm('Kick this member?')) return;
+    var r = await fetch('/api/chat/kick_member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id }) });
+    var d = await r.json();
+    if (d.success) { showToast('Kicked!'); showManageMembers(gid); }
+    else { showToast(d.message || 'Error', true); }
+}
+async function transferOwner(gid, uid) {
+    if (!confirm('⚠️ Transfer ownership? You will become Admin.')) return;
+    var r = await fetch('/api/chat/transfer_owner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id }) });
+    var d = await r.json();
+    if (d.success) { showToast('Ownership transferred!'); showManageMembers(gid); loadGroupsList(); }
+    else { showToast(d.message || 'Error', true); }
+       }
 async function promoteToAdmin(gid,uid){ await fetch('/api/chat/promote_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})}); showToast('Promoted!'); showManageMembers(gid); }
 async function demoteToMember(gid,uid){ await fetch('/api/chat/demote_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})}); showToast('Demoted!'); showManageMembers(gid); }
 async function kickMember(gid,uid){ if(!confirm('Kick?'))return; await fetch('/api/chat/kick_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})}); showToast('Kicked!'); showManageMembers(gid); }
