@@ -187,6 +187,38 @@
         .wave-letter:nth-child(1){animation-delay:0s}.wave-letter:nth-child(2){animation-delay:0.08s}.wave-letter:nth-child(3){animation-delay:0.16s}.wave-letter:nth-child(4){animation-delay:0.24s}.wave-letter:nth-child(5){animation-delay:0.32s}.wave-letter:nth-child(6){animation-delay:0.40s}.wave-letter:nth-child(7){animation-delay:0.48s}
         @keyframes waveJump{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
         #premiumBtn{display:inline-flex!important;align-items:center;gap:3px;white-space:nowrap;overflow:hidden;padding:5px 12px!important;font-size:9px!important;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)!important;border-radius:0!important}
+       /* Full Page Group Modal */
+#groupInfoModal .modal-box {
+    max-width: 95% !important;
+    max-height: 92vh !important;
+    width: 95% !important;
+    padding: 12px !important;
+}
+.group-full-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+.group-header-section {
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 10px;
+}
+.group-avatar-large {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #f39c12;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+.group-members-section {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 50vh;
+}  
     </style>
 </head>
 <body class="normal-theme">
@@ -346,15 +378,74 @@ async function loadGroupsList(){
 
 // ==================== PROFILE ====================
 async function loadMyProfile(){
-    if(!currentUser){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Login required</div>';return}
-    try{const r=await fetch('/api/chat/my_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();
-    let h='<div style="text-align:center;padding:15px"><img src="'+(d.avatar_url||'')+'" class="profile-avatar-large" id="myAvatarImg" onclick="uploadProfilePic()" onerror="this.src=\'\';this.outerHTML=\'<div class=profile-avatar-large style=background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer onclick=uploadProfilePic()\'>👤</div>\'"><div class="profile-username">@'+escapeHtml(d.username||currentUser.username)+' <span class="copy-btn" onclick="copyUsername(\''+escapeHtml(d.username||currentUser.username)+'\')"><i class="fas fa-copy"></i></span></div>';
-    h+='<div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:8px">'+escapeHtml(d.name||'User')+'</div>';
-    h+='<div style="display:flex;gap:6px;margin-bottom:10px"><input type="text" id="newUsername" value="'+escapeHtml(d.username||'')+'" placeholder="@username" style="flex:1;padding:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:10px"><button class="btn btn-w" onclick="updateUsername()" style="flex:1;font-size:10px">Save</button></div>';
-    if(d.avatar_url){h+='<button class="btn btn-r" onclick="deleteProfilePic()" style="width:100%;font-size:10px;margin-bottom:8px"><i class="fas fa-trash"></i> Remove Photo</button>'}
-    if(d.groups&&d.groups.length>0){h+='<div class="profile-groups"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px">My Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+=`<div class="group-item" onclick="viewGroupInfo(${g.id})">👥 ${escapeHtml(g.room_name)}</div>`});h+='</div>'}
-    document.getElementById('profilePanel').innerHTML=h}catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error</div>'}
-}
+    if(!currentUser){
+        document.getElementById('profilePanel').innerHTML='<div class="empty-state">Login required</div>';
+        return;
+    }
+    
+    try {
+        const r = await fetch('/api/chat/my_profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        const d = await r.json();
+        
+        let h = '<div style="text-align:center;padding:15px">';
+        
+        // ✅ Profile Avatar
+        if (d.avatar_url) {
+            h += `<img src="${d.avatar_url}" class="profile-avatar-large" id="myAvatarImg" onclick="uploadProfilePic()" onerror="this.outerHTML='<div class=profile-avatar-large style=background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer onclick=uploadProfilePic()>👤</div>'">`;
+        } else {
+            h += '<div class="profile-avatar-large" style="background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer" onclick="uploadProfilePic()">👤</div>';
+        }
+        
+        // ✅ Username with copy button
+        h += '<div class="profile-username">';
+        h += '@' + escapeHtml(d.username || currentUser.username);
+        h += ' <span class="copy-btn" onclick="copyUsername(\'' + escapeHtml(d.username || currentUser.username) + '\')"><i class="fas fa-copy"></i></span>';
+        h += '</div>';
+        
+        // ✅ Display Name (Login Name - ပြောင်းမရ)
+        h += '<div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:8px">';
+        h += escapeHtml(d.name || d.username || 'User');
+        h += '</div>';
+        
+        // ✅ Change Username Input
+        h += '<div style="display:flex;gap:6px;margin-bottom:10px">';
+        h += '<input type="text" id="newUsername" value="' + escapeHtml(d.username || '') + '" placeholder="@username" style="flex:1;padding:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:10px">';
+        h += '<button class="btn btn-w" onclick="updateUsername()" style="flex:1;font-size:10px">💾 Save</button>';
+        h += '</div>';
+        
+        // ✅ Upload / Remove Photo Buttons
+        h += '<div style="display:flex;gap:6px;margin-bottom:10px">';
+        h += '<button class="btn btn-b" onclick="uploadProfilePic()" style="flex:1;font-size:10px"><i class="fas fa-camera"></i> Photo</button>';
+        if (d.avatar_url) {
+            h += '<button class="btn btn-r" onclick="deleteProfilePic()" style="flex:1;font-size:10px"><i class="fas fa-trash"></i> Remove</button>';
+        }
+        h += '</div>';
+        
+        // ✅ My Groups
+        if (d.groups && d.groups.length > 0) {
+            h += '<div class="profile-groups">';
+            h += '<div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px">📋 My Groups (' + d.groups.length + ')</div>';
+            d.groups.forEach(g => {
+                h += '<div class="group-item" onclick="viewGroupInfo(' + g.id + ')">👥 ' + escapeHtml(g.room_name) + '</div>';
+            });
+            h += '</div>';
+        } else {
+            h += '<div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:10px">No groups yet</div>';
+        }
+        
+        h += '</div>';
+        
+        document.getElementById('profilePanel').innerHTML = h;
+        
+    } catch(e) {
+        document.getElementById('profilePanel').innerHTML = '<div class="empty-state">Error loading profile</div>';
+    }
+            }
+    
 async function uploadProfilePic(){
     const i = document.createElement('input');
     i.type = 'file';
@@ -443,38 +534,118 @@ async function viewUserProfile(uid){
 function openCreateGroupModal(){document.getElementById('groupName').value='';document.getElementById('groupModal').classList.add('active')}
 async function createGroup(){const gn=document.getElementById('groupName').value.trim();if(!gn){showToast('Group name required',true);return}try{const r=await fetch('/api/chat/create_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,groupName:gn,members:[]})});const d=await r.json();if(d.success){showToast('Group created!');closeModal('groupModal');loadGroupsList();loadRooms()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
 async function viewGroupInfo(gid){
-    try{const r=await fetch('/api/chat/group_info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser?.id})});const d=await r.json();
-    if(!d.success){showToast('Group not found',true);return}
-    currentRoomData=d;
-    
-    // ✅ Full Page Modal
-    let h='';
-    if(d.is_member){
-        h='<div style="text-align:center;margin-bottom:12px"><img src="'+(d.avatar_url||'')+'" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;cursor:pointer;margin-bottom:6px" onclick="uploadGroupPic('+gid+')" onerror="this.outerHTML=\'<div style=width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:25px;cursor:pointer;margin-bottom:6px;border:2px solid #f39c12 onclick=uploadGroupPic('+gid+')>👥</div>\'"><h3 style="font-size:16px">'+escapeHtml(d.room_name)+'</h3><div style="font-size:9px;color:rgba(255,255,255,0.4)">'+ (d.member_count||0) +' members</div></div>';
+    try {
+        const r = await fetch('/api/chat/group_info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId: gid, userId: currentUser?.id })
+        });
+        const d = await r.json();
         
-        // ✅ Search & Add Member (Group Profile ထဲမှာ)
-        h+='<div style="margin-bottom:10px"><div class="username-search-wrap"><input type="text" id="groupAddSearch" placeholder="🔍 Search @username to add..." oninput="searchUserForGroupAdd('+gid+')" autocomplete="off" style="width:100%;padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:10px"><div class="username-dropdown" id="groupAddDropdown"></div></div></div>';
+        if (!d.success) {
+            showToast('Group not found', true);
+            return;
+        }
+        
+        currentRoomData = d;
+        
+        // Get members
+        let membersHtml = '';
+        try {
+            const mr = await fetch('/api/chat/group_members', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: gid, userId: currentUser?.id })
+            });
+            const md = await mr.json();
+            
+            if (md.success && md.members) {
+                membersHtml = '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:6px">Members (' + md.members.length + ')</div>';
+                md.members.forEach(m => {
+                    let roleBadge = '';
+                    if (m.role === 'owner') roleBadge = '<span class="member-badge owner">Owner</span>';
+                    else if (m.role === 'admin') roleBadge = '<span class="member-badge admin">Admin</span>';
+                    else roleBadge = '<span class="member-badge member">Member</span>';
+                    
+                    membersHtml += `<div class="member-item" style="cursor:pointer" onclick="viewUserProfile(${m.user_id})">
+                        <img src="${m.avatar_url||''}" class="member-avatar" onerror="this.style.display='none'">
+                        <div style="flex:1"><b>@${escapeHtml(m.username)}</b></div>
+                        ${roleBadge}
+                    </div>`;
+                });
+            }
+        } catch(e) {}
+        
+        let h = '<div class="group-full-page">';
+        
+        // Header Section
+        h += '<div class="group-header-section">';
+        
+        // Avatar
+        if (d.avatar_url) {
+            h += `<img src="${d.avatar_url}" class="group-avatar-large" onerror="this.outerHTML='<div class=group-avatar-large style=background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:8px>👥</div>'">`;
+        } else {
+            h += '<div class="group-avatar-large" style="background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:8px">👥</div>';
+        }
+        
+        // Group Name
+        h += `<h3 style="font-size:16px;margin-bottom:4px">${escapeHtml(d.room_name)}</h3>`;
+        h += `<div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:8px">${d.member_count||0} members</div>`;
         
         // Action Buttons
-        h+='<div class="btn-row">';
-        h+='<button class="btn btn-w" onclick="openRoom('+gid+',\''+escapeHtml(d.room_name)+'\',\'group\');closeModal(\'groupInfoModal\')">💬 Chat</button>';
-        if(d.user_role==='owner'||d.user_role==='admin'){h+='<button class="btn btn-b" onclick="showManageMembers('+gid+')">👥 Manage</button>'}
-        h+='</div>';
-        if(d.user_role!=='owner'){h+='<button class="btn btn-r" onclick="leaveGroup('+gid+')" style="width:100%;margin-top:6px">🚪 Leave Group</button>'}
-        if(d.user_role==='owner'){h+='<button class="btn btn-r" onclick="deleteGroup('+gid+')" style="width:100%;margin-top:6px">🗑️ Delete Group</button>'}
-    }else{
-        h='<div style="text-align:center;margin-bottom:12px"><img src="'+(d.avatar_url||'')+'" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;margin-bottom:6px" onerror="this.outerHTML=\'<div style=width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:25px;margin-bottom:6px;border:2px solid #f39c12>👥</div>\'"><h3 style="font-size:16px">'+escapeHtml(d.room_name)+'</h3><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:10px">'+ (d.member_count||0) +' members</div>';
-        h+='<button class="join-btn" onclick="joinGroup('+gid+')" style="width:100%">➕ Join Group</button>';
+        h += '<div class="btn-row" style="margin-bottom:8px">';
+        
+        if (d.is_member) {
+            h += `<button class="btn btn-w" onclick="openRoom(${gid},'${escapeHtml(d.room_name)}','group');closeModal('groupInfoModal')">💬 Chat</button>`;
+            
+            // Owner/Admin ပဲ Group ပုံပြင်လို့ရ
+            if (d.user_role === 'owner' || d.user_role === 'admin') {
+                h += `<button class="btn btn-b" onclick="uploadGroupPic(${gid})">📷 Edit Pic</button>`;
+            }
+            
+            // Owner/Admin ပဲ Manage Members မြင်
+            if (d.user_role === 'owner' || d.user_role === 'admin') {
+                h += `<button class="btn btn-b" onclick="showManageMembers(${gid});closeModal('groupInfoModal')">👥 Manage</button>`;
+            }
+        }
+        h += '</div>';
+        
+        // Search & Add Member (Member ဖြစ်မှ မြင်)
+        if (d.is_member) {
+            h += '<div style="margin-bottom:8px"><div class="username-search-wrap">';
+            h += `<input type="text" id="groupAddSearch" placeholder="🔍 Search @username to add..." oninput="searchUserForGroupAdd(${gid})" autocomplete="off" style="width:100%;padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:10px">`;
+            h += '<div class="username-dropdown" id="groupAddDropdown"></div></div></div>';
+        }
+        
+        // Leave / Delete
+        if (d.is_member && d.user_role !== 'owner') {
+            h += `<button class="btn btn-r" onclick="leaveGroup(${gid})" style="width:100%;margin-top:4px">🚪 Leave Group</button>`;
+        }
+        if (d.user_role === 'owner') {
+            h += `<button class="btn btn-r" onclick="deleteGroup(${gid})" style="width:100%;margin-top:4px">🗑️ Delete Group</button>`;
+        }
+        
+        // Join Button (Member မဟုတ်ရင်)
+        if (!d.is_member) {
+            h += `<button class="join-btn" onclick="joinGroup(${gid})" style="width:100%;margin-top:8px">➕ Join Group</button>`;
+        }
+        
+        h += '</div>'; // End header section
+        
+        // Members Section
+        h += '<div class="group-members-section">';
+        h += membersHtml || '<div style="text-align:center;color:rgba(255,255,255,0.3);padding:20px">No members to show</div>';
+        h += '</div>';
+        
+        h += '</div>'; // End group-full-page
+        
+        document.getElementById('groupInfoContent').innerHTML = h;
+        document.getElementById('groupInfoModal').classList.add('active');
+        
+    } catch(e) {
+        showToast('Error loading group', true);
     }
-    
-    // ✅ Full Page Style
-    document.getElementById('groupInfoModal').querySelector('.modal-box').style.maxWidth='95%';
-    document.getElementById('groupInfoModal').querySelector('.modal-box').style.maxHeight='90vh';
-    document.getElementById('groupInfoContent').innerHTML=h;
-    document.getElementById('groupInfoModal').classList.add('active');
-    }catch(e){}
 }
-
 // ✅ Search User for Group Add (in Group Profile)
 async function searchUserForGroupAdd(gid){
     const q=document.getElementById('groupAddSearch').value.trim();
@@ -564,33 +735,65 @@ async function deleteGroup(gid){if(!confirm('Delete this group?'))return;try{awa
 async function showManageMembers(gid){
     document.getElementById('manageMembersContent').innerHTML='<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Loading...</div>';
     document.getElementById('manageMembersModal').classList.add('active');
+    // Full page
+    document.getElementById('manageMembersModal').querySelector('.modal-box').style.maxWidth='95%';
+    document.getElementById('manageMembersModal').querySelector('.modal-box').style.maxHeight='90vh';
     
-    try{const r=await fetch('/api/chat/group_members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();
-    if(!d.success){showToast(d.message||'Error',true);closeModal('manageMembersModal');return}
-    
-    // ✅ Owner/Admin အတွက် အပြည့်အစုံ Manage
-    let h='<div style="max-height:60vh;overflow-y:auto">';
-    d.members.forEach(m=>{
-        let actions='';
-        if(d.userRole==='owner'&&m.user_id!==currentUser.id){
-            actions+='<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
-            if(m.role==='member')actions+=`<button class="btn btn-b" style="font-size:7px;padding:3px 6px;flex:0" onclick="promoteToAdmin(${gid},${m.user_id})">👑 Admin</button>`;
-            if(m.role==='admin')actions+=`<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="demoteToMember(${gid},${m.user_id})">👤 Member</button>`;
-            actions+=`<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">🚫 Kick</button>`;
-            actions+=`<button class="btn" style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff" onclick="banMember(${gid},${m.user_id})">⛔ Ban</button>`;
-            actions+=`<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="transferOwner(${gid},${m.user_id})">⭐ Transfer</button>`;
-            actions+='</div>';
-        }else if(d.userRole==='admin'&&m.user_id!==currentUser.id&&m.role==='member'){
-            actions+='<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
-            actions+=`<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">🚫 Kick</button>`;
-            actions+=`<button class="btn" style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff" onclick="banMember(${gid},${m.user_id})">⛔ Ban</button>`;
-            actions+='</div>';
+    try {
+        const r = await fetch('/api/chat/group_members', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId: gid, userId: currentUser.id })
+        });
+        const d = await r.json();
+        
+        if (!d.success) {
+            showToast(d.message || 'Error', true);
+            closeModal('manageMembersModal');
+            return;
         }
-        h+=`<div class="member-item" style="flex-wrap:wrap"><img src="${m.avatar_url||''}" class="member-avatar" onerror="this.style.display='none'" onclick="viewUserProfile(${m.user_id})"><div style="flex:1;min-width:100px;cursor:pointer" onclick="viewUserProfile(${m.user_id})"><b>@${escapeHtml(m.username)}</b><br><small style="color:rgba(255,255,255,0.4);font-size:8px">${escapeHtml(m.name||'')}</small></div><span class="member-badge ${m.role}">${m.role}</span>${actions}</div>`;
-    });
-    h+='</div>';
-    document.getElementById('manageMembersContent').innerHTML=h;
-    }catch(e){document.getElementById('manageMembersContent').innerHTML='<div style="text-align:center;color:#e74c3c">Error</div>'}
+        
+        let h = '<div style="max-height:65vh;overflow-y:auto">';
+        
+        d.members.forEach(m => {
+            let actions = '';
+            
+            if (d.userRole === 'owner' && m.user_id !== currentUser.id) {
+                actions += '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
+                if (m.role === 'member') actions += `<button class="btn btn-b" style="font-size:7px;padding:3px 6px;flex:0" onclick="promoteToAdmin(${gid},${m.user_id})">👑 Admin</button>`;
+                if (m.role === 'admin') actions += `<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="demoteToMember(${gid},${m.user_id})">👤 Member</button>`;
+                actions += `<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">🚫 Kick</button>`;
+                actions += `<button style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="banMember(${gid},${m.user_id})">⛔ Ban</button>`;
+                actions += `<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="transferOwner(${gid},${m.user_id})">⭐ Transfer</button>`;
+                actions += '</div>';
+            } else if (d.userRole === 'admin' && m.user_id !== currentUser.id && m.role === 'member') {
+                actions += '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
+                actions += `<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">🚫 Kick</button>`;
+                actions += `<button style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="banMember(${gid},${m.user_id})">⛔ Ban</button>`;
+                actions += '</div>';
+            }
+            
+            let roleBadge = '';
+            if (m.role === 'owner') roleBadge = '<span class="member-badge owner">Owner</span>';
+            else if (m.role === 'admin') roleBadge = '<span class="member-badge admin">Admin</span>';
+            else roleBadge = '<span class="member-badge member">Member</span>';
+            
+            h += `<div class="member-item" style="flex-wrap:wrap">
+                <img src="${m.avatar_url||''}" class="member-avatar" onerror="this.style.display='none'" onclick="viewUserProfile(${m.user_id})">
+                <div style="flex:1;min-width:100px;cursor:pointer" onclick="viewUserProfile(${m.user_id})">
+                    <b>@${escapeHtml(m.username)}</b>
+                </div>
+                ${roleBadge}
+                ${actions}
+            </div>`;
+        });
+        
+        h += '</div>';
+        document.getElementById('manageMembersContent').innerHTML = h;
+        
+    } catch(e) {
+        document.getElementById('manageMembersContent').innerHTML = '<div style="text-align:center;color:#e74c3c">Error</div>';
+    }
 }
 async function promoteToAdmin(gid,uid){await fetch('/api/chat/promote_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Promoted!');showManageMembers(gid)}
 async function demoteToMember(gid,uid){await fetch('/api/chat/demote_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Demoted!');showManageMembers(gid)}
