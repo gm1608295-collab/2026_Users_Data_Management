@@ -1502,6 +1502,26 @@ setInterval(async () => {
     
     // ✅✅✅ ဒီတစ်ကြောင်း ထည့်ပါ ✅✅✅
     init();
+    // ✅ Page Visibility Change - Auto Resume Processing
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && isProcessing) {
+        // User ပြန်ဝင်လာရင် Processing ကို ပြန်ပြ
+        document.getElementById('processingOverlay').classList.add('active');
+    }
+});
+
+// ✅ Prevent Back Button နှိပ်လို့ ပျောက်မသွားအောင်
+window.addEventListener('popstate', function(event) {
+    if (isProcessing) {
+        // Back နှိပ်ရင် ပြန်တားမယ်
+        history.pushState(null, null, location.href);
+        showToast('⏳ လုပ်ဆောင်နေဆဲဖြစ်ပါသည်', true);
+    }
+});
+
+// Page ဝင်လာတဲ့အခါ History State ထည့်ထား
+history.pushState(null, null, location.href);
+        
 </script>
 </body>
 </html>
