@@ -3824,7 +3824,7 @@ app.post('/api/chat/online_users', async (req, res) => {
     }
 });
 
-// Get user's rooms
+// Update /api/chat/rooms to include avatar_url
 app.post('/api/chat/rooms', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.json({ rooms: [] });
@@ -3834,18 +3834,25 @@ app.post('/api/chat/rooms', async (req, res) => {
             SELECT 
                 cr.*,
                 (SELECT COUNT(*) FROM chat_messages cm WHERE cm.room_id = cr.id AND cm.is_read = false AND cm.sender_id != $1) as unread,
-                (SELECT message FROM chat_messages WHERE room_id = cr.id ORDER BY id DESC LIMIT 1) as last_message
+                (SELECT message FROM chat_messages WHERE room_id = cr.id ORDER BY id DESC LIMIT 1) as last_message,
+                CASE 
+                    WHEN cr.room_type = 'group' THEN (SELECT avatar_url FROM group_avatars WHERE room_id = cr.id ORDER BY updated_at DESC LIMIT 1)
+                    WHEN cr.room_type = 'private' THEN (
+                        SELECT avatar_url FROM user_avatars 
+                        WHERE user_id IN (SELECT user_id FROM chat_participants WHERE room_id = cr.id AND user_id != $1 LIMIT 1)
+                        ORDER BY updated_at DESC LIMIT 1
+                    )
+                    ELSE NULL
+                END as avatar_url
             FROM chat_rooms cr
             JOIN chat_participants cp ON cr.id = cp.room_id
             WHERE cp.user_id = $1
             ORDER BY cr.id DESC
         `, [userId]);
         res.json({ rooms: r.rows });
-    } catch(e) { 
-        console.error('[ROOMS ERROR]', e.message);
-        res.json({ rooms: [] }); 
-    }
+    } catch(e) { res.json({ rooms: [] }); }
 });
+
 
 // Get messages
 app.get('/api/chat/messages/:roomId', async (req, res) => {
@@ -3946,62 +3953,30 @@ app.post('/api/chat/create_private_room', async (req, res) => {
     }
 });
 
-// Get all groups for user
+// Update /api/chat/groups to include avatar_url
 app.post('/api/chat/groups', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.json({ groups: [] });
+    
     try {
         const p = await getPool();
         const r = await p.query(`
             SELECT 
                 cr.id, cr.room_name, cr.room_type, cr.created_by,
-                (SELECT message FROM chat_messages WHERE room_id = cr.id ORDER BY id DESC LIMIT 1) as last_message
+                (SELECT message FROM chat_messages WHERE room_id = cr.id ORDER BY id DESC LIMIT 1) as last_message,
+                (SELECT avatar_url FROM group_avatars WHERE room_id = cr.id ORDER BY updated_at DESC LIMIT 1) as avatar_url,
+                (SELECT COUNT(*) FROM chat_participants WHERE room_id = cr.id) as member_count,
+                (SELECT role FROM chat_participants WHERE room_id = cr.id AND user_id = $1) as user_role
             FROM chat_rooms cr
             JOIN chat_participants cp ON cr.id = cp.room_id
             WHERE cr.room_type = 'group' AND cp.user_id = $1
             ORDER BY cr.id DESC
         `, [userId]);
-        res.json({ success: true, groups: r.rows });
-    } catch(e) { 
-        console.error('[GROUPS ERROR]', e.message);
-        res.json({ groups: [] }); 
-    }
-});
-
-// Create group
-app.post('/api/chat/create_group', async (req, res) => {
-    const { userId, groupName, members } = req.body;
-    if (!userId || !groupName) return res.json({ success: false, message: 'Group name required' });
-    
-    try {
-        const p = await getPool();
         
-        // Create group room
-        const room = await p.query(
-            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id",
-            [groupName, userId]
-        );
-        const roomId = room.rows[0].id;
-        
-        // Add creator as participant
-        await p.query('INSERT INTO chat_participants (room_id, user_id) VALUES ($1, $2)', [roomId, userId]);
-        
-        // Add additional members
-        if (members && Array.isArray(members) && members.length > 0) {
-            for (const memberId of members) {
-                if (memberId !== userId) {
-                    await p.query(
-                        'INSERT INTO chat_participants (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-                        [roomId, memberId]
-                    );
-                }
-            }
-        }
-        
-        res.json({ success: true, room: { id: roomId, room_name: groupName } });
+        res.json({ groups: r.rows });
     } catch(e) {
-        console.error('[CREATE GROUP ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        console.error('[GROUPS ERROR]', e.message);
+        res.json({ groups: [] });
     }
 });
 
