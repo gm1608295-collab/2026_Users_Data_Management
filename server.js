@@ -4575,23 +4575,82 @@ app.post('/api/chat/ban_member', async (req, res) => {
     
     try {
         const p = await getPool();
+        
+        // Permission check
         const permCheck = await p.query("SELECT role FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role IN ('owner','admin')", [roomId, requesterId]);
         if (permCheck.rows.length === 0) return res.json({ success: false, message: 'Permission denied' });
         
+        // Cannot ban owner
         const targetCheck = await p.query("SELECT role FROM chat_participants WHERE room_id=$1 AND user_id=$2", [roomId, userId]);
-        if (targetCheck.rows.length > 0 && targetCheck.rows[0].role === 'owner') return res.json({ success: false, message: 'Cannot ban owner' });
-        
-        await p.query('DELETE FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
-        await p.query('INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING', [userId, 'group_' + roomId]);
-        
-        if (durationMinutes && durationMinutes > 0) {
-            setTimeout(async () => {
-                try { await p.query('DELETE FROM banned_users WHERE user_id=$1 AND banned_by=$2', [userId, 'group_' + roomId]); } catch(e) {}
-            }, durationMinutes * 60 * 1000);
+        if (targetCheck.rows.length > 0 && targetCheck.rows[0].role === 'owner') {
+            return res.json({ success: false, message: 'Cannot ban owner' });
         }
         
-        res.json({ success: true, message: durationMinutes ? 'Banned for ' + durationMinutes + ' min' : 'Permanently banned' });
-    } catch(e) { res.json({ success: false }); }
+        // ✅ Member stays in group (don't delete from chat_participants)
+        // ✅ Just add to banned_users table
+        const banKey = 'group_' + roomId;
+        
+        // Calculate expiry
+        let expiryDate = null;
+        if (durationMinutes && durationMinutes > 0) {
+            expiryDate = new Date(Date.now() + durationMinutes * 60 * 1000);
+        }
+        
+        // Add to banned_users with expiry
+        await p.query(
+            `INSERT INTO banned_users (user_id, banned_by, ban_expiry) 
+             VALUES ($1, $2, $3) 
+             ON CONFLICT (user_id, banned_by) 
+             DO UPDATE SET ban_expiry = $3`,
+            [userId, banKey, expiryDate]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: durationMinutes ? 'Banned for ' + durationMinutes + ' min (text box locked)' : 'Permanently banned (text box locked)' 
+        });
+        
+    } catch(e) {
+        console.error('[BAN ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+app.post('/api/chat/check_ban', async (req, res) => {
+    const { userId, roomId } = req.body;
+    if (!userId || !roomId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        const banKey = 'group_' + roomId;
+        
+        const r = await p.query(
+            'SELECT * FROM banned_users WHERE user_id=$1 AND banned_by=$2',
+            [userId, banKey]
+        );
+        
+        if (r.rows.length === 0) {
+            return res.json({ success: true, is_banned: false });
+        }
+        
+        const ban = r.rows[0];
+        
+        // Check if ban expired
+        if (ban.ban_expiry && new Date(ban.ban_expiry) <= new Date()) {
+            // Auto remove expired ban
+            await p.query('DELETE FROM banned_users WHERE user_id=$1 AND banned_by=$2', [userId, banKey]);
+            return res.json({ success: true, is_banned: false });
+        }
+        
+        res.json({
+            success: true,
+            is_banned: true,
+            ban_expiry: ban.ban_expiry ? ban.ban_expiry.toISOString() : null
+        });
+        
+    } catch(e) {
+        res.json({ success: false, is_banned: false });
+    }
 });
 
 // Transfer Ownership
