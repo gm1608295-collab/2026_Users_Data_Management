@@ -335,45 +335,24 @@ async function loadMyProfile(){
     h+='</div>';document.getElementById('profilePanel').innerHTML=h}catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error loading profile</div>'}
 }
 function showAvatarPreview(file, type){
-    // ✅ File ရှိမရှိ အရင်စစ်
-    if (!file) {
-        showToast('❌ No file selected', true);
-        return;
-    }
-    
-    // ✅ Blob ဟုတ်မဟုတ် စစ်
-    if (!(file instanceof Blob) && !(file instanceof File)) {
-        showToast('❌ Invalid file type', true);
-        return;
-    }
-    
-    try {
-        const reader = new FileReader();
-        
-        reader.onload = function(e){
-            const ph = `<div class="modal-overlay active" id="avatarPreviewModal" onclick="closeAvatarPreview()">
-                <div class="modal-box" onclick="event.stopPropagation()" style="text-align:center">
-                    <h3>Preview</h3>
-                    <img src="${e.target.result}" style="max-width:200px;max-height:200px;border-radius:10px;margin:10px 0">
-                    <div class="btn-row">
-                        <button class="btn btn-g" onclick="saveAvatar('${type}')">💾 Save</button>
-                        <button class="btn btn-r" onclick="closeAvatarPreview()">Cancel</button>
-                    </div>
-                </div>
-            </div>`;
-            document.body.insertAdjacentHTML('beforeend', ph);
-        };
-        
-        reader.onerror = function(){
-            showToast('❌ Failed to read file', true);
-        };
-        
-        // ✅ ဒီမှာ readAsDataURL ခေါ်
-        reader.readAsDataURL(file);
-        
-    } catch(e) {
-        showToast('❌ ' + e.message, true);
-    }
+    // ဒီ Function တစ်ခုလုံးကို အစားထိုးပါ
+    var reader = new FileReader();
+    reader.onload = function(event){
+        var result = event.target.result;
+        var html = '<div class="modal-overlay active" id="avatarPreviewModal" onclick="closeAvatarPreview()">';
+        html += '<div class="modal-box" onclick="event.stopPropagation()" style="text-align:center">';
+        html += '<h3>Preview</h3>';
+        html += '<img src="' + result + '" style="max-width:200px;max-height:200px;border-radius:10px;margin:10px 0">';
+        html += '<div class="btn-row">';
+        html += '<button class="btn btn-g" onclick="saveAvatar(\'' + type + '\')">💾 Save</button>';
+        html += '<button class="btn btn-r" onclick="closeAvatarPreview()">Cancel</button>';
+        html += '</div></div></div>';
+        document.body.insertAdjacentHTML('beforeend', html);
+    };
+    reader.onerror = function(){
+        showToast('❌ Failed to read file', true);
+    };
+    reader.readAsDataURL(file);
 }
 function closeAvatarPreview(){const m=document.getElementById('avatarPreviewModal');if(m)m.remove();pendingAvatarFile=null}
 async function saveAvatar(type){
@@ -388,28 +367,17 @@ async function saveAvatar(type){
     }catch(e){showToast('❌ '+e.message,true)}
 }
 function uploadProfilePic(){
-    const i = document.createElement('input');
-    i.type = 'file';
-    i.accept = 'image/*';
-    
-    i.onchange = function(e){
-        if (!e.target.files || !e.target.files[0]) return;
-        
-        const file = e.target.files[0];
-        
-        // ✅ Blob Type စစ်ဆေး
-        if (!(file instanceof Blob)) {
-            showToast('❌ Invalid file', true);
-            return;
-        }
-        
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = function(e){
+        var file = e.target.files[0];
+        if (!file) return;
         pendingAvatarFile = file;
         showAvatarPreview(file, 'profile');
     };
-    
-    i.click();
-}
-
+    input.click();
+    }
 function uploadGroupPic(gid){
     currentUploadGroupId = gid;
     
@@ -434,7 +402,19 @@ function uploadGroupPic(gid){
     
     i.click();
 }
-function uploadGroupPic(gid){currentUploadGroupId=gid;const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=e=>{if(!e.target.files[0])return;pendingAvatarFile=e.target.files[0];showAvatarPreview(pendingAvatarFile,'group')};i.click()}
+function uploadGroupPic(gid){
+    currentUploadGroupId = gid;
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = function(e){
+        var file = e.target.files[0];
+        if (!file) return;
+        pendingAvatarFile = file;
+        showAvatarPreview(file, 'group');
+    };
+    input.click();
+}
 async function deleteProfilePic(){if(!confirm('Remove photo?'))return;await fetch('/api/chat/update_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,avatarUrl:''})});showToast('Removed');loadMyProfile()}
 async function updateUsername(){const nu=document.getElementById('newUsername').value.trim();if(!nu||!nu.startsWith('@')){showToast('Must start with @',true);return}try{const r=await fetch('/api/chat/update_username',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,username:nu.substring(1)})});const d=await r.json();if(d.success){showToast('Updated!');currentUser.username=nu.substring(1);loadMyProfile()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
 function copyUsername(u){navigator.clipboard.writeText('@'+u).then(()=>showToast('Copied!'))}
