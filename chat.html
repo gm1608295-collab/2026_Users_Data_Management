@@ -8,166 +8,193 @@
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <style>
         :root {
-            --bronze-solid: #6b3410; --bronze-light: #CD7F32; --bronze-bright: #E8A87C; --chocolate: #3d1c00;
-            --silver-solid: #707070; --silver-light: #C0C0C0; --silver-bright: #E8E8E8; --lead: #2d2d2d;
-            --gold-solid: #B8860B; --gold-light: #FFD700; --gold-bright: #FFF8DC; --gold-choco: #6d4c00;
+            --bronze-solid:#6b3410;--bronze-light:#CD7F32;--bronze-bright:#E8A87C;--chocolate:#3d1c00;
+            --silver-solid:#707070;--silver-light:#C0C0C0;--silver-bright:#E8E8E8;--lead:#2d2d2d;
+            --gold-solid:#B8860B;--gold-light:#FFD700;--gold-bright:#FFF8DC;--gold-choco:#6d4c00;
         }
-        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
-        body {
-            background: radial-gradient(ellipse at 20% 30%, #0c0e27, #05050f); color: #fff;
-            height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
-            padding-top: env(safe-area-inset-top, 0px);
-        }
-        body.normal-theme { background: linear-gradient(135deg, #0c0e27, #1a1f4b); }
-        body.normal-theme .chat-header { background: linear-gradient(135deg, #4a1c7a, #1a1f4b); border-bottom: 2px solid #f39c12; }
-        body.normal-theme .chat-header h3, body.normal-theme .chat-header a { color: #fff; }
-        body.normal-theme .chat-tab.active { background: #f39c12; color: #000; }
-        body.normal-theme .premium-badge { display: none; }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+        body{background:radial-gradient(ellipse at 20% 30%,#0c0e27,#05050f);color:#fff;height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px)}
+        body.normal-theme{background:linear-gradient(135deg,#0c0e27,#1a1f4b)}
+        body.normal-theme .chat-header{background:linear-gradient(135deg,#4a1c7a,#1a1f4b);border-bottom:2px solid #f39c12}
+        body.normal-theme .chat-tab.active{background:#f39c12;color:#000}
+        body.normal-theme .premium-badge{display:none}
 
-        body.bronze-tier { background: linear-gradient(160deg, var(--chocolate) 0%, #2d1a0a 40%, #1a0f07 100%); }
-        body.bronze-tier .chat-header { background: linear-gradient(135deg, var(--chocolate), var(--bronze-solid)); border-bottom: 3px solid var(--bronze-light); border-left: 3px solid var(--bronze-light); border-right: 3px solid var(--bronze-light); }
-        body.bronze-tier .chat-header h3 { color: var(--bronze-bright); font-weight: 700; }
-        body.bronze-tier .chat-tab.active { background: var(--bronze-solid); color: var(--bronze-bright); border-color: var(--bronze-light); }
-        body.bronze-tier .msg-mine .msg-bubble { background: linear-gradient(150deg, var(--bronze-solid), #8B4513); color: #fff; border: 2px solid var(--bronze-light); }
-        body.bronze-tier .msg-other .msg-bubble { background: rgba(205,127,50,0.1); border: 2px solid rgba(205,127,50,0.4); }
-        body.bronze-tier .msg-input-area { background: linear-gradient(180deg, rgba(61,28,0,0.8), rgba(26,15,7,0.95)); border-top: 2px solid var(--bronze-light); }
-        body.bronze-tier .premium-badge { background: var(--bronze-solid); color: var(--bronze-bright); border: 1px solid var(--bronze-light); display: inline-block; }
+        body.bronze-tier{background:linear-gradient(160deg,var(--chocolate) 0%,#2d1a0a 40%,#1a0f07 100%)}
+        body.bronze-tier .chat-header{background:linear-gradient(135deg,var(--chocolate),var(--bronze-solid));border-bottom:3px solid var(--bronze-light);border-left:3px solid var(--bronze-light);border-right:3px solid var(--bronze-light)}
+        body.bronze-tier .chat-header h3{color:var(--bronze-bright);font-weight:700}
+        body.bronze-tier .chat-tab.active{background:var(--bronze-solid);color:var(--bronze-bright);border-color:var(--bronze-light)}
+        body.bronze-tier .msg-mine .msg-bubble{background:linear-gradient(150deg,var(--bronze-solid),#8B4513)!important;color:#fff!important;border:2px solid var(--bronze-light)!important}
+        body.bronze-tier .msg-other .msg-bubble{background:rgba(205,127,50,0.1)!important;border:2px solid rgba(205,127,50,0.4)!important}
+        body.bronze-tier .msg-input-area{background:linear-gradient(180deg,rgba(61,28,0,0.8),rgba(26,15,7,0.95));border-top:2px solid var(--bronze-light)}
+        body.bronze-tier .premium-badge{background:var(--bronze-solid);color:var(--bronze-bright);border:1px solid var(--bronze-light);display:inline-block}
 
-        body.silver-tier { background: linear-gradient(160deg, var(--lead) 0%, #1a1a1a 40%, #0a0a0a 100%); }
-        body.silver-tier .chat-header { background: linear-gradient(135deg, var(--lead), var(--silver-solid)); border-bottom: 3px solid var(--silver-light); border-left: 3px solid var(--silver-light); border-right: 3px solid var(--silver-light); }
-        body.silver-tier .chat-header h3 { color: var(--silver-bright); font-weight: 700; }
-        body.silver-tier .chat-tab.active { background: var(--silver-solid); color: var(--silver-bright); border-color: var(--silver-light); }
-        body.silver-tier .msg-mine .msg-bubble { background: linear-gradient(150deg, var(--silver-solid), #5a5a5a); color: #fff; border: 2px solid var(--silver-light); }
-        body.silver-tier .msg-other .msg-bubble { background: rgba(192,192,192,0.08); border: 2px solid rgba(192,192,192,0.4); }
-        body.silver-tier .msg-input-area { background: linear-gradient(180deg, rgba(45,45,45,0.8), rgba(10,10,10,0.95)); border-top: 2px solid var(--silver-light); }
-        body.silver-tier .premium-badge { background: var(--silver-solid); color: var(--silver-bright); border: 1px solid var(--silver-light); display: inline-block; }
+        body.silver-tier{background:linear-gradient(160deg,var(--lead) 0%,#1a1a1a 40%,#0a0a0a 100%)}
+        body.silver-tier .chat-header{background:linear-gradient(135deg,var(--lead),var(--silver-solid));border-bottom:3px solid var(--silver-light);border-left:3px solid var(--silver-light);border-right:3px solid var(--silver-light)}
+        body.silver-tier .chat-header h3{color:var(--silver-bright);font-weight:700}
+        body.silver-tier .chat-tab.active{background:var(--silver-solid);color:var(--silver-bright);border-color:var(--silver-light)}
+        body.silver-tier .msg-mine .msg-bubble{background:linear-gradient(150deg,var(--silver-solid),#5a5a5a)!important;color:#fff!important;border:2px solid var(--silver-light)!important}
+        body.silver-tier .msg-other .msg-bubble{background:rgba(192,192,192,0.08)!important;border:2px solid rgba(192,192,192,0.4)!important}
+        body.silver-tier .msg-input-area{background:linear-gradient(180deg,rgba(45,45,45,0.8),rgba(10,10,10,0.95));border-top:2px solid var(--silver-light)}
+        body.silver-tier .premium-badge{background:var(--silver-solid);color:var(--silver-bright);border:1px solid var(--silver-light);display:inline-block}
 
-        body.gold-tier { background: linear-gradient(160deg, var(--gold-choco) 0%, #3d2a00 40%, #1a0a00 100%); }
-        body.gold-tier .chat-header { background: linear-gradient(135deg, var(--gold-choco), var(--gold-solid)); border-bottom: 3px solid var(--gold-light); border-left: 3px solid var(--gold-light); border-right: 3px solid var(--gold-light); }
-        body.gold-tier .chat-header h3 { color: var(--gold-bright); font-weight: 800; }
-        body.gold-tier .chat-tab.active { background: var(--gold-solid); color: var(--gold-bright); border-color: var(--gold-light); }
-        body.gold-tier .msg-mine .msg-bubble { background: linear-gradient(150deg, var(--gold-solid), #8B6914); color: #fff; border: 2px solid var(--gold-light); }
-        body.gold-tier .msg-other .msg-bubble { background: rgba(255,215,0,0.08); border: 2px solid rgba(255,215,0,0.4); }
-        body.gold-tier .msg-input-area { background: linear-gradient(180deg, rgba(109,76,0,0.8), rgba(26,10,0,0.95)); border-top: 2px solid var(--gold-light); }
-        body.gold-tier .premium-badge { background: var(--gold-solid); color: var(--gold-bright); border: 1px solid var(--gold-light); display: inline-block; }
+        body.gold-tier{background:linear-gradient(160deg,var(--gold-choco) 0%,#3d2a00 40%,#1a0a00 100%)}
+        body.gold-tier .chat-header{background:linear-gradient(135deg,var(--gold-choco),var(--gold-solid));border-bottom:3px solid var(--gold-light);border-left:3px solid var(--gold-light);border-right:3px solid var(--gold-light)}
+        body.gold-tier .chat-header h3{color:var(--gold-bright);font-weight:800}
+        body.gold-tier .chat-tab.active{background:var(--gold-solid);color:var(--gold-bright);border-color:var(--gold-light)}
+        body.gold-tier .msg-mine .msg-bubble{background:linear-gradient(150deg,var(--gold-solid),#8B6914)!important;color:#fff!important;border:2px solid var(--gold-light)!important}
+        body.gold-tier .msg-other .msg-bubble{background:rgba(255,215,0,0.08)!important;border:2px solid rgba(255,215,0,0.4)!important}
+        body.gold-tier .msg-input-area{background:linear-gradient(180deg,rgba(109,76,0,0.8),rgba(26,10,0,0.95));border-top:2px solid var(--gold-light)}
+        body.gold-tier .premium-badge{background:var(--gold-solid);color:var(--gold-bright);border:1px solid var(--gold-light);display:inline-block}
 
-        .chat-header { display:flex; align-items:center; gap:8px; padding:8px 10px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); flex-shrink:0; border-radius:0 0 4px 4px; }
-        .chat-header a { text-decoration:none; font-size:15px; transition:0.2s; }
-        .chat-header h3 { flex:1; font-size:13px; font-weight:600; }
-        .chat-header .online-count { font-size:8px; padding:2px 8px; border-radius:40px; font-weight:500; }
-        .premium-badge { display:none; padding:2px 8px; border-radius:40px; font-size:7px; font-weight:700; }
+        .chat-header{display:flex;align-items:center;gap:8px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top,0px));flex-shrink:0;border-radius:0 0 4px 4px}
+        .chat-header a{text-decoration:none;font-size:14px;transition:0.2s}
+        .chat-header h3{flex:1;font-size:13px;font-weight:600}
+        .chat-header .online-count{font-size:8px;padding:2px 8px;border-radius:3px;font-weight:500;border:1px solid rgba(46,204,113,0.4);background:rgba(46,204,113,0.1);color:#2ecc71;clip-path:polygon(3px 0%,100% 0%,calc(100% - 3px) 100%,0% 100%)}
+        .premium-badge{display:none;padding:2px 8px;border-radius:40px;font-size:7px;font-weight:700}
+        .back-btn-label{font-size:11px;font-weight:600;padding:4px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);display:inline-flex;align-items:center;gap:4px}
 
-        .chat-tabs { display:flex; gap:4px; padding:5px 10px; background:rgba(0,0,0,0.15); flex-shrink:0; overflow-x:auto; }
-        .chat-tab { flex:1; padding:6px 4px; text-align:center; font-size:10px; font-weight:500; cursor:pointer; border-radius:6px; transition:all 0.2s; white-space:nowrap; min-width:fit-content; }
-        .profile-tab { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); }
+        .chat-tabs{display:flex;gap:4px;padding:5px 10px;background:rgba(0,0,0,0.15);flex-shrink:0;overflow-x:auto}
+        .chat-tab{flex:1;padding:6px 4px;text-align:center;font-size:10px;font-weight:500;cursor:pointer;border-radius:6px;transition:all 0.2s;white-space:nowrap;min-width:fit-content}
+        .profile-tab{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1)}
 
-        .chat-body { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-        .room-list { display:none; flex:1; overflow-y:auto; padding:8px; }
-        .room-list.active { display:block; }
-        .room-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; margin-bottom:4px; cursor:pointer; transition:all 0.2s; background:rgba(0,0,0,0.2); border-left:3px solid transparent; }
-        .room-item:hover { background:rgba(255,255,255,0.05); }
-        .room-item .room-icon { font-size:20px; }
-        .room-item .room-info { flex:1; min-width:0; }
-        .room-item .room-name { font-size:12px; font-weight:600; }
-        .room-item .room-last { font-size:8px; color:rgba(255,255,255,0.35); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .room-item .room-badge { background:#e74c3c; color:#fff; font-size:7px; padding:1px 6px; border-radius:30px; font-weight:600; }
+        .chat-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
+        .room-list{display:none;flex:1;overflow-y:auto;padding:8px}
+        .room-list.active{display:block}
+        .room-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;margin-bottom:4px;cursor:pointer;transition:all 0.2s;background:rgba(0,0,0,0.2);border-left:3px solid transparent}
+        .room-item:hover{background:rgba(255,255,255,0.05)}
+        .room-item .room-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,0.15)}
+        .room-item .room-icon{font-size:20px}
+        .room-item .room-info{flex:1;min-width:0}
+        .room-item .room-name{font-size:12px;font-weight:600}
+        .room-item .room-last{font-size:8px;color:rgba(255,255,255,0.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .room-item .room-badge{background:#e74c3c;color:#fff;font-size:7px;padding:1px 6px;border-radius:30px;font-weight:600}
 
-        .chat-area { display:none; flex:1; flex-direction:column; overflow:hidden; }
-        .chat-area.active { display:flex; }
-        .chat-area-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:rgba(0,0,0,0.15); border-bottom:1px solid rgba(255,255,255,0.05); flex-shrink:0; }
-        .chat-area-header .back-btn { cursor:pointer; font-size:15px; }
-        .chat-area-header .room-title { font-size:13px; font-weight:600; flex:1; }
-        .chat-area-header .report-btn { color:#f39c12; cursor:pointer; padding:4px; font-size:12px; opacity:0.7; }
-        .chat-area-header .report-btn:hover { opacity:1; }
+        .chat-area{display:none;flex:1;flex-direction:column;overflow:hidden}
+        .chat-area.active{display:flex}
+        .chat-area-header{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(0,0,0,0.15);border-bottom:1px solid rgba(255,255,255,0.05);flex-shrink:0}
+        .chat-area-header .back-btn{cursor:pointer;font-size:15px}
+        .chat-area-header .room-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;cursor:pointer;border:2px solid rgba(255,255,255,0.2)}
+        .chat-area-header .room-title{font-size:13px;font-weight:600;flex:1;cursor:pointer}
+        .chat-area-header .report-btn{color:#f39c12;cursor:pointer;padding:4px;font-size:12px;opacity:0.7}
+        .chat-area-header .report-btn:hover{opacity:1}
 
-        .messages { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:4px; }
-        .msg-row { display:flex; gap:5px; max-width:80%; margin-bottom:2px; }
-        .msg-row.mine { align-self:flex-end; flex-direction:row-reverse; }
-        .msg-bubble { padding:6px 12px; border-radius:14px; font-size:11px; word-break:break-word; position:relative; }
-        .msg-bubble.bronze-tier { background:linear-gradient(150deg,#6b3410,#8B4513)!important; color:#fff!important; border:2px solid #CD7F32!important; }
-        .msg-bubble.silver-tier { background:linear-gradient(150deg,#707070,#5a5a5a)!important; color:#fff!important; border:2px solid #C0C0C0!important; }
-        .msg-bubble.gold-tier { background:linear-gradient(150deg,#B8860B,#8B6914)!important; color:#fff!important; border:2px solid #FFD700!important; }
-        .msg-bubble.normal-tier { background:rgba(255,255,255,0.08)!important; border:1px solid rgba(255,255,255,0.15)!important; color:#fff!important; }
-        .msg-mine .msg-bubble.normal-tier { background:rgba(46,204,113,0.2)!important; border:1px solid rgba(46,204,113,0.3)!important; }
-        .msg-mine .msg-bubble { border-bottom-right-radius:3px; }
-        .msg-other .msg-bubble { border-bottom-left-radius:3px; }
-        .msg-sender { font-size:8px; margin-bottom:2px; font-weight:600; opacity:0.8; }
-        .msg-time { font-size:6px; color:rgba(255,255,255,0.35); margin-top:2px; text-align:right; }
-        .media-message { max-width:180px; border-radius:10px; cursor:pointer; }
-        .media-message img { max-width:100%; border-radius:10px; }
-        .file-message { display:flex; align-items:center; gap:6px; padding:6px 10px; background:rgba(0,0,0,0.2); border-radius:10px; cursor:pointer; font-size:10px; }
+        .messages{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:4px}
+        .msg-row{display:flex;gap:5px;max-width:80%;margin-bottom:2px;align-items:flex-end}
+        .msg-row.mine{align-self:flex-end;flex-direction:row-reverse}
+        .msg-avatar{width:24px;height:24px;border-radius:50%;object-fit:cover;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,0.2)}
+        .msg-bubble{padding:6px 12px;border-radius:14px;font-size:11px;word-break:break-word;position:relative}
+        .msg-bubble.bronze-tier{background:linear-gradient(150deg,#6b3410,#8B4513)!important;color:#fff!important;border:2px solid #CD7F32!important}
+        .msg-bubble.silver-tier{background:linear-gradient(150deg,#707070,#5a5a5a)!important;color:#fff!important;border:2px solid #C0C0C0!important}
+        .msg-bubble.gold-tier{background:linear-gradient(150deg,#B8860B,#8B6914)!important;color:#fff!important;border:2px solid #FFD700!important}
+        .msg-bubble.normal-tier{background:rgba(255,255,255,0.08)!important;border:1px solid rgba(255,255,255,0.15)!important;color:#fff!important}
+        .msg-mine .msg-bubble.normal-tier{background:rgba(46,204,113,0.2)!important;border:1px solid rgba(46,204,113,0.3)!important}
+        .msg-mine .msg-bubble{border-bottom-right-radius:3px}
+        .msg-other .msg-bubble{border-bottom-left-radius:3px}
+        .msg-sender{font-size:8px;margin-bottom:2px;font-weight:600;opacity:0.8;cursor:pointer}
+        .msg-time{font-size:6px;color:rgba(255,255,255,0.35);margin-top:2px;text-align:right}
+        .media-message{max-width:180px;border-radius:10px;cursor:pointer}
+        .media-message img{max-width:100%;border-radius:10px}
+        .file-message{display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(0,0,0,0.2);border-radius:10px;cursor:pointer;font-size:10px}
 
-        .msg-input-area { display:flex; gap:6px; padding:6px 10px; flex-shrink:0; }
-        .input-wrapper { flex:1; }
-        .msg-input-area input { width:100%; height:32px; padding:0 12px; border-radius:6px; font-size:12px; outline:none; transition:all 0.2s; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#fff; }
-        .msg-input-area input::placeholder { color:rgba(255,255,255,0.3); font-size:11px; }
-        .msg-input-area button { width:32px; height:32px; border-radius:6px; border:none; font-size:13px; cursor:pointer; transition:all 0.2s; flex-shrink:0; background:rgba(255,255,255,0.1); color:#fff; }
+        .msg-input-area{display:flex;gap:6px;padding:6px 10px;flex-shrink:0}
+        .input-wrapper{flex:1}
+        .msg-input-area input{width:100%;height:32px;padding:0 12px;border-radius:6px;font-size:12px;outline:none;transition:all 0.2s;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff}
+        .msg-input-area input::placeholder{color:rgba(255,255,255,0.3);font-size:11px}
+        .msg-input-area button{width:32px;height:32px;border-radius:6px;border:none;font-size:13px;cursor:pointer;transition:all 0.2s;flex-shrink:0;background:rgba(255,255,255,0.1);color:#fff}
 
-        .media-buttons { display:flex; gap:4px; }
-        .media-btn { width:32px; height:32px; border-radius:6px; border:none; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:#fff; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; position:relative; }
-        .media-btn.locked { background:rgba(231,76,60,0.1); border:1px solid rgba(231,76,60,0.25); opacity:0.7; }
-        .lock-icon { position:absolute; bottom:-1px; right:-1px; background:#e74c3c; border-radius:50%; width:10px; height:10px; display:flex; align-items:center; justify-content:center; font-size:5px; }
+        .media-buttons{display:flex;gap:4px}
+        .media-btn{width:32px;height:32px;border-radius:6px;border:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#fff;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative}
+        .media-btn.locked{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.25);opacity:0.7}
+        .lock-icon{position:absolute;bottom:-1px;right:-1px;background:#e74c3c;border-radius:50%;width:10px;height:10px;display:flex;align-items:center;justify-content:center;font-size:5px}
 
-        .emoji-row { display:flex; overflow-x:auto; gap:6px; padding:4px 10px; background:rgba(0,0,0,0.15); border-top:1px solid rgba(255,255,255,0.04); flex-shrink:0; }
-        .emoji-item { font-size:18px; cursor:pointer; transition:transform 0.15s; flex-shrink:0; padding:2px; border-radius:4px; }
-        .emoji-item:hover { transform:scale(1.15); background:rgba(255,255,255,0.08); }
-        .toggle-emoji-btn { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:3px 8px; font-size:9px; cursor:pointer; color:#f39c12; white-space:nowrap; }
+        .emoji-row{display:flex;overflow-x:auto;gap:6px;padding:4px 10px;background:rgba(0,0,0,0.15);border-top:1px solid rgba(255,255,255,0.04);flex-shrink:0}
+        .emoji-item{font-size:18px;cursor:pointer;transition:transform 0.15s;flex-shrink:0;padding:2px;border-radius:4px}
+        .emoji-item:hover{transform:scale(1.15);background:rgba(255,255,255,0.08)}
+        .toggle-emoji-btn{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:4px;padding:3px 8px;font-size:9px;cursor:pointer;color:#f39c12;white-space:nowrap}
 
-        .typing-indicator { padding:3px 12px; font-size:9px; color:#f39c12; font-weight:500; }
+        .typing-indicator{padding:3px 12px;font-size:9px;color:#f39c12;font-weight:500}
 
-        .premium-req-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2500; justify-content:center; align-items:center; }
-        .premium-req-overlay.active { display:flex; }
-        .premium-req-card { background:linear-gradient(145deg,#1a1f4b,#11112a); border:2px solid #f39c12; border-radius:16px; padding:20px; width:90%; max-width:320px; text-align:center; }
-        .premium-req-card h3 { font-size:15px; color:#f39c12; margin-bottom:8px; }
-        .premium-req-card .btn-upgrade { background:linear-gradient(135deg,#f39c12,#e67e22); color:#000; padding:8px; border:none; border-radius:6px; font-weight:bold; cursor:pointer; width:100%; margin-top:8px; }
+        .premium-req-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:2500;justify-content:center;align-items:center}
+        .premium-req-overlay.active{display:flex}
+        .premium-req-card{background:linear-gradient(145deg,#1a1f4b,#11112a);border:2px solid #f39c12;border-radius:16px;padding:20px;width:90%;max-width:320px;text-align:center}
+        .premium-req-card h3{font-size:15px;color:#f39c12;margin-bottom:8px}
+        .premium-req-card .btn-upgrade{background:linear-gradient(135deg,#f39c12,#e67e22);color:#000;padding:8px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;width:100%;margin-top:8px}
 
-        .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; justify-content:center; align-items:center; }
-        .modal-overlay.active { display:flex; }
-        .modal-box { background:linear-gradient(135deg,#1a1f4b,#11112a); border:2px solid #f39c12; border-radius:12px; padding:16px; width:90%; max-width:360px; }
-        .modal-box h3 { color:#f39c12; margin-bottom:10px; text-align:center; font-size:15px; }
-        .form-group { margin-bottom:8px; }
-        .form-group label { display:block; font-size:8px; margin-bottom:2px; color:rgba(255,255,255,0.5); }
-        .form-group input { width:100%; padding:8px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#fff; font-size:11px; }
-        .btn-row { display:flex; gap:6px; margin-top:8px; }
-        .btn { padding:8px; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; flex:1; text-align:center; }
-        .btn-g { background:#2ecc71; color:#000; } .btn-r { background:#e74c3c; color:#fff; } .btn-b { background:#3498db; color:#fff; } .btn-w { background:#f39c12; color:#000; }
-        .toast { position:fixed; top:15px; right:15px; padding:8px 14px; border-radius:6px; background:#2ecc71; color:#000; display:none; z-index:4000; font-size:10px; font-weight:600; }
-        .empty-state { text-align:center; padding:25px; color:rgba(255,255,255,0.25); font-size:11px; }
-        .admin-btn { width:100%; padding:8px; background:#2ecc71; color:#000; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; margin-top:6px; }
-        .user-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:rgba(0,0,0,0.2); border-radius:8px; margin-bottom:4px; cursor:pointer; }
-        .online-indicator { width:7px; height:7px; background:#2ecc71; border-radius:50%; }
+        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;justify-content:center;align-items:center}
+        .modal-overlay.active{display:flex}
+        .modal-box{background:linear-gradient(135deg,#1a1f4b,#11112a);border:2px solid #f39c12;border-radius:12px;padding:16px;width:90%;max-width:380px;max-height:80vh;overflow-y:auto}
+        .modal-box h3{color:#f39c12;margin-bottom:10px;text-align:center;font-size:15px}
+        .form-group{margin-bottom:8px}
+        .form-group label{display:block;font-size:8px;margin-bottom:2px;color:rgba(255,255,255,0.5)}
+        .form-group input{width:100%;padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:11px}
+        .btn-row{display:flex;gap:6px;margin-top:8px}
+        .btn{padding:8px;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;flex:1;text-align:center}
+        .btn-g{background:#2ecc71;color:#000}.btn-r{background:#e74c3c;color:#fff}.btn-b{background:#3498db;color:#fff}.btn-w{background:#f39c12;color:#000}
+        .toast{position:fixed;top:15px;right:15px;padding:8px 14px;border-radius:6px;background:#2ecc71;color:#000;display:none;z-index:4000;font-size:10px;font-weight:600}
+        .empty-state{text-align:center;padding:25px;color:rgba(255,255,255,0.25);font-size:11px}
+        .admin-btn{width:100%;padding:8px;background:#2ecc71;color:#000;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;margin-top:6px}
+        .user-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:8px;margin-bottom:4px;cursor:pointer}
+        .online-indicator{width:7px;height:7px;background:#2ecc71;border-radius:50%}
 
-        /* Username Search Dropdown */
-        .username-search-wrap { position:relative; }
-        .username-dropdown { position:absolute; top:100%; left:0; right:0; background:#1a1f4b; border:1px solid rgba(255,255,255,0.2); border-radius:6px; max-height:150px; overflow-y:auto; z-index:10; display:none; }
-        .username-dropdown.active { display:block; }
-        .username-dropdown-item { padding:8px 10px; cursor:pointer; font-size:11px; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; align-items:center; gap:6px; }
-        .username-dropdown-item:hover { background:rgba(255,255,255,0.1); }
-        .username-dropdown-item .prem-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-        .prem-dot.bronze { background:#CD7F32; } .prem-dot.silver { background:#C0C0C0; } .prem-dot.gold { background:#FFD700; }
+        /* Username Dropdown */
+        .username-search-wrap{position:relative}
+        .username-dropdown{position:absolute;top:100%;left:0;right:0;background:#1a1f4b;border:1px solid rgba(255,255,255,0.2);border-radius:6px;max-height:150px;overflow-y:auto;z-index:10;display:none}
+        .username-dropdown.active{display:block}
+        .username-dropdown-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.05)}
+        .username-dropdown-item:hover{background:rgba(255,255,255,0.1)}
+        .username-dropdown-item .add-btn{background:#2ecc71;color:#000;padding:3px 8px;border-radius:4px;font-size:8px;font-weight:bold;cursor:pointer}
+
+        /* Emoji Grid */
+        .emoji-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-height:300px;overflow-y:auto;padding:8px}
+        .emoji-grid-item{font-size:24px;text-align:center;cursor:pointer;padding:6px;border-radius:6px;transition:all 0.15s}
+        .emoji-grid-item:hover{background:rgba(255,255,255,0.1);transform:scale(1.1)}
+        .emoji-cat-tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.1)}
+        .emoji-cat-tab{padding:4px 8px;border-radius:10px;font-size:9px;cursor:pointer;white-space:nowrap;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6)}
+        .emoji-cat-tab.active{background:#f39c12;color:#000;border-color:#f39c12;font-weight:bold}
+
+        /* Profile Modal */
+        .profile-modal-content{text-align:center}
+        .profile-avatar-large{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #f39c12;margin-bottom:10px;cursor:pointer}
+        .profile-username{font-size:18px;font-weight:bold;color:#f39c12;margin-bottom:4px;display:flex;align-items:center;justify-content:center;gap:6px}
+        .copy-btn{cursor:pointer;font-size:12px;color:rgba(255,255,255,0.5);padding:4px}
+        .copy-btn:hover{color:#fff}
+        .profile-groups{margin-top:12px;text-align:left}
+        .profile-groups .group-item{padding:8px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:4px;cursor:pointer;font-size:11px;display:flex;align-items:center;gap:6px}
+
+        /* Group Members List */
+        .member-item{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:3px;font-size:10px}
+        .member-item .member-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.2);margin-right:6px;cursor:pointer}
+        .member-badge{font-size:7px;padding:2px 6px;border-radius:8px;font-weight:bold}
+        .member-badge.owner{background:#FFD700;color:#000}
+        .member-badge.admin{background:#3498db;color:#fff}
+        .member-badge.member{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6)}
+
+        /* Join Button */
+        .join-btn{background:linear-gradient(135deg,#2ecc71,#27ae60);color:#000;padding:6px 16px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:11px;animation:joinPulse 1.5s infinite}
+        @keyframes joinPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
 
         /* Report Warning */
-        .report-warning-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:5000; justify-content:center; align-items:center; }
-        .report-warning-overlay.active { display:flex; }
-        .report-warning-box { text-align:center; padding:20px; }
-        .report-warning-box .warn-icon { font-size:60px; color:#e74c3c; animation:pulse 0.5s infinite; }
-        .report-warning-box .warn-text { font-size:16px; color:#e74c3c; margin:10px 0; font-weight:bold; }
-        .report-warning-box .warn-countdown { font-size:30px; color:#f39c12; font-weight:bold; font-family:'Courier New',monospace; }
-        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(1.1)} }
+        .report-warning-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:5000;justify-content:center;align-items:center}
+        .report-warning-overlay.active{display:flex}
+        .report-warning-box{text-align:center;padding:20px}
+        .report-warning-box .warn-icon{font-size:60px;color:#e74c3c;animation:pulse 0.5s infinite}
+        .report-warning-box .warn-text{font-size:16px;color:#e74c3c;margin:10px 0;font-weight:bold}
+        .report-warning-box .warn-countdown{font-size:30px;color:#f39c12;font-weight:bold;font-family:'Courier New',monospace}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
 
-        .wave-text { display:inline-block; font-weight:700; }
-        .wave-letter { display:inline-block; animation:waveJump 1.2s ease-in-out infinite; }
-        .wave-letter:nth-child(1){animation-delay:0s} .wave-letter:nth-child(2){animation-delay:0.08s} .wave-letter:nth-child(3){animation-delay:0.16s} .wave-letter:nth-child(4){animation-delay:0.24s} .wave-letter:nth-child(5){animation-delay:0.32s} .wave-letter:nth-child(6){animation-delay:0.40s} .wave-letter:nth-child(7){animation-delay:0.48s}
-        @keyframes waveJump { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
-        #premiumBtn { display:inline-flex!important; align-items:center; gap:3px; white-space:nowrap; overflow:hidden; }
+        .wave-text{display:inline-block;font-weight:700}
+        .wave-letter{display:inline-block;animation:waveJump 1.2s ease-in-out infinite}
+        .wave-letter:nth-child(1){animation-delay:0s}.wave-letter:nth-child(2){animation-delay:0.08s}.wave-letter:nth-child(3){animation-delay:0.16s}.wave-letter:nth-child(4){animation-delay:0.24s}.wave-letter:nth-child(5){animation-delay:0.32s}.wave-letter:nth-child(6){animation-delay:0.40s}.wave-letter:nth-child(7){animation-delay:0.48s}
+        @keyframes waveJump{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+        #premiumBtn{display:inline-flex!important;align-items:center;gap:3px;white-space:nowrap;overflow:hidden;padding:5px 12px!important;font-size:9px!important;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)!important;border-radius:0!important}
     </style>
 </head>
 <body class="normal-theme">
     <div class="toast" id="toast"></div>
 
     <div class="chat-header">
-        <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
-        <a href="/chatpremium.html" id="premiumBtn" style="display:inline-flex;align-items:center;gap:3px;padding:4px 10px;background:linear-gradient(135deg,#f39c12,#e67e22);color:#000;text-decoration:none;font-size:9px;font-weight:700;border-radius:14px;border:2px solid #fff;transition:all 0.3s;box-shadow:0 2px 8px rgba(243,156,18,0.3);white-space:nowrap;overflow:hidden;"><span class="wave-text"><span class="wave-letter">P</span><span class="wave-letter">r</span><span class="wave-letter">e</span><span class="wave-letter">m</span><span class="wave-letter">i</span><span class="wave-letter">u</span><span class="wave-letter">m</span></span></a>
+        <a href="/dashboard" class="back-btn-label"><i class="fas fa-arrow-left"></i> Back</a>
+        <a href="/chatpremium.html" id="premiumBtn" style="background:linear-gradient(135deg,#f39c12,#e67e22);color:#000;text-decoration:none;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(243,156,18,0.3)"><span class="wave-text"><span class="wave-letter">P</span><span class="wave-letter">r</span><span class="wave-letter">e</span><span class="wave-letter">m</span><span class="wave-letter">i</span><span class="wave-letter">u</span><span class="wave-letter">m</span></span></a>
         <h3><i class="fas fa-comments"></i> စကားပြော</h3>
         <span class="online-count" id="onlineCount">0</span>
         <span class="premium-badge" id="premiumBadge"></span>
@@ -189,9 +216,10 @@
         <div class="chat-area" id="chatArea">
             <div class="chat-area-header">
                 <span class="back-btn" onclick="closeChat()"><i class="fas fa-arrow-left"></i></span>
-                <span class="room-title" id="chatRoomTitle">Chat</span>
-                <span class="report-btn" id="reportBtn" onclick="reportGroup()" title="Report Group"><i class="fas fa-flag"></i></span>
-                <span class="delete-room-btn" onclick="deleteCurrentRoom()"><i class="fas fa-trash"></i></span>
+                <img class="room-avatar" id="chatRoomAvatar" src="" onerror="this.style.display='none'" onclick="viewRoomProfile()" style="display:none">
+                <span class="room-title" id="chatRoomTitle" onclick="viewRoomProfile()">Chat</span>
+                <span class="report-btn" id="reportBtn" onclick="reportGroup()" title="Report"><i class="fas fa-flag"></i></span>
+                <span class="delete-room-btn" onclick="deleteCurrentRoom()" style="color:#e74c3c;cursor:pointer;padding:5px;opacity:0.6"><i class="fas fa-trash"></i></span>
             </div>
             <div class="messages" id="messages"><div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Select a chat room to start</div></div>
             <div class="typing-indicator" id="typingIndicator" style="display:none"><i class="fas fa-ellipsis-h"></i> Someone is typing...</div>
@@ -214,33 +242,37 @@
     <div class="premium-req-overlay" id="premiumReqOverlay" onclick="closePremiumReqModal(event)"><div class="premium-req-card" onclick="event.stopPropagation()"><div style="font-size:45px">👑</div><h3>Premium Feature</h3><p style="font-size:10px;color:rgba(255,255,255,0.7);margin-bottom:8px">ဓာတ်ပုံနှင့် ဖိုင်များ ပေးပို့ရန် Premium ဝယ်ယူထားရပါမည်</p><button class="btn-upgrade" onclick="window.location.href='/chatpremium.html'">👑 Upgrade Now</button><button style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:9px;padding:6px;border:none;border-radius:6px;cursor:pointer;width:100%;margin-top:4px" onclick="document.getElementById('premiumReqOverlay').classList.remove('active')">ပယ်ဖျက်မည်</button></div></div>
 
     <!-- Create Group Modal -->
-    <div class="modal-overlay" id="groupModal"><div class="modal-box"><h3><i class="fas fa-users"></i> Create New Group</h3><div class="form-group"><label>Group Name</label><input type="text" id="groupName" placeholder="Enter group name..."></div><div class="form-group"><label>Add Members</label><div class="username-search-wrap"><input type="text" id="memberSearch" placeholder="Search username..." oninput="searchUsernames()" autocomplete="off"><div class="username-dropdown" id="usernameDropdown"></div></div><div id="selectedMembers" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;min-height:20px"></div></div><div class="btn-row"><button class="btn btn-g" onclick="createGroup()">Create</button><button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button></div></div></div>
+    <div class="modal-overlay" id="groupModal"><div class="modal-box"><h3><i class="fas fa-users"></i> Create New Group</h3><div class="form-group"><label>Group Name</label><input type="text" id="groupName" placeholder="Enter group name..."></div><div class="btn-row"><button class="btn btn-g" onclick="createGroup()">Create</button><button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button></div></div></div>
 
     <!-- Group Info Modal -->
-    <div class="modal-overlay" id="groupInfoModal"><div class="modal-box"><h3><i class="fas fa-info-circle"></i> Group Info</h3><div id="groupInfoContent"></div><div class="btn-row"><button class="btn btn-w" onclick="showAddMemberModal()">➕ Add</button><button class="btn btn-r" onclick="leaveGroup()">🚪 Leave</button></div><button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%;margin-top:6px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
+    <div class="modal-overlay" id="groupInfoModal"><div class="modal-box"><h3 id="groupInfoTitle"><i class="fas fa-info-circle"></i> Group Info</h3><div id="groupInfoContent"></div><button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%;margin-top:6px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
+
+    <!-- User Profile Modal -->
+    <div class="modal-overlay" id="userProfileModal"><div class="modal-box"><div id="userProfileContent" class="profile-modal-content"></div><button class="btn" onclick="closeModal('userProfileModal')" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
 
     <!-- Add Member Modal -->
-    <div class="modal-overlay" id="addMemberModal"><div class="modal-box"><h3><i class="fas fa-user-plus"></i> Add Member</h3><input type="hidden" id="addMemberRoomId"><div class="form-group"><label>Username</label><div class="username-search-wrap"><input type="text" id="addMemberSearch" placeholder="Search username..." oninput="searchUsernameForAdd()" autocomplete="off"><div class="username-dropdown" id="addMemberDropdown"></div></div></div><div class="btn-row"><button class="btn btn-g" onclick="addMemberToGroup()">Add</button><button class="btn btn-r" onclick="closeModal('addMemberModal')">Cancel</button></div></div></div>
+    <div class="modal-overlay" id="addMemberModal"><div class="modal-box"><h3><i class="fas fa-user-plus"></i> Add Member</h3><input type="hidden" id="addMemberRoomId"><div class="form-group"><div class="username-search-wrap"><input type="text" id="addMemberSearch" placeholder="Search @username..." oninput="searchUsernameForAdd()" autocomplete="off"><div class="username-dropdown" id="addMemberDropdown"></div></div></div></div></div>
 
-    <!-- Profile Modal -->
-    <div class="modal-overlay" id="profileModal"><div class="modal-box"><h3><i class="fas fa-user-circle"></i> My Profile</h3><div id="profileContent"></div></div></div>
+    <!-- Manage Members Modal -->
+    <div class="modal-overlay" id="manageMembersModal"><div class="modal-box"><h3><i class="fas fa-users-cog"></i> Manage Members</h3><div id="manageMembersContent"></div><button class="btn" onclick="closeModal('manageMembersModal')" style="width:100%;margin-top:6px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
 
     <!-- Report Warning Overlay -->
-    <div class="report-warning-overlay" id="reportWarningOverlay"><div class="report-warning-box"><div class="warn-icon">⚠️</div><div class="warn-text" id="reportWarnText">ဤ Group ကို Report 50 ကြိမ်ပြည့်သွားပါပြီ</div><div class="warn-countdown" id="reportCountdown">10</div><div style="color:rgba(255,255,255,0.5);font-size:10px">စက္ကန့်အတွင်း Group ပျက်သွားပါမည်</div></div></div>
+    <div class="report-warning-overlay" id="reportWarningOverlay"><div class="report-warning-box"><div class="warn-icon">⚠️</div><div class="warn-text">ဤ Group ကို Report 50 ကြိမ်ပြည့်သွားပါပြီ</div><div class="warn-countdown" id="reportCountdown">10</div><div style="color:rgba(255,255,255,0.5);font-size:10px">စက္ကန့်အတွင်း Group ပျက်သွားပါမည်</div></div></div>
 
     <!-- More Emojis Modal -->
-    <div class="modal-overlay" id="moreEmojisModal"><div class="modal-box"><h3><i class="fas fa-smile"></i> All Emojis</h3><div class="more-emojis-grid" id="moreEmojisGrid" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-height:250px;overflow-y:auto;padding:8px"></div><button class="btn" onclick="closeModal('moreEmojisModal')" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
+    <div class="modal-overlay" id="moreEmojisModal"><div class="modal-box"><h3><i class="fas fa-smile"></i> Emojis</h3><div class="emoji-cat-tabs" id="emojiCatTabs"></div><div class="emoji-grid" id="moreEmojisGrid"></div><button class="btn" onclick="closeModal('moreEmojisModal')" style="width:100%;margin-top:8px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
 
     <!-- Upload Preview Modal -->
     <div class="upload-preview-modal" id="uploadPreviewModal" style="position:fixed;bottom:0;left:0;right:0;background:#1a1f4b;border-radius:16px 16px 0 0;padding:14px;z-index:3000;transform:translateY(100%);transition:transform 0.3s ease;border-top:2px solid #f39c12"><div class="upload-preview-container"><div id="uploadPreviewContent"></div><div class="upload-progress" id="uploadProgress" style="display:none"><div style="font-size:10px;margin-bottom:4px" id="progressText">Uploading 0%</div><div class="progress-bar" style="height:3px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden"><div class="progress-fill" id="progressFill" style="height:100%;background:linear-gradient(90deg,#2ecc71,#f39c12);width:0%"></div></div></div><div class="upload-buttons" style="display:flex;gap:6px;margin-top:10px"><button class="btn-cancel" onclick="cancelUpload()" style="flex:1;padding:8px;border:none;border-radius:6px;background:rgba(255,255,255,0.08);color:#fff;font-weight:bold;cursor:pointer">Cancel</button><button class="btn-send" id="sendUploadBtn" onclick="confirmUpload()" style="flex:1;padding:8px;border:none;border-radius:6px;background:#2ecc71;color:#000;font-weight:bold;cursor:pointer">Send</button></div></div></div>
 
 <script>
 // ============================================
-// COMPLETE CHAT SYSTEM V3
+// COMPLETE CHAT SYSTEM V4
 // ============================================
 let socket=null,currentUser=null,currentRoom=null,typingTimeout=null,isPremium=false,premiumTier=0;
 let selectedFile=null,selectedFileType=null,selectedFileName=null,uploadCancelled=false,isProcessing=false;
-let selectedMembers=[],currentRoomType=null;
+let currentRoomType=null,currentRoomData=null;
+const IMGBB_KEY='061305b12595ef3f7d5d72c24c5c131a';
 
 function showToast(m,e){e=e||false;const t=document.getElementById('toast');t.textContent=m;t.style.background=e?'#e74c3c':'#2ecc71';t.style.color=e?'#fff':'#000';t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
 function escapeHtml(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML}
@@ -252,12 +284,9 @@ function handleFileClick(){if(!isPremium){document.getElementById('premiumReqOve
 
 async function checkPremiumStatus(){
     const t=localStorage.getItem('auth_token');if(!t||t==='guest')return;
-    try{
-        const r=await fetch('/api/chat/premium/all_tiers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
-        const d=await r.json();
-        if(d.success&&d.tiers){let h=0;for(let i=3;i>=1;i--){if(d.tiers[i]){h=i;break}}isPremium=h>0;premiumTier=h;isPremium?(applyPremiumTheme(premiumTier),updateMediaButtons(true)):(applyNormalTheme(),updateMediaButtons(false))}
-        else{isPremium=false;premiumTier=0;applyNormalTheme();updateMediaButtons(false)}
-    }catch(e){}
+    try{const r=await fetch('/api/chat/premium/all_tiers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});const d=await r.json();
+    if(d.success&&d.tiers){let h=0;for(let i=3;i>=1;i--){if(d.tiers[i]){h=i;break}}isPremium=h>0;premiumTier=h;isPremium?(applyPremiumTheme(premiumTier),updateMediaButtons(true)):(applyNormalTheme(),updateMediaButtons(false))}
+    else{isPremium=false;premiumTier=0;applyNormalTheme();updateMediaButtons(false)}}catch(e){}
 }
 function applyNormalTheme(){document.body.classList.remove('bronze-tier','silver-tier','gold-tier');document.body.classList.add('normal-theme');document.getElementById('premiumBadge').style.display='none'}
 function applyPremiumTheme(t){
@@ -272,190 +301,213 @@ function applyPremiumTheme(t){
 function updateMediaButtons(h){const i=document.getElementById('imageBtn'),f=document.getElementById('fileBtn'),il=document.getElementById('imageLock'),fl=document.getElementById('fileLock');if(h){i.disabled=false;f.disabled=false;i.classList.remove('locked');f.classList.remove('locked');il.style.display='none';fl.style.display='none'}else{i.disabled=true;f.disabled=true;i.classList.add('locked');f.classList.add('locked');il.style.display='flex';fl.style.display='flex'}}
 function selectImage(){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=e=>{if(e.target.files[0]){selectedFile=e.target.files[0];selectedFileType='image';selectedFileName=selectedFile.name;showUploadPreview(selectedFile,'image')}};i.click()}
 function selectFile(){const i=document.createElement('input');i.type='file';i.onchange=e=>{if(e.target.files[0]){selectedFile=e.target.files[0];selectedFileType='file';selectedFileName=selectedFile.name;showUploadPreview(selectedFile,'file')}};i.click()}
-function showUploadPreview(f,t){const c=document.getElementById('uploadPreviewContent'),m=document.getElementById('uploadPreviewModal');m.classList.add('active');if(t==='image'){const r=new FileReader();r.onload=e=>{c.innerHTML=`<img src="${e.target.result}" class="upload-preview-image" style="max-width:100%;border-radius:10px;margin-bottom:10px">`};r.readAsDataURL(f)}else{c.innerHTML=`<div class="upload-preview-file" style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:10px"><i class="fas fa-file" style="font-size:35px"></i><div style="flex:1"><div style="font-weight:bold;font-size:11px">${escapeHtml(f.name)}</div><div style="font-size:9px;color:rgba(255,255,255,0.5)">${(f.size/1024).toFixed(1)} KB</div></div></div>`}document.getElementById('uploadProgress').style.display='none';document.getElementById('sendUploadBtn').disabled=false;uploadCancelled=false}
+function showUploadPreview(f,t){const c=document.getElementById('uploadPreviewContent'),m=document.getElementById('uploadPreviewModal');m.classList.add('active');if(t==='image'){const r=new FileReader();r.onload=e=>{c.innerHTML=`<img src="${e.target.result}" style="max-width:100%;border-radius:10px;margin-bottom:10px">`};r.readAsDataURL(f)}else{c.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(0,0,0,0.3);border-radius:8px;margin-bottom:10px"><i class="fas fa-file" style="font-size:35px"></i><div style="flex:1"><div style="font-weight:bold;font-size:11px">${escapeHtml(f.name)}</div><div style="font-size:9px;color:rgba(255,255,255,0.5)">${(f.size/1024).toFixed(1)} KB</div></div></div>`}document.getElementById('uploadProgress').style.display='none';document.getElementById('sendUploadBtn').disabled=false;uploadCancelled=false}
 function cancelUpload(){uploadCancelled=true;selectedFile=null;document.getElementById('uploadPreviewModal').classList.remove('active')}
 async function confirmUpload(){
     if(!selectedFile||uploadCancelled||!currentRoom){if(!currentRoom)showToast('Select a chat room first',true);cancelUpload();return}
     const pd=document.getElementById('uploadProgress'),pf=document.getElementById('progressFill'),pt=document.getElementById('progressText');pd.style.display='block';pf.style.width='0%';pt.textContent='Uploading 0%';document.getElementById('sendUploadBtn').disabled=true;
     let p=0;const pi=setInterval(()=>{if(uploadCancelled)return;p=Math.min(p+8,90);pf.style.width=p+'%';pt.textContent=`Uploading ${p}%`},150);
-    try{
-        const r=new FileReader();const b64=await new Promise(r=>{r.onload=e=>r(e.target.result);r.readAsDataURL(selectedFile)});
-        if(uploadCancelled){clearInterval(pi);cancelUpload();return}pf.style.width='95%';pt.textContent='Processing 95%';
-        const res=await fetch('/api/chat/upload_file',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),base64:b64,fileName:selectedFileName,fileType:selectedFile.type})});
-        const d=await res.json();clearInterval(pi);if(uploadCancelled){cancelUpload();return}
-        if(d.success){pf.style.width='100%';pt.textContent='Complete! Sending...';await new Promise(r=>setTimeout(r,200));socket.emit('send_message',{roomId:currentRoom,message:selectedFileType==='image'?`📷 IMAGE:${d.url}`:`📎 FILE:${d.url}|${d.fileName||selectedFileName}`,userId:currentUser.id,username:currentUser.username,senderPremiumTier:premiumTier});showToast('Sent!');cancelUpload()}
-        else{showToast(d.message||'Upload failed',true);cancelUpload()}
-    }catch(e){clearInterval(pi);showToast('Upload error',true);cancelUpload()}
+    try{const r=new FileReader();const b64=await new Promise(r=>{r.onload=e=>r(e.target.result);r.readAsDataURL(selectedFile)});if(uploadCancelled){clearInterval(pi);cancelUpload();return}pf.style.width='95%';pt.textContent='Processing 95%';
+    const res=await fetch('/api/chat/upload_file',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),base64:b64,fileName:selectedFileName,fileType:selectedFile.type})});const d=await res.json();clearInterval(pi);if(uploadCancelled){cancelUpload();return}
+    if(d.success){pf.style.width='100%';pt.textContent='Sent!';await new Promise(r=>setTimeout(r,200));socket.emit('send_message',{roomId:currentRoom,message:selectedFileType==='image'?`📷 IMAGE:${d.url}`:`📎 FILE:${d.url}|${d.fileName||selectedFileName}`,userId:currentUser.id,username:currentUser.username,senderPremiumTier:premiumTier});showToast('Sent!');cancelUpload()}else{showToast(d.message||'Upload failed',true);cancelUpload()}}catch(e){clearInterval(pi);showToast('Upload error',true);cancelUpload()}
 }
 
-async function getCurrentUser(){
-    const t=localStorage.getItem('auth_token');if(!t||t==='guest'){document.body.innerHTML='<div style="text-align:center;padding:50px"><i class="fas fa-lock" style="font-size:40px"></i><h3>Please login to chat</h3><a href="/">Login</a></div>';return null}
-    try{const r=await fetch('/api/chat/current_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});const d=await r.json();if(d.success){currentUser=d.user;return currentUser}throw new Error('User not found')}
-    catch(e){document.body.innerHTML='<div style="text-align:center;padding:50px"><i class="fas fa-exclamation-triangle" style="font-size:40px"></i><h3>Error loading user</h3><a href="/">Back</a></div>';return null}
-}
+async function getCurrentUser(){const t=localStorage.getItem('auth_token');if(!t||t==='guest'){document.body.innerHTML='<div style="text-align:center;padding:50px"><h3>Please login to chat</h3><a href="/">Login</a></div>';return null}try{const r=await fetch('/api/chat/current_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});const d=await r.json();if(d.success){currentUser=d.user;return currentUser}throw new Error('User not found')}catch(e){document.body.innerHTML='<div style="text-align:center;padding:50px"><h3>Error</h3><a href="/">Back</a></div>';return null}}
 function initSocket(){
     socket=io(window.location.origin,{transports:['polling','websocket'],reconnection:true});
     socket.on('connect',()=>{if(currentUser)socket.emit('user_online',{userId:currentUser.id,username:currentUser.username})});
     socket.on('new_message',msg=>{if(currentRoom===msg.roomId){addMessageToUI(msg,msg.sender_id===currentUser?.id,msg.sender_premium_tier||0);scrollToBottom()}loadRooms()});
     socket.on('online_users',u=>{document.getElementById('onlineCount').innerHTML=(u?.length||0)+' online';loadUsersList()});
-    socket.on('user_typing',d=>{if(currentRoom===d.roomId&&d.userId!==currentUser?.id){const ind=document.getElementById('typingIndicator');ind.style.display='block';ind.innerHTML=`<i class="fas fa-ellipsis-h"></i> ${escapeHtml(d.username)} is typing...`;clearTimeout(typingTimeout);typingTimeout=setTimeout(()=>ind.style.display='none',2000)}});
+    socket.on('user_typing',d=>{if(currentRoom===d.roomId&&d.userId!==currentUser?.id){const ind=document.getElementById('typingIndicator');ind.style.display='block';ind.innerHTML=`<i class="fas fa-ellipsis-h"></i> ${escapeHtml(d.username)} typing...`;clearTimeout(typingTimeout);typingTimeout=setTimeout(()=>ind.style.display='none',2000)}});
+    socket.on('group_updated',()=>{loadGroupsList();loadRooms()});
 }
 function onTyping(){if(!currentRoom||!currentUser)return;socket.emit('typing',{roomId:currentRoom,userId:currentUser.id,username:currentUser.username})}
 function switchTab(t){
-    document.querySelectorAll('.chat-tab').forEach(x=>x.classList.remove('active'));
-    document.querySelector(`.chat-tab[data-tab="${t}"]`).classList.add('active');
-    ['roomList','usersList','groupsList','profilePanel'].forEach(id=>document.getElementById(id).classList.remove('active'));
-    document.getElementById('chatArea').classList.remove('active');
-    if(t==='rooms'){document.getElementById('roomList').classList.add('active');loadRooms()}
-    else if(t==='users'){document.getElementById('usersList').classList.add('active');loadUsersList()}
-    else if(t==='groups'){document.getElementById('groupsList').classList.add('active');loadGroupsList()}
-    else if(t==='profile'){document.getElementById('profilePanel').classList.add('active');loadProfile()}
+    document.querySelectorAll('.chat-tab').forEach(x=>x.classList.remove('active'));document.querySelector(`.chat-tab[data-tab="${t}"]`).classList.add('active');
+    ['roomList','usersList','groupsList','profilePanel'].forEach(id=>document.getElementById(id).classList.remove('active'));document.getElementById('chatArea').classList.remove('active');
+    if(t==='rooms'){document.getElementById('roomList').classList.add('active');loadRooms()}else if(t==='users'){document.getElementById('usersList').classList.add('active');loadUsersList()}else if(t==='groups'){document.getElementById('groupsList').classList.add('active');loadGroupsList()}else if(t==='profile'){document.getElementById('profilePanel').classList.add('active');loadMyProfile()}
 }
 
 async function loadRooms(){
     if(!currentUser)return;
     try{const r=await fetch('/api/chat/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();const c=document.getElementById('roomList');
-    if(d.rooms?.length){c.innerHTML=d.rooms.map(room=>`<div class="room-item" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')"><div class="room-icon">${room.room_type==='admin'?'👑':room.room_type==='group'?'👥':'💬'}</div><div class="room-info"><div class="room-name">${escapeHtml(room.room_name)}</div><div class="room-last">${escapeHtml(room.last_message||'No messages')}</div></div>${room.unread>0?`<div class="room-badge">${room.unread}</div>`:''}</div>`).join('')}
-    else{c.innerHTML='<div class="empty-state"><i class="fas fa-comments"></i><p>No chat rooms yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>'}}catch(e){}
+    if(d.rooms?.length){c.innerHTML=d.rooms.map(room=>`<div class="room-item" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')"><div class="room-icon">${room.room_type==='admin'?'👑':room.room_type==='group'?'👥':'💬'}</div><div class="room-info"><div class="room-name">${escapeHtml(room.room_name)}</div><div class="room-last">${escapeHtml(room.last_message||'No messages')}</div></div>${room.unread>0?`<div class="room-badge">${room.unread}</div>`:''}</div>`).join('')}else{c.innerHTML='<div class="empty-state"><p>No chat rooms yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>'}}catch(e){}
 }
 async function loadUsersList(){
     if(!currentUser)return;
     try{const r=await fetch('/api/chat/online_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();const ou=(d.users||[]).filter(u=>u.user_id!==currentUser.id);
-    document.getElementById('usersList').innerHTML=ou.length?ou.map(u=>`<div class="user-item" onclick="startPrivateChat(${u.user_id},'${escapeHtml(u.username)}')"><div class="online-indicator"></div><div class="room-info"><div class="room-name">${escapeHtml(u.username)}</div><div class="room-last" style="color:#2ecc71">🟢 Online</div></div></div>`).join(''):'<div class="empty-state"><i class="fas fa-user-slash"></i><p>No online users</p></div>'}catch(e){}
+    document.getElementById('usersList').innerHTML=ou.length?ou.map(u=>`<div class="user-item" onclick="viewUserProfile(${u.user_id})"><div class="online-indicator"></div><div class="room-info"><div class="room-name">${escapeHtml(u.username)}</div><div class="room-last" style="color:#2ecc71">🟢 Online</div></div></div>`).join(''):'<div class="empty-state"><p>No online users</p></div>'}catch(e){}
 }
 async function loadGroupsList(){
     if(!currentUser)return;
     try{const r=await fetch('/api/chat/groups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();
-    document.getElementById('groupsList').innerHTML=d.groups?.length?d.groups.map(g=>`<div class="room-item" onclick="openRoom(${g.id},'${escapeHtml(g.room_name)}','group')"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(g.room_name)}</div><div class="room-last">${escapeHtml(g.last_message||'No messages')}</div></div></div>`).join(''):'<div class="empty-state"><i class="fas fa-users"></i><p>No groups yet</p><button class="admin-btn" onclick="openCreateGroupModal()">➕ Create New Group</button></div>'}catch(e){}
+    document.getElementById('groupsList').innerHTML=d.groups?.length?d.groups.map(g=>`<div class="room-item" onclick="viewGroupInfo(${g.id})"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(g.room_name)}</div><div class="room-last">${escapeHtml(g.last_message||'No messages')}</div></div></div>`).join(''):'<div class="empty-state"><p>No groups yet</p><button class="admin-btn" onclick="openCreateGroupModal()">➕ Create New Group</button></div>'}catch(e){}
 }
 
 // ==================== PROFILE ====================
-async function loadProfile(){
+async function loadMyProfile(){
     if(!currentUser){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Login required</div>';return}
-    try{
-        const r=await fetch('/api/chat/my_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});
-        const d=await r.json();
-        let h='<div style="text-align:center;padding:15px"><div style="font-size:50px;margin-bottom:8px">👤</div><div style="font-size:16px;font-weight:bold;color:#f39c12">@'+escapeHtml(d.username||currentUser.username)+'</div><div style="font-size:9px;color:rgba(255,255,255,0.4)">ID: '+currentUser.id.toString().padStart(6,'0')+'</div></div>';
-        h+='<div style="padding:10px"><div class="form-group"><label>Change Username (@)</label><div style="display:flex;gap:6px"><input type="text" id="newUsername" value="'+escapeHtml(d.username||'')+'" placeholder="@username"><button class="btn btn-w" onclick="updateUsername()" style="flex:1">Save</button></div></div></div>';
-        if(d.groups&&d.groups.length>0){h+='<div style="padding:10px"><div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:6px">My Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+=`<div class="room-item" onclick="openRoom(${g.id},'${escapeHtml(g.room_name)}','group')"><div class="room-icon">👥</div><div class="room-info"><div class="room-name">${escapeHtml(g.room_name)}</div></div></div>`});h+='</div>'}
-        document.getElementById('profilePanel').innerHTML=h
-    }catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error loading profile</div>'}
+    try{const r=await fetch('/api/chat/my_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();
+    let h='<div style="text-align:center;padding:15px"><img src="'+(d.avatar_url||'')+'" class="profile-avatar-large" id="myAvatarImg" onclick="uploadProfilePic()" onerror="this.src=\'\';this.outerHTML=\'<div class=profile-avatar-large style=background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer onclick=uploadProfilePic()\'>👤</div>\'"><div class="profile-username">@'+escapeHtml(d.username||currentUser.username)+' <span class="copy-btn" onclick="copyUsername(\''+escapeHtml(d.username||currentUser.username)+'\')"><i class="fas fa-copy"></i></span></div>';
+    h+='<div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:8px">'+escapeHtml(d.name||'User')+'</div>';
+    h+='<div style="display:flex;gap:6px;margin-bottom:10px"><input type="text" id="newUsername" value="'+escapeHtml(d.username||'')+'" placeholder="@username" style="flex:1;padding:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:10px"><button class="btn btn-w" onclick="updateUsername()" style="flex:1;font-size:10px">Save</button></div>';
+    if(d.avatar_url){h+='<button class="btn btn-r" onclick="deleteProfilePic()" style="width:100%;font-size:10px;margin-bottom:8px"><i class="fas fa-trash"></i> Remove Photo</button>'}
+    if(d.groups&&d.groups.length>0){h+='<div class="profile-groups"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px">My Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+=`<div class="group-item" onclick="viewGroupInfo(${g.id})">👥 ${escapeHtml(g.room_name)}</div>`});h+='</div>'}
+    document.getElementById('profilePanel').innerHTML=h}catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error</div>'}
 }
-async function updateUsername(){
-    const nu=document.getElementById('newUsername').value.trim();
-    if(!nu||!nu.startsWith('@')){showToast('Username must start with @',true);return}
-    try{const r=await fetch('/api/chat/update_username',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,username:nu.substring(1)})});const d=await r.json();if(d.success){showToast('Username updated!');currentUser.username=nu.substring(1);loadProfile()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
+async function uploadProfilePic(){
+    const i=document.createElement('input');i.type='file';i.accept='image/*';
+    i.onchange=async e=>{if(!e.target.files[0])return;showToast('Uploading...');try{const r=new FileReader();const b64=await new Promise(r=>{r.onload=e=>r(e.target.result);r.readAsDataURL(e.target.files[0])});
+    const fd=new URLSearchParams();fd.append('key',IMGBB_KEY);fd.append('image',b64.split(',')[1]);
+    const res=await fetch('https://api.imgbb.com/1/upload',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd.toString()});const d=await res.json();
+    if(d.success){await fetch('/api/chat/update_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,avatarUrl:d.data.url})});showToast('Photo updated!');loadMyProfile()}else{showToast('Upload failed',true)}}catch(e){showToast('Error',true)}};i.click()
+}
+async function deleteProfilePic(){if(!confirm('Remove profile photo?'))return;await fetch('/api/chat/update_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,avatarUrl:''})});showToast('Photo removed');loadMyProfile()}
+async function updateUsername(){const nu=document.getElementById('newUsername').value.trim();if(!nu||!nu.startsWith('@')){showToast('Must start with @',true);return}try{const r=await fetch('/api/chat/update_username',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,username:nu.substring(1)})});const d=await r.json();if(d.success){showToast('Updated!');currentUser.username=nu.substring(1);loadMyProfile()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
+function copyUsername(u){navigator.clipboard.writeText('@'+u).then(()=>showToast('Copied!'))}
+
+// ==================== VIEW USER PROFILE ====================
+async function viewUserProfile(uid){
+    try{const r=await fetch('/api/chat/user_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid,viewerId:currentUser?.id})});const d=await r.json();
+    if(!d.success){showToast('User not found',true);return}
+    let h='<img src="'+(d.avatar_url||'')+'" class="profile-avatar-large" onerror="this.style.display=\'none\'"><div class="profile-username">@'+escapeHtml(d.username)+' <span class="copy-btn" onclick="copyUsername(\''+escapeHtml(d.username)+'\')"><i class="fas fa-copy"></i></span></div><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:10px">'+escapeHtml(d.name||'')+'</div>';
+    if(d.groups&&d.groups.length>0){h+='<div class="profile-groups"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px">Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+=`<div class="group-item" onclick="viewGroupInfo(${g.id});closeModal('userProfileModal')">👥 ${escapeHtml(g.room_name)}</div>`});h+='</div>'}
+    document.getElementById('userProfileContent').innerHTML=h;document.getElementById('userProfileModal').classList.add('active')}catch(e){}
 }
 
-// ==================== GROUP WITH USERNAME SEARCH ====================
-function openCreateGroupModal(){selectedMembers=[];document.getElementById('groupName').value='';document.getElementById('memberSearch').value='';document.getElementById('usernameDropdown').classList.remove('active');updateSelectedMembersUI();document.getElementById('groupModal').classList.add('active')}
-async function searchUsernames(){
-    const q=document.getElementById('memberSearch').value.trim();const dd=document.getElementById('usernameDropdown');
-    if(q.length<1){dd.classList.remove('active');return}
-    try{const r=await fetch('/api/chat/search_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q,excludeIds:selectedMembers.map(m=>m.id)})});const d=await r.json();
-    if(d.users&&d.users.length>0){dd.innerHTML=d.users.map(u=>{let pc='';if(u.premium_tier===1)pc='bronze';else if(u.premium_tier===2)pc='silver';else if(u.premium_tier===3)pc='gold';return`<div class="username-dropdown-item" onclick="addSelectedMember(${u.id},'${escapeHtml(u.username)}','${pc}')">${pc?`<span class="prem-dot ${pc}"></span>`:''}@${escapeHtml(u.username)}</div>`}).join('');dd.classList.add('active')}else{dd.innerHTML='<div class="username-dropdown-item" style="color:rgba(255,255,255,0.3)">No users found</div>';dd.classList.add('active')}}catch(e){}
+// ==================== GROUP ====================
+function openCreateGroupModal(){document.getElementById('groupName').value='';document.getElementById('groupModal').classList.add('active')}
+async function createGroup(){const gn=document.getElementById('groupName').value.trim();if(!gn){showToast('Group name required',true);return}try{const r=await fetch('/api/chat/create_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,groupName:gn,members:[]})});const d=await r.json();if(d.success){showToast('Group created!');closeModal('groupModal');loadGroupsList();loadRooms()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
+
+async function viewGroupInfo(gid){
+    try{const r=await fetch('/api/chat/group_info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser?.id})});const d=await r.json();
+    if(!d.success){showToast('Group not found',true);return}
+    currentRoomData=d;
+    let h='';
+    if(d.is_member){
+        h='<div style="text-align:center;margin-bottom:10px"><img src="'+(d.avatar_url||'')+'" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;cursor:pointer;margin-bottom:6px" onclick="uploadGroupPic('+gid+')" onerror="this.outerHTML=\'<div style=width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;margin-bottom:6px;border:2px solid #f39c12 onclick=uploadGroupPic('+gid+')>👥</div>\'"><h3>'+escapeHtml(d.room_name)+'</h3></div>';
+        h+='<div class="btn-row"><button class="btn btn-w" onclick="openRoom('+gid+',\''+escapeHtml(d.room_name)+'\',\'group\');closeModal(\'groupInfoModal\')">💬 Chat</button>';
+        h+='<button class="btn btn-b" onclick="showAddMemberModal('+gid+')">➕ Add</button></div>';
+        if(d.user_role==='owner'||d.user_role==='admin'){h+='<button class="btn btn-w" onclick="showManageMembers('+gid+')" style="width:100%;margin-top:6px">👥 Manage Members</button>'}
+        if(d.user_role!=='owner'){h+='<button class="btn btn-r" onclick="leaveGroup('+gid+')" style="width:100%;margin-top:6px">🚪 Leave</button>'}
+        if(d.user_role==='owner'){h+='<button class="btn btn-r" onclick="deleteGroup('+gid+')" style="width:100%;margin-top:6px">🗑️ Delete Group</button>'}
+    }else{
+        h='<div style="text-align:center;margin-bottom:10px"><img src="'+(d.avatar_url||'')+'" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;margin-bottom:6px" onerror="this.outerHTML=\'<div style=width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:6px;border:2px solid #f39c12>👥</div>\'"><h3>'+escapeHtml(d.room_name)+'</h3></div>';
+        h+='<div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:8px">'+ (d.member_count||0) +' members</div>';
+        h+='<button class="join-btn" onclick="joinGroup('+gid+')" style="width:100%">➕ Join Group</button>';
+    }
+    document.getElementById('groupInfoContent').innerHTML=h;document.getElementById('groupInfoModal').classList.add('active')}catch(e){}
 }
-function addSelectedMember(id,un,pc){if(selectedMembers.find(m=>m.id===id))return;selectedMembers.push({id,username:un,premiumClass:pc});document.getElementById('memberSearch').value='';document.getElementById('usernameDropdown').classList.remove('active');updateSelectedMembersUI()}
-function updateSelectedMembersUI(){const c=document.getElementById('selectedMembers');c.innerHTML=selectedMembers.map(m=>`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);padding:3px 8px;border-radius:12px;font-size:9px">${m.premiumClass?`<span class="prem-dot ${m.premiumClass}" style="width:6px;height:6px;border-radius:50%"></span>`:''}@${escapeHtml(m.username)}<span onclick="removeSelectedMember(${m.id})" style="cursor:pointer;color:#e74c3c;margin-left:2px">×</span></span>`).join('')}
-function removeSelectedMember(id){selectedMembers=selectedMembers.filter(m=>m.id!==id);updateSelectedMembersUI()}
-async function createGroup(){
-    const gn=document.getElementById('groupName').value.trim();if(!gn){showToast('Group name required',true);return}
-    try{const r=await fetch('/api/chat/create_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,groupName:gn,members:selectedMembers.map(m=>m.id)})});const d=await r.json();if(d.success){showToast('Group created!');closeModal('groupModal');loadGroupsList();loadRooms()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
+async function uploadGroupPic(gid){
+    const i=document.createElement('input');i.type='file';i.accept='image/*';
+    i.onchange=async e=>{if(!e.target.files[0])return;showToast('Uploading...');try{const r=new FileReader();const b64=await new Promise(r=>{r.onload=e=>r(e.target.result);r.readAsDataURL(e.target.files[0])});
+    const fd=new URLSearchParams();fd.append('key',IMGBB_KEY);fd.append('image',b64.split(',')[1]);
+    const res=await fetch('https://api.imgbb.com/1/upload',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd.toString()});const d=await res.json();
+    if(d.success){await fetch('/api/chat/update_group_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,avatarUrl:d.data.url})});showToast('Updated!');viewGroupInfo(gid)}else{showToast('Upload failed',true)}}catch(e){showToast('Error',true)}};i.click()
 }
+async function joinGroup(gid){try{const r=await fetch('/api/chat/join_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();if(d.success){showToast('Joined!');closeModal('groupInfoModal');openRoom(gid,d.room_name,'group');loadGroupsList();loadRooms()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
+async function leaveGroup(gid){if(!confirm('Leave?'))return;try{const r=await fetch('/api/chat/leave_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();if(d.success){showToast('Left');closeModal('groupInfoModal');closeChat();loadGroupsList();loadRooms()}else showToast(d.message||'Error',true)}catch(e){showToast('Server error',true)}}
+async function deleteGroup(gid){if(!confirm('Delete this group?'))return;try{await fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});showToast('Deleted');closeModal('groupInfoModal');closeChat();loadGroupsList();loadRooms()}catch(e){}}
+
+// ==================== MANAGE MEMBERS ====================
+async function showManageMembers(gid){
+    try{const r=await fetch('/api/chat/group_members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();
+    if(!d.success){showToast(d.message||'Error',true);return}
+    let h='';
+    d.members.forEach(m=>{
+        let actions='';
+        if(d.userRole==='owner'&&m.user_id!==currentUser.id){
+            if(m.role==='member')actions+=`<button class="btn btn-b" style="font-size:8px;padding:3px 6px;flex:0" onclick="promoteToAdmin(${gid},${m.user_id})">Admin</button>`;
+            if(m.role==='admin')actions+=`<button class="btn btn-w" style="font-size:8px;padding:3px 6px;flex:0" onclick="demoteToMember(${gid},${m.user_id})">Member</button>`;
+            actions+=`<button class="btn btn-r" style="font-size:8px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">Kick</button>`;
+            actions+=`<button class="btn" style="font-size:8px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff" onclick="banMember(${gid},${m.user_id})">Ban</button>`;
+            actions+=`<button class="btn btn-w" style="font-size:8px;padding:3px 6px;flex:0" onclick="transferOwner(${gid},${m.user_id})">👑Transfer</button>`;
+        }else if(d.userRole==='admin'&&m.user_id!==currentUser.id&&m.role==='member'){
+            actions+=`<button class="btn btn-r" style="font-size:8px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">Kick</button>`;
+            actions+=`<button class="btn" style="font-size:8px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff" onclick="banMember(${gid},${m.user_id})">Ban</button>`;
+        }
+        h+=`<div class="member-item"><img src="${m.avatar_url||''}" class="member-avatar" onerror="this.style.display='none'" onclick="viewUserProfile(${m.user_id})"><div style="flex:1;cursor:pointer" onclick="viewUserProfile(${m.user_id})"><b>${escapeHtml(m.username)}</b><br><small style="color:rgba(255,255,255,0.4)">${escapeHtml(m.name||'')}</small></div><span class="member-badge ${m.role}">${m.role}</span>${actions?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-left:6px">${actions}</div>`:''}</div>`;
+    });
+    document.getElementById('manageMembersContent').innerHTML=h;document.getElementById('manageMembersModal').classList.add('active')}catch(e){}
+}
+async function promoteToAdmin(gid,uid){await fetch('/api/chat/promote_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Promoted!');showManageMembers(gid)}
+async function demoteToMember(gid,uid){await fetch('/api/chat/demote_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Demoted!');showManageMembers(gid)}
+async function kickMember(gid,uid){if(!confirm('Kick?'))return;await fetch('/api/chat/kick_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Kicked!');showManageMembers(gid)}
+async function banMember(gid,uid){if(!confirm('Ban?'))return;await fetch('/api/chat/ban_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Banned!');showManageMembers(gid)}
+async function transferOwner(gid,uid){if(!confirm('Transfer ownership?'))return;await fetch('/api/chat/transfer_owner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Transferred!');showManageMembers(gid)}
+
+// ==================== ADD MEMBER ====================
+function showAddMemberModal(gid){document.getElementById('addMemberRoomId').value=gid;document.getElementById('addMemberSearch').value='';document.getElementById('addMemberDropdown').classList.remove('active');document.getElementById('addMemberModal').classList.add('active')}
 async function searchUsernameForAdd(){
     const q=document.getElementById('addMemberSearch').value.trim();const dd=document.getElementById('addMemberDropdown');
     if(q.length<1){dd.classList.remove('active');return}
     try{const r=await fetch('/api/chat/search_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();
-    if(d.users&&d.users.length>0){dd.innerHTML=d.users.map(u=>`<div class="username-dropdown-item" onclick="selectMemberToAdd(${u.id},'${escapeHtml(u.username)}')">@${escapeHtml(u.username)}</div>`).join('');dd.classList.add('active')}else{dd.innerHTML='<div class="username-dropdown-item" style="color:rgba(255,255,255,0.3)">No users found</div>';dd.classList.add('active')}}catch(e){}
+    if(d.users&&d.users.length>0){dd.innerHTML=d.users.map(u=>`<div class="username-dropdown-item">@${escapeHtml(u.username)} <span class="add-btn" onclick="addMemberToGroup(${u.id})">+ Add</span></div>`).join('');dd.classList.add('active')}else{dd.innerHTML='<div class="username-dropdown-item" style="color:rgba(255,255,255,0.3)">No users</div>';dd.classList.add('active')}}catch(e){}
 }
-function selectMemberToAdd(id,un){document.getElementById('addMemberSearch').value='@'+un;document.getElementById('addMemberSearch').dataset.userId=id;document.getElementById('addMemberDropdown').classList.remove('active')}
-function showAddMemberModal(){document.getElementById('addMemberRoomId').value=currentRoom;document.getElementById('addMemberSearch').value='';document.getElementById('addMemberSearch').dataset.userId='';document.getElementById('addMemberDropdown').classList.remove('active');document.getElementById('addMemberModal').classList.add('active')}
-async function addMemberToGroup(){
-    const rid=document.getElementById('addMemberRoomId').value;const nid=document.getElementById('addMemberSearch').dataset.userId;
-    if(!nid){showToast('Search and select a user first',true);return}
-    try{const r=await fetch('/api/chat/add_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:parseInt(nid),requesterId:currentUser.id})});const d=await r.json();if(d.success){showToast('Member added!');closeModal('addMemberModal')}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
+async function addMemberToGroup(uid){
+    const rid=document.getElementById('addMemberRoomId').value;
+    try{const r=await fetch('/api/chat/add_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:uid,requesterId:currentUser.id})});const d=await r.json();if(d.success){showToast('Added!');closeModal('addMemberModal');viewGroupInfo(rid)}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
 }
 
-// ==================== REPORT SYSTEM ====================
-async function reportGroup(){
-    if(!currentRoom||currentRoomType!=='group'){showToast('Only groups can be reported',true);return}
-    if(!confirm('Report this group?'))return;
-    try{const r=await fetch('/api/chat/report_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})});const d=await r.json();
-    if(d.success){if(d.warning){showReportWarning(currentRoom)}else{showToast('Report submitted! ('+d.reportCount+'/50)')}}else{showToast(d.message||'Already reported',true)}}catch(e){showToast('Server error',true)}
-}
-function showReportWarning(roomId){
-    const ov=document.getElementById('reportWarningOverlay');ov.classList.add('active');let count=10;const el=document.getElementById('reportCountdown');el.textContent=count;
-    const iv=setInterval(()=>{count--;el.textContent=count;if(count<=0){clearInterval(iv);ov.classList.remove('active');deleteGroupAfterReport(roomId)}},1000)
-}
-async function deleteGroupAfterReport(roomId){
-    try{await fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId,userId:currentUser.id})});showToast('Group deleted due to reports');closeChat();loadGroupsList();loadRooms()}catch(e){}
-}
+// ==================== REPORT ====================
+async function reportGroup(){if(!currentRoom||currentRoomType!=='group')return;if(!confirm('Report?'))return;try{const r=await fetch('/api/chat/report_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})});const d=await r.json();if(d.success){if(d.warning){showReportWarning(currentRoom)}else{showToast('Reported ('+d.reportCount+'/50)')}}else{showToast(d.message||'Already reported',true)}}catch(e){}}
+function showReportWarning(rid){const ov=document.getElementById('reportWarningOverlay');ov.classList.add('active');let c=10;const el=document.getElementById('reportCountdown');el.textContent=c;const iv=setInterval(()=>{c--;el.textContent=c;if(c<=0){clearInterval(iv);ov.classList.remove('active');deleteGroupAfterReport(rid)}},1000)}
+async function deleteGroupAfterReport(rid){try{await fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})});showToast('Group deleted');closeChat();loadGroupsList();loadRooms()}catch(e){}}
 
 // ==================== CHAT CORE ====================
-async function startAdminChat(){
-    if(!currentUser)return;
-    try{const r=await fetch('/api/chat/create_admin_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();if(d.success){openRoom(d.room.id,d.room.room_name,'admin');loadRooms()}else showToast('Error',true)}catch(e){showToast('Server error',true)}
-}
-async function startPrivateChat(oid,oun){
-    if(!currentUser)return;
-    try{const r=await fetch('/api/chat/create_private_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,otherUserId:oid})});const d=await r.json();if(d.success)openRoom(d.room.id,oun,'private')}catch(e){showToast('Error',true)}
-}
+async function startAdminChat(){if(!currentUser)return;try{const r=await fetch('/api/chat/create_admin_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();if(d.success){openRoom(d.room.id,d.room.room_name,'admin');loadRooms()}else showToast('Error',true)}catch(e){}}
 async function openRoom(rid,rn,rt){
     currentRoom=rid;currentRoomType=rt;
     document.querySelectorAll('.room-list').forEach(l=>l.classList.remove('active'));document.getElementById('profilePanel').classList.remove('active');
     document.getElementById('chatArea').classList.add('active');document.getElementById('chatRoomTitle').textContent=rn;
     document.getElementById('reportBtn').style.display=rt==='group'?'inline-block':'none';
-    const mc=document.getElementById('messages');mc.innerHTML='<div style="text-align:center;padding:20px">Loading messages...</div>';
+    if(rt==='group'){try{const r=await fetch('/api/chat/group_info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})});const d=await r.json();if(d.success&&d.avatar_url){document.getElementById('chatRoomAvatar').src=d.avatar_url;document.getElementById('chatRoomAvatar').style.display='inline-block'}else{document.getElementById('chatRoomAvatar').style.display='none'}}catch(e){}}
+    else{document.getElementById('chatRoomAvatar').style.display='none'}
+    const mc=document.getElementById('messages');mc.innerHTML='<div style="text-align:center;padding:20px">Loading...</div>';
     if(socket&&socket.connected)socket.emit('join_room',rid);
-    try{const r=await fetch(`/api/chat/messages/${rid}`);const d=await r.json();if(d.messages?.length){mc.innerHTML='';d.messages.forEach(msg=>addMessageToUI(msg,msg.sender_id===currentUser?.id,msg.sender_premium_tier||0));scrollToBottom()}else mc.innerHTML='<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet. Say hi!</div>';
-    await fetch('/api/chat/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})})}catch(e){mc.innerHTML='<div style="text-align:center;padding:20px;color:#e74c3c">Error</div>'}
+    try{const r=await fetch(`/api/chat/messages/${rid}`);const d=await r.json();if(d.messages?.length){mc.innerHTML='';d.messages.forEach(msg=>addMessageToUI(msg,msg.sender_id===currentUser?.id,msg.sender_premium_tier||0));scrollToBottom()}else mc.innerHTML='<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet</div>';await fetch('/api/chat/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})})}catch(e){mc.innerHTML='<div style="text-align:center;padding:20px;color:#e74c3c">Error</div>'}
 }
 function addMessageToUI(msg,isMine,spt=0){
     const c=document.getElementById('messages');if(c.innerHTML.includes('No messages')||c.innerHTML.includes('Loading'))c.innerHTML='';
-    let mh='';const mt=msg.message||'';
-    if(mt.startsWith('📷 IMAGE:')){const u=mt.replace('📷 IMAGE:','');mh=`<div class="media-message" onclick="downloadMedia('${u}','image')"><img src="${u}" alt="Image" loading="lazy"></div>`}
-    else if(mt.startsWith('📎 FILE:')){const p=mt.replace('📎 FILE:','').split('|');mh=`<div class="file-message" onclick="downloadMedia('${p[0]}','file','${p[1]||'File'}')"><i class="fas fa-file"></i> ${escapeHtml(p[1]||'File')}<i class="fas fa-download" style="margin-left:auto;opacity:0.7"></i></div>`}
-    else{mh=escapeHtml(mt)}
+    let mh='';const mt=msg.message||'';if(mt.startsWith('📷 IMAGE:')){const u=mt.replace('📷 IMAGE:','');mh=`<div class="media-message" onclick="downloadMedia('${u}','image')"><img src="${u}" loading="lazy"></div>`}else if(mt.startsWith('📎 FILE:')){const p=mt.replace('📎 FILE:','').split('|');mh=`<div class="file-message" onclick="downloadMedia('${p[0]}','file','${p[1]||'File'}')"><i class="fas fa-file"></i> ${escapeHtml(p[1]||'File')}<i class="fas fa-download" style="margin-left:auto;opacity:0.7"></i></div>`}else{mh=escapeHtml(mt)}
     const d=document.createElement('div');d.className=`msg-row ${isMine?'mine msg-mine':'other msg-other'}`;
     let bc='normal-tier';if(spt===1)bc='bronze-tier';else if(spt===2)bc='silver-tier';else if(spt===3)bc='gold-tier';
-    d.innerHTML=`<div class="msg-bubble ${bc}">${!isMine?`<div class="msg-sender">${escapeHtml(msg.username||'User')}</div>`:''}${mh}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;c.appendChild(d)
+    let avatarHtml='';if(!isMine&&msg.avatar_url){avatarHtml=`<img src="${msg.avatar_url}" class="msg-avatar" onclick="viewUserProfile(${msg.sender_id})" onerror="this.style.display='none'">`}else if(!isMine){avatarHtml=`<div class="msg-avatar" style="background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer" onclick="viewUserProfile(${msg.sender_id})">👤</div>`}
+    d.innerHTML=`${avatarHtml}<div class="msg-bubble ${bc}">${!isMine?`<div class="msg-sender" onclick="viewUserProfile(${msg.sender_id})">${escapeHtml(msg.username||'User')}</div>`:''}${mh}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;c.appendChild(d)
 }
-function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a);showToast('Download started')}
-function sendMessage(){const i=document.getElementById('msgInput');const m=i.value.trim();if(!m)return;if(!currentRoom){showToast('Select a chat room first',true);return}if(!currentUser){showToast('Please login',true);return}socket.emit('send_message',{roomId:currentRoom,message:m,userId:currentUser.id,username:currentUser.username,senderPremiumTier:premiumTier});i.value=''}
+function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a)}
+function sendMessage(){const i=document.getElementById('msgInput');const m=i.value.trim();if(!m)return;if(!currentRoom){showToast('Select a chat room',true);return}socket.emit('send_message',{roomId:currentRoom,message:m,userId:currentUser.id,username:currentUser.username,senderPremiumTier:premiumTier});i.value=''}
 function closeChat(){currentRoom=null;currentRoomType=null;document.getElementById('chatArea').classList.remove('active');document.getElementById('roomList').classList.add('active');loadRooms()}
-function deleteCurrentRoom(){if(!currentRoom||!confirm('Delete this chat room?'))return;fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})}).then(()=>{showToast('Room deleted');closeChat()}).catch(()=>showToast('Error',true))}
-async function leaveGroup(){if(!confirm('Leave this group?'))return;try{const r=await fetch('/api/chat/leave_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})});const d=await r.json();if(d.success){showToast('Left group');closeModal('groupInfoModal');closeChat();loadGroupsList();loadRooms()}else showToast(d.message||'Error',true)}catch(e){showToast('Server error',true)}}
+function deleteCurrentRoom(){if(!currentRoom||!confirm('Delete?'))return;fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})}).then(()=>{showToast('Deleted');closeChat()}).catch(()=>showToast('Error',true))}
+function viewRoomProfile(){if(currentRoomType==='group'&&currentRoom){viewGroupInfo(currentRoom)}}
 function insertEmoji(e){const i=document.getElementById('msgInput');const p=i.selectionStart;i.value=i.value.substring(0,p)+e+i.value.substring(p);i.focus();i.setSelectionRange(p+e.length,p+e.length)}
-function toggleMoreEmojis(){const ae=['😀','😂','😍','😎','😢','😡','👍','👎','❤️','🔥','🎉','💯','🙏','😊','🤔','😴','🥰','😇','🤗','💪','👋','✌️','🤝','👑','💎','💰','🎮','⚽','🌟','🍕','🍺','☕','🏆','🎯','📱','💻','🎵','📷','🔒','✅','❌','⚠️','💡','🔑','🔔','📢','💬','🕒','📍','🔗','🐱','🐶','🇲🇲','⭐','🌙','☀️','🌈','⚡','🔥','🌸','🍎','🎂','🎁','🎈'];const g=document.getElementById('moreEmojisGrid');g.innerHTML=ae.map(e=>`<span class="emoji-item" style="font-size:24px;cursor:pointer;padding:4px" onclick="insertEmoji('${e}');closeModal('moreEmojisModal')">${e}</span>`).join('');document.getElementById('moreEmojisModal').classList.add('active')}
+
+// ==================== EMOJI SYSTEM ====================
+const EMOJI_CATS={smileys:['😀','😂','😍','😎','😢','😡','🤔','😴','🥰','😇','🤗','😊','🙂','😉','😋','😛','😜','🤪','😝','🤑','🤓','😎','🤩','🥳','😏','😒','😞','😔','😟','😕','🙁','☹️','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','💀','☠️','💩','🤡','👹','👺','👻','👽','🤖'],people:['👶','🧒','👦','👧','🧑','👨','👩','🧓','👴','👵','👨‍⚕️','👩‍⚕️','👨‍🎓','👩‍🎓','👨‍🏫','👩‍🏫','👨‍⚖️','👩‍⚖️','👨‍🌾','👩‍🌾','👨‍🍳','👩‍🍳','👨‍🔧','👩‍🔧','👨‍🏭','👩‍🏭','👨‍💼','👩‍💼','👨‍🔬','👩‍🔬','👨‍💻','👩‍💻','👨‍🎤','👩‍🎤','👨‍🎨','👩‍🎨','👨‍✈️','👩‍✈️','👨‍🚀','👩‍🚀','👨‍🚒','👩‍🚒','👮','👮‍♀️','🕵️','💂','👷','🤴','👸','👳','👲','🧕','🤵','👰','🤰','🤱','👼','🎅','🤶','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟'],animals:['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🐘','🦏','🦛','🐪','🐫','🦒','🦘','🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦌','🐐','🐕','🐩','🐈','🐓','🦃','🕊️','🐇','🐿️','🦔','🦝','🦡'],food:['🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑','🥦','🥬','🥒','🌶️','🌽','🥕','🥔','🍠','🥐','🍞','🥖','🥨','🧀','🥚','🍳','🥞','🥓','🥩','🍗','🍖','🌭','🍔','🍟','🍕','🥪','🥙','🌮','🌯','🥗','🥘','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🍤','🍙','🍚','🍘','🍥','🥠','🍢','🍡','🍧','🍨','🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🥛','🍼','☕','🍵','🍶','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧉','🍾','🧊','🥄','🍴','🍽️','🥣','🥡','🥢'],sports:['⚽','🏀','🏈','⚾','🥎','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🏸','🏒','🏑','🥍','🏏','🥅','⛳','🪁','🏹','🎣','🤿','🥊','🥋','🎽','🛹','🛼','🛷','⛸️','🥌','🎿','⛷️','🏂','🪂','🏋️','🤼','🤸','🤺','⛹️','🤾','🏌️','🏇','🧘','🏄','🏊','🤽','🚣','🧗','🚵','🚴'],travel:['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚐','🚚','🚛','🚜','🏍️','🛵','🚲','🛴','🛺','🚨','🚔','🚍','🚘','🚖','🚡','🚠','🚟','🚃','🚋','🚞','🚝','🚄','🚅','🚈','🚂','🚆','🚇','🚊','🚉','✈️','🛫','🛬','🛩️','💺','🛰️','🚀','🛸','🚁','🛶','⛵','🚤','🛥️','🛳️','⛴️','🚢','⚓','🚧','⛽','🚏','🚦','🚥','🗺️','🗿','🗽','🗼','🏰','🏯','🏟️','🎡','🎢','🎠','⛲','⛱️','🏖️','🏝️','🏜️','🌋','⛰️','🏔️','🗻','🏕️','⛺','🏠','🏡','🏘️','🏚️','🏗️','🏭','🏢','🏬','🏣','🏤','🏥','🏦','🏨','🏪','🏫','🏩','💒','🏛️','⛪','🕌','🕍','🛕','🕋','⛩️'],flags:['🏳️','🏴','🏁','🚩','🏳️‍🌈','🏴‍☠️','🇲🇲','🇹🇭','🇯🇵','🇰🇷','🇨🇳','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇮🇳','🇷🇺','🇧🇷','🇨🇦','🇦🇺','🇮🇹','🇪🇸','🇲🇽','🇦🇷','🇨🇱','🇨🇴','🇵🇪','🇻🇪','🇪🇬','🇿🇦','🇳🇬','🇰🇪','🇸🇦','🇦🇪','🇮🇱','🇵🇸','🇸🇬','🇲🇾','🇮🇩','🇵🇭','🇻🇳','🇱🇦','🇰🇭','🇧🇩','🇵🇰','🇱🇰','🇳🇵','🇲🇳','🇹🇼','🇭🇰','🇲🇴'],hearts:['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','❤️‍🔥','❤️‍🩹','💌','💑','💏','👩‍❤️‍👨','👨‍❤️‍👨','👩‍❤️‍👩'],symbols:['✅','❌','⚠️','💡','🔑','🔒','🔓','🔔','🔕','📢','📣','💬','💭','🕒','🕛','📍','🔗','💎','💰','💵','💴','💶','💷','🏆','🎯','📱','💻','🖥️','⌨️','🖱️','🖨️','📷','🎥','📹','🎵','🎶','🎤','🎧','📻','🎼','🎹','🥁','🎸','🎺','🎻','🎲','♟️','🎯','🎳','🎮','🕹️','🔋','🪫','⚡','💧','🔥','🌈','⭐','🌟','✨','💫','☀️','🌙','🌍','🌎','🌏','🪐','💐','🌸','🌺','🌻','🌹','🍀','🌿','🌴','🌵','🌾','🍁','🍂','🍃']};
+let currentEmojiCat='smileys';
+function toggleMoreEmojis(){buildEmojiCatTabs();renderEmojiGrid('smileys');document.getElementById('moreEmojisModal').classList.add('active')}
+function buildEmojiCatTabs(){const c=document.getElementById('emojiCatTabs');c.innerHTML=Object.keys(EMOJI_CATS).map(cat=>`<span class="emoji-cat-tab${cat===currentEmojiCat?' active':''}" onclick="renderEmojiGrid('${cat}')">${cat==='smileys'?'😀 Smileys':cat==='people'?'👤 People':cat==='animals'?'🐱 Animals':cat==='food'?'🍕 Food':cat==='sports'?'⚽ Sports':cat==='travel'?'🚗 Travel':cat==='flags'?'🏳️ Flags':cat==='hearts'?'❤️ Hearts':cat==='symbols'?'💡 Symbols':cat}</span>`).join('')}
+function renderEmojiGrid(cat){currentEmojiCat=cat;buildEmojiCatTabs();const g=document.getElementById('moreEmojisGrid');g.innerHTML=(EMOJI_CATS[cat]||[]).map(e=>`<span class="emoji-grid-item" onclick="insertEmoji('${e}');closeModal('moreEmojisModal')">${e}</span>`).join('')}
 
 // ==================== PAGE TIMER ====================
 function setCookie(n,v,d){let e='';if(d){const dt=new Date();dt.setTime(dt.getTime()+(d*24*60*60*1000));e='; expires='+dt.toUTCString()}document.cookie=n+'='+encodeURIComponent(v||'')+e+'; path=/'}
 function getCookie(n){const ne=n+'=';const ca=document.cookie.split(';');for(let i=0;i<ca.length;i++){let c=ca[i];while(c.charAt(0)===' ')c=c.substring(1);if(c.indexOf(ne)===0)return c.substring(ne.length)}return null}
-async function checkPageTimer(){
-    const pid='chat';let t=null;
-    try{const s=localStorage.getItem('pageTimers');if(s){const tm=JSON.parse(s);t=tm[pid]}if(!t){const ck=getCookie('pageTimers');if(ck){const tm=JSON.parse(decodeURIComponent(ck));t=tm[pid]}}if(!t){const ss=sessionStorage.getItem('pageTimers');if(ss){const tm=JSON.parse(ss);t=tm[pid]}}}catch(e){}
-    if(t&&t>Date.now()){showMaintenanceMode(t);return false}return true
-}
+async function checkPageTimer(){const pid='chat';let t=null;try{const s=localStorage.getItem('pageTimers');if(s){const tm=JSON.parse(s);t=tm[pid]}if(!t){const ck=getCookie('pageTimers');if(ck){const tm=JSON.parse(decodeURIComponent(ck));t=tm[pid]}}if(!t){const ss=sessionStorage.getItem('pageTimers');if(ss){const tm=JSON.parse(ss);t=tm[pid]}}}catch(e){}if(t&&t>Date.now()){showMaintenanceMode(t);return false}return true}
 function showMaintenanceMode(te){
     document.querySelector('.chat-header').style.display='none';document.querySelector('.chat-tabs').style.display='none';document.querySelector('.chat-body').style.display='none';
-    document.body.insertAdjacentHTML('beforeend',`<div id="maintContainer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:#f39c12;margin-bottom:15px;animation:pulse 2s infinite"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:bold;color:#f39c12;margin-bottom:8px">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div><div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:6px">စာမျက်နှာ ပြန်ဖွင့်ရန်</div><div id="maintCountdown" style="font-size:26px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace;margin:12px 0">--:--:--</div><a href="/dashboard" style="display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px;margin-top:8px"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div>`);
-    const ce=document.getElementById('maintCountdown');
-    function up(){const r=te-Date.now();if(r<=0){try{const s=localStorage.getItem('pageTimers');if(s){const tm=JSON.parse(s);delete tm['chat'];localStorage.setItem('pageTimers',JSON.stringify(tm))}setCookie('pageTimers','',-1);sessionStorage.removeItem('pageTimers')}catch(e){}location.reload();return}const ss=Math.floor(r/1000),h=Math.floor(ss/3600),m=Math.floor((ss%3600)/60),s=ss%60;ce.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}
-    up();setInterval(up,1000);const st=document.createElement('style');st.textContent='@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}';document.head.appendChild(st)
-}
+    document.body.insertAdjacentHTML('beforeend',`<div id="maintContainer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:#f39c12;margin-bottom:15px"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:bold;color:#f39c12;margin-bottom:8px">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div><div id="maintCountdown" style="font-size:26px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace;margin:12px 0">--:--:--</div><a href="/dashboard" style="display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px;margin-top:8px"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div>`);
+    const ce=document.getElementById('maintCountdown');function up(){const r=te-Date.now();if(r<=0){try{const s=localStorage.getItem('pageTimers');if(s){const tm=JSON.parse(s);delete tm['chat'];localStorage.setItem('pageTimers',JSON.stringify(tm))}setCookie('pageTimers','',-1);sessionStorage.removeItem('pageTimers')}catch(e){}location.reload();return}const ss=Math.floor(r/1000),h=Math.floor(ss/3600),m=Math.floor((ss%3600)/60),s=ss%60;ce.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}up();setInterval(up,1000)}
 async function checkPageAccess(){
     try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const cp=d.pages.find(p=>p.id==='chat');if(cp&&cp.status==='off'){const ht=await checkPageTimer();if(ht===false)return false;
     document.querySelector('.chat-header').style.display='none';document.querySelector('.chat-tabs').style.display='none';document.querySelector('.chat-body').style.display='none';
-    document.body.insertAdjacentHTML('beforeend','<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:#f39c12;margin-bottom:15px"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:bold;color:#f39c12;margin-bottom:8px">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div><div style="font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:15px">Admin မှ စာမျက်နှာအား ပိတ်ထားပါသည်</div><a href="/dashboard" style="display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div>');return false}}return true}catch(e){return true}
+    document.body.insertAdjacentHTML('beforeend','<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:#f39c12;margin-bottom:15px"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:bold;color:#f39c12;margin-bottom:8px">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div><a href="/dashboard" style="display:inline-block;padding:10px 25px;background:#f39c12;color:#000;text-decoration:none;border-radius:6px;font-weight:bold;font-size:13px"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a></div>');return false}}return true}catch(e){return true}
 }
 setInterval(async()=>{try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const cp=d.pages.find(p=>p.id==='chat');if(cp&&cp.status==='off')location.reload()}}catch(e){}},30000);
 
-// ==================== INIT ====================
 async function init(){
     const po=await checkPageAccess();if(!po)return;
     document.querySelectorAll('.chat-tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.getAttribute('data-tab'))));
-    const u=await getCurrentUser();if(!u)return;
-    await checkPremiumStatus();initSocket();loadRooms();
+    const u=await getCurrentUser();if(!u)return;await checkPremiumStatus();initSocket();loadRooms();
 }
 init();
 </script>
