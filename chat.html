@@ -921,17 +921,31 @@
     }
 
     async function checkPremiumStatus() {
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') return;
-        try {
-            const res = await fetch('/api/chat/premium/details', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token })
-            });
-            const data = await res.json();
-            if (data.success && data.premium_active) {
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') return;
+    
+    try {
+        // ✅ ALL TIERS API ကို သုံးပါ
+        const res = await fetch('/api/chat/premium/all_tiers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const data = await res.json();
+        
+        if (data.success && data.tiers) {
+            // ✅ အမြင့်ဆုံး Active Tier ကို ရှာပါ
+            let highestActiveTier = 0;
+            for (let tier = 3; tier >= 1; tier--) {
+                if (data.tiers[tier]) {
+                    highestActiveTier = tier;
+                    break;
+                }
+            }
+            
+            if (highestActiveTier > 0) {
                 isPremium = true;
-                premiumTier = data.premium_tier || 1;
+                premiumTier = highestActiveTier;
                 applyPremiumTheme(premiumTier);
                 updateMediaButtons(true);
             } else {
@@ -940,9 +954,16 @@
                 applyNormalTheme();
                 updateMediaButtons(false);
             }
-        } catch(e) { console.error(e); }
+        } else {
+            isPremium = false;
+            premiumTier = 0;
+            applyNormalTheme();
+            updateMediaButtons(false);
+        }
+    } catch(e) {
+        console.error(e);
     }
-
+    }
     function applyPremiumTheme(tier) {
     const body = document.body;
     body.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
