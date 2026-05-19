@@ -334,22 +334,46 @@ async function loadMyProfile(){
     if(d.groups&&d.groups.length>0){h+='<div class="profile-groups"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px">📋 My Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+='<div class="group-item" onclick="viewGroupInfo('+g.id+')">👥 '+escapeHtml(g.room_name)+'</div>'});h+='</div>'}else{h+='<div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:10px">No groups yet</div>'}
     h+='</div>';document.getElementById('profilePanel').innerHTML=h}catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error loading profile</div>'}
 }
-
 function showAvatarPreview(file, type){
-    if (!file || !(file instanceof Blob)) {
-        showToast('❌ Invalid file', true);
+    // ✅ File ရှိမရှိ အရင်စစ်
+    if (!file) {
+        showToast('❌ No file selected', true);
         return;
     }
     
-    const reader = new FileReader();
-    reader.onload = function(e){
-        const ph = `<div class="modal-overlay active" id="avatarPreviewModal" onclick="closeAvatarPreview()"><div class="modal-box" onclick="event.stopPropagation()" style="text-align:center"><h3>Preview</h3><img src="${e.target.result}" style="max-width:200px;max-height:200px;border-radius:10px;margin:10px 0"><div class="btn-row"><button class="btn btn-g" onclick="saveAvatar('${type}')">💾 Save</button><button class="btn btn-r" onclick="closeAvatarPreview()">Cancel</button></div></div></div>`;
-        document.body.insertAdjacentHTML('beforeend', ph);
-    };
-    reader.onerror = function(){
-        showToast('❌ Failed to read file', true);
-    };
-    reader.readAsDataURL(file);
+    // ✅ Blob ဟုတ်မဟုတ် စစ်
+    if (!(file instanceof Blob) && !(file instanceof File)) {
+        showToast('❌ Invalid file type', true);
+        return;
+    }
+    
+    try {
+        const reader = new FileReader();
+        
+        reader.onload = function(e){
+            const ph = `<div class="modal-overlay active" id="avatarPreviewModal" onclick="closeAvatarPreview()">
+                <div class="modal-box" onclick="event.stopPropagation()" style="text-align:center">
+                    <h3>Preview</h3>
+                    <img src="${e.target.result}" style="max-width:200px;max-height:200px;border-radius:10px;margin:10px 0">
+                    <div class="btn-row">
+                        <button class="btn btn-g" onclick="saveAvatar('${type}')">💾 Save</button>
+                        <button class="btn btn-r" onclick="closeAvatarPreview()">Cancel</button>
+                    </div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', ph);
+        };
+        
+        reader.onerror = function(){
+            showToast('❌ Failed to read file', true);
+        };
+        
+        // ✅ ဒီမှာ readAsDataURL ခေါ်
+        reader.readAsDataURL(file);
+        
+    } catch(e) {
+        showToast('❌ ' + e.message, true);
+    }
 }
 function closeAvatarPreview(){const m=document.getElementById('avatarPreviewModal');if(m)m.remove();pendingAvatarFile=null}
 async function saveAvatar(type){
