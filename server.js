@@ -272,10 +272,7 @@ async function initTables(p) {
     last_claim_date DATE,
     PRIMARY KEY (user_id, event_id)
 )`,
-        
-        // ========== CHAT PREMIUM ==========
-        `CREATE TABLE IF NOT EXISTS chat_premium (user_id INT PRIMARY KEY, premium_tier INT DEFAULT 1, premium_expiry TIMESTAMP, purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
-        
+    
         // ========== CHAT SYSTEM ==========
 `CREATE TABLE IF NOT EXISTS chat_rooms (
     id SERIAL PRIMARY KEY, 
@@ -304,6 +301,16 @@ async function initTables(p) {
     socket_id VARCHAR(100),
     username VARCHAR(100),
     last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
+// ========== CHAT PREMIUM (NEW - Composite PK) ==========
+`DROP TABLE IF EXISTS chat_premium CASCADE`,
+`CREATE TABLE IF NOT EXISTS chat_premium (
+    user_id INT NOT NULL,
+    premium_tier INT NOT NULL,
+    premium_expiry TIMESTAMP,
+    purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, premium_tier)
 )`,
         
         // ========== INDEXES ==========
@@ -1633,54 +1640,56 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
         await p.query('UPDATE auth_users SET usd_balance = $1 WHERE id = $2', [newUsdBalance, uid]);
         
         // 3. Calculate Premium Expiry
-        const now = new Date();
-        
-        // ✅ ဒီ Tier အတွက် ရှိပြီးသား Record ရှာမယ် (id မသုံးဘဲ)
-        const existing = await p.query(
-            'SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
-            [uid, premium_tier]
-        );
-        
-        let newExpiry;
-        
-        if (existing.rows.length > 0 && existing.rows[0].premium_expiry) {
-            const currentExpiry = new Date(existing.rows[0].premium_expiry);
-            
-            if (currentExpiry > now) {
-                newExpiry = new Date(currentExpiry);
-                newExpiry.setDate(newExpiry.getDate() + 30);
-            } else {
-                newExpiry = new Date(now);
-                newExpiry.setDate(newExpiry.getDate() + 30);
-            }
-            
-            // ✅ UPDATE (user_id + premium_tier နဲ့ ပြင်)
-            await p.query(
-                `UPDATE chat_premium SET 
-                    premium_expiry = $1,
-                    updated_at = NOW()
-                 WHERE user_id = $2 AND premium_tier = $3`,
-                [newExpiry, uid, premium_tier]
-            );
-            
-        } else {
-            newExpiry = new Date(now);
-            newExpiry.setDate(newExpiry.getDate() + 30);
-            
-            // ✅ INSERT (Record အသစ်)
-            await p.query(
-                `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
-                 VALUES ($1, $2, $3, NOW(), NOW())`,
-                [uid, premium_tier, newExpiry]
-            );
-        }
-        
-        // 4. Log Transaction
-        await p.query(
-            `INSERT INTO orders (user_id, username, amount, payment_method, status) 
-             VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Chat Premium USD', 'approved')`,
-            [uid, -price_usd]
-        );
+const now = new Date();
+
+// ✅ ဒီ Tier အတွက် ရှိပြီးသား Record ရှာမယ်
+const existing = await p.query(
+    'SELECT premium_expiry FROM chat_premium WHERE user_id = $1 AND premium_tier = $2',
+    [uid, premium_tier]
+);
+
+let newExpiry;
+
+if (existing.rows.length > 0 && existing.rows[0].premium_expiry) {
+    const currentExpiry = new Date(existing.rows[0].premium_expiry);
+    
+    if (currentExpiry > now) {
+        // သက်တမ်းမကုန်သေးရင် ထပ်တိုး
+        newExpiry = new Date(currentExpiry);
+        newExpiry.setDate(newExpiry.getDate() + 30);
+    } else {
+        // သက်တမ်းကုန်သွားရင် အသစ်စတယ်
+        newExpiry = new Date(now);
+        newExpiry.setDate(newExpiry.getDate() + 30);
+    }
+    
+    // ✅ UPDATE
+    await p.query(
+        `UPDATE chat_premium SET 
+            premium_expiry = $1,
+            updated_at = NOW()
+         WHERE user_id = $2 AND premium_tier = $3`,
+        [newExpiry, uid, premium_tier]
+    );
+    
+} else {
+    // ✅ မရှိသေးရင် INSERT အသစ်
+    newExpiry = new Date(now);
+    newExpiry.setDate(newExpiry.getDate() + 30);
+    
+    await p.query(
+        `INSERT INTO chat_premium (user_id, premium_tier, premium_expiry, purchased_at, updated_at) 
+         VALUES ($1, $2, $3, NOW(), NOW())`,
+        [uid, premium_tier, newExpiry]
+    );
+}
+
+// 4. Log Transaction
+await p.query(
+    `INSERT INTO orders (user_id, username, amount, payment_method, status) 
+     VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Chat Premium USD', 'approved')`,
+    [uid, -price_usd]
+);
         
         const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
         const tierName = tierNames[premium_tier] || 'Premium';
