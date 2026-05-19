@@ -272,8 +272,8 @@
 let socket=null,currentUser=null,currentRoom=null,typingTimeout=null,isPremium=false,premiumTier=0;
 let selectedFile=null,selectedFileType=null,selectedFileName=null,uploadCancelled=false,isProcessing=false;
 let currentRoomType=null,currentRoomData=null;
-const IMGBB_KEY='061305b12595ef3f7d5d72c24c5c131a';
-
+const IMGBB_KEY = '55854bc5e01a19fd4793d1df84326d00';
+    
 function showToast(m,e){e=e||false;const t=document.getElementById('toast');t.textContent=m;t.style.background=e?'#e74c3c':'#2ecc71';t.style.color=e?'#fff':'#000';t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
 function escapeHtml(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML}
 function scrollToBottom(){const m=document.getElementById('messages');if(m)m.scrollTop=m.scrollHeight}
@@ -378,25 +378,52 @@ async function viewUserProfile(uid){
 // ==================== GROUP ====================
 function openCreateGroupModal(){document.getElementById('groupName').value='';document.getElementById('groupModal').classList.add('active')}
 async function createGroup(){const gn=document.getElementById('groupName').value.trim();if(!gn){showToast('Group name required',true);return}try{const r=await fetch('/api/chat/create_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,groupName:gn,members:[]})});const d=await r.json();if(d.success){showToast('Group created!');closeModal('groupModal');loadGroupsList();loadRooms()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
-
 async function viewGroupInfo(gid){
     try{const r=await fetch('/api/chat/group_info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser?.id})});const d=await r.json();
     if(!d.success){showToast('Group not found',true);return}
     currentRoomData=d;
+    
+    // ✅ Full Page Modal
     let h='';
     if(d.is_member){
-        h='<div style="text-align:center;margin-bottom:10px"><img src="'+(d.avatar_url||'')+'" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;cursor:pointer;margin-bottom:6px" onclick="uploadGroupPic('+gid+')" onerror="this.outerHTML=\'<div style=width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;margin-bottom:6px;border:2px solid #f39c12 onclick=uploadGroupPic('+gid+')>👥</div>\'"><h3>'+escapeHtml(d.room_name)+'</h3></div>';
-        h+='<div class="btn-row"><button class="btn btn-w" onclick="openRoom('+gid+',\''+escapeHtml(d.room_name)+'\',\'group\');closeModal(\'groupInfoModal\')">💬 Chat</button>';
-        h+='<button class="btn btn-b" onclick="showAddMemberModal('+gid+')">➕ Add</button></div>';
-        if(d.user_role==='owner'||d.user_role==='admin'){h+='<button class="btn btn-w" onclick="showManageMembers('+gid+')" style="width:100%;margin-top:6px">👥 Manage Members</button>'}
-        if(d.user_role!=='owner'){h+='<button class="btn btn-r" onclick="leaveGroup('+gid+')" style="width:100%;margin-top:6px">🚪 Leave</button>'}
+        h='<div style="text-align:center;margin-bottom:12px"><img src="'+(d.avatar_url||'')+'" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;cursor:pointer;margin-bottom:6px" onclick="uploadGroupPic('+gid+')" onerror="this.outerHTML=\'<div style=width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:25px;cursor:pointer;margin-bottom:6px;border:2px solid #f39c12 onclick=uploadGroupPic('+gid+')>👥</div>\'"><h3 style="font-size:16px">'+escapeHtml(d.room_name)+'</h3><div style="font-size:9px;color:rgba(255,255,255,0.4)">'+ (d.member_count||0) +' members</div></div>';
+        
+        // ✅ Search & Add Member (Group Profile ထဲမှာ)
+        h+='<div style="margin-bottom:10px"><div class="username-search-wrap"><input type="text" id="groupAddSearch" placeholder="🔍 Search @username to add..." oninput="searchUserForGroupAdd('+gid+')" autocomplete="off" style="width:100%;padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:10px"><div class="username-dropdown" id="groupAddDropdown"></div></div></div>';
+        
+        // Action Buttons
+        h+='<div class="btn-row">';
+        h+='<button class="btn btn-w" onclick="openRoom('+gid+',\''+escapeHtml(d.room_name)+'\',\'group\');closeModal(\'groupInfoModal\')">💬 Chat</button>';
+        if(d.user_role==='owner'||d.user_role==='admin'){h+='<button class="btn btn-b" onclick="showManageMembers('+gid+')">👥 Manage</button>'}
+        h+='</div>';
+        if(d.user_role!=='owner'){h+='<button class="btn btn-r" onclick="leaveGroup('+gid+')" style="width:100%;margin-top:6px">🚪 Leave Group</button>'}
         if(d.user_role==='owner'){h+='<button class="btn btn-r" onclick="deleteGroup('+gid+')" style="width:100%;margin-top:6px">🗑️ Delete Group</button>'}
     }else{
-        h='<div style="text-align:center;margin-bottom:10px"><img src="'+(d.avatar_url||'')+'" style="width:50px;height:50px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;margin-bottom:6px" onerror="this.outerHTML=\'<div style=width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:6px;border:2px solid #f39c12>👥</div>\'"><h3>'+escapeHtml(d.room_name)+'</h3></div>';
-        h+='<div style="text-align:center;font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:8px">'+ (d.member_count||0) +' members</div>';
+        h='<div style="text-align:center;margin-bottom:12px"><img src="'+(d.avatar_url||'')+'" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #f39c12;margin-bottom:6px" onerror="this.outerHTML=\'<div style=width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:25px;margin-bottom:6px;border:2px solid #f39c12>👥</div>\'"><h3 style="font-size:16px">'+escapeHtml(d.room_name)+'</h3><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:10px">'+ (d.member_count||0) +' members</div>';
         h+='<button class="join-btn" onclick="joinGroup('+gid+')" style="width:100%">➕ Join Group</button>';
     }
-    document.getElementById('groupInfoContent').innerHTML=h;document.getElementById('groupInfoModal').classList.add('active')}catch(e){}
+    
+    // ✅ Full Page Style
+    document.getElementById('groupInfoModal').querySelector('.modal-box').style.maxWidth='95%';
+    document.getElementById('groupInfoModal').querySelector('.modal-box').style.maxHeight='90vh';
+    document.getElementById('groupInfoContent').innerHTML=h;
+    document.getElementById('groupInfoModal').classList.add('active');
+    }catch(e){}
+}
+
+// ✅ Search User for Group Add (in Group Profile)
+async function searchUserForGroupAdd(gid){
+    const q=document.getElementById('groupAddSearch').value.trim();
+    const dd=document.getElementById('groupAddDropdown');
+    if(q.length<1){dd.classList.remove('active');return}
+    try{const r=await fetch('/api/chat/search_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();
+    if(d.users&&d.users.length>0){dd.innerHTML=d.users.map(u=>`<div class="username-dropdown-item">@${escapeHtml(u.username)} <span class="add-btn" onclick="addMemberToGroupDirect(${gid},${u.id})">+ Add</span></div>`).join('');dd.classList.add('active')}else{dd.innerHTML='<div class="username-dropdown-item" style="color:rgba(255,255,255,0.3)">No users</div>';dd.classList.add('active')}}catch(e){}
+}
+
+// ✅ Add Member Direct from Group Profile
+async function addMemberToGroupDirect(gid,uid){
+    try{const r=await fetch('/api/chat/add_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});const d=await r.json();
+    if(d.success){showToast('Added!');document.getElementById('groupAddSearch').value='';document.getElementById('groupAddDropdown').classList.remove('active');viewGroupInfo(gid)}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
 }
 async function uploadGroupPic(gid){
     const i=document.createElement('input');i.type='file';i.accept='image/*';
@@ -411,24 +438,35 @@ async function deleteGroup(gid){if(!confirm('Delete this group?'))return;try{awa
 
 // ==================== MANAGE MEMBERS ====================
 async function showManageMembers(gid){
+    document.getElementById('manageMembersContent').innerHTML='<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Loading...</div>';
+    document.getElementById('manageMembersModal').classList.add('active');
+    
     try{const r=await fetch('/api/chat/group_members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();
-    if(!d.success){showToast(d.message||'Error',true);return}
-    let h='';
+    if(!d.success){showToast(d.message||'Error',true);closeModal('manageMembersModal');return}
+    
+    // ✅ Owner/Admin အတွက် အပြည့်အစုံ Manage
+    let h='<div style="max-height:60vh;overflow-y:auto">';
     d.members.forEach(m=>{
         let actions='';
         if(d.userRole==='owner'&&m.user_id!==currentUser.id){
-            if(m.role==='member')actions+=`<button class="btn btn-b" style="font-size:8px;padding:3px 6px;flex:0" onclick="promoteToAdmin(${gid},${m.user_id})">Admin</button>`;
-            if(m.role==='admin')actions+=`<button class="btn btn-w" style="font-size:8px;padding:3px 6px;flex:0" onclick="demoteToMember(${gid},${m.user_id})">Member</button>`;
-            actions+=`<button class="btn btn-r" style="font-size:8px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">Kick</button>`;
-            actions+=`<button class="btn" style="font-size:8px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff" onclick="banMember(${gid},${m.user_id})">Ban</button>`;
-            actions+=`<button class="btn btn-w" style="font-size:8px;padding:3px 6px;flex:0" onclick="transferOwner(${gid},${m.user_id})">👑Transfer</button>`;
+            actions+='<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
+            if(m.role==='member')actions+=`<button class="btn btn-b" style="font-size:7px;padding:3px 6px;flex:0" onclick="promoteToAdmin(${gid},${m.user_id})">👑 Admin</button>`;
+            if(m.role==='admin')actions+=`<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="demoteToMember(${gid},${m.user_id})">👤 Member</button>`;
+            actions+=`<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">🚫 Kick</button>`;
+            actions+=`<button class="btn" style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff" onclick="banMember(${gid},${m.user_id})">⛔ Ban</button>`;
+            actions+=`<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="transferOwner(${gid},${m.user_id})">⭐ Transfer</button>`;
+            actions+='</div>';
         }else if(d.userRole==='admin'&&m.user_id!==currentUser.id&&m.role==='member'){
-            actions+=`<button class="btn btn-r" style="font-size:8px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">Kick</button>`;
-            actions+=`<button class="btn" style="font-size:8px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff" onclick="banMember(${gid},${m.user_id})">Ban</button>`;
+            actions+='<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
+            actions+=`<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">🚫 Kick</button>`;
+            actions+=`<button class="btn" style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff" onclick="banMember(${gid},${m.user_id})">⛔ Ban</button>`;
+            actions+='</div>';
         }
-        h+=`<div class="member-item"><img src="${m.avatar_url||''}" class="member-avatar" onerror="this.style.display='none'" onclick="viewUserProfile(${m.user_id})"><div style="flex:1;cursor:pointer" onclick="viewUserProfile(${m.user_id})"><b>${escapeHtml(m.username)}</b><br><small style="color:rgba(255,255,255,0.4)">${escapeHtml(m.name||'')}</small></div><span class="member-badge ${m.role}">${m.role}</span>${actions?`<div style="display:flex;gap:3px;flex-wrap:wrap;margin-left:6px">${actions}</div>`:''}</div>`;
+        h+=`<div class="member-item" style="flex-wrap:wrap"><img src="${m.avatar_url||''}" class="member-avatar" onerror="this.style.display='none'" onclick="viewUserProfile(${m.user_id})"><div style="flex:1;min-width:100px;cursor:pointer" onclick="viewUserProfile(${m.user_id})"><b>@${escapeHtml(m.username)}</b><br><small style="color:rgba(255,255,255,0.4);font-size:8px">${escapeHtml(m.name||'')}</small></div><span class="member-badge ${m.role}">${m.role}</span>${actions}</div>`;
     });
-    document.getElementById('manageMembersContent').innerHTML=h;document.getElementById('manageMembersModal').classList.add('active')}catch(e){}
+    h+='</div>';
+    document.getElementById('manageMembersContent').innerHTML=h;
+    }catch(e){document.getElementById('manageMembersContent').innerHTML='<div style="text-align:center;color:#e74c3c">Error</div>'}
 }
 async function promoteToAdmin(gid,uid){await fetch('/api/chat/promote_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Promoted!');showManageMembers(gid)}
 async function demoteToMember(gid,uid){await fetch('/api/chat/demote_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});showToast('Demoted!');showManageMembers(gid)}
