@@ -707,7 +707,7 @@ async function deleteGroup(gid){
     if (!confirm('Delete group?')) return;
     try {
         await fetch('/api/chat/delete_room', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: gid, userId: currentUser.id }) });
-        showToast('Deleted'); closeModal('groupInfoModal'); closeChat(); loadGroupsList(); loadRooms();
+        showToast('Deleted'); cdeleteCurrentRoomMessagetiontiontionModal('groupInfoModal'); closeChat(); loadGroupsList(); loadRooms();
     } catch(e) {}
 }
 
@@ -775,7 +775,37 @@ function addMessageToUI(msg,isMine,spt=0){
     d.innerHTML=`${avatarHtml}<div class="msg-bubble ${bc}">${!isMine?`<div class="msg-sender" onclick="viewUserProfile(${msg.sender_id})">${escapeHtml(msg.username||'User')}</div>`:''}${mh}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div></div>`;c.appendChild(d)
 }
 function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a)}
-function sendMessage(){const i=document.getElementById('msgInput');const m=i.value.trim();if(!m)return;if(!currentRoom){showToast('Select a chat room',true);return}socket.emit('send_message',{roomId:currentRoom,message:m,userId:currentUser.id,username:currentUser.username,senderPremiumTier:premiumTier});i.value=''}
+function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const message = input.value.trim();
+    if (!message) return;
+    if (!currentRoom) { showToast('Select a chat room', true); return; }
+    if (!currentUser) { showToast('Please login', true); return; }
+    
+    // ✅ Message ပို့
+    socket.emit('send_message', {
+        roomId: currentRoom,
+        message: message,
+        userId: currentUser.id,
+        username: currentUser.username,
+        senderPremiumTier: premiumTier
+    });
+    
+    // ✅ Input clear (value ကိုပဲရှင်း၊ focus မဖျက်)
+    input.value = '';
+    
+    // ✅ Focus ပြန်ထိန်း (Mobile Keyboard မပျောက်အောင်)
+    input.focus();
+    
+    // ✅ iOS Safari အတွက် Scroll ပြန်တည့်
+    setTimeout(function() {
+        input.focus();
+        // Keep cursor at start
+        input.setSelectionRange(0, 0);
+        // Scroll chat to bottom
+        scrollToBottom();
+    }, 50);
+}
 function closeChat(){currentRoom=null;currentRoomType=null;document.getElementById('chatArea').classList.remove('active');document.getElementById('roomList').classList.add('active');loadRooms()}
 function deleteCurrentRoom(){if(!currentRoom||!confirm('Delete?'))return;fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})}).then(()=>{showToast('Deleted');closeChat()}).catch(()=>showToast('Error',true))}
 function viewRoomProfile(){if(currentRoomType==='group'&&currentRoom){viewGroupInfo(currentRoom)}}
