@@ -363,7 +363,53 @@ async function saveAvatar(type){
     else if(type==='group'){await fetch('/api/chat/update_group_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentUploadGroupId,avatarUrl:url})});showToast('✅ Updated!');viewGroupInfo(currentUploadGroupId)}
     }catch(e){showToast('❌ '+e.message,true)}
 }
-function uploadProfilePic(){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=e=>{if(!e.target.files[0])return;pendingAvatarFile=e.target.files[0];showAvatarPreview(pendingAvatarFile,'profile')};i.click()}
+function uploadProfilePic(){
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = 'image/*';
+    
+    i.onchange = function(e){
+        if (!e.target.files || !e.target.files[0]) return;
+        
+        const file = e.target.files[0];
+        
+        // ✅ Blob Type စစ်ဆေး
+        if (!(file instanceof Blob)) {
+            showToast('❌ Invalid file', true);
+            return;
+        }
+        
+        pendingAvatarFile = file;
+        showAvatarPreview(file, 'profile');
+    };
+    
+    i.click();
+}
+
+function uploadGroupPic(gid){
+    currentUploadGroupId = gid;
+    
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = 'image/*';
+    
+    i.onchange = function(e){
+        if (!e.target.files || !e.target.files[0]) return;
+        
+        const file = e.target.files[0];
+        
+        // ✅ Blob Type စစ်ဆေး
+        if (!(file instanceof Blob)) {
+            showToast('❌ Invalid file', true);
+            return;
+        }
+        
+        pendingAvatarFile = file;
+        showAvatarPreview(file, 'group');
+    };
+    
+    i.click();
+}
 function uploadGroupPic(gid){currentUploadGroupId=gid;const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=e=>{if(!e.target.files[0])return;pendingAvatarFile=e.target.files[0];showAvatarPreview(pendingAvatarFile,'group')};i.click()}
 async function deleteProfilePic(){if(!confirm('Remove photo?'))return;await fetch('/api/chat/update_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,avatarUrl:''})});showToast('Removed');loadMyProfile()}
 async function updateUsername(){const nu=document.getElementById('newUsername').value.trim();if(!nu||!nu.startsWith('@')){showToast('Must start with @',true);return}try{const r=await fetch('/api/chat/update_username',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,username:nu.substring(1)})});const d=await r.json();if(d.success){showToast('Updated!');currentUser.username=nu.substring(1);loadMyProfile()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
