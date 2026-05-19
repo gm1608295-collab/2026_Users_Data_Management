@@ -894,71 +894,64 @@ function updateAllTierStatuses(expiryDates) {
         }        
         // ==================== LOAD CURRENT STATUS ====================
 let activeTiers = { 1: false, 2: false, 3: false };
-
 async function loadStatus() {
     const token = localStorage.getItem('auth_token');
+    
+    // ✅ ဒီနေရာမှာ ထည့်ပါ
+    console.log('[DEBUG] Token:', token);
+    
     if (!token || token === 'guest') {
+        console.log('[DEBUG] No token');
         document.getElementById('usdBalance').textContent = '$0.00';
         document.getElementById('mmkBalance').textContent = '0 Ks';
         return;
     }
 
     try {
-        // ✅ Load MMK Balance
+        console.log('[DEBUG] Fetching MMK Balance...');
         const balRes = await fetch('/api/get_balance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
         const balData = await balRes.json();
+        console.log('[DEBUG] MMK Balance:', balData);
         document.getElementById('mmkBalance').textContent = 
             (parseFloat(balData.balance || 0)).toLocaleString() + ' Ks';
 
-        // ✅ Load USD Balance
+        console.log('[DEBUG] Fetching USD Balance...');
         const usdRes = await fetch('/api/get_usd_balance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
         const usdData = await usdRes.json();
+        console.log('[DEBUG] USD Balance:', usdData);
         document.getElementById('usdBalance').textContent = 
             '$' + (parseFloat(usdData.usd_balance || 0)).toFixed(2);
 
-        // Load premium tiers status
+        console.log('[DEBUG] Fetching Premium Tiers...');
         const allPremRes = await fetch('/api/chat/premium/all_tiers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
+        
+        console.log('[DEBUG] Response Status:', allPremRes.status);
+        
         const allPremData = await allPremRes.json();
+        console.log('[DEBUG] Premium Data:', allPremData);
         
         if (allPremData.success) {
             activeTiers = allPremData.tiers || {};
-            
-            const hasAnyActive = Object.values(activeTiers).some(v => v === true);
-            
-            if (hasAnyActive) {
-                const statusCard = document.getElementById('statusCard');
-                statusCard.classList.add('active-premium');
-                
-                const tierIcons = { 1: '🥉', 2: '🥈', 3: '🥇' };
-                const tierNames = { 1: 'Bronze', 2: 'Silver', 3: 'Gold' };
-                
-                let activeList = [];
-                
-                for (let tier = 1; tier <= 3; tier++) {
-                    if (activeTiers[tier]) {
-                        activeList.push(tierIcons[tier] + ' ' + tierNames[tier]);
-                    }
-                }
-                
-                document.getElementById('statusText').textContent = activeList.join(' | ') + ' Active';
-            }
-            
+            console.log('[DEBUG] Active Tiers:', activeTiers);
             updateAllTierStatuses(allPremData.expiry_dates || {});
         }
     } catch(e) {
-        console.error('Status load error:', e);
+        console.error('[LOAD STATUS ERROR]', e);
+        // ✅ Error ပြရင် ဒီမှာ ပြပါ
+        document.getElementById('usdBalance').textContent = 'Error';
+        document.getElementById('mmkBalance').textContent = 'Error';
     }
 }
 
