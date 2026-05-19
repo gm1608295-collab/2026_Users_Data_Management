@@ -335,12 +335,21 @@ async function loadMyProfile(){
     h+='</div>';document.getElementById('profilePanel').innerHTML=h}catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error loading profile</div>'}
 }
 
-function showAvatarPreview(file,type){
-    const reader=new FileReader();
-    reader.onload=function(e){
-        const ph=`<div class="modal-overlay active" id="avatarPreviewModal" onclick="closeAvatarPreview()"><div class="modal-box" onclick="event.stopPropagation()" style="text-align:center"><h3>Preview</h3><img src="${e.target.result}" style="max-width:200px;max-height:200px;border-radius:10px;margin:10px 0"><div class="btn-row"><button class="btn btn-g" onclick="saveAvatar('${type}')">💾 Save</button><button class="btn btn-r" onclick="closeAvatarPreview()">Cancel</button></div></div></div>`;
-        document.body.insertAdjacentHTML('beforeend',ph);
-    };reader.readAsDataURL(file);
+function showAvatarPreview(file, type){
+    if (!file || !(file instanceof Blob)) {
+        showToast('❌ Invalid file', true);
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e){
+        const ph = `<div class="modal-overlay active" id="avatarPreviewModal" onclick="closeAvatarPreview()"><div class="modal-box" onclick="event.stopPropagation()" style="text-align:center"><h3>Preview</h3><img src="${e.target.result}" style="max-width:200px;max-height:200px;border-radius:10px;margin:10px 0"><div class="btn-row"><button class="btn btn-g" onclick="saveAvatar('${type}')">💾 Save</button><button class="btn btn-r" onclick="closeAvatarPreview()">Cancel</button></div></div></div>`;
+        document.body.insertAdjacentHTML('beforeend', ph);
+    };
+    reader.onerror = function(){
+        showToast('❌ Failed to read file', true);
+    };
+    reader.readAsDataURL(file);
 }
 function closeAvatarPreview(){const m=document.getElementById('avatarPreviewModal');if(m)m.remove();pendingAvatarFile=null}
 async function saveAvatar(type){
