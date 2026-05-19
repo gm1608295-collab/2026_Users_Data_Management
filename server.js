@@ -4743,6 +4743,50 @@ app.post('/api/chat/transfer_owner', async (req, res) => {
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
+app.post('/api/chat/create_group', async (req, res) => {
+    const { userId, groupName, members } = req.body;
+    
+    if (!userId || !groupName) {
+        return res.json({ success: false, message: 'Group name required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Create group room
+        const room = await p.query(
+            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id",
+            [groupName, userId]
+        );
+        const roomId = room.rows[0].id;
+        
+        // Add creator as owner
+        await p.query(
+            "INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'owner')",
+            [roomId, userId]
+        );
+        
+        // Add additional members
+        if (members && Array.isArray(members) && members.length > 0) {
+            for (const memberId of members) {
+                if (memberId !== userId) {
+                    await p.query(
+                        "INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING",
+                        [roomId, memberId]
+                    );
+                }
+            }
+        }
+        
+        console.log('[CREATE GROUP] ✅ Room:', roomId, 'Name:', groupName, 'Owner:', userId);
+        
+        res.json({ success: true, message: 'Group created!', room: { id: roomId, room_name: groupName } });
+        
+    } catch(e) {
+        console.error('[CREATE GROUP ERROR]', e.message);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
