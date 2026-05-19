@@ -3987,31 +3987,14 @@ app.post('/api/chat/add_member', async (req, res) => {
     
     try {
         const p = await getPool();
+        const exist = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        if (exist.rows.length > 0) return res.json({ success: false, message: 'Already a member' });
         
-        // Check if requester is in group
-        const check = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, requesterId]);
-        if (check.rows.length === 0) {
-            return res.json({ success: false, message: 'You are not in this group' });
-        }
-        
-        // Add new member
-        await p.query(
-            'INSERT INTO chat_participants (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [roomId, userId]
-        );
-        
+        await p.query("INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'member')", [roomId, userId]);
         const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
-        await p.query(
-            `INSERT INTO chat_messages (room_id, sender_id, username, message) 
-             VALUES ($1, 0, 'System', $2)`,
-            [roomId, `${user.rows[0]?.username || 'User'} joined the group`]
-        );
-        
-        res.json({ success: true, message: 'Member added!' });
-    } catch(e) {
-        console.error('[ADD MEMBER ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
+        await p.query("INSERT INTO chat_messages (room_id, sender_id, username, message) VALUES ($1, 0, 'System', $2)", [roomId, `${user.rows[0]?.username || 'User'} was added`]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
 });
 
 // Get invite link
@@ -4042,21 +4025,15 @@ app.post('/api/chat/leave_group', async (req, res) => {
     
     try {
         const p = await getPool();
+        const member = await p.query('SELECT role FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        if (member.rows.length === 0) return res.json({ success: false, message: 'Not a member' });
+        if (member.rows[0].role === 'owner') return res.json({ success: false, message: 'Owner must transfer ownership first' });
         
         await p.query('DELETE FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
-        
         const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
-        await p.query(
-            `INSERT INTO chat_messages (room_id, sender_id, username, message) 
-             VALUES ($1, 0, 'System', $2)`,
-            [roomId, `${user.rows[0]?.username || 'User'} left the group`]
-        );
-        
-        res.json({ success: true, message: 'Left group' });
-    } catch(e) {
-        console.error('[LEAVE GROUP ERROR]', e.message);
-        res.json({ success: false });
-    }
+        await p.query("INSERT INTO chat_messages (room_id, sender_id, username, message) VALUES ($1, 0, 'System', $2)", [roomId, `${user.rows[0]?.username || 'User'} left the group`]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
 });
 
 // Mark messages as read
@@ -4075,21 +4052,17 @@ app.post('/api/chat/read', async (req, res) => {
 // Delete room
 app.post('/api/chat/delete_room', async (req, res) => {
     const { roomId, userId } = req.body;
+    
     try {
         const p = await getPool();
+        const check = await p.query("SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role='owner'", [roomId, userId]);
+        if (check.rows.length === 0) return res.json({ success: false, message: 'Only owner can delete group' });
         
-        const check = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
-        if (check.rows.length === 0) return res.json({ success: false });
-        
-        await p.query('DELETE FROM chat_messages WHERE room_id = $1', [roomId]);
-        await p.query('DELETE FROM chat_participants WHERE room_id = $1', [roomId]);
-        await p.query('DELETE FROM chat_rooms WHERE id = $1', [roomId]);
-        
+        await p.query('DELETE FROM chat_messages WHERE room_id=$1', [roomId]);
+        await p.query('DELETE FROM chat_participants WHERE room_id=$1', [roomId]);
+        await p.query('DELETE FROM chat_rooms WHERE id=$1', [roomId]);
         res.json({ success: true });
-    } catch(e) { 
-        console.error('[DELETE ROOM ERROR]', e.message);
-        res.json({ success: false }); 
-    }
+    } catch(e) { res.json({ success: false }); }
 });
 
 // Debug endpoint
@@ -4336,48 +4309,19 @@ app.post('/api/chat/search_users', async (req, res) => {
 // Report Group
 app.post('/api/chat/report_group', async (req, res) => {
     const { roomId, userId } = req.body;
-    
-    if (!roomId || !userId) {
-        return res.json({ success: false, message: 'Missing data' });
-    }
+    if (!roomId || !userId) return res.json({ success: false, message: 'Missing data' });
     
     try {
         const p = await getPool();
+        const already = await p.query("SELECT id FROM group_reports WHERE room_id=$1 AND reported_by=$2 AND created_at > NOW() - INTERVAL '24 hours'", [roomId, userId]);
+        if (already.rows.length > 0) return res.json({ success: false, message: 'Already reported today' });
         
-        // Check if user already reported
-        const alreadyReported = await p.query(
-            "SELECT id FROM group_reports WHERE room_id = $1 AND reported_by = $2 AND created_at > NOW() - INTERVAL '24 hours'",
-            [roomId, userId]
-        );
-        
-        if (alreadyReported.rows.length > 0) {
-            return res.json({ success: false, message: 'You already reported this group today' });
-        }
-        
-        // Insert report
-        await p.query(
-            'INSERT INTO group_reports (room_id, reported_by) VALUES ($1, $2)',
-            [roomId, userId]
-        );
-        
-        // Count total reports
-        const count = await p.query(
-            'SELECT COUNT(*) as cnt FROM group_reports WHERE room_id = $1',
-            [roomId]
-        );
-        
+        await p.query('INSERT INTO group_reports (room_id, reported_by) VALUES ($1, $2)', [roomId, userId]);
+        const count = await p.query('SELECT COUNT(*) as cnt FROM group_reports WHERE room_id=$1', [roomId]);
         const reportCount = parseInt(count.rows[0]?.cnt || 0);
         
-        res.json({
-            success: true,
-            reportCount: reportCount,
-            warning: reportCount >= 50
-        });
-        
-    } catch(e) {
-        console.error('[REPORT GROUP ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
+        res.json({ success: true, reportCount, warning: reportCount >= 50 });
+    } catch(e) { res.json({ success: false }); }
 });
 // ==================== PROFILE & AVATAR APIs ====================
 
@@ -4547,41 +4491,15 @@ app.post('/api/chat/join_group', async (req, res) => {
     
     try {
         const p = await getPool();
+        const exist = await p.query('SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        if (exist.rows.length > 0) return res.json({ success: false, message: 'Already a member' });
         
-        // Check if already member
-        const existing = await p.query(
-            'SELECT * FROM chat_participants WHERE room_id = $1 AND user_id = $2',
-            [roomId, userId]
-        );
-        
-        if (existing.rows.length > 0) {
-            return res.json({ success: false, message: 'Already a member' });
-        }
-        
-        // Join
-        await p.query(
-            "INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'member')",
-            [roomId, userId]
-        );
-        
-        // System message
-        const user = await p.query('SELECT username FROM auth_users WHERE id = $1', [userId]);
-        const uname = user.rows[0]?.username || 'User';
-        
-        await p.query(
-            `INSERT INTO chat_messages (room_id, sender_id, username, message) 
-             VALUES ($1, 0, 'System', $2)`,
-            [roomId, `${uname} joined the group`]
-        );
-        
-        res.json({ success: true, room_name: 'Group' });
-        
-    } catch(e) {
-        console.error('[JOIN GROUP ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
+        await p.query("INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'member')", [roomId, userId]);
+        const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [userId]);
+        await p.query("INSERT INTO chat_messages (room_id, sender_id, username, message) VALUES ($1, 0, 'System', $2)", [roomId, `${user.rows[0]?.username || 'User'} joined the group`]);
+        res.json({ success: true });
+    } catch(e) { res.json({ success: false }); }
 });
-
 // Get Group Members (for manage)
 app.post('/api/chat/group_members', async (req, res) => {
     const { roomId, userId } = req.body;
@@ -4589,20 +4507,10 @@ app.post('/api/chat/group_members', async (req, res) => {
     
     try {
         const p = await getPool();
+        const reqCheck = await p.query('SELECT role FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        if (reqCheck.rows.length === 0) return res.json({ success: false, message: 'Not a member' });
         
-        // Check requester role
-        const reqMember = await p.query(
-            'SELECT role FROM chat_participants WHERE room_id = $1 AND user_id = $2',
-            [roomId, userId]
-        );
-        
-        if (reqMember.rows.length === 0) {
-            return res.json({ success: false, message: 'Not a member' });
-        }
-        
-        const userRole = reqMember.rows[0].role || 'member';
-        
-        // Get all members
+        const userRole = reqCheck.rows[0].role;
         const members = await p.query(`
             SELECT cp.user_id, cp.role, u.username,
              (SELECT avatar_url FROM user_avatars WHERE user_id = cp.user_id ORDER BY updated_at DESC LIMIT 1) as avatar_url
@@ -4611,13 +4519,8 @@ app.post('/api/chat/group_members', async (req, res) => {
             WHERE cp.room_id = $1
             ORDER BY CASE cp.role WHEN 'owner' THEN 1 WHEN 'admin' THEN 2 ELSE 3 END, u.username ASC
         `, [roomId]);
-        
         res.json({ success: true, members: members.rows, userRole });
-        
-    } catch(e) {
-        console.error('[GROUP MEMBERS ERROR]', e.message);
-        res.json({ success: false });
-    }
+    } catch(e) { res.json({ success: false }); }
 });
 
 // Promote to Admin
@@ -4627,22 +4530,9 @@ app.post('/api/chat/promote_admin', async (req, res) => {
     
     try {
         const p = await getPool();
-        
-        // Check if requester is owner
-        const reqCheck = await p.query(
-            "SELECT role FROM chat_participants WHERE room_id = $1 AND user_id = $2 AND role = 'owner'",
-            [roomId, requesterId]
-        );
-        
-        if (reqCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Only owner can promote' });
-        }
-        
-        await p.query(
-            "UPDATE chat_participants SET role = 'admin' WHERE room_id = $1 AND user_id = $2",
-            [roomId, userId]
-        );
-        
+        const ownerCheck = await p.query("SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role='owner'", [roomId, requesterId]);
+        if (ownerCheck.rows.length === 0) return res.json({ success: false, message: 'Only owner can promote' });
+        await p.query("UPDATE chat_participants SET role='admin' WHERE room_id=$1 AND user_id=$2", [roomId, userId]);
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
@@ -4654,21 +4544,9 @@ app.post('/api/chat/demote_member', async (req, res) => {
     
     try {
         const p = await getPool();
-        
-        const reqCheck = await p.query(
-            "SELECT role FROM chat_participants WHERE room_id = $1 AND user_id = $2 AND role = 'owner'",
-            [roomId, requesterId]
-        );
-        
-        if (reqCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Only owner can demote' });
-        }
-        
-        await p.query(
-            "UPDATE chat_participants SET role = 'member' WHERE room_id = $1 AND user_id = $2",
-            [roomId, userId]
-        );
-        
+        const ownerCheck = await p.query("SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role='owner'", [roomId, requesterId]);
+        if (ownerCheck.rows.length === 0) return res.json({ success: false, message: 'Only owner can demote' });
+        await p.query("UPDATE chat_participants SET role='member' WHERE room_id=$1 AND user_id=$2", [roomId, userId]);
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
@@ -4680,60 +4558,39 @@ app.post('/api/chat/kick_member', async (req, res) => {
     
     try {
         const p = await getPool();
+        const permCheck = await p.query("SELECT role FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role IN ('owner','admin')", [roomId, requesterId]);
+        if (permCheck.rows.length === 0) return res.json({ success: false, message: 'Permission denied' });
         
-        // Check requester role
-        const reqCheck = await p.query(
-            "SELECT role FROM chat_participants WHERE room_id = $1 AND user_id = $2 AND role IN ('owner', 'admin')",
-            [roomId, requesterId]
-        );
+        const targetCheck = await p.query("SELECT role FROM chat_participants WHERE room_id=$1 AND user_id=$2", [roomId, userId]);
+        if (targetCheck.rows.length > 0 && targetCheck.rows[0].role === 'owner') return res.json({ success: false, message: 'Cannot kick owner' });
         
-        if (reqCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Permission denied' });
-        }
-        
-        // Cannot kick owner
-        const targetCheck = await p.query(
-            "SELECT role FROM chat_participants WHERE room_id = $1 AND user_id = $2",
-            [roomId, userId]
-        );
-        
-        if (targetCheck.rows.length > 0 && targetCheck.rows[0].role === 'owner') {
-            return res.json({ success: false, message: 'Cannot kick owner' });
-        }
-        
-        await p.query('DELETE FROM chat_participants WHERE room_id = $1 AND user_id = $2', [roomId, userId]);
-        
+        await p.query('DELETE FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
-
 // Ban Member
 app.post('/api/chat/ban_member', async (req, res) => {
-    const { roomId, userId, requesterId } = req.body;
+    const { roomId, userId, requesterId, durationMinutes } = req.body;
     if (!roomId || !userId || !requesterId) return res.json({ success: false });
     
     try {
         const p = await getPool();
+        const permCheck = await p.query("SELECT role FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role IN ('owner','admin')", [roomId, requesterId]);
+        if (permCheck.rows.length === 0) return res.json({ success: false, message: 'Permission denied' });
         
-        const reqCheck = await p.query(
-            "SELECT role FROM chat_participants WHERE room_id = $1 AND user_id = $2 AND role IN ('owner', 'admin')",
-            [roomId, requesterId]
-        );
+        const targetCheck = await p.query("SELECT role FROM chat_participants WHERE room_id=$1 AND user_id=$2", [roomId, userId]);
+        if (targetCheck.rows.length > 0 && targetCheck.rows[0].role === 'owner') return res.json({ success: false, message: 'Cannot ban owner' });
         
-        if (reqCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Permission denied' });
+        await p.query('DELETE FROM chat_participants WHERE room_id=$1 AND user_id=$2', [roomId, userId]);
+        await p.query('INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING', [userId, 'group_' + roomId]);
+        
+        if (durationMinutes && durationMinutes > 0) {
+            setTimeout(async () => {
+                try { await p.query('DELETE FROM banned_users WHERE user_id=$1 AND banned_by=$2', [userId, 'group_' + roomId]); } catch(e) {}
+            }, durationMinutes * 60 * 1000);
         }
         
-        // Remove from group
-        await p.query('DELETE FROM chat_participants WHERE room_id = $1 AND user_id = $2', [roomId, userId]);
-        
-        // Add to banned_users
-        await p.query(
-            'INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO NOTHING',
-            [userId, 'group_admin']
-        );
-        
-        res.json({ success: true });
+        res.json({ success: true, message: durationMinutes ? 'Banned for ' + durationMinutes + ' min' : 'Permanently banned' });
     } catch(e) { res.json({ success: false }); }
 });
 
@@ -4744,69 +4601,31 @@ app.post('/api/chat/transfer_owner', async (req, res) => {
     
     try {
         const p = await getPool();
+        const ownerCheck = await p.query("SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role='owner'", [roomId, requesterId]);
+        if (ownerCheck.rows.length === 0) return res.json({ success: false, message: 'Only owner can transfer' });
         
-        // Check if requester is owner
-        const reqCheck = await p.query(
-            "SELECT role FROM chat_participants WHERE room_id = $1 AND user_id = $2 AND role = 'owner'",
-            [roomId, requesterId]
-        );
-        
-        if (reqCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'Only owner can transfer' });
-        }
-        
-        // Demote current owner to admin
-        await p.query("UPDATE chat_participants SET role = 'admin' WHERE room_id = $1 AND user_id = $2", [roomId, requesterId]);
-        
-        // Promote target to owner
-        await p.query("UPDATE chat_participants SET role = 'owner' WHERE room_id = $1 AND user_id = $2", [roomId, userId]);
-        
+        await p.query("UPDATE chat_participants SET role='admin' WHERE room_id=$1 AND user_id=$2", [roomId, requesterId]);
+        await p.query("UPDATE chat_participants SET role='owner' WHERE room_id=$1 AND user_id=$2", [roomId, userId]);
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
+
 app.post('/api/chat/create_group', async (req, res) => {
     const { userId, groupName, members } = req.body;
-    
-    if (!userId || !groupName) {
-        return res.json({ success: false, message: 'Group name required' });
-    }
+    if (!userId || !groupName) return res.json({ success: false, message: 'Group name required' });
     
     try {
         const p = await getPool();
-        
-        // Create group room
-        const room = await p.query(
-            "INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id",
-            [groupName, userId]
-        );
+        const room = await p.query("INSERT INTO chat_rooms (room_name, room_type, created_by) VALUES ($1, 'group', $2) RETURNING id", [groupName, userId]);
         const roomId = room.rows[0].id;
-        
-        // Add creator as owner
-        await p.query(
-            "INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'owner')",
-            [roomId, userId]
-        );
-        
-        // Add additional members
-        if (members && Array.isArray(members) && members.length > 0) {
-            for (const memberId of members) {
-                if (memberId !== userId) {
-                    await p.query(
-                        "INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING",
-                        [roomId, memberId]
-                    );
-                }
+        await p.query("INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'owner')", [roomId, userId]);
+        if (members && Array.isArray(members)) {
+            for (const mid of members) {
+                if (mid !== userId) await p.query("INSERT INTO chat_participants (room_id, user_id, role) VALUES ($1, $2, 'member') ON CONFLICT DO NOTHING", [roomId, mid]);
             }
         }
-        
-        console.log('[CREATE GROUP] ✅ Room:', roomId, 'Name:', groupName, 'Owner:', userId);
-        
-        res.json({ success: true, message: 'Group created!', room: { id: roomId, room_name: groupName } });
-        
-    } catch(e) {
-        console.error('[CREATE GROUP ERROR]', e.message);
-        res.json({ success: false, message: 'Server error: ' + e.message });
-    }
+        res.json({ success: true, room: { id: roomId, room_name: groupName } });
+    } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
