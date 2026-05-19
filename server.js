@@ -301,8 +301,7 @@ async function initTables(p) {
     username VARCHAR(100),
     last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
-// ========== CHAT PREMIUM (NEW - Composite PK) ==========
-`DROP TABLE IF EXISTS chat_premium CASCADE`,
+//========== CHAT PREMIUM (NEW - Composite PK) ==========
 `CREATE TABLE IF NOT EXISTS chat_premium (
     user_id INT NOT NULL,
     premium_tier INT NOT NULL,
