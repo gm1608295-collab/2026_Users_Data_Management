@@ -356,11 +356,75 @@ async function loadMyProfile(){
     document.getElementById('profilePanel').innerHTML=h}catch(e){document.getElementById('profilePanel').innerHTML='<div class="empty-state">Error</div>'}
 }
 async function uploadProfilePic(){
-    const i=document.createElement('input');i.type='file';i.accept='image/*';
-    i.onchange=async e=>{if(!e.target.files[0])return;showToast('Uploading...');try{const r=new FileReader();const b64=await new Promise(r=>{r.onload=e=>r(e.target.result);r.readAsDataURL(e.target.files[0])});
-    const fd=new URLSearchParams();fd.append('key',IMGBB_KEY);fd.append('image',b64.split(',')[1]);
-    const res=await fetch('https://api.imgbb.com/1/upload',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd.toString()});const d=await res.json();
-    if(d.success){await fetch('/api/chat/update_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,avatarUrl:d.data.url})});showToast('Photo updated!');loadMyProfile()}else{showToast('Upload failed',true)}}catch(e){showToast('Error',true)}};i.click()
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = 'image/*';
+    
+    i.onchange = async e => {
+        if (!e.target.files[0]) return;
+        
+        const file = e.target.files[0];
+        
+        // File size check
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('❌ ပုံဆိုဒ် 2MB ထက်ငယ်ရပါမည်', true);
+            return;
+        }
+        
+        showToast('⏳ Uploading...');
+        
+        try {
+            // Convert to base64
+            const reader = new FileReader();
+            const base64 = await new Promise((resolve, reject) => {
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            
+            // Upload to ImgBB
+            const formData = new URLSearchParams();
+            formData.append('key', IMGBB_KEY);
+            formData.append('image', base64.split(',')[1]);
+            
+            const imgbbRes = await fetch('https://api.imgbb.com/1/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            });
+            
+            const imgbbData = await imgbbRes.json();
+            
+            if (!imgbbData.success) {
+                const errMsg = imgbbData.error?.message || 'ImgBB upload failed';
+                showToast('❌ ' + errMsg, true);
+                return;
+            }
+            
+            const imageUrl = imgbbData.data.url;
+            
+            // Save to server
+            const saveRes = await fetch('/api/chat/update_avatar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id, avatarUrl: imageUrl })
+            });
+            
+            const saveData = await saveRes.json();
+            
+            if (saveData.success) {
+                showToast('✅ ပုံတင်ပြီးပါပြီ!');
+                loadMyProfile();
+            } else {
+                showToast('❌ ' + (saveData.message || 'Save failed'), true);
+            }
+            
+        } catch(e) {
+            showToast('❌ ' + e.message, true);
+        }
+    };
+    
+    i.click();
 }
 async function deleteProfilePic(){if(!confirm('Remove profile photo?'))return;await fetch('/api/chat/update_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,avatarUrl:''})});showToast('Photo removed');loadMyProfile()}
 async function updateUsername(){const nu=document.getElementById('newUsername').value.trim();if(!nu||!nu.startsWith('@')){showToast('Must start with @',true);return}try{const r=await fetch('/api/chat/update_username',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,username:nu.substring(1)})});const d=await r.json();if(d.success){showToast('Updated!');currentUser.username=nu.substring(1);loadMyProfile()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
@@ -426,12 +490,72 @@ async function addMemberToGroupDirect(gid,uid){
     if(d.success){showToast('Added!');document.getElementById('groupAddSearch').value='';document.getElementById('groupAddDropdown').classList.remove('active');viewGroupInfo(gid)}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}
 }
 async function uploadGroupPic(gid){
-    const i=document.createElement('input');i.type='file';i.accept='image/*';
-    i.onchange=async e=>{if(!e.target.files[0])return;showToast('Uploading...');try{const r=new FileReader();const b64=await new Promise(r=>{r.onload=e=>r(e.target.result);r.readAsDataURL(e.target.files[0])});
-    const fd=new URLSearchParams();fd.append('key',IMGBB_KEY);fd.append('image',b64.split(',')[1]);
-    const res=await fetch('https://api.imgbb.com/1/upload',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd.toString()});const d=await res.json();
-    if(d.success){await fetch('/api/chat/update_group_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,avatarUrl:d.data.url})});showToast('Updated!');viewGroupInfo(gid)}else{showToast('Upload failed',true)}}catch(e){showToast('Error',true)}};i.click()
-}
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = 'image/*';
+    
+    i.onchange = async e => {
+        if (!e.target.files[0]) return;
+        
+        const file = e.target.files[0];
+        
+        if (file.size > 2 * 1024 * 1024) {
+            showToast('❌ ပုံဆိုဒ် 2MB ထက်ငယ်ရပါမည်', true);
+            return;
+        }
+        
+        showToast('⏳ Uploading...');
+        
+        try {
+            const reader = new FileReader();
+            const base64 = await new Promise((resolve, reject) => {
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            
+            const formData = new URLSearchParams();
+            formData.append('key', IMGBB_KEY);
+            formData.append('image', base64.split(',')[1]);
+            
+            const imgbbRes = await fetch('https://api.imgbb.com/1/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData.toString()
+            });
+            
+            const imgbbData = await imgbbRes.json();
+            
+            if (!imgbbData.success) {
+                const errMsg = imgbbData.error?.message || 'ImgBB upload failed';
+                showToast('❌ ' + errMsg, true);
+                return;
+            }
+            
+            const imageUrl = imgbbData.data.url;
+            
+            const saveRes = await fetch('/api/chat/update_group_avatar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: gid, avatarUrl: imageUrl })
+            });
+            
+            const saveData = await saveRes.json();
+            
+            if (saveData.success) {
+                showToast('✅ Group ပုံတင်ပြီးပါပြီ!');
+                viewGroupInfo(gid);
+            } else {
+                showToast('❌ ' + (saveData.message || 'Save failed'), true);
+            }
+            
+        } catch(e) {
+            showToast('❌ ' + e.message, true);
+        }
+    };
+    
+    i.click();
+    }
 async function joinGroup(gid){try{const r=await fetch('/api/chat/join_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();if(d.success){showToast('Joined!');closeModal('groupInfoModal');openRoom(gid,d.room_name,'group');loadGroupsList();loadRooms()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
 async function leaveGroup(gid){if(!confirm('Leave?'))return;try{const r=await fetch('/api/chat/leave_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();if(d.success){showToast('Left');closeModal('groupInfoModal');closeChat();loadGroupsList();loadRooms()}else showToast(d.message||'Error',true)}catch(e){showToast('Server error',true)}}
 async function deleteGroup(gid){if(!confirm('Delete this group?'))return;try{await fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});showToast('Deleted');closeModal('groupInfoModal');closeChat();loadGroupsList();loadRooms()}catch(e){}}
