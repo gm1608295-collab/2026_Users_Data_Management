@@ -773,22 +773,33 @@ async function showManageMembers(gid){
 
 // ✅ Ban with Duration Prompt
 function banMemberAsk(gid, uid) {
-    var duration = prompt('⛔ Ban duration (minutes)?\n\n• Enter number for temporary ban\n• Enter 0 or leave empty for permanent ban\n• Example: 60 = 1 hour, 1440 = 1 day');
+    var duration = prompt('⛔ Ban duration (minutes)?\n\n• Enter number = temporary (text box locked)\n• 0 or empty = permanent\n• Example: 60 = 1 hour');
     
-    if (duration === null) return; // Cancel
+    if (duration === null) return;
     
     var minutes = parseInt(duration) || 0;
-    var msg = minutes > 0 ? 'Ban for ' + minutes + ' minutes?' : 'Permanent ban?';
+    var msg = minutes > 0 ? 'Ban for ' + minutes + ' min?' : 'Permanent ban?';
     
     if (!confirm(msg)) return;
     
     fetch('/api/chat/ban_member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id, durationMinutes: minutes })
+        body: JSON.stringify({ 
+            roomId: gid, 
+            userId: uid, 
+            requesterId: currentUser.id, 
+            durationMinutes: minutes 
+        })
     }).then(function(r){ return r.json(); }).then(function(d){
-        if (d.success) { showToast(d.message || 'Banned!'); showManageMembers(gid); }
-        else { showToast(d.message || 'Error', true); }
+        if (d.success) {
+            showToast('✅ ' + (d.message || 'Banned!'));
+            showManageMembers(gid);
+        } else {
+            showToast('❌ ' + (d.message || 'Error'), true);
+        }
+    }).catch(function(){
+        showToast('❌ Server error', true);
     });
 }
 
@@ -806,7 +817,7 @@ async function demoteToMember(gid, uid) {
     else { showToast(d.message || 'Error', true); }
 }
 async function kickMember(gid, uid) {
-    if (!confirm('⚠️ Kick this member? They will be removed from group.')) return;
+    if (!confirm('⚠️ Kick this member?')) return;
     
     var r = await fetch('/api/chat/kick_member', {
         method: 'POST',
@@ -816,8 +827,14 @@ async function kickMember(gid, uid) {
     var d = await r.json();
     
     if (d.success) {
-        // ✅ 5 Second Message ပြပြီးမှ ထွက်
-        showKickNotification(uid);
+        // ✅ ကိုယ်က Kick ခံရတာလား စစ်
+        if (uid === currentUser.id) {
+            // ကိုယ့်ကိုယ်တိုင် Kick ခံရရင် Notification ပြ
+            showKickNotification();
+        } else {
+            // တခြားသူကို Kick ရင် Toast ပဲပြ
+            showToast('✅ Member kicked!');
+        }
         showManageMembers(gid);
         loadGroupsList();
     } else {
@@ -825,8 +842,7 @@ async function kickMember(gid, uid) {
     }
 }
 
-function showKickNotification(uid) {
-    // Kick Message Overlay
+function showKickNotification() {
     var overlay = document.createElement('div');
     overlay.id = 'kickNotification';
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:6000;display:flex;justify-content:center;align-items:center;flex-direction:column';
@@ -847,7 +863,6 @@ function showKickNotification(uid) {
     
     document.body.appendChild(overlay);
     
-    // 5 Second Countdown
     var count = 5;
     var countdownEl = document.getElementById('kickCountdown');
     var interval = setInterval(function(){
@@ -862,7 +877,7 @@ function showKickNotification(uid) {
             showToast('🚫 You have been kicked from the group');
         }
     }, 1000);
-        }
+}
         
 async function transferOwner(gid, uid) {
     if (!confirm('⚠️ Transfer ownership? You will become Admin.')) return;
