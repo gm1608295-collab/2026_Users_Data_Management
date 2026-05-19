@@ -806,12 +806,64 @@ async function demoteToMember(gid, uid) {
     else { showToast(d.message || 'Error', true); }
 }
 async function kickMember(gid, uid) {
-    if (!confirm('Kick this member?')) return;
-    var r = await fetch('/api/chat/kick_member', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id }) });
+    if (!confirm('⚠️ Kick this member? They will be removed from group.')) return;
+    
+    var r = await fetch('/api/chat/kick_member', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id })
+    });
     var d = await r.json();
-    if (d.success) { showToast('Kicked!'); showManageMembers(gid); }
-    else { showToast(d.message || 'Error', true); }
+    
+    if (d.success) {
+        // ✅ 5 Second Message ပြပြီးမှ ထွက်
+        showKickNotification(uid);
+        showManageMembers(gid);
+        loadGroupsList();
+    } else {
+        showToast(d.message || 'Error', true);
+    }
 }
+
+function showKickNotification(uid) {
+    // Kick Message Overlay
+    var overlay = document.createElement('div');
+    overlay.id = 'kickNotification';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:6000;display:flex;justify-content:center;align-items:center;flex-direction:column';
+    
+    overlay.innerHTML = `
+        <div style="text-align:center;padding:30px">
+            <div style="font-size:60px;margin-bottom:15px">🚫</div>
+            <div style="font-size:18px;font-weight:bold;color:#e74c3c;margin-bottom:8px">
+                သင့်ကို Owner/Admin မှ ကန်ထုတ်လိုက်ပါသည်
+            </div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:20px">
+                You have been kicked from this group
+            </div>
+            <div id="kickCountdown" style="font-size:40px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace">5</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:8px">စက္ကန့်အတွင်း Group မှ ထွက်သွားပါမည်</div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // 5 Second Countdown
+    var count = 5;
+    var countdownEl = document.getElementById('kickCountdown');
+    var interval = setInterval(function(){
+        count--;
+        countdownEl.textContent = count;
+        if (count <= 0) {
+            clearInterval(interval);
+            overlay.remove();
+            closeChat();
+            loadGroupsList();
+            loadRooms();
+            showToast('🚫 You have been kicked from the group');
+        }
+    }, 1000);
+        }
+        
 async function transferOwner(gid, uid) {
     if (!confirm('⚠️ Transfer ownership? You will become Admin.')) return;
     var r = await fetch('/api/chat/transfer_owner', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ roomId: gid, userId: uid, requesterId: currentUser.id }) });
@@ -821,8 +873,119 @@ async function transferOwner(gid, uid) {
        }
 async function promoteToAdmin(gid,uid){ await fetch('/api/chat/promote_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})}); showToast('Promoted!'); showManageMembers(gid); }
 async function demoteToMember(gid,uid){ await fetch('/api/chat/demote_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})}); showToast('Demoted!'); showManageMembers(gid); }
-async function kickMember(gid,uid){ if(!confirm('Kick?'))return; await fetch('/api/chat/kick_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})}); showToast('Kicked!'); showManageMembers(gid); }
-async function banMember(gid,uid){ if(!confirm('Ban?'))return; await fetch('/api/chat/ban_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})}); showToast('Banned!'); showManageMembers(gid); }
+// ==================== BAN SYSTEM ====================
+let isUserBanned = false;
+let banExpiryTime = null;
+let banCountdownInterval = null;
+let banRoomId = null;
+
+// ✅ Ban Status Check (Room ပြောင်းတိုင်း / Page Load တိုင်း ခေါ်)
+async function checkBanStatus(roomId) {
+    // Clear previous
+    clearBanCountdown();
+    isUserBanned = false;
+    banExpiryTime = null;
+    banRoomId = null;
+    
+    if (!currentUser || !roomId) return;
+    
+    try {
+        var r = await fetch('/api/chat/check_ban', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id, roomId: roomId })
+        });
+        var d = await r.json();
+        
+        if (d.success && d.is_banned) {
+            isUserBanned = true;
+            banRoomId = roomId;
+            
+            if (d.ban_expiry) {
+                banExpiryTime = new Date(d.ban_expiry).getTime();
+                startBanCountdown();
+            } else {
+                // Permanent ban
+                showBanIndicator('⛔ Permanently Banned');
+            }
+            
+            // Update input
+            updateInputBanState();
+        }
+    } catch(e) {}
+}
+
+function startBanCountdown() {
+    clearBanCountdown();
+    
+    banCountdownInterval = setInterval(function(){
+        var now = Date.now();
+        var remaining = banExpiryTime - now;
+        
+        if (remaining <= 0) {
+            // Ban expired
+            isUserBanned = false;
+            banExpiryTime = null;
+            banRoomId = null;
+            clearBanCountdown();
+            updateInputBanState();
+            showToast('✅ Ban expired! You can send messages now.');
+            return;
+        }
+        
+        // Update timer display
+        var s = Math.floor(remaining / 1000);
+        var h = Math.floor(s / 3600);
+        var m = Math.floor((s % 3600) / 60);
+        var sec = s % 60;
+        
+        var timeStr = '';
+        if (h > 0) timeStr += h + 'h ';
+        if (m > 0) timeStr += m + 'm ';
+        timeStr += sec + 's';
+        
+        showBanIndicator('⛔ Banned · Unban in: ' + timeStr);
+        updateInputBanState();
+    }, 1000);
+}
+
+function clearBanCountdown() {
+    if (banCountdownInterval) {
+        clearInterval(banCountdownInterval);
+        banCountdownInterval = null;
+    }
+    // Hide indicator
+    var indicator = document.getElementById('banIndicator');
+    if (indicator) indicator.style.display = 'none';
+}
+
+function showBanIndicator(text) {
+    var indicator = document.getElementById('banIndicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'banIndicator';
+        indicator.style.cssText = 'padding:5px 12px;background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.3);border-radius:6px;font-size:9px;color:#e74c3c;text-align:center;font-weight:600;margin:0 10px;display:none';
+        var inputArea = document.querySelector('.msg-input-area');
+        if (inputArea) inputArea.parentNode.insertBefore(indicator, inputArea);
+    }
+    indicator.textContent = text;
+    indicator.style.display = 'block';
+}
+
+function updateInputBanState() {
+    var input = document.getElementById('msgInput');
+    if (input) {
+        if (isUserBanned) {
+            input.disabled = true;
+            input.placeholder = '⛔ You are banned from sending messages';
+            input.style.opacity = '0.5';
+        } else {
+            input.disabled = false;
+            input.placeholder = 'Message...';
+            input.style.opacity = '1';
+        }
+    }
+}
 async function transferOwner(gid,uid){ if(!confirm('Transfer?'))return; await fetch('/api/chat/transfer_owner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})}); showToast('Transferred!'); showManageMembers(gid); }
 
 async function reportGroup(){if(!currentRoom||currentRoomType!=='group')return;if(!confirm('Report?'))return;try{const r=await fetch('/api/chat/report_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})});const d=await r.json();if(d.success){if(d.warning){showReportWarning(currentRoom)}else{showToast('Reported ('+d.reportCount+'/50)')}}else{showToast(d.message||'Already reported',true)}}catch(e){}}
@@ -830,17 +993,78 @@ function showReportWarning(rid){const ov=document.getElementById('reportWarningO
 async function deleteGroupAfterReport(rid){try{await fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})});showToast('Deleted');closeChat();loadGroupsList();loadRooms()}catch(e){}}
 
 async function startAdminChat(){if(!currentUser)return;try{const r=await fetch('/api/chat/create_admin_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();if(d.success){openRoom(d.room.id,d.room.room_name,'admin');loadRooms()}else showToast('Error',true)}catch(e){}}
-async function openRoom(rid,rn,rt){
-    currentRoom=rid;currentRoomType=rt;
-    document.querySelectorAll('.room-list').forEach(l=>l.classList.remove('active'));document.getElementById('profilePanel').classList.remove('active');
-    document.getElementById('chatArea').classList.add('active');document.getElementById('chatRoomTitle').textContent=rn;
-    document.getElementById('reportBtn').style.display=rt==='group'?'inline-block':'none';
-    if(rt==='group'){try{const r=await fetch('/api/chat/group_info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})});const d=await r.json();if(d.success&&d.avatar_url){document.getElementById('chatRoomAvatar').src=d.avatar_url;document.getElementById('chatRoomAvatar').style.display='inline-block'}else{document.getElementById('chatRoomAvatar').style.display='none'}}catch(e){}}
-    else{document.getElementById('chatRoomAvatar').style.display='none'}
-    const mc=document.getElementById('messages');mc.innerHTML='<div style="text-align:center;padding:20px">Loading...</div>';
-    if(socket&&socket.connected)socket.emit('join_room',rid);
-    try{const r=await fetch(`/api/chat/messages/${rid}`);const d=await r.json();if(d.messages?.length){mc.innerHTML='';d.messages.forEach(msg=>addMessageToUI(msg,msg.sender_id===currentUser?.id,msg.sender_premium_tier||0));scrollToBottom()}else mc.innerHTML='<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet</div>';await fetch('/api/chat/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})})}catch(e){mc.innerHTML='<div style="text-align:center;padding:20px;color:#e74c3c">Error</div>'}
+async function openRoom(rid, rn, rt) {
+    currentRoom = rid;
+    currentRoomType = rt;
+    
+    // Hide all lists, show chat area
+    document.querySelectorAll('.room-list').forEach(function(l) { l.classList.remove('active'); });
+    document.getElementById('profilePanel').classList.remove('active');
+    document.getElementById('chatArea').classList.add('active');
+    document.getElementById('chatRoomTitle').textContent = rn;
+    
+    // Show/hide report button
+    document.getElementById('reportBtn').style.display = (rt === 'group') ? 'inline-block' : 'none';
+    
+    // Load room avatar
+    if (rt === 'group') {
+        try {
+            var r = await fetch('/api/chat/group_info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: rid, userId: currentUser.id })
+            });
+            var d = await r.json();
+            if (d.success && d.avatar_url) {
+                document.getElementById('chatRoomAvatar').src = d.avatar_url;
+                document.getElementById('chatRoomAvatar').style.display = 'inline-block';
+            } else {
+                document.getElementById('chatRoomAvatar').style.display = 'none';
+            }
+        } catch(e) {
+            document.getElementById('chatRoomAvatar').style.display = 'none';
+        }
+    } else {
+        document.getElementById('chatRoomAvatar').style.display = 'none';
+    }
+    
+    // ✅ Ban Check
+    await checkBanStatus(rid);
+    
+    // Load messages
+    var mc = document.getElementById('messages');
+    mc.innerHTML = '<div style="text-align:center;padding:20px">Loading messages...</div>';
+    
+    if (socket && socket.connected) {
+        socket.emit('join_room', rid);
+    }
+    
+    try {
+        var r = await fetch('/api/chat/messages/' + rid);
+        var d = await r.json();
+        
+        if (d.messages && d.messages.length > 0) {
+            mc.innerHTML = '';
+            d.messages.forEach(function(msg) {
+                addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
+            });
+            scrollToBottom();
+        } else {
+            mc.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">No messages yet. Say hi!</div>';
+        }
+        
+        // Mark as read
+        await fetch('/api/chat/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId: rid, userId: currentUser.id })
+        });
+        
+    } catch(e) {
+        mc.innerHTML = '<div style="text-align:center;padding:20px;color:#e74c3c">Error loading messages</div>';
+    }
 }
+        
 function addMessageToUI(msg,isMine,spt=0){
     const c=document.getElementById('messages');if(c.innerHTML.includes('No messages')||c.innerHTML.includes('Loading'))c.innerHTML='';
     let mh='';const mt=msg.message||'';if(mt.startsWith('📷 IMAGE:')){const u=mt.replace('📷 IMAGE:','');mh=`<div class="media-message" onclick="downloadMedia('${u}','image')"><img src="${u}" loading="lazy"></div>`}else if(mt.startsWith('📎 FILE:')){const p=mt.replace('📎 FILE:','').split('|');mh=`<div class="file-message" onclick="downloadMedia('${p[0]}','file','${p[1]||'File'}')"><i class="fas fa-file"></i> ${escapeHtml(p[1]||'File')}<i class="fas fa-download" style="margin-left:auto;opacity:0.7"></i></div>`}else{mh=escapeHtml(mt)}
@@ -857,7 +1081,12 @@ function sendMessage() {
     if (!currentRoom) { showToast('Select a chat room', true); return; }
     if (!currentUser) { showToast('Please login', true); return; }
     
-    // ✅ Message ပို့
+    // ✅ Ban Check
+    if (isUserBanned) {
+        showToast('⛔ You are banned from sending messages', true);
+        return;
+    }
+    
     socket.emit('send_message', {
         roomId: currentRoom,
         message: message,
@@ -866,22 +1095,24 @@ function sendMessage() {
         senderPremiumTier: premiumTier
     });
     
-    // ✅ Input clear (value ကိုပဲရှင်း၊ focus မဖျက်)
     input.value = '';
-    
-    // ✅ Focus ပြန်ထိန်း (Mobile Keyboard မပျောက်အောင်)
     input.focus();
-    
-    // ✅ iOS Safari အတွက် Scroll ပြန်တည့်
-    setTimeout(function() {
-        input.focus();
-        // Keep cursor at start
-        input.setSelectionRange(0, 0);
-        // Scroll chat to bottom
-        scrollToBottom();
-    }, 50);
+    setTimeout(function() { input.focus(); }, 50);
 }
-function closeChat(){currentRoom=null;currentRoomType=null;document.getElementById('chatArea').classList.remove('active');document.getElementById('roomList').classList.add('active');loadRooms()}
+
+function closeChat() {
+    currentRoom = null;
+    currentRoomType = null;
+    
+    // ✅ Clear Ban
+    clearBanCountdown();
+    isUserBanned = false;
+    updateInputBanState();
+    
+    document.getElementById('chatArea').classList.remove('active');
+    document.getElementById('roomList').classList.add('active');
+    loadRooms();
+}
 function deleteCurrentRoom(){if(!currentRoom||!confirm('Delete?'))return;fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})}).then(()=>{showToast('Deleted');closeChat()}).catch(()=>showToast('Error',true))}
 function viewRoomProfile(){if(currentRoomType==='group'&&currentRoom){viewGroupInfo(currentRoom)}}
 function insertEmoji(e){const i=document.getElementById('msgInput');const p=i.selectionStart;i.value=i.value.substring(0,p)+e+i.value.substring(p);i.focus();i.setSelectionRange(p+e.length,p+e.length)}
