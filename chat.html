@@ -1377,7 +1377,7 @@ function showMaintenanceMode(timerEnd) {
     document.querySelector('.chat-tabs').style.display = 'none';
     document.querySelector('.chat-body').style.display = 'none';
     
-    // Create maintenance view
+    // Create maintenance view WITH countdown
     const maintHTML = `
         <div id="maintContainer" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px">
             <div style="font-size:70px;color:#f39c12;margin-bottom:20px;animation:pulse 2s infinite">
@@ -1401,13 +1401,18 @@ function showMaintenanceMode(timerEnd) {
     
     // Start countdown
     const countdownEl = document.getElementById('maintCountdown');
-    const update = () => {
+    
+    function updateCountdown() {
         const rem = timerEnd - Date.now();
         if (rem <= 0) {
             // Timer expired - clear and reload
             try {
                 const saved = localStorage.getItem('pageTimers');
-                if (saved) { const timers = JSON.parse(saved); delete timers['chat']; localStorage.setItem('pageTimers', JSON.stringify(timers)); }
+                if (saved) { 
+                    const timers = JSON.parse(saved); 
+                    delete timers['chat']; 
+                    localStorage.setItem('pageTimers', JSON.stringify(timers)); 
+                }
                 setCookie('pageTimers', '', -1);
                 sessionStorage.removeItem('pageTimers');
             } catch(e) {}
@@ -1422,15 +1427,16 @@ function showMaintenanceMode(timerEnd) {
             String(h).padStart(2, '0') + ':' + 
             String(m).padStart(2, '0') + ':' + 
             String(sec).padStart(2, '0');
-    };
-    update();
-    setInterval(update, 1000);
+    }
+    
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
     
     // CSS Animation
     const style = document.createElement('style');
     style.textContent = '@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}';
     document.head.appendChild(style);
-            }
+}
 
         async function checkPageAccess() {
     try {
