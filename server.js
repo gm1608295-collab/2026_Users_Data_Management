@@ -4381,25 +4381,43 @@ app.post('/api/chat/report_group', async (req, res) => {
 // Update Avatar
 app.post('/api/chat/update_avatar', async (req, res) => {
     const { userId, avatarUrl } = req.body;
-    if (!userId) return res.json({ success: false });
+    
+    console.log('[AVATAR] Request received:', { userId, avatarUrl: avatarUrl?.substring(0, 50) });
+    
+    if (!userId) {
+        return res.json({ success: false, message: 'User ID required' });
+    }
     
     try {
         const p = await getPool();
         
+        // ✅ Table ရှိမရှိ စစ်
+        await p.query(`
+            CREATE TABLE IF NOT EXISTS user_avatars (
+                id SERIAL PRIMARY KEY,
+                user_id INT UNIQUE NOT NULL,
+                avatar_url TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // ✅ Insert or Update
         await p.query(
             `INSERT INTO user_avatars (user_id, avatar_url, updated_at) 
              VALUES ($1, $2, NOW()) 
              ON CONFLICT (user_id) DO UPDATE SET avatar_url = $2, updated_at = NOW()`,
-            [userId, avatarUrl || '']
+            [parseInt(userId), avatarUrl || '']
         );
         
+        console.log('[AVATAR] ✅ Updated for user:', userId);
+        
         res.json({ success: true, message: 'Avatar updated!' });
+        
     } catch(e) {
-        console.error('[UPDATE AVATAR ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        console.error('[AVATAR ERROR]', e.message, e.stack);
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
-
 // View User Profile (public)
 app.post('/api/chat/user_profile', async (req, res) => {
     const { userId, viewerId } = req.body;
