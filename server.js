@@ -4200,6 +4200,187 @@ app.post('/api/chat/upload_file', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+// ==================== CHAT PROFILE APIs ====================
+
+// Get My Profile (with groups)
+app.post('/api/chat/my_profile', async (req, res) => {
+    const { userId } = req.body;
+    
+    if (!userId) return res.json({ success: false });
+    
+    try {
+        const p = await getPool();
+        
+        // Get user info
+        const user = await p.query(
+            'SELECT id, username, email, premium_tier FROM auth_users WHERE id = $1',
+            [userId]
+        );
+        
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        // Get user's groups
+        const groups = await p.query(`
+            SELECT cr.id, cr.room_name, cr.room_type
+            FROM chat_rooms cr
+            JOIN chat_participants cp ON cr.id = cp.room_id
+            WHERE cp.user_id = $1 AND cr.room_type = 'group'
+            ORDER BY cr.id DESC
+        `, [userId]);
+        
+        res.json({
+            success: true,
+            username: user.rows[0].username,
+            email: user.rows[0].email,
+            premium_tier: user.rows[0].premium_tier || 0,
+            groups: groups.rows
+        });
+        
+    } catch(e) {
+        console.error('[MY PROFILE ERROR]', e.message);
+        res.json({ success: false });
+    }
+});
+
+// Update Username
+app.post('/api/chat/update_username', async (req, res) => {
+    const { userId, username } = req.body;
+    
+    if (!userId || !username) {
+        return res.json({ success: false, message: 'Username required' });
+    }
+    
+    // Validate username (letters, numbers, underscore only)
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+        return res.json({ success: false, message: 'Username can only contain letters, numbers, and underscore' });
+    }
+    
+    if (username.length < 3 || username.length > 20) {
+        return res.json({ success: false, message: 'Username must be 3-20 characters' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Check if username already taken
+        const existing = await p.query(
+            'SELECT id FROM auth_users WHERE LOWER(username) = LOWER($1) AND id != $2',
+            [username, userId]
+        );
+        
+        if (existing.rows.length > 0) {
+            return res.json({ success: false, message: 'Username already taken' });
+        }
+        
+        // Update username
+        await p.query(
+            'UPDATE auth_users SET username = $1 WHERE id = $2',
+            [username, userId]
+        );
+        
+        // Also update username in chat_messages
+        await p.query(
+            'UPDATE chat_messages SET username = $1 WHERE sender_id = $2',
+            [username, userId]
+        );
+        
+        res.json({ success: true, message: 'Username updated!' });
+        
+    } catch(e) {
+        console.error('[UPDATE USERNAME ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Search Users (for adding to group)
+app.post('/api/chat/search_users', async (req, res) => {
+    const { query, excludeIds } = req.body;
+    
+    if (!query || query.length < 1) {
+        return res.json({ users: [] });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        let sql = `SELECT u.id, u.username, 
+                    (SELECT premium_tier FROM chat_premium WHERE user_id = u.id AND premium_expiry > NOW() LIMIT 1) as premium_tier
+                    FROM auth_users u
+                    WHERE LOWER(u.username) LIKE LOWER($1)
+                    AND u.id NOT IN (SELECT user_id::INT FROM banned_users)`;
+        
+        const params = ['%' + query + '%'];
+        
+        if (excludeIds && excludeIds.length > 0) {
+            sql += ' AND u.id NOT IN (';
+            excludeIds.forEach((id, i) => {
+                sql += '$' + (params.length + 1);
+                params.push(id);
+                if (i < excludeIds.length - 1) sql += ',';
+            });
+            sql += ')';
+        }
+        
+        sql += ' ORDER BY u.username ASC LIMIT 10';
+        
+        const r = await p.query(sql, params);
+        
+        res.json({ success: true, users: r.rows });
+        
+    } catch(e) {
+        console.error('[SEARCH USERS ERROR]', e.message);
+        res.json({ users: [] });
+    }
+});
+
+// Report Group
+app.post('/api/chat/report_group', async (req, res) => {
+    const { roomId, userId } = req.body;
+    
+    if (!roomId || !userId) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Check if user already reported
+        const alreadyReported = await p.query(
+            "SELECT id FROM group_reports WHERE room_id = $1 AND reported_by = $2 AND created_at > NOW() - INTERVAL '24 hours'",
+            [roomId, userId]
+        );
+        
+        if (alreadyReported.rows.length > 0) {
+            return res.json({ success: false, message: 'You already reported this group today' });
+        }
+        
+        // Insert report
+        await p.query(
+            'INSERT INTO group_reports (room_id, reported_by) VALUES ($1, $2)',
+            [roomId, userId]
+        );
+        
+        // Count total reports
+        const count = await p.query(
+            'SELECT COUNT(*) as cnt FROM group_reports WHERE room_id = $1',
+            [roomId]
+        );
+        
+        const reportCount = parseInt(count.rows[0]?.cnt || 0);
+        
+        res.json({
+            success: true,
+            reportCount: reportCount,
+            warning: reportCount >= 50
+        });
+        
+    } catch(e) {
+        console.error('[REPORT GROUP ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
