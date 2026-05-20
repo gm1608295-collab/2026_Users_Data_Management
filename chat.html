@@ -889,7 +889,6 @@ function cancelUpload() {
     document.getElementById('uploadImagePreview').innerHTML = '';
     document.getElementById('uploadFilePreview').innerHTML = '';
 }
-function cancelUpload(){uploadCancelled=true;selectedFile=null;document.getElementById('uploadPreviewModal').style.transform='translateY(100%)'}
 async function confirmUpload(){
     if(!selectedFile||uploadCancelled||!currentRoom){
         if(!currentRoom) showToast('Select a chat room first',true);
@@ -975,7 +974,18 @@ async function getCurrentUser(){const t=localStorage.getItem('auth_token');if(!t
 function initSocket(){
     socket=io(window.location.origin,{transports:['polling','websocket'],reconnection:true});
     socket.on('connect',()=>{if(currentUser)socket.emit('user_online',{userId:currentUser.id,username:currentUser.username})});
-    socket.on('new_message',msg=>{if(currentRoom===msg.roomId){addMessageToUI(msg,msg.sender_id===currentUser?.id,msg.sender_premium_tier||0);scrollToBottom()}loadRooms()});
+    socket.on('new_message', msg => {
+    if (currentRoom === msg.roomId) {
+        addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
+        scrollToBottom();
+        
+        // ✅ Receive sound (other people's messages)
+        if (msg.sender_id !== currentUser?.id) {
+            playReceiveSound();
+        }
+    }
+    loadRooms();
+});
     socket.on('online_users',u=>{document.getElementById('onlineCount').innerHTML=(u?.length||0)+' online';loadUsersList()});
     socket.on('user_typing',d=>{if(currentRoom===d.roomId&&d.userId!==currentUser?.id){const ind=document.getElementById('typingIndicator');ind.style.display='block';ind.innerHTML=`<i class="fas fa-ellipsis-h"></i> ${escapeHtml(d.username)} typing...`;clearTimeout(typingTimeout);typingTimeout=setTimeout(()=>ind.style.display='none',2000)}});
 }
@@ -1072,7 +1082,27 @@ function addMessageToUI(msg, isMine, spt) {
 }
 function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 
-function sendMessage(){const i=document.getElementById('msgInput');const m=i.value.trim();if(!m)return;if(!currentRoom)return;socket.emit('send_message',{roomId:currentRoom,message:m,userId:currentUser.id,username:currentUser.username,senderPremiumTier:premiumTier});i.value='';i.focus();setTimeout(()=>i.focus(),50)}
+function sendMessage() {
+    const i = document.getElementById('msgInput');
+    const m = i.value.trim();
+    if (!m) return;
+    if (!currentRoom) return;
+    
+    socket.emit('send_message', {
+        roomId: currentRoom,
+        message: m,
+        userId: currentUser.id,
+        username: currentUser.username,
+        senderPremiumTier: premiumTier
+    });
+    
+    // ✅ Send sound
+    playSendSound();
+    
+    i.value = '';
+    i.focus();
+    setTimeout(() => i.focus(), 50);
+}
 function playSendSound() {
     if (sendSound) {
         sendSound.currentTime = 0;
