@@ -1422,40 +1422,62 @@ async function confirmUpload(){
 // ==================== USER & SOCKET ====================
 async function getCurrentUser(){const t=localStorage.getItem('auth_token');if(!t||t==='guest'){document.body.innerHTML='<div style="text-align:center;padding:50px"><h3>Please login</h3><a href="/">Login</a></div>';return null}try{const r=await fetch('/api/chat/current_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});const d=await r.json();if(d.success){currentUser=d.user;return currentUser}}catch(e){}return null}
 function initSocket(){
-    socket=io(window.location.origin,{transports:['polling','websocket'],reconnection:true});
-    socket.on('connect',()=>{if(currentUser)socket.emit('user_online',{userId:currentUser.id,username:currentUser.username})});
-    socket.on('new_message', msg => {
-    if (currentRoom === msg.roomId) {
-        addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
-        scrollToBottom();
-        
-        // ✅ Receive sound (other people's messages)
-        if (msg.sender_id !== currentUser?.id) {
-            playReceiveSound();
+    socket = io(window.location.origin, {
+        transports: ['polling', 'websocket'],
+        reconnection: true
+    });
+    
+    socket.on('connect', function(){
+        if(currentUser) {
+            socket.emit('user_online', {
+                userId: currentUser.id,
+                username: currentUser.username
+            });
         }
-    }
-    loadRooms();
-});
-    socket.on('online_users',u=>{document.getElementById('onlineCount').innerHTML=(u?.length||0)+' online';loadUsersList()});
-    socket.on('user_typing',d=>{if(currentRoom===d.roomId&&d.userId!==currentUser?.id){const ind=document.getElementById('typingIndicator');ind.style.display='block';ind.innerHTML=`<i class="fas fa-ellipsis-h"></i> ${escapeHtml(d.username)} typing...`;clearTimeout(typingTimeout);typingTimeout=setTimeout(()=>ind.style.display='none',2000)}});
-}
+    });
+    
+    socket.on('new_message', function(msg){
+        if(currentRoom === msg.roomId){
+            addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
+            scrollToBottom();
+        }
+        loadRooms();
+    });
+    
+    socket.on('online_users', function(u){
+        document.getElementById('onlineCount').innerHTML = (u?.length || 0) + ' online';
+        loadUsersList();
+    });
+    
+    socket.on('user_typing', function(d){
+        if(currentRoom === d.roomId && d.userId !== currentUser?.id){
+            var ind = document.getElementById('typingIndicator');
+            ind.style.display = 'block';
+            ind.innerHTML = '<i class="fas fa-ellipsis-h"></i> ' + escapeHtml(d.username) + ' typing...';
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(function(){
+                ind.style.display = 'none';
+            }, 2000);
+        }
+    });
+    
     // ✅ Real-time Seen Update
-socket.on('messages_read', function(data) {
-    if (currentRoom === data.roomId) {
-        // Update all my messages' seen status
-        var allBubbles = document.querySelectorAll('.msg-row.mine .msg-bubble');
-        allBubbles.forEach(function(bubble) {
-            var timeDiv = bubble.querySelector('.msg-time');
-            if (timeDiv) {
-                // Add green double check if not already
-                if (!timeDiv.innerHTML.includes('✓✓')) {
-                    timeDiv.innerHTML = timeDiv.innerHTML.replace('✓', '✓✓');
-                    timeDiv.style.color = '#2ecc71';
+    socket.on('messages_read', function(data){
+        if(currentRoom === data.roomId){
+            var bubbles = document.querySelectorAll('.msg-row.mine .msg-time');
+            bubbles.forEach(function(timeEl){
+                if(!timeEl.innerHTML.includes('✓✓')){
+                    timeEl.innerHTML = timeEl.innerHTML.replace('✓', '✓✓');
+                    timeEl.style.color = '#2ecc71';
                 }
-            }
-        });
-    }
-});
+            });
+        }
+    });
+    
+    socket.on('group_updated', function(){
+        loadRooms();
+    });
+}
 function onTyping(){if(!currentRoom||!currentUser)return;socket.emit('typing',{roomId:currentRoom,userId:currentUser.id,username:currentUser.username})}
 
 // ==================== TABS ====================
