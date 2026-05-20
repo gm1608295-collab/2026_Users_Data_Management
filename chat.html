@@ -1206,6 +1206,30 @@
         </div>
     </div>
 </div>
+    <!-- Message Context Menu -->
+<div id="msgContextMenu" style="display:none;position:fixed;background:#1a1f4b;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:6px;z-index:5000;min-width:140px;box-shadow:0 10px 30px rgba(0,0,0,0.5)" onclick="event.stopPropagation()">
+    <div onclick="editMessage()" style="padding:10px 14px;cursor:pointer;border-radius:8px;font-size:12px;display:flex;align-items:center;gap:8px;transition:0.2s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+        <i class="fas fa-edit" style="color:#3498db"></i> Edit
+    </div>
+    <div onclick="deleteMessage()" style="padding:10px 14px;cursor:pointer;border-radius:8px;font-size:12px;display:flex;align-items:center;gap:8px;transition:0.2s" onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+        <i class="fas fa-trash" style="color:#e74c3c"></i> Delete
+    </div>
+</div>
+
+<!-- Edit Message Modal -->
+<div class="modal-overlay" id="editMsgModal" onclick="closeModal('editMsgModal')">
+    <div class="modal-box" onclick="event.stopPropagation()" style="max-width:400px">
+        <h3><i class="fas fa-edit"></i> Edit Message</h3>
+        <div style="margin-bottom:10px;padding:8px 12px;background:rgba(0,0,0,0.2);border-radius:8px;font-size:11px;color:rgba(255,255,255,0.5)">
+            <span id="editOriginalMsg"></span>
+        </div>
+        <input type="text" id="editMsgInput" placeholder="Edit your message..." style="width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:13px;margin-bottom:10px">
+        <div class="btn-row">
+            <button class="btn btn-g" onclick="saveEditMessage()">💾 Save</button>
+            <button class="btn btn-r" onclick="closeModal('editMsgModal')">Cancel</button>
+        </div>
+    </div>
+</div>
 <script>
 // Audio elements (created once)
 let sendSound = null;
@@ -1482,6 +1506,30 @@ function initSocket(){
         loadRooms();
     });
 }
+// Real-time Edit
+socket.on('message_edited', function(msg) {
+    if (currentRoom === msg.room_id) {
+        var row = document.querySelector(`.msg-row[data-msg-id="${msg.id}"]`);
+        if (row) {
+            var bubble = row.querySelector('.msg-bubble');
+            if (bubble) {
+                var timeEl = bubble.querySelector('.msg-time');
+                var timeHtml = timeEl ? timeEl.outerHTML : '';
+                var senderEl = bubble.querySelector('.msg-sender');
+                var senderHtml = senderEl ? senderEl.outerHTML : '';
+                bubble.innerHTML = senderHtml + escapeHtml(msg.message) + ' <small style="font-size:7px;color:rgba(255,255,255,0.3)">(edited)</small>' + timeHtml;
+            }
+        }
+    }
+});
+
+// Real-time Delete
+socket.on('message_deleted', function(data) {
+    if (currentRoom === data.roomId) {
+        var row = document.querySelector(`.msg-row[data-msg-id="${data.messageId}"]`);
+        if (row) row.remove();
+    }
+});
 function onTyping(){if(!currentRoom||!currentUser)return;socket.emit('typing',{roomId:currentRoom,userId:currentUser.id,username:currentUser.username})}
 
 // ==================== TABS ====================
@@ -1539,6 +1587,7 @@ function addMessageToUI(msg, isMine, spt) {
     
     const d = document.createElement('div');
     d.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
+    d.setAttribute('data-msg-id', msg.id);
     
     let bc = 'normal-tier';
     if (spt === 1) bc = 'bronze-tier';
@@ -1627,7 +1676,134 @@ async function checkPageAccess(){
     document.body.insertAdjacentHTML('beforeend','<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:var(--gold)"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:700;color:var(--gold);margin:10px 0">ပြုပြင်နေပါသည်</div><a href="/dashboard" style="padding:10px 25px;background:var(--gold);color:#000;text-decoration:none;border-radius:10px;font-weight:700;font-size:13px"><i class="fas fa-arrow-left"></i> Dashboard</a></div>');return false}}return true}catch(e){return true}
 }
 setInterval(async()=>{try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const cp=d.pages.find(p=>p.id==='chat');if(cp&&cp.status==='off')location.reload()}}catch(e){}},30000);
+// ==================== MESSAGE EDIT/DELETE ====================
+let selectedMsgId = null;
+let selectedMsgText = null;
+let selectedMsgElement = null;
 
+// Right-click / Long-press on message
+document.addEventListener('contextmenu', function(e) {
+    var bubble = e.target.closest('.msg-bubble');
+    if (!bubble) return;
+    
+    var row = bubble.closest('.msg-row');
+    if (!row || !row.classList.contains('mine')) return; // Only own messages
+    
+    e.preventDefault();
+    
+    // Get message ID
+    var msgData = row.getAttribute('data-msg-id');
+    if (!msgData) return;
+    
+    selectedMsgId = parseInt(msgData);
+    selectedMsgElement = row;
+    
+    // Get text (exclude sender name and time)
+    var clone = bubble.cloneNode(true);
+    var sender = clone.querySelector('.msg-sender');
+    var time = clone.querySelector('.msg-time');
+    if (sender) sender.remove();
+    if (time) time.remove();
+    selectedMsgText = clone.textContent.trim();
+    
+    // Show context menu
+    var menu = document.getElementById('msgContextMenu');
+    menu.style.display = 'block';
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 160) + 'px';
+    menu.style.top = Math.min(e.clientY, window.innerHeight - 120) + 'px';
+    
+    setTimeout(function() {
+        document.addEventListener('click', hideContextMenu, {once: true});
+    }, 100);
+});
+
+function hideContextMenu() {
+    document.getElementById('msgContextMenu').style.display = 'none';
+}
+
+function editMessage() {
+    hideContextMenu();
+    if (!selectedMsgId) return;
+    
+    document.getElementById('editOriginalMsg').textContent = selectedMsgText;
+    document.getElementById('editMsgInput').value = selectedMsgText;
+    document.getElementById('editMsgModal').classList.add('active');
+}
+
+async function saveEditMessage() {
+    var newText = document.getElementById('editMsgInput').value.trim();
+    if (!newText) { showToast('Message cannot be empty', true); return; }
+    if (newText === selectedMsgText) { closeModal('editMsgModal'); return; }
+    
+    closeModal('editMsgModal');
+    showToast('Saving...');
+    
+    try {
+        var r = await fetch('/api/chat/edit_message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messageId: selectedMsgId,
+                newMessage: newText,
+                userId: currentUser.id
+            })
+        });
+        var d = await r.json();
+        
+        if (d.success) {
+            // Update UI
+            if (selectedMsgElement) {
+                var bubble = selectedMsgElement.querySelector('.msg-bubble');
+                if (bubble) {
+                    // Replace text (keep sender & time)
+                    var timeEl = bubble.querySelector('.msg-time');
+                    var timeHtml = timeEl ? timeEl.outerHTML : '';
+                    var senderEl = bubble.querySelector('.msg-sender');
+                    var senderHtml = senderEl ? senderEl.outerHTML : '';
+                    bubble.innerHTML = senderHtml + escapeHtml(newText) + ' <small style="font-size:7px;color:rgba(255,255,255,0.3)">(edited)</small>' + timeHtml;
+                }
+            }
+            showToast('✅ Message edited!');
+        } else {
+            showToast(d.message || 'Error', true);
+        }
+    } catch(e) {
+        showToast('Server error', true);
+    }
+}
+
+async function deleteMessage() {
+    hideContextMenu();
+    if (!selectedMsgId) return;
+    
+    if (!confirm('Delete this message?')) return;
+    
+    showToast('Deleting...');
+    
+    try {
+        var r = await fetch('/api/chat/delete_message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                messageId: selectedMsgId,
+                userId: currentUser.id
+            })
+        });
+        var d = await r.json();
+        
+        if (d.success) {
+            // Remove from UI
+            if (selectedMsgElement) {
+                selectedMsgElement.remove();
+            }
+            showToast('✅ Message deleted!');
+        } else {
+            showToast(d.message || 'Error', true);
+        }
+    } catch(e) {
+        showToast('Server error', true);
+    }
+      }
 async function init(){
     const po = await checkPageAccess();
     if (!po) return;
