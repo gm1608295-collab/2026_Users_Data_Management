@@ -390,13 +390,85 @@ function showAvatarPreview(file,type){
 }
 function closeAvp(){const m=document.getElementById('avp');if(m)m.remove();pendingAvatarFile=null}
 async function saveAvatar(type){
-    if(!pendingAvatarFile)return;closeAvp();showToast('Uploading...');
-    try{const r=new FileReader();const b64=await new Promise(res=>{r.onload=e=>res(e.target.result);r.readAsDataURL(pendingAvatarFile)});
-    const fd=new URLSearchParams();fd.append('key',IMGBB_KEY);fd.append('image',b64.split(',')[1]);
-    const ir=await fetch('https://api.imgbb.com/1/upload',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd.toString()});const id=await ir.json();
-    if(!id.success){showToast('Upload failed',true);return}const url=id.data.url;
-    if(type==='group'){await fetch('/api/chat/update_group_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentUploadGroupId,avatarUrl:url})});showToast('Updated!');openGroupSettings();loadGroupList()}
-    }catch(e){showToast('Error',true)}
+    if (!pendingAvatarFile) return;
+    closeAvp();
+    showToast('Uploading...');
+    
+    try {
+        // Step 1: Read file
+        var reader = new FileReader();
+        var base64 = await new Promise(function(resolve, reject) {
+            reader.onload = function(e) { resolve(e.target.result); };
+            reader.onerror = function() { reject(new Error('Read failed')); };
+            reader.readAsDataURL(pendingAvatarFile);
+        });
+        
+        // Step 2: Upload to ImgBB
+        var formData = new URLSearchParams();
+        formData.append('key', IMGBB_KEY);
+        formData.append('image', base64.split(',')[1]);
+        
+        var imgbbRes = await fetch('https://api.imgbb.com/1/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+        });
+        
+        var imgbbData = await imgbbRes.json();
+        console.log('[IMG BB] Response:', imgbbData);
+        
+        if (!imgbbData.success) {
+            showToast('❌ ' + (imgbbData.error?.message || 'Upload failed'), true);
+            return;
+        }
+        
+        var imageUrl = imgbbData.data.url;
+        console.log('[IMG BB] URL:', imageUrl);
+        
+        // Step 3: Save to Server
+        showToast('Saving...');
+        
+        if (type === 'group') {
+            var saveRes = await fetch('/api/chat/update_group_avatar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: currentUploadGroupId, avatarUrl: imageUrl })
+            });
+            
+            var saveData = await saveRes.json();
+            console.log('[SAVE GROUP AVATAR] Response:', saveData);
+            
+            if (saveData.success) {
+                showToast('✅ Updated!');
+                openGroupSettings();
+                loadGroupList();
+            } else {
+                showToast('❌ ' + (saveData.message || 'Save failed'), true);
+            }
+        }
+        
+        if (type === 'profile') {
+            var saveRes = await fetch('/api/chat/update_avatar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id, avatarUrl: imageUrl })
+            });
+            
+            var saveData = await saveRes.json();
+            console.log('[SAVE PROFILE AVATAR] Response:', saveData);
+            
+            if (saveData.success) {
+                showToast('✅ Updated!');
+                loadMyProfile();
+            } else {
+                showToast('❌ ' + (saveData.message || 'Save failed'), true);
+            }
+        }
+        
+    } catch(e) {
+        console.error('[AVATAR ERROR]', e.message);
+        showToast('❌ ' + e.message, true);
+    }
 }
 
 // ==================== FILE UPLOAD ====================
