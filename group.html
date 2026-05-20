@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Groups - SOLO M Game Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{--bronze-solid:#6b3410;--bronze-light:#CD7F32;--bronze-bright:#E8A87C;--chocolate:#3d1c00;--silver-solid:#707070;--silver-light:#C0C0C0;--silver-bright:#E8E8E8;--lead:#2d2d2d;--gold-solid:#B8860B;--gold-light:#FFD700;--gold-bright:#FFF8DC;--gold-choco:#6d4c00}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b);color:#fff;height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px)}
+        
+        .page-header{display:flex;align-items:center;gap:8px;padding:8px 10px;padding-top:calc(8px + env(safe-area-inset-top,0px));flex-shrink:0;background:linear-gradient(135deg,#4a1c7a,#1a1f4b);border-bottom:2px solid #f39c12;border-radius:0 0 4px 4px}
+        .page-header a{text-decoration:none;font-size:14px;transition:0.2s;color:#fff}
+        .page-header h3{flex:1;font-size:13px;font-weight:600}
+        .back-btn-label{font-size:11px;font-weight:600;padding:4px 10px;border:1px solid rgba(255,255,255,0.2);border-radius:4px;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%);display:inline-flex;align-items:center;gap:4px;color:#fff;text-decoration:none}
+
+        .group-list{flex:1;overflow-y:auto;padding:8px}
+        .room-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;margin-bottom:4px;cursor:pointer;transition:all 0.2s;background:rgba(0,0,0,0.2);border-left:3px solid transparent}
+        .room-item:hover{background:rgba(255,255,255,0.05)}
+        .room-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,0.15)}
+        .room-icon{font-size:20px;flex-shrink:0}
+        .room-info{flex:1;min-width:0}
+        .room-name{font-size:12px;font-weight:600}
+        .room-last{font-size:8px;color:rgba(255,255,255,0.35);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .role-badge{font-size:7px;padding:2px 6px;border-radius:8px;font-weight:bold;flex-shrink:0}
+        .role-badge.owner{background:#FFD700;color:#000}
+        .role-badge.admin{background:#3498db;color:#fff}
+        .role-badge.member{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.5)}
+
+        .modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:2000;justify-content:center;align-items:center}
+        .modal-overlay.active{display:flex}
+        .modal-box{background:linear-gradient(135deg,#1a1f4b,#11112a);border:2px solid #f39c12;border-radius:12px;padding:16px;width:90%;max-width:380px;max-height:80vh;overflow-y:auto}
+        .modal-box h3{color:#f39c12;margin-bottom:10px;text-align:center;font-size:15px}
+        .form-group{margin-bottom:8px}
+        .form-group label{display:block;font-size:8px;margin-bottom:2px;color:rgba(255,255,255,0.5)}
+        .form-group input{width:100%;padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:11px}
+        .btn-row{display:flex;gap:6px;margin-top:8px}
+        .btn{padding:8px;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;flex:1;text-align:center}
+        .btn-g{background:#2ecc71;color:#000}.btn-r{background:#e74c3c;color:#fff}.btn-b{background:#3498db;color:#fff}.btn-w{background:#f39c12;color:#000}
+        .toast{position:fixed;top:15px;right:15px;padding:8px 14px;border-radius:6px;background:#2ecc71;color:#000;display:none;z-index:4000;font-size:10px;font-weight:600}
+        .empty-state{text-align:center;padding:25px;color:rgba(255,255,255,0.25);font-size:11px}
+        .admin-btn{width:100%;padding:8px;background:#2ecc71;color:#000;border:none;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;margin-top:6px}
+        
+        .username-search-wrap{position:relative}
+        .username-dropdown{position:absolute;top:100%;left:0;right:0;background:#1a1f4b;border:1px solid rgba(255,255,255,0.2);border-radius:6px;max-height:150px;overflow-y:auto;z-index:10;display:none}
+        .username-dropdown.active{display:block}
+        .username-dropdown-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;cursor:pointer;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.05)}
+        .username-dropdown-item:hover{background:rgba(255,255,255,0.1)}
+        .username-dropdown-item .add-btn{background:#2ecc71;color:#000;padding:3px 8px;border-radius:4px;font-size:8px;font-weight:bold;cursor:pointer}
+
+        .join-btn{background:linear-gradient(135deg,#2ecc71,#27ae60);color:#000;padding:6px 16px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:11px;animation:joinPulse 1.5s infinite}
+        @keyframes joinPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+
+        #groupInfoModal .modal-box{max-width:95%!important;max-height:92vh!important;width:95%!important;padding:12px!important}
+        .group-full-page{display:flex;flex-direction:column;height:100%}
+        .group-header-section{text-align:center;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:10px}
+        .group-avatar-large{width:70px;height:70px;border-radius:50%;object-fit:cover;border:3px solid #f39c12;cursor:pointer;margin-bottom:8px}
+        .group-members-section{flex:1;overflow-y:auto;max-height:50vh}
+        
+        .member-item{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:3px;font-size:10px;flex-wrap:wrap}
+        .member-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,0.2);margin-right:6px;cursor:pointer;flex-shrink:0}
+        .member-badge{font-size:7px;padding:2px 6px;border-radius:8px;font-weight:bold}
+        .member-badge.owner{background:#FFD700;color:#000}
+        .member-badge.admin{background:#3498db;color:#fff}
+        .member-badge.member{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.6)}
+        
+        .report-warning-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:5000;justify-content:center;align-items:center}
+        .report-warning-overlay.active{display:flex}
+        .report-warning-box{text-align:center;padding:20px}
+        .report-warning-box .warn-icon{font-size:60px;color:#e74c3c;animation:pulse 0.5s infinite}
+        .report-warning-box .warn-text{font-size:16px;color:#e74c3c;margin:10px 0;font-weight:bold}
+        .report-warning-box .warn-countdown{font-size:30px;color:#f39c12;font-weight:bold;font-family:'Courier New',monospace}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(1.1)}}
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast"></div>
+    <div class="page-header">
+        <a href="/chat.html" class="back-btn-label"><i class="fas fa-arrow-left"></i> Chat</a>
+        <h3><i class="fas fa-users"></i> Groups</h3>
+    </div>
+    <div class="group-list" id="groupsList"><div class="empty-state">Loading groups...</div></div>
+
+    <!-- Create Group Modal -->
+    <div class="modal-overlay" id="groupModal"><div class="modal-box"><h3><i class="fas fa-users"></i> Create New Group</h3><div class="form-group"><label>Group Name</label><input type="text" id="groupName" placeholder="Enter group name..."></div><div class="btn-row"><button class="btn btn-g" onclick="createGroup()">Create</button><button class="btn btn-r" onclick="closeModal('groupModal')">Cancel</button></div></div></div>
+    
+    <!-- Group Info Modal -->
+    <div class="modal-overlay" id="groupInfoModal"><div class="modal-box"><div id="groupInfoContent"></div><button class="btn" onclick="closeModal('groupInfoModal')" style="width:100%;margin-top:6px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
+    
+    <!-- Manage Members Modal -->
+    <div class="modal-overlay" id="manageMembersModal"><div class="modal-box"><h3><i class="fas fa-users-cog"></i> Manage Members</h3><div id="manageMembersContent"></div><button class="btn" onclick="closeModal('manageMembersModal')" style="width:100%;margin-top:6px;background:rgba(255,255,255,0.1);color:#fff">Close</button></div></div>
+    
+    <!-- Report Warning -->
+    <div class="report-warning-overlay" id="reportWarningOverlay"><div class="report-warning-box"><div class="warn-icon">⚠️</div><div class="warn-text">ဤ Group ကို Report 50 ကြိမ်ပြည့်သွားပါပြီ</div><div class="warn-countdown" id="reportCountdown">10</div><div style="color:rgba(255,255,255,0.5);font-size:10px">စက္ကန့်အတွင်း Group ပျက်သွားပါမည်</div></div></div>
+
+<script>
+let currentUser=null,currentRoomData=null;
+const IMGBB_KEY='55854bc5e01a19fd4793d1df84326d00';
+let currentUploadGroupId=null,pendingAvatarFile=null;
+
+function showToast(m,e){e=e||false;const t=document.getElementById('toast');t.textContent=m;t.style.background=e?'#e74c3c':'#2ecc71';t.style.color=e?'#fff':'#000';t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
+function escapeHtml(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+function closeModal(id){document.getElementById(id).classList.remove('active')}
+
+async function getCurrentUser(){const t=localStorage.getItem('auth_token');if(!t||t==='guest'){document.body.innerHTML='<div style="text-align:center;padding:50px"><h3>Please login</h3><a href="/">Login</a></div>';return null}try{const r=await fetch('/api/chat/current_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});const d=await r.json();if(d.success){currentUser=d.user;return currentUser}throw new Error('User not found')}catch(e){document.body.innerHTML='<div style="text-align:center;padding:50px"><h3>Error</h3><a href="/">Back</a></div>';return null}}
+
+async function loadGroupsList(){
+    if(!currentUser)return;
+    try{const r=await fetch('/api/chat/groups',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();
+    if(d.groups?.length){
+        document.getElementById('groupsList').innerHTML=d.groups.map(g=>{
+            let avatarHtml=g.avatar_url?`<img src="${g.avatar_url}" class="room-avatar" onerror="this.style.display='none'">`:`<div class="room-icon">👥</div>`;
+            let roleHtml='';if(g.user_role==='owner')roleHtml='<span class="role-badge owner">Owner</span>';else if(g.user_role==='admin')roleHtml='<span class="role-badge admin">Admin</span>';else roleHtml='<span class="role-badge member">Member</span>';
+            return`<div class="room-item" onclick="viewGroupInfo(${g.id})">${avatarHtml}<div class="room-info"><div class="room-name">${escapeHtml(g.room_name)}</div><div class="room-last">${escapeHtml(g.last_message||'No messages')} · ${g.member_count||0} members</div></div>${roleHtml}</div>`;
+        }).join('');
+    }else{document.getElementById('groupsList').innerHTML='<div class="empty-state"><p>No groups yet</p><button class="admin-btn" onclick="openCreateGroupModal()">➕ Create New Group</button></div>'}}catch(e){}
+}
+
+function openCreateGroupModal(){document.getElementById('groupName').value='';document.getElementById('groupModal').classList.add('active')}
+async function createGroup(){const gn=document.getElementById('groupName').value.trim();if(!gn){showToast('Group name required',true);return}try{const r=await fetch('/api/chat/create_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,groupName:gn,members:[]})});const d=await r.json();if(d.success){showToast('Group created!');closeModal('groupModal');loadGroupsList()}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
+
+async function viewGroupInfo(gid){
+    try{const r=await fetch('/api/chat/group_info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser?.id})});const d=await r.json();
+    if(!d.success){showToast('Group not found',true);return}
+    let mh='';
+    try{const mr=await fetch('/api/chat/group_members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser?.id})});const md=await mr.json();
+    if(md.success&&md.members){mh='<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:6px">Members ('+md.members.length+')</div>';
+    md.members.forEach(m=>{let rb='';if(m.role==='owner')rb='<span class="member-badge owner">Owner</span>';else if(m.role==='admin')rb='<span class="member-badge admin">Admin</span>';else rb='<span class="member-badge member">Member</span>';
+    mh+=`<div class="member-item" style="cursor:pointer" onclick="window.location.href='/profile.html?uid=${m.user_id}'"><img src="${m.avatar_url||''}" class="member-avatar" onerror="this.style.display='none'"><div style="flex:1"><b>@${escapeHtml(m.username)}</b></div>${rb}</div>`})}}catch(e){}
+    let h='<div class="group-full-page"><div class="group-header-section">';
+    if(d.avatar_url){h+=`<img src="${d.avatar_url}" class="group-avatar-large" onerror="this.outerHTML='<div class=group-avatar-large style=background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:8px>👥</div>'">`}else{h+='<div class="group-avatar-large" style="background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:8px">👥</div>'}
+    h+=`<h3 style="font-size:16px;margin-bottom:4px">${escapeHtml(d.room_name)}</h3><div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:8px">${d.member_count||0} members</div>`;
+    h+='<div class="btn-row" style="margin-bottom:8px">';
+    if(d.is_member){h+=`<button class="btn btn-w" onclick="window.location.href='/chat.html?room=${gid}'">💬 Chat</button>`;
+    if(d.user_role==='owner'||d.user_role==='admin'){h+=`<button class="btn btn-b" onclick="uploadGroupPic(${gid})">📷 Edit Pic</button>`}
+    if(d.user_role==='owner'||d.user_role==='admin'){h+=`<button class="btn btn-b" onclick="showManageMembers(${gid})">👥 Manage</button>`}}h+='</div>';
+    if(d.is_member){h+='<div style="margin-bottom:8px"><div class="username-search-wrap"><input type="text" id="groupAddSearch" placeholder="🔍 Search @username to add..." oninput="searchUserForGroupAdd('+gid+')" autocomplete="off" style="width:100%;padding:8px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:10px"><div class="username-dropdown" id="groupAddDropdown"></div></div></div>'}
+    if(d.is_member&&d.user_role!=='owner'){h+=`<button class="btn btn-r" onclick="leaveGroup(${gid})" style="width:100%;margin-top:4px">🚪 Leave</button>`}
+    if(d.user_role==='owner'){h+=`<button class="btn btn-r" onclick="deleteGroup(${gid})" style="width:100%;margin-top:4px">🗑️ Delete</button>`}
+    if(!d.is_member){h+=`<button class="join-btn" onclick="joinGroup(${gid})" style="width:100%;margin-top:8px">➕ Join Group</button>`}
+    h+='</div><div class="group-members-section">'+ (mh||'<div style="text-align:center;color:rgba(255,255,255,0.3);padding:20px">No members</div>') +'</div></div>';
+    document.getElementById('groupInfoContent').innerHTML=h;document.getElementById('groupInfoModal').classList.add('active')}catch(e){showToast('Error',true)}
+}
+
+async function searchUserForGroupAdd(gid){const q=document.getElementById('groupAddSearch').value.trim();const dd=document.getElementById('groupAddDropdown');if(q.length<1){dd.classList.remove('active');return}try{const r=await fetch('/api/chat/search_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:q})});const d=await r.json();if(d.users?.length){dd.innerHTML=d.users.map(u=>`<div class="username-dropdown-item">@${escapeHtml(u.username)} <span class="add-btn" onclick="addMemberToGroupDirect(${gid},${u.id})">+ Add</span></div>`).join('');dd.classList.add('active')}else{dd.innerHTML='<div class="username-dropdown-item">No users</div>';dd.classList.add('active')}}catch(e){}}
+async function addMemberToGroupDirect(gid,uid){try{const r=await fetch('/api/chat/add_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});const d=await r.json();if(d.success){showToast('Added!');document.getElementById('groupAddSearch').value='';document.getElementById('groupAddDropdown').classList.remove('active');viewGroupInfo(gid)}else{showToast(d.message||'Error',true)}}catch(e){showToast('Server error',true)}}
+
+async function joinGroup(gid){try{const r=await fetch('/api/chat/join_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();if(d.success){showToast('Joined!');closeModal('groupInfoModal');loadGroupsList()}else{showToast(d.message||'Error',true)}}catch(e){}}
+async function leaveGroup(gid){if(!confirm('Leave?'))return;try{const r=await fetch('/api/chat/leave_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();if(d.success){showToast('Left');closeModal('groupInfoModal');loadGroupsList()}else showToast(d.message||'Error',true)}catch(e){showToast('Server error',true)}}
+async function deleteGroup(gid){if(!confirm('Delete group?'))return;try{await fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});showToast('Deleted');closeModal('groupInfoModal');loadGroupsList()}catch(e){}}
+
+async function showManageMembers(gid){
+    document.getElementById('manageMembersContent').innerHTML='<div style="text-align:center;padding:20px;color:rgba(255,255,255,0.4)">Loading...</div>';
+    document.getElementById('manageMembersModal').classList.add('active');
+    document.getElementById('manageMembersModal').querySelector('.modal-box').style.maxWidth='95%';
+    document.getElementById('manageMembersModal').querySelector('.modal-box').style.maxHeight='90vh';
+    try{const r=await fetch('/api/chat/group_members',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();
+    if(!d.success){showToast(d.message||'Error',true);closeModal('manageMembersModal');return}
+    let h='<div style="max-height:65vh;overflow-y:auto">';
+    d.members.forEach(m=>{let a='';
+    if(d.userRole==='owner'&&m.user_id!==currentUser.id){a+='<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';if(m.role==='member')a+=`<button class="btn btn-b" style="font-size:7px;padding:3px 6px;flex:0" onclick="promoteToAdmin(${gid},${m.user_id})">👑 Admin</button>`;if(m.role==='admin')a+=`<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="demoteToMember(${gid},${m.user_id})">👤 Member</button>`;a+=`<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">🚫 Kick</button>`;a+=`<button style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="banMemberAsk(${gid},${m.user_id})">⛔ Ban</button>`;a+=`<button class="btn btn-w" style="font-size:7px;padding:3px 6px;flex:0" onclick="transferOwner(${gid},${m.user_id})">⭐ Transfer</button>`;a+='</div>'}
+    else if(d.userRole==='admin'&&m.user_id!==currentUser.id&&m.role==='member'){a+='<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';a+=`<button class="btn btn-r" style="font-size:7px;padding:3px 6px;flex:0" onclick="kickMember(${gid},${m.user_id})">🚫 Kick</button>`;a+=`<button style="font-size:7px;padding:3px 6px;flex:0;background:#e74c3c;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="banMemberAsk(${gid},${m.user_id})">⛔ Ban</button>`;a+='</div>'}
+    let rb='';if(m.role==='owner')rb='<span class="member-badge owner">Owner</span>';else if(m.role==='admin')rb='<span class="member-badge admin">Admin</span>';else rb='<span class="member-badge member">Member</span>';
+    h+=`<div class="member-item" style="flex-wrap:wrap"><img src="${m.avatar_url||''}" class="member-avatar" onerror="this.style.display='none'" onclick="window.location.href='/profile.html?uid=${m.user_id}'"><div style="flex:1;min-width:100px;cursor:pointer" onclick="window.location.href='/profile.html?uid=${m.user_id}'"><b>@${escapeHtml(m.username)}</b></div>${rb}${a}</div>`});
+    h+='</div>';document.getElementById('manageMembersContent').innerHTML=h}catch(e){}
+}
+
+async function promoteToAdmin(gid,uid){const r=await fetch('/api/chat/promote_admin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});const d=await r.json();if(d.success){showToast('Promoted!');showManageMembers(gid)}else{showToast(d.message||'Error',true)}}
+async function demoteToMember(gid,uid){const r=await fetch('/api/chat/demote_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});const d=await r.json();if(d.success){showToast('Demoted!');showManageMembers(gid)}else{showToast(d.message||'Error',true)}}
+async function kickMember(gid,uid){if(!confirm('⚠️ Kick this member?'))return;const r=await fetch('/api/chat/kick_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});const d=await r.json();if(d.success){if(uid===currentUser.id){showKickNotification()}else{showToast('✅ Kicked!')}showManageMembers(gid);loadGroupsList()}else{showToast(d.message||'Error',true)}}
+function showKickNotification(){
+    const overlay=document.createElement('div');overlay.id='kickNotification';
+    overlay.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:6000;display:flex;justify-content:center;align-items:center;flex-direction:column';
+    overlay.innerHTML=`<div style="text-align:center;padding:30px"><div style="font-size:60px;margin-bottom:15px">🚫</div><div style="font-size:18px;font-weight:bold;color:#e74c3c;margin-bottom:8px">သင့်ကို Owner/Admin မှ ကန်ထုတ်လိုက်ပါသည်</div><div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:20px">You have been kicked from this group</div><div id="kickCountdown" style="font-size:40px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace">5</div><div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:8px">စက္ကန့်အတွင်း Group မှ ထွက်သွားပါမည်</div></div>`;
+    document.body.appendChild(overlay);
+    let count=5;const cd=document.getElementById('kickCountdown');const iv=setInterval(()=>{count--;cd.textContent=count;if(count<=0){clearInterval(iv);overlay.remove();loadGroupsList();showToast('🚫 Kicked from group')}},1000);
+}
+function banMemberAsk(gid,uid){
+    const duration=prompt('⛔ Ban duration (minutes)?\n\n• Enter number = temporary\n• 0 or empty = permanent');
+    if(duration===null)return;const minutes=parseInt(duration)||0;
+    if(!confirm(minutes>0?`Ban for ${minutes} min?`:'Permanent ban?'))return;
+    fetch('/api/chat/ban_member',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id,durationMinutes:minutes})}).then(r=>r.json()).then(d=>{if(d.success){showToast('✅ '+(d.message||'Banned!'));showManageMembers(gid)}else{showToast('❌ '+(d.message||'Error'),true)}}).catch(()=>showToast('❌ Server error',true));
+}
+async function transferOwner(gid,uid){if(!confirm('⚠️ Transfer ownership? You will become Admin.'))return;const r=await fetch('/api/chat/transfer_owner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:uid,requesterId:currentUser.id})});const d=await r.json();if(d.success){showToast('Transferred!');showManageMembers(gid);loadGroupsList()}else{showToast(d.message||'Error',true)}}
+
+// Avatar Upload
+function uploadGroupPic(gid){currentUploadGroupId=gid;const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=function(e){const files=e.target.files;if(!files||files.length===0)return;const file=files[0];pendingAvatarFile=file;showAvatarPreview(file,'group')};i.click()}
+function showAvatarPreview(file,type){
+    if(!file){showToast('No file selected',true);return}
+    const reader=new FileReader();reader.onload=function(e){const html=`<div class="modal-overlay active" id="avatarPreviewModal" onclick="closeAvatarPreview()"><div class="modal-box" onclick="event.stopPropagation()" style="text-align:center"><h3>Preview</h3><img src="${e.target.result}" style="max-width:200px;max-height:200px;border-radius:10px;margin:10px 0"><div class="btn-row"><button class="btn btn-g" onclick="saveAvatar('${type}')">💾 Save</button><button class="btn btn-r" onclick="closeAvatarPreview()">Cancel</button></div></div></div>`;document.body.insertAdjacentHTML('beforeend',html)};reader.onerror=function(){showToast('Failed to read file',true)};reader.readAsDataURL(file);
+}
+function closeAvatarPreview(){const m=document.getElementById('avatarPreviewModal');if(m)m.remove();pendingAvatarFile=null}
+async function saveAvatar(type){
+    if(!pendingAvatarFile)return;closeAvatarPreview();showToast('⏳ Uploading...');
+    try{const reader=new FileReader();const base64=await new Promise(r=>{reader.onload=e=>r(e.target.result);reader.readAsDataURL(pendingAvatarFile)});
+    const fd=new URLSearchParams();fd.append('key',IMGBB_KEY);fd.append('image',base64.split(',')[1]);
+    const ir=await fetch('https://api.imgbb.com/1/upload',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:fd.toString()});const id=await ir.json();
+    if(!id.success){showToast('❌ '+(id.error?.message||'Upload failed'),true);return}const url=id.data.url;
+    if(type==='group'){await fetch('/api/chat/update_group_avatar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentUploadGroupId,avatarUrl:url})});showToast('✅ Updated!');viewGroupInfo(currentUploadGroupId)}
+    }catch(e){showToast('❌ '+e.message,true)}
+}
+
+// Report
+async function reportGroup(gid){if(!confirm('Report?'))return;try{const r=await fetch('/api/chat/report_group',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:gid,userId:currentUser.id})});const d=await r.json();if(d.success){if(d.warning){showReportWarning(gid)}else{showToast('Reported ('+d.reportCount+'/50)')}}else{showToast(d.message||'Already reported',true)}}catch(e){}}
+function showReportWarning(rid){const ov=document.getElementById('reportWarningOverlay');ov.classList.add('active');let c=10;const el=document.getElementById('reportCountdown');el.textContent=c;const iv=setInterval(()=>{c--;el.textContent=c;if(c<=0){clearInterval(iv);ov.classList.remove('active');deleteGroupAfterReport(rid)}},1000)}
+async function deleteGroupAfterReport(rid){try{await fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})});showToast('Deleted');loadGroupsList()}catch(e){}}
+
+async function init(){await getCurrentUser();loadGroupsList();}
+init();
+</script>
+</body>
+</html>
