@@ -4041,14 +4041,25 @@ app.post('/api/chat/read', async (req, res) => {
     const { roomId, userId } = req.body;
     try {
         const p = await getPool();
-        await p.query('UPDATE chat_messages SET is_read = true WHERE room_id = $1 AND sender_id != $2', [roomId, userId]);
+        
+        // Mark as read
+        await p.query(
+            'UPDATE chat_messages SET is_read = true WHERE room_id = $1 AND sender_id != $2 AND is_read = false',
+            [roomId, userId]
+        );
+        
+        // ✅ Socket emit - Real-time seen update
+        io.to('room_' + roomId).emit('messages_read', {
+            roomId: roomId,
+            readerId: userId
+        });
+        
         res.json({ success: true });
     } catch(e) { 
         console.error('[READ ERROR]', e.message);
         res.json({ success: false }); 
     }
 });
-
 // Delete room
 app.post('/api/chat/delete_room', async (req, res) => {
     const { roomId, userId } = req.body;
