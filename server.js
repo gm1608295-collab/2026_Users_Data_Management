@@ -4705,6 +4705,8 @@ app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html
 app.get('/exchange.html', (req, res) => servePageWithCheck(req, res, 'exchange', 'exchange.html'));
 app.get('/chat.html', (req, res) => res.sendFile(path.join(__dirname, 'chat.html')));
 app.get('/chatpremium.html', (req, res) => res.sendFile(path.join(__dirname, 'chatpremium.html')));
+app.get('/group.html', (req, res) => res.sendFile(path.join(__dirname, 'group.html')));
+app.get('/profile.html', (req, res) => res.sendFile(path.join(__dirname, 'profile.html')));
 
 pools.forEach(pool => {
     initTables(pool);
