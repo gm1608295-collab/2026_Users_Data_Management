@@ -4172,13 +4172,11 @@ app.post('/api/chat/upload_file', async (req, res) => {
 // Get My Profile (with groups)
 app.post('/api/chat/my_profile', async (req, res) => {
     const { userId } = req.body;
-    
     if (!userId) return res.json({ success: false });
     
     try {
         const p = await getPool();
         
-        // ✅ Get user info WITH avatar_url
         const user = await p.query(
             `SELECT u.id, u.username, u.email,
              (SELECT avatar_url FROM user_avatars WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1) as avatar_url
@@ -4186,34 +4184,29 @@ app.post('/api/chat/my_profile', async (req, res) => {
             [userId]
         );
         
-        if (user.rows.length === 0) {
-            return res.json({ success: false, message: 'User not found' });
-        }
+        if (user.rows.length === 0) return res.json({ success: false });
         
-        // Get user's groups
+        // ✅ Groups with avatar
         const groups = await p.query(`
-            SELECT cr.id, cr.room_name, cr.room_type
+            SELECT cr.id, cr.room_name, cr.room_type,
+             (SELECT avatar_url FROM group_avatars WHERE room_id = cr.id ORDER BY updated_at DESC LIMIT 1) as avatar_url,
+             (SELECT COUNT(*) FROM chat_participants WHERE room_id = cr.id) as member_count
             FROM chat_rooms cr
             JOIN chat_participants cp ON cr.id = cp.room_id
             WHERE cp.user_id = $1 AND cr.room_type = 'group'
             ORDER BY cr.id DESC
         `, [userId]);
         
-        console.log('[MY PROFILE] User:', userId, 'Avatar:', user.rows[0].avatar_url?.substring(0, 50) || 'NULL');
-        
         res.json({
             success: true,
             username: user.rows[0].username,
             name: user.rows[0].username,
             email: user.rows[0].email,
-            avatar_url: user.rows[0].avatar_url || '',  // ✅ ဒါ အဓိက
+            avatar_url: user.rows[0].avatar_url || '',
             groups: groups.rows
         });
         
-    } catch(e) {
-        console.error('[MY PROFILE ERROR]', e.message);
-        res.json({ success: false });
-    }
+    } catch(e) { res.json({ success: false }); }
 });
 // Update Username
 app.post('/api/chat/update_username', async (req, res) => {
