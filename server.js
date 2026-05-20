@@ -4097,6 +4097,55 @@ app.get('/api/debug/chat', async (req, res) => {
         res.json({ success: false, error: e.message });
     }
 });
+// ==================== MESSAGE EDIT/DELETE ====================
+
+app.post('/api/chat/edit_message', async (req, res) => {
+    const { messageId, newMessage, userId } = req.body;
+    
+    if (!messageId || !newMessage || !userId) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        const msg = await p.query('SELECT * FROM chat_messages WHERE id=$1 AND sender_id=$2', [messageId, userId]);
+        if (msg.rows.length === 0) {
+            return res.json({ success: false, message: 'Not your message' });
+        }
+        
+        await p.query("UPDATE chat_messages SET message=$1 WHERE id=$2", [newMessage, messageId]);
+        
+        res.json({ success: true });
+    } catch(e) {
+        console.error('[EDIT ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+app.post('/api/chat/delete_message', async (req, res) => {
+    const { messageId, userId } = req.body;
+    
+    if (!messageId || !userId) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        const msg = await p.query('SELECT * FROM chat_messages WHERE id=$1 AND sender_id=$2', [messageId, userId]);
+        if (msg.rows.length === 0) {
+            return res.json({ success: false, message: 'Not your message' });
+        }
+        
+        await p.query('DELETE FROM chat_messages WHERE id=$1', [messageId]);
+        
+        res.json({ success: true });
+    } catch(e) {
+        console.error('[DELETE ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== CHAT FILE UPLOAD API ====================
 app.post('/api/chat/upload_file', async (req, res) => {
     const { token, base64, fileName, fileType } = req.body;
@@ -4712,56 +4761,6 @@ app.post('/api/chat/create_group', async (req, res) => {
     } catch(e) {
         console.error('[CREATE GROUP ERROR]', e.message);
         res.json({ success: false, message: 'Server error: ' + e.message });
-    }
-});
-
-// ==================== MESSAGE EDIT/DELETE ====================
-
-app.post('/api/chat/edit_message', async (req, res) => {
-    const { messageId, newMessage, userId } = req.body;
-    
-    if (!messageId || !newMessage || !userId) {
-        return res.json({ success: false, message: 'Missing data' });
-    }
-    
-    try {
-        const p = await getPool();
-        
-        const msg = await p.query('SELECT * FROM chat_messages WHERE id=$1 AND sender_id=$2', [messageId, userId]);
-        if (msg.rows.length === 0) {
-            return res.json({ success: false, message: 'Not your message' });
-        }
-        
-        await p.query("UPDATE chat_messages SET message=$1 WHERE id=$2", [newMessage, messageId]);
-        
-        res.json({ success: true });
-    } catch(e) {
-        console.error('[EDIT ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
-});
-
-app.post('/api/chat/delete_message', async (req, res) => {
-    const { messageId, userId } = req.body;
-    
-    if (!messageId || !userId) {
-        return res.json({ success: false, message: 'Missing data' });
-    }
-    
-    try {
-        const p = await getPool();
-        
-        const msg = await p.query('SELECT * FROM chat_messages WHERE id=$1 AND sender_id=$2', [messageId, userId]);
-        if (msg.rows.length === 0) {
-            return res.json({ success: false, message: 'Not your message' });
-        }
-        
-        await p.query('DELETE FROM chat_messages WHERE id=$1', [messageId]);
-        
-        res.json({ success: true });
-    } catch(e) {
-        console.error('[DELETE ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
     }
 });
 // ==================== PAGE ROUTES ====================
