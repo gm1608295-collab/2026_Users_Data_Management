@@ -6,36 +6,202 @@
     <title>Profile - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root{--gold:#f39c12;--bg:#0a0a1a}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b);color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;padding-top:env(safe-area-inset-top,0px)}
-        .coming-soon{text-align:center;max-width:400px}
-        .coming-icon{font-size:80px;margin-bottom:20px;animation:float 3s ease-in-out infinite}
-        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-15px)}}
-        .coming-title{font-size:24px;font-weight:700;color:#f39c12;margin-bottom:10px}
-        .coming-subtitle{font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:8px;line-height:1.6}
-        .coming-features{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:20px 0}
-        .coming-feature{font-size:10px;padding:8px 14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;color:rgba(255,255,255,0.5)}
-        .coming-btn{display:inline-block;padding:12px 30px;background:linear-gradient(135deg,#f39c12,#e67e22);color:#000;text-decoration:none;border-radius:25px;font-weight:700;font-size:14px;margin-top:15px;transition:all 0.3s}
-        .coming-btn:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(243,156,18,0.3)}
+        body{
+            background:radial-gradient(ellipse at 50% 30%, #1a1f4b 0%, #0c0e27 60%, #050510 100%);
+            color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;
+            padding:20px;padding-top:env(safe-area-inset-top,0px);overflow-x:hidden;
+        }
+        
+        .coming-container{text-align:center;max-width:420px;position:relative}
+        
+        /* ========== ANIMATED IMAGE ========== */
+        .main-image-wrap{position:relative;display:inline-block;margin-bottom:20px}
+        .main-image{
+            width:180px;height:180px;border-radius:50%;
+            object-fit:cover;border:4px solid rgba(52,152,219,0.5);
+            animation:floatImage 4s ease-in-out infinite,glowPulseBlue 2s ease-in-out infinite;
+            box-shadow:0 0 40px rgba(52,152,219,0.3),0 0 80px rgba(52,152,219,0.1);
+        }
+        @keyframes floatImage{
+            0%,100%{transform:translateY(0) rotate(0deg)}
+            25%{transform:translateY(-18px) rotate(1deg)}
+            50%{transform:translateY(-8px) rotate(0deg)}
+            75%{transform:translateY(-22px) rotate(-1deg)}
+        }
+        @keyframes glowPulseBlue{
+            0%,100%{box-shadow:0 0 30px rgba(52,152,219,0.3),0 0 60px rgba(52,152,219,0.1)}
+            50%{box-shadow:0 0 50px rgba(52,152,219,0.5),0 0 100px rgba(52,152,219,0.2)}
+        }
+        
+        /* Ripple rings */
+        .ripple-ring{
+            position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+            width:180px;height:180px;border-radius:50%;pointer-events:none;
+            border:2px solid rgba(52,152,219,0.3);animation:rippleOut 2s ease-out infinite;
+        }
+        .ripple-ring:nth-child(2){animation-delay:0.7s}
+        .ripple-ring:nth-child(3){animation-delay:1.4s}
+        @keyframes rippleOut{
+            0%{width:180px;height:180px;opacity:1;border-width:2px}
+            100%{width:280px;height:280px;opacity:0;border-width:1px}
+        }
+        
+        /* ========== TITLE ========== */
+        .title-shimmer{
+            font-size:22px;font-weight:800;margin-bottom:8px;
+            background:linear-gradient(90deg,#3498db,#85bb65,#2ecc71,#85bb65,#3498db);
+            background-size:200% auto;-webkit-background-clip:text;
+            -webkit-text-fill-color:transparent;background-clip:text;
+            animation:shimmer 3s linear infinite;
+        }
+        @keyframes shimmer{
+            0%{background-position:0% center}
+            100%{background-position:200% center}
+        }
+        
+        .title-glow{
+            font-size:14px;font-weight:600;color:rgba(255,255,255,0.5);
+            letter-spacing:3px;text-transform:uppercase;
+            animation:titleFade 2s ease-in-out infinite;
+        }
+        @keyframes titleFade{
+            0%,100%{opacity:0.5}50%{opacity:1}
+        }
+        
+        /* ========== FEATURE TAGS ========== */
+        .feature-grid{
+            display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:20px 0;
+        }
+        .feature-tag{
+            font-size:10px;padding:10px 16px;
+            background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+            border-radius:25px;color:rgba(255,255,255,0.6);
+            transition:all 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+            cursor:default;position:relative;overflow:hidden;
+        }
+        .feature-tag::before{
+            content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);
+            animation:tagShine 3s infinite;
+        }
+        .feature-tag:nth-child(1){animation-delay:0s}
+        .feature-tag:nth-child(2){animation-delay:0.5s}
+        .feature-tag:nth-child(3){animation-delay:1s}
+        .feature-tag:nth-child(4){animation-delay:1.5s}
+        .feature-tag:nth-child(5){animation-delay:2s}
+        @keyframes tagShine{
+            0%{left:-100%}50%{left:100%}100%{left:100%}
+        }
+        .feature-tag:hover{
+            background:rgba(52,152,219,0.1);border-color:rgba(52,152,219,0.4);
+            color:#3498db;transform:translateY(-3px);
+            box-shadow:0 8px 20px rgba(0,0,0,0.4);
+        }
+        
+        /* ========== PROGRESS BAR ========== */
+        .progress-wrap{margin:15px auto;max-width:300px}
+        .progress-label{
+            display:flex;justify-content:space-between;font-size:9px;
+            color:rgba(255,255,255,0.4);margin-bottom:4px;
+        }
+        .progress-bar{
+            height:4px;background:rgba(255,255,255,0.06);
+            border-radius:4px;overflow:hidden;
+        }
+        .progress-fill{
+            height:100%;background:linear-gradient(90deg,#3498db,#85bb65,#2ecc71);
+            border-radius:4px;width:60%;animation:progressPulse 2s ease-in-out infinite;
+        }
+        @keyframes progressPulse{
+            0%,100%{opacity:0.8}50%{opacity:1}
+        }
+        
+        /* ========== BACK BUTTON ========== */
+        .back-btn{
+            display:inline-flex;align-items:center;gap:8px;
+            padding:14px 32px;background:linear-gradient(135deg,rgba(52,152,219,0.15),rgba(52,152,219,0.05));
+            color:#3498db;text-decoration:none;border-radius:30px;
+            font-weight:700;font-size:13px;margin-top:15px;
+            border:1px solid rgba(52,152,219,0.3);
+            transition:all 0.3s ease;position:relative;overflow:hidden;
+        }
+        .back-btn::after{
+            content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;
+            background:linear-gradient(45deg,transparent 40%,rgba(255,255,255,0.1) 50%,transparent 60%);
+            animation:btnShine 3s infinite;
+        }
+        @keyframes btnShine{
+            0%{transform:translateX(-100%) rotate(45deg)}
+            100%{transform:translateX(100%) rotate(45deg)}
+        }
+        .back-btn:hover{
+            background:linear-gradient(135deg,rgba(52,152,219,0.3),rgba(52,152,219,0.1));
+            border-color:#3498db;transform:translateY(-2px);
+            box-shadow:0 10px 30px rgba(52,152,219,0.2);
+        }
+        
+        /* Particle background */
+        .particles{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1}
+        .particle{
+            position:absolute;width:3px;height:3px;background:rgba(52,152,219,0.3);
+            border-radius:50%;animation:particleFloat 8s linear infinite;
+        }
+        @keyframes particleFloat{
+            0%{transform:translateY(100vh) scale(0);opacity:0}
+            10%{opacity:1}90%{opacity:1}
+            100%{transform:translateY(-10vh) scale(1);opacity:0}
+        }
     </style>
 </head>
 <body>
-    <div class="coming-soon">
-        <div class="coming-icon">👤</div>
-        <div class="coming-title">Profile - Coming Soon</div>
-        <div class="coming-subtitle">
-            Avatar Upload, @Username Change,<br>
-            My Groups, Copy Username နှင့်<br>
-            Profile Picture System မကြာမီလာမည်
+    <div class="particles" id="particles"></div>
+    
+    <div class="coming-container">
+        <!-- Animated Image -->
+        <div class="main-image-wrap">
+            <img src="https://i.ibb.co/MyB60kHF/64a831b950c3e3e7d699368b48618dd6.jpg" alt="Profile Coming Soon" class="main-image">
+            <div class="ripple-ring"></div>
+            <div class="ripple-ring"></div>
+            <div class="ripple-ring"></div>
         </div>
-        <div class="coming-features">
-            <span class="coming-feature">📷 Avatar Upload</span>
-            <span class="coming-feature">✏️ @Username</span>
-            <span class="coming-feature">👥 My Groups</span>
-            <span class="coming-feature">📋 Copy Link</span>
-            <span class="coming-feature">🖼️ Photo System</span>
+        
+        <!-- Title -->
+        <div class="title-shimmer">Profile - Coming Soon</div>
+        <div class="title-glow">✦ Something Big Is Coming ✦</div>
+        
+        <!-- Features -->
+        <div class="feature-grid">
+            <span class="feature-tag">📷 Avatar Upload</span>
+            <span class="feature-tag">✏️ @Username Change</span>
+            <span class="feature-tag">👥 My Groups</span>
+            <span class="feature-tag">📋 Copy Username</span>
+            <span class="feature-tag">🖼️ Photo System</span>
         </div>
-        <a href="/chat.html" class="coming-btn"><i class="fas fa-arrow-left"></i> Back to Chat</a>
+        
+        <!-- Progress -->
+        <div class="progress-wrap">
+            <div class="progress-label"><span>Development Progress</span><span>60%</span></div>
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+        </div>
+        
+        <!-- Back Button -->
+        <a href="/chat.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back to Chat</a>
     </div>
+
+<script>
+(function(){
+    var container=document.getElementById('particles');
+    for(var i=0;i<30;i++){
+        var p=document.createElement('div');
+        p.className='particle';
+        p.style.left=Math.random()*100+'%';
+        p.style.animationDelay=Math.random()*8+'s';
+        p.style.animationDuration=(Math.random()*6+6)+'s';
+        container.appendChild(p);
+    }
+})();
+</script>
 </body>
 </html>
