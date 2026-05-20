@@ -4714,6 +4714,71 @@ app.post('/api/chat/create_group', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+// ==================== MESSAGE EDIT/DELETE ====================
+
+// Edit Message
+app.post('/api/chat/edit_message', async (req, res) => {
+    const { messageId, newMessage, userId } = req.body;
+    
+    if (!messageId || !newMessage || !userId) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Check ownership
+        const msg = await p.query('SELECT * FROM chat_messages WHERE id=$1 AND sender_id=$2', [messageId, userId]);
+        if (msg.rows.length === 0) {
+            return res.json({ success: false, message: 'You can only edit your own messages' });
+        }
+        
+        // Update message
+        await p.query(
+            'UPDATE chat_messages SET message=$1, edited=true, edited_at=NOW() WHERE id=$2',
+            [newMessage, messageId]
+        );
+        
+        // Emit update
+        const updatedMsg = await p.query('SELECT * FROM chat_messages WHERE id=$1', [messageId]);
+        io.to('room_' + updatedMsg.rows[0].room_id).emit('message_edited', updatedMsg.rows[0]);
+        
+        res.json({ success: true });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Delete Message
+app.post('/api/chat/delete_message', async (req, res) => {
+    const { messageId, userId } = req.body;
+    
+    if (!messageId || !userId) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Check ownership
+        const msg = await p.query('SELECT * FROM chat_messages WHERE id=$1 AND sender_id=$2', [messageId, userId]);
+        if (msg.rows.length === 0) {
+            return res.json({ success: false, message: 'You can only delete your own messages' });
+        }
+        
+        const roomId = msg.rows[0].room_id;
+        
+        // Delete message
+        await p.query('DELETE FROM chat_messages WHERE id=$1', [messageId]);
+        
+        // Emit deletion
+        io.to('room_' + roomId).emit('message_deleted', { messageId, roomId });
+        
+        res.json({ success: true });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
