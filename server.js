@@ -4714,9 +4714,9 @@ app.post('/api/chat/create_group', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+
 // ==================== MESSAGE EDIT/DELETE ====================
 
-// Edit Message
 app.post('/api/chat/edit_message', async (req, res) => {
     const { messageId, newMessage, userId } = req.body;
     
@@ -4727,29 +4727,20 @@ app.post('/api/chat/edit_message', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Check ownership
         const msg = await p.query('SELECT * FROM chat_messages WHERE id=$1 AND sender_id=$2', [messageId, userId]);
         if (msg.rows.length === 0) {
-            return res.json({ success: false, message: 'You can only edit your own messages' });
+            return res.json({ success: false, message: 'Not your message' });
         }
         
-        // Update message
-        await p.query(
-            'UPDATE chat_messages SET message=$1, edited=true, edited_at=NOW() WHERE id=$2',
-            [newMessage, messageId]
-        );
-        
-        // Emit update
-        const updatedMsg = await p.query('SELECT * FROM chat_messages WHERE id=$1', [messageId]);
-        io.to('room_' + updatedMsg.rows[0].room_id).emit('message_edited', updatedMsg.rows[0]);
+        await p.query("UPDATE chat_messages SET message=$1 WHERE id=$2", [newMessage, messageId]);
         
         res.json({ success: true });
     } catch(e) {
+        console.error('[EDIT ERROR]', e.message);
         res.json({ success: false, message: 'Server error' });
     }
 });
 
-// Delete Message
 app.post('/api/chat/delete_message', async (req, res) => {
     const { messageId, userId } = req.body;
     
@@ -4760,22 +4751,16 @@ app.post('/api/chat/delete_message', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Check ownership
         const msg = await p.query('SELECT * FROM chat_messages WHERE id=$1 AND sender_id=$2', [messageId, userId]);
         if (msg.rows.length === 0) {
-            return res.json({ success: false, message: 'You can only delete your own messages' });
+            return res.json({ success: false, message: 'Not your message' });
         }
         
-        const roomId = msg.rows[0].room_id;
-        
-        // Delete message
         await p.query('DELETE FROM chat_messages WHERE id=$1', [messageId]);
-        
-        // Emit deletion
-        io.to('room_' + roomId).emit('message_deleted', { messageId, roomId });
         
         res.json({ success: true });
     } catch(e) {
+        console.error('[DELETE ERROR]', e.message);
         res.json({ success: false, message: 'Server error' });
     }
 });
