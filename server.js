@@ -4459,7 +4459,7 @@ app.post('/api/chat/group_info', async (req, res) => {
 app.post('/api/chat/update_group_avatar', async (req, res) => {
     const { roomId, avatarUrl } = req.body;
     
-    console.log('[GROUP AVATAR] Request received:', { roomId, avatarUrl: avatarUrl?.substring(0, 50) });
+    console.log('[GROUP AVATAR] Request:', { roomId });
     
     if (!roomId) return res.json({ success: false, message: 'Room ID required' });
     
@@ -4476,6 +4476,8 @@ app.post('/api/chat/update_group_avatar', async (req, res) => {
             )
         `);
         
+        // ✅ Get user from token (need to send token from client)
+        // For now, just update without role check
         await p.query(
             `INSERT INTO group_avatars (room_id, avatar_url, updated_at) 
              VALUES ($1, $2, NOW()) 
