@@ -50,56 +50,49 @@
     body.gold-tier { background: linear-gradient(160deg, #6d4c00 0%, var(--gold-dark) 40%, #1a0a00 100%); }
 
     /* ========== HEADER ========== */
-    .tg-header .back-btn {
-    display: inline-flex;
+.tg-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    padding-top: calc(8px + env(safe-area-inset-top, 0px));
+    flex-shrink: 0;
+    background: var(--surface);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tg-header .back-btn {
+    color: #fff;
+    font-size: 16px;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+.tg-header .back-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.tg-header .title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
     align-items: center;
     gap: 6px;
-    color: #fff;
-    font-size: 13px;
+}
+.tg-header .online-badge {
+    font-size: 9px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(46, 204, 113, 0.1);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.2);
     font-weight: 600;
-    text-decoration: none;
-    padding: 8px 16px;
-    border-radius: 25px;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    background: rgba(255, 255, 255, 0.03);
 }
-
-/* Shine Effect */
-.tg-header .back-btn::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
-    animation: btnShine 3s infinite;
-    pointer-events: none;
+.premium-badge {
+    display: none;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 8px;
+    font-weight: 700;
 }
-
-@keyframes btnShine {
-    0% { transform: translateX(-100%) rotate(45deg); }
-    100% { transform: translateX(100%) rotate(45deg); }
-}
-
-/* Hover Effect */
-.tg-header .back-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--gold);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(243, 156, 18, 0.2);
-}
-    .premium-badge {
-        display: none;
-        padding: 3px 10px;
-        border-radius: 12px;
-        font-size: 8px;
-        font-weight: 700;
-    }
-
     body.bronze-tier .tg-header {
         background: linear-gradient(135deg, var(--bronze-dark), var(--bronze-solid));
         border-bottom: 2px solid var(--bronze);
@@ -342,14 +335,58 @@
 
     /* ========== MESSAGE BUBBLE BASE (Slim Height) ========== */
     .msg-bubble {
-        padding: 5px 10px !important;
-        border-radius: 14px;
-        font-size: 12px;
-        word-break: break-word;
-        line-height: 1.35;
-        position: relative;
-        max-width: 100%;
-    }
+    padding: 5px 10px !important;
+    border-radius: 14px;
+    font-size: 12px;
+    word-break: break-word;
+    line-height: 1.35;
+    position: relative;
+    max-width: 100%;
+    overflow: hidden; /* ✅ ဒါထည့် */
+}
+
+/* ✅ ဒီအောက်က အကုန်ထည့် */
+.msg-bubble::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.03) 50%, transparent 60%);
+    animation: bubbleShine 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes bubbleShine {
+    0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+}
+
+/* BRONZE Shine */
+.msg-bubble.bronze-tier::after {
+    background: linear-gradient(45deg, transparent 40%, rgba(232,168,124,0.08) 50%, transparent 60%);
+    animation: bubbleShine 3s ease-in-out infinite;
+}
+
+/* SILVER Shine */
+.msg-bubble.silver-tier::after {
+    background: linear-gradient(45deg, transparent 40%, rgba(232,232,232,0.08) 50%, transparent 60%);
+    animation: bubbleShine 2.5s ease-in-out infinite;
+}
+
+/* GOLD Shine */
+.msg-bubble.gold-tier::after {
+    background: linear-gradient(45deg, transparent 40%, rgba(255,248,220,0.1) 50%, transparent 60%);
+    animation: bubbleShine 2s ease-in-out infinite;
+}
+
+.msg-bubble > * {
+    position: relative;
+    z-index: 2;
+}
     .msg-mine .msg-bubble { border-bottom-right-radius: 3px; }
     .msg-other .msg-bubble { border-bottom-left-radius: 3px; }
     .msg-sender {
