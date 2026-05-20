@@ -4458,22 +4458,38 @@ app.post('/api/chat/group_info', async (req, res) => {
 // Update Group Avatar
 app.post('/api/chat/update_group_avatar', async (req, res) => {
     const { roomId, avatarUrl } = req.body;
-    if (!roomId) return res.json({ success: false });
+    
+    console.log('[GROUP AVATAR] Request received:', { roomId, avatarUrl: avatarUrl?.substring(0, 50) });
+    
+    if (!roomId) return res.json({ success: false, message: 'Room ID required' });
     
     try {
         const p = await getPool();
+        
+        // ✅ Table auto-create
+        await p.query(`
+            CREATE TABLE IF NOT EXISTS group_avatars (
+                id SERIAL PRIMARY KEY,
+                room_id INT UNIQUE NOT NULL,
+                avatar_url TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
         
         await p.query(
             `INSERT INTO group_avatars (room_id, avatar_url, updated_at) 
              VALUES ($1, $2, NOW()) 
              ON CONFLICT (room_id) DO UPDATE SET avatar_url = $2, updated_at = NOW()`,
-            [roomId, avatarUrl || '']
+            [parseInt(roomId), avatarUrl || '']
         );
         
-        res.json({ success: true });
+        console.log('[GROUP AVATAR] ✅ Updated for room:', roomId);
+        
+        res.json({ success: true, message: 'Avatar updated!' });
+        
     } catch(e) {
-        console.error('[UPDATE GROUP AVATAR ERROR]', e.message);
-        res.json({ success: false });
+        console.error('[GROUP AVATAR ERROR]', e.message, e.stack);
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
