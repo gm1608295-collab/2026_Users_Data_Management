@@ -246,8 +246,20 @@ async function loadRooms(){
 }
 async function loadUsersList(){
     if(!currentUser)return;
-    try{const r=await fetch('/api/chat/online_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();const ou=(d.users||[]).filter(u=>u.user_id!==currentUser.id);
-    document.getElementById('usersList').innerHTML=ou.length?ou.map(u=>`<div class="user-item" onclick="window.location.href='/profile.html?uid=${u.user_id}'"><div class="online-indicator"></div><div class="room-info"><div class="room-name">${escapeHtml(u.username)}</div><div class="room-last" style="color:#2ecc71">🟢 Online</div></div></div>`).join(''):'<div class="empty-state"><p>No online users</p></div>'}catch(e){}
+    try{
+        const r=await fetch('/api/chat/online_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});
+        const d=await r.json();
+        const ou=(d.users||[]).filter(u=>u.user_id!==currentUser.id);
+        document.getElementById('usersList').innerHTML=ou.length?ou.map(u=>{
+            return`<div class="user-item" onclick="startPrivateChat(${u.user_id},'${escapeHtml(u.username)}')">
+                <div class="online-indicator"></div>
+                <div class="room-info">
+                    <div class="room-name">${escapeHtml(u.username)}</div>
+                    <div class="room-last" style="color:#2ecc71">🟢 Online</div>
+                </div>
+            </div>`;
+        }).join(''):'<div class="empty-state"><p>No online users</p></div>';
+    }catch(e){}
 }
 
 async function startAdminChat(){if(!currentUser)return;try{const r=await fetch('/api/chat/create_admin_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();if(d.success){openRoom(d.room.id,d.room.room_name,'admin');loadRooms()}else showToast('Error',true)}catch(e){}}
