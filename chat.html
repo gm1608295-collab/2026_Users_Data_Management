@@ -1502,34 +1502,35 @@ function initSocket(){
         }
     });
     
+    // ✅ Real-time Edit
+    socket.on('message_edited', function(msg) {
+        if (currentRoom === msg.room_id) {
+            var row = document.querySelector('.msg-row[data-msg-id="' + msg.id + '"]');
+            if (row) {
+                var bubble = row.querySelector('.msg-bubble');
+                if (bubble) {
+                    var timeEl = bubble.querySelector('.msg-time');
+                    var timeHtml = timeEl ? timeEl.outerHTML : '';
+                    var senderEl = bubble.querySelector('.msg-sender');
+                    var senderHtml = senderEl ? senderEl.outerHTML : '';
+                    bubble.innerHTML = senderHtml + escapeHtml(msg.message) + ' <small style="font-size:7px;color:rgba(255,255,255,0.3)">(edited)</small>' + timeHtml;
+                }
+            }
+        }
+    });
+
+    // ✅ Real-time Delete
+    socket.on('message_deleted', function(data) {
+        if (currentRoom === data.roomId) {
+            var row = document.querySelector('.msg-row[data-msg-id="' + data.messageId + '"]');
+            if (row) row.remove();
+        }
+    });
+    
     socket.on('group_updated', function(){
         loadRooms();
     });
 }
-// Real-time Edit
-socket.on('message_edited', function(msg) {
-    if (currentRoom === msg.room_id) {
-        var row = document.querySelector(`.msg-row[data-msg-id="${msg.id}"]`);
-        if (row) {
-            var bubble = row.querySelector('.msg-bubble');
-            if (bubble) {
-                var timeEl = bubble.querySelector('.msg-time');
-                var timeHtml = timeEl ? timeEl.outerHTML : '';
-                var senderEl = bubble.querySelector('.msg-sender');
-                var senderHtml = senderEl ? senderEl.outerHTML : '';
-                bubble.innerHTML = senderHtml + escapeHtml(msg.message) + ' <small style="font-size:7px;color:rgba(255,255,255,0.3)">(edited)</small>' + timeHtml;
-            }
-        }
-    }
-});
-
-// Real-time Delete
-socket.on('message_deleted', function(data) {
-    if (currentRoom === data.roomId) {
-        var row = document.querySelector(`.msg-row[data-msg-id="${data.messageId}"]`);
-        if (row) row.remove();
-    }
-});
 function onTyping(){if(!currentRoom||!currentUser)return;socket.emit('typing',{roomId:currentRoom,userId:currentUser.id,username:currentUser.username})}
 
 // ==================== TABS ====================
