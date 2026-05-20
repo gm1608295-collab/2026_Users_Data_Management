@@ -34,6 +34,181 @@
         .modal-overlay.active{display:flex}
         .modal-box{background:linear-gradient(135deg,#1a1f4b,#11112a);border:2px solid #f39c12;border-radius:12px;padding:16px;width:90%;max-width:380px;max-height:80vh;overflow-y:auto}
         .modal-box h3{color:#f39c12;margin-bottom:10px;text-align:center;font-size:15px}
+         /* ========== TELEGRAM STYLE GROUP LIST ========== */
+.telegram-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.telegram-group-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.telegram-group-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
+    border-color: rgba(243, 156, 18, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.telegram-group-item:active {
+    transform: scale(0.98);
+}
+
+.telegram-group-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.telegram-group-item:hover .telegram-group-avatar {
+    border-color: #f39c12;
+    box-shadow: 0 0 15px rgba(243, 156, 18, 0.3);
+}
+
+.telegram-group-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.telegram-group-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.telegram-group-meta {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.telegram-group-arrow {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.telegram-group-item:hover .telegram-group-arrow {
+    color: #f39c12;
+    transform: translateX(3px);
+}
+
+.telegram-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.telegram-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* Profile Card */
+.telegram-profile-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 16px;
+    padding: 20px 16px;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    text-align: center;
+}
+
+.telegram-avatar-wrap {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+.telegram-avatar-large {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(243, 156, 18, 0.4);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.telegram-avatar-large:hover {
+    border-color: #f39c12;
+    box-shadow: 0 0 20px rgba(243, 156, 18, 0.4);
+}
+
+.telegram-avatar-edit {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #f39c12;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    border: 2px solid #1a1f4b;
+    transition: all 0.3s ease;
+}
+
+.telegram-avatar-edit:hover {
+    transform: scale(1.1);
+}
+
+/* Empty State */
+.telegram-empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: rgba(255, 255, 255, 0.25);
+}
+
+.telegram-empty-state i {
+    font-size: 40px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.telegram-empty-state p {
+    font-size: 11px;
+}
     </style>
 </head>
 <body>
@@ -59,15 +234,60 @@ async function getCurrentUser(){const t=localStorage.getItem('auth_token');if(!t
 async function loadMyProfile(){
     if(!currentUser){document.getElementById('profileContent').innerHTML='<div class="empty-state">Login required</div>';return}
     try{const r=await fetch('/api/chat/my_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();
-    let h='<div style="text-align:center;padding:15px">';
-    if(d.avatar_url){h+=`<img src="${d.avatar_url}" class="profile-avatar-large" id="myAvatarImg" onclick="uploadProfilePic()" onerror="this.outerHTML='<div class=profile-avatar-large style=background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer onclick=uploadProfilePic()>👤</div>'">`}else{h+='<div class="profile-avatar-large" style="background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px;cursor:pointer" onclick="uploadProfilePic()">👤</div>'}
+    
+    let h='';
+    
+    // ✅ Profile Card
+    h+='<div class="telegram-profile-card">';
+    h+='<div class="telegram-avatar-wrap">';
+    if(d.avatar_url){
+        h+='<img src="'+d.avatar_url+'" class="telegram-avatar-large" id="myAvatarImg" onclick="uploadProfilePic()" onerror="this.outerHTML=\'<div class=telegram-avatar-large style=background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:35px;cursor:pointer onclick=uploadProfilePic()>👤</div>\'">';
+    }else{
+        h+='<div class="telegram-avatar-large" style="background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:35px;cursor:pointer" onclick="uploadProfilePic()">👤</div>';
+    }
+    h+='<div class="telegram-avatar-edit" onclick="uploadProfilePic()"><i class="fas fa-camera"></i></div>';
+    h+='</div>';
+    
     h+='<div class="profile-username">@'+escapeHtml(d.username||currentUser.username)+' <span class="copy-btn" onclick="copyUsername(\''+escapeHtml(d.username||currentUser.username)+'\')"><i class="fas fa-copy"></i></span></div>';
-    h+='<div style="font-size:9px;color:rgba(255,255,255,0.4);margin-bottom:8px">'+escapeHtml(d.name||d.username||'User')+'</div>';
-    h+='<div style="display:flex;gap:6px;margin-bottom:10px"><input type="text" id="newUsername" value="'+escapeHtml(d.username||'')+'" placeholder="@username" style="flex:1;padding:6px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;font-size:10px"><button class="btn btn-w" onclick="updateUsername()" style="flex:1;font-size:10px">💾 Save</button></div>';
-    h+='<div style="display:flex;gap:6px;margin-bottom:10px"><button class="btn btn-b" onclick="uploadProfilePic()" style="flex:1;font-size:10px"><i class="fas fa-camera"></i> Photo</button>';
-    if(d.avatar_url){h+='<button class="btn btn-r" onclick="deleteProfilePic()" style="flex:1;font-size:10px"><i class="fas fa-trash"></i> Remove</button>'}h+='</div>';
-    if(d.groups&&d.groups.length>0){h+='<div class="profile-groups"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px">📋 My Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+='<div class="group-item" onclick="window.location.href=\'/group.html?gid='+g.id+'\'">👥 '+escapeHtml(g.room_name)+'</div>'});h+='</div>'}else{h+='<div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:10px">No groups yet</div>'}
-    h+='</div>';document.getElementById('profileContent').innerHTML=h}catch(e){document.getElementById('profileContent').innerHTML='<div class="empty-state">Error loading profile</div>'}
+    h+='<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:12px">'+escapeHtml(d.name||d.username||'User')+'</div>';
+    
+    // Username Edit
+    h+='<div style="display:flex;gap:6px;margin-bottom:10px"><input type="text" id="newUsername" value="'+escapeHtml(d.username||'')+'" placeholder="@username" style="flex:1;padding:8px 12px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:11px"><button class="btn btn-w" onclick="updateUsername()" style="flex:1;font-size:11px;border-radius:8px">💾 Save</button></div>';
+    
+    // Photo Buttons
+    h+='<div style="display:flex;gap:6px">';
+    h+='<button class="btn btn-b" onclick="uploadProfilePic()" style="flex:1;font-size:10px;border-radius:8px"><i class="fas fa-camera"></i> Photo</button>';
+    if(d.avatar_url){h+='<button class="btn btn-r" onclick="deleteProfilePic()" style="flex:1;font-size:10px;border-radius:8px"><i class="fas fa-trash"></i> Remove</button>'}
+    h+='</div>';
+    h+='</div>'; // End profile card
+    
+    // ✅ Groups Section
+    if(d.groups&&d.groups.length>0){
+        h+='<div class="telegram-section-title"><i class="fas fa-users"></i> My Groups ('+d.groups.length+')</div>';
+        h+='<div class="telegram-group-list">';
+        d.groups.forEach(function(g){
+            let avatarHtml='';
+            if(g.avatar_url){
+                avatarHtml='<img src="'+g.avatar_url+'" class="telegram-group-avatar" onerror="this.style.display=\'none\'">';
+            }else{
+                avatarHtml='<div class="telegram-group-avatar" style="background:rgba(255,255,255,0.05)">👥</div>';
+            }
+            h+='<div class="telegram-group-item" onclick="window.location.href=\'/group.html?gid='+g.id+'\'">';
+            h+=avatarHtml;
+            h+='<div class="telegram-group-info">';
+            h+='<div class="telegram-group-name">'+escapeHtml(g.room_name)+'</div>';
+            h+='<div class="telegram-group-meta"><i class="fas fa-users"></i> '+ (g.member_count||0) +' members</div>';
+            h+='</div>';
+            h+='<i class="fas fa-chevron-right telegram-group-arrow"></i>';
+            h+='</div>';
+        });
+        h+='</div>';
+    }else{
+        h+='<div class="telegram-empty-state"><i class="fas fa-users"></i><p>No groups yet</p></div>';
+    }
+    
+    document.getElementById('profileContent').innerHTML=h;
+    }catch(e){document.getElementById('profileContent').innerHTML='<div class="empty-state">Error loading profile</div>'}
 }
 
 function uploadProfilePic(){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=function(e){const files=e.target.files;if(!files||files.length===0)return;const file=files[0];pendingAvatarFile=file;showAvatarPreview(file,'profile')};i.click()}
@@ -93,12 +313,47 @@ function copyUsername(u){navigator.clipboard.writeText('@'+u).then(()=>showToast
 async function loadUserProfile(uid){
     try{const r=await fetch('/api/chat/user_profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:uid})});const d=await r.json();
     if(!d.success){showToast('User not found',true);return}
-    let h='<div style="text-align:center;padding:15px">';
-    if(d.avatar_url){h+=`<img src="${d.avatar_url}" class="profile-avatar-large" onerror="this.style.display='none'">`}else{h+='<div class="profile-avatar-large" style="background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:30px">👤</div>'}
+    
+    let h='';
+    
+    // ✅ Profile Card
+    h+='<div class="telegram-profile-card">';
+    if(d.avatar_url){
+        h+='<img src="'+d.avatar_url+'" class="telegram-avatar-large" onerror="this.style.display=\'none\'">';
+    }else{
+        h+='<div class="telegram-avatar-large" style="background:rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;font-size:35px;margin-bottom:12px">👤</div>';
+    }
     h+='<div class="profile-username">@'+escapeHtml(d.username)+' <span class="copy-btn" onclick="copyUsername(\''+escapeHtml(d.username)+'\')"><i class="fas fa-copy"></i></span></div>';
-    h+='<div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:10px">'+escapeHtml(d.name||'')+'</div>';
-    if(d.groups&&d.groups.length>0){h+='<div class="profile-groups"><div style="font-size:10px;color:rgba(255,255,255,0.5);margin-bottom:6px">Groups ('+d.groups.length+')</div>';d.groups.forEach(g=>{h+='<div class="group-item" onclick="window.location.href=\'/group.html?gid='+g.id+'\'">👥 '+escapeHtml(g.room_name)+'</div>'});h+='</div>'}
-    h+='</div>';document.getElementById('profileContent').innerHTML=h}catch(e){}
+    h+='<div style="font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:12px">'+escapeHtml(d.name||'')+'</div>';
+    h+='</div>';
+    
+    // ✅ Groups Section
+    if(d.groups&&d.groups.length>0){
+        h+='<div class="telegram-section-title"><i class="fas fa-users"></i> Groups ('+d.groups.length+')</div>';
+        h+='<div class="telegram-group-list">';
+        d.groups.forEach(function(g){
+            let avatarHtml='';
+            if(g.avatar_url){
+                avatarHtml='<img src="'+g.avatar_url+'" class="telegram-group-avatar" onerror="this.style.display=\'none\'">';
+            }else{
+                avatarHtml='<div class="telegram-group-avatar" style="background:rgba(255,255,255,0.05)">👥</div>';
+            }
+            h+='<div class="telegram-group-item" onclick="window.location.href=\'/group.html?gid='+g.id+'\'">';
+            h+=avatarHtml;
+            h+='<div class="telegram-group-info">';
+            h+='<div class="telegram-group-name">'+escapeHtml(g.room_name)+'</div>';
+            h+='<div class="telegram-group-meta"><i class="fas fa-users"></i> '+ (g.member_count||0) +' members</div>';
+            h+='</div>';
+            h+='<i class="fas fa-chevron-right telegram-group-arrow"></i>';
+            h+='</div>';
+        });
+        h+='</div>';
+    }else{
+        h+='<div class="telegram-empty-state"><i class="fas fa-users"></i><p>No groups</p></div>';
+    }
+    
+    document.getElementById('profileContent').innerHTML=h;
+    }catch(e){}
 }
 
 async function init(){
