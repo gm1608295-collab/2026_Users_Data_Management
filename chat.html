@@ -1439,6 +1439,23 @@ function initSocket(){
     socket.on('online_users',u=>{document.getElementById('onlineCount').innerHTML=(u?.length||0)+' online';loadUsersList()});
     socket.on('user_typing',d=>{if(currentRoom===d.roomId&&d.userId!==currentUser?.id){const ind=document.getElementById('typingIndicator');ind.style.display='block';ind.innerHTML=`<i class="fas fa-ellipsis-h"></i> ${escapeHtml(d.username)} typing...`;clearTimeout(typingTimeout);typingTimeout=setTimeout(()=>ind.style.display='none',2000)}});
 }
+    // ✅ Real-time Seen Update
+socket.on('messages_read', function(data) {
+    if (currentRoom === data.roomId) {
+        // Update all my messages' seen status
+        var allBubbles = document.querySelectorAll('.msg-row.mine .msg-bubble');
+        allBubbles.forEach(function(bubble) {
+            var timeDiv = bubble.querySelector('.msg-time');
+            if (timeDiv) {
+                // Add green double check if not already
+                if (!timeDiv.innerHTML.includes('✓✓')) {
+                    timeDiv.innerHTML = timeDiv.innerHTML.replace('✓', '✓✓');
+                    timeDiv.style.color = '#2ecc71';
+                }
+            }
+        });
+    }
+});
 function onTyping(){if(!currentRoom||!currentUser)return;socket.emit('typing',{roomId:currentRoom,userId:currentUser.id,username:currentUser.username})}
 
 // ==================== TABS ====================
@@ -1509,27 +1526,19 @@ function addMessageToUI(msg, isMine, spt) {
             `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
     }
     
-    // ✅ Seen Status (Telegram Style)
+    // ✅ Seen Status - Real-time
     let seenHtml = '';
     if (isMine) {
-        if (msg.read_count >= 2) {
-            // Seen by 2+ people
+        if (msg.is_read) {
             seenHtml = '<span style="color:#2ecc71;font-size:9px;margin-left:3px">✓✓</span>';
-        } else if (msg.read_count >= 1) {
-            // Seen by 1 person
-            seenHtml = '<span style="color:#2ecc71;font-size:9px;margin-left:3px">✓✓</span>';
-        } else if (msg.is_read) {
-            // Delivered but not seen
-            seenHtml = '<span style="color:rgba(255,255,255,0.4);font-size:9px;margin-left:3px">✓✓</span>';
         } else {
-            // Sent only
             seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
         }
     }
     
     d.innerHTML = `${av}<div class="msg-bubble ${bc}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${mh}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}${seenHtml}</div></div>`;
     c.appendChild(d);
-}
+    }
 function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 
 function sendMessage() {
@@ -1538,6 +1547,10 @@ function sendMessage() {
     if (!m) return;
     if (!currentRoom) return;
     
+    // ✅ Sent sound
+    playSendSound();
+    
+    // Emit message
     socket.emit('send_message', {
         roomId: currentRoom,
         message: m,
@@ -1546,12 +1559,9 @@ function sendMessage() {
         senderPremiumTier: premiumTier
     });
     
-    // ✅ Send sound
-    playSendSound();
-    
     i.value = '';
     i.focus();
-    setTimeout(() => i.focus(), 50);
+    setTimeout(function() { i.focus(); }, 50);
 }
 function playSendSound() {
     if (sendSound) {
