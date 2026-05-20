@@ -4705,7 +4705,9 @@ app.get('/game.html', (req, res) => res.sendFile(path.join(__dirname, 'game.html
 app.get('/exchange.html', (req, res) => servePageWithCheck(req, res, 'exchange', 'exchange.html'));
 app.get('/chat.html', (req, res) => res.sendFile(path.join(__dirname, 'chat', 'chat.html')));
 app.get('/chatpremium.html', (req, res) => res.sendFile(path.join(__dirname, 'chatpremium.html')));
-
+// CSS & JS files ကို chat/ folder ထဲက ဆွဲဖို့
+app.use('/css', express.static(path.join(__dirname, 'chat', 'css')));
+app.use('/js', express.static(path.join(__dirname, 'chat', 'js')));
 // Initialize tables on all databases
 pools.forEach(pool => {
     initTables(pool);
