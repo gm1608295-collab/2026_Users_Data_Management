@@ -506,7 +506,30 @@ app.post('/api/register', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-
+// ==================== QR CODE DECODE ====================
+app.post('/api/decode_qr', async (req, res) => {
+    const { image } = req.body;
+    
+    if (!image) {
+        return res.json({ success: false, message: 'No image provided' });
+    }
+    
+    try {
+        // For now - ပုံကို ပြန်ပို့ပြီး Client-Side မှာ jsQR library သုံးပြီး ဖတ်မယ်
+        // Production မှာ server-side QR library သုံးပါ
+        
+        // Return the base64 as data for client-side decoding
+        res.json({ 
+            success: true, 
+            data: image,
+            message: 'Use client-side QR decoding'
+        });
+        
+    } catch(e) {
+        console.error('[QR DECODE ERROR]', e.message);
+        res.json({ success: false, message: 'Could not decode QR' });
+    }
+});
 app.post('/api/logout', (req, res) => res.json({ success: true }));
 app.post('/api/check_banned', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ banned: r.rows.length > 0 }); } catch(e) { res.json({ banned: false }); } });
 // ==================== BANNED LIST API (အသစ်) ====================
