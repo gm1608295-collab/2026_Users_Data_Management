@@ -364,13 +364,30 @@
     box-shadow: 0 0 15px rgba(243, 156, 18, 0.3);
 }
 
-/* OTP Input (Hidden - For typing) */
+/* OTP Input - Visible for Mobile Keyboard */
 #otpHiddenInput {
-    position: absolute;
-    opacity: 0;
-    width: 0;
-    height: 0;
-    pointer-events: none;
+    width: 100%;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    border-radius: 8px;
+    color: #ffd700;
+    font-size: 18px;
+    text-align: center;
+    letter-spacing: 8px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    outline: none;
+    caret-color: #f39c12;
+}
+#otpHiddenInput:focus {
+    border-color: #f39c12;
+    box-shadow: 0 0 15px rgba(243, 156, 18, 0.2);
+}
+#otpHiddenInput::placeholder {
+    color: rgba(255, 255, 255, 0.2);
+    letter-spacing: 4px;
+    font-size: 14px;
 }
 
 /* Timer - MLBB Countdown Style */
@@ -911,11 +928,11 @@ function toggleRegister(){
 // ==================== USER GUIDE ====================
 function openUserGuide(){ document.getElementById('userGuideModal').classList.add('active'); }
 function closeUserGuide(){ document.getElementById('userGuideModal').classList.remove('active'); }
-
 // ==================== MLBB STYLE OTP SYSTEM ====================
 let otpCountdown = null;
 let otpEmail = '';
 let otpSeconds = 90;
+let otpServerExpiry = null;  // ✅ Server က expiry time
 
 // OTP Modal Elements
 const otpModal = document.getElementById('otpModal');
@@ -955,8 +972,27 @@ async function handleLogin() {
             return;
         }
         
-        // Password မှန်ရင် OTP ပို့
         otpEmail = e;
+        
+        // ✅ Server ကနေ OTP Status စစ်မယ်
+        const statusRes = await fetch('/api/otp/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: e })
+        });
+        const statusData = await statusRes.json();
+        
+        // ✅ အချိန်မကုန်သေးရင် Modal ပဲ ပြန်ပြမယ် (OTP အသစ်မတောင်းဘူး)
+        if (statusData.has_otp && statusData.remaining_seconds > 0) {
+            otpSeconds = statusData.remaining_seconds;
+            showOTPModal(otpSeconds);
+            showToast('⚠️ OTP ပြီးခဲ့တဲ့အတိုင်း ဆက်သုံးပါ');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            return;
+        }
+        
+        // ✅ အချိန်ကုန်သွားရင် OTP အသစ်တောင်းမယ်
         const otpRes = await fetch('/api/otp/request', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -965,8 +1001,8 @@ async function handleLogin() {
         const otpData = await otpRes.json();
         
         if (otpData.success) {
-            // ✅ Show MLBB Style OTP Modal
-            showOTPModal();
+            otpSeconds = 90;
+            showOTPModal(otpSeconds);
             showToast('✅ OTP sent to your email!');
         } else {
             showToast(otpData.message || 'Failed to send OTP', 'error');
@@ -981,20 +1017,22 @@ async function handleLogin() {
 }
 
 // Show OTP Modal with MLBB Style
-function showOTPModal() {
+function showOTPModal(startSeconds) {
     // Reset
     clearOTPDisplay();
     otpErrorMsg.classList.remove('show');
-    otpSeconds = 90;
+    otpSeconds = startSeconds || 90;
     otpTimerRing.classList.remove('warning');
     otpTimerRing.textContent = otpSeconds;
     btnVerifyOTP.disabled = true;
-    btnResendOTP.disabled = true;
+    
+    // ✅ အချိန်မကုန်သေးရင် Resend မရသေး
+    btnResendOTP.disabled = otpSeconds > 0;
     
     // Show Modal
     otpModal.classList.add('active');
     
-    // Focus hidden input
+    // Focus input
     setTimeout(() => {
         otpHiddenInput.focus();
     }, 400);
@@ -1038,12 +1076,9 @@ function clearOTPDisplay() {
     });
 }
 
-// OTP Timer - 90 Seconds with MLBB Style
+// OTP Timer
 function startOTPTimer() {
     clearInterval(otpCountdown);
-    otpSeconds = 90;
-    otpTimerRing.classList.remove('warning');
-    otpTimerRing.textContent = otpSeconds;
     btnResendOTP.disabled = true;
     
     otpCountdown = setInterval(() => {
@@ -1060,7 +1095,7 @@ function startOTPTimer() {
             clearInterval(otpCountdown);
             otpTimerRing.textContent = '0';
             otpTimerRing.classList.add('warning');
-            btnResendOTP.disabled = false;  // ✅ အချိန်ကုန်မှ Resend နှိပ်လို့ရမယ်
+            btnResendOTP.disabled = false;  // ✅ အချိန်ကုန်မှ Resend နှိပ်လို့ရ
             btnVerifyOTP.disabled = true;
             showToast('❌ OTP expired. Request new one.', 'error');
         }
@@ -1089,14 +1124,12 @@ async function verifyOTP() {
         const d = await r.json();
         
         if (d.success) {
-            // ✅ Login Success
             clearInterval(otpCountdown);
             localStorage.setItem('auth_token', d.token);
             localStorage.setItem('user', JSON.stringify(d.user));
             showToast('✅ Login success!');
             setTimeout(() => { window.location.href = '/dashboard'; }, 500);
         } else {
-            // ❌ Wrong OTP
             otpErrorMsg.textContent = '❌ OTP မှားယွင်းနေပါသည် သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ';
             otpErrorMsg.classList.add('show');
             clearOTPDisplay();
@@ -1127,8 +1160,11 @@ async function resendOTP() {
         
         if (d.success) {
             showToast('✅ OTP resent!');
+            otpSeconds = 90;
+            otpTimerRing.classList.remove('warning');
+            otpTimerRing.textContent = otpSeconds;
             clearInterval(otpCountdown);
-            startOTPTimer();  // ✅ အချိန်ပြန်စမယ်
+            startOTPTimer();
             otpHiddenInput.focus();
         } else {
             showToast(d.message || 'Failed', 'error');
@@ -1142,35 +1178,14 @@ async function resendOTP() {
     btnResendOTP.innerHTML = '🔄 Resend OTP';
 }
 
-// Cancel OTP
+// Cancel OTP (Modal ပိတ်ရုံပဲ - Server မှာ OTP ဆက်ရှိနေမယ်)
 function cancelOTP() {
     clearInterval(otpCountdown);
     otpModal.classList.remove('active');
     clearOTPDisplay();
-    otpEmail = '';
     otpErrorMsg.classList.remove('show');
+    // ✅ otpEmail ကို မရှင်းဘူး - ပြန်ဝင်ရင် ကျန်ချိန်အတိုင်း ဆက်ပြမယ်
 }
-
-// Close Modal by clicking outside
-document.getElementById('otpModal').addEventListener('click', function(e) {
-    // Don't close when clicking outside (MLBB Style - must click Cancel)
-    // User က Cancel ကိုပဲ နှိပ်ရမယ်
-});
-
-// Auto-paste OTP from clipboard (MLBB Style)
-document.addEventListener('paste', function(e) {
-    if (!otpModal.classList.contains('active')) return;
-    
-    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-    const otpMatch = pastedText.match(/\d{6}/);
-    
-    if (otpMatch) {
-        e.preventDefault();
-        otpHiddenInput.value = otpMatch[0];
-        updateOTPDisplay(otpMatch[0]);
-        btnVerifyOTP.disabled = false;
-    }
-});
 // ==================== REGISTER ====================
 async function handleRegister(){
     const un = document.getElementById('regUsername').value.trim();
