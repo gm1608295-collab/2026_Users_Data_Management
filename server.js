@@ -531,7 +531,15 @@ app.post('/api/decode_qr', async (req, res) => {
     }
 });
 app.post('/api/logout', (req, res) => res.json({ success: true }));
-app.post('/api/check_banned', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ banned: r.rows.length > 0 }); } catch(e) { res.json({ banned: false }); } });
+app.post('/api/check_banned', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]);
+        res.json({ banned: r.rows.length > 0 });
+    } catch(e) {
+        res.json({ banned: false });
+    }
+});
 // ==================== BANNED LIST API (အသစ်) ====================
 app.get('/api/admin/banned_list', async (req, res) => {
     try {
@@ -4853,6 +4861,45 @@ app.post('/api/chat/create_group', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+// ==================== BAN CHECK MIDDLEWARE ====================
+async function banCheckMiddleware(req, res, next) {
+    // စစ်မယ့် Page တွေ (dashboard က သွားတဲ့ Page တွေ)
+    const protectedPages = [
+        '/dashboard', '/topup.html', '/buycode.html', '/data.html', 
+        '/history.html', '/password.html', '/recovery.html', 
+        '/contact.html', '/game.html', '/exchange.html',
+        '/chat.html', '/chatpremium.html', '/group.html', '/profile.html'
+    ];
+    
+    // Login, Register, Admin, Index တွေက မစစ်ဘူး
+    const path = req.path;
+    
+    // Protected Page တွေမှသာ Ban စစ်
+    if (protectedPages.some(p => path === p || path.startsWith(p))) {
+        // Cookie ကနေ Token ဖတ်
+        const token = req.cookies?.auth_token;
+        
+        if (token && token !== 'guest') {
+            try {
+                const uid = parseInt(token.replace('token_', ''));
+                if (!isNaN(uid)) {
+                    const p = await getPool();
+                    const r = await p.query('SELECT * FROM banned_users WHERE user_id = $1', [uid]);
+                    
+                    if (r.rows.length > 0) {
+                        // Ban ခံထားရ → Login Page ပြန်ပို့
+                        return res.redirect('/?banned=1');
+                    }
+                }
+            } catch(e) {}
+        }
+    }
+    
+    next();
+}
+
+// ✅ Middleware ကို အသုံးပြု
+app.use(banCheckMiddleware);
 // ==================== PAGE ROUTES ====================
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', (req, res) => servePageWithCheck(req, res, 'dashboard', 'dashboard.html'));
