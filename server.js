@@ -506,6 +506,142 @@ app.post('/api/register', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+// ==================== OTP SYSTEM ====================
+
+// Generate OTP
+app.post('/api/otp/request', async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email) {
+        return res.json({ success: false, message: 'Email required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Find user
+        const user = await p.query("SELECT id, username FROM auth_users WHERE email=$1 AND login_type='local'", [email]);
+        
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'ဒီ Email ဖြင့် အကောင့်မတွေ့ပါ' });
+        }
+        
+        const uid = user.rows[0].id;
+        
+        // OTP Rate Limit - 30 seconds
+        const recentOtp = await p.query(
+            "SELECT * FROM otp_codes WHERE user_id=$1 AND created_at > NOW() - INTERVAL '30 seconds'",
+            [uid]
+        );
+        
+        if (recentOtp.rows.length > 0) {
+            return res.json({ success: false, message: 'စက္ကန့် ၃၀ အတွင်း OTP ပြန်တောင်းနိုင်ပါမည်' });
+        }
+        
+        // Generate OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // ✅ Save OTP (expires in 90 seconds)
+        await p.query(
+            "INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '90 seconds')",
+            [uid, otp]
+        );
+        
+        // ✅ Send OTP via EmailJS
+        const emailSent = await sendOTPEmail(email, user.rows[0].username, otp);
+        
+        if (emailSent) {
+            res.json({ success: true, message: 'OTP ကုဒ် သင့် Email သို့ ပို့ပြီးပါပြီ (၉၀ စက္ကန့်အတွင်း အသုံးပြုပါ)' });
+        } else {
+            res.json({ success: false, message: 'Email ပို့ရန် မအောင်မြင်ပါ' });
+        }
+        
+    } catch(e) {
+        console.error('[OTP REQUEST ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Verify OTP + Login
+app.post('/api/otp/verify', async (req, res) => {
+    const { email, otp } = req.body;
+    
+    if (!email || !otp) {
+        return res.json({ success: false, message: 'Email and OTP required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Find user
+        const user = await p.query("SELECT id, username FROM auth_users WHERE email=$1", [email]);
+        
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        const uid = user.rows[0].id;
+        
+        // Verify OTP
+        const otpCheck = await p.query(
+            "SELECT * FROM otp_codes WHERE user_id=$1 AND code=$2 AND expires_at > NOW() AND used=false ORDER BY id DESC LIMIT 1",
+            [uid, otp]
+        );
+        
+        if (otpCheck.rows.length === 0) {
+            return res.json({ success: false, message: 'OTP မှားယွင်းနေပါသည် သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ' });
+        }
+        
+        // Mark OTP as used
+        await p.query('UPDATE otp_codes SET used=true WHERE id=$1', [otpCheck.rows[0].id]);
+        
+        // Mark all old OTPs as used
+        await p.query('UPDATE otp_codes SET used=true WHERE user_id=$1 AND used=false', [uid]);
+        
+        // Update last login
+        await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [uid]);
+        
+        // Generate token
+        const token = 'token_' + uid;
+        
+        res.json({
+            success: true,
+            token: token,
+            user: { id: uid, username: user.rows[0].username, email: email, login_type: 'local' }
+        });
+        
+    } catch(e) {
+        console.error('[OTP VERIFY ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ✅ Send OTP Email via EmailJS
+async function sendOTPEmail(email, username, otp) {
+    try {
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                service_id: 'service_yzbrpyo',
+                template_id: 'template_xqygsga',
+                user_id: 'tsKN2j9o6RYK4KeEp',
+                template_params: {
+                    to_email: email,
+                    to_name: username,
+                    otp_code: otp,
+                    subject: 'SOLO M Game Shop - OTP Code'
+                }
+            })
+        });
+        
+        console.log('[EMAIL] Sent to:', email, 'Status:', response.status);
+        return response.ok;
+    } catch(e) {
+        console.error('[EMAIL ERROR]', e.message);
+        return false;
+    }
+}
 // ==================== QR CODE DECODE ====================
 app.post('/api/decode_qr', async (req, res) => {
     const { image } = req.body;
