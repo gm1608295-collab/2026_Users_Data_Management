@@ -619,23 +619,26 @@ app.post('/api/otp/verify', async (req, res) => {
 // ✅ Send OTP Email via EmailJS
 async function sendOTPEmail(email, username, otp) {
     try {
+        const expiryTime = new Date(Date.now() + 90 * 1000);
+        const timeStr = expiryTime.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+        
         const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 service_id: 'service_yzbrpyo',
-                template_id: 'template_xqygsga',
+                template_id: 'template_5710cu9',
                 user_id: 'tsKN2j9o6RYK4KeEp',
                 template_params: {
-                    to_email: email,
                     to_name: username,
-                    otp_code: otp,
-                    subject: 'SOLO M Game Shop - OTP Code'
+                    လျှို့ဝှက်ကုဒ်: otp,       // ✅ Template variable name
+                    time: timeStr,
+                    to_email: email
                 }
             })
         });
         
-        console.log('[EMAIL] Sent to:', email, 'Status:', response.status);
+        console.log('[EMAIL] Sent to:', email, 'OTP:', otp, 'Status:', response.status);
         return response.ok;
     } catch(e) {
         console.error('[EMAIL ERROR]', e.message);
