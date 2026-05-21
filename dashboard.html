@@ -530,6 +530,32 @@ async function checkAccountStatus() {
     } catch(e) {}
 }
 
+    // ✅ Ban Check
+async function checkUserBan() {
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') return;
+    
+    try {
+        const uid = token.replace('token_', '');
+        const r = await fetch('/api/check_banned', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: parseInt(uid) })
+        });
+        const d = await r.json();
+        
+        if (d.banned) {
+            alert('⛔ Your account has been banned. Contact @Solo_m28');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+    } catch(e) {}
+}
+
+// Page Load တိုင်း စစ်
+checkUserBan();
+setInterval(checkUserBan, 30000); // 30 seconds check
 // Check every 10 seconds
 setInterval(checkAccountStatus, 10000);
 
