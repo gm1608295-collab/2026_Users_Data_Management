@@ -627,11 +627,11 @@ async function sendOTPEmail(email, username, otp) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 service_id: 'service_yzbrpyo',
-                template_id: 'template_5710cu9',
+                template_id: 'template_5710cu9', // သင့် Template ID
                 user_id: 'tsKN2j9o6RYK4KeEp',
                 template_params: {
                     to_name: username,
-                    လျှို့ဝှက်ကုဒ်: otp,       // ✅ Template variable name
+                    passcode: otp,       // ✅ Default Template ရဲ့ variable name
                     time: timeStr,
                     to_email: email
                 }
