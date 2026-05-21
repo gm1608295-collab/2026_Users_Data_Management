@@ -911,7 +911,40 @@ app.post('/api/admin/restore', async (req, res) => {
 // ==================== ADMIN ====================
 app.get('/api/admin/users_grouped', async (req, res) => { try { const p = await getPool(); const lo = await p.query("SELECT * FROM auth_users WHERE login_type='local' ORDER BY id DESC"); const go = await p.query("SELECT * FROM auth_users WHERE login_type='google' ORDER BY id DESC"); const ti = await p.query("SELECT * FROM auth_users WHERE login_type='tiktok' ORDER BY id DESC"); const tg = await p.query("SELECT * FROM auth_users WHERE login_type='telegram' ORDER BY id DESC"); const ba = await p.query("SELECT user_id FROM banned_users"); res.json({ success: true, local: lo.rows, google: go.rows, tiktok: ti.rows, telegram: tg.rows, banned: ba.rows.map(r=>r.user_id), total: lo.rows.length + go.rows.length + ti.rows.length + tg.rows.length }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/edit_user', async (req, res) => { try { const p = await getPool(); req.body.password ? await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3,password=$4 WHERE id=$5", [req.body.username, req.body.email, req.body.phone, req.body.password, req.body.id]) : await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3 WHERE id=$4", [req.body.username, req.body.email, req.body.phone, req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/ban', async (req, res) => { try { const p = await getPool(); await p.query('INSERT INTO banned_users (user_id,banned_by) VALUES ($1,$2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', [req.body.userId, 'admin']); tgSend('ðŸš« Banned: ' + req.body.userId); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/ban', async (req, res) => {
+    try {
+        const p = await getPool();
+        await p.query(
+            'INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2',
+            [req.body.userId, 'admin']
+        );
+        
+        // ✅ Ban ခံရတဲ့ User ကို Socket ကနေ Kick
+        const bannedUserId = parseInt(req.body.userId);
+        
+        // Find user's socket and disconnect
+        const sockets = await io.fetchSockets();
+        for (const socket of sockets) {
+            if (socket.userId === bannedUserId) {
+                socket.emit('force_logout', {
+                    message: 'Your account has been banned by admin.',
+                    reason: 'Account banned'
+                });
+                socket.disconnect(true);
+            }
+        }
+        
+        // Clear user's device sessions
+        await p.query('DELETE FROM device_sessions WHERE user_id = $1', [bannedUserId]);
+        
+        tgSend('🚫 Banned: ' + req.body.userId);
+        res.json({ success: true });
+        
+    } catch(e) {
+        console.error('[BAN ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 app.post('/api/admin/unban', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 app.post('/api/admin/delete', async (req, res) => { 
     try { 
