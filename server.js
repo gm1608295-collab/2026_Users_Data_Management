@@ -634,7 +634,7 @@ async function sendOTPEmail(email, username, otp) {
             body: JSON.stringify({
                 service_id: 'service_yzbrpyo',
                 template_id: 'template_5710cu9',
-                user_id: 'Ep-S4Yg0Rjc2cYph4_-ev',  // ✅ Private Key ထည့်ပါ
+                user_id: 'rIkHpT0XCZk99qVy7',  
                 template_params: {
                     to_name: username,
                     passcode: otp,
