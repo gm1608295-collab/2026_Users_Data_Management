@@ -672,6 +672,51 @@ async function sendOTPEmail(email, username, otp) {
         return false;
     }
 }
+// Check OTP Status (ကျန်ချိန် စစ်ဖို့)
+app.post('/api/otp/status', async (req, res) => {
+    const { email } = req.body;
+    
+    if (!email) {
+        return res.json({ success: false, message: 'Email required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Find user
+        const user = await p.query("SELECT id FROM auth_users WHERE email=$1", [email]);
+        if (user.rows.length === 0) {
+            return res.json({ success: false, has_otp: false });
+        }
+        
+        const uid = user.rows[0].id;
+        
+        // Find latest unused OTP
+        const otp = await p.query(
+            "SELECT code, expires_at, created_at FROM otp_codes WHERE user_id=$1 AND used=false AND expires_at > NOW() ORDER BY id DESC LIMIT 1",
+            [uid]
+        );
+        
+        if (otp.rows.length === 0) {
+            return res.json({ success: true, has_otp: false, remaining_seconds: 0 });
+        }
+        
+        // Calculate remaining seconds
+        const expiresAt = new Date(otp.rows[0].expires_at);
+        const now = new Date();
+        const remainingSeconds = Math.max(0, Math.floor((expiresAt - now) / 1000));
+        
+        res.json({
+            success: true,
+            has_otp: true,
+            remaining_seconds: remainingSeconds
+        });
+        
+    } catch(e) {
+        console.error('[OTP STATUS ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== QR CODE DECODE ====================
 app.post('/api/decode_qr', async (req, res) => {
     const { image } = req.body;
