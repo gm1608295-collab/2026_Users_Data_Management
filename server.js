@@ -468,9 +468,43 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/register', async (req, res) => {
     const { username, email, phone, password } = req.body;
-    if (!username || !email || !phone || !password) return res.json({ success: false, message: 'All fields required' });
-    try { const p = await getPool(); const exist = await p.query('SELECT id FROM auth_users WHERE email=$1', [email]); if (exist.rows.length > 0) return res.json({ success: false, message: 'Email exists' }); await p.query('INSERT INTO auth_users (username,email,phone,password,login_type) VALUES ($1,$2,$3,$4,$5)', [username, email, phone, password, 'local']); tgSend(`🆕 ${username}\n📧 ${email}`); res.json({ success: true }); }
-    catch(e) { res.json({ success: false }); }
+    if (!username || !email || !phone || !password) {
+        return res.json({ success: false, message: 'All fields required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Check existing
+        const exist = await p.query('SELECT id FROM auth_users WHERE email=$1', [email]);
+        if (exist.rows.length > 0) {
+            return res.json({ success: false, message: 'Email exists' });
+        }
+        
+        // Insert user
+        await p.query(
+            'INSERT INTO auth_users (username, email, phone, password, login_type) VALUES ($1,$2,$3,$4,$5)',
+            [username, email, phone, password, 'local']
+        );
+        
+        // ✅ QR Code Data (for recovery)
+        const qrData = JSON.stringify({
+            email: email,
+            password: password,
+            username: username
+        });
+        
+        tgSend(`🆕 ${username}\n📧 ${email}`);
+        
+        res.json({
+            success: true,
+            qr_data: qrData  // ✅ QR Code ဖန်တီးဖို့ Data
+        });
+        
+    } catch(e) {
+        console.error('[REGISTER ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
 });
 
 app.post('/api/logout', (req, res) => res.json({ success: true }));
