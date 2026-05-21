@@ -640,7 +640,7 @@ async function sendOTPEmail(email, username, otp) {
             body: JSON.stringify({
                 service_id: 'service_yzbrpyo',
                 template_id: 'template_5710cu9',
-                user_id: 'tsKN2j9o6RYK4KeEp',
+                user_id: 'nF2fI5wfIsUrU30p6hx3g',
                 template_params: {
                     to_name: username,
                     passcode: otp,       // ✅ မဖြစ်မနေ - {{passcode}}
