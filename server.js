@@ -620,31 +620,48 @@ app.post('/api/otp/verify', async (req, res) => {
 async function sendOTPEmail(email, username, otp) {
     try {
         const expiryTime = new Date(Date.now() + 90 * 1000);
-        const timeStr = expiryTime.toLocaleTimeString('my-MM', { hour: '2-digit', minute: '2-digit' });
+        const timeStr = expiryTime.toLocaleTimeString('my-MM', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        
+        console.log('[EMAIL] Sending OTP to:', email);
+        console.log('[EMAIL] Template Params:', {
+            to_name: username,
+            passcode: otp,      // ✅ Template မှာ {{passcode}} သုံးထားလို့
+            time: timeStr,       // ✅ Template မှာ {{time}} သုံးထားလို့
+            to_email: email
+        });
         
         const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 service_id: 'service_yzbrpyo',
-                template_id: 'template_5710cu9', // သင့် Template ID
+                template_id: 'template_5710cu9',
                 user_id: 'tsKN2j9o6RYK4KeEp',
                 template_params: {
                     to_name: username,
-                    passcode: otp,       // ✅ Default Template ရဲ့ variable name
-                    time: timeStr,
+                    passcode: otp,       // ✅ မဖြစ်မနေ - {{passcode}}
+                    time: timeStr,        // ✅ မဖြစ်မနေ - {{time}}
                     to_email: email
                 }
             })
         });
         
-        console.log('[EMAIL] Sent to:', email, 'OTP:', otp, 'Status:', response.status);
+        const result = await response.text();
+        console.log('[EMAIL] Response Status:', response.status);
+        console.log('[EMAIL] Response Body:', result);
+        
         return response.ok;
     } catch(e) {
         console.error('[EMAIL ERROR]', e.message);
+        console.error('[EMAIL ERROR] Stack:', e.stack);
         return false;
     }
 }
+
 // ==================== QR CODE DECODE ====================
 app.post('/api/decode_qr', async (req, res) => {
     const { image } = req.body;
