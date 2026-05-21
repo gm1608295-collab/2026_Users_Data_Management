@@ -627,12 +627,6 @@ async function sendOTPEmail(email, username, otp) {
         });
         
         console.log('[EMAIL] Sending OTP to:', email);
-        console.log('[EMAIL] Template Params:', {
-            to_name: username,
-            passcode: otp,      // ✅ Template မှာ {{passcode}} သုံးထားလို့
-            time: timeStr,       // ✅ Template မှာ {{time}} သုံးထားလို့
-            to_email: email
-        });
         
         const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
             method: 'POST',
@@ -640,28 +634,23 @@ async function sendOTPEmail(email, username, otp) {
             body: JSON.stringify({
                 service_id: 'service_yzbrpyo',
                 template_id: 'template_5710cu9',
-                user_id: 'nF2fI5wfIsUrU30p6hx3g',
+                user_id: 'Ep-S4Yg0Rjc2cYph4_-ev',  // ✅ Private Key ထည့်ပါ
                 template_params: {
                     to_name: username,
-                    passcode: otp,       // ✅ မဖြစ်မနေ - {{passcode}}
-                    time: timeStr,        // ✅ မဖြစ်မနေ - {{time}}
+                    passcode: otp,
+                    time: timeStr,
                     to_email: email
                 }
             })
         });
         
-        const result = await response.text();
         console.log('[EMAIL] Response Status:', response.status);
-        console.log('[EMAIL] Response Body:', result);
-        
         return response.ok;
     } catch(e) {
         console.error('[EMAIL ERROR]', e.message);
-        console.error('[EMAIL ERROR] Stack:', e.stack);
         return false;
     }
 }
-
 // ==================== QR CODE DECODE ====================
 app.post('/api/decode_qr', async (req, res) => {
     const { image } = req.body;
