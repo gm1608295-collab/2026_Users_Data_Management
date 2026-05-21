@@ -6,6 +6,7 @@
     <title>SOLO M Game Shop - Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <style>
         :root {
             --bg: #060a18;
@@ -702,7 +703,7 @@ function showQRUploadModal() {
         <div style="background:#1a1f4b;border-radius:14px;padding:20px;width:90%;max-width:360px;text-align:center" onclick="event.stopPropagation()">
             <h3 style="color:#f39c12;margin-bottom:10px">📱 QR Code Login</h3>
             <p style="font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:12px">
-                Register လုပ်စဉ်က ရရှိခဲ့သော QR Code ကို Upload လုပ်ပါ
+                Register လုပ်စဉ်က ရရှိခဲ့သော QR Code ကို Upload လုပ်ပြီးဝင်ရောက်ပါ
             </p>
             <input type="file" id="qrImageUpload" accept="image/*" style="width:100%;padding:10px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;margin-bottom:10px" onchange="readQRImage(this)">
             <div id="qrResult" style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:8px"></div>
@@ -720,29 +721,64 @@ async function readQRImage(input) {
     document.getElementById('qrResult').innerHTML = '⏳ Reading QR Code...';
     
     try {
-        var reader = new FileReader();
-        reader.onload = async function(e) {
-            var base64 = e.target.result;
-            var r = await fetch('/api/decode_qr', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: base64 })
-            });
-            var d = await r.json();
+        // Create image element from file
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        
+        img.onload = async function() {
+            // Create canvas to get pixel data
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
             
-            if (d.success && d.data) {
-                processQRLogin(d.data);
-                document.getElementById('qrResult').innerHTML = '✅ QR Code read successfully!';
+            // Get image data
+            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            
+            // Use jsQR library to decode
+            if (typeof jsQR !== 'undefined') {
+                var code = jsQR(imageData.data, canvas.width, canvas.height);
+                
+                if (code && code.data) {
+                    processQRLogin(code.data);
+                    document.getElementById('qrResult').innerHTML = '✅ QR Code read successfully!';
+                } else {
+                    document.getElementById('qrResult').innerHTML = '❌ No QR Code found in image';
+                }
             } else {
-                document.getElementById('qrResult').innerHTML = '❌ Could not read QR Code';
+                // Fallback: try server-side
+                var reader = new FileReader();
+                reader.onload = async function(e) {
+                    var r = await fetch('/api/decode_qr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: e.target.result })
+                    });
+                    var d = await r.json();
+                    
+                    if (d.success) {
+                        document.getElementById('qrResult').innerHTML = '✅ Image uploaded! Click Scan QR to decode.';
+                    } else {
+                        document.getElementById('qrResult').innerHTML = '❌ Error processing image';
+                    }
+                };
+                reader.readAsDataURL(file);
             }
+            
+            URL.revokeObjectURL(url);
         };
-        reader.readAsDataURL(file);
+        
+        img.onerror = function() {
+            document.getElementById('qrResult').innerHTML = '❌ Invalid image file';
+        };
+        
+        img.src = url;
+        
     } catch(e) {
         document.getElementById('qrResult').innerHTML = '❌ Error reading image';
     }
 }
-
 // ==================== QR RECOVERY GUIDE ====================
 function showQRRecoveryGuide() {
     var overlay = document.createElement('div');
