@@ -132,18 +132,23 @@ async function trackLogin(userId, username, loginType, req) {
     }
 }
 // ==================== CONFIG ====================
-const BOT_TOKEN = '8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE';
-const CHAT_ID = '8315028972';
-const ONESIGNAL_APP_ID = '1943a7fe-8313-4ce2-b420-0a0e2b59fcff';
-const ONESIGNAL_API_KEY = 'os_v2_app_dfb2p7udcngofnbabihcwwp476agyhbcncxexnu2gu2xsbo4uww6tynm5fuwze77wvka65febiapxnwwpoczsbtcq56a3e4a3thkskq';
-const TIKTOK_CLIENT_KEY = 'awlwv9kkzin9m9pv';
-const TIKTOK_CLIENT_SECRET = '3QDthZspcNC7eHZNCA5ofYAs3CpACLX7';
-const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const CHAT_ID = process.env.CHAT_ID;
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
+const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
+const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY;
+const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET;
+const TIKTOK_REDIRECT = process.env.TIKTOK_REDIRECT || 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://two026-users-data-management.onrender.com/auth/google/callback';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
+const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
+
+// EmailJS Config
+const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
+const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
+const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY;
 
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 function sendOnesignal(msg, sound, title) { 
@@ -619,104 +624,35 @@ app.post('/api/otp/verify', async (req, res) => {
 // ✅ Send OTP Email via EmailJS
 async function sendOTPEmail(email, username, otp) {
     try {
-
         const expiryTime = new Date(Date.now() + 90 * 1000);
-
-        const timeStr = expiryTime.toLocaleTimeString('my-MM', {
-            hour: '2-digit',
+        const timeStr = expiryTime.toLocaleTimeString('my-MM', { 
+            hour: '2-digit', 
             minute: '2-digit',
             second: '2-digit'
         });
-
-        console.log('[EMAIL] Sending OTP to:', email);
-
-        const response = await fetch(
-            'https://api.emailjs.com/api/v1.0/email/send',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-
-                body: JSON.stringify({
-                    service_id: 'service_yzbrpyo',
-                    template_id: 'template_5710cu9',
-
-                    // PUBLIC KEY
-                    user_id: 'rIkHpT0XCZk99qVy7',
-
-                    // PRIVATE KEY
-                    accessToken: 'Ep-S4Yg0Rjc2cYph4_-ev',
-
-                    template_params: {
-                        to_name: username,
-                        passcode: otp,
-                        time: timeStr,
-                        to_email: email
-                    }
-                })
-            }
-        );
-
-        const result = await response.text();
-
-        console.log('[EMAIL RESPONSE]', result);
-        console.log('[EMAIL STATUS]', response.status);
-
+        
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                service_id: EMAILJS_SERVICE_ID,
+                template_id: EMAILJS_TEMPLATE_ID,
+                user_id: EMAILJS_PRIVATE_KEY,
+                template_params: {
+                    to_name: username,
+                    passcode: otp,
+                    time: timeStr,
+                    to_email: email
+                }
+            })
+        });
+        
         return response.ok;
-
     } catch(e) {
-
         console.error('[EMAIL ERROR]', e.message);
-
         return false;
     }
 }
-// Check OTP Status (ကျန်ချိန် စစ်ဖို့)
-app.post('/api/otp/status', async (req, res) => {
-    const { email } = req.body;
-    
-    if (!email) {
-        return res.json({ success: false, message: 'Email required' });
-    }
-    
-    try {
-        const p = await getPool();
-        
-        // Find user
-        const user = await p.query("SELECT id FROM auth_users WHERE email=$1", [email]);
-        if (user.rows.length === 0) {
-            return res.json({ success: false, has_otp: false });
-        }
-        
-        const uid = user.rows[0].id;
-        
-        // Find latest unused OTP
-        const otp = await p.query(
-            "SELECT code, expires_at, created_at FROM otp_codes WHERE user_id=$1 AND used=false AND expires_at > NOW() ORDER BY id DESC LIMIT 1",
-            [uid]
-        );
-        
-        if (otp.rows.length === 0) {
-            return res.json({ success: true, has_otp: false, remaining_seconds: 0 });
-        }
-        
-        // Calculate remaining seconds
-        const expiresAt = new Date(otp.rows[0].expires_at);
-        const now = new Date();
-        const remainingSeconds = Math.max(0, Math.floor((expiresAt - now) / 1000));
-        
-        res.json({
-            success: true,
-            has_otp: true,
-            remaining_seconds: remainingSeconds
-        });
-        
-    } catch(e) {
-        console.error('[OTP STATUS ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
-});
 // ==================== QR CODE DECODE ====================
 app.post('/api/decode_qr', async (req, res) => {
     const { image } = req.body;
