@@ -613,56 +613,36 @@ app.post('/api/otp/verify', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ================= REQUEST OTP =================
+
 async function sendOTPEmail(email, username, otp) {
     try {
-
         const expiryTime = new Date(Date.now() + 90 * 1000);
-
         const timeStr = expiryTime.toLocaleTimeString('my-MM', {
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit'
         });
 
-        console.log('[EMAIL] Sending OTP to:', email);
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                service_id: 'service_3akzfls',
+                template_id: 'template_5710cu9',
+                user_id: 'rIkHpT0XCZk99qVy7',  // ✅ Public Key
+                template_params: {
+                    to_name: username,
+                    passcode: otp,
+                    time: timeStr,
+                    to_email: email
+                }
+            })
+        });
 
-        const response = await fetch(
-            'https://api.emailjs.com/api/v1.0/email/send',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-
-                body: JSON.stringify({
-                    service_id: 'service_3akzfls',
-                    template_id: 'template_5710cu9',
-
-                    // PUBLIC KEY
-                    user_id: 'rIkHpT0XCZk99qVy7',
-
-                    template_params: {
-                        to_name: username,
-                        passcode: otp,
-                        time: timeStr,
-                        to_email: email
-                    }
-                })
-            }
-        );
-
-        const result = await response.text();
-
-        console.log('[EMAIL RESPONSE]', result);
-        console.log('[EMAIL STATUS]', response.status);
-
+        console.log('[EMAIL] Status:', response.status);
         return response.ok;
-
     } catch(e) {
-
         console.error('[EMAIL ERROR]', e.message);
-
         return false;
     }
 }
