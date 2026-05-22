@@ -146,7 +146,6 @@ const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://two026-users-dat
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
 
-
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 function sendOnesignal(msg, sound, title) { 
     try {
@@ -508,73 +507,57 @@ app.post('/api/register', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ================= OTP REQUEST =================
+// Generate OTP
 app.post('/api/otp/request', async (req, res) => {
-
+    const { email } = req.body;
+    
+    if (!email) {
+        return res.json({ success: false, message: 'Email required' });
+    }
+    
     try {
-
-        const { email } = req.body;
-
-        if (!email) {
-            return res.json({
-                success: false,
-                message: 'Email required'
-            });
-        }
-
-        const pool = await getPool();
-
-        const user = await pool.query(
-            'SELECT * FROM auth_users WHERE email=$1',
-            [email]
-        );
-
+        const p = await getPool();
+        
+        // Find user
+        const user = await p.query("SELECT id, username FROM auth_users WHERE email=$1 AND login_type='local'", [email]);
+        
         if (user.rows.length === 0) {
-
-            return res.json({
-                success: false,
-                message: 'Email not found'
-            });
+            return res.json({ success: false, message: 'ဒီ Email ဖြင့် အကောင့်မတွေ့ပါ' });
         }
-
-        // OTP Generate
-        const otp = Math.floor(
-            100000 + Math.random() * 900000
-        ).toString();
-
-        console.log('OTP:', otp);
-
-        // Expire Time
-        const expiresAt = new Date(
-            Date.now() + 90 * 1000
+        
+        const uid = user.rows[0].id;
+        
+        // OTP Rate Limit - 30 seconds
+        const recentOtp = await p.query(
+            "SELECT * FROM otp_codes WHERE user_id=$1 AND created_at > NOW() - INTERVAL '30 seconds'",
+            [uid]
         );
-
-        // Save OTP
-        await pool.query(`
-            INSERT INTO otp_codes
-            (user_id, code, expires_at)
-            VALUES ($1,$2,$3)
-        `, [
-            user.rows[0].id,
-            otp,
-            expiresAt
-        ]);
-
-        // SUCCESS
-        return res.json({
-            success: true,
-            message: 'OTP Sent',
-            otp: otp
-        });
-
-    } catch(err) {
-
-        console.log(err);
-
-        return res.json({
-            success: false,
-            message: 'Server Error'
-        });
+        
+        if (recentOtp.rows.length > 0) {
+            return res.json({ success: false, message: 'စက္ကန့် ၃၀ အတွင်း OTP ပြန်တောင်းနိုင်ပါမည်' });
+        }
+        
+        // Generate OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Save OTP (expires in 90 seconds)
+        await p.query(
+            "INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '90 seconds')",
+            [uid, otp]
+        );
+        
+        // Send OTP via EmailJS
+        const emailSent = await sendOTPEmail(email, user.rows[0].username, otp);
+        
+        if (emailSent) {
+            res.json({ success: true, message: 'OTP ကုဒ် သင့် Email သို့ ပို့ပြီးပါပြီ (၉၀ စက္ကန့်အတွင်း အသုံးပြုပါ)' });
+        } else {
+            res.json({ success: false, message: 'Email ပို့ရန် မအောင်မြင်ပါ' });
+        }
+        
+    } catch(e) {
+        console.error('[OTP REQUEST ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
     }
 });
 // Verify OTP + Login
