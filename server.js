@@ -515,60 +515,12 @@ app.post('/api/register', async (req, res) => {
 // ================= OTP REQUEST =================
 app.post('/api/otp/request', async (req, res) => {
 
-    console.log('OTP API HIT');
+    console.log('OTP ROUTE WORKING');
 
-    try {
-
-        const { email } = req.body;
-
-        console.log('EMAIL:', email);
-
-        if (!email) {
-            return res.json({
-                success: false,
-                message: 'Email required'
-            });
-        }
-
-        const otp = Math.floor(
-            100000 + Math.random() * 900000
-        ).toString();
-
-        console.log('OTP:', otp);
-
-        // TEST EMAIL ONLY
-        const ok = await sendOTPEmail(
-            email,
-            'TestUser',
-            otp
-        );
-
-        console.log('EMAIL RESULT:', ok);
-
-        if (ok) {
-
-            return res.json({
-                success: true,
-                message: 'OTP Sent'
-            });
-
-        } else {
-
-            return res.json({
-                success: false,
-                message: 'Connection Error'
-            });
-        }
-
-    } catch (e) {
-
-        console.log('OTP ERROR:', e);
-
-        return res.json({
-            success: false,
-            message: 'Server Error'
-        });
-    }
+    return res.json({
+        success: true,
+        message: 'Backend Working'
+    });
 });
 // Verify OTP + Login
 app.post('/api/otp/verify', async (req, res) => {
