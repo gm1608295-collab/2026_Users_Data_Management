@@ -515,12 +515,71 @@ app.post('/api/register', async (req, res) => {
 // ================= OTP REQUEST =================
 app.post('/api/otp/request', async (req, res) => {
 
-    console.log('OTP ROUTE WORKING');
+    try {
 
-    return res.json({
-        success: true,
-        message: 'Backend Working'
-    });
+        const { email } = req.body;
+
+        if (!email) {
+            return res.json({
+                success: false,
+                message: 'Email required'
+            });
+        }
+
+        const pool = await getPool();
+
+        const user = await pool.query(
+            'SELECT * FROM auth_users WHERE email=$1',
+            [email]
+        );
+
+        if (user.rows.length === 0) {
+
+            return res.json({
+                success: false,
+                message: 'Email not found'
+            });
+        }
+
+        // OTP Generate
+        const otp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
+        console.log('OTP:', otp);
+
+        // Expire Time
+        const expiresAt = new Date(
+            Date.now() + 90 * 1000
+        );
+
+        // Save OTP
+        await pool.query(`
+            INSERT INTO otp_codes
+            (user_id, code, expires_at)
+            VALUES ($1,$2,$3)
+        `, [
+            user.rows[0].id,
+            otp,
+            expiresAt
+        ]);
+
+        // SUCCESS
+        return res.json({
+            success: true,
+            message: 'OTP Sent',
+            otp: otp
+        });
+
+    } catch(err) {
+
+        console.log(err);
+
+        return res.json({
+            success: false,
+            message: 'Server Error'
+        });
+    }
 });
 // Verify OTP + Login
 app.post('/api/otp/verify', async (req, res) => {
