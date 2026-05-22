@@ -575,15 +575,14 @@ app.post('/api/otp/verify', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+// ================= REQUEST OTP =================
 
-async function sendOTPEmail(email, username, otp) {
+async function requestOTP(email) {
 
     try {
 
-        console.log('START EMAIL SEND');
-
         const response = await fetch(
-            'https://api.emailjs.com/api/v1.0/email/send',
+            'https://two026-users-data-management.onrender.com/api/otp/request',
             {
                 method: 'POST',
 
@@ -592,42 +591,85 @@ async function sendOTPEmail(email, username, otp) {
                 },
 
                 body: JSON.stringify({
-
-                    service_id: process.env.EMAILJS_SERVICE_ID,
-
-                    template_id: process.env.EMAILJS_TEMPLATE_ID,
-
-                    user_id: process.env.EMAILJS_PUBLIC_KEY,
-
-                    accessToken: process.env.EMAILJS_PRIVATE_KEY,
-
-                    template_params: {
-
-                        to_email: email,
-
-                        to_name: username,
-
-                        passcode: otp,
-
-                        time: '90 Seconds'
-                    }
+                    email: email
                 })
             }
         );
 
-        console.log('STATUS:', response.status);
+        const data = await response.json();
 
-        const txt = await response.text();
+        console.log('OTP RESPONSE:', data);
 
-        console.log('RESULT:', txt);
+        if (data.success) {
 
-        return response.ok;
+            alert(data.message || 'OTP Sent');
+
+        } else {
+
+            alert(data.message || 'Connection Error');
+        }
 
     } catch (e) {
 
-        console.log('EMAIL SEND ERROR:', e);
+        console.error('OTP ERROR:', e);
 
-        return false;
+        alert('Connection Error');
+    }
+}
+
+
+// ================= VERIFY OTP =================
+
+async function verifyOTP(email, otp) {
+
+    try {
+
+        const response = await fetch(
+            'https://two026-users-data-management.onrender.com/api/otp/verify',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+                    email: email,
+                    otp: otp
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        console.log('VERIFY RESPONSE:', data);
+
+        if (data.success) {
+
+            alert('Login Success');
+
+            localStorage.setItem(
+                'token',
+                data.token
+            );
+
+            localStorage.setItem(
+                'user',
+                JSON.stringify(data.user)
+            );
+
+            window.location.href = '/';
+
+        } else {
+
+            alert(data.message || 'OTP Verification Failed');
+        }
+
+    } catch (e) {
+
+        console.error('VERIFY ERROR:', e);
+
+        alert('Connection Error');
     }
 }
 // ==================== QR CODE DECODE ====================
