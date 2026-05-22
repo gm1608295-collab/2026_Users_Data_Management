@@ -1349,8 +1349,22 @@ function toggleRegister(){
 // ==================== USER GUIDE ====================
 function openUserGuide(){ document.getElementById('userGuideModal').classList.add('active'); }
 function closeUserGuide(){ document.getElementById('userGuideModal').classList.remove('active'); }
+// ==================== OTP SYSTEM ====================
+let otpCountdown = null;
+let otpEmail = '';
+let otpSeconds = 90;
 
-    async function handleLogin() {
+// OTP Modal Elements
+const otpModal = document.getElementById('otpModal');
+const otpHiddenInput = document.getElementById('otpHiddenInput');
+const otpDigits = document.querySelectorAll('.otp-digit');
+const otpTimerRing = document.getElementById('otpTimerRing');
+const btnVerifyOTP = document.getElementById('btnVerifyOTP');
+const btnResendOTP = document.getElementById('btnResendOTP');
+const otpErrorMsg = document.getElementById('otpErrorMsg');
+
+// Login Button Click
+async function handleLogin() {
     const e = document.getElementById('loginEmail').value.trim();
     const p = document.getElementById('loginPassword').value.trim();
     
@@ -1359,9 +1373,10 @@ function closeUserGuide(){ document.getElementById('userGuideModal').classList.r
     
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
     
     try {
+        // Step 1: Check Password
         const r = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1369,16 +1384,53 @@ function closeUserGuide(){ document.getElementById('userGuideModal').classList.r
         });
         const d = await r.json();
         
-        if (d.success) {
-            // ✅ Login Success - Directly go to dashboard
-            localStorage.setItem('auth_token', d.token);
-            localStorage.setItem('user', JSON.stringify(d.user));
-            showToast('✅ Login success!');
-            setTimeout(() => { window.location.href = '/dashboard'; }, 500);
-        } else {
+        if (!d.success) {
             document.getElementById('forgetPassword').style.display = 'block';
             showToast(d.message || 'Invalid credentials', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            return;
         }
+        
+        // Step 2: Password OK - Save email
+        otpEmail = e;
+        
+        // Check if OTP already exists (for timer continuation)
+        const statusRes = await fetch('/api/otp/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: e })
+        });
+        const statusData = await statusRes.json();
+        
+        // If OTP exists and hasn't expired, show modal with remaining time
+        if (statusData.has_otp && statusData.remaining_seconds > 0) {
+            otpSeconds = statusData.remaining_seconds;
+            showOTPModal(otpSeconds);
+            showToast('⚠️ OTP ပြီးခဲ့တဲ့အတိုင်း ဆက်သုံးပါ');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            return;
+        }
+        
+        // Step 3: Request new OTP
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending OTP...';
+        
+        const otpRes = await fetch('/api/otp/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: e })
+        });
+        const otpData = await otpRes.json();
+        
+        if (otpData.success) {
+            otpSeconds = 90;
+            showOTPModal(otpSeconds);
+            showToast('✅ OTP sent to your email!');
+        } else {
+            showToast(otpData.message || 'Failed to send OTP', 'error');
+        }
+        
     } catch(er) {
         showToast('Connection error', 'error');
     }
@@ -1386,6 +1438,178 @@ function closeUserGuide(){ document.getElementById('userGuideModal').classList.r
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
 }
+
+// Show OTP Modal
+function showOTPModal(startSeconds) {
+    clearOTPDisplay();
+    otpErrorMsg.classList.remove('show');
+    otpSeconds = startSeconds || 90;
+    otpTimerRing.classList.remove('warning');
+    otpTimerRing.textContent = otpSeconds;
+    btnVerifyOTP.disabled = true;
+    btnResendOTP.disabled = true;
+    
+    otpModal.classList.add('active');
+    
+    // ✅ Focus input for keyboard
+    setTimeout(() => {
+        otpHiddenInput.focus();
+    }, 400);
+    
+    startOTPTimer();
+}
+
+// ✅ Hidden Input → OTP Display Boxes (Keyboard works)
+otpHiddenInput.addEventListener('input', function() {
+    const val = this.value.replace(/[^0-9]/g, '').slice(0, 6);
+    this.value = val;
+    
+    updateOTPDisplay(val);
+    btnVerifyOTP.disabled = val.length !== 6;
+    otpErrorMsg.classList.remove('show');
+});
+
+function updateOTPDisplay(val) {
+    otpDigits.forEach((digit, i) => {
+        if (val[i]) {
+            digit.textContent = val[i];
+            digit.classList.add('filled');
+        } else {
+            digit.textContent = '';
+            digit.classList.remove('filled');
+        }
+    });
+}
+
+function clearOTPDisplay() {
+    otpHiddenInput.value = '';
+    otpDigits.forEach(d => {
+        d.textContent = '';
+        d.classList.remove('filled');
+    });
+}
+
+// ✅ Timer - 90 seconds with warning at 30s
+function startOTPTimer() {
+    clearInterval(otpCountdown);
+    btnResendOTP.disabled = true;
+    
+    otpCountdown = setInterval(() => {
+        otpSeconds--;
+        otpTimerRing.textContent = otpSeconds;
+        
+        if (otpSeconds <= 30) {
+            otpTimerRing.classList.add('warning');
+        }
+        
+        if (otpSeconds <= 0) {
+            clearInterval(otpCountdown);
+            otpTimerRing.textContent = '0';
+            btnResendOTP.disabled = false;  // ✅ Timer ends → Resend enabled
+            btnVerifyOTP.disabled = true;
+            showToast('❌ OTP expired. Request new one.', 'error');
+        }
+    }, 1000);
+}
+
+// Verify OTP
+async function verifyOTP() {
+    const otp = otpHiddenInput.value.trim();
+    
+    if (!otp || otp.length !== 6) {
+        otpErrorMsg.textContent = '❌ 6-Digit OTP ဖြည့်ပါ';
+        otpErrorMsg.classList.add('show');
+        return;
+    }
+    
+    btnVerifyOTP.disabled = true;
+    btnVerifyOTP.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+    
+    try {
+        const r = await fetch('/api/otp/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: otpEmail, otp: otp })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            clearInterval(otpCountdown);
+            localStorage.setItem('auth_token', d.token);
+            localStorage.setItem('user', JSON.stringify(d.user));
+            showToast('✅ Login success!');
+            setTimeout(() => { window.location.href = '/dashboard'; }, 500);
+        } else {
+            otpErrorMsg.textContent = '❌ OTP မှားယွင်းနေပါသည်';
+            otpErrorMsg.classList.add('show');
+            clearOTPDisplay();
+            otpHiddenInput.focus();
+        }
+    } catch(e) {
+        showToast('Connection error', 'error');
+    }
+    
+    btnVerifyOTP.disabled = false;
+    btnVerifyOTP.innerHTML = '<i class="fas fa-check-circle"></i> Verify & Login';
+}
+
+// ✅ Resend OTP (Timer ends မှ နှိပ်လို့ရ)
+async function resendOTP() {
+    btnResendOTP.disabled = true;
+    btnResendOTP.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    clearOTPDisplay();
+    otpErrorMsg.classList.remove('show');
+    
+    try {
+        const r = await fetch('/api/otp/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: otpEmail })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            showToast('✅ OTP resent!');
+            otpSeconds = 90;
+            otpTimerRing.classList.remove('warning');
+            otpTimerRing.textContent = otpSeconds;
+            clearInterval(otpCountdown);
+            startOTPTimer();
+            otpHiddenInput.focus();
+        } else {
+            showToast(d.message || 'Failed', 'error');
+            btnResendOTP.disabled = false;
+        }
+    } catch(e) {
+        showToast('Connection error', 'error');
+        btnResendOTP.disabled = false;
+    }
+    
+    btnResendOTP.innerHTML = '🔄 Resend OTP';
+}
+
+// Cancel OTP (Modal close, timer continues on server)
+function cancelOTP() {
+    clearInterval(otpCountdown);
+    otpModal.classList.remove('active');
+    clearOTPDisplay();
+    otpErrorMsg.classList.remove('show');
+}
+
+// Auto-paste OTP
+document.addEventListener('paste', function(e) {
+    if (!otpModal.classList.contains('active')) return;
+    
+    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+    const otpMatch = pastedText.match(/\d{6}/);
+    
+    if (otpMatch) {
+        e.preventDefault();
+        otpHiddenInput.value = otpMatch[0];
+        updateOTPDisplay(otpMatch[0]);
+        btnVerifyOTP.disabled = false;
+    }
+});
 // ==================== REGISTER ====================
 async function handleRegister(){
     const un = document.getElementById('regUsername').value.trim();
