@@ -145,12 +145,6 @@ const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://two026-users-dat
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 
-// EmailJS Config
-const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
-const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
-const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
-const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY;
-
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 function sendOnesignal(msg, sound, title) { 
     try {
