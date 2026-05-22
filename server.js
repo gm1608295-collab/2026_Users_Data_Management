@@ -631,13 +631,15 @@ async function sendOTPEmail(email, username, otp) {
             second: '2-digit'
         });
         
+        console.log('[EMAIL] Sending OTP to:', email);
+        
         const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                service_id: EMAILJS_SERVICE_ID,
-                template_id: EMAILJS_TEMPLATE_ID,
-                user_id: EMAILJS_PRIVATE_KEY,
+                service_id: process.env.EMAILJS_SERVICE_ID || 'service_3akzfls',
+                template_id: process.env.EMAILJS_TEMPLATE_ID || 'template_5710cu9',
+                user_id: process.env.EMAILJS_PRIVATE_KEY || 'Ep-S4Yg0Rjc2cYph4_-ev',
                 template_params: {
                     to_name: username,
                     passcode: otp,
@@ -647,6 +649,7 @@ async function sendOTPEmail(email, username, otp) {
             })
         });
         
+        console.log('[EMAIL] Response Status:', response.status);
         return response.ok;
     } catch(e) {
         console.error('[EMAIL ERROR]', e.message);
