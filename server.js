@@ -642,9 +642,6 @@ async function sendOTPEmail(email, username, otp) {
                     // PUBLIC KEY
                     user_id: 'rIkHpT0XCZk99qVy7',
 
-                    // PRIVATE KEY
-                    accessToken: 'Ep-S4Yg0Rjc2cYph4_-ev',
-
                     template_params: {
                         to_name: username,
                         passcode: otp,
