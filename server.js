@@ -131,20 +131,24 @@ async function trackLogin(userId, username, loginType, req) {
         console.error('[LOGIN TRACK ERROR]', e.message);
     }
 }
-
 // ==================== CONFIG ====================
-const BOT_TOKEN = '8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE';
-const CHAT_ID = '8315028972';
-const ONESIGNAL_APP_ID = '1943a7fe-8313-4ce2-b420-0a0e2b59fcff';
-const ONESIGNAL_API_KEY = 'os_v2_app_dfb2p7udcngofnbabihcwwp476agyhbcncxexnu2gu2xsbo4uww6tynm5fuwze77wvka65febiapxnwwpoczsbtcq56a3e4a3thkskq';
-const TIKTOK_CLIENT_KEY = 'awlwv9kkzin9m9pv';
-const TIKTOK_CLIENT_SECRET = '3QDthZspcNC7eHZNCA5ofYAs3CpACLX7';
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const CHAT_ID = process.env.CHAT_ID;
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
+const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
+const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
+const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY;
+const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET;
 const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://two026-users-data-management.onrender.com/auth/google/callback';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
+
+// EmailJS Config
+const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
+const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
+const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
 
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 function sendOnesignal(msg, sound, title) { 
@@ -676,15 +680,13 @@ async function sendOTPEmail(email, username, otp) {
             second: '2-digit'
         });
 
-        console.log('[EMAIL] Sending OTP to:', email);
-
         const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                service_id: 'service_3akzfls',
-                template_id: 'template_5710cu9',
-                user_id: 'rIkHpT0XCZk99qVy7',
+                service_id: EMAILJS_SERVICE_ID,
+                template_id: EMAILJS_TEMPLATE_ID,
+                user_id: EMAILJS_PUBLIC_KEY,
                 template_params: {
                     to_name: username,
                     passcode: otp,
@@ -694,7 +696,6 @@ async function sendOTPEmail(email, username, otp) {
             })
         });
 
-        console.log('[EMAIL] Status:', response.status);
         return response.ok;
     } catch(e) {
         console.error('[EMAIL ERROR]', e.message);
