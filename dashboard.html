@@ -121,6 +121,149 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
 .s-item i{font-size:16px;color:#f39c12;width:22px;text-align:center}
 .sidebar-logout-area{padding:12px 15px;border-top:1px solid rgba(255,255,255,0.1);flex-shrink:0}
 .logout-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:rgba(231,76,60,0.2);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer}
+  /* ========== VIDEO PLAYER WITH LED BORDER ========== */
+.video-container {
+    position: relative;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    border: none;
+    margin: 8px 0;
+}
+
+/* LED Border Animation */
+.video-container::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, 
+        #ff0000, #ff7300, #fffb00, #48ff00, 
+        #00ffd5, #002bff, #7a00ff, #ff00c8, 
+        #ff0000
+    );
+    background-size: 400% 400%;
+    z-index: 0;
+    border-radius: 14px;
+    animation: ledBorder 3s linear infinite;
+}
+
+@keyframes ledBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Inner black background */
+.video-container::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    background: #000;
+    border-radius: 10px;
+    z-index: 0;
+}
+
+/* Video element styling */
+.video-container video {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-height: 250px;
+    border-radius: 8px;
+    display: block;
+    background: #000;
+    cursor: pointer;
+}
+
+.video-container iframe {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 250px;
+    border-radius: 8px;
+    border: none;
+    display: block;
+}
+
+/* Video Controls Overlay */
+.video-controls-overlay {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 25px;
+    padding: 6px 16px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.video-container:hover .video-controls-overlay,
+.video-container:active .video-controls-overlay {
+    opacity: 1;
+}
+
+/* Control Buttons */
+.video-ctrl-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.video-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #f39c12;
+}
+
+.video-ctrl-btn.sound-btn {
+    font-size: 16px;
+}
+
+/* Speed Badge */
+.video-speed-badge {
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    background: rgba(243, 156, 18, 0.3);
+    padding: 3px 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    min-width: 32px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.video-speed-badge:hover {
+    background: rgba(243, 156, 18, 0.6);
+}
+
+/* Separator */
+.video-ctrl-sep {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.2);
+}
    </style>
 </head>
 <body>
@@ -196,16 +339,38 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
                 <div class="notice-time" id="noticeTime"></div>
             </div>
 
-            <!-- Video Player -->
-            <div class="video-container" id="videoContainer" style="display:none">
-                <video id="dashboardVideo" controls playsinline webkit-playsinline muted autoplay style="display:none"></video>
-                <iframe id="dashboardYoutube" style="display:none" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
-            </div>
-            
-            <div class="sec-note"><i class="fas fa-shield-alt"></i> <strong>System Security:</strong> All data is encrypted. Use <strong>☰ Menu</strong> to navigate.</div>
-        </div>
+            <!-- Video Player with LED Border -->
+<div class="video-container" id="videoContainer" style="display:none">
+    <video id="dashboardVideo" controls playsinline webkit-playsinline muted autoplay style="display:none"></video>
+    <iframe id="dashboardYoutube" style="display:none" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
+    
+    <!-- Custom Controls -->
+    <div class="video-controls-overlay" id="videoControls">
+        <!-- Speed Button -->
+        <span class="video-speed-badge" id="speedBadge" onclick="cycleSpeed()">1x</span>
         
-        <div class="footer">© 2026 SOLO M Game Shop | Contact: @Solo_m28</div>
+        <span class="video-ctrl-sep"></span>
+        
+        <!-- Sound Button -->
+        <button class="video-ctrl-btn sound-btn" id="soundBtn" onclick="toggleSound()">
+            <i class="fas fa-volume-up"></i>
+        </button>
+        
+        <span class="video-ctrl-sep"></span>
+        
+        <!-- Settings Button -->
+        <button class="video-ctrl-btn" onclick="openVideoSettings()">
+            <i class="fas fa-cog"></i>
+        </button>
+        
+        <!-- CC Button -->
+        <button class="video-ctrl-btn" id="ccBtn" onclick="toggleCC()">
+            <i class="fas fa-closed-captioning"></i>
+        </button>
+    </div>
+</div>
+        
+        <div class="footer">© 2026 SOLO M Game Shop Security System And USER Data Management.All right reserved| Contact: @Solo_m28</div>
     </div>
 
     <!-- Confirm Logout Modal -->
@@ -315,11 +480,16 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     function renderNotice(d){const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
     async function loadNotice(){const ca=localStorage.getItem('noticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderNotice(d)}catch(e){}}try{const r=await fetch("/api/notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('noticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('noticeCache',JSON.stringify(cn));renderNotice(cn)}}else{localStorage.removeItem('noticeCache')}}catch(e){}}
 
-    // ==================== VIDEO PLAYER (FIXED) ====================
+    // ==================== VIDEO PLAYER WITH CUSTOM CONTROLS ====================
+let videoSpeed = 1;
+let isMuted = true;
+let isCC = false;
+
 async function loadDashboardVideo() {
     const c = document.getElementById('videoContainer');
     const v = document.getElementById('dashboardVideo');
     const yt = document.getElementById('dashboardYoutube');
+    const controls = document.getElementById('videoControls');
     
     // Don't reload if already playing
     if (v.src && !v.paused && v.currentTime > 0) return;
@@ -328,44 +498,120 @@ async function loadDashboardVideo() {
     try {
         const r = await fetch('/api/video');
         const d = await r.json();
-        console.log('[VIDEO] API Response:', d);
         
         if (d.success && d.url) {
             c.style.display = 'block';
+            controls.style.display = 'flex';
             
             if (d.isYouTube) {
-                console.log('[VIDEO] YouTube detected');
                 v.style.display = 'none';
                 yt.style.display = 'block';
                 yt.src = d.url;
             } else {
-                console.log('[VIDEO] Direct video detected');
                 yt.style.display = 'none';
                 v.style.display = 'block';
                 v.src = d.url;
-                v.muted = true;
-                v.autoplay = true;
+                v.muted = isMuted;
+                v.playbackRate = videoSpeed;
                 v.playsInline = true;
                 v.setAttribute('playsinline', '');
-                v.setAttribute('webkit-playsinline', '');
                 v.load();
                 
-                // Force play
                 setTimeout(() => {
                     v.play().catch(e => {
-                        console.log('[VIDEO] Play failed:', e.message);
-                        v.controls = true;
+                        console.log('[VIDEO] Play failed, enabling controls');
                     });
                 }, 500);
+                
+                // Update sound icon
+                updateSoundIcon();
             }
         } else {
-            console.log('[VIDEO] No video found');
             c.style.display = 'none';
+            if (controls) controls.style.display = 'none';
         }
     } catch(e) {
         console.error('[VIDEO] Error:', e.message);
     }
 }
+
+// Cycle Speed: 1x → 1.5x → 2x → 0.5x → 1x
+function cycleSpeed() {
+    const v = document.getElementById('dashboardVideo');
+    const badge = document.getElementById('speedBadge');
+    
+    const speeds = [1, 1.5, 2, 0.5];
+    const currentIdx = speeds.indexOf(videoSpeed);
+    const nextIdx = (currentIdx + 1) % speeds.length;
+    
+    videoSpeed = speeds[nextIdx];
+    
+    if (v) v.playbackRate = videoSpeed;
+    if (badge) badge.textContent = videoSpeed + 'x';
+}
+
+// Toggle Sound (Mute/Unmute)
+function toggleSound() {
+    const v = document.getElementById('dashboardVideo');
+    isMuted = !isMuted;
+    
+    if (v) v.muted = isMuted;
+    updateSoundIcon();
+}
+
+function updateSoundIcon() {
+    const btn = document.getElementById('soundBtn');
+    if (!btn) return;
+    
+    if (isMuted) {
+        btn.innerHTML = '<i class="fas fa-volume-mute"></i>';
+        btn.style.color = '#e74c3c';
+    } else {
+        btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+        btn.style.color = '#fff';
+    }
+}
+
+// Toggle CC (Closed Captions)
+function toggleCC() {
+    const v = document.getElementById('dashboardVideo');
+    const btn = document.getElementById('ccBtn');
+    
+    if (!v) return;
+    
+    isCC = !isCC;
+    
+    // Enable/Disable text tracks
+    if (v.textTracks && v.textTracks.length > 0) {
+        for (let i = 0; i < v.textTracks.length; i++) {
+            v.textTracks[i].mode = isCC ? 'showing' : 'hidden';
+        }
+    }
+    
+    if (isCC) {
+        btn.style.color = '#f39c12';
+    } else {
+        btn.style.color = '#fff';
+    }
+}
+
+// Video Settings
+function openVideoSettings() {
+    showToast('⚙️ Video settings coming soon');
+}
+
+// Click video to toggle controls
+document.addEventListener('DOMContentLoaded', function() {
+    const videoContainer = document.getElementById('videoContainer');
+    if (videoContainer) {
+        videoContainer.addEventListener('click', function(e) {
+            const controls = document.getElementById('videoControls');
+            if (controls) {
+                controls.style.opacity = controls.style.opacity === '1' ? '0' : '1';
+            }
+        });
+    }
+});
     // ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess() {
     try {
