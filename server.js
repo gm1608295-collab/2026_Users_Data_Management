@@ -627,7 +627,8 @@ async function sendOTPEmail(email, username, otp) {
 
     try {
 
-        // OTP expire time (90 sec)
+        // ================= EXPIRE TIME =================
+
         const expiryTime = new Date(Date.now() + 90 * 1000);
 
         const timeStr = expiryTime.toLocaleTimeString('en-US', {
@@ -638,7 +639,39 @@ async function sendOTPEmail(email, username, otp) {
 
         console.log('[EMAIL] Sending OTP to:', email);
 
-        // ================= SEND EMAIL =================
+        // ================= REQUEST DATA =================
+
+        const payload = {
+
+            service_id: process.env.EMAILJS_SERVICE_ID,
+
+            template_id: process.env.EMAILJS_TEMPLATE_ID,
+
+            user_id: process.env.EMAILJS_PUBLIC_KEY,
+
+            accessToken: process.env.EMAILJS_PRIVATE_KEY,
+
+            template_params: {
+
+                to_email: email,
+
+                to_name: username,
+
+                passcode: otp,
+
+                time: timeStr
+            }
+        };
+
+        console.log('[EMAIL PAYLOAD]', payload);
+
+        // ================= FETCH =================
+
+        const controller = new AbortController();
+
+        const timeout = setTimeout(() => {
+            controller.abort();
+        }, 10000);
 
         const response = await fetch(
             'https://api.emailjs.com/api/v1.0/email/send',
@@ -649,35 +682,15 @@ async function sendOTPEmail(email, username, otp) {
                     'Content-Type': 'application/json'
                 },
 
-                body: JSON.stringify({
+                body: JSON.stringify(payload),
 
-                    // ✅ EmailJS Config
-                    service_id: process.env.EMAILJS_SERVICE_ID,
-
-                    template_id: process.env.EMAILJS_TEMPLATE_ID,
-
-                    // ✅ PUBLIC KEY
-                    user_id: process.env.EMAILJS_PUBLIC_KEY,
-
-                    // ✅ PRIVATE KEY
-                    accessToken: process.env.EMAILJS_PRIVATE_KEY,
-
-                    // ✅ Template Variables
-                    template_params: {
-
-                        to_email: email,
-
-                        to_name: username,
-
-                        passcode: otp,
-
-                        time: timeStr
-                    }
-                })
+                signal: controller.signal
             }
         );
 
-        // ================= RESULT =================
+        clearTimeout(timeout);
+
+        // ================= RESPONSE =================
 
         const result = await response.text();
 
@@ -694,15 +707,11 @@ async function sendOTPEmail(email, username, otp) {
             return true;
         }
 
-        // ================= FAILED =================
-
-        console.log('[EMAIL] Failed');
-
         return false;
 
     } catch (e) {
 
-        console.error('[EMAIL ERROR]', e.message);
+        console.error('[EMAIL ERROR FULL]', e);
 
         return false;
     }
