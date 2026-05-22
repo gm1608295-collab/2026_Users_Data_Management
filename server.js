@@ -512,59 +512,86 @@ app.post('/api/register', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== OTP SYSTEM ====================
-
-// Generate OTP
+// ================= OTP REQUEST =================
 app.post('/api/otp/request', async (req, res) => {
-    const { email } = req.body;
-    
-    if (!email) {
-        return res.json({ success: false, message: 'Email required' });
-    }
-    
+
     try {
+
+        console.log('[OTP] Request Body:', req.body);
+
+        const { email } = req.body;
+
+        if (!email) {
+            return res.json({
+                success: false,
+                message: 'Email required'
+            });
+        }
+
         const p = await getPool();
-        
-        // Find user
-        const user = await p.query("SELECT id, username FROM auth_users WHERE email=$1 AND login_type='local'", [email]);
-        
-        if (user.rows.length === 0) {
-            return res.json({ success: false, message: 'ဒီ Email ဖြင့် အကောင့်မတွေ့ပါ' });
-        }
-        
-        const uid = user.rows[0].id;
-        
-        // OTP Rate Limit - 30 seconds
-        const recentOtp = await p.query(
-            "SELECT * FROM otp_codes WHERE user_id=$1 AND created_at > NOW() - INTERVAL '30 seconds'",
-            [uid]
+
+        // Find User
+        const user = await p.query(
+            "SELECT id, username FROM auth_users WHERE email=$1",
+            [email]
         );
-        
-        if (recentOtp.rows.length > 0) {
-            return res.json({ success: false, message: 'စက္ကန့် ၃၀ အတွင်း OTP ပြန်တောင်းနိုင်ပါမည်' });
+
+        console.log('[OTP] User Found:', user.rows.length);
+
+        if (user.rows.length === 0) {
+            return res.json({
+                success: false,
+                message: 'User not found'
+            });
         }
-        
+
+        const uid = user.rows[0].id;
+
         // Generate OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        // ✅ Save OTP (expires in 90 seconds)
+        const otp = Math.floor(
+            100000 + Math.random() * 900000
+        ).toString();
+
+        console.log('[OTP] Generated:', otp);
+
+        // Save OTP
         await p.query(
-            "INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '90 seconds')",
+            "INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1,$2,NOW()+INTERVAL '90 seconds')",
             [uid, otp]
         );
-        
-        // ✅ Send OTP via EmailJS
-        const emailSent = await sendOTPEmail(email, user.rows[0].username, otp);
-        
+
+        // Send Email
+        const emailSent = await sendOTPEmail(
+            email,
+            user.rows[0].username,
+            otp
+        );
+
+        console.log('[OTP] Email Sent Result:', emailSent);
+
         if (emailSent) {
-            res.json({ success: true, message: 'OTP ကုဒ် သင့် Email သို့ ပို့ပြီးပါပြီ (၉၀ စက္ကန့်အတွင်း အသုံးပြုပါ)' });
+
+            return res.json({
+                success: true,
+                message: 'OTP sent'
+            });
+
         } else {
-            res.json({ success: false, message: 'Email ပို့ရန် မအောင်မြင်ပါ' });
+
+            return res.json({
+                success: false,
+                message: 'Connection Error'
+            });
         }
-        
-    } catch(e) {
-        console.error('[OTP REQUEST ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+
+    } catch (e) {
+
+        console.error('[OTP REQUEST ERROR]', e);
+
+        return res.json({
+            success: false,
+            message: 'Server Error'
+        });
     }
 });
 
