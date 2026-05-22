@@ -131,19 +131,21 @@ async function trackLogin(userId, username, loginType, req) {
         console.error('[LOGIN TRACK ERROR]', e.message);
     }
 }
+
 // ==================== CONFIG ====================
-const BOT_TOKEN = process.env.BOT_TOKEN;
-const CHAT_ID = process.env.CHAT_ID;
-const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
-const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
-const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY;
-const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET;
-const TIKTOK_REDIRECT = process.env.TIKTOK_REDIRECT || 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
+const BOT_TOKEN = '8737284644:AAEW7XtU6HqK4O49dJXG6MXSj08BvLUAdJE';
+const CHAT_ID = '8315028972';
+const ONESIGNAL_APP_ID = '1943a7fe-8313-4ce2-b420-0a0e2b59fcff';
+const ONESIGNAL_API_KEY = 'os_v2_app_dfb2p7udcngofnbabihcwwp476agyhbcncxexnu2gu2xsbo4uww6tynm5fuwze77wvka65febiapxnwwpoczsbtcq56a3e4a3thkskq';
+const TIKTOK_CLIENT_KEY = 'awlwv9kkzin9m9pv';
+const TIKTOK_CLIENT_SECRET = '3QDthZspcNC7eHZNCA5ofYAs3CpACLX7';
+const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://two026-users-data-management.onrender.com/auth/google/callback';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
+const IMGBB_API_KEY = '55854bc5e01a19fd4793d1df84326d00';
+
 
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
 function sendOnesignal(msg, sound, title) { 
