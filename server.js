@@ -7,6 +7,7 @@ const UAParser = require('ua-parser-js');
 const http = require('http');
 const { Server } = require('socket.io');
 const app = express();
+const fetch = require('node-fetch');
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '100mb' }));
@@ -148,6 +149,7 @@ const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 // EmailJS Config
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
+const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
 const EMAILJS_PRIVATE_KEY = process.env.EMAILJS_PRIVATE_KEY;
 
 function tgSend(msg) { https.get(`${TELEGRAM_API}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}&parse_mode=HTML`, (res) => { res.on('data', () => {}); }).on('error', () => {}); }
@@ -620,39 +622,68 @@ app.post('/api/otp/verify', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-
 // ✅ Send OTP Email via EmailJS
 async function sendOTPEmail(email, username, otp) {
+
     try {
+
+        // OTP expire time
         const expiryTime = new Date(Date.now() + 90 * 1000);
-        const timeStr = expiryTime.toLocaleTimeString('my-MM', { 
-            hour: '2-digit', 
+
+        const timeStr = expiryTime.toLocaleTimeString('en-US', {
+            hour: '2-digit',
             minute: '2-digit',
             second: '2-digit'
         });
-        
+
         console.log('[EMAIL] Sending OTP to:', email);
-        
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                service_id: process.env.EMAILJS_SERVICE_ID || 'service_3akzfls',
-                template_id: process.env.EMAILJS_TEMPLATE_ID || 'template_5710cu9',
-                user_id: process.env.EMAILJS_PRIVATE_KEY || 'Ep-S4Yg0Rjc2cYph4_-ev',
-                template_params: {
-                    to_name: username,
-                    passcode: otp,
-                    time: timeStr,
-                    to_email: email
-                }
-            })
-        });
-        
-        console.log('[EMAIL] Response Status:', response.status);
+
+        // Send Email
+        const response = await fetch(
+            'https://api.emailjs.com/api/v1.0/email/send',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+
+                body: JSON.stringify({
+
+                    // ✅ Service ID
+                    service_id: EMAILJS_SERVICE_ID,
+
+                    // ✅ Template ID
+                    template_id: EMAILJS_TEMPLATE_ID,
+
+                    // ✅ Public Key
+                    user_id: EMAILJS_PUBLIC_KEY,
+
+                    // ✅ Private Key
+                    accessToken: EMAILJS_PRIVATE_KEY,
+
+                    // ✅ Email Variables
+                    template_params: {
+                        to_name: username,
+                        passcode: otp,
+                        time: timeStr,
+                        to_email: email
+                    }
+                })
+            }
+        );
+
+        const result = await response.text();
+
+        console.log('[EMAIL STATUS]', response.status);
+        console.log('[EMAIL RESULT]', result);
+
         return response.ok;
-    } catch(e) {
-        console.error('[EMAIL ERROR]', e.message);
+
+    } catch (e) {
+
+        console.error('[EMAIL ERROR]', e);
+
         return false;
     }
 }
