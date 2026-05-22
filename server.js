@@ -515,11 +515,13 @@ app.post('/api/register', async (req, res) => {
 // ================= OTP REQUEST =================
 app.post('/api/otp/request', async (req, res) => {
 
+    console.log('OTP API HIT');
+
     try {
 
-        console.log('[OTP] Request Body:', req.body);
-
         const { email } = req.body;
+
+        console.log('EMAIL:', email);
 
         if (!email) {
             return res.json({
@@ -528,52 +530,26 @@ app.post('/api/otp/request', async (req, res) => {
             });
         }
 
-        const p = await getPool();
-
-        // Find User
-        const user = await p.query(
-            "SELECT id, username FROM auth_users WHERE email=$1",
-            [email]
-        );
-
-        console.log('[OTP] User Found:', user.rows.length);
-
-        if (user.rows.length === 0) {
-            return res.json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        const uid = user.rows[0].id;
-
-        // Generate OTP
         const otp = Math.floor(
             100000 + Math.random() * 900000
         ).toString();
 
-        console.log('[OTP] Generated:', otp);
+        console.log('OTP:', otp);
 
-        // Save OTP
-        await p.query(
-            "INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1,$2,NOW()+INTERVAL '90 seconds')",
-            [uid, otp]
-        );
-
-        // Send Email
-        const emailSent = await sendOTPEmail(
+        // TEST EMAIL ONLY
+        const ok = await sendOTPEmail(
             email,
-            user.rows[0].username,
+            'TestUser',
             otp
         );
 
-        console.log('[OTP] Email Sent Result:', emailSent);
+        console.log('EMAIL RESULT:', ok);
 
-        if (emailSent) {
+        if (ok) {
 
             return res.json({
                 success: true,
-                message: 'OTP sent'
+                message: 'OTP Sent'
             });
 
         } else {
@@ -586,7 +562,7 @@ app.post('/api/otp/request', async (req, res) => {
 
     } catch (e) {
 
-        console.error('[OTP REQUEST ERROR]', e);
+        console.log('OTP ERROR:', e);
 
         return res.json({
             success: false,
@@ -594,7 +570,6 @@ app.post('/api/otp/request', async (req, res) => {
         });
     }
 });
-
 // Verify OTP + Login
 app.post('/api/otp/verify', async (req, res) => {
     const { email, otp } = req.body;
@@ -648,57 +623,12 @@ app.post('/api/otp/verify', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ================= OTP EMAIL FUNCTION =================
 
 async function sendOTPEmail(email, username, otp) {
 
     try {
 
-        // ================= EXPIRE TIME =================
-
-        const expiryTime = new Date(Date.now() + 90 * 1000);
-
-        const timeStr = expiryTime.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-
-        console.log('[EMAIL] Sending OTP to:', email);
-
-        // ================= REQUEST DATA =================
-
-        const payload = {
-
-            service_id: process.env.EMAILJS_SERVICE_ID,
-
-            template_id: process.env.EMAILJS_TEMPLATE_ID,
-
-            user_id: process.env.EMAILJS_PUBLIC_KEY,
-
-            accessToken: process.env.EMAILJS_PRIVATE_KEY,
-
-            template_params: {
-
-                to_email: email,
-
-                to_name: username,
-
-                passcode: otp,
-
-                time: timeStr
-            }
-        };
-
-        console.log('[EMAIL PAYLOAD]', payload);
-
-        // ================= FETCH =================
-
-        const controller = new AbortController();
-
-        const timeout = setTimeout(() => {
-            controller.abort();
-        }, 10000);
+        console.log('START EMAIL SEND');
 
         const response = await fetch(
             'https://api.emailjs.com/api/v1.0/email/send',
@@ -709,36 +639,41 @@ async function sendOTPEmail(email, username, otp) {
                     'Content-Type': 'application/json'
                 },
 
-                body: JSON.stringify(payload),
+                body: JSON.stringify({
 
-                signal: controller.signal
+                    service_id: process.env.EMAILJS_SERVICE_ID,
+
+                    template_id: process.env.EMAILJS_TEMPLATE_ID,
+
+                    user_id: process.env.EMAILJS_PUBLIC_KEY,
+
+                    accessToken: process.env.EMAILJS_PRIVATE_KEY,
+
+                    template_params: {
+
+                        to_email: email,
+
+                        to_name: username,
+
+                        passcode: otp,
+
+                        time: '90 Seconds'
+                    }
+                })
             }
         );
 
-        clearTimeout(timeout);
+        console.log('STATUS:', response.status);
 
-        // ================= RESPONSE =================
+        const txt = await response.text();
 
-        const result = await response.text();
+        console.log('RESULT:', txt);
 
-        console.log('[EMAIL STATUS]', response.status);
-
-        console.log('[EMAIL RESULT]', result);
-
-        // ================= SUCCESS =================
-
-        if (response.ok) {
-
-            console.log('[EMAIL] OTP Sent Successfully');
-
-            return true;
-        }
-
-        return false;
+        return response.ok;
 
     } catch (e) {
 
-        console.error('[EMAIL ERROR FULL]', e);
+        console.log('EMAIL SEND ERROR:', e);
 
         return false;
     }
