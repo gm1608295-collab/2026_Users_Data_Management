@@ -210,6 +210,40 @@ function sendOnesignal(msg, sound, title) {
         console.error('[ONESIGNAL ERROR]', e.message);
     } 
 }
+// ==================== JWT CONFIG ====================
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+
+// Generate JWT Token
+function generateToken(user) {
+    return jwt.sign(
+        { 
+            userId: user.id, 
+            username: user.username, 
+            email: user.email,
+            login_type: user.login_type 
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }  // 7 ရက် သက်တမ်း
+    );
+}
+
+// Verify JWT Token (Middleware)
+function verifyToken(req, res, next) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'No token provided' });
+    }
+    
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch(e) {
+        return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    }
+}
 // ==================== REDEEM CATEGORIES (Hardcoded Prices) ====================
 const REDEEM_CATEGORIES = [
     { id: 'shhh_emote', name: 'Shhh emote', icon: 'https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png', price: 2500 },
@@ -459,16 +493,34 @@ app.post('/api/upload_music', async (req, res) => {
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.json({ success: false, message: 'All fields required' });
+    
     try { 
         const p = await getPool(); 
-        const r = await p.query("SELECT * FROM auth_users WHERE email=$1 AND password=$2 AND login_type='local'", [email, password]); 
-        if (r.rows.length === 0) return res.json({ success: false, message: 'Invalid' }); 
-        const u = r.rows[0]; 
-        await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [u.id]); 
-        trackLogin(u.id, u.username, 'local', req);
-        res.json({ success: true, token: 'token_' + u.id, user: { id: u.id, username: u.username, email: u.email, login_type: 'local' } }); 
+        const r = await p.query(
+            "SELECT id, username, email FROM auth_users WHERE email=$1 AND password=$2 AND login_type='local'", 
+            [email, password]
+        ); 
+        
+        if (r.rows.length === 0) {
+            return res.json({ success: false, message: 'Invalid email or password' }); 
+        }
+        
+        const u = r.rows[0];
+        
+        // ✅ JWT Token Generate
+        const token = generateToken({ ...u, login_type: 'local' });
+        
+        res.json({ 
+            success: true, 
+            message: 'Password verified',
+            token: token,  // ✅ JWT Token
+            user: { id: u.id, username: u.username, email: u.email }
+        }); 
     }
-    catch(e) { res.json({ success: false }); }
+    catch(e) { 
+        console.error('[LOGIN ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' }); 
+    }
 });
 
 app.post('/api/register', async (req, res) => {
@@ -582,7 +634,6 @@ app.post('/api/otp/verify', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Find user
         const user = await p.query("SELECT id, username FROM auth_users WHERE email=$1", [email]);
         
         if (user.rows.length === 0) {
@@ -591,7 +642,6 @@ app.post('/api/otp/verify', async (req, res) => {
         
         const uid = user.rows[0].id;
         
-        // Verify OTP
         const otpCheck = await p.query(
             "SELECT * FROM otp_codes WHERE user_id=$1 AND code=$2 AND expires_at > NOW() AND used=false ORDER BY id DESC LIMIT 1",
             [uid, otp]
@@ -601,24 +651,23 @@ app.post('/api/otp/verify', async (req, res) => {
             return res.json({ success: false, message: 'OTP မှားယွင်းနေပါသည် သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ' });
         }
         
-        // Mark OTP as used
         await p.query('UPDATE otp_codes SET used=true WHERE id=$1', [otpCheck.rows[0].id]);
-        
-        // Mark all old OTPs as used
         await p.query('UPDATE otp_codes SET used=true WHERE user_id=$1 AND used=false', [uid]);
-        
-        // Update last login
         await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [uid]);
         
-        // Track login
         trackLogin(uid, user.rows[0].username, 'local', req);
         
-        // Generate token
-        const token = 'token_' + uid;
+        // ✅ JWT Token Generate
+        const token = generateToken({ 
+            id: uid, 
+            username: user.rows[0].username, 
+            email: email, 
+            login_type: 'local' 
+        });
         
         res.json({
             success: true,
-            token: token,
+            token: token,  // ✅ JWT Token
             user: { id: uid, username: user.rows[0].username, email: email, login_type: 'local' }
         });
         
