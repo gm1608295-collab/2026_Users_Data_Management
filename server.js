@@ -7,7 +7,6 @@ const UAParser = require('ua-parser-js');
 const http = require('http');
 const { Server } = require('socket.io');
 const app = express();
-const fetch = require('node-fetch');
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '100mb' }));
