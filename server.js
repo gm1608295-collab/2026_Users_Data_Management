@@ -3172,7 +3172,7 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
  // ====================================
 // DAILY CHECK-IN USER APIs
 // ====================================
-// ==================== DAILY CHECK-IN STATUS (FIXED v2) ====================
+                // ==================== DAILY CHECK-IN STATUS (FIXED V2) ====================
 app.post('/api/daily_checkin/status', async (req, res) => {
     const { token } = req.body;
     
@@ -3188,11 +3188,11 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
         
-        // Premium Check
+        // Premium Status
         const userRes = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
         const isPremium = userRes.rows.length > 0 && userRes.rows[0].premium_expiry && new Date(userRes.rows[0].premium_expiry) > now;
         
-        // Get Events
+        // Get all active events
         const events = await p.query(
             `SELECT * FROM daily_checkin_events 
              WHERE is_active = true 
@@ -3205,35 +3205,36 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         const result = [];
         
         for (const ev of events.rows) {
-            const startDateTime = new Date(ev.start_date + 'T' + (ev.start_time || '00:00:00'));
-            const endDateTime = new Date(ev.end_date + 'T' + (ev.end_time || '23:59:59'));
+            const startTime = ev.start_time || '00:00:00';
+            const resetTime = ev.end_time || '00:00:00'; // daily reset time
+            const totalDays = ev.total_days;
+            
+            const startDateTime = new Date(ev.start_date + 'T' + startTime);
+            const endDateTime = new Date(ev.end_date + 'T' + '23:59:59');
             const graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
             
             const hasStarted = now >= startDateTime;
             const hasEnded = now > endDateTime;
-            const isGracePeriod = now > endDateTime && now <= graceEndDateTime;
+            const isGracePeriod = (now > endDateTime && now <= graceEndDateTime);
             const isFullyEnded = now > graceEndDateTime;
             
-            // Skip fully ended
-            if (isFullyEnded) continue;
+            if (isFullyEnded) continue; // Don't show fully ended events
             
-            // Pending Countdown
+            // Pending countdown
             let pendingCountdown = null;
             if (!hasStarted) {
-                pendingCountdown = Math.floor((startDateTime - now) / 1000);
+                pendingCountdown = Math.floor((startDateTime - now) / 1000); // seconds
             }
             
-            // Get Progress
+            // Current day
             let currentDay = 1;
-            const progress = await p.query(
-                "SELECT * FROM daily_checkin_progress WHERE user_id=$1 AND event_id=$2",
-                [uid, ev.id]
-            );
-            
-            if (progress.rows.length > 0) {
-                currentDay = progress.rows[0].current_day;
+            if (hasStarted) {
+                if (isGracePeriod) {
+                    currentDay = totalDays; // Locked
+                } else {
+                    currentDay = getCurrentDay(ev.start_date, startTime, resetTime, now, totalDays);
+                }
             }
-            currentDay = Math.max(1, Math.min(currentDay, ev.total_days));
             
             // Check if claimed today
             const todayCheck = await p.query(
@@ -3242,23 +3243,31 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             );
             const checkedInToday = todayCheck.rows.length > 0;
             
-            // Reset Time Check
-            const resetTime = ev.end_time || '00:00:00';
-            const todayReset = new Date(todayStr + 'T' + resetTime);
-            const pastResetToday = now >= todayReset;
+            // Can claim logic
+            let canClaim = false;
+            if (hasStarted && !isFullyEnded && !checkedInToday) {
+                if (isGracePeriod) {
+                    // Grace period: can claim last day if not already claimed
+                    const lastDayClaim = await p.query(
+                        "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND day_number=$3",
+                        [uid, ev.id, totalDays]
+                    );
+                    canClaim = lastDayClaim.rows.length === 0;
+                } else {
+                    // Active: check reset time
+                    const todayReset = new Date(todayStr + 'T' + resetTime);
+                    canClaim = (now < todayReset) && (currentDay <= totalDays);
+                }
+            }
             
-            // Can Claim?
-            const canClaim = hasStarted && !isFullyEnded && !checkedInToday && !pastResetToday && currentDay <= ev.total_days;
-            
-            // Get Rewards
+            // Rewards & day status
             const rewards = await p.query(
                 "SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC",
                 [ev.id]
             );
             
-            // Build Day Status
             const dayStatus = [];
-            for (let d = 1; d <= ev.total_days; d++) {
+            for (let d = 1; d <= totalDays; d++) {
                 const dayClaims = await p.query(
                     "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND day_number=$3",
                     [uid, ev.id, d]
@@ -3281,21 +3290,20 @@ app.post('/api/daily_checkin/status', async (req, res) => {
                 event_name: ev.event_name,
                 event_type: ev.event_type,
                 start_date: ev.start_date,
-                start_time: ev.start_time || '00:00:00',
+                start_time: startTime,
                 end_date: ev.end_date,
-                end_time: ev.end_time || '23:59:59',
+                end_time: ev.end_time,
                 grace_end_date: graceEndDateTime.toISOString().split('T')[0],
                 is_grace_period: isGracePeriod,
                 is_fully_ended: isFullyEnded,
                 has_started: hasStarted,
                 is_pending: !hasStarted,
                 pending_countdown_seconds: pendingCountdown,
-                total_days: ev.total_days,
+                total_days: totalDays,
                 current_day: currentDay,
                 checked_in_today: checkedInToday,
                 can_claim: canClaim,
                 reset_time: resetTime,
-                past_reset_today: pastResetToday,
                 day_status: dayStatus
             });
         }
@@ -3307,7 +3315,7 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         res.json({ success: false, events: [] });
     }
 });
-// ==================== DAILY CHECK-IN CLAIM (FIXED v2) ====================
+// ==================== DAILY CHECK-IN CLAIM (FIXED V2) ====================
 app.post('/api/daily_checkin/claim', async function(req, res) {
     var token = req.body.token;
     var event_id = req.body.event_id;
@@ -3320,9 +3328,9 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
         var uid = parseInt(token.replace('token_', ''));
         if (isNaN(uid)) return res.json({ success: false });
         
-        // ✅ Myanmar Time
+        // ✅ Server Time (Myanmar)
         var now = new Date();
-        var today = now.toISOString().split('T')[0];
+        var todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
         
         // Get event
         var event = await p.query(
@@ -3334,69 +3342,78 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
         }
         
         var evt = event.rows[0];
+        var startTime = evt.start_time || '00:00:00';
+        var resetTime = evt.end_time || '00:00:00';  // end_time = Daily Reset Time
+        var totalDays = evt.total_days;
         
-        // ✅ Time Calculations
-        var startDateTime = new Date(evt.start_date + 'T' + (evt.start_time || '00:00:00'));
-        var endDateTime = new Date(evt.end_date + 'T' + (evt.end_time || '23:59:59'));
-        var graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
+        // ✅ Build start & end DateTime objects (Myanmar Time)
+        var startDateTime = new Date(evt.start_date + 'T' + startTime);
+        var endDateTime = new Date(evt.end_date + 'T' + '23:59:59'); // End date end of day
+        var graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000); // +2 days grace
         
-        // 1. Event မစသေးရင်
+        // ---------- EVENT NOT STARTED ----------
         if (now < startDateTime) {
-            var timeUntil = Math.floor((startDateTime - now) / 1000);
-            var h = Math.floor(timeUntil / 3600);
-            var m = Math.floor((timeUntil % 3600) / 60);
+            var timeUntilStart = startDateTime - now;
+            var hoursUntil = Math.floor(timeUntilStart / 3600000);
+            var minsUntil = Math.floor((timeUntilStart % 3600000) / 60000);
             return res.json({ 
                 success: false, 
-                message: '⏰ Event starts in ' + h + 'h ' + m + 'm. Please wait.' 
+                message: '⏰ Event starts in ' + hoursUntil + 'h ' + minsUntil + 'm' 
             });
         }
         
-        // 2. Event လုံးဝပြီးရင် (Grace Period ကုန်)
+        // ---------- FULLY ENDED (after grace) ----------
         if (now > graceEndDateTime) {
-            return res.json({ 
-                success: false, 
-                message: '📅 Event has fully ended.' 
-            });
+            return res.json({ success: false, message: '📅 Event has fully ended.' });
         }
         
-        // 3. Reset Time Check
-        var resetTime = evt.end_time || '00:00:00';
-        var todayReset = new Date(today + 'T' + resetTime);
+        var isGracePeriod = (now > endDateTime && now <= graceEndDateTime);
+        var isActivePeriod = (now >= startDateTime && now <= endDateTime);
         
-        if (now >= todayReset) {
-            return res.json({ 
-                success: false, 
-                message: '⏰ Claim period ended. Wait for reset at ' + resetTime + '.' 
-            });
+        // ---------- CALCULATE CURRENT DAY ----------
+        var currentDay = 1;
+        if (isActivePeriod) {
+            // Active period: day based on reset times
+            currentDay = getCurrentDay(evt.start_date, startTime, resetTime, now, totalDays);
+        } else if (isGracePeriod) {
+            // Grace period: day locked to last day
+            currentDay = totalDays;
         }
         
-        // 4. Already claimed today?
+        // ---------- CHECK ALREADY CLAIMED TODAY ----------
         var todayCheckin = await p.query(
             'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3',
-            [uid, event_id, today]
+            [uid, event_id, todayStr]
         );
         if (todayCheckin.rows.length > 0) {
             return res.json({ success: false, message: '✅ Already claimed today!' });
         }
         
-        // 5. Grace Period Check (Event ပြီးပေမယ့် ရက်တိုးအတွင်း)
-        var isGracePeriod = now > endDateTime && now <= graceEndDateTime;
+        // ---------- ACTIVE PERIOD: CHECK RESET TIME ----------
+        if (isActivePeriod) {
+            var todayReset = new Date(todayStr + 'T' + resetTime);
+            if (now >= todayReset) {
+                return res.json({ 
+                    success: false, 
+                    message: '⏰ Claim period ended. Next reset at ' + resetTime 
+                });
+            }
+        }
+        // Grace period: no reset time restriction
         
-        // 6. Get Progress (Login ဝင်မှ ရက်ကူးဖို့)
-        var progress = await p.query(
-            'SELECT * FROM daily_checkin_progress WHERE user_id=$1 AND event_id=$2',
-            [uid, event_id]
-        );
-        
-        var currentDay = 1;
-        if (progress.rows.length > 0) {
-            currentDay = progress.rows[0].current_day;
+        // ---------- CHECK DAY SPECIFIC CLAIM (for last day during grace) ----------
+        if (isGracePeriod) {
+            // Check if user already claimed the last day (day = totalDays)
+            var lastDayClaim = await p.query(
+                'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND day_number=$3',
+                [uid, event_id, totalDays]
+            );
+            if (lastDayClaim.rows.length > 0) {
+                return res.json({ success: false, message: '⚠️ Last day reward already claimed.' });
+            }
         }
         
-        // Clamp
-        currentDay = Math.max(1, Math.min(currentDay, evt.total_days));
-        
-        // 7. Get Reward
+        // ---------- GET REWARD ----------
         var reward = await p.query(
             'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 AND day_number=$2',
             [event_id, currentDay]
@@ -3404,10 +3421,9 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
         if (reward.rows.length === 0) {
             return res.json({ success: false, message: 'No reward for this day' });
         }
-        
         var rwd = reward.rows[0];
         
-        // 8. Update Balance
+        // ---------- UPDATE BALANCE ----------
         switch (rwd.reward_type) {
             case 'mmk':
                 await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', 
@@ -3423,23 +3439,24 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
                 break;
         }
         
-        // 9. Save Claim
+        // ---------- SAVE CLAIM & PROGRESS ----------
         await p.query(
             'INSERT INTO daily_checkins (user_id, event_id, checkin_date, day_number, reward_type, reward_amount) VALUES ($1,$2,$3,$4,$5,$6)',
-            [uid, event_id, today, currentDay, rwd.reward_type, rwd.reward_amount]
+            [uid, event_id, todayStr, currentDay, rwd.reward_type, rwd.reward_amount]
         );
         
-        // 10. Update Progress (Next Day) - Login ဝင်ပြီး Claim လုပ်မှ ရက်ကူး
-        var nextDay = Math.min(currentDay + 1, evt.total_days);
+        // Update progress (current_day is the next day to claim, but only in active period)
+        var nextDay = Math.min(currentDay + 1, totalDays);
+        if (isGracePeriod) nextDay = currentDay; // no advancement during grace
+        
         await p.query(
             `INSERT INTO daily_checkin_progress (user_id, event_id, current_day, last_claim_date) 
              VALUES ($1,$2,$3,$4)
              ON CONFLICT (user_id, event_id) 
              DO UPDATE SET current_day=$3, last_claim_date=$4`,
-            [uid, event_id, nextDay, today]
+            [uid, event_id, nextDay, todayStr]
         );
         
-        // 11. Get Updated Balances
         var updatedUser = await p.query('SELECT balance, usd_balance, paid_spins FROM auth_users WHERE id=$1', [uid]);
         
         res.json({
@@ -3459,6 +3476,22 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+
+// ✅ Helper: Calculate current day based on reset times
+function getCurrentDay(startDate, startTime, resetTime, now, totalDays) {
+    var startMoment = new Date(startDate + 'T' + startTime);
+    // Find the first reset time that is >= startMoment
+    var firstReset = new Date(startDate + 'T' + resetTime);
+    if (firstReset <= startMoment) {
+        firstReset.setDate(firstReset.getDate() + 1); // move to next day
+    }
+    if (now < firstReset) {
+        return 1;
+    }
+    var daysAfterFirst = Math.floor((now - firstReset) / (24 * 60 * 60 * 1000));
+    var day = 1 + daysAfterFirst;
+    return Math.min(day, totalDays);
+}
 // ====================================
 // INITIALIZE DEFAULT CHECK-IN EVENTS
 // ====================================
