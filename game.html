@@ -486,7 +486,22 @@ var UI = {
     },
     getCheckinRewardEmoji:function(t){switch(t){case'mmk':return'💰';case'usd':return'💵';case'spin':return'🔄';default:return'🎁';}}
 };
-
+// Event မစသေးရင်
+if (ev.is_pending && ev.pending_countdown_seconds > 0) {
+    html += `
+        <div class="checkin-pending" style="text-align:center;padding:20px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px;border:1px solid rgba(243,156,18,0.3);">
+            <div style="font-size:30px;margin-bottom:8px;">⏳</div>
+            <div style="font-size:13px;font-weight:bold;color:#f39c12;">Event Coming Soon!</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:4px;">Starts in:</div>
+            <div style="font-size:22px;font-weight:bold;color:#ffd700;font-family:'Courier New',monospace;margin-top:6px;" id="pendingCountdown_${ev.event_id}">
+                ${formatCountdown(ev.pending_countdown_seconds)}
+            </div>
+            <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:4px;">
+                📅 ${ev.start_date} at ${ev.start_time}
+            </div>
+        </div>
+    `;
+    }
 // ====================================
 // GLOBAL FUNCTIONS
 // ====================================
@@ -523,6 +538,18 @@ document.getElementById('btnSpin').addEventListener('click',handleSpin);
 document.querySelectorAll('.btn-buy').forEach(function(btn){btn.addEventListener('click',function(){handleBuySpins(parseInt(btn.dataset.spins),parseInt(btn.dataset.cost));});});
 document.querySelectorAll('.modal-overlay').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o&&o.id!=='processingModal')o.classList.remove('active');});});
 
+function formatCountdown(seconds) {
+    if (seconds <= 0) return 'Starting...';
+    var d = Math.floor(seconds / 86400);
+    var h = Math.floor((seconds % 86400) / 3600);
+    var m = Math.floor((seconds % 3600) / 60);
+    var s = seconds % 60;
+    
+    if (d > 0) {
+        return d + 'd ' + h.toString().padStart(2, '0') + 'h ' + m.toString().padStart(2, '0') + 'm';
+    }
+    return h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+}
 // ====================================
 // INIT
 // ====================================
