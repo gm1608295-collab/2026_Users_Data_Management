@@ -14,7 +14,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.static(__dirname));
 
 // ==================== AUTO WAKE-UP ====================
-setInterval(() => { https.get(`https://two026-users-data-management.onrender.com/api/ping`, (res) => {}); }, 600000);
+setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
 
 // ==================== DATABASE - 5 POOLS AUTO-SWITCH ====================
@@ -139,12 +139,12 @@ const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
 const IMGBB_API_KEY = process.env.IMGBB_API_KEY;
 const TIKTOK_CLIENT_KEY = process.env.TIKTOK_CLIENT_KEY;
 const TIKTOK_CLIENT_SECRET = process.env.TIKTOK_CLIENT_SECRET;
-const TIKTOK_REDIRECT = 'https://two026-users-data-management.onrender.com/auth/tiktok/callback';
+const TIKTOK_REDIRECT = 'https://solo-m-store-security-system-and-user.onrender.com/auth/tiktok/callback';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://two026-users-data-management.onrender.com/auth/google/callback';
+const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://solo-m-store-security-system-and-user.onrender.com/auth/google/callback';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-
+const TELEGRAM_PAYMENT_TOKEN = process.env.TELEGRAM_PAYMENT_TOKEN;
 // EmailJS Config
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
@@ -169,7 +169,7 @@ function sendOnesignal(msg, sound, title) {
             // ✅ Small icon for Android
             small_icon: "ic_stat_onesignal_default",
             // ✅ Large icon
-            large_icon: "https://two026-users-data-management.onrender.com/icons/icon-192.png",
+            large_icon: "https://solo-m-store-security-system-and-user.onrender.com/icons/icon-192.png",
             // ✅ Priority
             priority: 10,
             // ✅ TTL (1 hour)
@@ -1324,6 +1324,25 @@ function sendTelegramMessage(chatId, text, replyMarkup = null) {
     }).on('error', () => {});
 }
 
+async function sendPaymentInvoice(chatId, amount, description) {
+    try {
+        const response = await fetch(`${TELEGRAM_API}/sendInvoice`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: chatId,
+                title: 'SOLO M Game Shop',
+                description: description,
+                payload: 'topup_' + Date.now(),
+                provider_token: TELEGRAM_PAYMENT_TOKEN,
+                currency: 'XTR',
+                prices: [{ label: description, amount: amount }]
+            })
+        });
+        return await response.json();
+    } catch(e) { return null; }
+}
+
 async function createTelegramUser(userId, firstName) {
     try {
         const p = await getPool();
@@ -1449,6 +1468,7 @@ function startLongPolling() {
     const quickKeyboard = {
         inline_keyboard: [
             [{ text: '💳 လက်ကျန်ကြည့်ရန်', callback_data: 'balance' }],
+            [{ text: '⭐ Stars ဖြည့်ရန်', callback_data: 'topup_stars' }],
             [{ text: '🔐 OTP ရယူရန်', callback_data: 'otp' }],
             [{ text: '📋 Order စစ်ရန်', callback_data: 'status' }],
             [{ text: '👑 Premium', callback_data: 'premium' }],
@@ -1490,7 +1510,31 @@ function startLongPolling() {
                                 quickKeyboard
                             );
                         }
-                        
+                        // ⭐ Stars Top Up
+else if (data === 'topup_stars') {
+    const topupKeyboard = {
+        inline_keyboard: [
+            [{ text: '⭐ 50 Stars', callback_data: 'pay_50' }],
+            [{ text: '⭐ 100 Stars', callback_data: 'pay_100' }],
+            [{ text: '⭐ 500 Stars', callback_data: 'pay_500' }],
+            [{ text: '⭐ 1000 Stars', callback_data: 'pay_1000' }],
+            [{ text: '« နောက်သို့', callback_data: 'back_to_main' }]
+        ]
+    };
+    sendTelegramMessage(chatId, '💰 ဖြည့်လိုသော Stars ပမာဏကို ရွေးချယ်ပါ -', topupKeyboard);
+}
+else if (data === 'pay_50') {
+    await sendPaymentInvoice(chatId, 50, 'Top Up 50 Stars');
+}
+else if (data === 'pay_100') {
+    await sendPaymentInvoice(chatId, 100, 'Top Up 100 Stars');
+}
+else if (data === 'pay_500') {
+    await sendPaymentInvoice(chatId, 500, 'Top Up 500 Stars');
+}
+else if (data === 'pay_1000') {
+    await sendPaymentInvoice(chatId, 1000, 'Top Up 1000 Stars');
+}
                         // 🔐 OTP
                         else if (data === 'otp') {
                             const otp = await createOTP(user.id);
