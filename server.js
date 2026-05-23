@@ -1313,7 +1313,6 @@ async function trackTelegramLogin(userId, username) {
         );
     } catch(e) {}
 }
-    }
 // ==================== TELEGRAM BOT (မြန်မာလို) ====================
 let lastUpdateId = 0;
 
