@@ -1,3 +1,7 @@
+// ==================== TIME ZONE ====================
+process.env.TZ = 'Asia/Yangon';
+console.log('🕐 Server Timezone:', process.env.TZ);
+
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -3168,7 +3172,7 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
  // ====================================
 // DAILY CHECK-IN USER APIs
 // ====================================
- // ==================== DAILY CHECK-IN STATUS (FIXED - SHOW UPCOMING EVENTS TOO) ====================
+// ==================== DAILY CHECK-IN STATUS (FIXED v2) ====================
 app.post('/api/daily_checkin/status', async (req, res) => {
     const { token } = req.body;
     
@@ -3183,40 +3187,43 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
-        const currentTime = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
         
-        // Premium Status Check
+        // Premium Check
         const userRes = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
         const isPremium = userRes.rows.length > 0 && userRes.rows[0].premium_expiry && new Date(userRes.rows[0].premium_expiry) > now;
         
-        // ✅ Show events that are not yet ended (including future events)
-        // Removed start_date <= today condition so that upcoming events appear as well
+        // Get Events
         const events = await p.query(
             `SELECT * FROM daily_checkin_events 
              WHERE is_active = true 
              AND cancelled = false
-             AND end_date >= $1
-             AND (event_type = 'normal' OR (event_type = 'premium' AND $2 = true))
+             AND (event_type = 'normal' OR (event_type = 'premium' AND $1 = true))
              ORDER BY start_date ASC, id DESC`,
-            [todayStr, isPremium]
+            [isPremium]
         );
-        
-        console.log('[CHECKIN STATUS] User:', uid, 'Premium:', isPremium, 'Events Found:', events.rows.length);
         
         const result = [];
         
         for (const ev of events.rows) {
-            const startDate = new Date(ev.start_date);
-            const endDate = new Date(ev.end_date);
-            const graceEndDate = new Date(endDate.getTime() + 2 * 24 * 60 * 60 * 1000);
-            const isGracePeriod = now > endDate && now <= graceEndDate;
-            const isFullyEnded = now > graceEndDate;
-            const hasStarted = now >= startDate;
+            const startDateTime = new Date(ev.start_date + 'T' + (ev.start_time || '00:00:00'));
+            const endDateTime = new Date(ev.end_date + 'T' + (ev.end_time || '23:59:59'));
+            const graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
             
-            // If fully ended, skip
+            const hasStarted = now >= startDateTime;
+            const hasEnded = now > endDateTime;
+            const isGracePeriod = now > endDateTime && now <= graceEndDateTime;
+            const isFullyEnded = now > graceEndDateTime;
+            
+            // Skip fully ended
             if (isFullyEnded) continue;
             
-            // Determine current day based on progress or start date difference
+            // Pending Countdown
+            let pendingCountdown = null;
+            if (!hasStarted) {
+                pendingCountdown = Math.floor((startDateTime - now) / 1000);
+            }
+            
+            // Get Progress
             let currentDay = 1;
             const progress = await p.query(
                 "SELECT * FROM daily_checkin_progress WHERE user_id=$1 AND event_id=$2",
@@ -3225,36 +3232,31 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             
             if (progress.rows.length > 0) {
                 currentDay = progress.rows[0].current_day;
-            } else if (hasStarted) {
-                // If no progress but event started, calculate day from start date
-                const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1;
-                currentDay = Math.min(daysSinceStart, ev.total_days);
-                if (currentDay < 1) currentDay = 1;
             }
+            currentDay = Math.max(1, Math.min(currentDay, ev.total_days));
             
-            // Clamp to total days
-            if (currentDay > ev.total_days) currentDay = ev.total_days;
-            
-            // Check if already claimed today
+            // Check if claimed today
             const todayCheck = await p.query(
-                "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date = CURRENT_DATE",
-                [uid, ev.id]
+                "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date = $3",
+                [uid, ev.id, todayStr]
             );
             const checkedInToday = todayCheck.rows.length > 0;
             
-            // Can claim only if:
-            // - event has started (hasStarted)
-            // - not grace period
-            // - not already claimed today
-            // - current day <= total days
-            const canClaim = hasStarted && !isGracePeriod && !checkedInToday && currentDay <= ev.total_days;
+            // Reset Time Check
+            const resetTime = ev.end_time || '00:00:00';
+            const todayReset = new Date(todayStr + 'T' + resetTime);
+            const pastResetToday = now >= todayReset;
             
-            // Get rewards
+            // Can Claim?
+            const canClaim = hasStarted && !isFullyEnded && !checkedInToday && !pastResetToday && currentDay <= ev.total_days;
+            
+            // Get Rewards
             const rewards = await p.query(
                 "SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC",
                 [ev.id]
             );
             
+            // Build Day Status
             const dayStatus = [];
             for (let d = 1; d <= ev.total_days; d++) {
                 const dayClaims = await p.query(
@@ -3279,46 +3281,183 @@ app.post('/api/daily_checkin/status', async (req, res) => {
                 event_name: ev.event_name,
                 event_type: ev.event_type,
                 start_date: ev.start_date,
+                start_time: ev.start_time || '00:00:00',
                 end_date: ev.end_date,
-                grace_end_date: graceEndDate.toISOString().split('T')[0],
+                end_time: ev.end_time || '23:59:59',
+                grace_end_date: graceEndDateTime.toISOString().split('T')[0],
                 is_grace_period: isGracePeriod,
                 is_fully_ended: isFullyEnded,
                 has_started: hasStarted,
+                is_pending: !hasStarted,
+                pending_countdown_seconds: pendingCountdown,
                 total_days: ev.total_days,
                 current_day: currentDay,
                 checked_in_today: checkedInToday,
                 can_claim: canClaim,
-                reset_time: ev.end_time || '14:30:00',
+                reset_time: resetTime,
+                past_reset_today: pastResetToday,
                 day_status: dayStatus
             });
         }
         
-        res.json({ success: true, events: result });
+        res.json({ success: true, events: result, server_time: now.toISOString() });
         
     } catch(e) {
         console.error('[CHECKIN STATUS ERROR]', e.message);
         res.json({ success: false, events: [] });
     }
 });
+// ==================== DAILY CHECK-IN CLAIM (FIXED v2) ====================
 app.post('/api/daily_checkin/claim', async function(req, res) {
-    var token = req.body.token; var event_id = req.body.event_id;
+    var token = req.body.token;
+    var event_id = req.body.event_id;
+    
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!event_id) return res.json({ success: false, message: 'Event ID required' });
+    
     try {
-        var p = await getPool(); var uid = parseInt(token.replace('token_', '')); if (isNaN(uid)) return res.json({ success: false });
-        var now = new Date(); var today = now.toISOString().split('T')[0];
-        var event = await p.query('SELECT * FROM daily_checkin_events WHERE id=$1 AND is_active=true AND cancelled=false', [event_id]); if (event.rows.length === 0) return res.json({ success: false, message: 'Event not found' });
-        var evt = event.rows[0]; if (today < evt.start_date || today > evt.end_date) return res.json({ success: false, message: 'Event not active today' });
-        var todayCheckin = await p.query('SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3', [uid, event_id, today]); if (todayCheckin.rows.length > 0) return res.json({ success: false, message: 'Already claimed today' });
-        var resetTime = evt.end_time || '14:30:00'; var todayReset = new Date(today + 'T' + resetTime); if (now >= todayReset) return res.json({ success: false, message: 'Claim period ended. Wait for reset.' });
-        var startDate = new Date(evt.start_date); var daysDiff = Math.floor((now - startDate) / (1000 * 60 * 60 * 24)) + 1; var currentDay = Math.max(1, Math.min(daysDiff, evt.total_days));
-        var reward = await p.query('SELECT * FROM daily_checkin_rewards WHERE event_id=$1 AND day_number=$2', [event_id, currentDay]); if (reward.rows.length === 0) return res.json({ success: false, message: 'No reward for this day' });
+        var p = await getPool();
+        var uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false });
+        
+        // ✅ Myanmar Time
+        var now = new Date();
+        var today = now.toISOString().split('T')[0];
+        
+        // Get event
+        var event = await p.query(
+            'SELECT * FROM daily_checkin_events WHERE id=$1 AND is_active=true AND cancelled=false', 
+            [event_id]
+        );
+        if (event.rows.length === 0) {
+            return res.json({ success: false, message: 'Event not found' });
+        }
+        
+        var evt = event.rows[0];
+        
+        // ✅ Time Calculations
+        var startDateTime = new Date(evt.start_date + 'T' + (evt.start_time || '00:00:00'));
+        var endDateTime = new Date(evt.end_date + 'T' + (evt.end_time || '23:59:59'));
+        var graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
+        
+        // 1. Event မစသေးရင်
+        if (now < startDateTime) {
+            var timeUntil = Math.floor((startDateTime - now) / 1000);
+            var h = Math.floor(timeUntil / 3600);
+            var m = Math.floor((timeUntil % 3600) / 60);
+            return res.json({ 
+                success: false, 
+                message: '⏰ Event starts in ' + h + 'h ' + m + 'm. Please wait.' 
+            });
+        }
+        
+        // 2. Event လုံးဝပြီးရင် (Grace Period ကုန်)
+        if (now > graceEndDateTime) {
+            return res.json({ 
+                success: false, 
+                message: '📅 Event has fully ended.' 
+            });
+        }
+        
+        // 3. Reset Time Check
+        var resetTime = evt.end_time || '00:00:00';
+        var todayReset = new Date(today + 'T' + resetTime);
+        
+        if (now >= todayReset) {
+            return res.json({ 
+                success: false, 
+                message: '⏰ Claim period ended. Wait for reset at ' + resetTime + '.' 
+            });
+        }
+        
+        // 4. Already claimed today?
+        var todayCheckin = await p.query(
+            'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3',
+            [uid, event_id, today]
+        );
+        if (todayCheckin.rows.length > 0) {
+            return res.json({ success: false, message: '✅ Already claimed today!' });
+        }
+        
+        // 5. Grace Period Check (Event ပြီးပေမယ့် ရက်တိုးအတွင်း)
+        var isGracePeriod = now > endDateTime && now <= graceEndDateTime;
+        
+        // 6. Get Progress (Login ဝင်မှ ရက်ကူးဖို့)
+        var progress = await p.query(
+            'SELECT * FROM daily_checkin_progress WHERE user_id=$1 AND event_id=$2',
+            [uid, event_id]
+        );
+        
+        var currentDay = 1;
+        if (progress.rows.length > 0) {
+            currentDay = progress.rows[0].current_day;
+        }
+        
+        // Clamp
+        currentDay = Math.max(1, Math.min(currentDay, evt.total_days));
+        
+        // 7. Get Reward
+        var reward = await p.query(
+            'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 AND day_number=$2',
+            [event_id, currentDay]
+        );
+        if (reward.rows.length === 0) {
+            return res.json({ success: false, message: 'No reward for this day' });
+        }
+        
         var rwd = reward.rows[0];
-        switch (rwd.reward_type) { case 'mmk': await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [rwd.reward_amount, uid]); break; case 'usd': await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [rwd.reward_amount, uid]); break; case 'spin': await p.query('UPDATE auth_users SET paid_spins = COALESCE(paid_spins,0) + $1 WHERE id=$2', [parseInt(rwd.reward_amount), uid]); break; }
-        await p.query('INSERT INTO daily_checkins (user_id, event_id, checkin_date, day_number, reward_type, reward_amount) VALUES ($1,$2,$3,$4,$5,$6)', [uid, event_id, today, currentDay, rwd.reward_type, rwd.reward_amount]);
+        
+        // 8. Update Balance
+        switch (rwd.reward_type) {
+            case 'mmk':
+                await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', 
+                    [rwd.reward_amount, uid]);
+                break;
+            case 'usd':
+                await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', 
+                    [rwd.reward_amount, uid]);
+                break;
+            case 'spin':
+                await p.query('UPDATE auth_users SET paid_spins = COALESCE(paid_spins,0) + $1 WHERE id=$2', 
+                    [parseInt(rwd.reward_amount), uid]);
+                break;
+        }
+        
+        // 9. Save Claim
+        await p.query(
+            'INSERT INTO daily_checkins (user_id, event_id, checkin_date, day_number, reward_type, reward_amount) VALUES ($1,$2,$3,$4,$5,$6)',
+            [uid, event_id, today, currentDay, rwd.reward_type, rwd.reward_amount]
+        );
+        
+        // 10. Update Progress (Next Day) - Login ဝင်ပြီး Claim လုပ်မှ ရက်ကူး
+        var nextDay = Math.min(currentDay + 1, evt.total_days);
+        await p.query(
+            `INSERT INTO daily_checkin_progress (user_id, event_id, current_day, last_claim_date) 
+             VALUES ($1,$2,$3,$4)
+             ON CONFLICT (user_id, event_id) 
+             DO UPDATE SET current_day=$3, last_claim_date=$4`,
+            [uid, event_id, nextDay, today]
+        );
+        
+        // 11. Get Updated Balances
         var updatedUser = await p.query('SELECT balance, usd_balance, paid_spins FROM auth_users WHERE id=$1', [uid]);
-        res.json({ success: true, message: 'Reward claimed!', day: currentDay, reward_type: rwd.reward_type, reward_amount: parseFloat(rwd.reward_amount), reward_label: rwd.reward_label, mmk_balance: parseFloat(updatedUser.rows[0] ? updatedUser.rows[0].balance : 0), usd_balance: parseFloat(updatedUser.rows[0] ? updatedUser.rows[0].usd_balance : 0), paid_spins: parseInt(updatedUser.rows[0] ? updatedUser.rows[0].paid_spins : 0) });
-    } catch(e) { res.json({ success: false, message: 'Server error: ' + e.message }); }
+        
+        res.json({
+            success: true,
+            message: '🎉 Reward claimed!',
+            day: currentDay,
+            reward_type: rwd.reward_type,
+            reward_amount: parseFloat(rwd.reward_amount),
+            reward_label: rwd.reward_label,
+            mmk_balance: parseFloat(updatedUser.rows[0]?.balance || 0),
+            usd_balance: parseFloat(updatedUser.rows[0]?.usd_balance || 0),
+            paid_spins: parseInt(updatedUser.rows[0]?.paid_spins || 0)
+        });
+        
+    } catch(e) {
+        console.error('[CHECKIN CLAIM ERROR]', e.message);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
 });
 // ====================================
 // INITIALIZE DEFAULT CHECK-IN EVENTS
