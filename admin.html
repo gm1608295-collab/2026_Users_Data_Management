@@ -1,1 +1,878 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Panel - SOLO M Game Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg: #0c0e27;
+            --panel: #1a1f4b;
+            --gold: #f39c12;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --blue: #3498db;
+            --text: #fff;
+            --text-muted: rgba(255,255,255,0.5);
+            --border: rgba(255,255,255,0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .container { max-width: 650px; margin: 0 auto; }
 
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1a1f4b, #2c3e50);
+            padding: 18px;
+            text-align: center;
+            border-radius: 14px;
+            border: 1px solid var(--gold);
+            margin-bottom: 15px;
+        }
+        .header h1 { font-size: 18px; color: var(--gold); }
+        .header a { color: var(--text); font-size: 12px; text-decoration: none; display: inline-block; margin-top: 8px; }
+
+        /* Section */
+        .section {
+            background: rgba(26,31,75,0.5);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+        .section h3 {
+            color: var(--gold);
+            font-size: 13px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        /* Form */
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 10px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(243,156,18,0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            justify-content: center;
+        }
+        .btn:hover { transform: translateY(-1px); opacity: 0.9; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+        .btn-gold { background: var(--gold); color: #000; }
+        .btn-green { background: var(--green); color: #000; }
+        .btn-red { background: var(--red); color: #fff; }
+        .btn-blue { background: var(--blue); color: #fff; }
+        .btn-purple { background: #9b59b6; color: #fff; }
+        .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--text); }
+        .btn-sm { padding: 6px 12px; font-size: 9px; border-radius: 6px; }
+
+        /* Grid */
+        .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-row .btn { flex: 1; min-width: 80px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 15px; }
+        .stat-card {
+            background: rgba(0,0,0,0.3);
+            padding: 14px 8px;
+            text-align: center;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        .stat-card .num { font-size: 20px; font-weight: bold; color: var(--gold); }
+        .stat-card .lbl { font-size: 8px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; }
+
+        /* User Row */
+        .user-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(0,0,0,0.25);
+            border-radius: 10px;
+            margin-bottom: 6px;
+            border-left: 4px solid var(--green);
+            gap: 10px;
+            transition: all 0.2s;
+        }
+        .user-row:hover { background: rgba(0,0,0,0.4); }
+        .user-row.banned { border-left-color: var(--red); opacity: 0.7; }
+        .user-info { flex: 1; min-width: 0; }
+        .user-name { font-size: 12px; font-weight: bold; color: var(--gold); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+        .user-details { font-size: 9px; color: var(--text-muted); }
+        .user-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; flex-shrink: 0; }
+
+        /* Order Row */
+        .order-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-bottom: 4px;
+            font-size: 10px;
+            border-left: 3px solid var(--gold);
+            gap: 8px;
+        }
+
+        /* Check-in Event Card */
+        .event-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-left: 5px solid var(--blue);
+            transition: all 0.3s;
+        }
+        .event-card.premium { border-left-color: #9b59b6; }
+        .event-card.active { border-left-color: var(--green); }
+        .event-card.pending { border-left-color: var(--gold); }
+        .event-card.ended { border-left-color: #7f8c8d; opacity: 0.6; }
+        .event-card.cancelled { border-left-color: var(--red); opacity: 0.5; }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .event-title { font-size: 14px; font-weight: bold; }
+        .event-title.normal { color: var(--blue); }
+        .event-title.premium { color: #9b59b6; }
+        .event-status {
+            font-size: 9px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+        .event-status.active { background: rgba(46,204,113,0.2); color: var(--green); }
+        .event-status.pending { background: rgba(243,156,18,0.2); color: var(--gold); }
+        .event-status.ended { background: rgba(127,140,141,0.2); color: #7f8c8d; }
+        .event-status.cancelled { background: rgba(231,76,60,0.2); color: var(--red); }
+
+        .event-meta { font-size: 9px; color: var(--text-muted); margin-bottom: 6px; }
+        .event-countdown {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--gold);
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .event-rewards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+        .reward-chip {
+            font-size: 8px;
+            background: rgba(255,255,255,0.08);
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 8px;
+            font-weight: bold;
+        }
+        .badge-success { background: rgba(46,204,113,0.2); color: var(--green); }
+        .badge-danger { background: rgba(231,76,60,0.2); color: var(--red); }
+        .badge-warning { background: rgba(243,156,18,0.2); color: var(--gold); }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-box {
+            background: var(--panel);
+            border: 2px solid var(--gold);
+            border-radius: 14px;
+            padding: 22px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal-close {
+            float: right;
+            color: var(--red);
+            cursor: pointer;
+            font-size: 20px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(231,76,60,0.1);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            padding: 12px 18px;
+            border-radius: 8px;
+            z-index: 9999;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            max-width: 300px;
+        }
+
+        /* Page Control */
+        .page-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .page-table th { background: rgba(0,0,0,0.4); color: var(--gold); padding: 10px 8px; text-align: left; font-size: 9px; }
+        .page-table td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .page-table tr:hover td { background: rgba(0,0,0,0.2); }
+        .toggle-switch { position: relative; width: 40px; height: 22px; display: inline-block; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.2); border-radius: 22px; transition: 0.3s; }
+        .toggle-slider:before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.3s; }
+        input:checked + .toggle-slider { background: var(--green); }
+        input:checked + .toggle-slider:before { transform: translateX(18px); }
+        .timer-display { font-size: 10px; color: var(--gold); font-family: 'Courier New', monospace; }
+
+        /* Divider */
+        .divider { border-top: 1px solid var(--border); padding-top: 15px; margin-top: 15px; }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .stats { grid-template-columns: 1fr 1fr; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .grid-3 { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-user-shield"></i> Admin Panel</h1>
+            <a href="/dashboard"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+        </div>
+
+        <!-- Admin Login -->
+        <div class="section">
+            <h3><i class="fas fa-lock"></i> Admin Login</h3>
+            <div class="form-group">
+                <label>Admin Password</label>
+                <input type="password" id="adminPass" placeholder="Enter admin password">
+            </div>
+            <button class="btn btn-gold" onclick="unlockAdmin()"><i class="fas fa-unlock"></i> Unlock Admin</button>
+
+            <div id="adminBox" style="display:none;margin-top:15px;">
+                <!-- Stats -->
+                <div class="stats">
+                    <div class="stat-card"><div class="num" id="totalUsers">0</div><div class="lbl">Total Users</div></div>
+                    <div class="stat-card"><div class="num" id="bannedUsers" style="color:var(--red)">0</div><div class="lbl">Banned</div></div>
+                    <div class="stat-card"><div class="num" id="totalOrders" style="color:var(--gold)">0</div><div class="lbl">Orders</div></div>
+                    <div class="stat-card"><div class="num" id="todayOrders" style="color:var(--green)">0</div><div class="lbl">Today</div></div>
+                </div>
+
+                <!-- ===== DAILY CHECK-IN MANAGEMENT ===== -->
+                <div class="divider">
+                    <h3><i class="fas fa-calendar-check"></i> Daily Check-In Event Management</h3>
+                    <p style="font-size:9px;color:var(--text-muted);margin-bottom:10px;">
+                        ⏰ Server Time: <b style="color:var(--gold);" id="serverTimeDisplay">--</b> | 
+                        Normal (7 Days) | Premium (14 Days)
+                    </p>
+                    <div class="btn-row" style="margin-bottom:10px;">
+                        <button class="btn btn-blue" onclick="openCheckinEventModal('normal')"><i class="fas fa-plus"></i> New Normal</button>
+                        <button class="btn btn-purple" onclick="openCheckinEventModal('premium')"><i class="fas fa-plus"></i> New Premium</button>
+                    </div>
+                    <div id="checkinEventsList" style="max-height:400px;overflow-y:auto;"></div>
+                </div>
+
+                <!-- ===== PAGE CONTROL ===== -->
+                <div class="divider">
+                    <h3><i class="fas fa-toggle-on"></i> Page Control</h3>
+                    <div style="overflow-x:auto;">
+                        <table class="page-table">
+                            <thead><tr><th>Page</th><th>Status</th><th>Toggle</th><th>Timer</th><th>Action</th></tr></thead>
+                            <tbody id="pageToggleList"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ===== QUICK ACTIONS ===== -->
+                <div class="divider">
+                    <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                    <div class="btn-row">
+                        <button class="btn btn-green" onclick="loadAdminData()"><i class="fas fa-sync-alt"></i> Refresh Users</button>
+                        <button class="btn btn-blue" onclick="loadAdminOrders('all')"><i class="fas fa-sync-alt"></i> Refresh Orders</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CHECK-IN EVENT MODAL ===== -->
+    <div class="modal" id="checkinEventModal">
+        <div class="modal-box">
+            <span class="modal-close" onclick="closeModal('checkinEventModal')">&times;</span>
+            <h3 style="color:var(--gold);text-align:center;" id="checkinModalTitle">🎁 Create Event</h3>
+            <input type="hidden" id="checkinEventType">
+            <div class="form-group"><label>Event Name</label><input type="text" id="checkinEventName" placeholder="Event name..."></div>
+            <div class="grid-2">
+                <div class="form-group"><label>📅 Start Date</label><input type="date" id="checkinStartDate"></div>
+                <div class="form-group"><label>⏰ Start Time</label><input type="time" id="checkinStartTime" value="00:00"></div>
+            </div>
+            <div class="grid-2">
+                <div class="form-group"><label>📆 Total Days</label><input type="number" id="checkinTotalDays" value="7" readonly></div>
+                <div class="form-group"><label>⏰ Reset Time</label><input type="time" id="checkinResetTime" value="00:00"></div>
+            </div>
+            <h4 style="color:var(--gold);font-size:12px;margin:10px 0;">Rewards</h4>
+            <div id="checkinRewardsContainer" style="max-height:250px;overflow-y:auto;"></div>
+            <button class="btn btn-green" onclick="createCheckinEvent()" style="width:100%;margin-top:10px;"><i class="fas fa-save"></i> Create Event</button>
+        </div>
+    </div>
+
+    <!-- ===== TIMER MODAL ===== -->
+    <div class="modal" id="timerModal">
+        <div class="modal-box" style="text-align:center;">
+            <span class="modal-close" onclick="closeModal('timerModal')">&times;</span>
+            <h3 style="color:var(--gold);">⏱️ Set Auto-ON Timer</h3>
+            <input type="hidden" id="timerPageId">
+            <div style="display:flex;gap:8px;justify-content:center;margin:15px 0;">
+                <div style="text-align:center;">
+                    <input type="number" id="timerHours" min="0" max="23" value="0" style="width:50px;padding:8px;text-align:center;font-size:16px;background:rgba(255,255,255,0.08);border:1px solid var(--gold);border-radius:8px;color:#fff;" onchange="updateTimerPreview()">
+                    <br><span style="font-size:9px;color:var(--text-muted);">Hours</span>
+                </div>
+                <span style="font-size:20px;color:var(--gold);line-height:50px;">:</span>
+                <div style="text-align:center;">
+                    <input type="number" id="timerMinutes" min="0" max="59" value="5" style="width:50px;padding:8px;text-align:center;font-size:16px;background:rgba(255,255,255,0.08);border:1px solid var(--gold);border-radius:8px;color:#fff;" onchange="updateTimerPreview()">
+                    <br><span style="font-size:9px;color:var(--text-muted);">Minutes</span>
+                </div>
+                <span style="font-size:20px;color:var(--gold);line-height:50px;">:</span>
+                <div style="text-align:center;">
+                    <input type="number" id="timerSeconds" min="0" max="59" value="0" style="width:50px;padding:8px;text-align:center;font-size:16px;background:rgba(255,255,255,0.08);border:1px solid var(--gold);border-radius:8px;color:#fff;" onchange="updateTimerPreview()">
+                    <br><span style="font-size:9px;color:var(--text-muted);">Seconds</span>
+                </div>
+            </div>
+            <div id="timerPreview" style="font-size:14px;color:var(--gold);margin-bottom:10px;">⏱️ 00:05:00</div>
+            <button class="btn btn-green" onclick="confirmTimer()" style="width:100%;"><i class="fas fa-clock"></i> Set Timer</button>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_PASSWORD = 'MK2008';
+        let checkinEventsRefreshInterval = null;
+        let pageTimers = {};
+
+        // ==================== TOAST ====================
+        function showToast(msg, type) {
+            type = type || 'success';
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.style.display = 'block';
+            el.style.background = type === 'success' ? '#2ecc71' : '#e74c3c';
+            el.style.color = '#fff';
+            clearTimeout(window._toastTimeout);
+            window._toastTimeout = setTimeout(() => { el.style.display = 'none'; }, 3000);
+        }
+
+        // ==================== MODAL ====================
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        // ==================== UNLOCK ADMIN ====================
+        async function unlockAdmin() {
+            const pass = document.getElementById('adminPass').value;
+            if (pass !== ADMIN_PASSWORD) return showToast('Wrong password!', 'error');
+
+            document.getElementById('adminBox').style.display = 'block';
+            await Promise.all([
+                loadAdminData(),
+                loadAdminOrders('all'),
+                loadPageToggles(),
+                loadCheckinEvents()
+            ]);
+
+            // Start real-time updates
+            startRealTimeUpdates();
+            showToast('✅ Admin unlocked!');
+        }
+
+        // ==================== REAL-TIME UPDATES ====================
+        function startRealTimeUpdates() {
+            // Update server time every second
+            setInterval(updateServerTimeDisplay, 1000);
+            updateServerTimeDisplay();
+
+            // Refresh check-in events every 5 seconds
+            if (checkinEventsRefreshInterval) clearInterval(checkinEventsRefreshInterval);
+            checkinEventsRefreshInterval = setInterval(() => {
+                loadCheckinEvents(true); // silent refresh
+                loadPageToggles(true); // update timers
+            }, 5000);
+
+            // Refresh admin data every 30 seconds
+            setInterval(() => {
+                loadAdminData();
+                loadAdminOrders('all');
+            }, 30000);
+        }
+
+        function updateServerTimeDisplay() {
+            const now = new Date();
+            const el = document.getElementById('serverTimeDisplay');
+            if (el) {
+                el.textContent = now.toLocaleTimeString('my-MM', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }) + ' | ' + now.toLocaleDateString('my-MM', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            }
+        }
+
+        // ==================== LOAD ADMIN DATA ====================
+        async function loadAdminData() {
+            try {
+                const r = await fetch('/api/admin/users_with_logins');
+                const d = await r.json();
+                document.getElementById('totalUsers').textContent = d.users ? d.users.length : 0;
+
+                // Banned count
+                try {
+                    const br = await fetch('/api/admin/banned_list');
+                    const bd = await br.json();
+                    document.getElementById('bannedUsers').textContent = (bd.banned || []).length;
+                } catch(e) {}
+            } catch(e) { console.error(e); }
+        }
+
+        // ==================== LOAD ADMIN ORDERS ====================
+        async function loadAdminOrders(filter) {
+            try {
+                const r = await fetch(`/api/admin/orders?filter=${filter || 'all'}`);
+                const d = await r.json();
+                document.getElementById('totalOrders').textContent = d.total || 0;
+                document.getElementById('todayOrders').textContent = d.today || 0;
+            } catch(e) { console.error(e); }
+        }
+
+        // ==================== PAGE TOGGLES ====================
+        async function loadPageToggles(silent) {
+            try {
+                const r = await fetch('/api/admin/page_status');
+                const d = await r.json();
+                if (d.pages) {
+                    renderPageToggles(d.pages);
+                }
+            } catch(e) { if (!silent) console.error(e); }
+        }
+
+        function renderPageToggles(pages) {
+            const pageIcons = {
+                'topup': '💰', 'buycode': '🛒', 'dashboard': '🏠', 'data': '📊',
+                'history': '📋', 'password': '🔑', 'recovery': '🔧', 'contact': '📞',
+                'aboutredeem': 'ℹ️', 'game': '🎰', 'exchange': '💱'
+            };
+
+            let html = '';
+            pages.forEach(p => {
+                const icon = pageIcons[p.id] || '📄';
+                const timer = pageTimers[p.id];
+                const hasTimer = timer && timer > Date.now();
+                const status = p.status === 'on' ? 'on' : (hasTimer ? 'timer' : 'off');
+                const statusText = p.status === 'on' ? 'ON' : (hasTimer ? 'TIMER' : 'OFF');
+                const checked = p.status === 'on' ? 'checked' : '';
+
+                let timerHtml = '';
+                if (hasTimer) {
+                    const remaining = timer - Date.now();
+                    timerHtml = `<span class="timer-display" id="pageTimer_${p.id}">${formatTime(remaining)}</span>`;
+                } else {
+                    timerHtml = '<span style="font-size:9px;color:rgba(255,255,255,0.3);">--:--:--</span>';
+                }
+
+                html += `<tr>
+                    <td>${icon} ${p.name}</td>
+                    <td><span class="badge badge-${status === 'on' ? 'success' : status === 'timer' ? 'warning' : 'danger'}">${statusText}</span></td>
+                    <td><label class="toggle-switch"><input type="checkbox" ${checked} onchange="handlePageToggle('${p.id}', this.checked)"><span class="toggle-slider"></span></label></td>
+                    <td>${timerHtml}</td>
+                    <td>
+                        ${p.status === 'off' && !hasTimer ? `<button class="btn btn-sm btn-gold" onclick="openTimerModal('${p.id}')">⏱️ Timer</button>` : ''}
+                        ${hasTimer ? `<button class="btn btn-sm btn-red" onclick="cancelTimer('${p.id}')">✕ Cancel</button>` : ''}
+                        ${p.status === 'on' ? `<button class="btn btn-sm btn-red" onclick="turnOffPage('${p.id}')">OFF</button>` : ''}
+                    </td>
+                </tr>`;
+            });
+
+            document.getElementById('pageToggleList').innerHTML = html;
+        }
+
+        function formatTime(ms) {
+            if (ms <= 0) return '00:00:00';
+            const s = Math.floor(ms / 1000);
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        function handlePageToggle(id, on) {
+            if (!on) {
+                openTimerModal(id);
+                return;
+            }
+            cancelTimer(id);
+            togglePage(id, true);
+        }
+
+        function openTimerModal(id) {
+            document.getElementById('timerPageId').value = id;
+            document.getElementById('timerHours').value = 0;
+            document.getElementById('timerMinutes').value = 5;
+            document.getElementById('timerSeconds').value = 0;
+            updateTimerPreview();
+            openModal('timerModal');
+        }
+
+        function updateTimerPreview() {
+            const h = parseInt(document.getElementById('timerHours').value) || 0;
+            const m = parseInt(document.getElementById('timerMinutes').value) || 0;
+            const s = parseInt(document.getElementById('timerSeconds').value) || 0;
+            document.getElementById('timerPreview').textContent = `⏱️ ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        async function confirmTimer() {
+            const id = document.getElementById('timerPageId').value;
+            const h = parseInt(document.getElementById('timerHours').value) || 0;
+            const m = parseInt(document.getElementById('timerMinutes').value) || 0;
+            const s = parseInt(document.getElementById('timerSeconds').value) || 0;
+            const totalMs = (h * 3600 + m * 60 + s) * 1000;
+
+            if (totalMs <= 0) return showToast('Set a time greater than 0', 'error');
+
+            const turnOnTime = Date.now() + totalMs;
+            await togglePage(id, false);
+
+            pageTimers[id] = turnOnTime;
+            localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
+
+            // Auto turn on after timer
+            setTimeout(async () => {
+                await togglePage(id, true);
+                delete pageTimers[id];
+                localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
+                loadPageToggles();
+            }, totalMs);
+
+            closeModal('timerModal');
+            loadPageToggles();
+            showToast('✅ Timer set!');
+        }
+
+        function cancelTimer(id) {
+            delete pageTimers[id];
+            localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
+            loadPageToggles();
+            showToast('✅ Timer cancelled');
+        }
+
+        async function turnOffPage(id) {
+            if (!confirm(`Turn OFF "${id}"?`)) return;
+            await togglePage(id, false);
+            showToast('✅ Page OFF');
+        }
+
+        async function togglePage(id, on) {
+            try {
+                await fetch('/api/admin/toggle_page', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ page_id: id, status: on ? 'on' : 'off' })
+                });
+                loadPageToggles();
+            } catch(e) { showToast('Error', 'error'); }
+        }
+
+        // Load saved page timers
+        try {
+            pageTimers = JSON.parse(localStorage.getItem('pageTimers') || '{}');
+            Object.keys(pageTimers).forEach(id => {
+                const remaining = pageTimers[id] - Date.now();
+                if (remaining > 0) {
+                    setTimeout(async () => {
+                        await togglePage(id, true);
+                        delete pageTimers[id];
+                        localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
+                    }, remaining);
+                } else {
+                    delete pageTimers[id];
+                    localStorage.setItem('pageTimers', JSON.stringify(pageTimers));
+                }
+            });
+        } catch(e) {}
+
+        // ==================== DAILY CHECK-IN MANAGEMENT ====================
+        async function loadCheckinEvents(silent) {
+            try {
+                const r = await fetch('/api/admin/checkin_events');
+                const d = await r.json();
+                const container = document.getElementById('checkinEventsList');
+                if (!container) return;
+
+                if (d.events && d.events.length > 0) {
+                    const now = new Date();
+                    let html = '';
+
+                    d.events.forEach(evt => {
+                        const startDateTime = new Date(evt.start_date + 'T' + (evt.start_time || '00:00:00'));
+                        const endDateTime = new Date(evt.end_date + 'T' + (evt.end_time || '23:59:59'));
+                        const isCancelled = evt.cancelled;
+                        const hasStarted = now >= startDateTime;
+                        const hasEnded = now > endDateTime;
+                        const isPending = !hasStarted && !isCancelled;
+
+                        let statusClass, statusText;
+                        if (isCancelled) { statusClass = 'cancelled'; statusText = 'Cancelled'; }
+                        else if (hasEnded) { statusClass = 'ended'; statusText = 'Ended'; }
+                        else if (hasStarted) { statusClass = 'active'; statusText = 'Active'; }
+                        else { statusClass = 'pending'; statusText = 'Pending'; }
+
+                        const typeClass = evt.event_type === 'premium' ? 'premium' : 'normal';
+                        const typeIcon = evt.event_type === 'premium' ? '👑' : '🎁';
+                        const startTimeDisplay = (evt.start_time || '00:00:00').substring(0, 5);
+                        const resetTimeDisplay = (evt.end_time || '00:00:00').substring(0, 5);
+
+                        // Countdown for pending events
+                        let countdownHtml = '';
+                        if (isPending) {
+                            const remaining = startDateTime - now;
+                            countdownHtml = `<div class="event-countdown" id="pendingCountdown_${evt.id}">⏳ ${formatTime(remaining)}</div>`;
+                        }
+
+                        // Rewards chips
+                        let rewardsHtml = '';
+                        if (evt.rewards && evt.rewards.length > 0) {
+                            rewardsHtml = '<div class="event-rewards">';
+                            evt.rewards.forEach(r => {
+                                rewardsHtml += `<span class="reward-chip">D${r.day_number}: ${r.reward_label || r.reward_type}</span>`;
+                            });
+                            rewardsHtml += '</div>';
+                        }
+
+                        html += `
+                            <div class="event-card ${typeClass} ${statusClass}" id="eventCard_${evt.id}">
+                                <div class="event-header">
+                                    <div>
+                                        <span class="event-title ${typeClass}">${typeIcon} ${evt.event_name}</span>
+                                        <span class="event-status ${statusClass}">${statusText}</span>
+                                    </div>
+                                    <div style="display:flex;gap:4px;">
+                                        ${!hasStarted && !isCancelled ? `<button class="btn btn-sm btn-gold" onclick="editCheckinEvent(${evt.id},'${evt.event_type}')">✏️ Edit</button><button class="btn btn-sm btn-red" onclick="cancelCheckinEvent(${evt.id})">🗑️ Cancel</button>` : ''}
+                                        ${hasEnded && !isCancelled ? `<button class="btn btn-sm btn-blue" onclick="reuseCheckinEvent(${evt.id})">🔄 Reuse</button>` : ''}
+                                    </div>
+                                </div>
+                                <div class="event-meta">
+                                    📅 ${evt.start_date} (${startTimeDisplay}) → ${evt.end_date} (${resetTimeDisplay}) | 
+                                    📆 ${evt.total_days} Days | ⏰ Reset: ${resetTimeDisplay}
+                                </div>
+                                ${countdownHtml}
+                                ${rewardsHtml}
+                            </div>
+                        `;
+                    });
+
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">No events yet</p>';
+                }
+            } catch(e) {
+                if (!silent) console.error(e);
+            }
+        }
+
+        function openCheckinEventModal(type) {
+            const days = type === 'normal' ? 7 : 14;
+            const title = type === 'normal' ? '🎁 Normal Daily Check-In (7 Days)' : '👑 Premium Daily Check-In (14 Days)';
+
+            document.getElementById('checkinEventType').value = type;
+            document.getElementById('checkinModalTitle').textContent = title;
+            document.getElementById('checkinEventName').value = title;
+            document.getElementById('checkinTotalDays').value = days;
+
+            // Build rewards form
+            let rewardsHtml = '';
+            for (let d = 1; d <= days; d++) {
+                rewardsHtml += `
+                    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+                        <span style="width:35px;font-size:9px;">Day ${d}:</span>
+                        <select id="rewardType${d}" style="width:65px;padding:6px;font-size:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;">
+                            <option value="mmk">💰 MMK</option>
+                            <option value="usd">💵 USD</option>
+                            <option value="spin">🔄 Spin</option>
+                        </select>
+                        <input type="number" id="rewardAmount${d}" value="100" min="0" step="0.01" style="width:60px;padding:6px;font-size:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;">
+                        <input type="text" id="rewardLabel${d}" placeholder="Label" style="width:75px;padding:6px;font-size:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;">
+                        <input type="text" id="rewardIcon${d}" placeholder="🎁" style="width:40px;padding:6px;font-size:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;">
+                    </div>
+                `;
+            }
+            document.getElementById('checkinRewardsContainer').innerHTML = rewardsHtml;
+            openModal('checkinEventModal');
+        }
+
+        async function createCheckinEvent() {
+            const type = document.getElementById('checkinEventType').value;
+            const name = document.getElementById('checkinEventName').value;
+            const startDate = document.getElementById('checkinStartDate').value;
+            const startTime = document.getElementById('checkinStartTime').value + ':00';
+            const resetTime = document.getElementById('checkinResetTime').value + ':00';
+            const days = parseInt(document.getElementById('checkinTotalDays').value) || 7;
+
+            if (!startDate) return showToast('Start date required', 'error');
+
+            const rewards = [];
+            for (let d = 1; d <= days; d++) {
+                rewards.push({
+                    day: d,
+                    type: document.getElementById('rewardType' + d).value,
+                    amount: document.getElementById('rewardAmount' + d).value,
+                    label: document.getElementById('rewardLabel' + d).value,
+                    icon: document.getElementById('rewardIcon' + d).value
+                });
+            }
+
+            try {
+                const r = await fetch('/api/admin/checkin_event/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event_type: type,
+                        event_name: name,
+                        start_date: startDate,
+                        start_time: startTime,
+                        end_time: resetTime,
+                        total_days: days,
+                        rewards: rewards
+                    })
+                });
+                const d = await r.json();
+                if (d.success) {
+                    showToast('✅ Event created!');
+                    closeModal('checkinEventModal');
+                    loadCheckinEvents();
+                } else {
+                    showToast(d.message || 'Error', 'error');
+                }
+            } catch(e) { showToast('Error', 'error'); }
+        }
+
+        async function cancelCheckinEvent(eventId) {
+            if (!confirm('Cancel this event?')) return;
+            try {
+                const r = await fetch('/api/admin/checkin_event/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ event_id: eventId })
+                });
+                const d = await r.json();
+                if (d.success) { showToast('✅ Cancelled!'); loadCheckinEvents(); }
+                else { showToast(d.message || 'Error', 'error'); }
+            } catch(e) { showToast('Error', 'error'); }
+        }
+
+        function reuseCheckinEvent(eventId) {
+            const startDate = prompt('Start Date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+            if (!startDate) return;
+            const startTime = prompt('Start Time (HH:MM):', '00:00');
+            if (!startTime) return;
+
+            fetch('/api/admin/checkin_event/reuse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ event_id: eventId, start_date: startDate, start_time: startTime + ':00' })
+            }).then(r => r.json()).then(d => {
+                if (d.success) { showToast('✅ Event reused!'); loadCheckinEvents(); }
+                else { showToast(d.message || 'Error', 'error'); }
+            });
+        }
+
+        // Edit event function placeholder
+        async function editCheckinEvent(eventId, type) {
+            showToast('Edit feature coming soon', 'info');
+        }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal').forEach(m => {
+            m.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('active');
+            });
+        });
+    </script>
+</body>
+</html>
