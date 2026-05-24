@@ -756,6 +756,78 @@ async function verifyUserId() {
         
 async function submitTopup(){const pm=document.getElementById('topupPayment').value,ii=document.getElementById('verifyUserId').value.trim(),btn=document.getElementById('buyBtn');if(!pm)return alert('Payment ရွေးချယ်ပါ');if(!iv)return alert('User ID စစ်ဆေးပါ');if(!sd)return alert('Screenshot ထည့်ပါ');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';btn.disabled=true;try{const ur=await fetch('/api/upload_image',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({base64:sd})});const ud=await ur.json();const su=ud.success?ud.url:sd;const r=await fetch('/api/submit_order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token'),amount:0,payment_method:pm,screenshot:su,user_id:ii})});const d=await r.json();if(d.success){addNotiItem('pending','ငွေဖြည့်သွင်းခြင်းအောင်မြင်ပါသည်၊မိမိ၏အကောင့်ထဲသို့ admin မှအတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်းဖြည့်သွင်းပေးပါမည်。�ျေးဇူးတင်ပါသည်။');showToast('✅ Order Submitted!','success');document.getElementById('topupPayment').value='';document.getElementById('topupScreenshot').value='';document.getElementById('screenshotPreview').innerHTML='';sd='';iv=false;document.getElementById('buyBtn').disabled=true;document.getElementById('idResult').style.display='none';document.getElementById('fileUploadBox').classList.remove('has-file');document.getElementById('uploadText').textContent='Payment Screenshot';document.getElementById('uploadHint').textContent='ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';document.getElementById('paymentSection').style.display='none';document.getElementById('guideBox').style.display='none';loadHistory()}else{showToast(d.message||'Error','error')}}catch(e){showToast('Connection error','error')}btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';btn.disabled=false}
 
+    debugLog('🚀 Submit Topup Started', '#f39c12');
+    debugLog('Payment: ' + pm + ' | User ID: ' + ii + ' | Screenshot: ' + (sd ? sd.substring(0, 30) + '...' : 'NONE'), '#3498db');
+    
+    if (!pm) {
+        debugLog('❌ No payment selected', '#e74c3c');
+        return alert('Payment ရွေးချယ်ပါ');
+    }
+    if (!iv) {
+        debugLog('❌ User ID not verified', '#e74c3c');
+        return alert('User ID စစ်ဆေးပါ');
+    }
+    if (!sd) {
+        debugLog('❌ No screenshot', '#e74c3c');
+        return alert('Screenshot ထည့်ပါ');
+    }
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buying...';
+    btn.disabled = true;
+    
+    try {
+        // Screenshot Upload
+        debugLog('📤 Uploading screenshot...', '#f39c12');
+        var su = sd;
+        try {
+            const ur = await fetch('/api/upload_image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ base64: sd })
+            });
+            const ud = await ur.json();
+            debugLog('📸 Upload response: ' + JSON.stringify(ud), ud.success ? '#2ecc71' : '#e74c3c');
+            if (ud.success && ud.url) su = ud.url;
+        } catch(e) {
+            debugLog('⚠️ Upload failed: ' + e.message, '#e74c3c');
+        }
+        
+        // Submit Order
+        debugLog('📡 Sending order...', '#f39c12');
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/submit_order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: token,
+                amount: 0,
+                payment_method: pm,
+                screenshot: su,
+                user_id: ii
+            })
+        });
+        
+        debugLog('📡 Order Status: ' + r.status, r.ok ? '#2ecc71' : '#e74c3c');
+        
+        const d = await r.json();
+        debugLog('📦 Order Response: ' + JSON.stringify(d), d.success ? '#2ecc71' : '#e74c3c');
+        
+        if (d.success) {
+            debugLog('✅ Order Submitted!', '#2ecc71');
+            showToast('✅ Order Submitted!', 'success');
+            // ... reset form ...
+        } else {
+            debugLog('❌ Order Failed: ' + (d.message || 'Unknown'), '#e74c3c');
+            showToast(d.message || 'Error', 'error');
+        }
+    } catch(e) {
+        debugLog('❌ Exception: ' + e.message, '#e74c3c');
+        showToast('Connection error', 'error');
+    }
+    
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Buy';
+    btn.disabled = false;
+        }
 // ==================== ADMIN ONLY DEBUG ====================
 // Usage: topup.html?debug=MK2008
 var isDebugMode = false;
