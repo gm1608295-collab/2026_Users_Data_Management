@@ -3978,9 +3978,16 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             const startTime = ev.start_time || '00:00:00';
             const resetTime = ev.end_time || '00:00:00';
             const totalDays = ev.total_days;
-            
-            const startDateTime = new Date(ev.start_date + 'T' + startTime);
-            const endDateTime = new Date(ev.end_date + 'T' + '23:59:59');
+
+            // ✅ Safe Date parsing
+const startDateTime = new Date(ev.start_date + 'T' + (startTime || '00:00:00'));
+const endDateTime = new Date(ev.end_date + 'T' + '23:59:59');
+
+// ✅ Invalid date check
+if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+    console.log('[CHECKIN] Invalid date for event:', ev.id, ev.start_date, ev.end_date);
+    continue; // Skip this event
+}
             const graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
             
             const hasStarted = now >= startDateTime;
