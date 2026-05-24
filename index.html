@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         :root {
             --bg: #060a18;
@@ -839,8 +840,8 @@
                 </div>
             </div>
 
-            <div class="recaptcha-box" id="recaptchaBox" onclick="verifyRecaptcha()">
-                <div class="recaptcha-check"><i class="fas fa-check"></i></div>
+            <div class="g-recaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw" style="margin-bottom:12px"></div>
+            <div class="recaptcha-check"><i class="fas fa-check"></i></div>
                 <span class="recaptcha-text" id="recaptchaText">I'm not a robot</span>
             </div>
 
@@ -1374,6 +1375,12 @@ async function handleLogin() {
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+
+    var recaptchaResponse = grecaptcha.getResponse();
+if (!recaptchaResponse) {
+    showToast('Please verify reCAPTCHA', 'error');
+    return;
+}
     
     try {
         // Step 1: Check Password
@@ -1685,38 +1692,46 @@ function showQRCodeModal(qrData, email) {
 
 // ==================== SAVE QR CODE ====================
 function saveQRCode() {
-    var img = document.getElementById('qrCodeImage');
-    if (!img) {
-        showToast('QR Code not ready', 'error');
-        return;
-    }
+    // ✅ Canvas ကို ရှာမယ်
+    var canvas = document.querySelector('#qrCodeDisplay canvas');
     
-    // ✅ Image ကို Download လုပ်မယ်
-    fetch(img.src)
-        .then(function(response) {
-            return response.blob();
-        })
-        .then(function(blob) {
-            var url = URL.createObjectURL(blob);
-            var link = document.createElement('a');
-            link.download = 'solo_m_recovery_qr.png';
-            link.href = url;
-            document.body.appendChild(link);
-            link.click();
+    if (canvas) {
+        // ✅ Canvas ကနေ Image Data ယူ
+        var imageData = canvas.toDataURL('image/png');
+        
+        // ✅ Download Link ဖန်တီး
+        var link = document.createElement('a');
+        link.download = 'SOLO_M_Recovery_QR.png';
+        link.href = imageData;
+        
+        // ✅ Click လုပ်
+        document.body.appendChild(link);
+        link.click();
+        
+        // ✅ Cleanup
+        setTimeout(function() {
             document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-            showToast('✅ QR Code saved!');
-        })
-        .catch(function() {
-            // Fallback: တိုက်ရိုက် download
+        }, 100);
+        
+        showToast('✅ QR Code saved! Check Downloads folder');
+    } 
+    // ✅ Canvas မရှိရင် Image ကို သုံး
+    else {
+        var img = document.getElementById('qrCodeImage');
+        if (img) {
             var link = document.createElement('a');
-            link.download = 'solo_m_recovery_qr.png';
+            link.download = 'SOLO_M_Recovery_QR.png';
             link.href = img.src;
             document.body.appendChild(link);
             link.click();
-            document.body.removeChild(link);
-            showToast('✅ QR Code saved!');
-        });
+            setTimeout(function() {
+                document.body.removeChild(link);
+            }, 100);
+            showToast('✅ QR Code saved! Check Downloads folder');
+        } else {
+            showToast('❌ QR Code not ready', 'error');
+        }
+    }
 }
 // ==================== QR CODE SCAN FOR LOGIN ====================
 function startQRScan() {
