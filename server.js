@@ -755,7 +755,7 @@ async function sendOTPEmail(email, username, otp) {
         return false;
     }
 }
-//=================== QR CODE DECODE ====================
+// =================== QR CODE DECODE (SERVER-SIDE) ===================
 app.post('/api/decode_qr', async (req, res) => {
     const { image } = req.body;
     
@@ -764,21 +764,65 @@ app.post('/api/decode_qr', async (req, res) => {
     }
     
     try {
-        // For now - ပုံကို ပြန်ပို့ပြီး Client-Side မှာ jsQR library သုံးပြီး ဖတ်မယ်
-        // Production မှာ server-side QR library သုံးပါ
+        // ✅ Base64 ကနေ Buffer ပြောင်း
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
         
-        // Return the base64 as data for client-side decoding
-        res.json({ 
-            success: true, 
-            data: image,
-            message: 'Use client-side QR decoding'
+        // ✅ Jimp library သုံးပြီး QR Code ဖတ်မယ်
+        const Jimp = require('jimp');
+        const QrCode = require('qrcode-reader');
+        
+        const jimpImage = await Jimp.read(buffer);
+        
+        const qr = new QrCode();
+        
+        const qrData = await new Promise((resolve, reject) => {
+            qr.callback = function(err, value) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(value.result);
+                }
+            };
+            qr.decode(jimpImage.bitmap);
         });
+        
+        if (qrData) {
+            // ✅ QR Code ဖတ်လို့ရပြီ
+            try {
+                var userData = JSON.parse(qrData);
+                
+                if (userData.email && userData.password) {
+                    res.json({
+                        success: true,
+                        qr_data: qrData,
+                        message: 'SOLO M QR Code detected'
+                    });
+                } else {
+                    res.json({
+                        success: false,
+                        message: 'Not a SOLO M QR code'
+                    });
+                }
+            } catch(e) {
+                res.json({
+                    success: false,
+                    message: 'Invalid QR Code format'
+                });
+            }
+        } else {
+            res.json({
+                success: false,
+                message: 'No QR Code found'
+            });
+        }
         
     } catch(e) {
         console.error('[QR DECODE ERROR]', e.message);
-        res.json({ success: false, message: 'Could not decode QR' });
+        res.json({ success: false, message: 'Could not decode QR: ' + e.message });
     }
 });
+
 app.post('/api/logout', (req, res) => res.json({ success: true }));
 app.post('/api/check_banned', async (req, res) => {
     try {
