@@ -1178,10 +1178,48 @@ app.post('/api/verify_security_pass', async (req, res) => {
     }
 });
 // ==================== VERIFY USER ID ====================
+// ==================== VERIFY USER ID (Top Up) ====================
 app.post('/api/verify_user_id', async (req, res) => {
-    const { token, userId } = req.body; if (!token || !userId) return res.json({ success: false, verified: false });
-    try { const p = await getPool(); const uid = parseInt(token.replace('token_', '')); const r = await p.query('SELECT id,username,email FROM auth_users WHERE id=$1', [uid]); if (r.rows.length === 0) return res.json({ verified: false }); const u = r.rows[0]; u.id.toString().padStart(6,'0') === userId.toString().padStart(6,'0') ? res.json({ success: true, verified: true, username: u.username, email: u.email, id: u.id }) : res.json({ verified: false }); }
-    catch(e) { res.json({ verified: false }); }
+    const { token, userId } = req.body;
+    
+    if (!token || token === 'guest') {
+        return res.json({ success: false, verified: false, message: 'Login required' });
+    }
+    
+    if (!userId) {
+        return res.json({ success: false, verified: false, message: 'User ID required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // ✅ User ID ကို Database မှာ ရှာမယ်
+        const result = await p.query(
+            'SELECT id, username, email FROM auth_users WHERE id = $1',
+            [parseInt(userId)]
+        );
+        
+        if (result.rows.length > 0) {
+            const user = result.rows[0];
+            res.json({
+                success: true,
+                verified: true,
+                username: user.username,
+                email: user.email,
+                message: 'User ID verified'
+            });
+        } else {
+            res.json({
+                success: true,
+                verified: false,
+                message: 'User ID not found'
+            });
+        }
+        
+    } catch(e) {
+        console.error('[VERIFY USER ID ERROR]', e.message);
+        res.json({ success: false, verified: false, message: 'Server error' });
+    }
 });
 
 // ==================== SLIDER ====================
