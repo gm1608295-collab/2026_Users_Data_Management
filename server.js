@@ -3960,11 +3960,9 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
         
-        // Premium Status
         const userRes = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
         const isPremium = userRes.rows.length > 0 && userRes.rows[0].premium_expiry && new Date(userRes.rows[0].premium_expiry) > now;
         
-        // Get all active events
         const events = await p.query(
             `SELECT * FROM daily_checkin_events 
              WHERE is_active = true 
