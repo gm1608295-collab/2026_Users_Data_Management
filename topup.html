@@ -755,52 +755,80 @@ async function verifyUserId() {
 }
         
 async function submitTopup(){
-    const pm=document.getElementById('topupPayment').value;
-    const ii=document.getElementById('verifyUserId').value.trim();
-    const btn=document.getElementById('buyBtn');
+    const pm = document.getElementById('topupPayment').value;
+    const ii = document.getElementById('verifyUserId').value.trim();
+    const btn = document.getElementById('buyBtn');
     
-    if(!pm) return alert('Payment ရွေးချယ်ပါ');
-    if(!iv) return alert('User ID စစ်ဆေးပါ');
-    // ✅ Screenshot မလိုဘဲ စမ်းမယ်
-    // if(!sd) return alert('Screenshot ထည့်ပါ');
+    if(!pm) return showToast('Payment ရွေးချယ်ပါ', 'error');
+    if(!iv) return showToast('User ID စစ်ဆေးပါ', 'error');
+    if(!sd) return showToast('Screenshot ထည့်ပါ', 'error');
     
-    btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Buying...';
-    btn.disabled=true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buying...';
+    btn.disabled = true;
     
     try {
-        // ✅ Screenshot Upload မလုပ်ဘဲ ကျော်မယ်
-        var su = sd || ''; // Screenshot ရှိရင် ထည့်၊ မရှိရင် ဗလာ
+        // ✅ Screenshot Upload (ImgBB)
+        var su = sd; // Default: base64
+        try {
+            const ur = await fetch('/api/upload_image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ base64: sd })
+            });
+            const ud = await ur.json();
+            if (ud.success && ud.url) {
+                su = ud.url;
+                console.log('✅ Screenshot uploaded:', su.substring(0, 50));
+            } else {
+                console.log('⚠️ Screenshot upload failed, using base64');
+            }
+        } catch(uploadErr) {
+            console.log('⚠️ Screenshot upload error:', uploadErr.message);
+            // Base64 အတိုင်း ဆက်သုံး
+        }
         
-        // ✅ Screenshot Upload ကို Skip လုပ်
-        // const ur = await fetch('/api/upload_image', ...);
-        // const ud = await ur.json();
-        // const su = ud.success ? ud.url : sd;
-        
+        // ✅ Submit Order
         const r = await fetch('/api/submit_order', {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
-                token:localStorage.getItem('auth_token'),
-                amount:0,
-                payment_method:pm,
-                screenshot: su,  // Screenshot ပါချင်ရင် sd ထည့်
-                user_id:ii
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: localStorage.getItem('auth_token'),
+                amount: 0,
+                payment_method: pm,
+                screenshot: su,
+                user_id: ii
             })
         });
         const d = await r.json();
         
         if(d.success){
-            showToast('✅ Order Submitted!','success');
-            // ... reset form ...
+            addNotiItem('pending', 'ငွေဖြည့်သွင်းခြင်း အောင်မြင်ပါသည်။ Admin မှ အတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်း ဖြည့်သွင်းပေးပါမည်။');
+            showToast('✅ Order Submitted!', 'success');
+            
+            // Reset Form
+            document.getElementById('topupPayment').value = '';
+            document.getElementById('topupScreenshot').value = '';
+            document.getElementById('screenshotPreview').innerHTML = '';
+            sd = '';
+            iv = false;
+            document.getElementById('buyBtn').disabled = true;
+            document.getElementById('idResult').style.display = 'none';
+            document.getElementById('fileUploadBox').classList.remove('has-file');
+            document.getElementById('uploadText').textContent = 'Payment Screenshot';
+            document.getElementById('uploadHint').textContent = 'ငွေလွှဲပြေစာ Screenshot ထည့်ရန်နှိပ်ပါ';
+            document.getElementById('paymentSection').style.display = 'none';
+            document.getElementById('guideBox').style.display = 'none';
+            loadHistory();
         } else {
-            showToast(d.message||'Error','error');
+            showToast(d.message || 'Error', 'error');
         }
     } catch(e) {
-        showToast('Connection error','error');
+        console.error('Submit error:', e.message);
+        showToast('Connection error: ' + e.message, 'error');
     }
     
-    btn.innerHTML='<i class="fas fa-paper-plane"></i> Buy';
-    btn.disabled=false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Buy';
+    btn.disabled = false;
 }
 // ==================== ADMIN ONLY DEBUG ====================
 // Usage: topup.html?debug=MK2008
