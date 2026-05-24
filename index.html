@@ -1778,61 +1778,77 @@ async function readQRImage(input) {
     document.getElementById('qrResult').innerHTML = '⏳ Reading QR Code...';
     
     try {
-        // ✅ Server-Side QR Decode ကို သုံးမယ်
-        var reader = new FileReader();
+        var img = new Image();
+        var url = URL.createObjectURL(file);
         
-        reader.onload = async function(e) {
+        img.onload = function() {
             try {
-                var r = await fetch('/api/decode_qr', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: e.target.result })
-                });
-                var d = await r.json();
+                var canvas = document.createElement('canvas');
+                var ctx = canvas.getContext('2d');
                 
-                if (d.success && d.qr_data) {
-                    // ✅ QR Code ဖတ်လို့ရပြီ
-                    try {
-                        var qrData = JSON.parse(d.qr_data);
-                        
-                        if (qrData.email && qrData.password) {
-                            document.getElementById('qrResult').innerHTML = '✅ SOLO M QR Code detected!';
+                // ✅ ပုံအရွယ်ကို ချိန်
+                var maxSize = 600;
+                var width = img.width;
+                var height = img.height;
+                
+                if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                        height = (height / width) * maxSize;
+                        width = maxSize;
+                    } else {
+                        width = (width / height) * maxSize;
+                        height = maxSize;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                var imageData = ctx.getImageData(0, 0, width, height);
+                
+                if (typeof jsQR !== 'undefined') {
+                    var code = jsQR(imageData.data, width, height);
+                    
+                    if (code && code.data) {
+                        try {
+                            var qrData = JSON.parse(code.data);
                             
-                            // ✅ Auto-Fill
-                            document.getElementById('loginEmail').value = qrData.email || '';
-                            document.getElementById('loginPassword').value = qrData.password || '';
-                            updateLoginBtn();
-                            showToast('✅ Login credentials loaded!');
-                            
-                            // Auto-close after 1.5s
-                            setTimeout(function() {
-                                var overlay = input.closest('.modal-overlay') || input.parentElement.parentElement;
-                                if (overlay) overlay.remove();
-                            }, 1500);
-                        } else {
-                            document.getElementById('qrResult').innerHTML = '❌ Not a SOLO M recovery QR code';
+                            if (qrData.email && qrData.password) {
+                                document.getElementById('qrResult').innerHTML = '✅ SOLO M QR Code detected!';
+                                document.getElementById('loginEmail').value = qrData.email || '';
+                                document.getElementById('loginPassword').value = qrData.password || '';
+                                updateLoginBtn();
+                                showToast('✅ Login credentials loaded! Click Login');
+                            } else {
+                                document.getElementById('qrResult').innerHTML = '❌ Not a SOLO M QR code';
+                            }
+                        } catch(e) {
+                            document.getElementById('qrResult').innerHTML = '❌ Invalid QR data';
                         }
-                    } catch(jsonErr) {
-                        document.getElementById('qrResult').innerHTML = '❌ Invalid QR Code format';
+                    } else {
+                        document.getElementById('qrResult').innerHTML = '❌ No QR Code found. Use a clear image.';
                     }
                 } else {
-                    document.getElementById('qrResult').innerHTML = '❌ No QR Code found - ' + (d.message || 'Please use SOLO M QR code');
+                    document.getElementById('qrResult').innerHTML = '❌ QR reader not loaded';
                 }
-            } catch(fetchErr) {
-                document.getElementById('qrResult').innerHTML = '❌ Connection error';
+            } catch(e) {
+                document.getElementById('qrResult').innerHTML = '❌ Error: ' + e.message;
             }
+            
+            URL.revokeObjectURL(url);
         };
         
-        reader.onerror = function() {
-            document.getElementById('qrResult').innerHTML = '❌ Error reading file';
+        img.onerror = function() {
+            document.getElementById('qrResult').innerHTML = '❌ Cannot load image';
         };
         
-        reader.readAsDataURL(file);
+        img.src = url;
         
     } catch(e) {
-        document.getElementById('qrResult').innerHTML = '❌ Error processing image';
+        document.getElementById('qrResult').innerHTML = '❌ Error: ' + e.message;
     }
-}
+      }
 // ==================== QR RECOVERY GUIDE ====================
 function showQRRecoveryGuide() {
     var overlay = document.createElement('div');
