@@ -1663,11 +1663,17 @@ function showQRCodeModal(qrData, email) {
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;justify-content:center;align-items:center';
     overlay.onclick = function(e) { if(e.target === overlay) overlay.remove(); };
     
+    // ✅ QR Code Data ကို Google Chart API နဲ့ QR Image အဖြစ် ပြောင်း
+    var qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrData);
+    
     overlay.innerHTML = `
         <div style="background:#1a1f4b;border-radius:14px;padding:20px;width:90%;max-width:340px;text-align:center" onclick="event.stopPropagation()">
             <h3 style="color:#f39c12;margin-bottom:6px">✅ Register Success!</h3>
             <p style="font-size:9px;color:rgba(255,255,255,0.5);margin-bottom:10px">သင်၏ Recovery QR Code ကို Save လုပ်ထားပါ</p>
-            <div id="qrCodeDisplay" style="background:#fff;padding:15px;border-radius:10px;display:inline-block;margin-bottom:10px"></div>
+            
+            <!-- ✅ QR Code Image (API ကနေ Generate) -->
+            <img src="${qrImageUrl}" alt="QR Code" style="width:180px;height:180px;border-radius:10px;margin-bottom:10px;background:#fff;padding:10px" id="qrCodeImage">
+            
             <p style="font-size:8px;color:#e74c3c;margin-bottom:10px">⚠️ Password မေ့ပါက ဤ QR Code ဖြင့် ပြန်လည်ရယူနိုင်ပါသည်</p>
             <button onclick="saveQRCode()" style="width:100%;padding:10px;background:#f39c12;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;margin-bottom:6px">💾 Save QR Code</button>
             <button onclick="this.closest('div').parentElement.remove()" style="width:100%;padding:10px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:#fff;cursor:pointer">Close</button>
@@ -1675,34 +1681,43 @@ function showQRCodeModal(qrData, email) {
     `;
     
     document.body.appendChild(overlay);
-    
-    // Generate QR Code
-    new QRCode(document.getElementById('qrCodeDisplay'), {
-        text: qrData,
-        width: 180,
-        height: 180,
-        colorDark: '#000000',
-        colorLight: '#ffffff'
-    });
 }
 
 // ==================== SAVE QR CODE ====================
 function saveQRCode() {
-    var canvas = document.querySelector('#qrCodeDisplay canvas');
-    if (!canvas) {
+    var img = document.getElementById('qrCodeImage');
+    if (!img) {
         showToast('QR Code not ready', 'error');
         return;
     }
     
-    var link = document.createElement('a');
-    link.download = 'solo_m_recovery_qr.png';
-    link.href = canvas.toDataURL('image/png');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    showToast('✅ QR Code saved!');
+    // ✅ Image ကို Download လုပ်မယ်
+    fetch(img.src)
+        .then(function(response) {
+            return response.blob();
+        })
+        .then(function(blob) {
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            link.download = 'solo_m_recovery_qr.png';
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast('✅ QR Code saved!');
+        })
+        .catch(function() {
+            // Fallback: တိုက်ရိုက် download
+            var link = document.createElement('a');
+            link.download = 'solo_m_recovery_qr.png';
+            link.href = img.src;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('✅ QR Code saved!');
+        });
 }
-
 // ==================== QR CODE SCAN FOR LOGIN ====================
 function startQRScan() {
     if (typeof median !== 'undefined' && median.barcode) {
