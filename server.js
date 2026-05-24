@@ -2567,38 +2567,93 @@ const SPIN_CONFIG = {
     ]
 };
 
-// ==================== GET USD BALANCE ====================
+// ==================== GET USD BALANCE (JWT FIXED) ====================
 app.post('/api/get_usd_balance', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ usd_balance: 0 });
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ usd_balance: 0 });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ usd_balance: 0 });
+        }
+        
         if (isNaN(uid)) return res.json({ usd_balance: 0 });
         const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
         res.json({ usd_balance: parseFloat(r.rows[0]?.usd_balance || 0) });
     } catch(e) { res.json({ usd_balance: 0 }); }
 });
-// ==================== GET PAID SPINS ====================
+
+// ==================== GET PAID SPINS (JWT FIXED) ====================
 app.post('/api/get_paid_spins', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ paid_spins: 0 });
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ paid_spins: 0 });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ paid_spins: 0 });
+        }
+        
         if (isNaN(uid)) return res.json({ paid_spins: 0 });
         const r = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
         res.json({ paid_spins: parseInt(r.rows[0]?.paid_spins || 0) });
     } catch(e) { res.json({ paid_spins: 0 }); }
 });
 
-// ==================== GET PREMIUM STATUS ====================
+// ==================== GET PREMIUM STATUS (JWT FIXED) ====================
 app.post('/api/get_premium_status', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false, premium_active: false });
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, premium_active: false });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, premium_active: false });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false, premium_active: false });
         
         const r = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
@@ -2621,7 +2676,6 @@ app.post('/api/get_premium_status', async (req, res) => {
         });
     } catch(e) { res.json({ success: false, premium_active: false }); }
 });
-
 // ==================== DEDUCT BALANCE (BUY SPINS - JWT FIXED) ====================
 app.post('/api/deduct_balance', async (req, res) => {
     const { token, amount, reason } = req.body;
@@ -2671,28 +2725,53 @@ app.post('/api/deduct_balance', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== BUY PREMIUM ====================
+// ==================== BUY PREMIUM (JWT FIXED) ====================
 app.post('/api/buy_premium', async (req, res) => {
     const { token, months, cost, tier } = req.body;
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!months || !cost) return res.json({ success: false, message: 'Missing data' });
+    
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid session' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
         const bal = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
         const balance = parseFloat(bal.rows[0]?.balance || 0);
         if (balance < cost) return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။' });
+        
         const expiry = new Date(); expiry.setMonth(expiry.getMonth() + months);
         const premiumTier = tier || 1;
+        
         await p.query('UPDATE auth_users SET balance = balance - $1, premium_expiry = $2, premium_tier = $3 WHERE id = $4', [cost, expiry, premiumTier, uid]);
         await p.query("INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')", [uid, -cost]);
         await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
+        
         res.json({ success: true, expires_at: expiry.toISOString(), premium_tier: premiumTier });
-    } catch(e) { res.json({ success: false, message: 'Server error' }); }
+        
+    } catch(e) { 
+        res.json({ success: false, message: 'Server error' }); 
+    }
 });
-    
-// ==================== CHAT PREMIUM PURCHASE (For ChatPremium Page) ====================
+// ==================== CHAT PREMIUM PURCHASE (JWT FIXED - FULL) ====================
 app.post('/api/chat/purchase_premium', async (req, res) => {
     const { token, premium_tier, months, price_usd } = req.body;
     
@@ -2707,7 +2786,25 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
     
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'အကောင့်မမှန်ကန်ပါ' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, message: 'အကောင့်မမှန်ကန်ပါ' });
+        }
+        
         if (isNaN(uid)) {
             return res.json({ success: false, message: 'အကောင့်မမှန်ကန်ပါ' });
         }
@@ -2795,7 +2892,7 @@ app.post('/api/chat/purchase_premium', async (req, res) => {
         res.json({ success: false, message: 'ဆာဗာချိတ်ဆက်မှု ပျက်ကွက်ပါသည်' });
     }
 });
-// ==================== GET ALL PREMIUM TIERS STATUS ====================
+// ==================== GET ALL PREMIUM TIERS STATUS (JWT FIXED) ====================
 app.post('/api/chat/premium/all_tiers', async (req, res) => {
     const { token } = req.body;
     
@@ -2805,7 +2902,25 @@ app.post('/api/chat/premium/all_tiers', async (req, res) => {
     
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
+        }
+        
         if (isNaN(uid)) {
             return res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
         }
@@ -2836,14 +2951,35 @@ app.post('/api/chat/premium/all_tiers', async (req, res) => {
         res.json({ success: true, tiers: { 1: false, 2: false, 3: false }, expiry_dates: {} });
     }
 });
-// ==================== CLAIM WEEKLY BONUS ====================
+
+// ==================== CLAIM WEEKLY BONUS (JWT FIXED) ====================
 app.post('/api/claim_weekly_bonus', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
+    
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid session' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
         const last = await p.query('SELECT claimed_at FROM weekly_bonus WHERE user_id=$1 ORDER BY claimed_at DESC LIMIT 1', [uid]);
         if (last.rows.length > 0 && Math.floor((Date.now() - new Date(last.rows[0].claimed_at).getTime()) / 86400000) < 7) {
             return res.json({ success: false, message: 'Already claimed this week' });
@@ -2852,7 +2988,6 @@ app.post('/api/claim_weekly_bonus', async (req, res) => {
         res.json({ success: true, message: 'Weekly bonus claimed!' });
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
-
 // ==================== ADMIN: REVOKE PREMIUM ====================
 app.post('/api/admin/revoke_premium', async (req, res) => {
     const { userId } = req.body;
@@ -2913,24 +3048,46 @@ app.post('/api/admin/get_user_premium', async (req, res) => {
     }
 });
 // ==================== EXCHANGE USD TO MMK ====================
+// ==================== EXCHANGE USD TO MMK (JWT FIXED) ====================
 app.post('/api/exchange_usd_to_mmk', async (req, res) => {
     const { token, usd_amount } = req.body;
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     if (!usd_amount || usd_amount < 1) return res.json({ success: false, message: 'Minimum 1 USD required' });
+    
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid session' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
         const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
         const usdBalance = parseFloat(r.rows[0]?.usd_balance || 0);
         if (usdBalance < usd_amount) return res.json({ success: false, message: 'Insufficient USD balance' });
+        
         const mmkAmount = 2000 * usd_amount;
         await p.query('UPDATE auth_users SET usd_balance = usd_balance - $1 WHERE id=$2', [usd_amount, uid]);
         await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [mmkAmount, uid]);
+        
         res.json({ success: true, mmk_received: mmkAmount, service_fee: 1000 * usd_amount });
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
-
 // ==================== GET EXCHANGE RATE INFO ====================
 app.get('/api/exchange_rate_info', async (req, res) => {
     try {
@@ -2958,14 +3115,33 @@ app.get('/api/exchange_rate_info', async (req, res) => {
         });
     }
 });
-// ==================== SAVE SPIN HISTORY (Legacy) ====================
+// ==================== SAVE SPIN HISTORY - Legacy (JWT FIXED) ====================
 app.post('/api/spin/save', async (req, res) => {
     const { token, reward_type, reward_amount, segment_label } = req.body;
     if (!token || token === 'guest') return res.json({ success: false });
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false });
+        
         await p.query('INSERT INTO spin_history (user_id, reward_type, reward_amount, segment_label) VALUES ($1,$2,$3,$4)', [uid, reward_type||'thanks', reward_amount||0, segment_label||'Unknown']);
         if (reward_type === 'usd' && reward_amount > 0) await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
         else if (reward_type === 'mmk' && reward_amount > 0) await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward_amount, uid]);
@@ -2973,32 +3149,69 @@ app.post('/api/spin/save', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// ==================== USE PAID SPIN (Legacy) ====================
+// ==================== USE PAID SPIN - Legacy (JWT FIXED) ====================
 app.post('/api/spin/use_paid_spin', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false });
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false });
+        
         await p.query('UPDATE auth_users SET paid_spins = GREATEST(0, COALESCE(paid_spins, 0) - 1) WHERE id=$1', [uid]);
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
 
-// ==================== TRACK PREMIUM DRAW ====================
+// ==================== TRACK PREMIUM DRAW (JWT FIXED) ====================
 app.post('/api/track_premium_draw', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false });
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false });
+        
         await p.query(`INSERT INTO premium_draws (user_id, draw_date, draw_count) VALUES ($1, CURRENT_DATE, 1) ON CONFLICT (user_id, draw_date) DO UPDATE SET draw_count = premium_draws.draw_count + 1`, [uid]);
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
-
 // ==================== SPIN EXECUTE (JWT FIXED - FULL) ====================
 app.post('/api/spin/execute', async (req, res) => {
     const { token, spin_source } = req.body;
@@ -3382,7 +3595,7 @@ app.post('/api/admin/promo_code/delete', async (req, res) => {
     }
 });
 
-// ==================== BUY PROMO CODE (FROM BUY CODE PAGE) ====================
+// ==================== BUY PROMO CODE (JWT FIXED) ====================
 app.post('/api/buy_promo_code', async (req, res) => {
     const { token, codeId } = req.body;
     
@@ -3390,7 +3603,25 @@ app.post('/api/buy_promo_code', async (req, res) => {
     
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid token' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid token' });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
         
         // Get promo code
@@ -3414,13 +3645,7 @@ app.post('/api/buy_promo_code', async (req, res) => {
             return res.json({ success: false, message: 'Insufficient balance. Need ' + PROMO_CODE_PRICE + ' Ks' });
         }
         
-        // ✅ Don't mark as used yet! User must redeem first
-        // await p.query('UPDATE promo_codes SET used = true, used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
-        
-        // ✅ Just deduct balance and mark as SOLD (but not redeemed)
         await p.query('UPDATE promo_codes SET used = true WHERE id = $1', [c.id]);
-        
-        // Deduct balance
         await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id = $2', [PROMO_CODE_PRICE, uid]);
         
         const newBalance = balance - PROMO_CODE_PRICE;
@@ -3438,8 +3663,7 @@ app.post('/api/buy_promo_code', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-
-// ==================== REDEEM PROMO CODE (FROM CONTACT PAGE) - FIXED ====================
+// ==================== REDEEM PROMO CODE (JWT FIXED) ====================
 app.post('/api/redeem_promo', async (req, res) => {
     const { token, promo_code } = req.body;
     
@@ -3448,25 +3672,40 @@ app.post('/api/redeem_promo', async (req, res) => {
     
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
         
-        // ✅ Case-insensitive
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid session' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        
         const promoCode = promo_code.toUpperCase();
         
-        // ✅ 1. Check if code exists and is SOLD (used=true) but NOT REDEEMED (used_by IS NULL)
+        // Check if code exists and is SOLD but NOT REDEEMED
         const code = await p.query(
             "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = true AND used_by IS NULL AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)",
             [promoCode]
         );
         
         if (code.rows.length > 0) {
-            // ✅ Code found - user can redeem it (one time only)
             const c = code.rows[0];
             
-            // Mark as redeemed by this user
             await p.query('UPDATE promo_codes SET used_by = $1, used_at = NOW() WHERE id = $2', [uid, c.id]);
             
-            // Add balance
             if (c.currency === 'USD') {
                 await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id = $2', [c.amount, uid]);
             } else {
@@ -3485,7 +3724,7 @@ app.post('/api/redeem_promo', async (req, res) => {
             });
         }
         
-        // ✅ 2. Check if code is already redeemed (used=true AND used_by IS NOT NULL)
+        // Check already redeemed
         const redeemedCheck = await p.query(
             "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = true AND used_by IS NOT NULL",
             [promoCode]
@@ -3495,7 +3734,6 @@ app.post('/api/redeem_promo', async (req, res) => {
             return res.json({ success: false, message: 'Code ကိုအသုံးပြုပြီးပါပြီ (တစ်ကြိမ်ပဲသုံးလို့ရပါသည်)' });
         }
         
-        // ✅ 3. Check if code exists but not sold yet
         const unsoldCheck = await p.query(
             "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND used = false",
             [promoCode]
@@ -3505,7 +3743,6 @@ app.post('/api/redeem_promo', async (req, res) => {
             return res.json({ success: false, message: 'Code မှားယွင်းနေပါသည်' });
         }
         
-        // ✅ 4. Check expired
         const expiredCheck = await p.query(
             "SELECT * FROM promo_codes WHERE UPPER(api_key) = $1 AND expiry_date < CURRENT_DATE",
             [promoCode]
@@ -3524,7 +3761,6 @@ app.post('/api/redeem_promo', async (req, res) => {
 });
 
 console.log('✅ Promo Code System Ready');
-
 // ====================================
 // DAILY CHECK-IN EVENT MANAGEMENT (ADMIN)
 // ====================================
@@ -3690,10 +3926,7 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
- // ====================================
-// DAILY CHECK-IN USER APIs
-// ====================================
-                // ==================== DAILY CHECK-IN STATUS (FIXED V2) ====================
+// ==================== DAILY CHECK-IN STATUS (JWT FIXED - FULL) ====================
 app.post('/api/daily_checkin/status', async (req, res) => {
     const { token } = req.body;
     
@@ -3703,7 +3936,25 @@ app.post('/api/daily_checkin/status', async (req, res) => {
     
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, events: [] });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, events: [] });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false, events: [] });
         
         const now = new Date();
@@ -3727,7 +3978,7 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         
         for (const ev of events.rows) {
             const startTime = ev.start_time || '00:00:00';
-            const resetTime = ev.end_time || '00:00:00'; // daily reset time
+            const resetTime = ev.end_time || '00:00:00';
             const totalDays = ev.total_days;
             
             const startDateTime = new Date(ev.start_date + 'T' + startTime);
@@ -3739,49 +3990,42 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             const isGracePeriod = (now > endDateTime && now <= graceEndDateTime);
             const isFullyEnded = now > graceEndDateTime;
             
-            if (isFullyEnded) continue; // Don't show fully ended events
+            if (isFullyEnded) continue;
             
-            // Pending countdown
             let pendingCountdown = null;
             if (!hasStarted) {
-                pendingCountdown = Math.floor((startDateTime - now) / 1000); // seconds
+                pendingCountdown = Math.floor((startDateTime - now) / 1000);
             }
             
-            // Current day
             let currentDay = 1;
             if (hasStarted) {
                 if (isGracePeriod) {
-                    currentDay = totalDays; // Locked
+                    currentDay = totalDays;
                 } else {
                     currentDay = getCurrentDay(ev.start_date, startTime, resetTime, now, totalDays);
                 }
             }
             
-            // Check if claimed today
             const todayCheck = await p.query(
                 "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date = $3",
                 [uid, ev.id, todayStr]
             );
             const checkedInToday = todayCheck.rows.length > 0;
             
-            // Can claim logic
             let canClaim = false;
             if (hasStarted && !isFullyEnded && !checkedInToday) {
                 if (isGracePeriod) {
-                    // Grace period: can claim last day if not already claimed
                     const lastDayClaim = await p.query(
                         "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND day_number=$3",
                         [uid, ev.id, totalDays]
                     );
                     canClaim = lastDayClaim.rows.length === 0;
                 } else {
-                    // Active: check reset time
                     const todayReset = new Date(todayStr + 'T' + resetTime);
                     canClaim = (now < todayReset) && (currentDay <= totalDays);
                 }
             }
             
-            // Rewards & day status
             const rewards = await p.query(
                 "SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC",
                 [ev.id]
@@ -3836,7 +4080,7 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         res.json({ success: false, events: [] });
     }
 });
-// ==================== DAILY CHECK-IN CLAIM (FIXED V2) ====================
+// ==================== DAILY CHECK-IN CLAIM (JWT FIXED - FULL) ====================
 app.post('/api/daily_checkin/claim', async function(req, res) {
     var token = req.body.token;
     var event_id = req.body.event_id;
@@ -3846,12 +4090,30 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
     
     try {
         var p = await getPool();
-        var uid = parseInt(token.replace('token_', ''));
+        var uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                var decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid session' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false });
         
         // ✅ Server Time (Myanmar)
         var now = new Date();
-        var todayStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+        var todayStr = now.toISOString().split('T')[0];
         
         // Get event
         var event = await p.query(
@@ -3864,15 +4126,13 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
         
         var evt = event.rows[0];
         var startTime = evt.start_time || '00:00:00';
-        var resetTime = evt.end_time || '00:00:00';  // end_time = Daily Reset Time
+        var resetTime = evt.end_time || '00:00:00';
         var totalDays = evt.total_days;
         
-        // ✅ Build start & end DateTime objects (Myanmar Time)
         var startDateTime = new Date(evt.start_date + 'T' + startTime);
-        var endDateTime = new Date(evt.end_date + 'T' + '23:59:59'); // End date end of day
-        var graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000); // +2 days grace
+        var endDateTime = new Date(evt.end_date + 'T' + '23:59:59');
+        var graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
         
-        // ---------- EVENT NOT STARTED ----------
         if (now < startDateTime) {
             var timeUntilStart = startDateTime - now;
             var hoursUntil = Math.floor(timeUntilStart / 3600000);
@@ -3883,7 +4143,6 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
             });
         }
         
-        // ---------- FULLY ENDED (after grace) ----------
         if (now > graceEndDateTime) {
             return res.json({ success: false, message: '📅 Event has fully ended.' });
         }
@@ -3891,17 +4150,13 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
         var isGracePeriod = (now > endDateTime && now <= graceEndDateTime);
         var isActivePeriod = (now >= startDateTime && now <= endDateTime);
         
-        // ---------- CALCULATE CURRENT DAY ----------
         var currentDay = 1;
         if (isActivePeriod) {
-            // Active period: day based on reset times
             currentDay = getCurrentDay(evt.start_date, startTime, resetTime, now, totalDays);
         } else if (isGracePeriod) {
-            // Grace period: day locked to last day
             currentDay = totalDays;
         }
         
-        // ---------- CHECK ALREADY CLAIMED TODAY ----------
         var todayCheckin = await p.query(
             'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3',
             [uid, event_id, todayStr]
@@ -3910,7 +4165,6 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
             return res.json({ success: false, message: '✅ Already claimed today!' });
         }
         
-        // ---------- ACTIVE PERIOD: CHECK RESET TIME ----------
         if (isActivePeriod) {
             var todayReset = new Date(todayStr + 'T' + resetTime);
             if (now >= todayReset) {
@@ -3920,11 +4174,8 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
                 });
             }
         }
-        // Grace period: no reset time restriction
         
-        // ---------- CHECK DAY SPECIFIC CLAIM (for last day during grace) ----------
         if (isGracePeriod) {
-            // Check if user already claimed the last day (day = totalDays)
             var lastDayClaim = await p.query(
                 'SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND day_number=$3',
                 [uid, event_id, totalDays]
@@ -3934,7 +4185,6 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
             }
         }
         
-        // ---------- GET REWARD ----------
         var reward = await p.query(
             'SELECT * FROM daily_checkin_rewards WHERE event_id=$1 AND day_number=$2',
             [event_id, currentDay]
@@ -3944,7 +4194,6 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
         }
         var rwd = reward.rows[0];
         
-        // ---------- UPDATE BALANCE ----------
         switch (rwd.reward_type) {
             case 'mmk':
                 await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', 
@@ -3960,15 +4209,13 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
                 break;
         }
         
-        // ---------- SAVE CLAIM & PROGRESS ----------
         await p.query(
             'INSERT INTO daily_checkins (user_id, event_id, checkin_date, day_number, reward_type, reward_amount) VALUES ($1,$2,$3,$4,$5,$6)',
             [uid, event_id, todayStr, currentDay, rwd.reward_type, rwd.reward_amount]
         );
         
-        // Update progress (current_day is the next day to claim, but only in active period)
         var nextDay = Math.min(currentDay + 1, totalDays);
-        if (isGracePeriod) nextDay = currentDay; // no advancement during grace
+        if (isGracePeriod) nextDay = currentDay;
         
         await p.query(
             `INSERT INTO daily_checkin_progress (user_id, event_id, current_day, last_claim_date) 
@@ -3998,13 +4245,11 @@ app.post('/api/daily_checkin/claim', async function(req, res) {
     }
 });
 
-// ✅ Helper: Calculate current day based on reset times
 function getCurrentDay(startDate, startTime, resetTime, now, totalDays) {
     var startMoment = new Date(startDate + 'T' + startTime);
-    // Find the first reset time that is >= startMoment
     var firstReset = new Date(startDate + 'T' + resetTime);
     if (firstReset <= startMoment) {
-        firstReset.setDate(firstReset.getDate() + 1); // move to next day
+        firstReset.setDate(firstReset.getDate() + 1);
     }
     if (now < firstReset) {
         return 1;
