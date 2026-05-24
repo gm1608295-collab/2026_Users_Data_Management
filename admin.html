@@ -920,11 +920,38 @@ body.modal-open .container {
     
     if (d.success) {
         document.getElementById('adminBox').style.display = 'block';
-        // Load data...
+        showLoading('Loading...');
+        try {
+            await Promise.all([
+                loadAdminData(),
+                loadAdminOrders('all'),
+                loadPageToggles(),
+                loadCurrentPlaylist(),
+                loadSliderPreview(),
+                loadCurrentVideo(),
+                loadNoticeList(),
+                loadBuyCodeNoticeList(),
+                loadTopupNoticeList(),
+                loadRedeemCodes(),
+                loadSpinRates(),
+                loadResellers(),
+                loadResellerTransactions(),
+                loadExchangeRate(),
+                loadPromoCodes(),
+                loadCheckinEvents()
+            ]);
+            updateBackupInfo();
+            hideLoading();
+            n('✅ Loaded');
+            startAutoRefresh();
+        } catch(e) {
+            hideLoading();
+            n('Error', 'error');
+        }
     } else {
         n('Wrong password', 'error');
     }
-        }
+    }
     function startAutoRefresh(){
     if(autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async() => {
