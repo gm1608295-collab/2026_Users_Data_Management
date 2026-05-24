@@ -2,6 +2,7 @@
 process.env.TZ = 'Asia/Yangon';
 console.log('🕐 Server Timezone:', process.env.TZ);
 
+const bcrypt = require('bcrypt');
 const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -833,6 +834,11 @@ app.post('/api/check_banned', async (req, res) => {
     } catch(e) {
         res.json({ banned: false });
     }
+});
+app.get('/api/admin/generate_hash', async (req, res) => {
+    const password = 'MK2008';
+    const hash = await bcrypt.hash(password, 10);
+    res.json({ hash: hash });
 });
 // ==================== BANNED LIST API (အသစ်) ====================
 app.get('/api/admin/banned_list', async (req, res) => {
