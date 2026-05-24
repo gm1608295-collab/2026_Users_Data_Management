@@ -1516,7 +1516,48 @@ app.post('/api/get_orders', async (req, res) => {
         res.json({ orders: [] }); 
     } 
 });
-
+// ==================== GET BALANCE (JWT FIXED) ====================
+app.post('/api/get_balance', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token || token === 'guest') {
+        return res.json({ balance: 0 });
+    }
+    
+    try {
+        const p = await getPool();
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ balance: 0 });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+            if (isNaN(uid)) return res.json({ balance: 0 });
+        } 
+        else {
+            return res.json({ balance: 0 });
+        }
+        
+        const result = await p.query('SELECT balance FROM auth_users WHERE id = $1', [uid]);
+        
+        if (result.rows.length > 0) {
+            res.json({ balance: result.rows[0].balance || 0 });
+        } else {
+            res.json({ balance: 0 });
+        }
+        
+    } catch(e) {
+        res.json({ balance: 0 });
+    }
+});
 // ==================== ORDER STATUS (ADMIN) ====================
 app.post('/api/admin/order_status', async (req, res) => { 
     try { 
