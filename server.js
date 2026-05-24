@@ -2999,10 +2999,7 @@ app.post('/api/track_premium_draw', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║           SPIN EXECUTE API (MAIN SPIN LOGIC)                ║
-// ╚══════════════════════════════════════════════════════════════╝
-
+// ==================== SPIN EXECUTE (JWT FIXED - FULL) ====================
 app.post('/api/spin/execute', async (req, res) => {
     const { token, spin_source } = req.body;
     console.log('[SPIN EXECUTE] Source:', spin_source);
@@ -3014,7 +3011,25 @@ app.post('/api/spin/execute', async (req, res) => {
     
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid session' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
         if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
         
         const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
@@ -3110,7 +3125,6 @@ app.post('/api/spin/execute', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
-
 console.log('✅ SPIN & USD API Section Ready');
 
 // ==================== CREATE SPIN RATES TABLE ====================
