@@ -2579,20 +2579,6 @@ app.post('/api/get_usd_balance', async (req, res) => {
         res.json({ usd_balance: parseFloat(r.rows[0]?.usd_balance || 0) });
     } catch(e) { res.json({ usd_balance: 0 }); }
 });
-
-// ==================== GET BALANCE ====================
-app.post('/api/get_balance', async (req, res) => {
-    const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ balance: 0 });
-    try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ balance: 0 });
-        const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        res.json({ balance: parseFloat(r.rows[0]?.balance || 0) });
-    } catch(e) { res.json({ balance: 0 }); }
-});
-
 // ==================== GET PAID SPINS ====================
 app.post('/api/get_paid_spins', async (req, res) => {
     const { token } = req.body;
@@ -2636,28 +2622,55 @@ app.post('/api/get_premium_status', async (req, res) => {
     } catch(e) { res.json({ success: false, premium_active: false }); }
 });
 
-// ==================== DEDUCT BALANCE (Buy Spins) ====================
+// ==================== DEDUCT BALANCE (BUY SPINS - JWT FIXED) ====================
 app.post('/api/deduct_balance', async (req, res) => {
     const { token, amount, reason } = req.body;
-    if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!amount || amount <= 0) return res.json({ success: false, message: 'Invalid amount' });
+    
+    if (!token || token === 'guest') {
+        return res.json({ success: false, message: 'Login required' });
+    }
+    
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
-        const r = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
-        const balance = parseFloat(r.rows[0]?.balance || 0);
-        if (balance < amount) return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။' });
-        await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id=$2', [amount, uid]);
-        if (reason && reason.includes('Buy') && reason.includes('spins')) {
-            const spinsMatch = reason.match(/Buy (\d+) spins/);
-            if (spinsMatch) await p.query('UPDATE auth_users SET paid_spins = COALESCE(paid_spins, 0) + $1 WHERE id=$2', [parseInt(spinsMatch[1]), uid]);
+        let uid;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid session' });
+            }
+        } 
+        // ✅ Old Token
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+            if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid session' });
         }
-        await p.query("INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, $3, 'approved')", [uid, -amount, reason || 'Spin Purchase']);
-        res.json({ success: true, new_balance: balance - amount });
-    } catch(e) { res.json({ success: false, message: 'Server error' }); }
+        
+        // Check balance
+        const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
+        const currentBalance = parseFloat(user.rows[0]?.balance || 0);
+        
+        if (currentBalance < amount) {
+            return res.json({ success: false, message: 'Balance not enough' });
+        }
+        
+        // Deduct
+        await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id=$2', [amount, uid]);
+        
+        const newBalance = currentBalance - amount;
+        
+        res.json({ success: true, new_balance: newBalance });
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
 });
-
 // ==================== BUY PREMIUM ====================
 app.post('/api/buy_premium', async (req, res) => {
     const { token, months, cost, tier } = req.body;
