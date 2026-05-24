@@ -149,6 +149,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://solo-m-store-security-system-and-user.onrender.com/auth/google/callback';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const TELEGRAM_PAYMENT_TOKEN = process.env.TELEGRAM_PAYMENT_TOKEN;
+const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 // EmailJS Config
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
