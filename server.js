@@ -1246,10 +1246,45 @@ app.post('/api/admin/restore', async (req, res) => {
         res.json({ success: true });
     } catch(e) { res.json({ success: false, message: e.message }); }
 });
-
 // ==================== ADMIN ====================
-app.get('/api/admin/users_grouped', async (req, res) => { try { const p = await getPool(); const lo = await p.query("SELECT * FROM auth_users WHERE login_type='local' ORDER BY id DESC"); const go = await p.query("SELECT * FROM auth_users WHERE login_type='google' ORDER BY id DESC"); const ti = await p.query("SELECT * FROM auth_users WHERE login_type='tiktok' ORDER BY id DESC"); const tg = await p.query("SELECT * FROM auth_users WHERE login_type='telegram' ORDER BY id DESC"); const ba = await p.query("SELECT user_id FROM banned_users"); res.json({ success: true, local: lo.rows, google: go.rows, tiktok: ti.rows, telegram: tg.rows, banned: ba.rows.map(r=>r.user_id), total: lo.rows.length + go.rows.length + ti.rows.length + tg.rows.length }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/edit_user', async (req, res) => { try { const p = await getPool(); req.body.password ? await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3,password=$4 WHERE id=$5", [req.body.username, req.body.email, req.body.phone, req.body.password, req.body.id]) : await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3 WHERE id=$4", [req.body.username, req.body.email, req.body.phone, req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/admin/users_grouped', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const lo = await p.query("SELECT * FROM auth_users WHERE login_type='local' ORDER BY id DESC"); 
+        const go = await p.query("SELECT * FROM auth_users WHERE login_type='google' ORDER BY id DESC"); 
+        const ti = await p.query("SELECT * FROM auth_users WHERE login_type='tiktok' ORDER BY id DESC"); 
+        const tg = await p.query("SELECT * FROM auth_users WHERE login_type='telegram' ORDER BY id DESC"); 
+        const ba = await p.query("SELECT user_id FROM banned_users"); 
+        res.json({ 
+            success: true, 
+            local: lo.rows, 
+            google: go.rows, 
+            tiktok: ti.rows, 
+            telegram: tg.rows, 
+            banned: ba.rows.map(r=>r.user_id), 
+            total: lo.rows.length + go.rows.length + ti.rows.length + tg.rows.length 
+        }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
+app.post('/api/admin/edit_user', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        if (req.body.password) {
+            await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3,password=$4 WHERE id=$5", 
+                [req.body.username, req.body.email, req.body.phone, req.body.password, req.body.id]); 
+        } else {
+            await p.query("UPDATE auth_users SET username=$1,email=$2,phone=$3 WHERE id=$4", 
+                [req.body.username, req.body.email, req.body.phone, req.body.id]); 
+        }
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
 app.post('/api/admin/ban', async (req, res) => {
     try {
         const p = await getPool();
@@ -1258,22 +1293,23 @@ app.post('/api/admin/ban', async (req, res) => {
             [req.body.userId, 'admin']
         );
         
-        // ✅ Ban ခံရတဲ့ User ကို Socket ကနေ Kick
         const bannedUserId = parseInt(req.body.userId);
         
-        // Find user's socket and disconnect
-        const sockets = await io.fetchSockets();
-        for (const socket of sockets) {
-            if (socket.userId === bannedUserId) {
-                socket.emit('force_logout', {
-                    message: 'Your account has been banned by admin.',
-                    reason: 'Account banned'
-                });
-                socket.disconnect(true);
+        // Socket kick
+        try {
+            const sockets = await io.fetchSockets();
+            for (const socket of sockets) {
+                if (socket.userId === bannedUserId) {
+                    socket.emit('force_logout', {
+                        message: 'Your account has been banned by admin.',
+                        reason: 'Account banned'
+                    });
+                    socket.disconnect(true);
+                }
             }
-        }
+        } catch(e) {}
         
-        // Clear user's device sessions
+        // Clear device sessions
         await p.query('DELETE FROM device_sessions WHERE user_id = $1', [bannedUserId]);
         
         tgSend('🚫 Banned: ' + req.body.userId);
@@ -1284,32 +1320,51 @@ app.post('/api/admin/ban', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-app.post('/api/admin/unban', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM banned_users WHERE user_id=$1', [req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/delete', async (req, res) => { 
+
+app.post('/api/admin/unban', async (req, res) => { 
     try { 
         const p = await getPool(); 
-        const userId = req.body.userId;
-        
-        // First, add to banned_users so user gets auto-kicked
-        await p.query(
-            'INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', 
-            [userId, 'admin']
-        );
-        
-        // Then delete the user
-        await p.query('DELETE FROM auth_users WHERE id=$1', [userId]);
-        
-        // Also delete user's orders
-        await p.query('DELETE FROM orders WHERE user_id=$1', [userId]);
-        
-        tgSend(`ðŸ—‘ï¸ Deleted: ${userId}`);
+        await p.query('DELETE FROM banned_users WHERE user_id=$1', [req.body.userId]); 
         res.json({ success: true }); 
     } catch(e) { 
         res.json({ success: false }); 
     } 
 });
-app.post('/api/admin/search_user', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT id,username,email,balance FROM auth_users WHERE id::text=$1 OR username ILIKE $2 OR email ILIKE $2 LIMIT 5', [req.body.query, '%'+req.body.query+'%']); res.json({ users: r.rows }); } catch(e) { res.json({ users: [] }); } });
-// ==================== UPDATE USER BALANCE (ADMIN - JWT FIX) ====================
+
+app.post('/api/admin/delete', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const userId = req.body.userId;
+        
+        await p.query(
+            'INSERT INTO banned_users (user_id, banned_by) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET banned_by=$2', 
+            [userId, 'admin']
+        );
+        
+        await p.query('DELETE FROM auth_users WHERE id=$1', [userId]);
+        await p.query('DELETE FROM orders WHERE user_id=$1', [userId]);
+        
+        tgSend(`🗑️ Deleted: ${userId}`);
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
+app.post('/api/admin/search_user', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const r = await p.query(
+            'SELECT id,username,email,balance FROM auth_users WHERE id::text=$1 OR username ILIKE $2 OR email ILIKE $2 LIMIT 5', 
+            [req.body.query, '%'+req.body.query+'%']
+        ); 
+        res.json({ users: r.rows }); 
+    } catch(e) { 
+        res.json({ users: [] }); 
+    } 
+});
+
+// ==================== UPDATE USER BALANCE (ADMIN) ====================
 app.post('/api/admin/update_balance', async (req, res) => {
     const { userId, amount } = req.body;
     
@@ -1328,14 +1383,45 @@ app.post('/api/admin/update_balance', async (req, res) => {
         const result = await p.query('SELECT balance FROM auth_users WHERE id = $1', [parseInt(userId)]);
         const newBalance = result.rows[0]?.balance || 0;
         
+        console.log(`[BALANCE] User #${userId}: ${amount > 0 ? '+' : ''}${amount} → New Balance: ${newBalance}`);
+        
         res.json({ success: true, new_balance: newBalance });
         
     } catch(e) {
+        console.error('[UPDATE BALANCE ERROR]', e.message);
         res.json({ success: false, message: 'Server error' });
     }
 });
+
 // ==================== ORDERS ====================
-app.get('/api/admin/orders', async (req, res) => { try { const p = await getPool(); const filter = req.query.filter || 'all'; let query = 'SELECT * FROM orders'; const params = []; const today = new Date().toISOString().split('T')[0]; if (filter === 'today') { query += " WHERE DATE(created_at)=$1"; params.push(today); } else if (filter === 'yesterday') { query += " WHERE DATE(created_at)=$1"; params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); } query += ' ORDER BY id DESC'; const r = await p.query(query, params); const totalR = await p.query("SELECT COUNT(*) FROM orders"); const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); res.json({ orders: r.rows, total: parseInt(totalR.rows[0].count), today: parseInt(todayR.rows[0].count) }); } catch(e) { res.json({ orders: [], total: 0, today: 0 }); } });
+app.get('/api/admin/orders', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const filter = req.query.filter || 'all'; 
+        let query = 'SELECT * FROM orders'; 
+        const params = []; 
+        const today = new Date().toISOString().split('T')[0]; 
+        if (filter === 'today') { 
+            query += " WHERE DATE(created_at)=$1"; 
+            params.push(today); 
+        } else if (filter === 'yesterday') { 
+            query += " WHERE DATE(created_at)=$1"; 
+            params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); 
+        } 
+        query += ' ORDER BY id DESC'; 
+        const r = await p.query(query, params); 
+        const totalR = await p.query("SELECT COUNT(*) FROM orders"); 
+        const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); 
+        res.json({ 
+            orders: r.rows, 
+            total: parseInt(totalR.rows[0].count), 
+            today: parseInt(todayR.rows[0].count) 
+        }); 
+    } catch(e) { 
+        res.json({ orders: [], total: 0, today: 0 }); 
+    } 
+});
+
 // ==================== SUBMIT ORDER (JWT FIXED) ====================
 app.post('/api/submit_order', async (req, res) => {
     try {
@@ -1348,7 +1434,7 @@ app.post('/api/submit_order', async (req, res) => {
         const p = await getPool();
         let uid;
         
-        // ✅ JWT Token ဖြစ်ရင် Decode လုပ်
+        // ✅ JWT Token
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
@@ -1357,7 +1443,7 @@ app.post('/api/submit_order', async (req, res) => {
                 return res.json({ success: false, message: 'Invalid token' });
             }
         } 
-        // ✅ Old Token Format
+        // ✅ Old Token Format (token_xxx)
         else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''));
             if (isNaN(uid)) {
@@ -1385,30 +1471,219 @@ app.post('/api/submit_order', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-app.post('/api/get_orders', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const r = await p.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); res.json({ orders: r.rows }); } catch(e) { res.json({ orders: [] }); } });
-app.post('/api/admin/order_status', async (req, res) => { try { const p = await getPool(); const { id, status, reason } = req.body; if (status === 'rejected') { await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || '', id]); } else { await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]); } res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+
+// ==================== GET USER ORDERS (JWT FIXED) ====================
+app.post('/api/get_orders', async (req, res) => { 
+    try { 
+        const p = await getPool();
+        let uid;
+        const token = req.body.token;
+        
+        // ✅ JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ orders: [] });
+            }
+        } 
+        // ✅ Old Token Format
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+            if (isNaN(uid)) return res.json({ orders: [] });
+        } 
+        else {
+            return res.json({ orders: [] });
+        }
+        
+        const r = await p.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); 
+        res.json({ orders: r.rows }); 
+    } catch(e) { 
+        res.json({ orders: [] }); 
+    } 
+});
+
+// ==================== ORDER STATUS (ADMIN) ====================
+app.post('/api/admin/order_status', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const { id, status, reason } = req.body; 
+        if (status === 'rejected') { 
+            await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || '', id]); 
+        } else { 
+            await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]); 
+        } 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
 
 // ==================== NOTICES ====================
-app.get('/api/notice', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL ORDER BY id DESC LIMIT 1"); if (r.rows.length === 0) return res.json({ message: '' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); } catch(e) { res.json({ message: '' }); } });
-app.get('/api/admin/notices', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL ORDER BY id DESC"); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
-app.post('/api/admin/notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'dashboard')", [message, color||'#fff', 'admin']); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/notice/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM notices WHERE id=$1', [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/notice', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL ORDER BY id DESC LIMIT 1"); 
+        if (r.rows.length === 0) return res.json({ message: '' }); 
+        const n = r.rows[0]; 
+        res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); 
+    } catch(e) { 
+        res.json({ message: '' }); 
+    } 
+});
+
+app.get('/api/admin/notices', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL ORDER BY id DESC"); 
+        res.json({ notices: r.rows }); 
+    } catch(e) { 
+        res.json({ notices: [] }); 
+    } 
+});
+
+app.post('/api/admin/notice', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const { message, color } = req.body; 
+        if (!message) return res.json({ success: false }); 
+        await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'dashboard')", [message, color||'#fff', 'admin']); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
+app.post('/api/admin/notice/delete', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        await p.query('DELETE FROM notices WHERE id=$1', [req.body.id]); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
+app.post('/api/admin/notices/delete_all', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        await p.query("DELETE FROM notices WHERE notice_type='dashboard' OR notice_type IS NULL"); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
 
 // Top Up Notice
-app.get('/api/topup_notice', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC LIMIT 1"); if (r.rows.length === 0) return res.json({ message: '' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); } catch(e) { res.json({ message: '' }); } });
-app.get('/api/admin/topup_notices', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC"); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
-app.post('/api/admin/topup_notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'topup')", [message, color||'#fff', 'admin']); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/topup_notice/delete', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='topup'", [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/topup_notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='topup'"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/topup_notice', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC LIMIT 1"); 
+        if (r.rows.length === 0) return res.json({ message: '' }); 
+        const n = r.rows[0]; 
+        res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); 
+    } catch(e) { 
+        res.json({ message: '' }); 
+    } 
+});
+
+app.get('/api/admin/topup_notices', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='topup' ORDER BY id DESC"); 
+        res.json({ notices: r.rows }); 
+    } catch(e) { 
+        res.json({ notices: [] }); 
+    } 
+});
+
+app.post('/api/admin/topup_notice', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const { message, color } = req.body; 
+        if (!message) return res.json({ success: false }); 
+        await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'topup')", [message, color||'#fff', 'admin']); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
+app.post('/api/admin/topup_notice/delete', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='topup'", [req.body.id]); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
+app.post('/api/admin/topup_notices/delete_all', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        await p.query("DELETE FROM notices WHERE notice_type='topup'"); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
 
 // Buy Code Notice
-app.get('/api/buycode_notice', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC LIMIT 1"); if (r.rows.length === 0) return res.json({ message: '' }); const n = r.rows[0]; res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); } catch(e) { res.json({ message: '' }); } });
-app.get('/api/admin/buycode_notices', async (req, res) => { try { const p = await getPool(); const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC"); res.json({ notices: r.rows }); } catch(e) { res.json({ notices: [] }); } });
-app.post('/api/admin/buycode_notice', async (req, res) => { try { const p = await getPool(); const { message, color } = req.body; if (!message) return res.json({ success: false }); await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'buycode')", [message, color||'#fff', 'admin']); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/buycode_notice/delete', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='buycode'", [req.body.id]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { try { const p = await getPool(); await p.query("DELETE FROM notices WHERE notice_type='buycode'"); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.get('/api/buycode_notice', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC LIMIT 1"); 
+        if (r.rows.length === 0) return res.json({ message: '' }); 
+        const n = r.rows[0]; 
+        res.json({ success: true, message: n.message, color: n.color, created_at: n.created_at }); 
+    } catch(e) { 
+        res.json({ message: '' }); 
+    } 
+});
 
+app.get('/api/admin/buycode_notices', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const r = await p.query("SELECT * FROM notices WHERE notice_type='buycode' ORDER BY id DESC"); 
+        res.json({ notices: r.rows }); 
+    } catch(e) { 
+        res.json({ notices: [] }); 
+    } 
+});
+
+app.post('/api/admin/buycode_notice', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        const { message, color } = req.body; 
+        if (!message) return res.json({ success: false }); 
+        await p.query("INSERT INTO notices (message,color,created_by,notice_type) VALUES ($1,$2,$3,'buycode')", [message, color||'#fff', 'admin']); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
+app.post('/api/admin/buycode_notice/delete', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        await p.query("DELETE FROM notices WHERE id=$1 AND notice_type='buycode'", [req.body.id]); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
+
+app.post('/api/admin/buycode_notices/delete_all', async (req, res) => { 
+    try { 
+        const p = await getPool(); 
+        await p.query("DELETE FROM notices WHERE notice_type='buycode'"); 
+        res.json({ success: true }); 
+    } catch(e) { 
+        res.json({ success: false }); 
+    } 
+});
 // ==================== BOT MESSAGE ====================
 app.post('/api/admin/bot_message', async (req, res) => {
     const { message, sound, title } = req.body;
