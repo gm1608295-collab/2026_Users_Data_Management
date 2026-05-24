@@ -1314,7 +1314,57 @@ app.post('/api/admin/update_balance', async (req, res) => { try { const p = awai
 
 // ==================== ORDERS ====================
 app.get('/api/admin/orders', async (req, res) => { try { const p = await getPool(); const filter = req.query.filter || 'all'; let query = 'SELECT * FROM orders'; const params = []; const today = new Date().toISOString().split('T')[0]; if (filter === 'today') { query += " WHERE DATE(created_at)=$1"; params.push(today); } else if (filter === 'yesterday') { query += " WHERE DATE(created_at)=$1"; params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); } query += ' ORDER BY id DESC'; const r = await p.query(query, params); const totalR = await p.query("SELECT COUNT(*) FROM orders"); const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); res.json({ orders: r.rows, total: parseInt(totalR.rows[0].count), today: parseInt(todayR.rows[0].count) }); } catch(e) { res.json({ orders: [], total: 0, today: 0 }); } });
-app.post('/api/submit_order', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [uid]); const un = user.rows[0]?.username || 'Unknown'; await p.query('INSERT INTO orders (user_id,username,amount,payment_method,screenshot,status,submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)', [uid, un, req.body.amount, req.body.payment_method, req.body.screenshot, 'pending', req.body.user_id||uid]); tgSend(`ðŸ›’ New Order\nðŸ‘¤ ${un}\nðŸ’° ${req.body.amount} Ks\nðŸ’³ ${req.body.payment_method}`); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+// ==================== SUBMIT ORDER (FIXED V2) ====================
+app.post('/api/submit_order', async (req, res) => {
+    console.log('[SUBMIT ORDER] Request received');
+    
+    try {
+        const { token, amount, payment_method, screenshot, user_id } = req.body;
+        
+        console.log('[SUBMIT ORDER] Token:', token?.substring(0,10) || 'N/A');
+        console.log('[SUBMIT ORDER] Payment:', payment_method);
+        console.log('[SUBMIT ORDER] User ID:', user_id);
+        console.log('[SUBMIT ORDER] Screenshot length:', screenshot ? screenshot.length : 0);
+        
+        if (!token || token === 'guest') {
+            console.log('[SUBMIT ORDER] No token');
+            return res.json({ success: false, message: 'Login required' });
+        }
+        
+        if (!payment_method || !user_id || !screenshot) {
+            console.log('[SUBMIT ORDER] Missing fields');
+            return res.json({ success: false, message: 'All fields required' });
+        }
+        
+        const p = await getPool();
+        const uid = parseInt(token.replace('token_', ''));
+        
+        if (isNaN(uid)) {
+            console.log('[SUBMIT ORDER] Invalid token');
+            return res.json({ success: false, message: 'Invalid token' });
+        }
+        
+        const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [uid]);
+        const un = user.rows[0]?.username || 'Unknown';
+        
+        await p.query(
+            'INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+            [uid, un, amount || 0, payment_method, screenshot, 'pending', user_id || uid]
+        );
+        
+        console.log('[SUBMIT ORDER] ✅ Order inserted');
+        
+        try {
+            tgSend(`🛒 New Order\n👤 ${un}\n💳 ${payment_method}\n🆔 ${user_id || uid}`);
+        } catch(e) {}
+        
+        res.json({ success: true, message: 'Order submitted' });
+        
+    } catch(e) {
+        console.error('[SUBMIT ORDER ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 app.post('/api/get_orders', async (req, res) => { try { const p = await getPool(); const uid = parseInt(req.body.token.replace('token_', '')); const r = await p.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); res.json({ orders: r.rows }); } catch(e) { res.json({ orders: [] }); } });
 app.post('/api/admin/order_status', async (req, res) => { try { const p = await getPool(); const { id, status, reason } = req.body; if (status === 'rejected') { await p.query('UPDATE orders SET status=$1, reject_reason=$2 WHERE id=$3', [status, reason || '', id]); } else { await p.query('UPDATE orders SET status=$1 WHERE id=$2', [status, id]); } res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
 
