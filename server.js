@@ -1366,33 +1366,46 @@ app.post('/api/admin/search_user', async (req, res) => {
 
 // ==================== UPDATE USER BALANCE (ADMIN) ====================
 app.post('/api/admin/update_balance', async (req, res) => {
+    console.log('[BALANCE UPDATE] Request received:', req.body);
+    
     const { userId, amount } = req.body;
     
     if (!userId || amount === undefined) {
+        console.log('[BALANCE UPDATE] Missing fields');
         return res.json({ success: false, message: 'Missing fields' });
     }
     
     try {
         const p = await getPool();
         
-        await p.query(
+        // ✅ Balance Update
+        const updateResult = await p.query(
             'UPDATE auth_users SET balance = COALESCE(balance, 0) + $1 WHERE id = $2',
             [parseFloat(amount), parseInt(userId)]
         );
         
+        console.log('[BALANCE UPDATE] Update result:', updateResult.rowCount, 'rows affected');
+        
+        // ✅ လက်ကျန် ပြန်ထုတ်
         const result = await p.query('SELECT balance FROM auth_users WHERE id = $1', [parseInt(userId)]);
+        
+        if (result.rows.length === 0) {
+            console.log('[BALANCE UPDATE] User not found');
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
         const newBalance = result.rows[0]?.balance || 0;
         
-        console.log(`[BALANCE] User #${userId}: ${amount > 0 ? '+' : ''}${amount} → New Balance: ${newBalance}`);
+        console.log(`[BALANCE UPDATE] User #${userId}: ${amount > 0 ? '+' : ''}${amount} → New Balance: ${newBalance}`);
         
         res.json({ success: true, new_balance: newBalance });
         
     } catch(e) {
-        console.error('[UPDATE BALANCE ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        console.error('[BALANCE UPDATE ERROR]', e.message);
+        console.error('[BALANCE UPDATE ERROR]', e.stack);
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
-
 // ==================== ORDERS ====================
 app.get('/api/admin/orders', async (req, res) => { 
     try { 
