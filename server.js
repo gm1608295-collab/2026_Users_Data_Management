@@ -2706,7 +2706,7 @@ app.post('/api/deduct_balance', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        // Check balance
+        // ✅ Balance နှုတ်
         const user = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
         const currentBalance = parseFloat(user.rows[0]?.balance || 0);
         
@@ -2714,8 +2714,17 @@ app.post('/api/deduct_balance', async (req, res) => {
             return res.json({ success: false, message: 'Balance not enough' });
         }
         
-        // Deduct
         await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id=$2', [amount, uid]);
+        
+        // ✅ Paid Spins တိုး (Spins အရေအတွက်ကို reason ကနေ ထုတ်ယူ)
+        var spinsToAdd = 0;
+        if (reason) {
+            var match = reason.match(/\d+/);
+            if (match) spinsToAdd = parseInt(match[0]);
+        }
+        if (spinsToAdd > 0) {
+            await p.query('UPDATE auth_users SET paid_spins = COALESCE(paid_spins, 0) + $1 WHERE id = $2', [spinsToAdd, uid]);
+        }
         
         const newBalance = currentBalance - amount;
         
