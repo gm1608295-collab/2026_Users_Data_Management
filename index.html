@@ -1778,88 +1778,61 @@ async function readQRImage(input) {
     document.getElementById('qrResult').innerHTML = '⏳ Reading QR Code...';
     
     try {
-        var img = new Image();
-        var url = URL.createObjectURL(file);
+        // ✅ Server-Side QR Decode ကို သုံးမယ်
+        var reader = new FileReader();
         
-        img.onload = async function() {
-            var canvas = document.createElement('canvas');
-            var ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            
-            if (typeof jsQR !== 'undefined') {
-                var code = jsQR(imageData.data, canvas.width, canvas.height);
+        reader.onload = async function(e) {
+            try {
+                var r = await fetch('/api/decode_qr', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: e.target.result })
+                });
+                var d = await r.json();
                 
-                if (code && code.data) {
-                    // ✅ QR Code ထဲက Data က SOLO M System ကလား စစ်မယ်
+                if (d.success && d.qr_data) {
+                    // ✅ QR Code ဖတ်လို့ရပြီ
                     try {
-                        var qrData = JSON.parse(code.data);
+                        var qrData = JSON.parse(d.qr_data);
                         
-                        // ✅ System QR ရဲ့ အမှတ်အသား - email, password, username ပါရမယ်
-                        if (qrData.email && qrData.password && qrData.username) {
-                            // ✅ System QR ဖြစ်ကြောင်း အတည်ပြု
+                        if (qrData.email && qrData.password) {
                             document.getElementById('qrResult').innerHTML = '✅ SOLO M QR Code detected!';
                             
-                            // ✅ Auto-Fill Login Form
+                            // ✅ Auto-Fill
                             document.getElementById('loginEmail').value = qrData.email || '';
                             document.getElementById('loginPassword').value = qrData.password || '';
                             updateLoginBtn();
-                            showToast('✅ Login credentials loaded! Click Login to continue');
+                            showToast('✅ Login credentials loaded!');
                             
-                            // ✅ QR Upload Modal ကို Auto-Close
+                            // Auto-close after 1.5s
                             setTimeout(function() {
-                                var overlay = document.querySelector('.modal-overlay'); // QR Upload Modal
+                                var overlay = input.closest('.modal-overlay') || input.parentElement.parentElement;
                                 if (overlay) overlay.remove();
                             }, 1500);
                         } else {
-                            // ❌ System QR မဟုတ်ဘူး
-                            document.getElementById('qrResult').innerHTML = '❌ Invalid QR Code - This is not a SOLO M recovery QR code';
-                            showToast('❌ Please use the QR code from SOLO M registration', 'error');
+                            document.getElementById('qrResult').innerHTML = '❌ Not a SOLO M recovery QR code';
                         }
-                    } catch(jsonError) {
-                        // ❌ JSON မဟုတ်ဘူး (တခြား QR Code)
-                        document.getElementById('qrResult').innerHTML = '❌ Invalid QR Code - Not a SOLO M recovery QR';
-                        showToast('❌ Please use the QR code from SOLO M registration', 'error');
+                    } catch(jsonErr) {
+                        document.getElementById('qrResult').innerHTML = '❌ Invalid QR Code format';
                     }
                 } else {
-                    document.getElementById('qrResult').innerHTML = '❌ No QR Code found in image';
+                    document.getElementById('qrResult').innerHTML = '❌ No QR Code found - ' + (d.message || 'Please use SOLO M QR code');
                 }
-            } else {
-                // Fallback: server-side
-                var reader = new FileReader();
-                reader.onload = async function(e) {
-                    var r = await fetch('/api/decode_qr', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ image: e.target.result })
-                    });
-                    var d = await r.json();
-                    
-                    if (d.success) {
-                        document.getElementById('qrResult').innerHTML = '✅ Image uploaded! Processing...';
-                    } else {
-                        document.getElementById('qrResult').innerHTML = '❌ Error processing image';
-                    }
-                };
-                reader.readAsDataURL(file);
+            } catch(fetchErr) {
+                document.getElementById('qrResult').innerHTML = '❌ Connection error';
             }
-            
-            URL.revokeObjectURL(url);
         };
         
-        img.onerror = function() {
-            document.getElementById('qrResult').innerHTML = '❌ Invalid image file';
+        reader.onerror = function() {
+            document.getElementById('qrResult').innerHTML = '❌ Error reading file';
         };
         
-        img.src = url;
+        reader.readAsDataURL(file);
         
     } catch(e) {
-        document.getElementById('qrResult').innerHTML = '❌ Error reading image';
+        document.getElementById('qrResult').innerHTML = '❌ Error processing image';
     }
-            }
+}
 // ==================== QR RECOVERY GUIDE ====================
 function showQRRecoveryGuide() {
     var overlay = document.createElement('div');
