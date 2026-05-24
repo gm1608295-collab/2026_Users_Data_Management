@@ -901,7 +901,6 @@ body.modal-open .container {
     </div>
 </div>
     <script>
-    const ADMIN="MK2008";
     let currentOrderFilter='all',pendingRestoreData=null;
     const pageIcons={'topup':'💰','buycode':'🛒','dashboard':'🏠','data':'📊','history':'📋','password':'🔑','recovery':'🔧','contact':'📞','aboutredeem':'ℹ️','game':'🎰','exchange':'💱'};
     let autoRefreshInterval=null,pageTimers={};
@@ -909,7 +908,23 @@ body.modal-open .container {
     function showLoading(t){document.getElementById('loadingText').textContent=t||'Loading...';document.getElementById('loadingOverlay').classList.add('active')}
     function hideLoading(){document.getElementById('loadingOverlay').classList.remove('active')}
     function zoomImage(src){const m=document.createElement('div');m.className='zoom-overlay';m.onclick=()=>m.remove();m.innerHTML=`<img src="${src}">`;document.body.appendChild(m)}
-    async function unlockAdmin(){if(document.getElementById("adminPass").value!==ADMIN)return n("Wrong password","error");document.getElementById("adminBox").style.display="block";showLoading('Loading...');try{await Promise.all([loadAdminData(),loadAdminOrders('all'),loadPageToggles(),loadCurrentPlaylist(),loadSliderPreview(),loadCurrentVideo(),loadNoticeList(),loadBuyCodeNoticeList(),loadTopupNoticeList(),loadRedeemCodes(),loadSpinRates(),loadResellers(),loadResellerTransactions(),loadExchangeRate(),loadPromoCodes(),loadCheckinEvents()]);updateBackupInfo();hideLoading();n('✅ Loaded');startAutoRefresh()}catch(e){hideLoading();n('Error','error')}}
+    async function unlockAdmin() {
+    const password = document.getElementById('adminPass').value;
+    
+    const r = await fetch('/api/admin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+    });
+    const d = await r.json();
+    
+    if (d.success) {
+        document.getElementById('adminBox').style.display = 'block';
+        // Load data...
+    } else {
+        n('Wrong password', 'error');
+    }
+        }
     function startAutoRefresh(){
     if(autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(async() => {
