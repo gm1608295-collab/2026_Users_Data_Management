@@ -1322,14 +1322,15 @@ function togglePassword(){
     else { i.type = 'password'; ic.className = 'fas fa-eye'; }
 }
 
-// ==================== RECAPTCHA ====================
-let captchaVerified = false;
-function verifyRecaptcha(){
-    if(captchaVerified) return;
-    captchaVerified = true;
-    const b = document.getElementById('recaptchaBox');
-    b.classList.add('verified');
-    document.getElementById('recaptchaText').textContent = 'Verified! ✓';
+// ==================== GOOGLE RECAPTCHA V2 ====================
+
+// reCAPTCHA Callback - Google က အောင်မြင်ရင် Auto ခေါ်မယ်
+function onRecaptchaSuccess() {
+    updateLoginBtn();
+}
+
+// reCAPTCHA Expired
+function onRecaptchaExpired() {
     updateLoginBtn();
 }
 
@@ -1337,7 +1338,10 @@ function updateLoginBtn(){
     const b = document.getElementById('loginBtn'),
           e = document.getElementById('loginEmail').value.trim(),
           p = document.getElementById('loginPassword').value.trim();
-    b.disabled = !(captchaVerified && e && p);
+    
+    // ✅ reCAPTCHA စစ်
+    var recaptchaOk = (typeof grecaptcha !== 'undefined') && grecaptcha.getResponse() !== '';
+    b.disabled = !(recaptchaOk && e && p);
 }
 
 // ==================== REGISTER TOGGLE ====================
@@ -1348,6 +1352,7 @@ function toggleRegister(){
 // ==================== USER GUIDE ====================
 function openUserGuide(){ document.getElementById('userGuideModal').classList.add('active'); }
 function closeUserGuide(){ document.getElementById('userGuideModal').classList.remove('active'); }
+
 // ==================== OTP SYSTEM ====================
 let otpCountdown = null;
 let otpEmail = '';
@@ -1368,24 +1373,28 @@ async function handleLogin() {
     const p = document.getElementById('loginPassword').value.trim();
     
     if (!e || !p) { showToast('Fill all fields', 'error'); return; }
-    if (!captchaVerified) { showToast('Verify captcha', 'error'); return; }
+    
+    // ✅ Google reCAPTCHA စစ်
+    var recaptchaResponse = grecaptcha.getResponse();
+    if (!recaptchaResponse) {
+        showToast('Please verify reCAPTCHA', 'error');
+        return;
+    }
     
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-
-    var recaptchaResponse = grecaptcha.getResponse();
-if (!recaptchaResponse) {
-    showToast('Please verify reCAPTCHA', 'error');
-    return;
-}
     
     try {
-        // Step 1: Check Password
+        // Step 1: Check Password (reCAPTCHA ပါ ထည့်ပို့)
         const r = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: e, password: p })
+            body: JSON.stringify({ 
+                email: e, 
+                password: p,
+                recaptcha: recaptchaResponse
+            })
         });
         const d = await r.json();
         
@@ -1394,13 +1403,14 @@ if (!recaptchaResponse) {
             showToast(d.message || 'Invalid credentials', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            grecaptcha.reset(); // reCAPTCHA ပြန်စ
             return;
         }
         
         // Step 2: Password OK - Save email
         otpEmail = e;
         
-        // Check if OTP already exists (for timer continuation)
+        // Check if OTP already exists
         const statusRes = await fetch('/api/otp/status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1408,7 +1418,6 @@ if (!recaptchaResponse) {
         });
         const statusData = await statusRes.json();
         
-        // If OTP exists and hasn't expired, show modal with remaining time
         if (statusData.has_otp && statusData.remaining_seconds > 0) {
             otpSeconds = statusData.remaining_seconds;
             showOTPModal(otpSeconds);
@@ -1443,7 +1452,6 @@ if (!recaptchaResponse) {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
 }
-
 // Show OTP Modal
 function showOTPModal(startSeconds) {
     clearOTPDisplay();
