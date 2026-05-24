@@ -1177,7 +1177,6 @@ app.post('/api/verify_security_pass', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== VERIFY USER ID ====================
 // ==================== VERIFY USER ID (Top Up) ====================
 app.post('/api/verify_user_id', async (req, res) => {
     const { token, userId } = req.body;
@@ -1310,8 +1309,31 @@ app.post('/api/admin/delete', async (req, res) => {
     } 
 });
 app.post('/api/admin/search_user', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT id,username,email,balance FROM auth_users WHERE id::text=$1 OR username ILIKE $2 OR email ILIKE $2 LIMIT 5', [req.body.query, '%'+req.body.query+'%']); res.json({ users: r.rows }); } catch(e) { res.json({ users: [] }); } });
-app.post('/api/admin/update_balance', async (req, res) => { try { const p = await getPool(); await p.query('UPDATE auth_users SET balance=COALESCE(balance,0)+$1 WHERE id=$2', [req.body.amount, req.body.userId]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-
+// ==================== UPDATE USER BALANCE (ADMIN - JWT FIX) ====================
+app.post('/api/admin/update_balance', async (req, res) => {
+    const { userId, amount } = req.body;
+    
+    if (!userId || amount === undefined) {
+        return res.json({ success: false, message: 'Missing fields' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        await p.query(
+            'UPDATE auth_users SET balance = COALESCE(balance, 0) + $1 WHERE id = $2',
+            [parseFloat(amount), parseInt(userId)]
+        );
+        
+        const result = await p.query('SELECT balance FROM auth_users WHERE id = $1', [parseInt(userId)]);
+        const newBalance = result.rows[0]?.balance || 0;
+        
+        res.json({ success: true, new_balance: newBalance });
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== ORDERS ====================
 app.get('/api/admin/orders', async (req, res) => { try { const p = await getPool(); const filter = req.query.filter || 'all'; let query = 'SELECT * FROM orders'; const params = []; const today = new Date().toISOString().split('T')[0]; if (filter === 'today') { query += " WHERE DATE(created_at)=$1"; params.push(today); } else if (filter === 'yesterday') { query += " WHERE DATE(created_at)=$1"; params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); } query += ' ORDER BY id DESC'; const r = await p.query(query, params); const totalR = await p.query("SELECT COUNT(*) FROM orders"); const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); res.json({ orders: r.rows, total: parseInt(totalR.rows[0].count), today: parseInt(todayR.rows[0].count) }); } catch(e) { res.json({ orders: [], total: 0, today: 0 }); } });
 // ==================== SUBMIT ORDER (JWT FIXED) ====================
