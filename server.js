@@ -1314,34 +1314,36 @@ app.post('/api/admin/update_balance', async (req, res) => { try { const p = awai
 
 // ==================== ORDERS ====================
 app.get('/api/admin/orders', async (req, res) => { try { const p = await getPool(); const filter = req.query.filter || 'all'; let query = 'SELECT * FROM orders'; const params = []; const today = new Date().toISOString().split('T')[0]; if (filter === 'today') { query += " WHERE DATE(created_at)=$1"; params.push(today); } else if (filter === 'yesterday') { query += " WHERE DATE(created_at)=$1"; params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); } query += ' ORDER BY id DESC'; const r = await p.query(query, params); const totalR = await p.query("SELECT COUNT(*) FROM orders"); const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); res.json({ orders: r.rows, total: parseInt(totalR.rows[0].count), today: parseInt(todayR.rows[0].count) }); } catch(e) { res.json({ orders: [], total: 0, today: 0 }); } });
-// ==================== SUBMIT ORDER (FIXED V2) ====================
+// ==================== SUBMIT ORDER (JWT FIXED) ====================
 app.post('/api/submit_order', async (req, res) => {
-    console.log('[SUBMIT ORDER] Request received');
-    
     try {
         const { token, amount, payment_method, screenshot, user_id } = req.body;
         
-        console.log('[SUBMIT ORDER] Token:', token?.substring(0,10) || 'N/A');
-        console.log('[SUBMIT ORDER] Payment:', payment_method);
-        console.log('[SUBMIT ORDER] User ID:', user_id);
-        console.log('[SUBMIT ORDER] Screenshot length:', screenshot ? screenshot.length : 0);
-        
         if (!token || token === 'guest') {
-            console.log('[SUBMIT ORDER] No token');
             return res.json({ success: false, message: 'Login required' });
         }
         
-        if (!payment_method || !user_id || !screenshot) {
-            console.log('[SUBMIT ORDER] Missing fields');
-            return res.json({ success: false, message: 'All fields required' });
-        }
-        
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid;
         
-        if (isNaN(uid)) {
-            console.log('[SUBMIT ORDER] Invalid token');
-            return res.json({ success: false, message: 'Invalid token' });
+        // ✅ JWT Token ဖြစ်ရင် Decode လုပ်
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid token' });
+            }
+        } 
+        // ✅ Old Token Format
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+            if (isNaN(uid)) {
+                return res.json({ success: false, message: 'Invalid token' });
+            }
+        } 
+        else {
+            return res.json({ success: false, message: 'Invalid token format' });
         }
         
         const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [uid]);
@@ -1349,14 +1351,10 @@ app.post('/api/submit_order', async (req, res) => {
         
         await p.query(
             'INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-            [uid, un, amount || 0, payment_method, screenshot, 'pending', user_id || uid]
+            [uid, un, amount || 0, payment_method, screenshot || '', 'pending', user_id || uid]
         );
         
-        console.log('[SUBMIT ORDER] ✅ Order inserted');
-        
-        try {
-            tgSend(`🛒 New Order\n👤 ${un}\n💳 ${payment_method}\n🆔 ${user_id || uid}`);
-        } catch(e) {}
+        try { tgSend(`🛒 New Order\n👤 ${un}\n💳 ${payment_method}\n🆔 ${user_id || uid}`); } catch(e) {}
         
         res.json({ success: true, message: 'Order submitted' });
         
