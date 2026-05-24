@@ -151,6 +151,7 @@ const GOOGLE_REDIRECT = process.env.GOOGLE_REDIRECT || 'https://solo-m-store-sec
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const TELEGRAM_PAYMENT_TOKEN = process.env.TELEGRAM_PAYMENT_TOKEN;
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
+const ADMIN_PASSWORD_HASH = '$2b$10$XeN/2HtPBf4DLh1.SjNKmuUzpjCRjhEa.wwknw6enjJc5a27l7ZkK';
 // EmailJS Config
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
@@ -839,6 +840,11 @@ app.get('/api/admin/generate_hash', async (req, res) => {
     const password = 'MK2008';
     const hash = await bcrypt.hash(password, 10);
     res.json({ hash: hash });
+});
+app.post('/api/admin/verify', async (req, res) => {
+    const { password } = req.body;
+    const match = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
+    res.json({ success: match });
 });
 // ==================== BANNED LIST API (အသစ်) ====================
 app.get('/api/admin/banned_list', async (req, res) => {
