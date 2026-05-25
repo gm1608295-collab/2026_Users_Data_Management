@@ -14,8 +14,8 @@ const { Server } = require('socket.io');
 const app = express();
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(__dirname));
 
 // ==================== AUTO WAKE-UP ====================
@@ -62,6 +62,13 @@ async function getPool() {
         // All pools failed, return current anyway
         return pools[currentPoolIndex];
     }
+}
+// IP Address ရယူရန် Helper Function
+function getClientIP(req) {
+    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
+        || req.socket?.remoteAddress 
+        || req.ip 
+        || '0.0.0.0';
 }
 // ==================== DEVICE DETECTION ====================
 function detectDevice(ua) {
@@ -573,6 +580,7 @@ app.post('/api/register', async (req, res) => {
 // Generate OTP
 app.post('/api/otp/request', async (req, res) => {
     const { email } = req.body;
+    const clientIP = getClientIP(req);  // ✅ IP ရယူ
     
     if (!email) {
         return res.json({ success: false, message: 'Email required' });
@@ -593,6 +601,25 @@ app.post('/api/otp/request', async (req, res) => {
         
         const uid = user.rows[0].id;
         
+        // ========== ✅ IP-BASED RATE LIMIT CHECK ==========
+        const ipCheck = await p.query(
+            `SELECT COUNT(*) as count 
+             FROM otp_rate_limits 
+             WHERE ip_address = $1 
+               AND last_request_at > NOW() - INTERVAL '15 minutes'`,
+            [clientIP]
+        );
+        
+        const requestCount = parseInt(ipCheck.rows[0]?.count || 0);
+        
+        if (requestCount >= 5) {
+            return res.json({ 
+                success: false, 
+                message: 'OTP တောင်းခံမှု အကြိမ်ရေ များလွန်းပါသည်။ ၁၅ မိနစ်ခန့် စောင့်ဆိုင်းပါ။' 
+            });
+        }
+        // ========== END IP RATE LIMIT CHECK ==========
+        
         // OTP Rate Limit - 30 seconds
         const recentOtp = await p.query(
             "SELECT * FROM otp_codes WHERE user_id=$1 AND created_at > NOW() - INTERVAL '30 seconds'",
@@ -611,6 +638,25 @@ app.post('/api/otp/request', async (req, res) => {
             "INSERT INTO otp_codes (user_id, code, expires_at) VALUES ($1, $2, NOW() + INTERVAL '90 seconds')",
             [uid, otp]
         );
+        
+        // ========== ✅ IP RATE LIMIT RECORD UPDATE ==========
+        if (requestCount > 0) {
+            // Update existing record
+            await p.query(
+                `UPDATE otp_rate_limits 
+                 SET request_count = request_count + 1, last_request_at = NOW() 
+                 WHERE ip_address = $1 AND last_request_at > NOW() - INTERVAL '15 minutes'`,
+                [clientIP]
+            );
+        } else {
+            // Insert new record
+            await p.query(
+                `INSERT INTO otp_rate_limits (ip_address, request_count, first_request_at, last_request_at) 
+                 VALUES ($1, 1, NOW(), NOW())`,
+                [clientIP]
+            );
+        }
+        // ========== END IP RATE LIMIT RECORD UPDATE ==========
         
         // Send OTP via EmailJS
         const emailSent = await sendOTPEmail(email, user.rows[0].username, otp);
