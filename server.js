@@ -18,6 +18,59 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(__dirname));
 
+// ==================== AUTO WAKE-UP ====================
+setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
+app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
+
+// ==================== DATABASE - 5 POOLS AUTO-SWITCH ====================
+const DB1 = 'postgresql://neondb_owner:npg_3lq1dLYxvgVX@ep-misty-base-amkxcayc-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB2 = 'postgresql://neondb_owner:npg_6RwnXBl5LKQt@ep-damp-sea-a46t7qil-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB3 = 'postgresql://neondb_owner:npg_LVD3pNxhd1vi@ep-withered-violet-aprnlbey-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB4 = 'postgresql://neondb_owner:npg_ntqgkA5OVL8P@ep-noisy-resonance-aqy8odea-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB5 = 'postgresql://neondb_owner:npg_KuFVvHic4m0Y@ep-orange-paper-aqn9ak7c-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
+
+const pools = [
+    new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }), // 5s ကနေ 10s သို့
+    new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
+    new Pool({ connectionString: DB3, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
+    new Pool({ connectionString: DB4, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
+    new Pool({ connectionString: DB5, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 })
+];
+let currentPoolIndex = 0;
+
+async function getPool() {
+    // Try current pool first
+    try {
+        await pools[currentPoolIndex].query('SELECT 1');
+        return pools[currentPoolIndex];
+    } catch(e) {
+        console.log('DB Switch from pool #' + (currentPoolIndex + 1) + ':', e.message.substring(0, 50));
+        
+        // Try next pools in order
+        for (let i = 0; i < pools.length; i++) {
+            const nextIndex = (currentPoolIndex + i + 1) % pools.length;
+            try {
+                await pools[nextIndex].query('SELECT 1');
+                currentPoolIndex = nextIndex;
+                console.log('Switched to pool #' + (currentPoolIndex + 1));
+                return pools[currentPoolIndex];
+            } catch(e2) {
+                console.log('Pool #' + (nextIndex + 1) + ' also failed');
+            }
+        }
+        
+        // All pools failed, return current anyway
+        return pools[currentPoolIndex];
+    }
+}
+// IP Address ရယူရန် Helper Function
+function getClientIP(req) {
+    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
+        || req.socket?.remoteAddress 
+        || req.ip 
+        || '0.0.0.0';
+}
+
 // ==================== 2FA SYSTEM ====================
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
@@ -229,58 +282,6 @@ app.post('/api/2fa/status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== AUTO WAKE-UP ====================
-setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
-app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
-
-// ==================== DATABASE - 5 POOLS AUTO-SWITCH ====================
-const DB1 = 'postgresql://neondb_owner:npg_3lq1dLYxvgVX@ep-misty-base-amkxcayc-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB2 = 'postgresql://neondb_owner:npg_6RwnXBl5LKQt@ep-damp-sea-a46t7qil-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB3 = 'postgresql://neondb_owner:npg_LVD3pNxhd1vi@ep-withered-violet-aprnlbey-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB4 = 'postgresql://neondb_owner:npg_ntqgkA5OVL8P@ep-noisy-resonance-aqy8odea-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB5 = 'postgresql://neondb_owner:npg_KuFVvHic4m0Y@ep-orange-paper-aqn9ak7c-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
-
-const pools = [
-    new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }), // 5s ကနေ 10s သို့
-    new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
-    new Pool({ connectionString: DB3, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
-    new Pool({ connectionString: DB4, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
-    new Pool({ connectionString: DB5, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 })
-];
-let currentPoolIndex = 0;
-
-async function getPool() {
-    // Try current pool first
-    try {
-        await pools[currentPoolIndex].query('SELECT 1');
-        return pools[currentPoolIndex];
-    } catch(e) {
-        console.log('DB Switch from pool #' + (currentPoolIndex + 1) + ':', e.message.substring(0, 50));
-        
-        // Try next pools in order
-        for (let i = 0; i < pools.length; i++) {
-            const nextIndex = (currentPoolIndex + i + 1) % pools.length;
-            try {
-                await pools[nextIndex].query('SELECT 1');
-                currentPoolIndex = nextIndex;
-                console.log('Switched to pool #' + (currentPoolIndex + 1));
-                return pools[currentPoolIndex];
-            } catch(e2) {
-                console.log('Pool #' + (nextIndex + 1) + ' also failed');
-            }
-        }
-        
-        // All pools failed, return current anyway
-        return pools[currentPoolIndex];
-    }
-}
-// IP Address ရယူရန် Helper Function
-function getClientIP(req) {
-    return req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
-        || req.socket?.remoteAddress 
-        || req.ip 
-        || '0.0.0.0';
-}
 // ==================== DEVICE DETECTION ====================
 function detectDevice(ua) {
     const parser = new UAParser(ua);
