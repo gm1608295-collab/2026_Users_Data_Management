@@ -651,6 +651,69 @@
                     </div>
                 </div>
 
+                <!-- ==================== FINGERPRINT DISPLAY PANEL ==================== -->
+<div class="panel" id="fingerprintPanel" style="display:none;">
+    <h3><i class="fas fa-fingerprint"></i> Device Fingerprint</h3>
+    
+    <!-- Loading -->
+    <div id="fpLoading" style="text-align:center;padding:20px;">
+        <i class="fas fa-spinner fa-spin" style="font-size:30px;color:#f39c12;"></i>
+        <p style="font-size:12px;margin-top:8px;">Fingerprint ထုတ်လုပ်နေသည်...</p>
+    </div>
+    
+    <!-- Fingerprint Data -->
+    <div id="fpData" style="display:none;">
+        <div style="background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;margin-bottom:8px;">
+            <span style="font-size:10px;color:#f39c12;">🔑 Visitor ID</span><br>
+            <code id="fpVisitorId" style="font-size:11px;color:#fff;word-break:break-all;">---</code>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
+                <span style="font-size:9px;color:#888;">📱 Screen</span><br>
+                <span id="fpScreen" style="font-size:11px;color:#fff;">---</span>
+            </div>
+            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
+                <span style="font-size:9px;color:#888;">🕐 Timezone</span><br>
+                <span id="fpTimezone" style="font-size:11px;color:#fff;">---</span>
+            </div>
+            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
+                <span style="font-size:9px;color:#888;">🌐 Language</span><br>
+                <span id="fpLanguage" style="font-size:11px;color:#fff;">---</span>
+            </div>
+            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
+                <span style="font-size:9px;color:#888;">💻 Platform</span><br>
+                <span id="fpPlatform" style="font-size:11px;color:#fff;">---</span>
+            </div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px;">
+            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;">
+                <span style="font-size:9px;color:#888;">🎨 Canvas</span><br>
+                <span id="fpCanvas" style="font-size:11px;font-weight:bold;">---</span>
+            </div>
+            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;">
+                <span style="font-size:9px;color:#888;">🎮 WebGL</span><br>
+                <span id="fpWebgl" style="font-size:11px;font-weight:bold;">---</span>
+            </div>
+            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;">
+                <span style="font-size:9px;color:#888;">🔊 Audio</span><br>
+                <span id="fpAudio" style="font-size:11px;font-weight:bold;">---</span>
+            </div>
+        </div>
+        
+        <button class="btn btn-w" onclick="refreshFingerprint()" style="margin-top:8px;font-size:11px;">
+            <i class="fas fa-sync-alt"></i> Refresh Fingerprint
+        </button>
+    </div>
+    
+    <!-- Error Message -->
+    <div id="fpError" style="display:none;text-align:center;padding:15px;color:#e74c3c;">
+        <i class="fas fa-exclamation-triangle" style="font-size:30px;"></i>
+        <p style="font-size:12px;margin-top:6px;" id="fpErrorMsg">Error</p>
+    </div>
+</div>
+                
                 <!-- GMAIL SUB TAB -->
                 <div class="sub-tab active" id="gmailSub">
                     <div class="form-group">
@@ -785,7 +848,66 @@
     </div>
 
 <script>
- // ==================== DEVICE FINGERPRINT SYSTEM ====================
+// ==================== FINGERPRINT SYSTEM ====================
+async function generateFingerprint() {
+    const panel = document.getElementById('fingerprintPanel');
+    const loading = document.getElementById('fpLoading');
+    const dataDiv = document.getElementById('fpData');
+    const errorDiv = document.getElementById('fpError');
+    
+    // Show panel
+    panel.style.display = 'block';
+    loading.style.display = 'block';
+    dataDiv.style.display = 'none';
+    errorDiv.style.display = 'none';
+    
+    try {
+        // Check if FingerprintJS loaded
+        if (typeof window.FingerprintJS === 'undefined') {
+            throw new Error('FingerprintJS script not loaded! Check CDN link.');
+        }
+        
+        // Load FingerprintJS
+        const fp = await window.FingerprintJS.load();
+        
+        // Get data
+        const result = await fp.get();
+        
+        // Display data
+        document.getElementById('fpVisitorId').textContent = result.visitorId;
+        document.getElementById('fpScreen').textContent = screen.width + 'x' + screen.height;
+        document.getElementById('fpTimezone').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        document.getElementById('fpLanguage').textContent = navigator.language;
+        document.getElementById('fpPlatform').textContent = navigator.platform;
+        
+        // Canvas, WebGL, Audio status
+        document.getElementById('fpCanvas').textContent = result.components.canvas?.value ? '✅' : '❌';
+        document.getElementById('fpCanvas').style.color = result.components.canvas?.value ? '#2ecc71' : '#e74c3c';
+        
+        document.getElementById('fpWebgl').textContent = result.components.webgl?.value ? '✅' : '❌';
+        document.getElementById('fpWebgl').style.color = result.components.webgl?.value ? '#2ecc71' : '#e74c3c';
+        
+        document.getElementById('fpAudio').textContent = result.components.audio?.value ? '✅' : '❌';
+        document.getElementById('fpAudio').style.color = result.components.audio?.value ? '#2ecc71' : '#e74c3c';
+        
+        // Show data
+        loading.style.display = 'none';
+        dataDiv.style.display = 'block';
+        
+    } catch(e) {
+        loading.style.display = 'none';
+        errorDiv.style.display = 'block';
+        document.getElementById('fpErrorMsg').textContent = e.message;
+    }
+}
+
+function refreshFingerprint() {
+    generateFingerprint();
+}
+
+// Auto-run on page load
+generateFingerprint();
+    // ==================== DEVICE FINGERPRINT SYSTEM ====================
 const FingerprintManager = {
     fpPromise: null,
     visitorId: null,
