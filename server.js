@@ -12,6 +12,12 @@ const UAParser = require('ua-parser-js');
 const http = require('http');
 const { Server } = require('socket.io');
 const app = express();
+
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.static(__dirname));
+
 // ==================== 2FA SYSTEM ====================
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
@@ -223,12 +229,6 @@ app.post('/api/2fa/status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(express.static(__dirname));
-
 // ==================== AUTO WAKE-UP ====================
 setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
