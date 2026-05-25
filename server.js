@@ -293,6 +293,14 @@ async function initTables(p) {
         // ========== SECURITY PASSWORDS ==========
         `CREATE TABLE IF NOT EXISTS otp_codes (id SERIAL PRIMARY KEY, user_id INT, code VARCHAR(6), expires_at TIMESTAMP, used BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS user_security_pass (user_id INT PRIMARY KEY, security_password VARCHAR(100), set_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
+
+        `CREATE TABLE IF NOT EXISTS otp_rate_limits (
+    id SERIAL PRIMARY KEY,
+    ip_address VARCHAR(100) NOT NULL,
+    request_count INT DEFAULT 1,
+    first_request_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_request_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
         
         // ========== GAME ==========
         `CREATE TABLE IF NOT EXISTS spin_history (id SERIAL PRIMARY KEY, user_id INT, reward_type VARCHAR(50), reward_amount DECIMAL DEFAULT 0, segment_label VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
