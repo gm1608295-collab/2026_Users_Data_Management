@@ -70,35 +70,21 @@ function getClientIP(req) {
         || req.ip 
         || '0.0.0.0';
 }
+                
 // ==================== 2FA SYSTEM (JWT + Auto-Create Table) ====================
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 
-// JWT Secret Key (ခင်ဗျားရဲ့ မူရင်း Secret Key ကို သုံးပါ)
-const JWT_SECRET = process.env.JWT_SECRET;
-// JWT Token ကနေ User ID ထုတ်ယူတဲ့ Function
+// JWT Token ကနေ User ID ထုတ်ယူ
 function getUserIdFromToken(token) {
     try {
         if (!token) return null;
-        
-        // "Bearer " prefix ပါရင် ဖယ်
-        if (token.startsWith('Bearer ')) {
-            token = token.slice(7);
-        }
-        
-        // "token_" prefix ပါရင် ဖယ် (ခင်ဗျားရဲ့ စနစ်ဟောင်း)
-        if (token.startsWith('token_')) {
-            return token.replace('token_', '');
-        }
-        
-        // JWT Verify လုပ်
+        if (token.startsWith('Bearer ')) token = token.slice(7);
+        if (token.startsWith('token_')) return token.replace('token_', '');
         const decoded = jwt.verify(token, JWT_SECRET);
         return decoded.userId || decoded.uid || decoded.id || null;
     } catch(e) {
-        // JWT Verify မအောင်မြင်ရင် token_ နည်းနဲ့ စမ်း
-        if (token && token.startsWith('token_')) {
-            return token.replace('token_', '');
-        }
+        if (token && token.startsWith('token_')) return token.replace('token_', '');
         return null;
     }
 }
@@ -106,241 +92,80 @@ function getUserIdFromToken(token) {
 // Auto-Create user_2fa Table
 async function ensure2FATable(pool) {
     try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS user_2fa (
-                id SERIAL PRIMARY KEY,
-                user_id INT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
-                secret_key VARCHAR(64) NOT NULL,
-                is_enabled BOOLEAN DEFAULT false,
-                backup_codes TEXT[] DEFAULT '{}',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-        
-        // Indexes
+        await pool.query(`CREATE TABLE IF NOT EXISTS user_2fa (id SERIAL PRIMARY KEY, user_id INT NOT NULL, secret_key VARCHAR(64) NOT NULL, is_enabled BOOLEAN DEFAULT false, backup_codes TEXT[] DEFAULT '{}', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_2fa_user_id ON user_2fa(user_id)`);
-        
-        console.log('✅ user_2fa table ready');
-    } catch(e) {
-        console.error('❌ user_2fa table create error:', e.message);
-    }
+    } catch(e) {}
 }
 
 // Generate 2FA Secret + QR Code
 app.post('/api/2fa/setup', async (req, res) => {
-    const { token } = req.body;
-    
-    // JWT ကနေ User ID ထုတ်
-    const userId = getUserIdFromToken(token);
-    
-    if (!userId) {
-        return res.json({ success: false, message: 'Invalid token' });
-    }
-    
+    const userId = getUserIdFromToken(req.body.token);
+    if (!userId) return res.json({ success: false, message: 'Invalid token' });
     try {
         const p = await getPool();
-        
-        // Auto-create table
         await ensure2FATable(p);
-        
-        // Check if 2FA already enabled
-        const existing = await p.query(
-            'SELECT * FROM user_2fa WHERE user_id = $1 AND is_enabled = true',
-            [userId]
-        );
-        
-        if (existing.rows.length > 0) {
-            return res.json({ success: false, message: '2FA already enabled' });
-        }
-        
-        // Generate Secret
-        const secret = speakeasy.generateSecret({
-            name: `SOLO M Game Shop:${userId}`,
-            length: 20
-        });
-        
-        // Generate QR Code
+        const existing = await p.query('SELECT * FROM user_2fa WHERE user_id = $1 AND is_enabled = true', [userId]);
+        if (existing.rows.length > 0) return res.json({ success: false, message: '2FA already enabled' });
+        const secret = speakeasy.generateSecret({ name: 'SOLO M Game Shop:' + userId, length: 20 });
         const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
-        
-        // Save secret to database (not enabled yet)
-        await p.query(
-            `INSERT INTO user_2fa (user_id, secret_key, is_enabled) 
-             VALUES ($1, $2, false)
-             ON CONFLICT (user_id) DO UPDATE SET secret_key = $2, is_enabled = false`,
-            [userId, secret.base32]
-        );
-        
-        res.json({
-            success: true,
-            secret: secret.base32,
-            qrCode: qrCodeUrl,
-            manualKey: secret.base32
-        });
-        
-    } catch(e) {
-        console.error('[2FA SETUP ERROR]', e.message);
-        res.json({ success: false, message: 'Server error: ' + e.message });
-    }
+        await p.query('INSERT INTO user_2fa (user_id, secret_key, is_enabled) VALUES ($1, $2, false) ON CONFLICT (user_id) DO UPDATE SET secret_key = $2, is_enabled = false', [userId, secret.base32]);
+        res.json({ success: true, secret: secret.base32, qrCode: qrCodeUrl, manualKey: secret.base32 });
+    } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 
 // Verify & Enable 2FA
 app.post('/api/2fa/verify-setup', async (req, res) => {
-    const { token, code } = req.body;
-    
-    const userId = getUserIdFromToken(token);
-    
-    if (!userId || !code) {
-        return res.json({ success: false, message: 'Token and code required' });
-    }
-    
+    const userId = getUserIdFromToken(req.body.token);
+    const code = req.body.code;
+    if (!userId || !code) return res.json({ success: false, message: 'Token and code required' });
     try {
         const p = await getPool();
         await ensure2FATable(p);
-        
-        // Get secret
-        const user2fa = await p.query(
-            'SELECT * FROM user_2fa WHERE user_id = $1',
-            [userId]
-        );
-        
-        if (user2fa.rows.length === 0) {
-            return res.json({ success: false, message: '2FA not set up' });
-        }
-        
-        const secret = user2fa.rows[0].secret_key;
-        
-        // Verify code
-        const verified = speakeasy.totp.verify({
-            secret: secret,
-            encoding: 'base32',
-            token: code,
-            window: 1
-        });
-        
+        const user2fa = await p.query('SELECT * FROM user_2fa WHERE user_id = $1', [userId]);
+        if (user2fa.rows.length === 0) return res.json({ success: false, message: '2FA not set up' });
+        const verified = speakeasy.totp.verify({ secret: user2fa.rows[0].secret_key, encoding: 'base32', token: code, window: 1 });
         if (verified) {
-            // Generate backup codes
             const backupCodes = [];
             for (let i = 0; i < 8; i++) {
-                const bc = Math.random().toString(36).substring(2, 6).toUpperCase() + 
-                           '-' + Math.random().toString(36).substring(2, 6).toUpperCase() +
-                           '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-                backupCodes.push(bc);
+                backupCodes.push(Math.random().toString(36).substring(2,6).toUpperCase()+'-'+Math.random().toString(36).substring(2,6).toUpperCase()+'-'+Math.random().toString(36).substring(2,6).toUpperCase());
             }
-            
-            // Enable 2FA and save backup codes
-            await p.query(
-                'UPDATE user_2fa SET is_enabled = true, backup_codes = $2, updated_at = NOW() WHERE user_id = $1',
-                [userId, backupCodes]
-            );
-            
-            res.json({
-                success: true,
-                message: '2FA enabled successfully',
-                backupCodes: backupCodes
-            });
-        } else {
-            res.json({ success: false, message: 'Invalid code' });
-        }
-        
-    } catch(e) {
-        console.error('[2FA VERIFY ERROR]', e.message);
-        res.json({ success: false, message: 'Server error: ' + e.message });
-    }
+            await p.query('UPDATE user_2fa SET is_enabled = true, backup_codes = $2, updated_at = NOW() WHERE user_id = $1', [userId, backupCodes]);
+            res.json({ success: true, message: '2FA enabled', backupCodes: backupCodes });
+        } else { res.json({ success: false, message: 'Invalid code' }); }
+    } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 
 // Verify 2FA Code (Data Page Access)
 app.post('/api/2fa/verify', async (req, res) => {
-    const { token, code } = req.body;
-    
-    const userId = getUserIdFromToken(token);
-    
-    if (!userId || !code) {
-        return res.json({ success: false, message: 'Token and code required' });
-    }
-    
+    const userId = getUserIdFromToken(req.body.token);
+    const code = req.body.code;
+    if (!userId || !code) return res.json({ success: false, message: 'Token and code required' });
     try {
         const p = await getPool();
         await ensure2FATable(p);
-        
-        // Get secret
-        const user2fa = await p.query(
-            'SELECT * FROM user_2fa WHERE user_id = $1 AND is_enabled = true',
-            [userId]
-        );
-        
-        if (user2fa.rows.length === 0) {
-            // 2FA not enabled, allow access
-            return res.json({ success: true, message: '2FA not required' });
-        }
-        
-        const secret = user2fa.rows[0].secret_key;
-        
-        // Check if it's a backup code
+        const user2fa = await p.query('SELECT * FROM user_2fa WHERE user_id = $1 AND is_enabled = true', [userId]);
+        if (user2fa.rows.length === 0) return res.json({ success: true, message: '2FA not required' });
         const backupCodes = user2fa.rows[0].backup_codes || [];
-        const isBackupCode = backupCodes.includes(code.toUpperCase());
-        
-        if (isBackupCode) {
-            // Remove used backup code
-            const updatedCodes = backupCodes.filter(c => c !== code.toUpperCase());
-            await p.query(
-                'UPDATE user_2fa SET backup_codes = $2 WHERE user_id = $1',
-                [userId, updatedCodes]
-            );
-            
-            return res.json({ 
-                success: true, 
-                message: 'Backup code used! Remaining: ' + updatedCodes.length 
-            });
+        if (backupCodes.includes(code.toUpperCase())) {
+            const updated = backupCodes.filter(c => c !== code.toUpperCase());
+            await p.query('UPDATE user_2fa SET backup_codes = $2 WHERE user_id = $1', [userId, updated]);
+            return res.json({ success: true, message: 'Backup code used! Remaining: ' + updated.length });
         }
-        
-        // Verify TOTP code
-        const verified = speakeasy.totp.verify({
-            secret: secret,
-            encoding: 'base32',
-            token: code,
-            window: 1
-        });
-        
-        if (verified) {
-            res.json({ success: true, message: 'Code verified' });
-        } else {
-            res.json({ success: false, message: 'Code မမှန်ပါ' });
-        }
-        
-    } catch(e) {
-        console.error('[2FA VERIFY ERROR]', e.message);
-        res.json({ success: false, message: 'Server error: ' + e.message });
-    }
+        const verified = speakeasy.totp.verify({ secret: user2fa.rows[0].secret_key, encoding: 'base32', token: code, window: 1 });
+        verified ? res.json({ success: true, message: 'Code verified' }) : res.json({ success: false, message: 'Code မမှန်ပါ' });
+    } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
 
 // Check 2FA Status
 app.post('/api/2fa/status', async (req, res) => {
-    const { token } = req.body;
-    
-    const userId = getUserIdFromToken(token);
-    
-    if (!userId) {
-        return res.json({ success: true, isEnabled: false });
-    }
-    
+    const userId = getUserIdFromToken(req.body.token);
+    if (!userId) return res.json({ success: true, isEnabled: false });
     try {
         const p = await getPool();
         await ensure2FATable(p);
-        
-        const user2fa = await p.query(
-            'SELECT is_enabled FROM user_2fa WHERE user_id = $1',
-            [userId]
-        );
-        
-        const isEnabled = user2fa.rows.length > 0 && user2fa.rows[0].is_enabled;
-        
-        res.json({ success: true, isEnabled: isEnabled });
-        
-    } catch(e) {
-        // Table မရှိရင် false ပြန်
-        res.json({ success: true, isEnabled: false });
-    }
+        const user2fa = await p.query('SELECT is_enabled FROM user_2fa WHERE user_id = $1', [userId]);
+        res.json({ success: true, isEnabled: user2fa.rows.length > 0 && user2fa.rows[0].is_enabled });
+    } catch(e) { res.json({ success: true, isEnabled: false }); }
 });
 // ==================== DEVICE DETECTION ====================
 function detectDevice(ua) {
