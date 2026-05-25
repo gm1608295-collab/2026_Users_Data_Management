@@ -73,7 +73,6 @@ function getClientIP(req) {
 // ==================== 2FA SYSTEM (JWT + Auto-Create Table) ====================
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
-const jwt = require('jsonwebtoken');
 
 // JWT Secret Key (ခင်ဗျားရဲ့ မူရင်း Secret Key ကို သုံးပါ)
 const JWT_SECRET = process.env.JWT_SECRET;
