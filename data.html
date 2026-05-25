@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Data - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- FingerprintJS Library -->
+<script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+</head>
     <style>
         :root {
             --bg: #0a0a1a;
@@ -782,6 +785,99 @@
     </div>
 
 <script>
+ // ==================== DEVICE FINGERPRINT SYSTEM ====================
+const FingerprintManager = {
+    fpPromise: null,
+    visitorId: null,
+    components: null,
+    
+    // Initialize FingerprintJS
+    async init() {
+        if (this.fpPromise) return;
+        const FingerprintJS = window.FingerprintJS;
+        if (!FingerprintJS) {
+            console.error('❌ FingerprintJS not loaded');
+            return;
+        }
+        this.fpPromise = FingerprintJS.load({
+            monitoring: false
+        });
+    },
+    
+    // Get Full Fingerprint Data
+    async getFingerprint() {
+        await this.init();
+        if (!this.fpPromise) return null;
+        
+        const fp = await this.fpPromise;
+        const result = await fp.get();
+        
+        this.visitorId = result.visitorId;
+        this.components = result.components;
+        
+        return {
+            visitorId: result.visitorId,
+            components: {
+                canvas: result.components.canvas?.value || '',
+                webgl: result.components.webgl?.value || '',
+                audio: result.components.audio?.value || '',
+                userAgent: result.components.userAgent?.value || navigator.userAgent,
+                screenResolution: result.components.screenResolution?.value || `${screen.width}x${screen.height}`,
+                timezone: result.components.timezone?.value || Intl.DateTimeFormat().resolvedOptions().timeZone,
+                language: result.components.language?.value || navigator.language,
+                platform: result.components.platform?.value || navigator.platform,
+                hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+                deviceMemory: navigator.deviceMemory || 'unknown',
+                touchSupport: 'ontouchstart' in window
+            }
+        };
+    },
+    
+    // Register Fingerprint with Server
+    async registerWithServer() {
+        const fingerprint = await this.getFingerprint();
+        if (!fingerprint) return null;
+        
+        const token = localStorage.getItem('auth_token');
+        if (!token) return null;
+        
+        try {
+            const response = await fetch('/api/fingerprint/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: token,
+                    visitorId: fingerprint.visitorId,
+                    components: fingerprint.components,
+                    deviceName: this.getDeviceName()
+                })
+            });
+            
+            const data = await response.json();
+            return data;
+        } catch(e) {
+            console.error('❌ Fingerprint registration failed:', e.message);
+            return null;
+        }
+    },
+    
+    // Generate Device Name
+    getDeviceName() {
+        const ua = navigator.userAgent;
+        if (/Mobile|Android|iPhone/.test(ua)) return '📱 Mobile Device';
+        if (/Tablet|iPad/.test(ua)) return '📱 Tablet';
+        if (/Windows/.test(ua)) return '💻 Windows PC';
+        if (/Mac/.test(ua)) return '💻 Mac';
+        if (/Linux/.test(ua)) return '💻 Linux';
+        return '🖥️ Unknown Device';
+    }
+};
+
+// Auto-Initialize on Page Load
+(async function() {
+    await FingerprintManager.init();
+    console.log('🔐 Fingerprint System Ready');
+})();
     // ==================== COUNTRIES DATA - 195 COUNTRIES ====================
 const COUNTRIES_DATA = [
     { name: "Afghanistan", flag: "🇦🇫", regions: ["Kabul", "Kandahar", "Herat", "Mazar-i-Sharif", "Jalalabad", "Bamyan", "Kunduz", "Ghazni"] },
@@ -1098,87 +1194,102 @@ const COUNTRIES_DATA = [
 
     // ==================== SAVE FUNCTIONS ====================
     async function saveGmailData() {
-        const name = document.getElementById("gName").value.trim();
-        if (!name) return n("❌ Name is required!", "error");
-        if (document.getElementById("gPw").value !== document.getElementById("gConfirmPw").value) return n("❌ Passwords don't match!", "error");
-        try {
-            await fetch("/api/save_user_data", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    token: localStorage.getItem("auth_token"),
-                    type: 'gmail',
-                    data: {
-                        name: name,
-                        emails: getValues('gmail-email'),
-                        phones: getValues('gmail-phone'),
-                        password: document.getElementById("gPw").value,
-                        dob: document.getElementById("gAge").value,
-                        country: document.getElementById("gCountry").value,
-                        region: document.getElementById("gRegion").value
-                    }
-                })
-            });
-            n("✅ Gmail data saved!", "success");
-            document.getElementById("gmailForm").style.display = 'none';
-        } catch(e) { n("❌ Error saving data", "error"); }
+    const name = document.getElementById("gName").value.trim();
+    if (!name) return n("❌ Name is required!", "error");
+    if (document.getElementById("gPw").value !== document.getElementById("gConfirmPw").value) return n("❌ Passwords don't match!", "error");
+    
+    // ✅ Get Fingerprint
+    const fingerprint = await FingerprintManager.getFingerprint();
+    
+    try {
+        await fetch("/api/save_user_data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                token: localStorage.getItem("auth_token"),
+                type: 'gmail',
+                fingerprint: fingerprint?.visitorId || 'unknown',  // ✅ ထည့်
+                data: {
+                    name: name,
+                    emails: getValues('gmail-email'),
+                    phones: getValues('gmail-phone'),
+                    password: document.getElementById("gPw").value,
+                    dob: document.getElementById("gAge").value,
+                    country: document.getElementById("gCountry").value,
+                    region: document.getElementById("gRegion").value
+                }
+            })
+        });
+        n("✅ Gmail data saved!", "success");
+        document.getElementById("gmailForm").style.display = 'none';
+    } catch(e) { n("❌ Error saving data", "error"); }
     }
 
     async function saveMlbbData() {
-        const name = document.getElementById("mName").value.trim();
-        if (!name) return n("❌ In-Game Name is required!", "error");
-        if (document.getElementById("mPw").value !== document.getElementById("mConfirmPw").value) return n("❌ Passwords don't match!", "error");
-        try {
-            await fetch("/api/save_user_data", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    token: localStorage.getItem("auth_token"),
-                    type: 'mlbb',
-                    data: {
-                        ingameName: name,
-                        ingameId: document.getElementById("mId").value,
-                        serverId: document.getElementById("mServer").value,
-                        emails: getValues('mlbb-email'),
-                        password: document.getElementById("mPw").value,
-                        dob: document.getElementById("mAge").value,
-                        country: document.getElementById("mCountry").value,
-                        region: document.getElementById("mRegion").value
-                    }
-                })
-            });
-            n("✅ MLBB data saved!", "success");
-            document.getElementById("mlbbForm").style.display = 'none';
-        } catch(e) { n("❌ Error saving data", "error"); }
+    const name = document.getElementById("mName").value.trim();
+    if (!name) return n("❌ In-Game Name is required!", "error");
+    if (document.getElementById("mPw").value !== document.getElementById("mConfirmPw").value) return n("❌ Passwords don't match!", "error");
+    
+    // ✅ Get Fingerprint
+    const fingerprint = await FingerprintManager.getFingerprint();
+    
+    try {
+        await fetch("/api/save_user_data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                token: localStorage.getItem("auth_token"),
+                type: 'mlbb',
+                fingerprint: fingerprint?.visitorId || 'unknown',  // ✅ ထည့်
+                data: {
+                    ingameName: name,
+                    ingameId: document.getElementById("mId").value,
+                    serverId: document.getElementById("mServer").value,
+                    emails: getValues('mlbb-email'),
+                    password: document.getElementById("mPw").value,
+                    dob: document.getElementById("mAge").value,
+                    country: document.getElementById("mCountry").value,
+                    region: document.getElementById("mRegion").value
+                }
+            })
+        });
+        n("✅ MLBB data saved!", "success");
+        document.getElementById("mlbbForm").style.display = 'none';
+    } catch(e) { n("❌ Error saving data", "error"); }
     }
 
     async function saveTiktokData() {
-        const name = document.getElementById("tFullName").value.trim();
-        if (!name) return n("❌ Full Name is required!", "error");
-        if (document.getElementById("tPw").value !== document.getElementById("tConfirmPw").value) return n("❌ Passwords don't match!", "error");
-        try {
-            await fetch("/api/save_user_data", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    token: localStorage.getItem("auth_token"),
-                    type: 'tiktok',
-                    data: {
-                        fullName: name,
-                        lastName: document.getElementById("tLastName").value,
-                        emails: getValues('tiktok-email'),
-                        phones: getValues('tiktok-phone'),
-                        password: document.getElementById("tPw").value,
-                        dob: document.getElementById("tAge").value,
-                        country: document.getElementById("tCountry").value,
-                        region: document.getElementById("tRegion").value
+    const name = document.getElementById("tFullName").value.trim();
+    if (!name) return n("❌ Full Name is required!", "error");
+    if (document.getElementById("tPw").value !== document.getElementById("tConfirmPw").value) return n("❌ Passwords don't match!", "error");
+    
+    // ✅ Get Fingerprint
+    const fingerprint = await FingerprintManager.getFingerprint();
+    
+    try {
+        await fetch("/api/save_user_data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                token: localStorage.getItem("auth_token"),
+                type: 'tiktok',
+                fingerprint: fingerprint?.visitorId || 'unknown',  // ✅ ထည့်
+                data: {
+                    fullName: name,
+                    lastName: document.getElementById("tLastName").value,
+                    emails: getValues('tiktok-email'),
+                    phones: getValues('tiktok-phone'),
+                    password: document.getElementById("tPw").value,
+                    dob: document.getElementById("tAge").value,
+                    country: document.getElementById("tCountry").value,
+                    region: document.getElementById("tRegion").value
+                }
+            })
+        });
+        n("✅ TikTok data saved!", "success");
+        document.getElementById("tiktokForm").style.display = 'none';
+    } catch(e) { n("❌ Error saving data", "error"); }
                     }
-                })
-            });
-            n("✅ TikTok data saved!", "success");
-            document.getElementById("tiktokForm").style.display = 'none';
-        } catch(e) { n("❌ Error saving data", "error"); }
-    }
 
     // ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess() {
