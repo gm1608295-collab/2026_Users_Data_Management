@@ -1112,6 +1112,75 @@ app.post('/api/change_password', async (req, res) => {
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
 app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
 
+// ==================== FINGERPRINT SYSTEM ====================
+
+// Fingerprint Registration API
+app.post('/api/fingerprint/register', async (req, res) => {
+    const { token, visitorId, components, deviceName } = req.body;
+    
+    if (!token || !visitorId) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+    
+    // Verify Token (ခင်ဗျားရဲ့ Token Verify Logic သုံးပါ)
+    const userId = token.replace('token_', ''); // Simple example
+    
+    try {
+        const p = await getPool();
+        
+        // Check if fingerprint already exists
+        const existing = await p.query(
+            'SELECT id FROM device_fingerprints WHERE user_id = $1 AND fingerprint_hash = $2',
+            [userId, visitorId]
+        );
+        
+        if (existing.rows.length === 0) {
+            // Insert new fingerprint
+            await p.query(
+                `INSERT INTO device_fingerprints 
+                 (user_id, fingerprint_hash, device_name, fingerprint_data, is_trusted, first_seen_at, last_seen_at)
+                 VALUES ($1, $2, $3, $4, $5, NOW(), NOW())`,
+                [userId, visitorId, deviceName, JSON.stringify(components), true]
+            );
+        } else {
+            // Update last seen
+            await p.query(
+                'UPDATE device_fingerprints SET last_seen_at = NOW() WHERE id = $1',
+                [existing.rows[0].id]
+            );
+        }
+        
+        res.json({ success: true, message: 'Fingerprint registered' });
+    } catch(e) {
+        console.error('[FINGERPRINT ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Save User Data API (Fingerprint ပါ သိမ်း)
+app.post('/api/save_user_data', async (req, res) => {
+    const { token, type, fingerprint, data } = req.body;
+    
+    // Verify Token
+    const userId = token.replace('token_', '');
+    
+    try {
+        const p = await getPool();
+        
+        // Save Data with Fingerprint
+        await p.query(
+            `INSERT INTO user_saved_data 
+             (user_id, data_type, fingerprint_hash, data, created_at)
+             VALUES ($1, $2, $3, $4, NOW())`,
+            [userId, type, fingerprint, JSON.stringify(data)]
+        );
+        
+        res.json({ success: true, message: 'Data saved successfully' });
+    } catch(e) {
+        console.error('[SAVE DATA ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== HISTORY SECURITY PASSWORD API ====================
 
 // Get security password status
