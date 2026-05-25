@@ -6,7 +6,7 @@
     <title>Data - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- FingerprintJS Library -->
-<script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+    <script src="https://openfpcdn.io/fingerprintjs/v4"></script>
 </head>
     <style>
         :root {
@@ -849,55 +849,56 @@
 
 <script>
 // ==================== FINGERPRINT SYSTEM ====================
+// ==================== FINGERPRINT SYSTEM (v4) ====================
 async function generateFingerprint() {
     const panel = document.getElementById('fingerprintPanel');
     const loading = document.getElementById('fpLoading');
     const dataDiv = document.getElementById('fpData');
     const errorDiv = document.getElementById('fpError');
     
-    // Show panel
     panel.style.display = 'block';
     loading.style.display = 'block';
     dataDiv.style.display = 'none';
     errorDiv.style.display = 'none';
     
     try {
-        // Check if FingerprintJS loaded
-        if (typeof window.FingerprintJS === 'undefined') {
-            throw new Error('FingerprintJS script not loaded! Check CDN link.');
-        }
+        // v4 မှာ FingerprintJS.load() က Promise ကို တိုက်ရိုက် return လုပ်
+        const fp = await FingerprintJS.load();
         
-        // Load FingerprintJS
-        const fp = await window.FingerprintJS.load();
-        
-        // Get data
+        // Get visitor data
         const result = await fp.get();
         
-        // Display data
+        // Display Visitor ID
         document.getElementById('fpVisitorId').textContent = result.visitorId;
+        
+        // Display Basic Info
         document.getElementById('fpScreen').textContent = screen.width + 'x' + screen.height;
         document.getElementById('fpTimezone').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
         document.getElementById('fpLanguage').textContent = navigator.language;
         document.getElementById('fpPlatform').textContent = navigator.platform;
         
-        // Canvas, WebGL, Audio status
-        document.getElementById('fpCanvas').textContent = result.components.canvas?.value ? '✅' : '❌';
-        document.getElementById('fpCanvas').style.color = result.components.canvas?.value ? '#2ecc71' : '#e74c3c';
+        // Display Components Status
+        const canvasOK = result.components.canvas?.value ? true : false;
+        const webglOK = result.components.webgl?.value ? true : false;
+        const audioOK = result.components.audio?.value ? true : false;
         
-        document.getElementById('fpWebgl').textContent = result.components.webgl?.value ? '✅' : '❌';
-        document.getElementById('fpWebgl').style.color = result.components.webgl?.value ? '#2ecc71' : '#e74c3c';
+        document.getElementById('fpCanvas').textContent = canvasOK ? '✅' : '❌';
+        document.getElementById('fpCanvas').style.color = canvasOK ? '#2ecc71' : '#e74c3c';
         
-        document.getElementById('fpAudio').textContent = result.components.audio?.value ? '✅' : '❌';
-        document.getElementById('fpAudio').style.color = result.components.audio?.value ? '#2ecc71' : '#e74c3c';
+        document.getElementById('fpWebgl').textContent = webglOK ? '✅' : '❌';
+        document.getElementById('fpWebgl').style.color = webglOK ? '#2ecc71' : '#e74c3c';
         
-        // Show data
+        document.getElementById('fpAudio').textContent = audioOK ? '✅' : '❌';
+        document.getElementById('fpAudio').style.color = audioOK ? '#2ecc71' : '#e74c3c';
+        
+        // Success
         loading.style.display = 'none';
         dataDiv.style.display = 'block';
         
     } catch(e) {
         loading.style.display = 'none';
         errorDiv.style.display = 'block';
-        document.getElementById('fpErrorMsg').textContent = e.message;
+        document.getElementById('fpErrorMsg').textContent = 'Error: ' + e.message;
     }
 }
 
@@ -905,7 +906,7 @@ function refreshFingerprint() {
     generateFingerprint();
 }
 
-// Auto-run on page load
+// Auto-run
 generateFingerprint();
     // ==================== DEVICE FINGERPRINT SYSTEM ====================
 const FingerprintManager = {
