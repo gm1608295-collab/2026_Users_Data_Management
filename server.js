@@ -12,6 +12,217 @@ const UAParser = require('ua-parser-js');
 const http = require('http');
 const { Server } = require('socket.io');
 const app = express();
+// ==================== 2FA SYSTEM ====================
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
+
+// Generate 2FA Secret + QR Code
+app.post('/api/2fa/setup', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+        return res.json({ success: false, message: 'Token required' });
+    }
+    
+    const userId = token.replace('token_', '');
+    
+    try {
+        const p = await getPool();
+        
+        // Check if 2FA already enabled
+        const existing = await p.query(
+            'SELECT * FROM user_2fa WHERE user_id = $1 AND is_enabled = true',
+            [userId]
+        );
+        
+        if (existing.rows.length > 0) {
+            return res.json({ success: false, message: '2FA already enabled' });
+        }
+        
+        // Generate Secret
+        const secret = speakeasy.generateSecret({
+            name: `SOLO M Game Shop:${userId}`,
+            length: 20
+        });
+        
+        // Generate QR Code
+        const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
+        
+        // Save secret to database (not enabled yet)
+        await p.query(
+            `INSERT INTO user_2fa (user_id, secret_key, is_enabled) 
+             VALUES ($1, $2, false)
+             ON CONFLICT (user_id) DO UPDATE SET secret_key = $2, is_enabled = false`,
+            [userId, secret.base32]
+        );
+        
+        res.json({
+            success: true,
+            secret: secret.base32,
+            qrCode: qrCodeUrl,
+            manualKey: secret.base32
+        });
+        
+    } catch(e) {
+        console.error('[2FA SETUP ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Verify & Enable 2FA
+app.post('/api/2fa/verify-setup', async (req, res) => {
+    const { token, code } = req.body;
+    
+    if (!token || !code) {
+        return res.json({ success: false, message: 'Token and code required' });
+    }
+    
+    const userId = token.replace('token_', '');
+    
+    try {
+        const p = await getPool();
+        
+        // Get secret
+        const user2fa = await p.query(
+            'SELECT * FROM user_2fa WHERE user_id = $1',
+            [userId]
+        );
+        
+        if (user2fa.rows.length === 0) {
+            return res.json({ success: false, message: '2FA not set up' });
+        }
+        
+        const secret = user2fa.rows[0].secret_key;
+        
+        // Verify code
+        const verified = speakeasy.totp.verify({
+            secret: secret,
+            encoding: 'base32',
+            token: code,
+            window: 1
+        });
+        
+        if (verified) {
+            // Generate backup codes
+            const backupCodes = [];
+            for (let i = 0; i < 8; i++) {
+                const code = Math.random().toString(36).substring(2, 6).toUpperCase() + 
+                           '-' + Math.random().toString(36).substring(2, 6).toUpperCase() +
+                           '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                backupCodes.push(code);
+            }
+            
+            // Enable 2FA and save backup codes
+            await p.query(
+                'UPDATE user_2fa SET is_enabled = true, backup_codes = $2, updated_at = NOW() WHERE user_id = $1',
+                [userId, backupCodes]
+            );
+            
+            res.json({
+                success: true,
+                message: '2FA enabled successfully',
+                backupCodes: backupCodes
+            });
+        } else {
+            res.json({ success: false, message: 'Invalid code' });
+        }
+        
+    } catch(e) {
+        console.error('[2FA VERIFY ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Verify 2FA Code (Data Page Access)
+app.post('/api/2fa/verify', async (req, res) => {
+    const { token, code } = req.body;
+    
+    if (!token || !code) {
+        return res.json({ success: false, message: 'Token and code required' });
+    }
+    
+    const userId = token.replace('token_', '');
+    
+    try {
+        const p = await getPool();
+        
+        // Get secret
+        const user2fa = await p.query(
+            'SELECT * FROM user_2fa WHERE user_id = $1 AND is_enabled = true',
+            [userId]
+        );
+        
+        if (user2fa.rows.length === 0) {
+            // 2FA not enabled, allow access
+            return res.json({ success: true, message: '2FA not required' });
+        }
+        
+        const secret = user2fa.rows[0].secret_key;
+        
+        // Check if it's a backup code
+        const backupCodes = user2fa.rows[0].backup_codes || [];
+        const isBackupCode = backupCodes.includes(code.toUpperCase());
+        
+        if (isBackupCode) {
+            // Remove used backup code
+            const updatedCodes = backupCodes.filter(c => c !== code.toUpperCase());
+            await p.query(
+                'UPDATE user_2fa SET backup_codes = $2 WHERE user_id = $1',
+                [userId, updatedCodes]
+            );
+            
+            return res.json({ 
+                success: true, 
+                message: 'Backup code used! Remaining: ' + updatedCodes.length 
+            });
+        }
+        
+        // Verify TOTP code
+        const verified = speakeasy.totp.verify({
+            secret: secret,
+            encoding: 'base32',
+            token: code,
+            window: 1
+        });
+        
+        if (verified) {
+            res.json({ success: true, message: 'Code verified' });
+        } else {
+            res.json({ success: false, message: 'Code မမှန်ပါ' });
+        }
+        
+    } catch(e) {
+        console.error('[2FA VERIFY ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Check 2FA Status
+app.post('/api/2fa/status', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+        return res.json({ success: false, message: 'Token required' });
+    }
+    
+    const userId = token.replace('token_', '');
+    
+    try {
+        const p = await getPool();
+        
+        const user2fa = await p.query(
+            'SELECT is_enabled FROM user_2fa WHERE user_id = $1',
+            [userId]
+        );
+        
+        const isEnabled = user2fa.rows.length > 0 && user2fa.rows[0].is_enabled;
+        
+        res.json({ success: true, isEnabled: isEnabled });
+        
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '10mb' }));
