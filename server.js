@@ -70,23 +70,80 @@ function getClientIP(req) {
         || req.ip 
         || '0.0.0.0';
 }
-
-// ==================== 2FA SYSTEM ====================
+// ==================== 2FA SYSTEM (JWT + Auto-Create Table) ====================
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
+const jwt = require('jsonwebtoken');
+
+// JWT Secret Key (ခင်ဗျားရဲ့ မူရင်း Secret Key ကို သုံးပါ)
+const JWT_SECRET = process.env.JWT_SECRET;
+// JWT Token ကနေ User ID ထုတ်ယူတဲ့ Function
+function getUserIdFromToken(token) {
+    try {
+        if (!token) return null;
+        
+        // "Bearer " prefix ပါရင် ဖယ်
+        if (token.startsWith('Bearer ')) {
+            token = token.slice(7);
+        }
+        
+        // "token_" prefix ပါရင် ဖယ် (ခင်ဗျားရဲ့ စနစ်ဟောင်း)
+        if (token.startsWith('token_')) {
+            return token.replace('token_', '');
+        }
+        
+        // JWT Verify လုပ်
+        const decoded = jwt.verify(token, JWT_SECRET);
+        return decoded.userId || decoded.uid || decoded.id || null;
+    } catch(e) {
+        // JWT Verify မအောင်မြင်ရင် token_ နည်းနဲ့ စမ်း
+        if (token && token.startsWith('token_')) {
+            return token.replace('token_', '');
+        }
+        return null;
+    }
+}
+
+// Auto-Create user_2fa Table
+async function ensure2FATable(pool) {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_2fa (
+                id SERIAL PRIMARY KEY,
+                user_id INT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+                secret_key VARCHAR(64) NOT NULL,
+                is_enabled BOOLEAN DEFAULT false,
+                backup_codes TEXT[] DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // Indexes
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_2fa_user_id ON user_2fa(user_id)`);
+        
+        console.log('✅ user_2fa table ready');
+    } catch(e) {
+        console.error('❌ user_2fa table create error:', e.message);
+    }
+}
 
 // Generate 2FA Secret + QR Code
 app.post('/api/2fa/setup', async (req, res) => {
     const { token } = req.body;
     
-    if (!token) {
-        return res.json({ success: false, message: 'Token required' });
-    }
+    // JWT ကနေ User ID ထုတ်
+    const userId = getUserIdFromToken(token);
     
-    const userId = token.replace('token_', '');
+    if (!userId) {
+        return res.json({ success: false, message: 'Invalid token' });
+    }
     
     try {
         const p = await getPool();
+        
+        // Auto-create table
+        await ensure2FATable(p);
         
         // Check if 2FA already enabled
         const existing = await p.query(
@@ -124,7 +181,7 @@ app.post('/api/2fa/setup', async (req, res) => {
         
     } catch(e) {
         console.error('[2FA SETUP ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
@@ -132,14 +189,15 @@ app.post('/api/2fa/setup', async (req, res) => {
 app.post('/api/2fa/verify-setup', async (req, res) => {
     const { token, code } = req.body;
     
-    if (!token || !code) {
+    const userId = getUserIdFromToken(token);
+    
+    if (!userId || !code) {
         return res.json({ success: false, message: 'Token and code required' });
     }
     
-    const userId = token.replace('token_', '');
-    
     try {
         const p = await getPool();
+        await ensure2FATable(p);
         
         // Get secret
         const user2fa = await p.query(
@@ -165,10 +223,10 @@ app.post('/api/2fa/verify-setup', async (req, res) => {
             // Generate backup codes
             const backupCodes = [];
             for (let i = 0; i < 8; i++) {
-                const code = Math.random().toString(36).substring(2, 6).toUpperCase() + 
+                const bc = Math.random().toString(36).substring(2, 6).toUpperCase() + 
                            '-' + Math.random().toString(36).substring(2, 6).toUpperCase() +
                            '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-                backupCodes.push(code);
+                backupCodes.push(bc);
             }
             
             // Enable 2FA and save backup codes
@@ -188,7 +246,7 @@ app.post('/api/2fa/verify-setup', async (req, res) => {
         
     } catch(e) {
         console.error('[2FA VERIFY ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
@@ -196,14 +254,15 @@ app.post('/api/2fa/verify-setup', async (req, res) => {
 app.post('/api/2fa/verify', async (req, res) => {
     const { token, code } = req.body;
     
-    if (!token || !code) {
+    const userId = getUserIdFromToken(token);
+    
+    if (!userId || !code) {
         return res.json({ success: false, message: 'Token and code required' });
     }
     
-    const userId = token.replace('token_', '');
-    
     try {
         const p = await getPool();
+        await ensure2FATable(p);
         
         // Get secret
         const user2fa = await p.query(
@@ -252,7 +311,7 @@ app.post('/api/2fa/verify', async (req, res) => {
         
     } catch(e) {
         console.error('[2FA VERIFY ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
@@ -260,14 +319,15 @@ app.post('/api/2fa/verify', async (req, res) => {
 app.post('/api/2fa/status', async (req, res) => {
     const { token } = req.body;
     
-    if (!token) {
-        return res.json({ success: false, message: 'Token required' });
-    }
+    const userId = getUserIdFromToken(token);
     
-    const userId = token.replace('token_', '');
+    if (!userId) {
+        return res.json({ success: true, isEnabled: false });
+    }
     
     try {
         const p = await getPool();
+        await ensure2FATable(p);
         
         const user2fa = await p.query(
             'SELECT is_enabled FROM user_2fa WHERE user_id = $1',
@@ -279,7 +339,8 @@ app.post('/api/2fa/status', async (req, res) => {
         res.json({ success: true, isEnabled: isEnabled });
         
     } catch(e) {
-        res.json({ success: false, message: 'Server error' });
+        // Table မရှိရင် false ပြန်
+        res.json({ success: true, isEnabled: false });
     }
 });
 // ==================== DEVICE DETECTION ====================
