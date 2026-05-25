@@ -407,54 +407,6 @@ async function initTables(p) {
 }
 initTables(pools[0]);
 initTables(pools[1]);
-
-// ==================== CREATE DAILY CHECK-IN PROGRESS TABLE ====================
-async function createDailyCheckinProgressTable() {
-    const query = `
-        CREATE TABLE IF NOT EXISTS daily_checkin_progress (
-            user_id INT NOT NULL,
-            event_id INT NOT NULL,
-            current_day INT DEFAULT 1,
-            last_claim_date DATE,
-            PRIMARY KEY (user_id, event_id)
-        )
-    `;
-    
-    try {
-        await pools[0].query(query);
-        await pools[1].query(query);
-        console.log('✅ daily_checkin_progress table created');
-    } catch(e) {
-        console.log('⚠️ daily_checkin_progress table error:', e.message);
-    }
-}
-createDailyCheckinProgressTable();
-// ==================== CREATE SPIN HISTORY V2 TABLE ====================
-async function createSpinHistoryV2Table() {
-    const query = `
-        CREATE TABLE IF NOT EXISTS spin_history_v2 (
-            id SERIAL PRIMARY KEY,
-            user_id INT NOT NULL,
-            spin_source VARCHAR(20) NOT NULL,
-            reward_type VARCHAR(20),
-            reward_amount DECIMAL(10,2) DEFAULT 0,
-            balance_before_mmk DECIMAL(10,2) DEFAULT 0,
-            balance_after_mmk DECIMAL(10,2) DEFAULT 0,
-            balance_before_usd DECIMAL(10,2) DEFAULT 0,
-            balance_after_usd DECIMAL(10,2) DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    `;
-    
-    try {
-        await pools[0].query(query);
-        await pools[1].query(query);
-        console.log('✅ spin_history_v2 table created on both databases');
-    } catch(e) {
-        console.log('⚠️ spin_history_v2 table error:', e.message);
-    }
-}
-createSpinHistoryV2Table();
 // ==================== ALL PAGES ====================
 const ALL_PAGES = [
     { id: 'topup', name: 'Top Up' },
