@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Data - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- FingerprintJS Library -->
-    <script src="https://openfpcdn.io/fingerprintjs/v4"></script>
-</head>
     <style>
         :root {
             --bg: #0a0a1a;
@@ -633,6 +630,80 @@
                 <a onclick="openDataInfo()"><i class="fas fa-info-circle"></i> အသေးစိတ်သိရှိရန် ဤနေရာကိုနှိပ်ပါ</a>
             </div>
 
+            <!-- ==================== 2FA VERIFICATION MODAL ==================== -->
+<div class="modal" id="twoFAModal">
+    <div class="modal-box">
+        <span class="modal-close" onclick="close2FA()">&times;</span>
+        <h3><i class="fas fa-shield-alt"></i> 2-Factor Authentication</h3>
+        
+        <p style="font-size:12px;color:rgba(255,255,255,0.7);text-align:center;margin-bottom:12px;">
+            Google Authenticator App မှ 6-digit Code ထည့်ပါ
+        </p>
+        
+        <div class="form-group">
+            <label>🔐 6-Digit Code</label>
+            <input type="text" id="twoFACode" placeholder="000 000" maxlength="6" 
+                   style="text-align:center;font-size:22px;letter-spacing:8px;font-weight:700;">
+        </div>
+        
+        <button class="btn btn-w" onclick="verify2FA()">
+            <i class="fas fa-check-circle"></i> Verify
+        </button>
+        
+        <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px;">
+            Backup Code ရှိရင် Backup Code လည်း ထည့်လို့ရပါတယ်
+        </p>
+    </div>
+</div>
+
+<!-- ==================== 2FA SETUP MODAL ==================== -->
+<div class="modal" id="twoFASetupModal">
+    <div class="modal-box">
+        <span class="modal-close" onclick="close2FASetup()">&times;</span>
+        <h3><i class="fas fa-qrcode"></i> Setup Google Authenticator</h3>
+        
+        <!-- Step 1: QR Code -->
+        <div id="setupStep1">
+            <p style="font-size:11px;color:rgba(255,255,255,0.7);text-align:center;margin-bottom:10px;">
+                📱 Google Authenticator App နဲ့ QR Code ကို Scan လုပ်ပါ
+            </p>
+            <div style="text-align:center;margin-bottom:10px;">
+                <img id="qrCodeImg" src="" style="width:180px;height:180px;background:#fff;padding:10px;border-radius:10px;">
+            </div>
+            <p style="font-size:10px;color:rgba(255,255,255,0.5);text-align:center;">
+                Manual Key: <code id="manualKey" style="color:#f39c12;word-break:break-all;"></code>
+            </p>
+            <button class="btn btn-w" onclick="show2FAStep2()">
+                <i class="fas fa-arrow-right"></i> Next
+            </button>
+        </div>
+        
+        <!-- Step 2: Verify Code -->
+        <div id="setupStep2" style="display:none;">
+            <p style="font-size:11px;color:rgba(255,255,255,0.7);text-align:center;margin-bottom:10px;">
+                🔐 App ထဲက 6-digit Code ထည့်ပါ
+            </p>
+            <div class="form-group">
+                <input type="text" id="setup2FACode" placeholder="000 000" maxlength="6"
+                       style="text-align:center;font-size:22px;letter-spacing:8px;font-weight:700;">
+            </div>
+            <button class="btn btn-g" onclick="verify2FASetup()">
+                <i class="fas fa-check-circle"></i> Verify & Enable
+            </button>
+        </div>
+        
+        <!-- Step 3: Backup Codes -->
+        <div id="setupStep3" style="display:none;">
+            <p style="font-size:11px;color:#f39c12;text-align:center;margin-bottom:8px;">
+                ⚠️ Backup Code များကို သိမ်းထားပါ!
+            </p>
+            <div id="backupCodesList" style="background:rgba(0,0,0,0.3);padding:10px;border-radius:8px;margin-bottom:10px;"></div>
+            <button class="btn btn-g" onclick="close2FASetup()">
+                <i class="fas fa-check"></i> Done
+            </button>
+        </div>
+    </div>
+</div>
             <!-- Main Panel -->
             <div class="panel">
                 <!-- Card Select -->
@@ -650,69 +721,6 @@
                         <p>🎵 TikTok</p>
                     </div>
                 </div>
-
-                <!-- ==================== FINGERPRINT DISPLAY PANEL ==================== -->
-<div class="panel" id="fingerprintPanel" style="display:none;">
-    <h3><i class="fas fa-fingerprint"></i> Device Fingerprint</h3>
-    
-    <!-- Loading -->
-    <div id="fpLoading" style="text-align:center;padding:20px;">
-        <i class="fas fa-spinner fa-spin" style="font-size:30px;color:#f39c12;"></i>
-        <p style="font-size:12px;margin-top:8px;">Fingerprint ထုတ်လုပ်နေသည်...</p>
-    </div>
-    
-    <!-- Fingerprint Data -->
-    <div id="fpData" style="display:none;">
-        <div style="background:rgba(0,0,0,0.3);padding:12px;border-radius:8px;margin-bottom:8px;">
-            <span style="font-size:10px;color:#f39c12;">🔑 Visitor ID</span><br>
-            <code id="fpVisitorId" style="font-size:11px;color:#fff;word-break:break-all;">---</code>
-        </div>
-        
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
-                <span style="font-size:9px;color:#888;">📱 Screen</span><br>
-                <span id="fpScreen" style="font-size:11px;color:#fff;">---</span>
-            </div>
-            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
-                <span style="font-size:9px;color:#888;">🕐 Timezone</span><br>
-                <span id="fpTimezone" style="font-size:11px;color:#fff;">---</span>
-            </div>
-            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
-                <span style="font-size:9px;color:#888;">🌐 Language</span><br>
-                <span id="fpLanguage" style="font-size:11px;color:#fff;">---</span>
-            </div>
-            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;">
-                <span style="font-size:9px;color:#888;">💻 Platform</span><br>
-                <span id="fpPlatform" style="font-size:11px;color:#fff;">---</span>
-            </div>
-        </div>
-        
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px;">
-            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;">
-                <span style="font-size:9px;color:#888;">🎨 Canvas</span><br>
-                <span id="fpCanvas" style="font-size:11px;font-weight:bold;">---</span>
-            </div>
-            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;">
-                <span style="font-size:9px;color:#888;">🎮 WebGL</span><br>
-                <span id="fpWebgl" style="font-size:11px;font-weight:bold;">---</span>
-            </div>
-            <div style="background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;text-align:center;">
-                <span style="font-size:9px;color:#888;">🔊 Audio</span><br>
-                <span id="fpAudio" style="font-size:11px;font-weight:bold;">---</span>
-            </div>
-        </div>
-        
-        <button class="btn btn-w" onclick="refreshFingerprint()" style="margin-top:8px;font-size:11px;">
-            <i class="fas fa-sync-alt"></i> Refresh Fingerprint
-        </button>
-    </div>
-    
-    <!-- Error Message -->
-    <div id="fpError" style="display:none;text-align:center;padding:15px;color:#e74c3c;">
-        <i class="fas fa-exclamation-triangle" style="font-size:30px;"></i>
-        <p style="font-size:12px;margin-top:6px;" id="fpErrorMsg">Error</p>
-    </div>
-</div>
                 
                 <!-- GMAIL SUB TAB -->
                 <div class="sub-tab active" id="gmailSub">
@@ -848,143 +856,144 @@
     </div>
 
 <script>
-    // ==================== FINGERPRINT SYSTEM v4 (COMPLETE) ====================
+    // ==================== 2FA SYSTEM ====================
 
-// Fingerprint Manager Object
-const FingerprintManager = {
-    visitorId: null,
-    components: null,
-    
-    // Get Full Fingerprint Data
-    async getFingerprint() {
-        try {
-            const fp = await FingerprintJS.load();
-            const result = await fp.get();
-            
-            this.visitorId = result.visitorId;
-            this.components = result.components;
-            
-            return {
-                visitorId: result.visitorId,
-                components: {
-                    canvas: result.components.canvas?.value || '',
-                    webgl: result.components.webgl?.value || '',
-                    audio: result.components.audio?.value || '',
-                    userAgent: result.components.userAgent?.value || navigator.userAgent,
-                    screenResolution: result.components.screenResolution?.value || `${screen.width}x${screen.height}`,
-                    timezone: result.components.timezone?.value || Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    language: result.components.language?.value || navigator.language,
-                    platform: result.components.platform?.value || navigator.platform,
-                    hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
-                    deviceMemory: navigator.deviceMemory || 'unknown',
-                    touchSupport: 'ontouchstart' in window
-                }
-            };
-        } catch(e) {
-            console.error('Fingerprint Error:', e.message);
-            return null;
+let twoFAEnabled = false;
+
+// Check 2FA Status on page load
+async function check2FAStatus() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) return;
+        
+        const r = await fetch('/api/2fa/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        const d = await r.json();
+        twoFAEnabled = d.isEnabled;
+        
+        if (twoFAEnabled) {
+            // Show 2FA modal before showing data forms
+            document.getElementById('twoFAModal').classList.add('active');
         }
-    },
-    
-    // Get Device Name
-    getDeviceName() {
-        const ua = navigator.userAgent;
-        if (/Mobile|Android|iPhone/.test(ua)) return 'Mobile Device';
-        if (/Tablet|iPad/.test(ua)) return 'Tablet';
-        if (/Windows/.test(ua)) return 'Windows PC';
-        if (/Mac/.test(ua)) return 'Mac';
-        if (/Linux/.test(ua)) return 'Linux';
-        return 'Unknown Device';
-    }
-};
+    } catch(e) {}
+}
 
-// Generate and Display Fingerprint
-async function generateFingerprint() {
-    const panel = document.getElementById('fingerprintPanel');
-    const loading = document.getElementById('fpLoading');
-    const dataDiv = document.getElementById('fpData');
-    const errorDiv = document.getElementById('fpError');
+// Verify 2FA Code
+async function verify2FA() {
+    const code = document.getElementById('twoFACode').value.trim();
     
-    // Show panel with loading
-    panel.style.display = 'block';
-    loading.style.display = 'block';
-    dataDiv.style.display = 'none';
-    errorDiv.style.display = 'none';
+    if (!code || code.length < 6) {
+        n('6-digit code ထည့်ပါ', 'error');
+        return;
+    }
     
     try {
-        // Get fingerprint
-        const fp = await FingerprintJS.load();
-        const result = await fp.get();
-        
-        // Save to FingerprintManager
-        FingerprintManager.visitorId = result.visitorId;
-        FingerprintManager.components = result.components;
-        
-        // Display Visitor ID
-        document.getElementById('fpVisitorId').textContent = result.visitorId;
-        
-        // Display Basic Info
-        document.getElementById('fpScreen').textContent = screen.width + 'x' + screen.height;
-        document.getElementById('fpTimezone').textContent = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        document.getElementById('fpLanguage').textContent = navigator.language;
-        document.getElementById('fpPlatform').textContent = navigator.platform;
-        
-        // Display Component Status
-        const canvasOK = result.components.canvas?.value ? true : false;
-        const webglOK = result.components.webgl?.value ? true : false;
-        const audioOK = result.components.audio?.value ? true : false;
-        
-        document.getElementById('fpCanvas').textContent = canvasOK ? '✅' : '❌';
-        document.getElementById('fpCanvas').style.color = canvasOK ? '#2ecc71' : '#e74c3c';
-        
-        document.getElementById('fpWebgl').textContent = webglOK ? '✅' : '❌';
-        document.getElementById('fpWebgl').style.color = webglOK ? '#2ecc71' : '#e74c3c';
-        
-        document.getElementById('fpAudio').textContent = audioOK ? '✅' : '❌';
-        document.getElementById('fpAudio').style.color = audioOK ? '#2ecc71' : '#e74c3c';
-        
-        // Show data
-        loading.style.display = 'none';
-        dataDiv.style.display = 'block';
-        
-        // Register with server
         const token = localStorage.getItem('auth_token');
-        if (token) {
-            fetch('/api/fingerprint/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    token: token,
-                    visitorId: result.visitorId,
-                    components: {
-                        canvas: result.components.canvas?.value || '',
-                        webgl: result.components.webgl?.value || '',
-                        audio: result.components.audio?.value || '',
-                        userAgent: navigator.userAgent,
-                        screenResolution: screen.width + 'x' + screen.height,
-                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        language: navigator.language,
-                        platform: navigator.platform
-                    },
-                    deviceName: FingerprintManager.getDeviceName()
-                })
-            }).catch(e => console.error('Register failed:', e));
-        }
+        const r = await fetch('/api/2fa/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token, code: code })
+        });
+        const d = await r.json();
         
+        if (d.success) {
+            document.getElementById('twoFAModal').classList.remove('active');
+            n('✅ Verified!', 'success');
+        } else {
+            n(d.message || 'Code မမှန်ပါ', 'error');
+        }
     } catch(e) {
-        loading.style.display = 'none';
-        errorDiv.style.display = 'block';
-        document.getElementById('fpErrorMsg').textContent = 'Error: ' + e.message;
+        n('Connection error', 'error');
     }
 }
 
-// Refresh Fingerprint
-function refreshFingerprint() {
-    generateFingerprint();
+function close2FA() {
+    // Don't allow closing if 2FA is enabled
+    if (twoFAEnabled) {
+        n('2FA ဖြေရန် လိုအပ်ပါသည်', 'error');
+        return;
+    }
+    document.getElementById('twoFAModal').classList.remove('active');
 }
 
-// Auto-run on page load
-generateFingerprint();
+// ==================== 2FA SETUP ====================
+
+async function open2FASetup() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/2fa/setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            document.getElementById('qrCodeImg').src = d.qrCode;
+            document.getElementById('manualKey').textContent = d.manualKey;
+            document.getElementById('twoFASetupModal').classList.add('active');
+            
+            // Reset steps
+            document.getElementById('setupStep1').style.display = 'block';
+            document.getElementById('setupStep2').style.display = 'none';
+            document.getElementById('setupStep3').style.display = 'none';
+        } else {
+            n(d.message || 'Setup failed', 'error');
+        }
+    } catch(e) {
+        n('Connection error', 'error');
+    }
+}
+
+function show2FAStep2() {
+    document.getElementById('setupStep1').style.display = 'none';
+    document.getElementById('setupStep2').style.display = 'block';
+}
+
+async function verify2FASetup() {
+    const code = document.getElementById('setup2FACode').value.trim();
+    
+    if (!code || code.length < 6) {
+        n('6-digit code ထည့်ပါ', 'error');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/2fa/verify-setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token, code: code })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            // Show backup codes
+            const codesDiv = document.getElementById('backupCodesList');
+            codesDiv.innerHTML = d.backupCodes.map(c => 
+                `<code style="display:block;color:#f39c12;font-size:12px;padding:4px;">${c}</code>`
+            ).join('');
+            
+            document.getElementById('setupStep2').style.display = 'none';
+            document.getElementById('setupStep3').style.display = 'block';
+            twoFAEnabled = true;
+        } else {
+            n(d.message || 'Code မမှန်ပါ', 'error');
+        }
+    } catch(e) {
+        n('Connection error', 'error');
+    }
+}
+
+function close2FASetup() {
+    document.getElementById('twoFASetupModal').classList.remove('active');
+}
+
+// Setup Button (Password Page မှာ ထည့်ပါ)
+// <button onclick="open2FASetup()">Setup Google Authenticator</button>
     // ==================== COUNTRIES DATA - 195 COUNTRIES ====================
 const COUNTRIES_DATA = [
     { name: "Afghanistan", flag: "🇦🇫", regions: ["Kabul", "Kandahar", "Herat", "Mazar-i-Sharif", "Jalalabad", "Bamyan", "Kunduz", "Ghazni"] },
@@ -1576,14 +1585,15 @@ function getCookie(name) {
 
     // ==================== INIT ====================
     (async function init() {
-        const pageOn = await checkPageAccess();
-        if (!pageOn) return;
-        
-        document.getElementById('dataContent').style.display = 'block';
-        
-        populateCountries();
-        loadPw();
-    })();
+    const pageOn = await checkPageAccess();
+    if (!pageOn) return;
+    
+    document.getElementById('dataContent').style.display = 'block';
+    
+    populateCountries();
+    loadPw();
+    check2FAStatus();  // ✅ 2FA Check
+})();
 </script>
 </body>
 </html>
