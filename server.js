@@ -16,8 +16,14 @@ const app = express();
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// APK Download Route
+app.get('/app-release.apk', (req, res) => {
+    const filePath = path.join(__dirname, 'public', 'app-release.apk');
+    res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+    res.setHeader('Content-Disposition', 'attachment; filename=SOLO-M-Game-Shop.apk');
+    res.sendFile(filePath);
+});
 app.use(express.static(__dirname));
-
 // ==================== AUTO WAKE-UP ====================
 setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
