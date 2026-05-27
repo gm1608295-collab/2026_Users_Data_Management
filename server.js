@@ -1052,6 +1052,121 @@ app.post('/api/speedtest/upload', (req, res) => {
         res.status(500).json({ success: false });
     });
 });
+// ==================== CHANCE CLEAR APIs ====================
+
+// Get Data Counts
+app.post('/api/user/data-counts', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+        return res.json({ success: false, message: 'Token required' });
+    }
+    
+    try {
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
+        
+        const p = await getPool();
+        
+        const counts = {};
+        
+        // Count Gmail data
+        const gmailCount = await p.query(
+            "SELECT COUNT(*) FROM user_gmail_data WHERE user_id = $1", [uid]
+        );
+        counts.gmail = parseInt(gmailCount.rows[0].count);
+        
+        // Count MLBB data
+        const mlbbCount = await p.query(
+            "SELECT COUNT(*) FROM user_mlbb_data WHERE user_id = $1", [uid]
+        );
+        counts.mlbb = parseInt(mlbbCount.rows[0].count);
+        
+        // Count TikTok data
+        const tiktokCount = await p.query(
+            "SELECT COUNT(*) FROM user_tiktok_data WHERE user_id = $1", [uid]
+        );
+        counts.tiktok = parseInt(tiktokCount.rows[0].count);
+        
+        // Count Login History
+        const loginCount = await p.query(
+            "SELECT COUNT(*) FROM login_history WHERE user_id = $1", [uid]
+        );
+        counts.login_history = parseInt(loginCount.rows[0].count);
+        
+        res.json({ success: true, counts });
+        
+    } catch(e) {
+        console.error('[DATA COUNTS ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Clear Data
+app.post('/api/user/clear-data', async (req, res) => {
+    const { token, type } = req.body;
+    
+    if (!token || !type) {
+        return res.json({ success: false, message: 'Token and type required' });
+    }
+    
+    try {
+        const uid = parseInt(token.replace('token_', ''));
+        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
+        
+        const p = await getPool();
+        let message = '';
+        
+        switch(type) {
+            case 'gmail':
+                await p.query("DELETE FROM user_gmail_data WHERE user_id = $1", [uid]);
+                message = 'Gmail Data အားလုံး ဖျက်ပြီးပါပြီ';
+                break;
+                
+            case 'mlbb':
+                await p.query("DELETE FROM user_mlbb_data WHERE user_id = $1", [uid]);
+                message = 'MLBB Data အားလုံး ဖျက်ပြီးပါပြီ';
+                break;
+                
+            case 'tiktok':
+                await p.query("DELETE FROM user_tiktok_data WHERE user_id = $1", [uid]);
+                message = 'TikTok Data အားလုံး ဖျက်ပြီးပါပြီ';
+                break;
+                
+            case 'login_history':
+                await p.query("DELETE FROM login_history WHERE user_id = $1", [uid]);
+                message = 'Login History အားလုံး ဖျက်ပြီးပါပြီ';
+                break;
+                
+            case 'all':
+                await p.query("DELETE FROM user_gmail_data WHERE user_id = $1", [uid]);
+                await p.query("DELETE FROM user_mlbb_data WHERE user_id = $1", [uid]);
+                await p.query("DELETE FROM user_tiktok_data WHERE user_id = $1", [uid]);
+                await p.query("DELETE FROM login_history WHERE user_id = $1", [uid]);
+                message = 'ဒေတာအားလုံး ဖျက်ပြီးပါပြီ';
+                break;
+                
+            default:
+                return res.json({ success: false, message: 'Invalid clear type' });
+        }
+        
+        // Log the clear action
+        try {
+            await p.query(
+                "INSERT INTO clear_logs (user_id, clear_type, cleared_at) VALUES ($1, $2, NOW())",
+                [uid, type]
+            );
+        } catch(e) {
+            // Table might not exist, ignore
+        }
+        
+        res.json({ success: true, message });
+        
+    } catch(e) {
+        console.error('[CLEAR DATA ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== CHANGE PASSWORD (USER - WITH CURRENT PASSWORD VERIFICATION) ====================
 app.post('/api/change_password', async (req, res) => {
     const { token, type, currentPassword, newPassword } = req.body;
