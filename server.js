@@ -1053,8 +1053,7 @@ app.post('/api/speedtest/upload', (req, res) => {
     });
 });
 // ==================== CHANCE CLEAR APIs ====================
-
-// Get Data Counts
+// ==================== GET DATA COUNTS (JWT) ====================
 app.post('/api/user/data-counts', async (req, res) => {
     const { token } = req.body;
     
@@ -1063,8 +1062,22 @@ app.post('/api/user/data-counts', async (req, res) => {
     }
     
     try {
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
+        // ✅ JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
+        }
         
         const p = await getPool();
         
@@ -1101,8 +1114,7 @@ app.post('/api/user/data-counts', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-
-// Clear Data
+// ==================== CLEAR DATA (JWT) ====================
 app.post('/api/user/clear-data', async (req, res) => {
     const { token, type } = req.body;
     
@@ -1111,8 +1123,22 @@ app.post('/api/user/clear-data', async (req, res) => {
     }
     
     try {
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false, message: 'Invalid token' });
+        // ✅ JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
+        }
         
         const p = await getPool();
         let message = '';
@@ -1167,11 +1193,16 @@ app.post('/api/user/clear-data', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== CHANGE PASSWORD (USER - WITH CURRENT PASSWORD VERIFICATION) ====================
+// ==================== CHANGE PASSWORD (JWT VERSION) ====================
 app.post('/api/change_password', async (req, res) => {
     const { token, type, currentPassword, newPassword } = req.body;
     
-    console.log('[CHANGE PASSWORD] Request:', { token: token?.substring(0,10)+'...', type, hasCurrent: !!currentPassword, hasNew: !!newPassword });
+    console.log('[CHANGE PASSWORD] Request:', { 
+        token: token?.substring(0, 20) + '...', 
+        type, 
+        hasCurrent: !!currentPassword, 
+        hasNew: !!newPassword 
+    });
     
     if (!token || !type || !currentPassword || !newPassword) {
         return res.json({ success: false, message: 'All fields required' });
@@ -1191,16 +1222,30 @@ app.post('/api/change_password', async (req, res) => {
     }
     
     try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        // ========== ✅ JWT VERIFY ==========
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
         
-        console.log('[CHANGE PASSWORD] User ID:', uid);
-        
-        if (isNaN(uid) || uid <= 0) {
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(jwtError) {
+            console.log('[CHANGE PASSWORD] JWT Error:', jwtError.message);
             return res.json({ success: false, message: 'Invalid session. Please login again.' });
         }
         
-        const user = await p.query('SELECT * FROM auth_users WHERE id=$1', [uid]);
+        // Get User ID from JWT payload
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        console.log('[CHANGE PASSWORD] User ID from JWT:', uid);
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload. Please login again.' });
+        }
+        // ========== END JWT VERIFY ==========
+        
+        const p = await getPool();
+        
+        const user = await p.query('SELECT * FROM auth_users WHERE id = $1', [uid]);
         console.log('[CHANGE PASSWORD] User found:', user.rows.length > 0);
         
         if (user.rows.length === 0) {
@@ -1214,14 +1259,16 @@ app.post('/api/change_password', async (req, res) => {
         const defaultPass = type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008';
         const currentStored = u[col] || defaultPass;
         
-        console.log('[CHANGE PASSWORD] Column:', col, 'Stored:', currentStored?.substring(0,3)+'...', 'Input:', currentPassword?.substring(0,3)+'...');
+        console.log('[CHANGE PASSWORD] Column:', col, 
+                    'Stored:', currentStored?.substring(0, 3) + '...', 
+                    'Input:', currentPassword?.substring(0, 3) + '...');
         
         if (currentPassword !== currentStored) {
             return res.json({ success: false, message: 'Current password is incorrect!' });
         }
         
         // Update password
-        await p.query(`UPDATE auth_users SET ${col}=$1 WHERE id=$2`, [newPassword, uid]);
+        await p.query(`UPDATE auth_users SET ${col} = $1 WHERE id = $2`, [newPassword, uid]);
         
         console.log('[CHANGE PASSWORD] SUCCESS!');
         
