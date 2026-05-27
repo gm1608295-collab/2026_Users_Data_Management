@@ -2,36 +2,105 @@
 <html lang="my">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Websites - SOLO M Game Store</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="print" onload="this.media='all'">
     <style>
         :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:12px;overflow-y:auto}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:12px;overflow-y:auto;-webkit-overflow-scrolling:touch}
         .container{max-width:500px;margin:0 auto;padding-bottom:20px}
         .back-btn{display:inline-flex;align-items:center;gap:6px;color:var(--w);text-decoration:none;font-size:13px;font-weight:bold;padding:8px 0;margin-bottom:10px}
         .section-title{color:var(--w);font-size:13px;font-weight:bold;margin:14px 0 8px;padding:7px 12px;background:rgba(74,28,122,0.3);border-left:4px solid var(--w)}
-        .link-card{position:relative;margin-bottom:12px}
-        .link-card-inner{position:relative;overflow:hidden;box-shadow:0 5px 25px rgba(243,156,18,0.3)}
-        .link-card-inner img{width:100%;height:130px;object-fit:cover;display:block}
-        .install-bar{position:absolute;top:0;left:0;width:100%;padding:8px 12px;background:linear-gradient(to bottom,rgba(10,0,20,0.95),transparent);display:flex;justify-content:space-between;align-items:center;z-index:2}
+
+        /* Card Optimization */
+        .link-card {
+            position:relative;
+            margin-bottom:12px;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 200px;
+            contain: layout style paint;
+        }
+        .link-card-inner {
+            position:relative;
+            overflow:hidden;
+            box-shadow:0 5px 25px rgba(243,156,18,0.3);
+            transform: translateZ(0); /* GPU layer */
+        }
+        .link-card-inner img {
+            width:100%;
+            height:130px;
+            object-fit:cover;
+            display:block;
+            loading: lazy;
+            decoding: async;
+        }
+
+        /* Install Bar */
+        .install-bar {
+            position:absolute;
+            top:0;left:0;width:100%;
+            padding:8px 12px;
+            background:linear-gradient(to bottom,rgba(10,0,20,0.95),transparent);
+            display:flex;justify-content:space-between;align-items:center;
+            z-index:2;
+        }
         .install-bar-title{color:#fff;font-size:10px;font-weight:bold}
-        .install-btn{background:linear-gradient(135deg,#1a0033,#4a0099);color:#ff3399;padding:4px 14px;font-size:10px;font-weight:bold;border:1px solid #ff3399;box-shadow:0 0 10px rgba(255,51,153,0.3);white-space:nowrap;text-decoration:none;display:inline-block;flex-shrink:0}
-        .link-card-overlay{position:absolute;bottom:0;left:0;width:100%;padding:10px 12px;background:linear-gradient(to top,rgba(10,0,20,0.95),transparent);display:flex;justify-content:space-between;align-items:center}
+        .install-btn,.link-card-btn {
+            background:linear-gradient(135deg,#1a0033,#4a0099);
+            color:#ff3399;
+            padding:4px 14px;
+            font-size:10px;
+            font-weight:bold;
+            border:1px solid #ff3399;
+            box-shadow:0 0 10px rgba(255,51,153,0.3);
+            white-space:nowrap;
+            text-decoration:none;
+            display:inline-block;
+            flex-shrink:0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Bottom Overlay */
+        .link-card-overlay {
+            position:absolute;
+            bottom:0;left:0;width:100%;
+            padding:10px 12px;
+            background:linear-gradient(to top,rgba(10,0,20,0.95),transparent);
+            display:flex;justify-content:space-between;align-items:center;
+        }
         .link-card-info{flex:1;min-width:0}
         .link-card-title{color:#fff;font-size:12px;font-weight:bold}
         .link-card-desc{color:rgba(255,255,255,0.6);font-size:9px;margin-top:2px}
         .link-card-num{color:#ffd700;font-size:9px;font-weight:bold;margin-right:8px;flex-shrink:0}
-        .link-card-btn{background:linear-gradient(135deg,#1a0033,#4a0099);color:#ff3399;padding:4px 14px;font-size:10px;font-weight:bold;border:1px solid #ff3399;box-shadow:0 0 10px rgba(255,51,153,0.3);white-space:nowrap;text-decoration:none;display:inline-block;flex-shrink:0}
-        .led-border{position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;background:linear-gradient(45deg,#1a0033,#2d0066,#4a0099,#2d0066,#1a0033,#ff0066,#ff3399,#1a0033);background-size:400% 400%;z-index:-1;animation:ledBorder 3s linear infinite}
-        @keyframes ledBorder{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+
+        /* LED Border – animation paused by default, runs only when in view */
+        .led-border {
+            position:absolute;
+            top:-2px;left:-2px;right:-2px;bottom:-2px;
+            background:linear-gradient(45deg,#1a0033,#2d0066,#4a0099,#2d0066,#1a0033,#ff0066,#ff3399,#1a0033);
+            background-size:400% 400%;
+            z-index:-1;
+            will-change: background-position;
+            transform: translateZ(0);
+            animation: none; /* off by default */
+        }
+        /* Only animate when card is in viewport (class added by JS) */
+        .link-card.in-view .led-border {
+            animation: ledBorder 3s linear infinite;
+        }
+        @keyframes ledBorder {
+            0%{background-position:0% 50%}
+            50%{background-position:100% 50%}
+            100%{background-position:0% 50%}
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
 
+        
         <!-- ==================== AI TOOLS (1-7) ==================== -->
 <div class="section-title">🤖 AI Tools</div>
 <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/zVWbcq8p/file-0000000058a4720b92cd941c86bdb8da.png" alt="ChatGPT"><div class="install-bar"><span class="install-bar-title">📱 ChatGPT App</span><a href="https://play.google.com/store/apps/details?id=com.openai.chatgpt" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#1</span><div class="link-card-info"><div class="link-card-title">ChatGPT</div><div class="link-card-desc">OpenAI · AI Chatbot</div></div><a href="https://chatgpt.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
@@ -90,59 +159,24 @@
         <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Godot"><div class="install-bar"><span class="install-bar-title">💻 Godot Engine</span><a href="https://godotengine.org/download" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#27</span><div class="link-card-info"><div class="link-card-title">Godot Engine</div><div class="link-card-desc">အခမဲ့ · Open Source Engine</div></div><a href="https://godotengine.org" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
         <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Construct"><div class="install-bar"><span class="install-bar-title">🌐 Construct</span><a href="https://www.construct.net" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#28</span><div class="link-card-info"><div class="link-card-title">Construct</div><div class="link-card-desc">2D · Game Development</div></div><a href="https://www.construct.net" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
         <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="GameMaker"><div class="install-bar"><span class="install-bar-title">💻 GameMaker</span><a href="https://gamemaker.io/download" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#29</span><div class="link-card-info"><div class="link-card-title">GameMaker</div><div class="link-card-desc">2D · Game Platform</div></div><a href="https://gamemaker.io" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Blender"><div class="install-bar"><span class="install-bar-title">💻 Blender</span><a href="https://www.blender.org/download" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#30</span><div class="link-card-info"><div class="link-card-title">Blender</div><div class="link-card-desc">3D · Modeling & Animation</div></div><a href="https://www.blender.org" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
+        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Blender"><div class="install-bar"><span class="install-bar-title">💻 Blender</span><a href="https://www.blender.org/download" target="_blank" class="inst
+     
+                                                                                                                                                                                                                                                                        </div>
 
-        <!-- ==================== DESIGN & UI/UX (31-35) ==================== -->
-        <div class="section-title">🎨 Design & UI/UX</div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Figma"><div class="install-bar"><span class="install-bar-title">💻 Figma</span><a href="https://www.figma.com/downloads" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#31</span><div class="link-card-info"><div class="link-card-title">Figma</div><div class="link-card-desc">UI/UX · Design Tool</div></div><a href="https://www.figma.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Canva"><div class="install-bar"><span class="install-bar-title">📱 Canva App</span><a href="https://play.google.com/store/apps/details?id=com.canva.editor" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#32</span><div class="link-card-info"><div class="link-card-title">Canva</div><div class="link-card-desc">Graphic · Design Platform</div></div><a href="https://www.canva.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Dribbble"><div class="install-bar"><span class="install-bar-title">🌐 Dribbble</span><a href="https://dribbble.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#33</span><div class="link-card-info"><div class="link-card-title">Dribbble</div><div class="link-card-desc">Design · Inspiration</div></div><a href="https://dribbble.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Behance"><div class="install-bar"><span class="install-bar-title">🌐 Behance</span><a href="https://www.behance.net" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#34</span><div class="link-card-info"><div class="link-card-title">Behance</div><div class="link-card-desc">Adobe · Creative Portfolio</div></div><a href="https://www.behance.net" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Framer"><div class="install-bar"><span class="install-bar-title">🌐 Framer</span><a href="https://www.framer.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#35</span><div class="link-card-info"><div class="link-card-title">Framer</div><div class="link-card-desc">Interactive · Design Tool</div></div><a href="https://www.framer.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
+    <script>
+        // Intersection Observer - pause LED animation when card is not in viewport
+        const cards = document.querySelectorAll('.link-card');
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in-view');
+                } else {
+                    entry.target.classList.remove('in-view');
+                }
+            });
+        }, { threshold: 0.1 });
 
-        <!-- ==================== PHOTO & VIDEO EDITOR (36-41) ==================== -->
-        <div class="section-title">📷 Photo & Video Editor</div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Photoshop"><div class="install-bar"><span class="install-bar-title">💻 Photoshop</span><a href="https://www.adobe.com/products/photoshop.html" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#36</span><div class="link-card-info"><div class="link-card-title">Adobe Photoshop</div><div class="link-card-desc">Professional · Photo Editing</div></div><a href="https://www.adobe.com/products/photoshop.html" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Premiere Pro"><div class="install-bar"><span class="install-bar-title">💻 Premiere Pro</span><a href="https://www.adobe.com/products/premiere.html" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#37</span><div class="link-card-info"><div class="link-card-title">Adobe Premiere Pro</div><div class="link-card-desc">Professional · Video Editing</div></div><a href="https://www.adobe.com/products/premiere.html" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="CapCut"><div class="install-bar"><span class="install-bar-title">📱 CapCut App</span><a href="https://play.google.com/store/apps/details?id=com.lemon.lvoverseas" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#38</span><div class="link-card-info"><div class="link-card-title">CapCut</div><div class="link-card-desc">အခမဲ့ · Video Editor</div></div><a href="https://www.capcut.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Photopea"><div class="install-bar"><span class="install-bar-title">🌐 Photopea</span><a href="https://www.photopea.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#39</span><div class="link-card-info"><div class="link-card-title">Photopea</div><div class="link-card-desc">Browser · Photo Editor</div></div><a href="https://www.photopea.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Pixlr"><div class="install-bar"><span class="install-bar-title">📱 Pixlr App</span><a href="https://play.google.com/store/apps/details?id=com.pixlr.express" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#40</span><div class="link-card-info"><div class="link-card-title">Pixlr</div><div class="link-card-desc">Online · Photo Editor</div></div><a href="https://pixlr.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="DaVinci Resolve"><div class="install-bar"><span class="install-bar-title">💻 DaVinci Resolve</span><a href="https://www.blackmagicdesign.com/products/davinciresolve" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#41</span><div class="link-card-info"><div class="link-card-title">DaVinci Resolve</div><div class="link-card-desc">Professional · Color Grading</div></div><a href="https://www.blackmagicdesign.com/products/davinciresolve" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-
-        <!-- ==================== PROJECT & TEAM TOOLS (42-46) ==================== -->
-        <div class="section-title">📋 Project & Team Tools</div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Notion"><div class="install-bar"><span class="install-bar-title">📱 Notion App</span><a href="https://play.google.com/store/apps/details?id=notion.id" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#42</span><div class="link-card-info"><div class="link-card-title">Notion</div><div class="link-card-desc">All-in-One · Workspace</div></div><a href="https://www.notion.so" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Trello"><div class="install-bar"><span class="install-bar-title">📱 Trello App</span><a href="https://play.google.com/store/apps/details?id=com.trello" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#43</span><div class="link-card-info"><div class="link-card-title">Trello</div><div class="link-card-desc">Project · Management</div></div><a href="https://trello.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="ClickUp"><div class="install-bar"><span class="install-bar-title">📱 ClickUp App</span><a href="https://play.google.com/store/apps/details?id=com.clickup" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#44</span><div class="link-card-info"><div class="link-card-title">ClickUp</div><div class="link-card-desc">Productivity · Platform</div></div><a href="https://clickup.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Slack"><div class="install-bar"><span class="install-bar-title">📱 Slack App</span><a href="https://play.google.com/store/apps/details?id=com.Slack" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#45</span><div class="link-card-info"><div class="link-card-title">Slack</div><div class="link-card-desc">Team · Communication</div></div><a href="https://slack.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Discord"><div class="install-bar"><span class="install-bar-title">📱 Discord App</span><a href="https://play.google.com/store/apps/details?id=com.discord" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#46</span><div class="link-card-info"><div class="link-card-title">Discord</div><div class="link-card-desc">Community · Chat Platform</div></div><a href="https://discord.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-
-        <!-- ==================== CLOUD & HOSTING (47-51) ==================== -->
-        <div class="section-title">☁️ Cloud & Hosting</div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Google Cloud"><div class="install-bar"><span class="install-bar-title">🌐 Google Cloud</span><a href="https://cloud.google.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#47</span><div class="link-card-info"><div class="link-card-title">Google Cloud</div><div class="link-card-desc">Google · Cloud Platform</div></div><a href="https://cloud.google.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="AWS"><div class="install-bar"><span class="install-bar-title">🌐 AWS</span><a href="https://aws.amazon.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#48</span><div class="link-card-info"><div class="link-card-title">Amazon Web Services</div><div class="link-card-desc">Amazon · Cloud Platform</div></div><a href="https://aws.amazon.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Cloudflare"><div class="install-bar"><span class="install-bar-title">🌐 Cloudflare</span><a href="https://www.cloudflare.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#49</span><div class="link-card-info"><div class="link-card-title">Cloudflare</div><div class="link-card-desc">CDN · Security Platform</div></div><a href="https://www.cloudflare.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="DigitalOcean"><div class="install-bar"><span class="install-bar-title">🌐 DigitalOcean</span><a href="https://www.digitalocean.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#50</span><div class="link-card-info"><div class="link-card-title">DigitalOcean</div><div class="link-card-desc">Cloud · Hosting</div></div><a href="https://www.digitalocean.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="MongoDB"><div class="install-bar"><span class="install-bar-title">🌐 MongoDB</span><a href="https://www.mongodb.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#51</span><div class="link-card-info"><div class="link-card-title">MongoDB</div><div class="link-card-desc">NoSQL · Database Platform</div></div><a href="https://www.mongodb.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-
-        <!-- ==================== LEARNING PLATFORMS (52-56) ==================== -->
-        <div class="section-title">📚 Learning Platforms</div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="freeCodeCamp"><div class="install-bar"><span class="install-bar-title">🌐 freeCodeCamp</span><a href="https://www.freecodecamp.org" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#52</span><div class="link-card-info"><div class="link-card-title">freeCodeCamp</div><div class="link-card-desc">အခမဲ့ · Coding Tutorials</div></div><a href="https://www.freecodecamp.org" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Codecademy"><div class="install-bar"><span class="install-bar-title">📱 Codecademy</span><a href="https://play.google.com/store/apps/details?id=com.codecademy.app" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#53</span><div class="link-card-info"><div class="link-card-title">Codecademy</div><div class="link-card-desc">Interactive · Coding Tutorials</div></div><a href="https://www.codecademy.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Coursera"><div class="install-bar"><span class="install-bar-title">📱 Coursera App</span><a href="https://play.google.com/store/apps/details?id=org.coursera.android" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#54</span><div class="link-card-info"><div class="link-card-title">Coursera</div><div class="link-card-desc">Online · Courses & Degrees</div></div><a href="https://www.coursera.org" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Udemy"><div class="install-bar"><span class="install-bar-title">📱 Udemy App</span><a href="https://play.google.com/store/apps/details?id=com.udemy.android" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#55</span><div class="link-card-info"><div class="link-card-title">Udemy</div><div class="link-card-desc">Online · Learning Marketplace</div></div><a href="https://www.udemy.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Khan Academy"><div class="install-bar"><span class="install-bar-title">📱 Khan Academy</span><a href="https://play.google.com/store/apps/details?id=org.khanacademy.android" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#56</span><div class="link-card-info"><div class="link-card-title">Khan Academy</div><div class="link-card-desc">အခမဲ့ · ပညာရေး Platform</div></div><a href="https://www.khanacademy.org" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-
-        <!-- ==================== EXTRA USEFUL TOOLS (57-63) ==================== -->
-        <div class="section-title">🔧 Extra Useful Tools</div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Remove.bg"><div class="install-bar"><span class="install-bar-title">🌐 Remove.bg</span><a href="https://remove.bg" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#57</span><div class="link-card-info"><div class="link-card-title">Remove.bg</div><div class="link-card-desc">ပုံနောက်ခံ · ဖယ်ရှားနိုင်</div></div><a href="https://remove.bg" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="TinyWow"><div class="install-bar"><span class="install-bar-title">🌐 TinyWow</span><a href="https://tinywow.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#58</span><div class="link-card-info"><div class="link-card-title">TinyWow</div><div class="link-card-desc">အခမဲ့ · Online Tools</div></div><a href="https://tinywow.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="iLoveIMG"><div class="install-bar"><span class="install-bar-title">🌐 iLoveIMG</span><a href="https://www.iloveimg.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#59</span><div class="link-card-info"><div class="link-card-title">iLoveIMG</div><div class="link-card-desc">Image · Editing Tools</div></div><a href="https://www.iloveimg.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="iLovePDF"><div class="install-bar"><span class="install-bar-title">🌐 iLovePDF</span><a href="https://www.ilovepdf.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#60</span><div class="link-card-info"><div class="link-card-title">iLovePDF</div><div class="link-card-desc">PDF · Editing Tools</div></div><a href="https://www.ilovepdf.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Convertio"><div class="install-bar"><span class="install-bar-title">🌐 Convertio</span><a href="https://convertio.co" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#61</span><div class="link-card-info"><div class="link-card-title">Convertio</div><div class="link-card-desc">File · Converter</div></div><a href="https://convertio.co" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="Temp Mail"><div class="install-bar"><span class="install-bar-title">📱 Temp Mail App</span><a href="https://play.google.com/store/apps/details?id=com.tempmail" target="_blank" class="install-btn">📥 Install</a></div><div class="link-card-overlay"><span class="link-card-num">#62</span><div class="link-card-info"><div class="link-card-title">Temp Mail</div><div class="link-card-desc">ယာယီ · Email လိပ်စာ</div></div><a href="https://temp-mail.org" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-        <div class="link-card"><div class="link-card-inner"><div class="led-border"></div><img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" alt="10 Minute Mail"><div class="install-bar"><span class="install-bar-title">🌐 10 Minute Mail</span><a href="https://10minutemail.com" target="_blank" class="install-btn">📥 Open</a></div><div class="link-card-overlay"><span class="link-card-num">#63</span><div class="link-card-info"><div class="link-card-title">10 Minute Mail</div><div class="link-card-desc">၁၀ မိနစ် · ယာယီ Email</div></div><a href="https://10minutemail.com" target="_blank" class="link-card-btn">သွားရောက်မည်</a></div></div></div>
-
-    </div>
+        cards.forEach(card => observer.observe(card));
+    </script>
 </body>
 </html>
