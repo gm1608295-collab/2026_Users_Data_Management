@@ -1002,7 +1002,56 @@ app.post('/api/admin/update_data_pass', async (req, res) => {
         res.json({ success: true, message: 'Data passwords updated!' });
     } catch(e) { res.json({ success: false, message: 'Server error' }); }
 });
+// ==================== NETWORK TEST APIs ====================
 
+// Ping Test API
+app.get('/api/ping', (req, res) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.json({ success: true, time: Date.now() });
+});
+
+// Download Speed Test API
+app.get('/api/speedtest', (req, res) => {
+    const size = parseInt(req.query.size) || 100 * 1024; // Default 100KB
+    const maxSize = 5 * 1024 * 1024; // 5MB max
+    
+    const actualSize = Math.min(size, maxSize);
+    const buffer = Buffer.alloc(actualSize);
+    
+    // Fill buffer with random data
+    for (let i = 0; i < actualSize; i++) {
+        buffer[i] = Math.floor(Math.random() * 256);
+    }
+    
+    res.set({
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': actualSize,
+        'Cache-Control': 'no-store, no-cache, must-revalidate'
+    });
+    
+    res.send(buffer);
+});
+
+// Upload Speed Test API
+app.post('/api/speedtest/upload', (req, res) => {
+    let totalSize = 0;
+    
+    req.on('data', (chunk) => {
+        totalSize += chunk.length;
+    });
+    
+    req.on('end', () => {
+        res.json({ 
+            success: true, 
+            received: totalSize,
+            time: Date.now()
+        });
+    });
+    
+    req.on('error', () => {
+        res.status(500).json({ success: false });
+    });
+});
 // ==================== CHANGE PASSWORD (USER - WITH CURRENT PASSWORD VERIFICATION) ====================
 app.post('/api/change_password', async (req, res) => {
     const { token, type, currentPassword, newPassword } = req.body;
