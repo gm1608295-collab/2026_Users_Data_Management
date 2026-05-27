@@ -1281,6 +1281,82 @@ app.post('/api/change_password', async (req, res) => {
 });
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
 app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
+// ==================== GET PASSWORDS (JWT VERSION) ====================
+app.post('/api/get_passwords', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+        return res.json({ success: false, message: 'Token required' });
+    }
+    
+    try {
+        // ✅ JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ 
+                success: true,  // Still return defaults for guest
+                gmail_password: 'DoubleMK2008',
+                mlbb_password: 'GlobalMK2008',
+                tiktok_password: 'DoubleMK2008'
+            });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        
+        if (!uid) {
+            return res.json({ 
+                success: true,
+                gmail_password: 'DoubleMK2008',
+                mlbb_password: 'GlobalMK2008',
+                tiktok_password: 'DoubleMK2008'
+            });
+        }
+        
+        const p = await getPool();
+        const user = await p.query(
+            'SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id = $1', 
+            [uid]
+        );
+        
+        if (user.rows.length === 0) {
+            return res.json({ 
+                success: true,
+                gmail_password: 'DoubleMK2008',
+                mlbb_password: 'GlobalMK2008',
+                tiktok_password: 'DoubleMK2008'
+            });
+        }
+        
+        const u = user.rows[0];
+        
+        console.log('🔍 DB Passwords:', {
+            gmail: u.gmail_pass || 'DoubleMK2008',
+            mlbb: u.mlbb_pass || 'GlobalMK2008',
+            tiktok: u.tiktok_pass || 'DoubleMK2008'
+        }); // ✅ Debug
+        
+        res.json({ 
+            success: true,
+            gmail_password: u.gmail_pass || 'DoubleMK2008',
+            mlbb_password: u.mlbb_pass || 'GlobalMK2008',
+            tiktok_password: u.tiktok_pass || 'DoubleMK2008'
+        });
+        
+    } catch(e) {
+        console.error('[GET PASSWORDS ERROR]', e);
+        res.json({ 
+            success: true,
+            gmail_password: 'DoubleMK2008',
+            mlbb_password: 'GlobalMK2008',
+            tiktok_password: 'DoubleMK2008'
+        });
+    }
+});
 // ==================== HISTORY SECURITY PASSWORD API ====================
 
 // Get security password status
