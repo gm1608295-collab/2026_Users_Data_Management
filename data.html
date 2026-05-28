@@ -1630,15 +1630,31 @@ const COUNTRIES_DATA = [
     }
 
     // ==================== UNLOCK DATA ====================
-    function unlockData(type) {
-        const passInput = document.getElementById('data' + type.charAt(0).toUpperCase() + type.slice(1) + 'Pass');
-        const pass = passInput.value;
-        const correct = type === 'gmail' ? GPASS : type === 'mlbb' ? MPASS : TPASS;
-        if (pass !== correct) return n("❌ Wrong password!", "error");
-        document.getElementById(type + 'Form').style.display = 'block';
-        passInput.value = '';
-        n("✅ Unlocked successfully!", "success");
+async function unlockData(type) {
+    const passInput = document.getElementById('data' + type.charAt(0).toUpperCase() + type.slice(1) + 'Pass');
+    const pass = passInput.value;
+    
+    // ✅ Password မရှိသေးရင် အရင် Load လုပ်
+    if (!GPASS || !MPASS || !TPASS) {
+        await loadPw();
     }
+    
+    const correct = type === 'gmail' ? GPASS : type === 'mlbb' ? MPASS : TPASS;
+    
+    if (pass !== correct) {
+        // ✅ Password မှားရင် Server ကနေ နောက်ဆုံး Password ပြန် Load လုပ်ကြည့်
+        await loadPw();
+        const retryCorrect = type === 'gmail' ? GPASS : type === 'mlbb' ? MPASS : TPASS;
+        
+        if (pass !== retryCorrect) {
+            return n("❌ Wrong password! (Password ပြောင်းထားရင် Page ကို Refresh လုပ်ပါ)", "error");
+        }
+    }
+    
+    document.getElementById(type + 'Form').style.display = 'block';
+    passInput.value = '';
+    n("✅ Unlocked successfully!", "success");
+}
 
     // ==================== DYNAMIC INPUTS (ADD/REMOVE) ====================
     function addInput(listId, cls, type, ph) {
@@ -1659,7 +1675,7 @@ const COUNTRIES_DATA = [
     function addTiktokPhone() { addInput('tiktokPhoneList', 'tiktok-phone', 'text', 'Enter phone number'); }
 
     // ==================== PASSWORD LOADING ====================
-     async function loadPw() {
+async function loadPw() {
     try {
         const r = await fetch("/api/get_passwords", {
             method: "POST",
@@ -1668,14 +1684,21 @@ const COUNTRIES_DATA = [
         });
         const d = await r.json();
         
+        // ✅ Password အသစ်တွေ ရရှိ
         GPASS = d.gmail_password || 'DoubleMK2008';
         MPASS = d.mlbb_password || 'GlobalMK2008';
         TPASS = d.tiktok_password || 'DoubleMK2008';
         
-        } catch(e) {
+        console.log('✅ Passwords Reloaded:', { 
+            gmail: GPASS.substring(0, 3) + '...', 
+            mlbb: MPASS.substring(0, 3) + '...', 
+            tiktok: TPASS.substring(0, 3) + '...' 
+        });
+        
+    } catch(e) {
         console.error('Load PW Error:', e);
     }
-     }
+    }
 
       // ==================== SAVE FUNCTIONS ====================
 async function saveGmailData() {
@@ -2327,16 +2350,41 @@ function closeClearConfirm() {
     pendingClearType = null;
 }
     // ==================== INIT ====================
-    (async function init() {
+(async function init() {
     const pageOn = await checkPageAccess();
     if (!pageOn) return;
     
     document.getElementById('dataContent').style.display = 'block';
     
     populateCountries();
-    loadPw();
+    await loadPw();  // ✅ ပထမဆုံး Password Load
     
 })();
+
+// ==================== ✅ PAGE VISIBILITY - PASSWORD RELOAD ====================
+// Page ကို ပြန်မြင်ရတိုင်း Password ပြန် Load လုပ်
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        console.log('👁️ Page visible - Reloading passwords...');
+        loadPw();
+    }
+});
+
+// ==================== ✅ BACK/FORWARD CACHE - PASSWORD RELOAD ====================
+// Back Button နဲ့ ပြန်လာရင်လည်း Password ပြန် Load လုပ်
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted || performance.navigation.type === 2) {
+        console.log('🔄 Page restored from cache - Reloading passwords...');
+        loadPw();
+    }
+});
+
+// ==================== ✅ FOCUS - PASSWORD RELOAD ====================
+// Browser Tab ကို ပြန်နှိပ်ရင် Password ပြန် Load လုပ်
+window.addEventListener('focus', () => {
+    console.log('🎯 Window focused - Reloading passwords...');
+    loadPw();
+});
 </script>
 </body>
 </html>
