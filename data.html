@@ -1791,22 +1791,39 @@ async function checkPageAccess() {
     try {
         const r = await fetch('/api/admin/page_status');
         const d = await r.json();
+        
+        console.log('🔍 Page status:', d);
+        
         if (d.pages) {
             const dp = d.pages.find(p => p.id === 'data');
+            
             if (dp && dp.status === 'off') {
+                console.log('🚫 Data page is OFF - showing maintenance');
                 document.getElementById('maintenanceMessage').style.display = 'block';
                 document.getElementById('dataContent').style.display = 'none';
-                checkPageTimer();
+                await checkPageTimer();
                 return false;
             }
         }
+        
+        console.log('✅ Data page is ON');
+        document.getElementById('maintenanceMessage').style.display = 'none';
+        document.getElementById('dataContent').style.display = 'block';
         return true;
-    } catch(e) { return true; }
-}
-    
-    // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
+        
+    } catch(e) {
+        console.error('Page access check error:', e);
+        // Error ရင်လည်း Page ပြပေး
+        document.getElementById('maintenanceMessage').style.display = 'none';
+        document.getElementById('dataContent').style.display = 'block';
+        return true;
+    }
+    }    
+// ==================== PAGE TIMER COUNTDOWN ====================
 async function checkPageTimer() {
-    const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
+    const pageId = window.location.pathname.replace('.html','').replace('/','') || 'data';
+    
+    console.log('🔍 Checking timer for page:', pageId);
     
     let timer = null;
     
@@ -1816,14 +1833,16 @@ async function checkPageTimer() {
         if (saved) {
             const timers = JSON.parse(saved);
             timer = timers[pageId];
+            console.log('📦 localStorage timer:', timer);
         }
         
-        // Method 2: Cookie (for Median WebView)
+        // Method 2: Cookie
         if (!timer) {
             const cookieTimers = getCookie('pageTimers');
             if (cookieTimers) {
                 const timers = JSON.parse(decodeURIComponent(cookieTimers));
                 timer = timers[pageId];
+                console.log('🍪 Cookie timer:', timer);
             }
         }
         
@@ -1833,25 +1852,45 @@ async function checkPageTimer() {
             if (sessionTimers) {
                 const timers = JSON.parse(sessionTimers);
                 timer = timers[pageId];
+                console.log('💾 SessionStorage timer:', timer);
             }
         }
-    } catch(e) {}
+    } catch(e) {
+        console.error('Timer load error:', e);
+    }
     
-    if (!timer || timer <= Date.now()) return;
+    // No timer or timer expired
+    if (!timer || timer <= Date.now()) {
+        console.log('✅ No active timer found or timer expired');
+        document.getElementById('maintenanceMessage').style.display = 'none';
+        document.getElementById('dataContent').style.display = 'block';
+        document.getElementById('pageTimerBanner').style.display = 'none';
+        return;
+    }
     
+    console.log('⏰ Active timer found. Seconds remaining:', Math.floor((timer - Date.now()) / 1000));
+    
+    // Show maintenance message
     const maintMsg = document.getElementById('maintenanceMessage');
-    if (maintMsg) maintMsg.style.display = 'block';
-    
+    const dataContent = document.getElementById('dataContent');
     const pageBanner = document.getElementById('pageTimerBanner');
+    
+    if (maintMsg) maintMsg.style.display = 'block';
+    if (dataContent) dataContent.style.display = 'none';
     if (pageBanner) pageBanner.style.display = 'block';
     
+    // Timer elements
     const maintTimer = document.getElementById('maintenanceCountdown');
     const pageCountdown = document.getElementById('pageTimerCountdown');
     
+    // Update function
     const update = () => {
         const rem = timer - Date.now();
         
         if (rem <= 0) {
+            // Timer expired - clear and reload
+            console.log('✅ Timer expired! Reloading page...');
+            
             try {
                 const saved = localStorage.getItem('pageTimers');
                 if (saved) {
@@ -1867,17 +1906,24 @@ async function checkPageTimer() {
             return;
         }
         
+        // Calculate time
         const s = Math.floor(rem / 1000);
         const h = Math.floor(s / 3600);
         const m = Math.floor((s % 3600) / 60);
         const sec = s % 60;
-        const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
         
+        // Update displays
         if (maintTimer) maintTimer.textContent = timeStr;
         if (pageCountdown) pageCountdown.textContent = timeStr;
+        
+        console.log('⏳ Timer:', timeStr);
     };
     
+    // Run immediately
     update();
+    
+    // Update every second
     setInterval(update, 1000);
 }
 
@@ -2351,18 +2397,34 @@ function closeClearConfirm() {
 }
     // ==================== INIT ====================
 (async function init() {
+    console.log('🚀 Data Page Init Start');
+    
+    // ✅ Step 1: Timer အရင် စစ်
+    await checkPageTimer();
+    
+    // ✅ Step 2: Page Access စစ်
     const pageOn = await checkPageAccess();
-    if (!pageOn) return;
     
+    if (!pageOn) {
+        console.log('⛔ Page is in maintenance mode');
+        return;
+    }
+    
+    console.log('✅ Page active - loading content');
+    
+    // ✅ Step 3: Content ပြ
     document.getElementById('dataContent').style.display = 'block';
+    document.getElementById('maintenanceMessage').style.display = 'none';
     
+    // ✅ Step 4: Data တွေ Load
     populateCountries();
-    await loadPw();  // ✅ ပထမဆုံး Password Load
+    await loadPw();
+    
+    console.log('✅ Data Page Init Complete');
     
 })();
 
 // ==================== ✅ PAGE VISIBILITY - PASSWORD RELOAD ====================
-// Page ကို ပြန်မြင်ရတိုင်း Password ပြန် Load လုပ်
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         console.log('👁️ Page visible - Reloading passwords...');
@@ -2371,7 +2433,6 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ==================== ✅ BACK/FORWARD CACHE - PASSWORD RELOAD ====================
-// Back Button နဲ့ ပြန်လာရင်လည်း Password ပြန် Load လုပ်
 window.addEventListener('pageshow', (event) => {
     if (event.persisted || performance.navigation.type === 2) {
         console.log('🔄 Page restored from cache - Reloading passwords...');
@@ -2380,7 +2441,6 @@ window.addEventListener('pageshow', (event) => {
 });
 
 // ==================== ✅ FOCUS - PASSWORD RELOAD ====================
-// Browser Tab ကို ပြန်နှိပ်ရင် Password ပြန် Load လုပ်
 window.addEventListener('focus', () => {
     console.log('🎯 Window focused - Reloading passwords...');
     loadPw();
