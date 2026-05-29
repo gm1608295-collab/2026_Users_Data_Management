@@ -1896,9 +1896,7 @@ const COUNTRIES_DATA = [
     { name: "Zambia", flag: "🇿🇲", regions: ["Lusaka", "Livingstone", "Ndola", "Kitwe", "Chipata", "Kabwe", "Mongu"] },
     { name: "Zimbabwe", flag: "🇿🇼", regions: ["Harare", "Bulawayo", "Victoria Falls", "Mutare", "Gweru", "Masvingo", "Chinhoyi"] }
 ];
-    // ==================== GLOBAL VARIABLES ====================
-    let GPASS = "DoubleMK2008", MPASS = "GlobalMK2008", TPASS = "DoubleMK2008";
-
+    
     // ==================== TOAST NOTIFICATION ====================
     function n(m, t = "success") {
         const e = document.getElementById("notif");
@@ -1966,34 +1964,6 @@ const COUNTRIES_DATA = [
     function copyPassText(t) {
         navigator.clipboard.writeText(t).then(() => n("✅ Password Copied!", "success")).catch(() => n("❌ Copy Failed", "error"));
     }
-
-    // ==================== UNLOCK DATA ====================
-async function unlockData(type) {
-    const passInput = document.getElementById('data' + type.charAt(0).toUpperCase() + type.slice(1) + 'Pass');
-    const pass = passInput.value;
-    
-    // ✅ Password မရှိသေးရင် အရင် Load လုပ်
-    if (!GPASS || !MPASS || !TPASS) {
-        await loadPw();
-    }
-    
-    const correct = type === 'gmail' ? GPASS : type === 'mlbb' ? MPASS : TPASS;
-    
-    if (pass !== correct) {
-        // ✅ Password မှားရင် Server ကနေ နောက်ဆုံး Password ပြန် Load လုပ်ကြည့်
-        await loadPw();
-        const retryCorrect = type === 'gmail' ? GPASS : type === 'mlbb' ? MPASS : TPASS;
-        
-        if (pass !== retryCorrect) {
-            return n("❌ Wrong password! (Password ပြောင်းထားရင် Page ကို Refresh လုပ်ပါ)", "error");
-        }
-    }
-    
-    document.getElementById(type + 'Form').style.display = 'block';
-    passInput.value = '';
-    n("✅ Unlocked successfully!", "success");
-}
-
     // ==================== DYNAMIC INPUTS (ADD/REMOVE) ====================
     function addInput(listId, cls, type, ph) {
         const d = document.getElementById(listId);
@@ -2011,32 +1981,6 @@ async function unlockData(type) {
     function addMlbbEmail() { addInput('mlbbEmailList', 'mlbb-email', 'email', 'Enter Gmail address'); }
     function addTiktokEmail() { addInput('tiktokEmailList', 'tiktok-email', 'email', 'Enter email address'); }
     function addTiktokPhone() { addInput('tiktokPhoneList', 'tiktok-phone', 'text', 'Enter phone number'); }
-
-    // ==================== PASSWORD LOADING ====================
-async function loadPw() {
-    try {
-        const r = await fetch("/api/get_passwords", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: localStorage.getItem("auth_token") })
-        });
-        const d = await r.json();
-        
-        // ✅ Password အသစ်တွေ ရရှိ
-        GPASS = d.gmail_password || 'DoubleMK2008';
-        MPASS = d.mlbb_password || 'GlobalMK2008';
-        TPASS = d.tiktok_password || 'DoubleMK2008';
-        
-        console.log('✅ Passwords Reloaded:', { 
-            gmail: GPASS.substring(0, 3) + '...', 
-            mlbb: MPASS.substring(0, 3) + '...', 
-            tiktok: TPASS.substring(0, 3) + '...' 
-        });
-        
-    } catch(e) {
-        console.error('Load PW Error:', e);
-    }
-    }
 
       // ==================== SAVE FUNCTIONS ====================
 async function saveGmailData() {
@@ -2733,6 +2677,180 @@ function closeClearConfirm() {
     document.getElementById('clearConfirmModal').classList.remove('active');
     pendingClearType = null;
 }
+  // ==================== PASSWORD GENERATOR ====================
+
+const CHAR_SETS = {
+    lower: 'abcdefghijklmnopqrstuvwxyz',
+    upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    numbers: '0123456789',
+    symbols: '@#*!?"'
+};
+
+let activeCharTypes = {
+    lower: true,
+    upper: true,
+    numbers: true,
+    symbols: false
+};
+
+let currentGeneratedPassword = '';
+let passwordGeneratedFor = '';
+
+// Toggle character type
+function toggleCharType(type) {
+    const chk = document.getElementById('chk' + type.charAt(0).toUpperCase() + type.slice(1));
+    chk.checked = !chk.checked;
+    updateCharType(type, chk.checked);
+}
+
+function updateCharType(type, isChecked) {
+    activeCharTypes[type] = isChecked;
+    
+    // Update option appearance
+    const opt = document.getElementById('opt' + type.charAt(0).toUpperCase() + type.slice(1));
+    if (isChecked) {
+        opt.classList.remove('disabled');
+    } else {
+        opt.classList.add('disabled');
+    }
+    
+    // Ensure at least one type is selected
+    const anyChecked = Object.values(activeCharTypes).some(v => v);
+    if (!anyChecked) {
+        activeCharTypes[type] = true;
+        document.getElementById('chk' + type.charAt(0).toUpperCase() + type.slice(1)).checked = true;
+        opt.classList.remove('disabled');
+        n('⚠️ အနည်းဆုံး တစ်ခုရွေးထားရပါမည်', 'error');
+    }
+    
+    updateTypeBadges();
+    generatePassword();
+}
+
+// Update type badges
+function updateTypeBadges() {
+    const badgesDiv = document.getElementById('typeBadges');
+    badgesDiv.innerHTML = '';
+    
+    for (const [type, isActive] of Object.entries(activeCharTypes)) {
+        const names = { lower: 'a-z', upper: 'A-Z', numbers: '0-9', symbols: '@#*!?"' };
+        const span = document.createElement('span');
+        span.className = 'type-badge' + (isActive ? '' : ' inactive');
+        span.textContent = names[type];
+        badgesDiv.appendChild(span);
+    }
+}
+
+// Sync length slider and input
+function syncLength(value) {
+    document.getElementById('passLength').value = value;
+    generatePassword();
+}
+
+// Generate password
+function generatePassword() {
+    // Get active character sets
+    let chars = '';
+    for (const [type, isActive] of Object.entries(activeCharTypes)) {
+        if (isActive) {
+            chars += CHAR_SETS[type];
+        }
+    }
+    
+    if (!chars) {
+        document.getElementById('generatedPassword').textContent = 'Select at least one type';
+        return '';
+    }
+    
+    const length = parseInt(document.getElementById('passLength').value) || 10;
+    let password = '';
+    
+    for (let i = 0; i < length; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    currentGeneratedPassword = password;
+    document.getElementById('generatedPassword').textContent = password;
+    
+    return password;
+}
+
+// Generate and show
+function generateAndShowPassword() {
+    const password = generatePassword();
+    
+    if (password) {
+        document.getElementById('passwordDisplayBox').style.display = 'flex';
+        document.getElementById('passwordWarning').style.display = 'block';
+        document.getElementById('savePasswordBtn').style.display = 'block';
+    }
+}
+
+// Copy password
+function copyGeneratedPassword() {
+    const password = document.getElementById('generatedPassword').textContent;
+    
+    if (!password || password === 'Select at least one type') {
+        n('❌ Password အရင် Generate လုပ်ပါ', 'error');
+        return;
+    }
+    
+    navigator.clipboard.writeText(password).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        btn.classList.add('copied');
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        
+        setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+        }, 2000);
+        
+        n('✅ Password Copied!', 'success');
+    }).catch(() => {
+        n('❌ Copy Failed', 'error');
+    });
+}
+
+// Save generated password
+async function saveGeneratedPassword() {
+    const password = currentGeneratedPassword;
+    
+    if (!password) {
+        n('❌ Password အရင် Generate လုပ်ပါ', 'error');
+        return;
+    }
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/save_generated_password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                token, 
+                password: password 
+            })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Password Saved Successfully!', 'success');
+            
+            // Hide password
+            document.getElementById('passwordDisplayBox').style.display = 'none';
+            document.getElementById('passwordWarning').style.display = 'none';
+            document.getElementById('savePasswordBtn').style.display = 'none';
+            
+            // Clear
+            currentGeneratedPassword = '';
+            document.getElementById('generatedPassword').textContent = '';
+            
+        } else {
+            n('❌ ' + (d.message || 'Save failed'), 'error');
+        }
+    } catch(e) {
+        n('❌ Connection error', 'error');
+    }
+}
     // ==================== INIT ====================
 (async function init() {
     console.log('🚀 Data Page Init Start');
@@ -2756,7 +2874,7 @@ function closeClearConfirm() {
     
     // ✅ Step 4: Data တွေ Load
     populateCountries();
-    await loadPw();
+    
     
     console.log('✅ Data Page Init Complete');
     
@@ -2766,7 +2884,7 @@ function closeClearConfirm() {
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         console.log('👁️ Page visible - Reloading passwords...');
-        loadPw();
+        
     }
 });
 
@@ -2774,14 +2892,14 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pageshow', (event) => {
     if (event.persisted || performance.navigation.type === 2) {
         console.log('🔄 Page restored from cache - Reloading passwords...');
-        loadPw();
+        
     }
 });
 
 // ==================== ✅ FOCUS - PASSWORD RELOAD ====================
 window.addEventListener('focus', () => {
     console.log('🎯 Window focused - Reloading passwords...');
-    loadPw();
+    
 });
 </script>
 </body>
