@@ -370,6 +370,15 @@ async function initTables(p) {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, premium_tier)
 )`,
+
+        // ========== အောက်ပါ Code ကို queries array ထဲ (အဆုံးပိုင်း) မှာထည့်ပါ ==========
+
+// Add password hash columns if not exist (for One-Time Password System)
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS gmail_pass_hash VARCHAR(255)`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS mlbb_pass_hash VARCHAR(255)`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tiktok_pass_hash VARCHAR(255)`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS passwords_generated BOOLEAN DEFAULT false`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS passwords_viewed_at TIMESTAMP`,
         
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
@@ -1193,31 +1202,61 @@ app.post('/api/user/clear-data', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== CHANGE PASSWORD (JWT VERSION) ====================
-app.post('/api/change_password', async (req, res) => {
-    const { token, type, currentPassword, newPassword } = req.body;
+// ==================== PASSWORD GENERATOR FUNCTION ====================
+const CHAR_SETS = {
+    lower: 'abcdefghijklmnopqrstuvwxyz',
+    upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+    numbers: '0123456789',
+    symbols: '@#*!?"'
+};
+
+function generateSecurePassword(options = {}) {
+    const {
+        length = 10,
+        useLower = true,
+        useUpper = true,
+        useNumbers = true,
+        useSymbols = false
+    } = options;
     
-    if (!token || !type || !currentPassword || !newPassword) {
-        return res.json({ success: false, message: 'All fields required' });
+    // Build character pool based on options
+    let charPool = '';
+    if (useLower) charPool += CHAR_SETS.lower;
+    if (useUpper) charPool += CHAR_SETS.upper;
+    if (useNumbers) charPool += CHAR_SETS.numbers;
+    if (useSymbols) charPool += CHAR_SETS.symbols;
+    
+    // Fallback: at least lowercase
+    if (!charPool) charPool = CHAR_SETS.lower;
+    
+    let password = '';
+    for (let i = 0; i < length; i++) {
+        password += charPool.charAt(Math.floor(Math.random() * charPool.length));
+    }
+    
+    return password;
+}
+// ==================== GENERATE PASSWORDS API ====================
+app.post('/api/generate_passwords', async (req, res) => {
+    const { token, options } = req.body;
+    
+    if (!token) {
+        return res.json({ success: false, message: 'Token required' });
     }
     
     if (token === 'guest') {
-        return res.json({ success: false, message: 'Guest accounts cannot change password' });
-    }
-    
-    if (newPassword.length < 6) {
-        return res.json({ success: false, message: 'Password must be at least 6 characters' });
+        return res.json({ success: false, message: 'Guest accounts cannot generate passwords' });
     }
     
     try {
-        // ========== ✅ JWT VERIFY ==========
+        // JWT Verify
         const jwt = require('jsonwebtoken');
         const secretKey = process.env.JWT_SECRET || 'your-secret-key';
         let decoded;
         
         try {
             decoded = jwt.verify(token, secretKey);
-        } catch(jwtError) {
+        } catch(e) {
             return res.json({ success: false, message: 'Invalid session. Please login again.' });
         }
         
@@ -1226,7 +1265,138 @@ app.post('/api/change_password', async (req, res) => {
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
-        // ========== END JWT VERIFY ==========
+        
+        const p = await getPool();
+        
+        // Check user exists
+        const user = await p.query('SELECT id FROM auth_users WHERE id = $1', [uid]);
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        // Generate passwords with user options
+        const genOptions = options || {};
+        const gmailPass = generateSecurePassword(genOptions);
+        const mlbbPass = generateSecurePassword(genOptions);
+        const tiktokPass = generateSecurePassword(genOptions);
+        
+        // Hash passwords
+        const bcrypt = require('bcrypt');
+        const saltRounds = 10;
+        const gmailHash = await bcrypt.hash(gmailPass, saltRounds);
+        const mlbbHash = await bcrypt.hash(mlbbPass, saltRounds);
+        const tiktokHash = await bcrypt.hash(tiktokPass, saltRounds);
+        
+        // Save to database
+        await p.query(
+            `UPDATE auth_users SET 
+                gmail_pass = $1, mlbb_pass = $2, tiktok_pass = $3,
+                gmail_pass_hash = $4, mlbb_pass_hash = $5, tiktok_pass_hash = $6,
+                passwords_generated = true, passwords_viewed_at = NOW()
+            WHERE id = $7`,
+            [gmailPass, mlbbPass, tiktokPass, gmailHash, mlbbHash, tiktokHash, uid]
+        );
+        
+        console.log('✅ Passwords generated for user:', uid);
+        
+        // Return plain passwords (ONE TIME ONLY)
+        res.json({
+            success: true,
+            message: 'Passwords generated successfully!',
+            passwords: {
+                gmail: gmailPass,
+                mlbb: mlbbPass,
+                tiktok: tiktokPass
+            },
+            warning: '⚠️ ဤ Password များကို ယခုတစ်ကြိမ်သာ မြင်ရမည်။ ချက်ချင်းသိမ်းထားပါ။'
+        });
+        
+    } catch(e) {
+        console.error('[GENERATE PASSWORDS ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// ==================== SAVE CUSTOM PASSWORD API ====================
+app.post('/api/save_generated_password', async (req, res) => {
+    const { token, password } = req.body;
+    
+    if (!token || !password) {
+        return res.json({ success: false, message: 'Token and password required' });
+    }
+    
+    if (password.length < 6) {
+        return res.json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+    
+    try {
+        // JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
+        }
+        
+        // Hash password
+        const bcrypt = require('bcrypt');
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        
+        const p = await getPool();
+        
+        // Save same password to all three fields
+        await p.query(
+            `UPDATE auth_users SET 
+                gmail_pass = $1, mlbb_pass = $1, tiktok_pass = $1,
+                gmail_pass_hash = $2, mlbb_pass_hash = $2, tiktok_pass_hash = $2,
+                passwords_generated = true, passwords_viewed_at = NOW()
+            WHERE id = $3`,
+            [password, hashedPassword, uid]
+        );
+        
+        console.log('✅ Custom password saved for user:', uid);
+        
+        res.json({ success: true, message: 'Password saved successfully!' });
+        
+    } catch(e) {
+        console.error('[SAVE PASSWORD ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// ==================== VERIFY DATA PASSWORD API ====================
+app.post('/api/verify_data_password', async (req, res) => {
+    const { token, type, password } = req.body;
+    
+    if (!token || !type || !password) {
+        return res.json({ success: false, message: 'All fields required' });
+    }
+    
+    try {
+        // JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
+        }
         
         const p = await getPool();
         const user = await p.query('SELECT * FROM auth_users WHERE id = $1', [uid]);
@@ -1236,81 +1406,147 @@ app.post('/api/change_password', async (req, res) => {
         }
         
         const u = user.rows[0];
-        const col = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
-        const defaultPass = type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008';
-        const currentStored = u[col] || defaultPass;
         
-        if (currentPassword !== currentStored) {
-            return res.json({ success: false, message: 'Current password is incorrect!' });
+        // Determine which password column to check
+        const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
+        const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
+        
+        // Step 1: Check plain text password
+        if (u[plainCol] && password === u[plainCol]) {
+            return res.json({ success: true, message: '✅ Verified!' });
         }
         
-        await p.query(`UPDATE auth_users SET ${col} = $1 WHERE id = $2`, [newPassword, uid]);
+        // Step 2: Check hashed password
+        if (u[hashCol]) {
+            const bcrypt = require('bcrypt');
+            const match = await bcrypt.compare(password, u[hashCol]);
+            if (match) {
+                return res.json({ success: true, message: '✅ Verified!' });
+            }
+        }
         
-        console.log('[CHANGE PASSWORD] ✅ SUCCESS - User:', uid, 'Type:', type);
-        
-        res.json({ success: true, message: 'Password changed successfully!' });
+        return res.json({ success: false, message: '❌ Wrong password!' });
         
     } catch(e) {
-        console.error('[CHANGE PASSWORD ERROR]', e);
+        console.error('[VERIFY PASSWORD ERROR]', e.message);
         res.json({ success: false, message: 'Server error' });
     }
 });
-app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
-app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
-// ==================== GET USER DATA PASSWORDS (JWT VERSION) ====================
+// ==================== GET PASSWORDS API (MODIFIED) ====================
 app.post('/api/get_passwords', async (req, res) => {
     const { token } = req.body;
-
-    const defaults = { 
-        gmail_password: 'DoubleMK2008', 
-        mlbb_password: 'GlobalMK2008', 
-        tiktok_password: 'DoubleMK2008' 
-    };
-
+    
     if (!token) {
-        return res.json(defaults);
+        return res.json({ success: false, message: 'Token required' });
     }
-
+    
     try {
-        // ========== ✅ JWT VERIFY ==========
+        // JWT Verify
         const jwt = require('jsonwebtoken');
         const secretKey = process.env.JWT_SECRET || 'your-secret-key';
         let decoded;
         
         try {
             decoded = jwt.verify(token, secretKey);
-        } catch(jwtError) {
-            console.log('[GET PASSWORDS] JWT Error:', jwtError.message);
-            return res.json(defaults);
+        } catch(e) {
+            return res.json({ 
+                success: false, 
+                message: 'Invalid session',
+                passwords_generated: false
+            });
         }
         
         const uid = decoded.uid || decoded.id || decoded.userId;
-        // ========== END JWT VERIFY ==========
-
+        
         if (!uid) {
-            return res.json(defaults);
+            return res.json({ 
+                success: false, 
+                message: 'Invalid token',
+                passwords_generated: false
+            });
         }
-
+        
         const p = await getPool();
-        const r = await p.query(
-            'SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id=$1',
+        const user = await p.query(
+            'SELECT passwords_generated, passwords_viewed_at FROM auth_users WHERE id = $1', 
             [uid]
         );
-
-        if (r.rows.length > 0) {
-            const u = r.rows[0];
-            res.json({
-                success: true,
-                gmail_password: u.gmail_pass || defaults.gmail_password,
-                mlbb_password: u.mlbb_pass || defaults.mlbb_password,
-                tiktok_password: u.tiktok_pass || defaults.tiktok_password
+        
+        if (user.rows.length === 0) {
+            return res.json({ 
+                success: false, 
+                message: 'User not found',
+                passwords_generated: false
             });
-        } else {
-            res.json(defaults);
         }
+        
+        const u = user.rows[0];
+        
+        // ⚠️ No longer return plain passwords for security
+        // Only return status
+        res.json({ 
+            success: true,
+            passwords_generated: u.passwords_generated || false,
+            passwords_viewed_at: u.passwords_viewed_at,
+            message: u.passwords_generated ? 
+                'Passwords have been generated. Use the Password Generator to create new ones.' : 
+                'No passwords generated yet.',
+            // ❌ No plain passwords returned
+        });
+        
     } catch(e) {
-        console.error('[GET PASSWORDS ERROR]', e.message);
-        res.json(defaults);
+        console.error('[GET PASSWORDS ERROR]', e);
+        res.json({ 
+            success: false, 
+            message: 'Server error',
+            passwords_generated: false
+        });
+    }
+});
+// ==================== CHECK PASSWORD STATUS API ====================
+app.post('/api/check_password_status', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token) {
+        return res.json({ success: false, message: 'Token required' });
+    }
+    
+    try {
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token' });
+        }
+        
+        const p = await getPool();
+        const user = await p.query(
+            'SELECT passwords_generated, passwords_viewed_at FROM auth_users WHERE id = $1',
+            [uid]
+        );
+        
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        res.json({
+            success: true,
+            passwords_generated: user.rows[0].passwords_generated || false,
+            passwords_viewed_at: user.rows[0].passwords_viewed_at
+        });
+        
+    } catch(e) {
+        console.error('[CHECK PASSWORD STATUS ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
     }
 });
 // ==================== HISTORY SECURITY PASSWORD API ====================
