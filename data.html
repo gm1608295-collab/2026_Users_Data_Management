@@ -2851,7 +2851,45 @@ async function saveGeneratedPassword() {
         n('❌ Connection error', 'error');
     }
 }
-    // ==================== INIT ====================
+    a// ==================== CHECK PASSWORD STATUS ====================
+async function checkPasswordStatus() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        if (!token || token === 'guest') return;
+        
+        const r = await fetch('/api/check_password_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            if (d.passwords_generated) {
+                console.log('✅ Passwords already generated');
+                // Password တွေ ရှိပြီးသား - Generator Card မှာ ပြဖို့
+                const viewedAt = d.passwords_viewed_at 
+                    ? new Date(d.passwords_viewed_at).toLocaleString() 
+                    : 'Unknown';
+                console.log('   Viewed at:', viewedAt);
+            } else {
+                console.log('⚠️ No passwords generated yet');
+                // Password မရှိသေးရင် Generator Card ကို Auto-Expand
+                setTimeout(() => {
+                    const body = document.getElementById('passwordGenBody');
+                    const arrow = document.getElementById('passwordGenArrow');
+                    if (body && !body.classList.contains('open')) {
+                        body.classList.add('open');
+                        arrow.classList.add('open');
+                    }
+                }, 1000);
+            }
+        }
+    } catch(e) {
+        console.error('Check password status error:', e);
+    }
+}
+// ==================== INIT ====================
 (async function init() {
     console.log('🚀 Data Page Init Start');
     
@@ -2872,35 +2910,18 @@ async function saveGeneratedPassword() {
     document.getElementById('dataContent').style.display = 'block';
     document.getElementById('maintenanceMessage').style.display = 'none';
     
-    // ✅ Step 4: Data တွေ Load
+    // ✅ Step 4: Countries Load
     populateCountries();
     
+    // ✅ Step 5: Check Password Status (အသစ်)
+    await checkPasswordStatus();
+    
+    // ❌ loadPw() မခေါ်တော့ဘူး
+    // ❌ GPASS, MPASS, TPASS တွေ မသုံးတော့ဘူး
     
     console.log('✅ Data Page Init Complete');
     
 })();
-
-// ==================== ✅ PAGE VISIBILITY - PASSWORD RELOAD ====================
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') {
-        console.log('👁️ Page visible - Reloading passwords...');
-        
-    }
-});
-
-// ==================== ✅ BACK/FORWARD CACHE - PASSWORD RELOAD ====================
-window.addEventListener('pageshow', (event) => {
-    if (event.persisted || performance.navigation.type === 2) {
-        console.log('🔄 Page restored from cache - Reloading passwords...');
-        
-    }
-});
-
-// ==================== ✅ FOCUS - PASSWORD RELOAD ====================
-window.addEventListener('focus', () => {
-    console.log('🎯 Window focused - Reloading passwords...');
-    
-});
 </script>
 </body>
 </html>
