@@ -2014,8 +2014,7 @@ const COUNTRIES_DATA = [
     { name: "Zimbabwe", flag: "🇿🇼", regions: ["Harare", "Bulawayo", "Victoria Falls", "Mutare", "Gweru", "Masvingo", "Chinhoyi"] }
 ];
 
-    // ==================== INLINE PASSWORD GENERATOR (PER TAB) ====================
-
+// ==================== CHAR SETS (ONE TIME DECLARE) ====================
 const CHAR_SETS = {
     lower: 'abcdefghijklmnopqrstuvwxyz',
     upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -2023,199 +2022,76 @@ const CHAR_SETS = {
     symbols: '@#*!?"'
 };
 
-// Active char types per type
-const activeCharTypes = {
-    gmail: { lower: true, upper: true, numbers: true, symbols: false },
-    mlbb: { lower: true, upper: true, numbers: true, symbols: false },
-    tiktok: { lower: true, upper: true, numbers: true, symbols: false }
-};
-
-// Current generated passwords
-const currentPasswords = {
-    gmail: '',
-    mlbb: '',
-    tiktok: ''
-};
-
-// Toggle char type (click on label)
-function toggleMiniChar(type, charType) {
-    const chk = document.getElementById(type + 'Chk' + charType.charAt(0).toUpperCase() + charType.slice(1));
-    chk.checked = !chk.checked;
-    updateMiniChar(type, charType, chk.checked);
+// ==================== TOAST NOTIFICATION ====================
+function n(m, t = "success") {
+    const e = document.getElementById("notif");
+    e.textContent = m;
+    e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
+    e.style.display = "block";
+    setTimeout(() => e.style.display = "none", 3000);
 }
 
-// Update char type
-function updateMiniChar(type, charType, isChecked) {
-    activeCharTypes[type][charType] = isChecked;
-    
-    const opt = document.getElementById(type + 'Opt' + charType.charAt(0).toUpperCase() + charType.slice(1));
-    if (isChecked) {
-        opt.classList.remove('disabled');
+// ==================== TAB SWITCHING ====================
+function showSub(id) {
+    document.querySelectorAll('.data-card').forEach(c => c.classList.remove('sel'));
+    event.target.closest('.data-card').classList.add('sel');
+    document.querySelectorAll('.sub-tab').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+// ==================== PASSWORD TOGGLE ====================
+function togglePass(i, b) {
+    const inp = document.getElementById(i);
+    const ic = b.querySelector('i');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        ic.className = 'fas fa-eye-slash';
     } else {
-        opt.classList.add('disabled');
-    }
-    
-    // Ensure at least one type selected
-    const anyChecked = Object.values(activeCharTypes[type]).some(v => v);
-    if (!anyChecked) {
-        activeCharTypes[type][charType] = true;
-        document.getElementById(type + 'Chk' + charType.charAt(0).toUpperCase() + charType.slice(1)).checked = true;
-        opt.classList.remove('disabled');
-        n('⚠️ အနည်းဆုံး တစ်ခုရွေးထားရပါမည်', 'error');
-    }
-    
-    generateMiniPassword(type);
-}
-
-// Generate password for specific type
-function generateMiniPassword(type) {
-    let chars = '';
-    for (const [charType, isActive] of Object.entries(activeCharTypes[type])) {
-        if (isActive) chars += CHAR_SETS[charType];
-    }
-    
-    if (!chars) return '';
-    
-    const length = parseInt(document.getElementById(type + 'PassLength').value) || 10;
-    let password = '';
-    for (let i = 0; i < length; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    
-    currentPasswords[type] = password;
-    const displayEl = document.getElementById(type + 'GeneratedPassword');
-    if (displayEl) displayEl.textContent = password;
-    
-    return password;
-}
-
-// Generate and show
-function generateAndShowMiniPassword(type) {
-    const password = generateMiniPassword(type);
-    
-    if (password) {
-        document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
-        document.getElementById(type + 'SavePasswordBtn').style.display = 'block';
+        inp.type = 'password';
+        ic.className = 'fas fa-eye';
     }
 }
 
-// Copy password
-function copyMiniPassword(type) {
-    const password = currentPasswords[type];
-    
-    if (!password) {
-        n('❌ Password အရင် Generate လုပ်ပါ', 'error');
-        return;
-    }
-    
-    navigator.clipboard.writeText(password).then(() => {
-        n('✅ Copied!', 'success');
-    }).catch(() => {
-        n('❌ Copy Failed', 'error');
+// ==================== COUNTRY DROPDOWNS ====================
+function populateCountries() {
+    const selects = ['gCountry', 'mCountry', 'tCountry'];
+    selects.forEach(selectId => {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        let html = '<option value="">🌍 Select Country...</option>';
+        COUNTRIES_DATA.forEach(country => {
+            html += `<option value="${country.name}">${country.flag} ${country.name}</option>`;
+        });
+        select.innerHTML = html;
     });
 }
 
-// Save password for specific type
-async function saveMiniPassword(type) {
-    const password = currentPasswords[type];
-    
-    if (!password) {
-        n('❌ Password အရင် Generate လုပ်ပါ', 'error');
-        return;
-    }
-    
-    try {
-        const token = localStorage.getItem('auth_token');
-        const r = await fetch('/api/save_type_password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, type, password })
-        });
-        const d = await r.json();
-        
-        if (d.success) {
-            n('✅ ' + type.toUpperCase() + ' Password Saved!', 'success');
-            
-            // Hide password display
-            document.getElementById(type + 'PasswordDisplayBox').style.display = 'none';
-            document.getElementById(type + 'SavePasswordBtn').style.display = 'none';
-            currentPasswords[type] = '';
-            
-        } else {
-            n('❌ ' + (d.message || 'Save failed'), 'error');
-        }
-    } catch(e) {
-        n('❌ Connection error', 'error');
-    }
-    }
-    // ==================== TOAST NOTIFICATION ====================
-    function n(m, t = "success") {
-        const e = document.getElementById("notif");
-        e.textContent = m;
-        e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
-        e.style.display = "block";
-        setTimeout(() => e.style.display = "none", 3000);
-    }
-
-    // ==================== TAB SWITCHING ====================
-    function showSub(id) {
-        document.querySelectorAll('.data-card').forEach(c => c.classList.remove('sel'));
-        event.target.closest('.data-card').classList.add('sel');
-        document.querySelectorAll('.sub-tab').forEach(s => s.classList.remove('active'));
-        document.getElementById(id).classList.add('active');
-    }
-
-    // ==================== PASSWORD TOGGLE ====================
-    function togglePass(i, b) {
-        const inp = document.getElementById(i);
-        const ic = b.querySelector('i');
-        if (inp.type === 'password') {
-            inp.type = 'text';
-            ic.className = 'fas fa-eye-slash';
-        } else {
-            inp.type = 'password';
-            ic.className = 'fas fa-eye';
-        }
-    }
-
-    // ==================== COUNTRY DROPDOWNS ====================
-    function populateCountries() {
-        const selects = ['gCountry', 'mCountry', 'tCountry'];
-        selects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            if (!select) return;
-            let html = '<option value="">🌍 Select Country...</option>';
-            COUNTRIES_DATA.forEach(country => {
-                html += `<option value="${country.name}">${country.flag} ${country.name}</option>`;
-            });
-            select.innerHTML = html;
+function loadRegions(countryId, regionId) {
+    const countrySelect = document.getElementById(countryId);
+    const regionSelect = document.getElementById(regionId);
+    const countryName = countrySelect.value;
+    regionSelect.innerHTML = '<option value="">📍 Select Region...</option>';
+    if (!countryName) return;
+    const country = COUNTRIES_DATA.find(c => c.name === countryName);
+    if (country && country.regions) {
+        country.regions.forEach(region => {
+            regionSelect.innerHTML += `<option value="${region}">📍 ${region}</option>`;
         });
     }
+}
 
-    function loadRegions(countryId, regionId) {
-        const countrySelect = document.getElementById(countryId);
-        const regionSelect = document.getElementById(regionId);
-        const countryName = countrySelect.value;
+// ==================== MODAL FUNCTIONS ====================
+function openDataInfo() { document.getElementById("dataInfoModal").classList.add("active"); }
+function closeDataInfo() { document.getElementById("dataInfoModal").classList.remove("active"); }
+function copyPassText(t) {
+    navigator.clipboard.writeText(t).then(() => n("✅ Password Copied!", "success")).catch(() => n("❌ Copy Failed", "error"));
+}
 
-        regionSelect.innerHTML = '<option value="">📍 Select Region...</option>';
-
-        if (!countryName) return;
-
-        const country = COUNTRIES_DATA.find(c => c.name === countryName);
-        if (country && country.regions) {
-            country.regions.forEach(region => {
-                regionSelect.innerHTML += `<option value="${region}">📍 ${region}</option>`;
-            });
-        }
-    }
-    // ==================== UNLOCK DATA (SERVER-SIDE VERIFY) ====================
+// ==================== UNLOCK DATA (SERVER-SIDE VERIFY) ====================
 async function unlockData(type) {
     const passInput = document.getElementById('data' + type.charAt(0).toUpperCase() + type.slice(1) + 'Pass');
     const pass = passInput.value;
-    
-    if (!pass) {
-        return n('❌ Password ထည့်ပါ', 'error');
-    }
+    if (!pass) return n('❌ Password ထည့်ပါ', 'error');
     
     try {
         const token = localStorage.getItem('auth_token');
@@ -2237,36 +2113,30 @@ async function unlockData(type) {
         n('❌ Connection error', 'error');
     }
 }
-    // ==================== MODAL ====================
-    function openDataInfo() { document.getElementById("dataInfoModal").classList.add("active"); }
-    function closeDataInfo() { document.getElementById("dataInfoModal").classList.remove("active"); }
-    function copyPassText(t) {
-        navigator.clipboard.writeText(t).then(() => n("✅ Password Copied!", "success")).catch(() => n("❌ Copy Failed", "error"));
-    }
-    // ==================== DYNAMIC INPUTS (ADD/REMOVE) ====================
-    function addInput(listId, cls, type, ph) {
-        const d = document.getElementById(listId);
-        const div = document.createElement('div');
-        div.className = 'input-row';
-        div.innerHTML = `<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`;
-        d.appendChild(div);
-        n("➕ Field added!", "success");
-    }
-    function getValues(cls) {
-        return Array.from(document.getElementsByClassName(cls)).map(i => i.value).filter(v => v.trim());
-    }
-    function addGmailEmail() { addInput('gmailEmailList', 'gmail-email', 'email', 'Enter email address'); }
-    function addGmailPhone() { addInput('gmailPhoneList', 'gmail-phone', 'text', 'Enter phone number'); }
-    function addMlbbEmail() { addInput('mlbbEmailList', 'mlbb-email', 'email', 'Enter Gmail address'); }
-    function addTiktokEmail() { addInput('tiktokEmailList', 'tiktok-email', 'email', 'Enter email address'); }
-    function addTiktokPhone() { addInput('tiktokPhoneList', 'tiktok-phone', 'text', 'Enter phone number'); }
 
-      // ==================== SAVE FUNCTIONS ====================
+// ==================== DYNAMIC INPUTS (ADD/REMOVE) ====================
+function addInput(listId, cls, type, ph) {
+    const d = document.getElementById(listId);
+    const div = document.createElement('div');
+    div.className = 'input-row';
+    div.innerHTML = `<input type="${type}" class="${cls}" placeholder="${ph}"><button class="remove-btn" onclick="this.parentElement.remove()">×</button>`;
+    d.appendChild(div);
+    n("➕ Field added!", "success");
+}
+function getValues(cls) {
+    return Array.from(document.getElementsByClassName(cls)).map(i => i.value).filter(v => v.trim());
+}
+function addGmailEmail() { addInput('gmailEmailList', 'gmail-email', 'email', 'Enter email address'); }
+function addGmailPhone() { addInput('gmailPhoneList', 'gmail-phone', 'text', 'Enter phone number'); }
+function addMlbbEmail() { addInput('mlbbEmailList', 'mlbb-email', 'email', 'Enter Gmail address'); }
+function addTiktokEmail() { addInput('tiktokEmailList', 'tiktok-email', 'email', 'Enter email address'); }
+function addTiktokPhone() { addInput('tiktokPhoneList', 'tiktok-phone', 'text', 'Enter phone number'); }
+
+// ==================== SAVE FUNCTIONS ====================
 async function saveGmailData() {
     const name = document.getElementById("gName").value.trim();
     if (!name) return n("❌ Name is required!", "error");
     if (document.getElementById("gPw").value !== document.getElementById("gConfirmPw").value) return n("❌ Passwords don't match!", "error");
-    
     try {
         await fetch("/api/save_user_data", {
             method: "POST",
@@ -2294,7 +2164,6 @@ async function saveMlbbData() {
     const name = document.getElementById("mName").value.trim();
     if (!name) return n("❌ In-Game Name is required!", "error");
     if (document.getElementById("mPw").value !== document.getElementById("mConfirmPw").value) return n("❌ Passwords don't match!", "error");
-    
     try {
         await fetch("/api/save_user_data", {
             method: "POST",
@@ -2323,7 +2192,6 @@ async function saveTiktokData() {
     const name = document.getElementById("tFullName").value.trim();
     if (!name) return n("❌ Full Name is required!", "error");
     if (document.getElementById("tPw").value !== document.getElementById("tConfirmPw").value) return n("❌ Passwords don't match!", "error");
-    
     try {
         await fetch("/api/save_user_data", {
             method: "POST",
@@ -2347,144 +2215,86 @@ async function saveTiktokData() {
         document.getElementById("tiktokForm").style.display = 'none';
     } catch(e) { n("❌ Error saving data", "error"); }
 }
-    // ==================== PAGE ACCESS CHECK ====================
+
+// ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess() {
     try {
         const r = await fetch('/api/admin/page_status');
         const d = await r.json();
-        
-        console.log('🔍 Page status:', d);
-        
         if (d.pages) {
             const dp = d.pages.find(p => p.id === 'data');
-            
             if (dp && dp.status === 'off') {
-                console.log('🚫 Data page is OFF - showing maintenance');
                 document.getElementById('maintenanceMessage').style.display = 'block';
                 document.getElementById('dataContent').style.display = 'none';
                 await checkPageTimer();
                 return false;
             }
         }
-        
-        console.log('✅ Data page is ON');
         document.getElementById('maintenanceMessage').style.display = 'none';
         document.getElementById('dataContent').style.display = 'block';
         return true;
-        
     } catch(e) {
-        console.error('Page access check error:', e);
-        // Error ရင်လည်း Page ပြပေး
         document.getElementById('maintenanceMessage').style.display = 'none';
         document.getElementById('dataContent').style.display = 'block';
         return true;
     }
-    }    
+}
+
 // ==================== PAGE TIMER COUNTDOWN ====================
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'data';
-    
-    console.log('🔍 Checking timer for page:', pageId);
-    
     let timer = null;
-    
     try {
-        // Method 1: localStorage
         const saved = localStorage.getItem('pageTimers');
-        if (saved) {
-            const timers = JSON.parse(saved);
-            timer = timers[pageId];
-            console.log('📦 localStorage timer:', timer);
-        }
-        
-        // Method 2: Cookie
+        if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
         if (!timer) {
             const cookieTimers = getCookie('pageTimers');
-            if (cookieTimers) {
-                const timers = JSON.parse(decodeURIComponent(cookieTimers));
-                timer = timers[pageId];
-                console.log('🍪 Cookie timer:', timer);
-            }
+            if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; }
         }
-        
-        // Method 3: SessionStorage
         if (!timer) {
             const sessionTimers = sessionStorage.getItem('pageTimers');
-            if (sessionTimers) {
-                const timers = JSON.parse(sessionTimers);
-                timer = timers[pageId];
-                console.log('💾 SessionStorage timer:', timer);
-            }
+            if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; }
         }
-    } catch(e) {
-        console.error('Timer load error:', e);
-    }
+    } catch(e) {}
     
-    // No timer or timer expired
     if (!timer || timer <= Date.now()) {
-        console.log('✅ No active timer found or timer expired');
         document.getElementById('maintenanceMessage').style.display = 'none';
         document.getElementById('dataContent').style.display = 'block';
         document.getElementById('pageTimerBanner').style.display = 'none';
         return;
     }
     
-    console.log('⏰ Active timer found. Seconds remaining:', Math.floor((timer - Date.now()) / 1000));
-    
-    // Show maintenance message
     const maintMsg = document.getElementById('maintenanceMessage');
     const dataContent = document.getElementById('dataContent');
     const pageBanner = document.getElementById('pageTimerBanner');
-    
     if (maintMsg) maintMsg.style.display = 'block';
     if (dataContent) dataContent.style.display = 'none';
     if (pageBanner) pageBanner.style.display = 'block';
     
-    // Timer elements
     const maintTimer = document.getElementById('maintenanceCountdown');
     const pageCountdown = document.getElementById('pageTimerCountdown');
     
-    // Update function
     const update = () => {
         const rem = timer - Date.now();
-        
         if (rem <= 0) {
-            // Timer expired - clear and reload
-            console.log('✅ Timer expired! Reloading page...');
-            
             try {
                 const saved = localStorage.getItem('pageTimers');
-                if (saved) {
-                    const timers = JSON.parse(saved);
-                    delete timers[pageId];
-                    localStorage.setItem('pageTimers', JSON.stringify(timers));
-                }
+                if (saved) { const timers = JSON.parse(saved); delete timers[pageId]; localStorage.setItem('pageTimers', JSON.stringify(timers)); }
                 setCookie('pageTimers', '', -1);
                 sessionStorage.removeItem('pageTimers');
             } catch(e) {}
-            
             location.reload();
             return;
         }
-        
-        // Calculate time
         const s = Math.floor(rem / 1000);
         const h = Math.floor(s / 3600);
         const m = Math.floor((s % 3600) / 60);
         const sec = s % 60;
-        const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-        
-        // Update displays
+        const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
         if (maintTimer) maintTimer.textContent = timeStr;
         if (pageCountdown) pageCountdown.textContent = timeStr;
-        
-        console.log('⏳ Timer:', timeStr);
     };
-    
-    // Run immediately
     update();
-    
-    // Update every second
     setInterval(update, 1000);
 }
 
@@ -2508,83 +2318,55 @@ function getCookie(name) {
     }
     return null;
 }
-    // ==================== BG MUSIC PLAYER ====================
-    (function() {
-        const a = document.getElementById('bgAudio');
-        if (!a) return;
-        let p = [], i = 0;
-        a.volume = 0.5;
-        a.loop = false;
-        const fl = !sessionStorage.getItem('mp');
-        if (fl) {
-            i = 0;
-            localStorage.setItem('bgi', '0');
-            localStorage.setItem('bgt0', '0');
-        } else {
-            i = parseInt(localStorage.getItem('bgi') || '0');
-        }
-        sessionStorage.setItem('mp', '1');
-        async function fp() {
-            try {
-                const r = await fetch('/api/bg_music?t=' + Date.now());
-                const d = await r.json();
-                if (d.playlist && d.playlist.length > 0) {
-                    p = d.playlist;
-                    return true;
-                }
-                return false;
-            } catch(e) { return false; }
-        }
-        function pl() {
-            if (!p.length) return;
-            if (i >= p.length) i = 0;
-            const u = p[i];
-            a.src = u;
-            a.load();
-            a.addEventListener('canplay', function h() {
-                a.play().catch(() => {});
-                a.removeEventListener('canplay', h);
-            });
-        }
-        a.addEventListener('ended', function() {
-            localStorage.setItem('bgt' + i, '0');
-            i = (i + 1) % p.length;
-            localStorage.setItem('bgi', i);
-            localStorage.setItem('bgt' + i, '0');
-            pl();
-        });
-        a.addEventListener('error', function() {
-            i = (i + 1) % p.length;
-            localStorage.setItem('bgi', i);
-            localStorage.setItem('bgt' + i, '0');
-            pl();
-        });
-        setInterval(() => {
-            if (!a.paused && p.length > 0 && a.currentTime > 0) {
-                localStorage.setItem('bgi', i);
-                localStorage.setItem('bgt' + i, a.currentTime);
-            }
-        }, 1000);
-        fp().then(h => { if (h) { if (fl) i = 0; pl(); } });
-        setInterval(fp, 3000);
-    })();
 
-    // ==================== SECURITY CARD TOGGLE ====================
+// ==================== BG MUSIC PLAYER ====================
+(function() {
+    const a = document.getElementById('bgAudio');
+    if (!a) return;
+    let p = [], i = 0;
+    a.volume = 0.5; a.loop = false;
+    const fl = !sessionStorage.getItem('mp');
+    if (fl) { i = 0; localStorage.setItem('bgi','0'); localStorage.setItem('bgt0','0'); }
+    else { i = parseInt(localStorage.getItem('bgi')||'0'); }
+    sessionStorage.setItem('mp','1');
+    async function fp() {
+        try {
+            const r = await fetch('/api/bg_music?t='+Date.now());
+            const d = await r.json();
+            if (d.playlist && d.playlist.length>0) { p = d.playlist; return true; }
+            return false;
+        } catch(e) { return false; }
+    }
+    function pl() {
+        if (!p.length) return;
+        if (i >= p.length) i = 0;
+        const u = p[i]; a.src = u; a.load();
+        a.addEventListener('canplay', function h() { a.play().catch(()=>{}); a.removeEventListener('canplay',h); });
+    }
+    a.addEventListener('ended', function() {
+        localStorage.setItem('bgt'+i,'0'); i = (i+1) % p.length;
+        localStorage.setItem('bgi',i); localStorage.setItem('bgt'+i,'0'); pl();
+    });
+    a.addEventListener('error', function() {
+        i = (i+1) % p.length; localStorage.setItem('bgi',i); localStorage.setItem('bgt'+i,'0'); pl();
+    });
+    setInterval(() => {
+        if (!a.paused && p.length>0 && a.currentTime>0) {
+            localStorage.setItem('bgi',i); localStorage.setItem('bgt'+i, a.currentTime);
+        }
+    }, 1000);
+    fp().then(h => { if(h) { if(fl) i=0; pl(); } });
+    setInterval(fp, 3000);
+})();
+
+// ==================== SECURITY CARD TOGGLE ====================
 function toggleSecurityCard(bodyId) {
     const body = document.getElementById(bodyId);
     const arrow = document.getElementById(bodyId.replace('Body', 'Arrow'));
     const allBodies = document.querySelectorAll('.security-card-body');
     const allArrows = document.querySelectorAll('.security-card-arrow');
-    
-    // Close other cards
-    allBodies.forEach(b => {
-        if (b.id !== bodyId) b.classList.remove('open');
-    });
-    allArrows.forEach(a => {
-        if (a.id !== bodyId.replace('Body', 'Arrow')) a.classList.remove('open');
-    });
-    
-    // Toggle current
+    allBodies.forEach(b => { if (b.id !== bodyId) b.classList.remove('open'); });
+    allArrows.forEach(a => { if (a.id !== bodyId.replace('Body', 'Arrow')) a.classList.remove('open'); });
     body.classList.toggle('open');
     arrow.classList.toggle('open');
 }
@@ -2597,8 +2379,6 @@ async function runNetworkTest() {
     const resultDiv = document.getElementById('networkResult');
     const stepSpan = document.getElementById('networkStep');
     const progressBar = document.getElementById('networkProgressBar');
-    
-    // Reset
     progressDiv.style.display = 'block';
     resultDiv.style.display = 'none';
     
@@ -2614,133 +2394,81 @@ async function runNetworkTest() {
     for (const step of steps) {
         stepSpan.textContent = '⏳ ' + step.name;
         progressBar.style.width = step.progress + '%';
-        
-        try {
-            const result = await step.fn();
-            if (result) Object.assign(results, result);
-        } catch(e) {
-            console.error('Test error:', e.message);
-        }
-        
+        try { const result = await step.fn(); if (result) Object.assign(results, result); } catch(e) {}
         await sleep(500);
     }
     
-    // Final
     stepSpan.textContent = '✅ Test Complete!';
     progressBar.style.width = '100%';
-    
     await sleep(500);
     progressDiv.style.display = 'none';
-    
-    // Show Result
     displayNetworkResults(results);
     resultDiv.style.display = 'block';
 }
 
-// ==================== PING TEST ====================
 async function testPing() {
     const times = [];
-    
     for (let i = 0; i < 3; i++) {
         const start = performance.now();
         try {
-            await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now(), {
-                method: 'GET',
-                cache: 'no-store'
-            });
+            await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
             const end = performance.now();
             times.push(Math.round(end - start));
-        } catch(e) {
-            times.push(999);
-        }
+        } catch(e) { times.push(999); }
     }
-    
     const avgPing = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
     return { ping: avgPing };
 }
 
-// ==================== DOWNLOAD SPEED TEST ====================
 async function testDownload() {
-    const testSize = 100 * 1024; // 100KB
+    const testSize = 100 * 1024;
     const testUrl = NETWORK_TEST_URL + '/api/speedtest?size=' + testSize + '&t=' + Date.now();
-    
     const start = performance.now();
     try {
         const response = await fetch(testUrl, { cache: 'no-store' });
         const data = await response.arrayBuffer();
         const end = performance.now();
-        
         const durationSec = (end - start) / 1000;
         const sizeMb = data.byteLength / (1024 * 1024);
         const speedMbps = (sizeMb * 8) / durationSec;
-        
         return { download: Math.round(speedMbps * 10) / 10 };
-    } catch(e) {
-        return { download: 0 };
-    }
+    } catch(e) { return { download: 0 }; }
 }
 
-// ==================== UPLOAD SPEED TEST ====================
 async function testUpload() {
-    const testData = new Uint8Array(50 * 1024); // 50KB
-    for (let i = 0; i < testData.length; i++) {
-        testData[i] = Math.floor(Math.random() * 256);
-    }
-    
+    const testData = new Uint8Array(50 * 1024);
+    for (let i = 0; i < testData.length; i++) { testData[i] = Math.floor(Math.random() * 256); }
     const start = performance.now();
     try {
-        await fetch(NETWORK_TEST_URL + '/api/speedtest/upload?t=' + Date.now(), {
-            method: 'POST',
-            body: testData,
-            cache: 'no-store'
-        });
+        await fetch(NETWORK_TEST_URL + '/api/speedtest/upload?t=' + Date.now(), { method: 'POST', body: testData, cache: 'no-store' });
         const end = performance.now();
-        
         const durationSec = (end - start) / 1000;
         const sizeMb = testData.byteLength / (1024 * 1024);
         const speedMbps = (sizeMb * 8) / durationSec;
-        
         return { upload: Math.round(speedMbps * 10) / 10 };
-    } catch(e) {
-        return { upload: 0 };
-    }
+    } catch(e) { return { upload: 0 }; }
 }
 
-// ==================== PACKET LOSS TEST ====================
 async function testPacketLoss() {
     const totalPings = 5;
     let lost = 0;
     const jitterValues = [];
     let prevPing = null;
-    
     for (let i = 0; i < totalPings; i++) {
         const start = performance.now();
         try {
-            await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now() + '&i=' + i, {
-                method: 'GET',
-                cache: 'no-store'
-            });
+            await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now() + '&i=' + i, { method: 'GET', cache: 'no-store' });
             const end = performance.now();
             const pingTime = Math.round(end - start);
-            
-            if (prevPing !== null) {
-                jitterValues.push(Math.abs(pingTime - prevPing));
-            }
+            if (prevPing !== null) { jitterValues.push(Math.abs(pingTime - prevPing)); }
             prevPing = pingTime;
-        } catch(e) {
-            lost++;
-        }
+        } catch(e) { lost++; }
     }
-    
     const packetLoss = Math.round((lost / totalPings) * 100);
-    const jitter = jitterValues.length > 0 
-        ? Math.round(jitterValues.reduce((a, b) => a + b, 0) / jitterValues.length) 
-        : 0;
-    
+    const jitter = jitterValues.length > 0 ? Math.round(jitterValues.reduce((a, b) => a + b, 0) / jitterValues.length) : 0;
     return { packetLoss, jitter };
 }
 
-// ==================== DISPLAY RESULTS ====================
 function displayNetworkResults(r) {
     const ping = r.ping || 999;
     const download = r.download || 0;
@@ -2748,14 +2476,12 @@ function displayNetworkResults(r) {
     const packetLoss = r.packetLoss || 0;
     const jitter = r.jitter || 0;
     
-    // Determine statuses
     const pingStatus = ping < 60 ? ['green', 'Excellent'] : ping < 120 ? ['yellow', 'Normal'] : ['red', 'Poor'];
     const dlStatus = download > 20 ? ['green', 'Fast'] : download > 10 ? ['yellow', 'Normal'] : ['red', 'Slow'];
     const ulStatus = upload > 10 ? ['green', 'Fast'] : upload > 5 ? ['yellow', 'Normal'] : ['red', 'Slow'];
     const plStatus = packetLoss === 0 ? ['green', 'None'] : packetLoss < 5 ? ['yellow', 'Low'] : ['red', 'High'];
     const jtStatus = jitter < 15 ? ['green', 'Good'] : jitter < 30 ? ['yellow', 'Okay'] : ['red', 'Bad'];
     
-    // Overall Rating
     let score = 5;
     if (ping > 120) score--;
     if (ping > 200) score--;
@@ -2770,97 +2496,35 @@ function displayNetworkResults(r) {
     const mlbbPlayable = score >= 3;
     const stars = '⭐'.repeat(score) + '☆'.repeat(5 - score);
     
-    const resultHTML = `
-        <div class="network-overall ${overallClass}">
-            🟢 Overall: ${overallText} for Gaming
-        </div>
-        
-        <div class="network-row">
-            <span class="network-label">📡 Ping</span>
-            <span class="network-value">${ping}ms</span>
-            <div class="network-bar-wrap">
-                <div class="network-bar-fill ${pingStatus[0]}" style="width:${Math.min(100, ping/3)}%"></div>
-            </div>
-            <span class="network-status ${pingStatus[0]}">${pingStatus[1]}</span>
-        </div>
-        
-        <div class="network-row">
-            <span class="network-label">⬇️ Download</span>
-            <span class="network-value">${download} Mbps</span>
-            <div class="network-bar-wrap">
-                <div class="network-bar-fill ${dlStatus[0]}" style="width:${Math.min(100, download*4)}%"></div>
-            </div>
-            <span class="network-status ${dlStatus[0]}">${dlStatus[1]}</span>
-        </div>
-        
-        <div class="network-row">
-            <span class="network-label">⬆️ Upload</span>
-            <span class="network-value">${upload} Mbps</span>
-            <div class="network-bar-wrap">
-                <div class="network-bar-fill ${ulStatus[0]}" style="width:${Math.min(100, upload*8)}%"></div>
-            </div>
-            <span class="network-status ${ulStatus[0]}">${ulStatus[1]}</span>
-        </div>
-        
-        <div class="network-row">
-            <span class="network-label">📦 Packet Loss</span>
-            <span class="network-value">${packetLoss}%</span>
-            <div class="network-bar-wrap">
-                <div class="network-bar-fill ${plStatus[0]}" style="width:${Math.min(100, packetLoss*20)}%"></div>
-            </div>
-            <span class="network-status ${plStatus[0]}">${plStatus[1]}</span>
-        </div>
-        
-        <div class="network-row">
-            <span class="network-label">📊 Jitter</span>
-            <span class="network-value">${jitter}ms</span>
-            <div class="network-bar-wrap">
-                <div class="network-bar-fill ${jtStatus[0]}" style="width:${Math.min(100, jitter*3)}%"></div>
-            </div>
-            <span class="network-status ${jtStatus[0]}">${jtStatus[1]}</span>
-        </div>
-        
-        <div class="network-rating">
-            Rating: <span>${stars}</span> (${score}/5)
-            <br>
-            🎮 MLBB Playable: ${mlbbPlayable ? '<span style="color:#2ecc71;">✅ Yes</span>' : '<span style="color:#e74c3c;">❌ Not Recommended</span>'}
-        </div>
+    document.getElementById('networkResultBox').innerHTML = `
+        <div class="network-overall ${overallClass}">🟢 Overall: ${overallText} for Gaming</div>
+        <div class="network-row"><span class="network-label">📡 Ping</span><span class="network-value">${ping}ms</span><div class="network-bar-wrap"><div class="network-bar-fill ${pingStatus[0]}" style="width:${Math.min(100, ping/3)}%"></div></div><span class="network-status ${pingStatus[0]}">${pingStatus[1]}</span></div>
+        <div class="network-row"><span class="network-label">⬇️ Download</span><span class="network-value">${download} Mbps</span><div class="network-bar-wrap"><div class="network-bar-fill ${dlStatus[0]}" style="width:${Math.min(100, download*4)}%"></div></div><span class="network-status ${dlStatus[0]}">${dlStatus[1]}</span></div>
+        <div class="network-row"><span class="network-label">⬆️ Upload</span><span class="network-value">${upload} Mbps</span><div class="network-bar-wrap"><div class="network-bar-fill ${ulStatus[0]}" style="width:${Math.min(100, upload*8)}%"></div></div><span class="network-status ${ulStatus[0]}">${ulStatus[1]}</span></div>
+        <div class="network-row"><span class="network-label">📦 Packet Loss</span><span class="network-value">${packetLoss}%</span><div class="network-bar-wrap"><div class="network-bar-fill ${plStatus[0]}" style="width:${Math.min(100, packetLoss*20)}%"></div></div><span class="network-status ${plStatus[0]}">${plStatus[1]}</span></div>
+        <div class="network-row"><span class="network-label">📊 Jitter</span><span class="network-value">${jitter}ms</span><div class="network-bar-wrap"><div class="network-bar-fill ${jtStatus[0]}" style="width:${Math.min(100, jitter*3)}%"></div></div><span class="network-status ${jtStatus[0]}">${jtStatus[1]}</span></div>
+        <div class="network-rating">Rating: <span>${stars}</span> (${score}/5)<br>🎮 MLBB Playable: ${mlbbPlayable ? '<span style="color:#2ecc71;">✅ Yes</span>' : '<span style="color:#e74c3c;">❌ Not Recommended</span>'}</div>
     `;
-    
-    document.getElementById('networkResultBox').innerHTML = resultHTML;
 }
 
-// ==================== HELPER ====================
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    // ==================== CHANCE CLEAR SYSTEM ====================
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
+// ==================== CHANCE CLEAR SYSTEM ====================
 let clearUnlocked = false;
 let pendingClearType = null;
 
-// ✅ ဒါနဲ့ အစားထိုးပါ
 function unlockClearPanel() {
     const passInput = document.getElementById('clearPassInput');
     const pass = passInput.value.trim();
-    
-    if (!pass) {
-        n('❌ Password ထည့်ပါ', 'error');
-        return;
-    }
-    
-    // ✅ Server-Side Verify လုပ်
+    if (!pass) { n('❌ Password ထည့်ပါ', 'error'); return; }
     verifyClearPassword(pass);
 }
 
 async function verifyClearPassword(password) {
     try {
         const token = localStorage.getItem('auth_token');
-        
-        // Check against all three types
         const types = ['gmail', 'mlbb', 'tiktok'];
         let verified = false;
-        
         for (const type of types) {
             const r = await fetch('/api/verify_data_password', {
                 method: 'POST',
@@ -2868,13 +2532,8 @@ async function verifyClearPassword(password) {
                 body: JSON.stringify({ token, type, password })
             });
             const d = await r.json();
-            
-            if (d.success) {
-                verified = true;
-                break;
-            }
+            if (d.success) { verified = true; break; }
         }
-        
         if (verified) {
             clearUnlocked = true;
             document.getElementById('clearLockSection').style.display = 'none';
@@ -2882,352 +2541,163 @@ async function verifyClearPassword(password) {
             document.getElementById('clearPassInput').value = '';
             n('✅ Unlocked!', 'success');
             loadClearDataCounts();
-        } else {
-            n('❌ Password မှားပါတယ်', 'error');
-        }
-        
-    } catch(e) {
-        n('❌ Connection error', 'error');
-    }
+        } else { n('❌ Password မှားပါတယ်', 'error'); }
+    } catch(e) { n('❌ Connection error', 'error'); }
 }
-// Load Data Counts
+
 async function loadClearDataCounts() {
     try {
         const token = localStorage.getItem('auth_token');
-        const r = await fetch('/api/user/data-counts', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-        });
+        const r = await fetch('/api/user/data-counts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
         const d = await r.json();
-        
         if (d.success) {
-            document.getElementById('gmailDataCount').textContent = 
-                d.counts.gmail > 0 ? `📝 ${d.counts.gmail} records saved` : '📝 No data';
-            document.getElementById('mlbbDataCount').textContent = 
-                d.counts.mlbb > 0 ? `📝 ${d.counts.mlbb} records saved` : '📝 No data';
-            document.getElementById('tiktokDataCount').textContent = 
-                d.counts.tiktok > 0 ? `📝 ${d.counts.tiktok} records saved` : '📝 No data';
-            document.getElementById('loginHistoryCount').textContent = 
-                d.counts.login_history > 0 ? `📝 ${d.counts.login_history} records` : '📝 No data';
+            document.getElementById('gmailDataCount').textContent = d.counts.gmail > 0 ? `📝 ${d.counts.gmail} records saved` : '📝 No data';
+            document.getElementById('mlbbDataCount').textContent = d.counts.mlbb > 0 ? `📝 ${d.counts.mlbb} records saved` : '📝 No data';
+            document.getElementById('tiktokDataCount').textContent = d.counts.tiktok > 0 ? `📝 ${d.counts.tiktok} records saved` : '📝 No data';
+            document.getElementById('loginHistoryCount').textContent = d.counts.login_history > 0 ? `📝 ${d.counts.login_history} records` : '📝 No data';
         }
-    } catch(e) {
-        console.error('Load counts error:', e);
-    }
+    } catch(e) {}
 }
 
-// Clear Data
 function clearData(type) {
-    if (!clearUnlocked) {
-        n('🔐 Password အရင်ထည့်ပါ', 'error');
-        return;
-    }
-    
+    if (!clearUnlocked) { n('🔐 Password အရင်ထည့်ပါ', 'error'); return; }
     pendingClearType = type;
-    
-    const typeNames = {
-        gmail: 'Gmail Data အားလုံး',
-        mlbb: 'MLBB Data အားလုံး',
-        tiktok: 'TikTok Data အားလုံး',
-        login_history: 'Login History အားလုံး',
-        all: 'ဒေတာအားလုံး (Gmail + MLBB + TikTok + Login History)'
-    };
-    
-    document.getElementById('clearConfirmText').textContent = 
-        `"${typeNames[type]}" ကို အပြီးအပိုင် ဖျက်မှာ သေချာပါသလား?`;
-    
+    const typeNames = { gmail: 'Gmail Data အားလုံး', mlbb: 'MLBB Data အားလုံး', tiktok: 'TikTok Data အားလုံး', login_history: 'Login History အားလုံး', all: 'ဒေတာအားလုံး (Gmail + MLBB + TikTok + Login History)' };
+    document.getElementById('clearConfirmText').textContent = `"${typeNames[type]}" ကို အပြီးအပိုင် ဖျက်မှာ သေချာပါသလား?`;
     document.getElementById('clearConfirmModal').classList.add('active');
-    
-    // Set confirm button action
     document.getElementById('confirmClearBtn').onclick = () => executeClearData(type);
 }
 
-// Execute Clear
 async function executeClearData(type) {
     closeClearConfirm();
-    
     const progressDiv = document.getElementById('clearProgress');
     const progressText = document.getElementById('clearProgressText');
     const progressBar = document.getElementById('clearProgressBar');
-    
     progressDiv.style.display = 'block';
     progressText.textContent = '⏳ Clearing ' + type + ' data...';
     progressBar.style.width = '30%';
-    
     try {
         const token = localStorage.getItem('auth_token');
-        const r = await fetch('/api/user/clear-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, type })
-        });
+        const r = await fetch('/api/user/clear-data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, type }) });
         const d = await r.json();
-        
         progressBar.style.width = '100%';
         progressText.textContent = '✅ ' + d.message;
-        
         await sleep(800);
         progressDiv.style.display = 'none';
-        progressBar.style.width = '0%';
-        
         n('✅ ' + d.message, 'success');
-        loadClearDataCounts(); // Refresh counts
-        
-    } catch(e) {
-        progressDiv.style.display = 'none';
-        n('❌ Error clearing data', 'error');
-    }
+        loadClearDataCounts();
+    } catch(e) { progressDiv.style.display = 'none'; n('❌ Error clearing data', 'error'); }
 }
 
-// Close Confirm Modal
 function closeClearConfirm() {
     document.getElementById('clearConfirmModal').classList.remove('active');
     pendingClearType = null;
 }
-  // ==================== PASSWORD GENERATOR ====================
 
-const CHAR_SETS = {
-    lower: 'abcdefghijklmnopqrstuvwxyz',
-    upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
-    numbers: '0123456789',
-    symbols: '@#*!?"'
+// ==================== INLINE PASSWORD GENERATOR (PER TAB) ====================
+const activeCharTypes = {
+    gmail: { lower: true, upper: true, numbers: true, symbols: false },
+    mlbb: { lower: true, upper: true, numbers: true, symbols: false },
+    tiktok: { lower: true, upper: true, numbers: true, symbols: false }
 };
 
-let activeCharTypes = {
-    lower: true,
-    upper: true,
-    numbers: true,
-    symbols: false
-};
+const currentPasswords = { gmail: '', mlbb: '', tiktok: '' };
 
-let currentGeneratedPassword = '';
-let passwordGeneratedFor = '';
-
-// Toggle character type
-function toggleCharType(type) {
-    const chk = document.getElementById('chk' + type.charAt(0).toUpperCase() + type.slice(1));
+function toggleMiniChar(type, charType) {
+    const chk = document.getElementById(type + 'Chk' + charType.charAt(0).toUpperCase() + charType.slice(1));
     chk.checked = !chk.checked;
-    updateCharType(type, chk.checked);
+    updateMiniChar(type, charType, chk.checked);
 }
 
-function updateCharType(type, isChecked) {
-    activeCharTypes[type] = isChecked;
-    
-    // Update option appearance
-    const opt = document.getElementById('opt' + type.charAt(0).toUpperCase() + type.slice(1));
-    if (isChecked) {
-        opt.classList.remove('disabled');
-    } else {
-        opt.classList.add('disabled');
-    }
-    
-    // Ensure at least one type is selected
-    const anyChecked = Object.values(activeCharTypes).some(v => v);
+function updateMiniChar(type, charType, isChecked) {
+    activeCharTypes[type][charType] = isChecked;
+    const opt = document.getElementById(type + 'Opt' + charType.charAt(0).toUpperCase() + charType.slice(1));
+    if (isChecked) { opt.classList.remove('disabled'); } else { opt.classList.add('disabled'); }
+    const anyChecked = Object.values(activeCharTypes[type]).some(v => v);
     if (!anyChecked) {
-        activeCharTypes[type] = true;
-        document.getElementById('chk' + type.charAt(0).toUpperCase() + type.slice(1)).checked = true;
+        activeCharTypes[type][charType] = true;
+        document.getElementById(type + 'Chk' + charType.charAt(0).toUpperCase() + charType.slice(1)).checked = true;
         opt.classList.remove('disabled');
         n('⚠️ အနည်းဆုံး တစ်ခုရွေးထားရပါမည်', 'error');
     }
-    
-    updateTypeBadges();
-    generatePassword();
+    generateMiniPassword(type);
 }
 
-// Update type badges
-function updateTypeBadges() {
-    const badgesDiv = document.getElementById('typeBadges');
-    badgesDiv.innerHTML = '';
-    
-    for (const [type, isActive] of Object.entries(activeCharTypes)) {
-        const names = { lower: 'a-z', upper: 'A-Z', numbers: '0-9', symbols: '@#*!?"' };
-        const span = document.createElement('span');
-        span.className = 'type-badge' + (isActive ? '' : ' inactive');
-        span.textContent = names[type];
-        badgesDiv.appendChild(span);
-    }
-}
-
-// Sync length slider and input
-function syncLength(value) {
-    document.getElementById('passLength').value = value;
-    generatePassword();
-}
-
-// Generate password
-function generatePassword() {
-    // Get active character sets
+function generateMiniPassword(type) {
     let chars = '';
-    for (const [type, isActive] of Object.entries(activeCharTypes)) {
-        if (isActive) {
-            chars += CHAR_SETS[type];
-        }
+    for (const [charType, isActive] of Object.entries(activeCharTypes[type])) {
+        if (isActive) chars += CHAR_SETS[charType];
     }
-    
-    if (!chars) {
-        document.getElementById('generatedPassword').textContent = 'Select at least one type';
-        return '';
-    }
-    
-    const length = parseInt(document.getElementById('passLength').value) || 10;
+    if (!chars) return '';
+    const length = parseInt(document.getElementById(type + 'PassLength').value) || 10;
     let password = '';
-    
-    for (let i = 0; i < length; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    
-    currentGeneratedPassword = password;
-    document.getElementById('generatedPassword').textContent = password;
-    
+    for (let i = 0; i < length; i++) { password += chars.charAt(Math.floor(Math.random() * chars.length)); }
+    currentPasswords[type] = password;
+    const displayEl = document.getElementById(type + 'GeneratedPassword');
+    if (displayEl) displayEl.textContent = password;
     return password;
 }
 
-// Generate and show
-function generateAndShowPassword() {
-    const password = generatePassword();
-    
+function generateAndShowMiniPassword(type) {
+    const password = generateMiniPassword(type);
     if (password) {
-        document.getElementById('passwordDisplayBox').style.display = 'flex';
-        document.getElementById('passwordWarning').style.display = 'block';
-        document.getElementById('savePasswordBtn').style.display = 'block';
+        document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
+        document.getElementById(type + 'SavePasswordBtn').style.display = 'block';
     }
 }
 
-// Copy password
-function copyGeneratedPassword() {
-    const password = document.getElementById('generatedPassword').textContent;
-    
-    if (!password || password === 'Select at least one type') {
-        n('❌ Password အရင် Generate လုပ်ပါ', 'error');
-        return;
-    }
-    
-    navigator.clipboard.writeText(password).then(() => {
-        const btn = document.querySelector('.copy-btn');
-        btn.classList.add('copied');
-        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        
-        setTimeout(() => {
-            btn.classList.remove('copied');
-            btn.innerHTML = '<i class="fas fa-copy"></i> Copy';
-        }, 2000);
-        
-        n('✅ Password Copied!', 'success');
-    }).catch(() => {
-        n('❌ Copy Failed', 'error');
-    });
+function copyMiniPassword(type) {
+    const password = currentPasswords[type];
+    if (!password) { n('❌ Password အရင် Generate လုပ်ပါ', 'error'); return; }
+    navigator.clipboard.writeText(password).then(() => { n('✅ Copied!', 'success'); }).catch(() => { n('❌ Copy Failed', 'error'); });
 }
 
-// Save generated password
-async function saveGeneratedPassword() {
-    const password = currentGeneratedPassword;
-    
-    if (!password) {
-        n('❌ Password အရင် Generate လုပ်ပါ', 'error');
-        return;
-    }
-    
+async function saveMiniPassword(type) {
+    const password = currentPasswords[type];
+    if (!password) { n('❌ Password အရင် Generate လုပ်ပါ', 'error'); return; }
     try {
         const token = localStorage.getItem('auth_token');
-        const r = await fetch('/api/save_generated_password', {
+        const r = await fetch('/api/save_type_password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                token, 
-                password: password 
-            })
+            body: JSON.stringify({ token, type, password })
         });
         const d = await r.json();
-        
         if (d.success) {
-            n('✅ Password Saved Successfully!', 'success');
-            
-            // Hide password
-            document.getElementById('passwordDisplayBox').style.display = 'none';
-            document.getElementById('passwordWarning').style.display = 'none';
-            document.getElementById('savePasswordBtn').style.display = 'none';
-            
-            // Clear
-            currentGeneratedPassword = '';
-            document.getElementById('generatedPassword').textContent = '';
-            
-        } else {
-            n('❌ ' + (d.message || 'Save failed'), 'error');
-        }
-    } catch(e) {
-        n('❌ Connection error', 'error');
-    }
+            n('✅ ' + type.toUpperCase() + ' Password Saved!', 'success');
+            document.getElementById(type + 'PasswordDisplayBox').style.display = 'none';
+            document.getElementById(type + 'SavePasswordBtn').style.display = 'none';
+            currentPasswords[type] = '';
+        } else { n('❌ ' + (d.message || 'Save failed'), 'error'); }
+    } catch(e) { n('❌ Connection error', 'error'); }
 }
-    // ==================== CHECK PASSWORD STATUS ====================
+
+// ==================== CHECK PASSWORD STATUS ====================
 async function checkPasswordStatus() {
     try {
         const token = localStorage.getItem('auth_token');
         if (!token || token === 'guest') return;
-        
-        const r = await fetch('/api/check_password_status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-        });
+        const r = await fetch('/api/check_password_status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
         const d = await r.json();
-        
-        if (d.success) {
-            if (d.passwords_generated) {
-                console.log('✅ Passwords already generated');
-                // Password တွေ ရှိပြီးသား - Generator Card မှာ ပြဖို့
-                const viewedAt = d.passwords_viewed_at 
-                    ? new Date(d.passwords_viewed_at).toLocaleString() 
-                    : 'Unknown';
-                console.log('   Viewed at:', viewedAt);
-            } else {
-                console.log('⚠️ No passwords generated yet');
-                // Password မရှိသေးရင် Generator Card ကို Auto-Expand
-                setTimeout(() => {
-                    const body = document.getElementById('passwordGenBody');
-                    const arrow = document.getElementById('passwordGenArrow');
-                    if (body && !body.classList.contains('open')) {
-                        body.classList.add('open');
-                        arrow.classList.add('open');
-                    }
-                }, 1000);
-            }
+        if (d.success && !d.passwords_generated) {
+            setTimeout(() => {
+                const body = document.getElementById('passwordGenBody');
+                const arrow = document.getElementById('passwordGenArrow');
+                if (body && !body.classList.contains('open')) { body.classList.add('open'); arrow.classList.add('open'); }
+            }, 1000);
         }
-    } catch(e) {
-        console.error('Check password status error:', e);
-    }
+    } catch(e) {}
 }
+
 // ==================== INIT ====================
 (async function init() {
-    console.log('🚀 Data Page Init Start');
-    
-    // ✅ Step 1: Timer အရင် စစ်
     await checkPageTimer();
-    
-    // ✅ Step 2: Page Access စစ်
     const pageOn = await checkPageAccess();
-    
-    if (!pageOn) {
-        console.log('⛔ Page is in maintenance mode');
-        return;
-    }
-    
-    console.log('✅ Page active - loading content');
-    
-    // ✅ Step 3: Content ပြ
+    if (!pageOn) return;
     document.getElementById('dataContent').style.display = 'block';
     document.getElementById('maintenanceMessage').style.display = 'none';
-    
-    // ✅ Step 4: Countries Load
     populateCountries();
-    
-    // ✅ Step 5: Check Password Status (အသစ်)
     await checkPasswordStatus();
-    
-    // ❌ loadPw() မခေါ်တော့ဘူး
-    // ❌ GPASS, MPASS, TPASS တွေ မသုံးတော့ဘူး
-    
-    console.log('✅ Data Page Init Complete');
-    
 })();
 </script>
 </body>
