@@ -1438,123 +1438,7 @@
             </button>
         </div>
     </div>
-</div>
-
-                <!-- Password Generator Card -->
-<div class="security-card" id="passwordGenCard">
-    <div class="security-card-header" onclick="toggleSecurityCard('passwordGenBody')">
-        <div class="security-card-icon">🔐</div>
-        <div class="security-card-title">Password Generator</div>
-        <div class="security-card-desc">Custom Character Types • One-Time View</div>
-        <i class="fas fa-chevron-down security-card-arrow" id="passwordGenArrow"></i>
-    </div>
-    <div class="security-card-body" id="passwordGenBody">
-        <div class="password-generator-box">
-            
-            <!-- Character Type Options -->
-            <div class="char-options">
-                <!-- Lowercase -->
-                <div class="char-option" id="optLower" onclick="toggleCharType('lower')">
-                    <div class="char-option-info">
-                        <span class="char-option-icon">🔡</span>
-                        <div>
-                            <span class="char-option-label">a-z Lowercase</span>
-                            <span class="char-option-example">abcdefghijklmnopqrstuvwxyz</span>
-                        </div>
-                    </div>
-                    <label class="toggle-switch" onclick="event.stopPropagation()">
-                        <input type="checkbox" id="chkLower" checked onchange="updateCharType('lower', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <!-- Uppercase -->
-                <div class="char-option" id="optUpper" onclick="toggleCharType('upper')">
-                    <div class="char-option-info">
-                        <span class="char-option-icon">🔠</span>
-                        <div>
-                            <span class="char-option-label">A-Z Uppercase</span>
-                            <span class="char-option-example">ABCDEFGHIJKLMNOPQRSTUVWXYZ</span>
-                        </div>
-                    </div>
-                    <label class="toggle-switch" onclick="event.stopPropagation()">
-                        <input type="checkbox" id="chkUpper" checked onchange="updateCharType('upper', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <!-- Numbers -->
-                <div class="char-option" id="optNumbers" onclick="toggleCharType('numbers')">
-                    <div class="char-option-info">
-                        <span class="char-option-icon">🔢</span>
-                        <div>
-                            <span class="char-option-label">0-9 Numbers</span>
-                            <span class="char-option-example">0123456789</span>
-                        </div>
-                    </div>
-                    <label class="toggle-switch" onclick="event.stopPropagation()">
-                        <input type="checkbox" id="chkNumbers" checked onchange="updateCharType('numbers', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                
-                <!-- Symbols -->
-                <div class="char-option" id="optSymbols" onclick="toggleCharType('symbols')">
-                    <div class="char-option-info">
-                        <span class="char-option-icon">🔣</span>
-                        <div>
-                            <span class="char-option-label">@#*!?" Symbols</span>
-                            <span class="char-option-example">@ # * ! ? "</span>
-                        </div>
-                    </div>
-                    <label class="toggle-switch" onclick="event.stopPropagation()">
-                        <input type="checkbox" id="chkSymbols" onchange="updateCharType('symbols', this.checked)">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-            
-            <!-- Type Badges -->
-            <div class="type-badges" id="typeBadges">
-                <span class="type-badge">a-z</span>
-                <span class="type-badge">A-Z</span>
-                <span class="type-badge">0-9</span>
-                <span class="type-badge inactive">@#*!?"</span>
-            </div>
-            
-            <!-- Length Control -->
-            <div class="length-control">
-                <label>Length:</label>
-                <input type="number" id="passLength" class="length-input" value="10" min="6" max="30" onchange="generatePassword()">
-                <input type="range" id="passLengthSlider" class="length-slider" min="6" max="30" value="10" oninput="syncLength(this.value)">
-            </div>
-            
-            <!-- Password Display -->
-            <div class="password-display-box" id="passwordDisplayBox" style="display:none;">
-                <span class="password-text" id="generatedPassword"></span>
-                <button class="copy-btn" onclick="copyGeneratedPassword()">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-            </div>
-            
-            <!-- Warning -->
-            <p class="password-warning" id="passwordWarning" style="display:none;">
-                ⚠️ ဤ Password ကို ချက်ချင်းသိမ်းထားပါ။ နောက်တစ်ကြိမ် ပြန်မြင်ရမည် မဟုတ်ပါ။
-            </p>
-            
-            <!-- Generate Button -->
-            <button class="btn btn-w" onclick="generateAndShowPassword()">
-                <i class="fas fa-magic"></i> Generate Password
-            </button>
-            
-            <!-- Save Button -->
-            <button class="btn btn-g" id="savePasswordBtn" style="display:none;" onclick="saveGeneratedPassword()">
-                <i class="fas fa-save"></i> Save & Use This Password
-            </button>
-        </div>
-    </div>
-</div>
-                
+</div>              
     
     <!-- GMAIL SUB TAB -->
 <div class="sub-tab active" id="gmailSub">
@@ -2671,24 +2555,6 @@ async function saveMiniPassword(type) {
         } else { n('❌ ' + (d.message || 'Save failed'), 'error'); }
     } catch(e) { n('❌ Connection error', 'error'); }
 }
-
-// ==================== CHECK PASSWORD STATUS ====================
-async function checkPasswordStatus() {
-    try {
-        const token = localStorage.getItem('auth_token');
-        if (!token || token === 'guest') return;
-        const r = await fetch('/api/check_password_status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
-        const d = await r.json();
-        if (d.success && !d.passwords_generated) {
-            setTimeout(() => {
-                const body = document.getElementById('passwordGenBody');
-                const arrow = document.getElementById('passwordGenArrow');
-                if (body && !body.classList.contains('open')) { body.classList.add('open'); arrow.classList.add('open'); }
-            }, 1000);
-        }
-    } catch(e) {}
-}
-
 // ==================== INIT ====================
 (async function init() {
     await checkPageTimer();
@@ -2697,7 +2563,7 @@ async function checkPasswordStatus() {
     document.getElementById('dataContent').style.display = 'block';
     document.getElementById('maintenanceMessage').style.display = 'none';
     populateCountries();
-    await checkPasswordStatus();
+    
 })();
 </script>
 </body>
