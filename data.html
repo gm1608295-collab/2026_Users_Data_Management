@@ -1559,145 +1559,7 @@
     </div>
 
 <script>
-    // ==================== 2FA SYSTEM ====================
-
-let twoFAEnabled = false;
-
-// Check 2FA Status on page load
-async function check2FAStatus() {
-    try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) return;
-        
-        const r = await fetch('/api/2fa/status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token })
-        });
-        const d = await r.json();
-        twoFAEnabled = d.isEnabled;
-        
-        if (twoFAEnabled) {
-            // Show 2FA modal before showing data forms
-            document.getElementById('twoFAModal').classList.add('active');
-        }
-    } catch(e) {}
-}
-
-// Verify 2FA Code
-async function verify2FA() {
-    const code = document.getElementById('twoFACode').value.trim();
-    
-    if (!code || code.length < 6) {
-        n('6-digit code ထည့်ပါ', 'error');
-        return;
-    }
-    
-    try {
-        const token = localStorage.getItem('auth_token');
-        const r = await fetch('/api/2fa/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token, code: code })
-        });
-        const d = await r.json();
-        
-        if (d.success) {
-            document.getElementById('twoFAModal').classList.remove('active');
-            n('✅ Verified!', 'success');
-        } else {
-            n(d.message || 'Code မမှန်ပါ', 'error');
-        }
-    } catch(e) {
-        n('Connection error', 'error');
-    }
-}
-
-function close2FA() {
-    // Don't allow closing if 2FA is enabled
-    if (twoFAEnabled) {
-        n('2FA ဖြေရန် လိုအပ်ပါသည်', 'error');
-        return;
-    }
-    document.getElementById('twoFAModal').classList.remove('active');
-}
-
-// ==================== 2FA SETUP ====================
-
-async function open2FASetup() {
-    try {
-        const token = localStorage.getItem('auth_token');
-        const r = await fetch('/api/2fa/setup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token })
-        });
-        const d = await r.json();
-        
-        if (d.success) {
-            document.getElementById('qrCodeImg').src = d.qrCode;
-            document.getElementById('manualKey').textContent = d.manualKey;
-            document.getElementById('twoFASetupModal').classList.add('active');
-            
-            // Reset steps
-            document.getElementById('setupStep1').style.display = 'block';
-            document.getElementById('setupStep2').style.display = 'none';
-            document.getElementById('setupStep3').style.display = 'none';
-        } else {
-            n(d.message || 'Setup failed', 'error');
-        }
-    } catch(e) {
-        n('Connection error', 'error');
-    }
-}
-
-function show2FAStep2() {
-    document.getElementById('setupStep1').style.display = 'none';
-    document.getElementById('setupStep2').style.display = 'block';
-}
-
-async function verify2FASetup() {
-    const code = document.getElementById('setup2FACode').value.trim();
-    
-    if (!code || code.length < 6) {
-        n('6-digit code ထည့်ပါ', 'error');
-        return;
-    }
-    
-    try {
-        const token = localStorage.getItem('auth_token');
-        const r = await fetch('/api/2fa/verify-setup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token, code: code })
-        });
-        const d = await r.json();
-        
-        if (d.success) {
-            // Show backup codes
-            const codesDiv = document.getElementById('backupCodesList');
-            codesDiv.innerHTML = d.backupCodes.map(c => 
-                `<code style="display:block;color:#f39c12;font-size:12px;padding:4px;">${c}</code>`
-            ).join('');
-            
-            document.getElementById('setupStep2').style.display = 'none';
-            document.getElementById('setupStep3').style.display = 'block';
-            twoFAEnabled = true;
-        } else {
-            n(d.message || 'Code မမှန်ပါ', 'error');
-        }
-    } catch(e) {
-        n('Connection error', 'error');
-    }
-}
-
-function close2FASetup() {
-    document.getElementById('twoFASetupModal').classList.remove('active');
-}
-
-// Setup Button (Password Page မှာ ထည့်ပါ)
-// <button onclick="open2FASetup()">Setup Google Authenticator</button>
-    // ==================== COUNTRIES DATA - 195 COUNTRIES ====================
+  // ==================== COUNTRIES DATA - 195 COUNTRIES ====================
 const COUNTRIES_DATA = [
     { name: "Afghanistan", flag: "🇦🇫", regions: ["Kabul", "Kandahar", "Herat", "Mazar-i-Sharif", "Jalalabad", "Bamyan", "Kunduz", "Ghazni"] },
     { name: "Albania", flag: "🇦🇱", regions: ["Tirana", "Durrës", "Vlorë", "Shkodër", "Fier", "Berat", "Korçë", "Elbasan"] },
@@ -1957,7 +1819,35 @@ const COUNTRIES_DATA = [
             });
         }
     }
-
+    // ==================== UNLOCK DATA (SERVER-SIDE VERIFY) ====================
+async function unlockData(type) {
+    const passInput = document.getElementById('data' + type.charAt(0).toUpperCase() + type.slice(1) + 'Pass');
+    const pass = passInput.value;
+    
+    if (!pass) {
+        return n('❌ Password ထည့်ပါ', 'error');
+    }
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/verify_data_password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, type, password: pass })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            document.getElementById(type + 'Form').style.display = 'block';
+            passInput.value = '';
+            n('✅ Unlocked successfully!', 'success');
+        } else {
+            n('❌ ' + (d.message || 'Wrong password!'), 'error');
+        }
+    } catch(e) {
+        n('❌ Connection error', 'error');
+    }
+}
     // ==================== MODAL ====================
     function openDataInfo() { document.getElementById("dataInfoModal").classList.add("active"); }
     function closeDataInfo() { document.getElementById("dataInfoModal").classList.remove("active"); }
@@ -2560,7 +2450,7 @@ function sleep(ms) {
 let clearUnlocked = false;
 let pendingClearType = null;
 
-// Unlock Clear Panel
+// ✅ ဒါနဲ့ အစားထိုးပါ
 function unlockClearPanel() {
     const passInput = document.getElementById('clearPassInput');
     const pass = passInput.value.trim();
@@ -2570,19 +2460,47 @@ function unlockClearPanel() {
         return;
     }
     
-    // Check against generator passwords (Gmail/MLBB/TikTok ထဲက တစ်ခုခုမှန်ရင် ရ)
-    if (pass === GPASS || pass === MPASS || pass === TPASS) {
-        clearUnlocked = true;
-        document.getElementById('clearLockSection').style.display = 'none';
-        document.getElementById('clearOptionsSection').style.display = 'block';
-        passInput.value = '';
-        n('✅ Unlocked!', 'success');
-        loadClearDataCounts();
-    } else {
-        n('❌ Password မှားပါတယ်', 'error');
-    }
+    // ✅ Server-Side Verify လုပ်
+    verifyClearPassword(pass);
 }
 
+async function verifyClearPassword(password) {
+    try {
+        const token = localStorage.getItem('auth_token');
+        
+        // Check against all three types
+        const types = ['gmail', 'mlbb', 'tiktok'];
+        let verified = false;
+        
+        for (const type of types) {
+            const r = await fetch('/api/verify_data_password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, type, password })
+            });
+            const d = await r.json();
+            
+            if (d.success) {
+                verified = true;
+                break;
+            }
+        }
+        
+        if (verified) {
+            clearUnlocked = true;
+            document.getElementById('clearLockSection').style.display = 'none';
+            document.getElementById('clearOptionsSection').style.display = 'block';
+            document.getElementById('clearPassInput').value = '';
+            n('✅ Unlocked!', 'success');
+            loadClearDataCounts();
+        } else {
+            n('❌ Password မှားပါတယ်', 'error');
+        }
+        
+    } catch(e) {
+        n('❌ Connection error', 'error');
+    }
+}
 // Load Data Counts
 async function loadClearDataCounts() {
     try {
@@ -2851,7 +2769,7 @@ async function saveGeneratedPassword() {
         n('❌ Connection error', 'error');
     }
 }
-    a// ==================== CHECK PASSWORD STATUS ====================
+    // ==================== CHECK PASSWORD STATUS ====================
 async function checkPasswordStatus() {
     try {
         const token = localStorage.getItem('auth_token');
