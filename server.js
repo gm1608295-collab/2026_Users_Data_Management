@@ -1549,6 +1549,64 @@ app.post('/api/check_password_status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+// ==================== SAVE TYPE PASSWORD API ====================
+app.post('/api/save_type_password', async (req, res) => {
+    const { token, type, password } = req.body;
+    
+    if (!token || !type || !password) {
+        return res.json({ success: false, message: 'Token, type, and password required' });
+    }
+    
+    if (!['gmail', 'mlbb', 'tiktok'].includes(type)) {
+        return res.json({ success: false, message: 'Invalid type' });
+    }
+    
+    if (password.length < 6) {
+        return res.json({ success: false, message: 'Password must be at least 6 characters' });
+    }
+    
+    try {
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
+        }
+        
+        // Hash password
+        const bcrypt = require('bcrypt');
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        
+        const p = await getPool();
+        
+        // Update only the specific type
+        const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
+        const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
+        
+        await p.query(
+            `UPDATE auth_users SET ${plainCol} = $1, ${hashCol} = $2, passwords_generated = true WHERE id = $3`,
+            [password, hashedPassword, uid]
+        );
+        
+        console.log(`✅ ${type} password saved for user:`, uid);
+        
+        res.json({ success: true, message: type.charAt(0).toUpperCase() + type.slice(1) + ' password saved!' });
+        
+    } catch(e) {
+        console.error('[SAVE TYPE PASSWORD ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== HISTORY SECURITY PASSWORD API ====================
 
 // Get security password status
