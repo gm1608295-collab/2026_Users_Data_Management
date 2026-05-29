@@ -1197,28 +1197,16 @@ app.post('/api/user/clear-data', async (req, res) => {
 app.post('/api/change_password', async (req, res) => {
     const { token, type, currentPassword, newPassword } = req.body;
     
-    console.log('[CHANGE PASSWORD] Request:', { 
-        token: token?.substring(0, 20) + '...', 
-        type, 
-        hasCurrent: !!currentPassword, 
-        hasNew: !!newPassword 
-    });
-    
     if (!token || !type || !currentPassword || !newPassword) {
         return res.json({ success: false, message: 'All fields required' });
     }
     
-    // Guest users cannot change password
     if (token === 'guest') {
         return res.json({ success: false, message: 'Guest accounts cannot change password' });
     }
     
     if (newPassword.length < 6) {
         return res.json({ success: false, message: 'Password must be at least 6 characters' });
-    }
-    
-    if (currentPassword === newPassword) {
-        return res.json({ success: false, message: 'New password must be different' });
     }
     
     try {
@@ -1230,58 +1218,46 @@ app.post('/api/change_password', async (req, res) => {
         try {
             decoded = jwt.verify(token, secretKey);
         } catch(jwtError) {
-            console.log('[CHANGE PASSWORD] JWT Error:', jwtError.message);
             return res.json({ success: false, message: 'Invalid session. Please login again.' });
         }
         
-        // Get User ID from JWT payload
         const uid = decoded.uid || decoded.id || decoded.userId;
-        console.log('[CHANGE PASSWORD] User ID from JWT:', uid);
         
         if (!uid) {
-            return res.json({ success: false, message: 'Invalid token payload. Please login again.' });
+            return res.json({ success: false, message: 'Invalid token payload' });
         }
         // ========== END JWT VERIFY ==========
         
         const p = await getPool();
-        
         const user = await p.query('SELECT * FROM auth_users WHERE id = $1', [uid]);
-        console.log('[CHANGE PASSWORD] User found:', user.rows.length > 0);
         
         if (user.rows.length === 0) {
-            return res.json({ success: false, message: 'User not found. Please login again.' });
+            return res.json({ success: false, message: 'User not found' });
         }
         
         const u = user.rows[0];
         const col = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
-        
-        // Get current stored password (or default)
         const defaultPass = type === 'mlbb' ? 'GlobalMK2008' : 'DoubleMK2008';
         const currentStored = u[col] || defaultPass;
-        
-        console.log('[CHANGE PASSWORD] Column:', col, 
-                    'Stored:', currentStored?.substring(0, 3) + '...', 
-                    'Input:', currentPassword?.substring(0, 3) + '...');
         
         if (currentPassword !== currentStored) {
             return res.json({ success: false, message: 'Current password is incorrect!' });
         }
         
-        // Update password
         await p.query(`UPDATE auth_users SET ${col} = $1 WHERE id = $2`, [newPassword, uid]);
         
-        console.log('[CHANGE PASSWORD] SUCCESS!');
+        console.log('[CHANGE PASSWORD] ✅ SUCCESS - User:', uid, 'Type:', type);
         
         res.json({ success: true, message: 'Password changed successfully!' });
         
     } catch(e) {
         console.error('[CHANGE PASSWORD ERROR]', e);
-        res.json({ success: false, message: 'Server error. Please try again.' });
+        res.json({ success: false, message: 'Server error' });
     }
 });
 app.post('/api/save_user_data', (req, res) => { res.json({ success: true }); });
 app.post('/api/get_my_data', (req, res) => { res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); });
-// ==================== GET USER DATA PASSWORDS (FROM DB) ====================
+// ==================== GET USER DATA PASSWORDS (JWT VERSION) ====================
 app.post('/api/get_passwords', async (req, res) => {
     const { token } = req.body;
 
@@ -1296,13 +1272,26 @@ app.post('/api/get_passwords', async (req, res) => {
     }
 
     try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        // ========== ✅ JWT VERIFY ==========
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(jwtError) {
+            console.log('[GET PASSWORDS] JWT Error:', jwtError.message);
+            return res.json(defaults);
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        // ========== END JWT VERIFY ==========
 
-        if (isNaN(uid)) {
+        if (!uid) {
             return res.json(defaults);
         }
 
+        const p = await getPool();
         const r = await p.query(
             'SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id=$1',
             [uid]
@@ -1320,6 +1309,7 @@ app.post('/api/get_passwords', async (req, res) => {
             res.json(defaults);
         }
     } catch(e) {
+        console.error('[GET PASSWORDS ERROR]', e.message);
         res.json(defaults);
     }
 });
