@@ -2777,16 +2777,18 @@ async function generateAndShowMiniPassword(type) {
                 document.getElementById(type + 'SavePasswordBtn').style.display = 'block';
                 document.getElementById(type + 'OldPassBox').style.display = 'none';
                 document.getElementById(type + 'CooldownBox').style.display = 'none';
+                enableGenButton(type);
             }
             return;
         }
         
-        // ✅ Step 3: Cooldown active - show timer
+        // ✅ Step 3: Cooldown active - show timer + disable button
         if (statusData.cooldownActive) {
             document.getElementById(type + 'CooldownBox').style.display = 'block';
             document.getElementById(type + 'OldPassBox').style.display = 'none';
+            disableGenButton(type);
             startCooldownTimer(type, statusData.remainingMs);
-            n('❌ ' + statusData.remainingText, 'error');
+            n('⏳ ' + statusData.remainingText, 'error');
             return;
         }
         
@@ -2795,11 +2797,14 @@ async function generateAndShowMiniPassword(type) {
             document.getElementById(type + 'OldPassBox').style.display = 'block';
             document.getElementById(type + 'CooldownBox').style.display = 'none';
             
-            // Change Generate button to Regenerate
-            const genBtn = document.querySelector(`#${type}Sub .btn-w`);
-            if (genBtn) {
-                genBtn.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
-                genBtn.onclick = () => regeneratePassword(type);
+            // Change button to Regenerate
+            const btn = document.querySelector(`#${type}Sub .btn-w`);
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
+                btn.onclick = () => regeneratePassword(type);
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
             }
             return;
         }
@@ -2819,10 +2824,15 @@ function startCooldownTimer(type, remainingMs) {
     
     const timerEl = document.getElementById(type + 'CooldownTimer');
     const boxEl = document.getElementById(type + 'CooldownBox');
+    const oldPassBox = document.getElementById(type + 'OldPassBox');
     
     if (!timerEl || !boxEl) return;
     
     boxEl.style.display = 'block';
+    if (oldPassBox) oldPassBox.style.display = 'none';
+    
+    // Disable button
+    disableGenButton(type);
     
     let remaining = remainingMs;
     
@@ -2830,7 +2840,20 @@ function startCooldownTimer(type, remainingMs) {
         if (remaining <= 0) {
             clearInterval(cooldownIntervals[type]);
             boxEl.style.display = 'none';
-            document.getElementById(type + 'OldPassBox').style.display = 'block';
+            
+            // Show old password input
+            if (oldPassBox) oldPassBox.style.display = 'block';
+            
+            // Enable button and change to Regenerate
+            const btn = document.querySelector(`#${type}Sub .btn-w`);
+            if (btn) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
+                btn.onclick = () => regeneratePassword(type);
+            }
+            
             n('✅ စောင့်ဆိုင်းချိန် ပြည့်ပါပြီ။ Password အဟောင်းထည့်၍ အသစ်ထုတ်နိုင်ပါပြီ', 'success');
             return;
         }
@@ -2862,7 +2885,6 @@ function startCooldownTimer(type, remainingMs) {
     try {
         const token = localStorage.getItem('auth_token');
         
-        // Get current options
         const options = {
             useLower: activeCharTypes[type].lower,
             useUpper: activeCharTypes[type].upper,
@@ -2889,14 +2911,11 @@ function startCooldownTimer(type, remainingMs) {
             
             if (oldPassInput) oldPassInput.value = '';
             
+            // Enable button back to Generate
+            enableGenButton(type);
+            
             n('✅ Password အသစ် ထုတ်ပေးပြီးပါပြီ', 'success');
             
-            // Reset button back to Generate
-            const genBtn = document.querySelector(`#${type}Sub .btn-w`);
-            if (genBtn) {
-                genBtn.innerHTML = '<i class="fas fa-magic"></i> Generate';
-                genBtn.onclick = () => generateAndShowMiniPassword(type);
-            }
         } else {
             n('❌ ' + (d.message || 'Error'), 'error');
         }
@@ -2952,6 +2971,59 @@ function syncMiniLength(type, value) {
     if (slider) slider.value = numValue;
     generateMiniPassword(type);
     }
+    // ==================== CHECK ALL COOLDOWNS ON PAGE LOAD ====================
+async function checkAllCooldowns() {
+    const types = ['gmail', 'mlbb', 'tiktok'];
+    const token = localStorage.getItem('auth_token');
+    
+    if (!token || token === 'guest') return;
+    
+    for (const type of types) {
+        try {
+            const r = await fetch('/api/check_gen_status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, type })
+            });
+            const d = await r.json();
+            
+            if (d.success && d.cooldownActive && d.remainingMs > 0) {
+                // Show cooldown box
+                document.getElementById(type + 'CooldownBox').style.display = 'block';
+                
+                // Disable generate button
+                disableGenButton(type);
+                
+                // Start timer
+                startCooldownTimer(type, d.remainingMs);
+            }
+        } catch(e) {
+            console.error('Check cooldown error for ' + type, e);
+        }
+    }
+    }
+    // ==================== DISABLE/ENABLE GENERATE BUTTON ====================
+function disableGenButton(type) {
+    const btn = document.querySelector(`#${type}Sub .btn-w`);
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+        btn.innerHTML = '<i class="fas fa-lock"></i> Locked';
+    }
+}
+
+function enableGenButton(type) {
+    const btn = document.querySelector(`#${type}Sub .btn-w`);
+    if (btn) {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.style.cursor = 'pointer';
+        btn.innerHTML = '<i class="fas fa-magic"></i> Generate';
+        btn.onclick = () => generateAndShowMiniPassword(type);
+    }
+    }
+    
 // ==================== INIT ====================
 (async function init() {
     await checkPageTimer();
@@ -2961,6 +3033,8 @@ function syncMiniLength(type, value) {
     document.getElementById('maintenanceMessage').style.display = 'none';
     populateCountries();
     
+    // ✅ Page Load တိုင်း Cooldown Status စစ်
+    await checkAllCooldowns();
 })();
 </script>
 </body>
