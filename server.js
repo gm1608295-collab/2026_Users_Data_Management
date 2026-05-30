@@ -1328,6 +1328,101 @@ app.post('/api/generate_passwords', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+// ==================== SAVE USER DATA (JWT) ====================
+app.post('/api/save_user_data', async (req, res) => {
+    const { token, type, data } = req.body;
+    
+    if (!token || !type || !data) {
+        return res.json({ success: false, message: 'All fields required' });
+    }
+    
+    try {
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) return res.json({ success: false, message: 'Invalid token' });
+        
+        const p = await getPool();
+        
+        if (type === 'gmail') {
+            await p.query(
+                `INSERT INTO user_gmail_data (user_id, name, emails, phones, password, dob, country, region, created_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())`,
+                [uid, data.name, JSON.stringify(data.emails || []), JSON.stringify(data.phones || []), 
+                 data.password, data.dob, data.country, data.region]
+            );
+        } else if (type === 'mlbb') {
+            await p.query(
+                `INSERT INTO user_mlbb_data (user_id, ingame_name, ingame_id, server_id, emails, password, dob, country, region, created_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
+                [uid, data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails || []),
+                 data.password, data.dob, data.country, data.region]
+            );
+        } else if (type === 'tiktok') {
+            await p.query(
+                `INSERT INTO user_tiktok_data (user_id, full_name, last_name, emails, phones, password, dob, country, region, created_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
+                [uid, data.fullName, data.lastName, JSON.stringify(data.emails || []), JSON.stringify(data.phones || []),
+                 data.password, data.dob, data.country, data.region]
+            );
+        }
+        
+        res.json({ success: true, message: 'Data saved!' });
+        
+    } catch(e) {
+        console.error('[SAVE USER DATA ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ==================== GET USER DATA (JWT) ====================
+app.post('/api/get_my_data', async (req, res) => {
+    const { token } = req.body;
+    
+    if (!token || token === 'guest') {
+        return res.json({ success: true, gmail: [], mlbb: [], tiktok: [] });
+    }
+    
+    try {
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: true, gmail: [], mlbb: [], tiktok: [] });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) return res.json({ success: true, gmail: [], mlbb: [], tiktok: [] });
+        
+        const p = await getPool();
+        
+        const gmail = await p.query('SELECT * FROM user_gmail_data WHERE user_id = $1 ORDER BY created_at DESC', [uid]);
+        const mlbb = await p.query('SELECT * FROM user_mlbb_data WHERE user_id = $1 ORDER BY created_at DESC', [uid]);
+        const tiktok = await p.query('SELECT * FROM user_tiktok_data WHERE user_id = $1 ORDER BY created_at DESC', [uid]);
+        
+        res.json({
+            success: true,
+            gmail: gmail.rows,
+            mlbb: mlbb.rows,
+            tiktok: tiktok.rows
+        });
+        
+    } catch(e) {
+        console.error('[GET USER DATA ERROR]', e.message);
+        res.json({ success: true, gmail: [], mlbb: [], tiktok: [] });
+    }
+});
 // ==================== SAVE CUSTOM PASSWORD API ====================
 app.post('/api/save_generated_password', async (req, res) => {
     const { token, password } = req.body;
