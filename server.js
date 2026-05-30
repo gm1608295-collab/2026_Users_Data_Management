@@ -379,6 +379,10 @@ async function initTables(p) {
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tiktok_pass_hash VARCHAR(255)`,
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS passwords_generated BOOLEAN DEFAULT false`,
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS passwords_viewed_at TIMESTAMP`,
+
+        // ========== PASSWORD GENERATION COOLDOWN COLUMNS ==========
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS last_password_gen TIMESTAMP`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS password_gen_cooldown TIMESTAMP`,
         
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
@@ -1429,6 +1433,247 @@ app.post('/api/verify_data_password', async (req, res) => {
         
     } catch(e) {
         console.error('[VERIFY PASSWORD ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// ==================== CHECK PASSWORD GENERATION STATUS ====================
+app.post('/api/check_gen_status', async (req, res) => {
+    const { token, type } = req.body;
+    
+    if (!token || !type) {
+        return res.json({ success: false, message: 'Token and type required' });
+    }
+    
+    if (!['gmail', 'mlbb', 'tiktok'].includes(type)) {
+        return res.json({ success: false, message: 'Invalid type' });
+    }
+    
+    try {
+        // JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
+        }
+        
+        const p = await getPool();
+        const user = await p.query(
+            'SELECT last_password_gen, password_gen_cooldown FROM auth_users WHERE id = $1',
+            [uid]
+        );
+        
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        const u = user.rows[0];
+        const now = new Date();
+        
+        // First time - no password generated yet
+        if (!u.last_password_gen) {
+            return res.json({
+                success: true,
+                canGenerate: true,
+                isFirstTime: true,
+                message: 'First time - can generate password'
+            });
+        }
+        
+        // Check cooldown
+        const cooldownEnd = u.password_gen_cooldown ? new Date(u.password_gen_cooldown) : null;
+        
+        if (cooldownEnd && now < cooldownEnd) {
+            const remainingMs = cooldownEnd.getTime() - now.getTime();
+            const totalSec = Math.floor(remainingMs / 1000);
+            const days = Math.floor(totalSec / 86400);
+            const hours = Math.floor((totalSec % 86400) / 3600);
+            const min = Math.floor((totalSec % 3600) / 60);
+            const sec = totalSec % 60;
+            
+            return res.json({
+                success: true,
+                canGenerate: false,
+                isFirstTime: false,
+                cooldownActive: true,
+                cooldownEnd: cooldownEnd.toISOString(),
+                remainingMs: remainingMs,
+                remaining: { days, hours, min, sec },
+                remainingText: `${days}ရက် ${hours}နာရီ ${min}မိနစ် ${sec}စက္ကန့် ကျန်ပါသေးသည်`,
+                message: 'Cooldown period active'
+            });
+        }
+        
+        // Cooldown passed - can regenerate
+        return res.json({
+            success: true,
+            canGenerate: true,
+            isFirstTime: false,
+            cooldownActive: false,
+            needsOldPassword: true,
+            message: 'Cooldown passed - enter old password to regenerate'
+        });
+        
+    } catch(e) {
+        console.error('[CHECK GEN STATUS ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// ==================== REGENERATE PASSWORD (VERIFY OLD + GEN NEW) ====================
+app.post('/api/regenerate_password', async (req, res) => {
+    const { token, type, oldPassword, options } = req.body;
+    
+    if (!token || !type) {
+        return res.json({ success: false, message: 'Token and type required' });
+    }
+    
+    if (!['gmail', 'mlbb', 'tiktok'].includes(type)) {
+        return res.json({ success: false, message: 'Invalid type' });
+    }
+    
+    try {
+        // JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
+        }
+        
+        const p = await getPool();
+        const user = await p.query('SELECT * FROM auth_users WHERE id = $1', [uid]);
+        
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        const u = user.rows[0];
+        const now = new Date();
+        
+        // Check if this is first time or cooldown passed
+        if (u.last_password_gen && u.password_gen_cooldown) {
+            const cooldownEnd = new Date(u.password_gen_cooldown);
+            
+            if (now < cooldownEnd) {
+                const remainingMs = cooldownEnd.getTime() - now.getTime();
+                const days = Math.floor(remainingMs / 86400000);
+                const hours = Math.floor((remainingMs % 86400000) / 3600000);
+                
+                return res.json({
+                    success: false,
+                    message: `${days}ရက် ${hours}နာရီ စောင့်ရပါသေးသည်`
+                });
+            }
+            
+            // Cooldown passed - verify old password
+            if (!oldPassword) {
+                return res.json({
+                    success: false,
+                    message: 'Password အဟောင်းထည့်ရန် လိုအပ်ပါသည်',
+                    needsOldPassword: true
+                });
+            }
+            
+            // Verify old password
+            const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
+            const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
+            
+            let passwordMatch = false;
+            
+            // Check plain text
+            if (u[plainCol] && oldPassword === u[plainCol]) {
+                passwordMatch = true;
+            }
+            
+            // Check hash
+            if (!passwordMatch && u[hashCol]) {
+                const bcrypt = require('bcrypt');
+                passwordMatch = await bcrypt.compare(oldPassword, u[hashCol]);
+            }
+            
+            if (!passwordMatch) {
+                return res.json({
+                    success: false,
+                    message: 'Password အဟောင်း မှားယွင်းနေပါသည်'
+                });
+            }
+        }
+        
+        // Generate new password
+        const CHAR_SETS = {
+            lower: 'abcdefghijklmnopqrstuvwxyz',
+            upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            numbers: '0123456789',
+            symbols: '@#*!?"'
+        };
+        
+        const genOptions = options || {};
+        let charPool = '';
+        if (genOptions.useLower !== false) charPool += CHAR_SETS.lower;
+        if (genOptions.useUpper !== false) charPool += CHAR_SETS.upper;
+        if (genOptions.useNumbers !== false) charPool += CHAR_SETS.numbers;
+        if (genOptions.useSymbols) charPool += CHAR_SETS.symbols;
+        if (!charPool) charPool = CHAR_SETS.lower + CHAR_SETS.upper + CHAR_SETS.numbers;
+        
+        const length = genOptions.length || 10;
+        let newPassword = '';
+        for (let i = 0; i < length; i++) {
+            newPassword += charPool.charAt(Math.floor(Math.random() * charPool.length));
+        }
+        
+        // Hash new password
+        const bcrypt = require('bcrypt');
+        const saltRounds = 10;
+        const newHash = await bcrypt.hash(newPassword, saltRounds);
+        
+        // Set cooldown: 7 days from now
+        const cooldownDate = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+        
+        // Update database
+        const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
+        const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
+        
+        await p.query(
+            `UPDATE auth_users SET 
+                ${plainCol} = $1, 
+                ${hashCol} = $2, 
+                last_password_gen = NOW(), 
+                password_gen_cooldown = $3,
+                passwords_generated = true,
+                passwords_viewed_at = NOW()
+            WHERE id = $4`,
+            [newPassword, newHash, cooldownDate, uid]
+        );
+        
+        console.log(`✅ Password regenerated for user ${uid}, type: ${type}`);
+        
+        res.json({
+            success: true,
+            message: 'Password အသစ် ထုတ်ပေးပြီးပါပြီ',
+            password: newPassword,
+            cooldownEnd: cooldownDate.toISOString(),
+            nextGeneration: cooldownDate.toISOString(),
+            warning: '⚠️ ဤ Password ကို ယခုတစ်ကြိမ်သာ မြင်ရမည်။ ချက်ချင်းသိမ်းထားပါ။ နောက် ၇ ရက်မှသာ ထပ်ထုတ်နိုင်ပါမည်။'
+        });
+        
+    } catch(e) {
+        console.error('[REGENERATE PASSWORD ERROR]', e.message);
         res.json({ success: false, message: 'Server error' });
     }
 });
