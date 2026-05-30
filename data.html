@@ -1260,6 +1260,35 @@
     cursor: pointer;
     accent-color: var(--w);
 }
+        /* ========== MINI SLIDER ========== */
+.length-slider-mini {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.length-slider-mini::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--w);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #000;
+}
+
+/* Number Input Style */
+.length-input-mini {
+    width: 50px !important;
+    text-align: center;
+    font-weight: bold;
+    font-size: 13px !important;
+    padding: 5px !important;
+}
     </style>
 </head>
 <body>
@@ -1570,9 +1599,9 @@
         </div>
         
         <div class="length-control-mini">
-            <span>Length:</span>
-            <input type="number" id="gmailPassLength" value="10" min="6" max="30" onchange="syncMiniLength('gmail', this.value)">
-            <input type="range" id="gmailPassLengthSlider" class="length-slider-mini" min="6" max="30" value="10" oninput="syncMiniLength('gmail', this.value)">
+    <span>Length:</span>
+    <input type="number" id="gmailPassLength" class="length-input-mini" value="10" min="6" max="30" onchange="syncMiniLength('gmail', this.value)">
+    <input type="range" id="gmailPassLengthSlider" class="length-slider-mini" min="6" max="30" value="10" oninput="syncMiniLength('gmail', this.value)">
         </div>
         
         <div class="password-display-mini" id="gmailPasswordDisplayBox" style="display:none;">
@@ -1640,10 +1669,10 @@
         </div>
         
         <div class="length-control-mini">
-            <span>Length:</span>
-            <input type="number" id="mlbbPassLength" value="10" min="6" max="30" onchange="syncMiniLength('mlbb', this.value)">
-            <input type="range" id="mlbbPassLengthSlider" class="length-slider-mini" min="6" max="30" value="10" oninput="syncMiniLength('mlbb', this.value)">
-        </div>
+    <span>Length:</span>
+    <input type="number" id="gmailPassLength" class="length-input-mini" value="10" min="6" max="30" onchange="syncMiniLength('gmail', this.value)">
+    <input type="range" id="gmailPassLengthSlider" class="length-slider-mini" min="6" max="30" value="10" oninput="syncMiniLength('gmail', this.value)">
+</div>
         
         <div class="password-display-mini" id="mlbbPasswordDisplayBox" style="display:none;">
             <span class="password-text-mini" id="mlbbGeneratedPassword"></span>
@@ -1711,10 +1740,10 @@
         </div>
         
         <div class="length-control-mini">
-            <span>Length:</span>
-            <input type="number" id="tiktokPassLength" value="10" min="6" max="30" onchange="syncMiniLength('tiktok', this.value)">
-            <input type="range" id="tiktokPassLengthSlider" class="length-slider-mini" min="6" max="30" value="10" oninput="syncMiniLength('tiktok', this.value)">
-        </div>
+    <span>Length:</span>
+    <input type="number" id="gmailPassLength" class="length-input-mini" value="10" min="6" max="30" onchange="syncMiniLength('gmail', this.value)">
+    <input type="range" id="gmailPassLengthSlider" class="length-slider-mini" min="6" max="30" value="10" oninput="syncMiniLength('gmail', this.value)">
+</div>
         
         <div class="password-display-mini" id="tiktokPasswordDisplayBox" style="display:none;">
             <span class="password-text-mini" id="tiktokGeneratedPassword"></span>
@@ -2580,26 +2609,28 @@ function updateMiniChar(type, charType, isChecked) {
     
     generateMiniPassword(type);
     }
-    // Sync Length Number Input & Slider
+// Sync Length Number Input & Slider
 function syncMiniLength(type, value) {
-    document.getElementById(type + 'PassLength').value = value;
-    document.getElementById(type + 'PassLengthSlider').value = value;
+    let numValue = parseInt(value);
+    
+    // ✅ Min/Max Limit
+    if (isNaN(numValue) || numValue < 6) {
+        numValue = 6;
+    } else if (numValue > 30) {
+        numValue = 30;
+    }
+    
+    // ✅ Update Number Input
+    const numInput = document.getElementById(type + 'PassLength');
+    if (numInput) numInput.value = numValue;
+    
+    // ✅ Update Slider
+    const slider = document.getElementById(type + 'PassLengthSlider');
+    if (slider) slider.value = numValue;
+    
+    // ✅ Generate Password with new length
     generateMiniPassword(type);
-    }
-function generateMiniPassword(type) {
-    let chars = '';
-    for (const [charType, isActive] of Object.entries(activeCharTypes[type])) {
-        if (isActive) chars += CHAR_SETS[charType];
-    }
-    if (!chars) return '';
-    const length = parseInt(document.getElementById(type + 'PassLength').value) || 10;
-    let password = '';
-    for (let i = 0; i < length; i++) { password += chars.charAt(Math.floor(Math.random() * chars.length)); }
-    currentPasswords[type] = password;
-    const displayEl = document.getElementById(type + 'GeneratedPassword');
-    if (displayEl) displayEl.textContent = password;
-    return password;
-}
+            }
 
 function generateAndShowMiniPassword(type) {
     const password = generateMiniPassword(type);
