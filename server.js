@@ -1072,8 +1072,7 @@ app.post('/api/speedtest/upload', (req, res) => {
         res.status(500).json({ success: false });
     });
 });
-// ==================== CHANCE CLEAR APIs ====================
-// ==================== GET DATA COUNTS (JWT) ====================
+// ==================== GET DATA COUNTS (JWT VERSION) ====================
 app.post('/api/user/data-counts', async (req, res) => {
     const { token } = req.body;
     
@@ -1134,7 +1133,7 @@ app.post('/api/user/data-counts', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== CLEAR DATA (JWT) ====================
+// ==================== CLEAR DATA (JWT VERSION) ====================
 app.post('/api/user/clear-data', async (req, res) => {
     const { token, type } = req.body;
     
@@ -1151,7 +1150,7 @@ app.post('/api/user/clear-data', async (req, res) => {
         try {
             decoded = jwt.verify(token, secretKey);
         } catch(e) {
-            return res.json({ success: false, message: 'Invalid session' });
+            return res.json({ success: false, message: 'Invalid session. Please login again.' });
         }
         
         const uid = decoded.uid || decoded.id || decoded.userId;
@@ -1205,6 +1204,8 @@ app.post('/api/user/clear-data', async (req, res) => {
         } catch(e) {
             // Table might not exist, ignore
         }
+        
+        console.log(`✅ Data cleared for user ${uid}, type: ${type}`);
         
         res.json({ success: true, message });
         
@@ -1921,7 +1922,7 @@ app.post('/api/save_type_password', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== HISTORY SECURITY PASSWORD API ====================
+// ==================== HISTORY SECURITY PASSWORD API (JWT) ====================
 
 // Get security password status
 app.post('/api/get_security_pass_status', async (req, res) => {
@@ -1929,10 +1930,21 @@ app.post('/api/get_security_pass_status', async (req, res) => {
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
     
     try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
+        // ✅ JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
         
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) return res.json({ success: false, message: 'Invalid token' });
+        
+        const p = await getPool();
         const r = await p.query('SELECT security_password, set_date FROM user_security_pass WHERE user_id=$1', [uid]);
         
         if (r.rows.length > 0) {
@@ -1940,7 +1952,6 @@ app.post('/api/get_security_pass_status', async (req, res) => {
             const hasPassword = !!row.security_password;
             const setDate = row.set_date ? new Date(row.set_date).getTime() : null;
             
-            // Calculate 7-day lock
             let canChange = false;
             let daysPassed = 0;
             let daysLeft = 0;
@@ -1975,7 +1986,7 @@ app.post('/api/get_security_pass_status', async (req, res) => {
     }
 });
 
-// Set security password - FIXED
+// Set security password
 app.post('/api/set_security_pass', async (req, res) => {
     const { token, password } = req.body;
     
@@ -1983,9 +1994,21 @@ app.post('/api/set_security_pass', async (req, res) => {
     if (!password || password.length < 6) return res.json({ success: false, message: 'Password must be at least 6 characters' });
     
     try {
+        // ✅ JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) return res.json({ success: false, message: 'Invalid token' });
+        
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
         
         // Check existing
         const existing = await p.query('SELECT set_date FROM user_security_pass WHERE user_id=$1', [uid]);
@@ -2024,10 +2047,21 @@ app.post('/api/verify_security_pass', async (req, res) => {
     if (!password) return res.json({ success: false, message: 'Password required' });
     
     try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
-        if (isNaN(uid)) return res.json({ success: false });
+        // ✅ JWT Verify
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
         
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) return res.json({ success: false, message: 'Invalid token' });
+        
+        const p = await getPool();
         const r = await p.query('SELECT security_password FROM user_security_pass WHERE user_id=$1', [uid]);
         
         if (r.rows.length === 0 || !r.rows[0].security_password) {
@@ -2044,7 +2078,8 @@ app.post('/api/verify_security_pass', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== VERIFY USER ID (Top Up) ====================
+
+// Verify User ID (Top Up)
 app.post('/api/verify_user_id', async (req, res) => {
     const { token, userId } = req.body;
     
@@ -2059,7 +2094,6 @@ app.post('/api/verify_user_id', async (req, res) => {
     try {
         const p = await getPool();
         
-        // ✅ User ID ကို Database မှာ ရှာမယ်
         const result = await p.query(
             'SELECT id, username, email FROM auth_users WHERE id = $1',
             [parseInt(userId)]
@@ -2087,7 +2121,6 @@ app.post('/api/verify_user_id', async (req, res) => {
         res.json({ success: false, verified: false, message: 'Server error' });
     }
 });
-
 // ==================== SLIDER ====================
 app.get('/api/slider_images', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ images: [] }); res.json({ success: true, images: JSON.parse(r.rows[0].image_urls || '[]') }); } catch(e) { res.json({ images: [] }); } });
 app.post('/api/admin/slider_images', async (req, res) => { try { const p = await getPool(); const { images } = req.body; if (!images || images.length === 0) { await p.query('DELETE FROM slider_images'); return res.json({ success: true }); } await p.query('DELETE FROM slider_images'); await p.query('INSERT INTO slider_images (image_urls) VALUES ($1)', [JSON.stringify(images)]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
