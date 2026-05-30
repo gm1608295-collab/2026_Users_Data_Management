@@ -2565,8 +2565,7 @@ function closeClearConfirm() {
     document.getElementById('clearConfirmModal').classList.remove('active');
     pendingClearType = null;
 }
-
-// ==================== INLINE PASSWORD GENERATOR (PER TAB) ====================
+// ==================== INLINE PASSWORD GENERATOR ====================
 const activeCharTypes = {
     gmail: { lower: true, upper: true, numbers: true, symbols: false },
     mlbb: { lower: true, upper: true, numbers: true, symbols: false },
@@ -2575,30 +2574,15 @@ const activeCharTypes = {
 
 const currentPasswords = { gmail: '', mlbb: '', tiktok: '' };
 
-function toggleMiniChar(type, charType) {
-    const chk = document.getElementById(type + 'Chk' + charType.charAt(0).toUpperCase() + charType.slice(1));
-    chk.checked = !chk.checked;
-    updateMiniChar(type, charType, chk.checked);
-}
-
 function updateMiniChar(type, charType, isChecked) {
     activeCharTypes[type][charType] = isChecked;
-    
-    // ✅ Checkbox update
     const chk = document.getElementById(type + 'Chk' + charType.charAt(0).toUpperCase() + charType.slice(1));
     if (chk) chk.checked = isChecked;
-    
-    // ✅ Label update
     const opt = document.getElementById(type + 'Opt' + charType.charAt(0).toUpperCase() + charType.slice(1));
     if (opt) {
-        if (isChecked) {
-            opt.classList.remove('disabled');
-        } else {
-            opt.classList.add('disabled');
-        }
+        if (isChecked) { opt.classList.remove('disabled'); }
+        else { opt.classList.add('disabled'); }
     }
-    
-    // Ensure at least one
     const anyChecked = Object.values(activeCharTypes[type]).some(v => v);
     if (!anyChecked) {
         activeCharTypes[type][charType] = true;
@@ -2606,31 +2590,23 @@ function updateMiniChar(type, charType, isChecked) {
         if (opt) opt.classList.remove('disabled');
         n('⚠️ အနည်းဆုံး တစ်ခုရွေးထားရပါမည်', 'error');
     }
-    
     generateMiniPassword(type);
+}
+
+function generateMiniPassword(type) {
+    let chars = '';
+    for (const [charType, isActive] of Object.entries(activeCharTypes[type])) {
+        if (isActive) chars += CHAR_SETS[charType];
     }
-// Sync Length Number Input & Slider
-function syncMiniLength(type, value) {
-    let numValue = parseInt(value);
-    
-    // ✅ Min/Max Limit
-    if (isNaN(numValue) || numValue < 6) {
-        numValue = 6;
-    } else if (numValue > 30) {
-        numValue = 30;
-    }
-    
-    // ✅ Update Number Input
-    const numInput = document.getElementById(type + 'PassLength');
-    if (numInput) numInput.value = numValue;
-    
-    // ✅ Update Slider
-    const slider = document.getElementById(type + 'PassLengthSlider');
-    if (slider) slider.value = numValue;
-    
-    // ✅ Generate Password with new length
-    generateMiniPassword(type);
-            }
+    if (!chars) return '';
+    const length = parseInt(document.getElementById(type + 'PassLength').value) || 10;
+    let password = '';
+    for (let i = 0; i < length; i++) { password += chars.charAt(Math.floor(Math.random() * chars.length)); }
+    currentPasswords[type] = password;
+    const displayEl = document.getElementById(type + 'GeneratedPassword');
+    if (displayEl) displayEl.textContent = password;
+    return password;
+}
 
 function generateAndShowMiniPassword(type) {
     const password = generateMiniPassword(type);
@@ -2652,8 +2628,7 @@ async function saveMiniPassword(type) {
     try {
         const token = localStorage.getItem('auth_token');
         const r = await fetch('/api/save_type_password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, type, password })
         });
         const d = await r.json();
@@ -2665,6 +2640,17 @@ async function saveMiniPassword(type) {
         } else { n('❌ ' + (d.message || 'Save failed'), 'error'); }
     } catch(e) { n('❌ Connection error', 'error'); }
 }
+
+function syncMiniLength(type, value) {
+    let numValue = parseInt(value);
+    if (isNaN(numValue) || numValue < 6) { numValue = 6; }
+    else if (numValue > 30) { numValue = 30; }
+    const numInput = document.getElementById(type + 'PassLength');
+    if (numInput) numInput.value = numValue;
+    const slider = document.getElementById(type + 'PassLengthSlider');
+    if (slider) slider.value = numValue;
+    generateMiniPassword(type);
+    }
 // ==================== INIT ====================
 (async function init() {
     await checkPageTimer();
