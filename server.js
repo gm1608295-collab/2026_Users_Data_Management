@@ -1794,7 +1794,7 @@ app.post('/api/check_password_status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== SAVE TYPE PASSWORD API ====================
+// ==================== SAVE TYPE PASSWORD API (WITH COOLDOWN) ====================
 app.post('/api/save_type_password', async (req, res) => {
     const { token, type, password } = req.body;
     
@@ -1811,6 +1811,7 @@ app.post('/api/save_type_password', async (req, res) => {
     }
     
     try {
+        // JWT Verify
         const jwt = require('jsonwebtoken');
         const secretKey = process.env.JWT_SECRET || 'your-secret-key';
         let decoded;
@@ -1827,25 +1828,82 @@ app.post('/api/save_type_password', async (req, res) => {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
         
+        const p = await getPool();
+        const now = new Date();
+        
+        // ========== ✅ COOLDOWN CHECK ==========
+        const user = await p.query(
+            'SELECT last_password_gen, password_gen_cooldown FROM auth_users WHERE id = $1',
+            [uid]
+        );
+        
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        const u = user.rows[0];
+        
+        // Check if password was generated before and cooldown is active
+        if (u.last_password_gen && u.password_gen_cooldown) {
+            const cooldownEnd = new Date(u.password_gen_cooldown);
+            
+            if (now < cooldownEnd) {
+                const remainingMs = cooldownEnd.getTime() - now.getTime();
+                const days = Math.floor(remainingMs / 86400000);
+                const hours = Math.floor((remainingMs % 86400000) / 3600000);
+                const min = Math.floor((remainingMs % 3600000) / 60000);
+                
+                return res.json({
+                    success: false,
+                    message: `⏳ ${days}ရက် ${hours}နာရီ ${min}မိနစ် စောင့်ရပါသေးသည်။ Cooldown ပြည့်မှသာ အသစ်ထုတ်နိုင်ပါမည်။`
+                });
+            }
+            
+            // Cooldown passed but this API doesn't accept old password
+            // Should use /api/regenerate_password instead
+            if (now >= cooldownEnd && u.last_password_gen) {
+                return res.json({
+                    success: false,
+                    message: 'Password အဟောင်းထည့်၍ အသစ်ထုတ်ရန် လိုအပ်ပါသည်။ Regenerate ခလုတ်ကို အသုံးပြုပါ။',
+                    needsOldPassword: true
+                });
+            }
+        }
+        // ========== END COOLDOWN CHECK ==========
+        
         // Hash password
         const bcrypt = require('bcrypt');
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
-        const p = await getPool();
-        
         // Update only the specific type
         const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
         const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
         
+        // ========== ✅ SET COOLDOWN (7 DAYS) ==========
+        const cooldownDate = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
+        
         await p.query(
-            `UPDATE auth_users SET ${plainCol} = $1, ${hashCol} = $2, passwords_generated = true WHERE id = $3`,
-            [password, hashedPassword, uid]
+            `UPDATE auth_users SET 
+                ${plainCol} = $1, 
+                ${hashCol} = $2, 
+                passwords_generated = true,
+                passwords_viewed_at = NOW(),
+                last_password_gen = NOW(),
+                password_gen_cooldown = $3
+            WHERE id = $4`,
+            [password, hashedPassword, cooldownDate, uid]
         );
+        // ========== END SET COOLDOWN ==========
         
-        console.log(`✅ ${type} password saved for user:`, uid);
+        console.log(`✅ ${type} password saved for user:`, uid, '| Cooldown until:', cooldownDate.toISOString());
         
-        res.json({ success: true, message: type.charAt(0).toUpperCase() + type.slice(1) + ' password saved!' });
+        res.json({ 
+            success: true, 
+            message: type.charAt(0).toUpperCase() + type.slice(1) + ' password saved!',
+            cooldownEnd: cooldownDate.toISOString(),
+            warning: '⚠️ နောက် ၇ ရက်အတွင်း Password အသစ် ထပ်ထုတ်နိုင်မည် မဟုတ်ပါ။'
+        });
         
     } catch(e) {
         console.error('[SAVE TYPE PASSWORD ERROR]', e.message);
