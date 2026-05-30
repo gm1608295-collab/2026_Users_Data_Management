@@ -1289,6 +1289,72 @@
     font-size: 13px !important;
     padding: 5px !important;
 }
+        /* ========== NETWORK BUTTONS ========== */
+.network-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255,255,255,0.05);
+    transition: all 0.2s;
+    min-width: 55px;
+    text-align: center;
+}
+
+.network-btn:hover {
+    transform: translateY(-1px);
+}
+
+.network-btn.selected {
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+
+.network-btn.mpt { background: rgba(231, 76, 60, 0.3); border-color: rgba(231, 76, 60, 0.5); }
+.network-btn.mpt.selected { background: rgba(231, 76, 60, 0.6); }
+
+.network-btn.telenor { background: rgba(52, 152, 219, 0.3); border-color: rgba(52, 152, 219, 0.5); }
+.network-btn.telenor.selected { background: rgba(52, 152, 219, 0.6); }
+
+.network-btn.ooredoo { background: rgba(243, 156, 18, 0.3); border-color: rgba(243, 156, 18, 0.5); }
+.network-btn.ooredoo.selected { background: rgba(243, 156, 18, 0.6); }
+
+.network-btn.mytel { background: rgba(46, 204, 113, 0.3); border-color: rgba(46, 204, 113, 0.5); }
+.network-btn.mytel.selected { background: rgba(46, 204, 113, 0.6); }
+
+/* Signal Strength Meter */
+.signal-meter {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+    margin: 6px 0;
+}
+
+.signal-bar {
+    width: 6px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    transition: all 0.3s;
+}
+
+.signal-bar.active {
+    background: #2ecc71;
+}
+
+.signal-bar:nth-child(1) { height: 8px; }
+.signal-bar:nth-child(2) { height: 14px; }
+.signal-bar:nth-child(3) { height: 20px; }
+.signal-bar:nth-child(4) { height: 26px; }
+.signal-bar:nth-child(5) { height: 32px; }
+
+.signal-bar.medium { background: #f39c12; }
+.signal-bar.weak { background: #e74c3c; }
+        
     </style>
 </head>
 <body>
@@ -1500,39 +1566,62 @@
 <div class="panel" id="securityPanel">
     <h3><i class="fas fa-shield-alt"></i> Security Control Center</h3>
     
-    <!-- Network Test Card -->
-    <div class="security-card" id="networkCard">
-        <div class="security-card-header" onclick="toggleSecurityCard('networkBody')">
-            <div class="security-card-icon">📶</div>
-            <div class="security-card-title">Network Test</div>
-            <div class="security-card-desc">Ping, Download, Upload, Packet Loss</div>
-            <i class="fas fa-chevron-down security-card-arrow" id="networkArrow"></i>
+<!-- Network Test Card -->
+<div class="security-card" id="networkCard">
+    <div class="security-card-header" onclick="toggleSecurityCard('networkBody')">
+        <div class="security-card-icon">📶</div>
+        <div class="security-card-title">Network Test</div>
+        <div class="security-card-desc">WiFi • Mobile Data • Signal Strength</div>
+        <i class="fas fa-chevron-down security-card-arrow" id="networkArrow"></i>
+    </div>
+    <div class="security-card-body" id="networkBody">
+        
+        <!-- Connection Type Display -->
+        <div id="connectionInfo" style="text-align:center;padding:8px;background:rgba(0,0,0,0.2);border-radius:8px;margin-bottom:10px;">
+            <span style="font-size:10px;color:rgba(255,255,255,0.5);">Current Connection:</span>
+            <span id="connectionType" style="font-size:12px;font-weight:bold;color:var(--w);display:block;">🔍 Detecting...</span>
         </div>
-        <div class="security-card-body" id="networkBody">
-            <button class="btn btn-w" onclick="runNetworkTest()">
-                <i class="fas fa-play"></i> Run Network Test
+        
+        <!-- WiFi Test Section -->
+        <div id="wifiTestSection" style="display:none;">
+            <p style="font-size:10px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:6px;">📶 WiFi Network Test</p>
+            <button class="btn btn-w" onclick="runWiFiTest()" style="margin-bottom:8px;">
+                <i class="fas fa-wifi"></i> Test WiFi Speed
             </button>
+        </div>
+        
+        <!-- Mobile Data Test Section -->
+        <div id="mobileTestSection" style="display:none;">
+            <p style="font-size:10px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:6px;">📱 Mobile Data Test</p>
             
-            <!-- Test Progress -->
-            <div id="networkProgress" style="display:none;margin-top:12px;text-align:center;">
-                <div class="test-progress">
-                    <span id="networkStep">⏳ Testing Ping...</span>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="networkProgressBar"></div>
-                    </div>
-                </div>
+            <!-- Network Selector -->
+            <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+                <button class="network-btn mpt" onclick="selectNetwork('MPT')">MPT</button>
+                <button class="network-btn telenor" onclick="selectNetwork('Telenor')">Telenor</button>
+                <button class="network-btn ooredoo" onclick="selectNetwork('Ooredoo')">Ooredoo</button>
+                <button class="network-btn mytel" onclick="selectNetwork('Mytel')">Mytel</button>
             </div>
             
-            <!-- Test Result -->
-            <div id="networkResult" style="display:none;margin-top:12px;">
-                <div class="network-result-box" id="networkResultBox">
-                    <!-- Dynamic Fill by JS -->
-                </div>
+            <button class="btn btn-w" onclick="runMobileTest()" style="margin-bottom:8px;">
+                <i class="fas fa-signal"></i> Test Mobile Data
+            </button>
+        </div>
+        
+        <!-- Test Progress -->
+        <div id="networkProgress2" style="display:none;text-align:center;">
+            <span id="networkStep2" style="font-size:11px;color:rgba(255,255,255,0.7);">⏳ Testing...</span>
+            <div class="progress-bar" style="margin-top:6px;">
+                <div class="progress-fill" id="networkProgressBar2"></div>
             </div>
+        </div>
+        
+        <!-- Test Result -->
+        <div id="networkResult2" style="display:none;margin-top:10px;">
+            <div class="network-result-box" id="networkResultBox2"></div>
         </div>
     </div>
 </div>
-     
+    
                 <!-- Chance Clear Card -->
 <div class="security-card" id="chanceClearCard">
     <div class="security-card-header" onclick="toggleSecurityCard('chanceClearBody')">
@@ -2486,117 +2575,159 @@ function toggleSecurityCard(bodyId) {
     body.classList.toggle('open');
     arrow.classList.toggle('open');
 }
+// ==================== NETWORK TEST (WiFi + Mobile Data) ====================
+let selectedNetwork = 'MPT';
+let currentConnection = 'unknown';
 
-// ==================== NETWORK TEST ====================
-const NETWORK_TEST_URL = 'https://solo-m-store-security-system-and-user.onrender.com';
+// Detect connection type on load
+async function detectConnection() {
+    try {
+        // Use Network Information API if available
+        if (navigator.connection) {
+            const conn = navigator.connection;
+            
+            if (conn.type === 'wifi') {
+                currentConnection = 'wifi';
+                document.getElementById('wifiTestSection').style.display = 'block';
+                document.getElementById('mobileTestSection').style.display = 'none';
+                document.getElementById('connectionType').textContent = '📶 WiFi Connected';
+            } else if (conn.type === 'cellular') {
+                currentConnection = 'mobile';
+                document.getElementById('wifiTestSection').style.display = 'none';
+                document.getElementById('mobileTestSection').style.display = 'block';
+                document.getElementById('connectionType').textContent = '📱 Mobile Data';
+            } else {
+                // Default: check by ping
+                await detectByPing();
+            }
+        } else {
+            await detectByPing();
+        }
+        
+        // Show both if unknown
+        if (currentConnection === 'unknown') {
+            document.getElementById('wifiTestSection').style.display = 'block';
+            document.getElementById('mobileTestSection').style.display = 'block';
+            document.getElementById('connectionType').textContent = '🔍 Select Test Type';
+        }
+        
+    } catch(e) {
+        document.getElementById('connectionType').textContent = '🔍 Cannot Detect';
+    }
+}
 
-async function runNetworkTest() {
-    const progressDiv = document.getElementById('networkProgress');
-    const resultDiv = document.getElementById('networkResult');
-    const stepSpan = document.getElementById('networkStep');
-    const progressBar = document.getElementById('networkProgressBar');
+async function detectByPing() {
+    // Try to determine by latency
+    const start = performance.now();
+    try {
+        await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
+        const ping = Math.round(performance.now() - start);
+        
+        if (ping < 50) {
+            currentConnection = 'wifi';
+            document.getElementById('connectionType').textContent = '📶 WiFi (Ping: ' + ping + 'ms)';
+        } else {
+            currentConnection = 'mobile';
+            document.getElementById('connectionType').textContent = '📱 Mobile Data (Ping: ' + ping + 'ms)';
+        }
+    } catch(e) {
+        currentConnection = 'unknown';
+    }
+}
+
+function selectNetwork(network) {
+    selectedNetwork = network;
+    document.querySelectorAll('.network-btn').forEach(b => b.classList.remove('selected'));
+    event.target.classList.add('selected');
+}
+
+// WiFi Test
+async function runWiFiTest() {
+    await runSpeedTest('WiFi');
+}
+
+// Mobile Data Test
+async function runMobileTest() {
+    await runSpeedTest(selectedNetwork);
+}
+
+// Main Speed Test Function
+async function runSpeedTest(networkType) {
+    const progressDiv = document.getElementById('networkProgress2');
+    const resultDiv = document.getElementById('networkResult2');
+    const stepSpan = document.getElementById('networkStep2');
+    const progressBar = document.getElementById('networkProgressBar2');
+    
     progressDiv.style.display = 'block';
     resultDiv.style.display = 'none';
     
-    const results = {};
+    const results = { networkType };
     const steps = [
         { name: 'Testing Ping...', fn: testPing, progress: 0 },
-        { name: 'Testing Download Speed...', fn: testDownload, progress: 25 },
-        { name: 'Testing Upload Speed...', fn: testUpload, progress: 50 },
-        { name: 'Testing Packet Loss...', fn: testPacketLoss, progress: 75 },
-        { name: 'Finalizing Results...', fn: () => Promise.resolve(), progress: 100 }
+        { name: 'Testing Download...', fn: testDownload, progress: 25 },
+        { name: 'Testing Upload...', fn: testUpload, progress: 50 },
+        { name: 'Testing Stability...', fn: testPacketLoss, progress: 75 },
+        { name: 'Finalizing...', fn: () => Promise.resolve(), progress: 100 }
     ];
     
     for (const step of steps) {
         stepSpan.textContent = '⏳ ' + step.name;
         progressBar.style.width = step.progress + '%';
-        try { const result = await step.fn(); if (result) Object.assign(results, result); } catch(e) {}
+        try { 
+            const result = await step.fn(); 
+            if (result) Object.assign(results, result); 
+        } catch(e) {}
         await sleep(500);
     }
     
-    stepSpan.textContent = '✅ Test Complete!';
+    // Get signal strength
+    results.signalStrength = getSignalStrength();
+    
+    stepSpan.textContent = '✅ Complete!';
     progressBar.style.width = '100%';
     await sleep(500);
     progressDiv.style.display = 'none';
-    displayNetworkResults(results);
+    displayNetworkResults2(results);
     resultDiv.style.display = 'block';
 }
 
-async function testPing() {
-    const times = [];
-    for (let i = 0; i < 3; i++) {
-        const start = performance.now();
-        try {
-            await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
-            const end = performance.now();
-            times.push(Math.round(end - start));
-        } catch(e) { times.push(999); }
+function getSignalStrength() {
+    // Try Network Information API
+    if (navigator.connection && navigator.connection.downlink) {
+        const mbps = navigator.connection.downlink;
+        if (mbps > 20) return { percent: 90, label: 'Excellent', color: 'green' };
+        if (mbps > 10) return { percent: 70, label: 'Good', color: 'green' };
+        if (mbps > 5) return { percent: 50, label: 'Fair', color: 'medium' };
+        if (mbps > 1) return { percent: 30, label: 'Weak', color: 'weak' };
+        return { percent: 15, label: 'Very Weak', color: 'weak' };
     }
-    const avgPing = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-    return { ping: avgPing };
+    
+    // Estimate from ping
+    return { percent: 60, label: 'Good', color: 'green' };
 }
 
-async function testDownload() {
-    const testSize = 100 * 1024;
-    const testUrl = NETWORK_TEST_URL + '/api/speedtest?size=' + testSize + '&t=' + Date.now();
-    const start = performance.now();
-    try {
-        const response = await fetch(testUrl, { cache: 'no-store' });
-        const data = await response.arrayBuffer();
-        const end = performance.now();
-        const durationSec = (end - start) / 1000;
-        const sizeMb = data.byteLength / (1024 * 1024);
-        const speedMbps = (sizeMb * 8) / durationSec;
-        return { download: Math.round(speedMbps * 10) / 10 };
-    } catch(e) { return { download: 0 }; }
-}
-
-async function testUpload() {
-    const testData = new Uint8Array(50 * 1024);
-    for (let i = 0; i < testData.length; i++) { testData[i] = Math.floor(Math.random() * 256); }
-    const start = performance.now();
-    try {
-        await fetch(NETWORK_TEST_URL + '/api/speedtest/upload?t=' + Date.now(), { method: 'POST', body: testData, cache: 'no-store' });
-        const end = performance.now();
-        const durationSec = (end - start) / 1000;
-        const sizeMb = testData.byteLength / (1024 * 1024);
-        const speedMbps = (sizeMb * 8) / durationSec;
-        return { upload: Math.round(speedMbps * 10) / 10 };
-    } catch(e) { return { upload: 0 }; }
-}
-
-async function testPacketLoss() {
-    const totalPings = 5;
-    let lost = 0;
-    const jitterValues = [];
-    let prevPing = null;
-    for (let i = 0; i < totalPings; i++) {
-        const start = performance.now();
-        try {
-            await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now() + '&i=' + i, { method: 'GET', cache: 'no-store' });
-            const end = performance.now();
-            const pingTime = Math.round(end - start);
-            if (prevPing !== null) { jitterValues.push(Math.abs(pingTime - prevPing)); }
-            prevPing = pingTime;
-        } catch(e) { lost++; }
-    }
-    const packetLoss = Math.round((lost / totalPings) * 100);
-    const jitter = jitterValues.length > 0 ? Math.round(jitterValues.reduce((a, b) => a + b, 0) / jitterValues.length) : 0;
-    return { packetLoss, jitter };
-}
-
-function displayNetworkResults(r) {
+function displayNetworkResults2(r) {
     const ping = r.ping || 999;
     const download = r.download || 0;
     const upload = r.upload || 0;
     const packetLoss = r.packetLoss || 0;
     const jitter = r.jitter || 0;
+    const signal = r.signalStrength || { percent: 50, label: 'Unknown', color: 'green' };
+    
+    // Signal bars HTML
+    const maxBars = 5;
+    const activeBars = Math.round(signal.percent / 20);
+    let signalHTML = '<div class="signal-meter">';
+    for (let i = 1; i <= maxBars; i++) {
+        const active = i <= activeBars ? ' active ' + signal.color : '';
+        signalHTML += `<div class="signal-bar${active}"></div>`;
+    }
+    signalHTML += '</div>';
     
     const pingStatus = ping < 60 ? ['green', 'Excellent'] : ping < 120 ? ['yellow', 'Normal'] : ['red', 'Poor'];
     const dlStatus = download > 20 ? ['green', 'Fast'] : download > 10 ? ['yellow', 'Normal'] : ['red', 'Slow'];
     const ulStatus = upload > 10 ? ['green', 'Fast'] : upload > 5 ? ['yellow', 'Normal'] : ['red', 'Slow'];
     const plStatus = packetLoss === 0 ? ['green', 'None'] : packetLoss < 5 ? ['yellow', 'Low'] : ['red', 'High'];
-    const jtStatus = jitter < 15 ? ['green', 'Good'] : jitter < 30 ? ['yellow', 'Okay'] : ['red', 'Bad'];
     
     let score = 5;
     if (ping > 120) score--;
@@ -2604,27 +2735,29 @@ function displayNetworkResults(r) {
     if (download < 10) score--;
     if (upload < 5) score--;
     if (packetLoss > 5) score--;
-    if (jitter > 30) score--;
     score = Math.max(1, Math.min(5, score));
     
-    const overallClass = score >= 4 ? 'excellent' : score >= 3 ? 'good' : 'poor';
-    const overallText = score >= 4 ? 'Excellent' : score >= 3 ? 'Good' : 'Poor';
-    const mlbbPlayable = score >= 3;
     const stars = '⭐'.repeat(score) + '☆'.repeat(5 - score);
     
-    document.getElementById('networkResultBox').innerHTML = `
-        <div class="network-overall ${overallClass}">🟢 Overall: ${overallText} for Gaming</div>
+    document.getElementById('networkResultBox2').innerHTML = `
+        <div style="text-align:center;margin-bottom:10px;">
+            <span style="font-size:12px;font-weight:bold;color:#fff;">${r.networkType === 'WiFi' ? '📶 WiFi' : '📱 ' + r.networkType}</span>
+            ${signalHTML}
+            <span style="font-size:10px;color:rgba(255,255,255,0.6);">Signal: ${signal.label} (${signal.percent}%)</span>
+        </div>
         <div class="network-row"><span class="network-label">📡 Ping</span><span class="network-value">${ping}ms</span><div class="network-bar-wrap"><div class="network-bar-fill ${pingStatus[0]}" style="width:${Math.min(100, ping/3)}%"></div></div><span class="network-status ${pingStatus[0]}">${pingStatus[1]}</span></div>
         <div class="network-row"><span class="network-label">⬇️ Download</span><span class="network-value">${download} Mbps</span><div class="network-bar-wrap"><div class="network-bar-fill ${dlStatus[0]}" style="width:${Math.min(100, download*4)}%"></div></div><span class="network-status ${dlStatus[0]}">${dlStatus[1]}</span></div>
         <div class="network-row"><span class="network-label">⬆️ Upload</span><span class="network-value">${upload} Mbps</span><div class="network-bar-wrap"><div class="network-bar-fill ${ulStatus[0]}" style="width:${Math.min(100, upload*8)}%"></div></div><span class="network-status ${ulStatus[0]}">${ulStatus[1]}</span></div>
         <div class="network-row"><span class="network-label">📦 Packet Loss</span><span class="network-value">${packetLoss}%</span><div class="network-bar-wrap"><div class="network-bar-fill ${plStatus[0]}" style="width:${Math.min(100, packetLoss*20)}%"></div></div><span class="network-status ${plStatus[0]}">${plStatus[1]}</span></div>
-        <div class="network-row"><span class="network-label">📊 Jitter</span><span class="network-value">${jitter}ms</span><div class="network-bar-wrap"><div class="network-bar-fill ${jtStatus[0]}" style="width:${Math.min(100, jitter*3)}%"></div></div><span class="network-status ${jtStatus[0]}">${jtStatus[1]}</span></div>
-        <div class="network-rating">Rating: <span>${stars}</span> (${score}/5)<br>🎮 MLBB Playable: ${mlbbPlayable ? '<span style="color:#2ecc71;">✅ Yes</span>' : '<span style="color:#e74c3c;">❌ Not Recommended</span>'}</div>
+        <div class="network-row"><span class="network-label">📊 Jitter</span><span class="network-value">${jitter}ms</span><div class="network-bar-wrap"><div class="network-bar-fill ${jitter < 15 ? 'green' : jitter < 30 ? 'yellow' : 'red'}" style="width:${Math.min(100, jitter*3)}%"></div></div><span class="network-status ${jitter < 15 ? 'green' : jitter < 30 ? 'yellow' : 'red'}">${jitter < 15 ? 'Good' : jitter < 30 ? 'Okay' : 'Bad'}</span></div>
+        <div class="network-rating">Rating: <span>${stars}</span> (${score}/5)</div>
     `;
 }
 
-function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
+// Init: Detect connection on load
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(detectConnection, 500);
+});
 // ==================== CHANCE CLEAR SYSTEM ====================
 let clearUnlocked = false;
 let pendingClearType = null;
