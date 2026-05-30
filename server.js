@@ -383,7 +383,14 @@ async function initTables(p) {
         // ========== PASSWORD GENERATION COOLDOWN COLUMNS ==========
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS last_password_gen TIMESTAMP`,
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS password_gen_cooldown TIMESTAMP`,
-        
+
+        // ✅ Tab တစ်ခုချင်းစီအတွက် သီးသန့် Cooldown Columns
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS gmail_last_gen TIMESTAMP`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS gmail_gen_cooldown TIMESTAMP`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS mlbb_last_gen TIMESTAMP`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS mlbb_gen_cooldown TIMESTAMP`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tiktok_last_gen TIMESTAMP`,
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tiktok_gen_cooldown TIMESTAMP`,
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_sender ON chat_messages(sender_id)`,
@@ -1436,7 +1443,7 @@ app.post('/api/verify_data_password', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== CHECK PASSWORD GENERATION STATUS ====================
+// ==================== CHECK PASSWORD GENERATION STATUS (PER TYPE) ====================
 app.post('/api/check_gen_status', async (req, res) => {
     const { token, type } = req.body;
     
@@ -1465,9 +1472,13 @@ app.post('/api/check_gen_status', async (req, res) => {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
         
+        // ✅ Type သီးသန့် Column Names
+        const lastGenCol = type === 'gmail' ? 'gmail_last_gen' : type === 'mlbb' ? 'mlbb_last_gen' : 'tiktok_last_gen';
+        const cooldownCol = type === 'gmail' ? 'gmail_gen_cooldown' : type === 'mlbb' ? 'mlbb_gen_cooldown' : 'tiktok_gen_cooldown';
+        
         const p = await getPool();
         const user = await p.query(
-            'SELECT last_password_gen, password_gen_cooldown FROM auth_users WHERE id = $1',
+            `SELECT ${lastGenCol} as last_password_gen, ${cooldownCol} as password_gen_cooldown FROM auth_users WHERE id = $1`,
             [uid]
         );
         
@@ -1478,7 +1489,7 @@ app.post('/api/check_gen_status', async (req, res) => {
         const u = user.rows[0];
         const now = new Date();
         
-        // First time - no password generated yet
+        // First time - no password generated yet for this type
         if (!u.last_password_gen) {
             return res.json({
                 success: true,
@@ -1512,7 +1523,7 @@ app.post('/api/check_gen_status', async (req, res) => {
             });
         }
         
-        // Cooldown passed - can regenerate
+        // Cooldown passed - can regenerate with old password
         return res.json({
             success: true,
             canGenerate: true,
@@ -1527,7 +1538,7 @@ app.post('/api/check_gen_status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== REGENERATE PASSWORD (VERIFY OLD + GEN NEW) ====================
+// ==================== REGENERATE PASSWORD (PER TYPE - VERIFY OLD + GEN NEW) ====================
 app.post('/api/regenerate_password', async (req, res) => {
     const { token, type, oldPassword, options } = req.body;
     
@@ -1556,8 +1567,17 @@ app.post('/api/regenerate_password', async (req, res) => {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
         
+        // ✅ Type သီးသန့် Column Names
+        const lastGenCol = type === 'gmail' ? 'gmail_last_gen' : type === 'mlbb' ? 'mlbb_last_gen' : 'tiktok_last_gen';
+        const cooldownCol = type === 'gmail' ? 'gmail_gen_cooldown' : type === 'mlbb' ? 'mlbb_gen_cooldown' : 'tiktok_gen_cooldown';
+        const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
+        const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
+        
         const p = await getPool();
-        const user = await p.query('SELECT * FROM auth_users WHERE id = $1', [uid]);
+        const user = await p.query(
+            `SELECT *, ${lastGenCol} as last_password_gen, ${cooldownCol} as password_gen_cooldown FROM auth_users WHERE id = $1`,
+            [uid]
+        );
         
         if (user.rows.length === 0) {
             return res.json({ success: false, message: 'User not found' });
@@ -1591,9 +1611,6 @@ app.post('/api/regenerate_password', async (req, res) => {
             }
             
             // Verify old password
-            const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
-            const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
-            
             let passwordMatch = false;
             
             // Check plain text
@@ -1645,16 +1662,13 @@ app.post('/api/regenerate_password', async (req, res) => {
         // Set cooldown: 7 days from now
         const cooldownDate = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
         
-        // Update database
-        const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
-        const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
-        
+        // Update database - ✅ Type သီးသန့် Columns
         await p.query(
             `UPDATE auth_users SET 
                 ${plainCol} = $1, 
                 ${hashCol} = $2, 
-                last_password_gen = NOW(), 
-                password_gen_cooldown = $3,
+                ${lastGenCol} = NOW(), 
+                ${cooldownCol} = $3,
                 passwords_generated = true,
                 passwords_viewed_at = NOW()
             WHERE id = $4`,
@@ -1794,7 +1808,7 @@ app.post('/api/check_password_status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== SAVE TYPE PASSWORD API (WITH COOLDOWN) ====================
+// ==================== SAVE TYPE PASSWORD API (PER TYPE COOLDOWN) ====================
 app.post('/api/save_type_password', async (req, res) => {
     const { token, type, password } = req.body;
     
@@ -1823,17 +1837,22 @@ app.post('/api/save_type_password', async (req, res) => {
         }
         
         const uid = decoded.uid || decoded.id || decoded.userId;
-        
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
         
+        // ✅ Type သီးသန့် Column Names
+        const lastGenCol = type === 'gmail' ? 'gmail_last_gen' : type === 'mlbb' ? 'mlbb_last_gen' : 'tiktok_last_gen';
+        const cooldownCol = type === 'gmail' ? 'gmail_gen_cooldown' : type === 'mlbb' ? 'mlbb_gen_cooldown' : 'tiktok_gen_cooldown';
+        const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
+        const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
+        
         const p = await getPool();
         const now = new Date();
         
-        // ========== ✅ COOLDOWN CHECK ==========
+        // ========== ✅ COOLDOWN CHECK (PER TYPE) ==========
         const user = await p.query(
-            'SELECT last_password_gen, password_gen_cooldown FROM auth_users WHERE id = $1',
+            `SELECT ${lastGenCol} as last_password_gen, ${cooldownCol} as password_gen_cooldown FROM auth_users WHERE id = $1`,
             [uid]
         );
         
@@ -1843,7 +1862,6 @@ app.post('/api/save_type_password', async (req, res) => {
         
         const u = user.rows[0];
         
-        // Check if password was generated before and cooldown is active
         if (u.last_password_gen && u.password_gen_cooldown) {
             const cooldownEnd = new Date(u.password_gen_cooldown);
             
@@ -1855,13 +1873,11 @@ app.post('/api/save_type_password', async (req, res) => {
                 
                 return res.json({
                     success: false,
-                    message: `⏳ ${days}ရက် ${hours}နာရီ ${min}မိနစ် စောင့်ရပါသေးသည်။ Cooldown ပြည့်မှသာ အသစ်ထုတ်နိုင်ပါမည်။`
+                    message: `⏳ ${days}ရက် ${hours}နာရီ ${min}မိနစ် စောင့်ရပါသေးသည်။ Cooldown ပြည့်မှသာ အသစ်ထုတ်နိုင်ပါမည်।`
                 });
             }
             
-            // Cooldown passed but this API doesn't accept old password
-            // Should use /api/regenerate_password instead
-            if (now >= cooldownEnd && u.last_password_gen) {
+            if (now >= cooldownEnd) {
                 return res.json({
                     success: false,
                     message: 'Password အဟောင်းထည့်၍ အသစ်ထုတ်ရန် လိုအပ်ပါသည်။ Regenerate ခလုတ်ကို အသုံးပြုပါ။',
@@ -1876,25 +1892,20 @@ app.post('/api/save_type_password', async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
-        // Update only the specific type
-        const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
-        const hashCol = type === 'gmail' ? 'gmail_pass_hash' : type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
-        
-        // ========== ✅ SET COOLDOWN (7 DAYS) ==========
+        // ========== ✅ SET COOLDOWN (7 DAYS - PER TYPE) ==========
         const cooldownDate = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
         
         await p.query(
             `UPDATE auth_users SET 
                 ${plainCol} = $1, 
                 ${hashCol} = $2, 
+                ${lastGenCol} = NOW(), 
+                ${cooldownCol} = $3,
                 passwords_generated = true,
-                passwords_viewed_at = NOW(),
-                last_password_gen = NOW(),
-                password_gen_cooldown = $3
+                passwords_viewed_at = NOW()
             WHERE id = $4`,
             [password, hashedPassword, cooldownDate, uid]
         );
-        // ========== END SET COOLDOWN ==========
         
         console.log(`✅ ${type} password saved for user:`, uid, '| Cooldown until:', cooldownDate.toISOString());
         
