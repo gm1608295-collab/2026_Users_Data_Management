@@ -391,6 +391,23 @@ async function initTables(p) {
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS mlbb_gen_cooldown TIMESTAMP`,
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tiktok_last_gen TIMESTAMP`,
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tiktok_gen_cooldown TIMESTAMP`,
+
+        `CREATE TABLE IF NOT EXISTS user_gmail_data (
+    id SERIAL PRIMARY KEY, user_id INT, name VARCHAR(200), emails TEXT,
+    phones TEXT, password VARCHAR(200), dob VARCHAR(50),
+    country VARCHAR(100), region VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
+`CREATE TABLE IF NOT EXISTS user_mlbb_data (
+    id SERIAL PRIMARY KEY, user_id INT, ingame_name VARCHAR(200), ingame_id VARCHAR(100),
+    server_id VARCHAR(100), emails TEXT, password VARCHAR(200),
+    dob VARCHAR(50), country VARCHAR(100), region VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
+`CREATE TABLE IF NOT EXISTS user_tiktok_data (
+    id SERIAL PRIMARY KEY, user_id INT, full_name VARCHAR(200), last_name VARCHAR(200),
+    emails TEXT, phones TEXT, password VARCHAR(200),
+    dob VARCHAR(50), country VARCHAR(100), region VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
+        
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_sender ON chat_messages(sender_id)`,
