@@ -168,7 +168,21 @@
                     <i class="fas fa-unlock"></i> Unlock
                 </button>
             </div>
-            <div id="lockInfo" class="lock-info" style="display:none"></div>
+            <!-- Lock Info + Timer -->
+<div id="lockInfo" class="lock-info" style="display:none"></div>
+
+<!-- ✅ Attempt Lock Timer (ဒီနေရာမှာ ထည့်ပါ) -->
+<div id="attemptLockBox" style="display:none;text-align:center;padding:12px;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:8px;margin-top:10px;">
+    <p style="font-size:11px;color:#e74c3c;margin:0 0 6px;">⛔ Password မှားသွင်းမှု အကြိမ်ရေ များလွန်းပါသည်</p>
+    <p style="font-size:20px;font-weight:bold;color:#fff;font-family:'Courier New',monospace;margin:0;" id="attemptLockTimer">10:00</p>
+    <p style="font-size:9px;color:rgba(255,255,255,0.5);margin:4px 0 0;">ခန စောင့်ဆိုင်းပေးပါ</p>
+</div>
+
+<!-- Attempt Counter Display -->
+<p id="attemptCounter" style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;margin-top:8px;display:none;">
+    Attempts: <span id="attemptCount">0</span>/5
+</p>
+            
         </div>
     </div>
 
@@ -191,12 +205,149 @@
         e.style.display = "block";
         setTimeout(() => e.style.display = "none", 3000);
     }
-
-    // ==================== SECURITY PASSWORD SYSTEM (SERVER-SIDE) ====================
+    // ==================== SECURITY PASSWORD SYSTEM (WITH ATTEMPT LIMIT) ====================
 let securityUnlocked = false;
 let hasPassword = false;
 let canChange = true;
 let daysLeft = 0;
+
+// ✅ Attempt Limit Variables
+const MAX_ATTEMPTS = 5;
+const LOCK_DURATION = 10 * 60 * 1000; // 10 minutes in ms
+let attemptCount = 0;
+let attemptLockUntil = null;
+let attemptLockInterval = null;
+
+// ✅ Load attempt state from localStorage
+function loadAttemptState() {
+    try {
+        const saved = localStorage.getItem('security_attempt_state');
+        if (saved) {
+            const state = JSON.parse(saved);
+            attemptCount = state.attemptCount || 0;
+            attemptLockUntil = state.attemptLockUntil ? new Date(state.attemptLockUntil).getTime() : null;
+            
+            // Check if lock expired
+            if (attemptLockUntil && Date.now() >= attemptLockUntil) {
+                attemptCount = 0;
+                attemptLockUntil = null;
+                localStorage.removeItem('security_attempt_state');
+            }
+        }
+    } catch(e) {
+        attemptCount = 0;
+        attemptLockUntil = null;
+    }
+}
+
+// ✅ Save attempt state to localStorage
+function saveAttemptState() {
+    try {
+        localStorage.setItem('security_attempt_state', JSON.stringify({
+            attemptCount: attemptCount,
+            attemptLockUntil: attemptLockUntil
+        }));
+    } catch(e) {}
+}
+
+// ✅ Check if currently locked
+function isAttemptLocked() {
+    if (attemptLockUntil && Date.now() < attemptLockUntil) {
+        return true;
+    }
+    // Lock expired - reset
+    if (attemptLockUntil && Date.now() >= attemptLockUntil) {
+        attemptCount = 0;
+        attemptLockUntil = null;
+        saveAttemptState();
+        stopAttemptTimer();
+        document.getElementById('attemptLockBox').style.display = 'none';
+        document.getElementById('attemptCounter').style.display = 'none';
+    }
+    return false;
+}
+
+// ✅ Start lock timer
+function startAttemptTimer() {
+    stopAttemptTimer();
+    
+    const timerEl = document.getElementById('attemptLockTimer');
+    const lockBox = document.getElementById('attemptLockBox');
+    
+    if (lockBox) lockBox.style.display = 'block';
+    
+    const update = () => {
+        if (!attemptLockUntil) {
+            stopAttemptTimer();
+            return;
+        }
+        
+        const remaining = attemptLockUntil - Date.now();
+        
+        if (remaining <= 0) {
+            // Lock expired
+            attemptCount = 0;
+            attemptLockUntil = null;
+            saveAttemptState();
+            stopAttemptTimer();
+            if (lockBox) lockBox.style.display = 'none';
+            document.getElementById('attemptCounter').style.display = 'none';
+            n('✅ စောင့်ဆိုင်းချိန် ပြည့်ပါပြီ။ Password ထပ်ထည့်နိုင်ပါပြီ', 'success');
+            return;
+        }
+        
+        const min = Math.floor(remaining / 60000);
+        const sec = Math.floor((remaining % 60000) / 1000);
+        if (timerEl) timerEl.textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+    };
+    
+    update();
+    attemptLockInterval = setInterval(update, 1000);
+}
+
+// ✅ Stop lock timer
+function stopAttemptTimer() {
+    if (attemptLockInterval) {
+        clearInterval(attemptLockInterval);
+        attemptLockInterval = null;
+    }
+}
+
+// ✅ Check and handle attempt
+function handleFailedAttempt() {
+    attemptCount++;
+    saveAttemptState();
+    
+    const counterEl = document.getElementById('attemptCounter');
+    const countEl = document.getElementById('attemptCount');
+    
+    if (counterEl) counterEl.style.display = 'block';
+    if (countEl) countEl.textContent = attemptCount;
+    
+    if (attemptCount >= MAX_ATTEMPTS) {
+        // Lock for 10 minutes
+        attemptLockUntil = Date.now() + LOCK_DURATION;
+        saveAttemptState();
+        startAttemptTimer();
+        
+        n('⛔ အကြိမ်ရေ ၅ ကြိမ်ကျော်သွားပါပြီ။ ၁၀ မိနစ် စောင့်ဆိုင်းပါ', 'error');
+        
+        return true; // Locked
+    }
+    
+    n(`❌ Password မှားပါတယ် (${attemptCount}/${MAX_ATTEMPTS})`, 'error');
+    return false; // Not locked yet
+}
+
+// ✅ Reset attempts on success
+function resetAttempts() {
+    attemptCount = 0;
+    attemptLockUntil = null;
+    saveAttemptState();
+    stopAttemptTimer();
+    document.getElementById('attemptLockBox').style.display = 'none';
+    document.getElementById('attemptCounter').style.display = 'none';
+}
 
 async function loadSecurityState() {
     try {
@@ -233,26 +384,35 @@ async function openSecurityPassModal() {
         return;
     }
     
+    // ✅ Check if currently locked
+    if (isAttemptLocked()) {
+        startAttemptTimer();
+        return;
+    }
+    
     // Reset fields
     document.getElementById('secNewPass').value = '';
     document.getElementById('secConfirmPass').value = '';
     document.getElementById('secUnlockPass').value = '';
     
+    // Update attempt counter display
+    if (attemptCount > 0) {
+        document.getElementById('attemptCounter').style.display = 'block';
+        document.getElementById('attemptCount').textContent = attemptCount;
+    }
+    
     // Load lock info
     const lockInfo = document.getElementById('lockInfo');
     
     if (!hasPassword) {
-        // No password set - show create form
         document.getElementById('securityPassForm').style.display = 'block';
         document.getElementById('securityUnlockForm').style.display = 'none';
         lockInfo.style.display = 'none';
     } else if (canChange) {
-        // 7 days passed - can change
         document.getElementById('securityPassForm').style.display = 'block';
         document.getElementById('securityUnlockForm').style.display = 'block';
         lockInfo.style.display = 'none';
     } else {
-        // Locked - 7 days not passed
         document.getElementById('securityPassForm').style.display = 'none';
         document.getElementById('securityUnlockForm').style.display = 'block';
         lockInfo.style.display = 'block';
@@ -287,12 +447,13 @@ async function setSecurityPassword() {
             hasPassword = true;
             securityUnlocked = true;
             canChange = false;
+            resetAttempts(); // ✅ Reset on success
             
             document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
             document.getElementById('securityPassBtn').classList.add('locked');
             
             closeSecurityPassModal();
-            n("✅ Password ထည့်သွင်းခြင်းအောင်မြင်ပါသည်၊ နောက်တစ်ကြိမ်ပြောင်းလဲရန်အချိန် ၇ ရက်စောင့်ရပါမည်", "success");
+            n("✅ Password ထည့်သွင်းခြင်းအောင်မြင်ပါသည်", "success");
             
             loadMyHistory();
             
@@ -311,6 +472,12 @@ async function setSecurityPassword() {
 }
 
 async function unlockSecurityPassword() {
+    // ✅ Check if locked
+    if (isAttemptLocked()) {
+        startAttemptTimer();
+        return;
+    }
+    
     const pass = document.getElementById('secUnlockPass').value;
     if (!pass) return n("❌ Enter password!", "error");
     
@@ -325,6 +492,7 @@ async function unlockSecurityPassword() {
         
         if (d.success) {
             securityUnlocked = true;
+            resetAttempts(); // ✅ Reset on success
             closeSecurityPassModal();
             n("✅ Unlocked!", "success");
             document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
@@ -338,12 +506,13 @@ async function unlockSecurityPassword() {
                 loadMyHistory();
             }, 300000);
         } else {
-            n("❌ " + d.message, "error");
+            // ✅ Handle failed attempt
+            handleFailedAttempt();
         }
     } catch(e) {
         n("❌ Connection error!", "error");
     }
-}
+                }
     
     // ==================== VIEW/EDIT DATA ====================
     function viewData(type, userId) {
@@ -359,63 +528,312 @@ async function unlockSecurityPassword() {
         
         document.getElementById('viewDataModal').classList.add('active');
     }
-
     function editData(type, userId) {
-        if (!securityUnlocked) {
-            return n("🔐 Security Password ထည့်ပါ!", "error");
-        }
-        n("✏️ Edit feature coming soon!", "success");
+    if (!securityUnlocked) {
+        return n("🔐 Security Password ထည့်ပါ!", "error");
     }
+    n("✏️ Edit feature coming soon!", "success");
+}
 
-    function closeViewModal() {
-        document.getElementById('viewDataModal').classList.remove('active');
+// ==================== EDIT RECORD (FULL) ====================
+async function editRecord(type, id) {
+    if (!securityUnlocked) {
+        return n("🔐 Security Password ထည့်ပါ!", "error");
     }
+    
+    // Find data from loaded records
+    let data = null;
+    if (type === 'gmail') {
+        data = gmailRecords.find(d => d.id === id);
+    } else if (type === 'mlbb') {
+        data = mlbbRecords.find(d => d.id === id);
+    } else if (type === 'tiktok') {
+        data = tiktokRecords.find(d => d.id === id);
+    }
+    
+    if (!data) {
+        return n("❌ Record not found!", "error");
+    }
+    
+    // Build edit form HTML
+    let formHTML = '';
+    
+    if (type === 'gmail') {
+        formHTML = `
+            <input type="hidden" id="editRecordId" value="${id}">
+            <input type="hidden" id="editRecordType" value="gmail">
+            <div class="form-group">
+                <label>👤 Full Name</label>
+                <input type="text" id="editName" value="${data.name || ''}" placeholder="Enter full name">
+            </div>
+            <div class="form-group">
+                <label>📧 Email Address</label>
+                <input type="text" id="editEmails" value="${(data.emails || []).join(', ')}" placeholder="email1@gmail.com, email2@gmail.com">
+            </div>
+            <div class="form-group">
+                <label>📱 Phone Number</label>
+                <input type="text" id="editPhones" value="${(data.phones || []).join(', ')}" placeholder="09123456789, 09987654321">
+            </div>
+            <div class="form-group">
+                <label>🔑 Password</label>
+                <input type="text" id="editPassword" value="${data.password || ''}" placeholder="Enter password">
+            </div>
+            <div class="form-group">
+                <label>🎂 Date of Birth</label>
+                <input type="date" id="editDob" value="${data.dob || ''}">
+            </div>
+            <div class="form-group">
+                <label>🌍 Country</label>
+                <input type="text" id="editCountry" value="${data.country || ''}" placeholder="Country">
+            </div>
+            <div class="form-group">
+                <label>📍 Region/State</label>
+                <input type="text" id="editRegion" value="${data.region || ''}" placeholder="Region">
+            </div>
+        `;
+    } else if (type === 'mlbb') {
+        formHTML = `
+            <input type="hidden" id="editRecordId" value="${id}">
+            <input type="hidden" id="editRecordType" value="mlbb">
+            <div class="form-group">
+                <label>🎮 In-Game Name</label>
+                <input type="text" id="editIngameName" value="${data.ingame_name || ''}" placeholder="Enter in-game name">
+            </div>
+            <div class="form-group">
+                <label>🆔 In-Game ID</label>
+                <input type="text" id="editIngameId" value="${data.ingame_id || ''}" placeholder="Enter game ID">
+            </div>
+            <div class="form-group">
+                <label>🖥️ Server ID</label>
+                <input type="text" id="editServerId" value="${data.server_id || ''}" placeholder="Enter server ID">
+            </div>
+            <div class="form-group">
+                <label>📧 Gmail</label>
+                <input type="text" id="editEmails" value="${(data.emails || []).join(', ')}" placeholder="gmail1@gmail.com, gmail2@gmail.com">
+            </div>
+            <div class="form-group">
+                <label>🔑 Password</label>
+                <input type="text" id="editPassword" value="${data.password || ''}" placeholder="Enter password">
+            </div>
+            <div class="form-group">
+                <label>🎂 Date of Birth</label>
+                <input type="date" id="editDob" value="${data.dob || ''}">
+            </div>
+            <div class="form-group">
+                <label>🌍 Country</label>
+                <input type="text" id="editCountry" value="${data.country || ''}" placeholder="Country">
+            </div>
+            <div class="form-group">
+                <label>📍 Region/State</label>
+                <input type="text" id="editRegion" value="${data.region || ''}" placeholder="Region">
+            </div>
+        `;
+    } else if (type === 'tiktok') {
+        formHTML = `
+            <input type="hidden" id="editRecordId" value="${id}">
+            <input type="hidden" id="editRecordType" value="tiktok">
+            <div class="form-group">
+                <label>👤 Full Name</label>
+                <input type="text" id="editFullName" value="${data.full_name || ''}" placeholder="Enter full name">
+            </div>
+            <div class="form-group">
+                <label>👤 Last Name</label>
+                <input type="text" id="editLastName" value="${data.last_name || ''}" placeholder="Enter last name">
+            </div>
+            <div class="form-group">
+                <label>📧 Email</label>
+                <input type="text" id="editEmails" value="${(data.emails || []).join(', ')}" placeholder="email1@gmail.com, email2@gmail.com">
+            </div>
+            <div class="form-group">
+                <label>📱 Phone</label>
+                <input type="text" id="editPhones" value="${(data.phones || []).join(', ')}" placeholder="09123456789">
+            </div>
+            <div class="form-group">
+                <label>🔑 Password</label>
+                <input type="text" id="editPassword" value="${data.password || ''}" placeholder="Enter password">
+            </div>
+            <div class="form-group">
+                <label>🎂 Date of Birth</label>
+                <input type="date" id="editDob" value="${data.dob || ''}">
+            </div>
+            <div class="form-group">
+                <label>🌍 Country</label>
+                <input type="text" id="editCountry" value="${data.country || ''}" placeholder="Country">
+            </div>
+            <div class="form-group">
+                <label>📍 Region/State</label>
+                <input type="text" id="editRegion" value="${data.region || ''}" placeholder="Region">
+            </div>
+        `;
+    }
+    
+    // Show edit modal
+    document.getElementById('viewDataContent').innerHTML = `
+        <h4 style="color:var(--w);margin-bottom:12px;">✏️ Edit ${type.toUpperCase()} Record</h4>
+        ${formHTML}
+        <button class="btn btn-g" onclick="saveEditedRecord()" style="margin-top:10px;">
+            <i class="fas fa-save"></i> Save Changes
+        </button>
+        <button class="btn btn-r" onclick="closeViewModal()" style="margin-top:6px;">
+            <i class="fas fa-times"></i> Cancel
+        </button>
+    `;
+    
+    document.getElementById('viewDataModal').classList.add('active');
+}
 
-    // ==================== LOAD HISTORY ====================
-    function loadMyHistory() {
-        if (!securityUnlocked) {
-            document.getElementById('myGmailHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
-            document.getElementById('myMlbbHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
-            document.getElementById('myTiktokHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
-            return;
-        }
-        
-        const renderH = (list, type) => {
-            if (!list || list.length === 0) return '<div class="no-data"><i class="fas fa-inbox"></i><br>No data yet</div>';
-            return list.map(item => {
-                const name = item.name || item.ingame_name || item.full_name || 'N/A';
-                const email = (item.email || item.gmail || item.emails || '').toString().replace(/[\[\]"]/g, '').replace(/,/g, ', ');
-                return `<div class="data-card">
-                    <div class="card-info">
-                        <div class="card-name">${name}</div>
-                        <div class="card-email">${email || 'No email'}</div>
-                    </div>
-                    <div class="card-btns">
-                        <button class="btn-micro btn-view" onclick="viewData('${type}','${item.user_id}')"><i class="fas fa-eye"></i> View</button>
-                        <button class="btn-micro btn-edit" onclick="editData('${type}','${item.user_id}')"><i class="fas fa-edit"></i> Edit</button>
-                    </div>
-                </div>`;
-            }).join('');
+// ==================== SAVE EDITED RECORD ====================
+async function saveEditedRecord() {
+    const id = document.getElementById('editRecordId').value;
+    const type = document.getElementById('editRecordType').value;
+    
+    let data = {};
+    
+    if (type === 'gmail') {
+        data = {
+            name: document.getElementById('editName').value,
+            emails: document.getElementById('editEmails').value.split(',').map(e => e.trim()).filter(e => e),
+            phones: document.getElementById('editPhones').value.split(',').map(p => p.trim()).filter(p => p),
+            password: document.getElementById('editPassword').value,
+            dob: document.getElementById('editDob').value,
+            country: document.getElementById('editCountry').value,
+            region: document.getElementById('editRegion').value
         };
-        
-        fetch("/api/get_my_data", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: localStorage.getItem("auth_token") })
-        })
-        .then(r => r.json())
-        .then(d => {
-            document.getElementById('myGmailHistory').innerHTML = renderH(d.gmail, 'gmail');
-            document.getElementById('myMlbbHistory').innerHTML = renderH(d.mlbb, 'mlbb');
-            document.getElementById('myTiktokHistory').innerHTML = renderH(d.tiktok, 'tiktok');
-        })
-        .catch(() => {
-            document.getElementById('myGmailHistory').innerHTML = '<div class="no-data">No data</div>';
-            document.getElementById('myMlbbHistory').innerHTML = '<div class="no-data">No data</div>';
-            document.getElementById('myTiktokHistory').innerHTML = '<div class="no-data">No data</div>';
-        });
+    } else if (type === 'mlbb') {
+        data = {
+            ingameName: document.getElementById('editIngameName').value,
+            ingameId: document.getElementById('editIngameId').value,
+            serverId: document.getElementById('editServerId').value,
+            emails: document.getElementById('editEmails').value.split(',').map(e => e.trim()).filter(e => e),
+            password: document.getElementById('editPassword').value,
+            dob: document.getElementById('editDob').value,
+            country: document.getElementById('editCountry').value,
+            region: document.getElementById('editRegion').value
+        };
+    } else if (type === 'tiktok') {
+        data = {
+            fullName: document.getElementById('editFullName').value,
+            lastName: document.getElementById('editLastName').value,
+            emails: document.getElementById('editEmails').value.split(',').map(e => e.trim()).filter(e => e),
+            phones: document.getElementById('editPhones').value.split(',').map(p => p.trim()).filter(p => p),
+            password: document.getElementById('editPassword').value,
+            dob: document.getElementById('editDob').value,
+            country: document.getElementById('editCountry').value,
+            region: document.getElementById('editRegion').value
+        };
     }
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/update_user_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, type, id, data })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            closeViewModal();
+            n('✅ Record updated!', 'success');
+            loadMyHistory(); // Reload
+        } else {
+            n('❌ ' + (d.message || 'Update failed'), 'error');
+        }
+    } catch(e) {
+        n('❌ Connection error', 'error');
+    }
+}
 
+// ==================== DELETE RECORD ====================
+async function deleteRecord(type, id) {
+    if (!securityUnlocked) {
+        return n("🔐 Security Password ထည့်ပါ!", "error");
+    }
+    
+    if (!confirm('ဒီ Record ကို ဖျက်မှာ သေချာလား?\nဖျက်လိုက်ရင် ပြန်ပြင်လို့မရပါ!')) return;
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        const r = await fetch('/api/delete_user_data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, type, id })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            n('✅ Record deleted!', 'success');
+            loadMyHistory(); // Reload history
+        } else {
+            n('❌ ' + (d.message || 'Delete failed'), 'error');
+        }
+    } catch(e) {
+        n('❌ Connection error', 'error');
+    }
+                }
+    // ==================== LOAD HISTORY (FULL) ====================
+let gmailRecords = [], mlbbRecords = [], tiktokRecords = [];
+
+function loadMyHistory() {
+    if (!securityUnlocked) {
+        document.getElementById('myGmailHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
+        document.getElementById('myMlbbHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
+        document.getElementById('myTiktokHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
+        return;
+    }
+    
+    const renderH = (list, type) => {
+        if (!list || list.length === 0) return '<div class="no-data"><i class="fas fa-inbox"></i><br>No data yet</div>';
+        return list.map(item => {
+            let name = '', email = '';
+            
+            if (type === 'gmail') {
+                name = item.name || 'N/A';
+                email = (item.emails || []).join(', ');
+            } else if (type === 'mlbb') {
+                name = item.ingame_name || 'N/A';
+                email = (item.emails || []).join(', ');
+            } else if (type === 'tiktok') {
+                name = item.full_name || 'N/A';
+                email = (item.emails || []).join(', ');
+            }
+            
+            return `<div class="data-card">
+                <div class="card-info">
+                    <div class="card-name">${name}</div>
+                    <div class="card-email">${email || 'No data'}</div>
+                </div>
+                <div class="card-btns">
+                    <button class="btn-micro btn-view" onclick="viewData('${type}','${item.id}')"><i class="fas fa-eye"></i> View</button>
+                    <button class="btn-micro btn-edit" onclick="editRecord('${type}','${item.id}')"><i class="fas fa-edit"></i> Edit</button>
+                    <button class="btn-micro" onclick="deleteRecord('${type}','${item.id}')" style="background:rgba(231,76,60,0.2);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);"><i class="fas fa-trash"></i> Del</button>
+                </div>
+            </div>`;
+        }).join('');
+    };
+    
+    fetch("/api/get_my_data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: localStorage.getItem("auth_token") })
+    })
+    .then(r => r.json())
+    .then(d => {
+        gmailRecords = d.gmail || [];
+        mlbbRecords = d.mlbb || [];
+        tiktokRecords = d.tiktok || [];
+        
+        document.getElementById('myGmailHistory').innerHTML = renderH(gmailRecords, 'gmail');
+        document.getElementById('myMlbbHistory').innerHTML = renderH(mlbbRecords, 'mlbb');
+        document.getElementById('myTiktokHistory').innerHTML = renderH(tiktokRecords, 'tiktok');
+    })
+    .catch(() => {
+        document.getElementById('myGmailHistory').innerHTML = '<div class="no-data">No data</div>';
+        document.getElementById('myMlbbHistory').innerHTML = '<div class="no-data">No data</div>';
+        document.getElementById('myTiktokHistory').innerHTML = '<div class="no-data">No data</div>';
+    });
+}
+    
     // ==================== PAGE ACCESS CHECK ====================
     async function checkPageAccess() {
         try {
@@ -581,13 +999,23 @@ function getCookie(name) {
     })();
 
     // ==================== INIT ====================
-    (async function init() {
-        const pageOn = await checkPageAccess();
-        if (!pageOn) return;
-        document.getElementById('historyContent').style.display = 'block';
-        loadSecurityState();
-        loadMyHistory();
-    })();
+(async function init() {
+    const pageOn = await checkPageAccess();
+    if (!pageOn) return;
+    document.getElementById('historyContent').style.display = 'block';
+    
+    // ✅ Load attempt state from localStorage
+    loadAttemptState();
+    
+    // ✅ Check if currently locked
+    if (isAttemptLocked()) {
+        startAttemptTimer();
+        document.getElementById('attemptLockBox').style.display = 'block';
+    }
+    
+    loadSecurityState();
+    loadMyHistory();
+})();
 </script>
 </body>
 </html>
