@@ -1114,37 +1114,21 @@ app.post('/api/user/data-counts', async (req, res) => {
         }
         
         const uid = decoded.uid || decoded.id || decoded.userId;
-        
-        if (!uid) {
-            return res.json({ success: false, message: 'Invalid token payload' });
-        }
+        if (!uid) return res.json({ success: false, message: 'Invalid token' });
         
         const p = await getPool();
-        
         const counts = {};
         
-        // Count Gmail data
-        const gmailCount = await p.query(
-            "SELECT COUNT(*) FROM user_gmail_data WHERE user_id = $1", [uid]
-        );
+        const gmailCount = await p.query("SELECT COUNT(*) FROM user_gmail_data WHERE user_id = $1", [uid]);
         counts.gmail = parseInt(gmailCount.rows[0].count);
         
-        // Count MLBB data
-        const mlbbCount = await p.query(
-            "SELECT COUNT(*) FROM user_mlbb_data WHERE user_id = $1", [uid]
-        );
+        const mlbbCount = await p.query("SELECT COUNT(*) FROM user_mlbb_data WHERE user_id = $1", [uid]);
         counts.mlbb = parseInt(mlbbCount.rows[0].count);
         
-        // Count TikTok data
-        const tiktokCount = await p.query(
-            "SELECT COUNT(*) FROM user_tiktok_data WHERE user_id = $1", [uid]
-        );
+        const tiktokCount = await p.query("SELECT COUNT(*) FROM user_tiktok_data WHERE user_id = $1", [uid]);
         counts.tiktok = parseInt(tiktokCount.rows[0].count);
         
-        // Count Login History
-        const loginCount = await p.query(
-            "SELECT COUNT(*) FROM login_history WHERE user_id = $1", [uid]
-        );
+        const loginCount = await p.query("SELECT COUNT(*) FROM login_history WHERE user_id = $1", [uid]);
         counts.login_history = parseInt(loginCount.rows[0].count);
         
         res.json({ success: true, counts });
@@ -1163,12 +1147,16 @@ app.post('/api/user/clear-data', async (req, res) => {
     }
     
     try {
+        // ✅ JWT Verify
         const jwt = require('jsonwebtoken');
         const secretKey = process.env.JWT_SECRET || 'your-secret-key';
         let decoded;
         
-        try { decoded = jwt.verify(token, secretKey); } 
-        catch(e) { return res.json({ success: false, message: 'Invalid session' }); }
+        try {
+            decoded = jwt.verify(token, secretKey);
+        } catch(e) {
+            return res.json({ success: false, message: 'Invalid session. Please login again.' });
+        }
         
         const uid = decoded.uid || decoded.id || decoded.userId;
         if (!uid) return res.json({ success: false, message: 'Invalid token' });
