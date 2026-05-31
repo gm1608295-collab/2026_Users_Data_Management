@@ -2912,6 +2912,71 @@ function toggleSecurityCard(bodyId) {
     body.classList.toggle('open');
     arrow.classList.toggle('open');
 }
+// ✅ ဒါတွေ ထည့်ပါ
+async function testPing() {
+    const times = [];
+    for (let i = 0; i < 3; i++) {
+        const start = performance.now();
+        try {
+            await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now(), { method: 'GET', cache: 'no-store' });
+            const end = performance.now();
+            times.push(Math.round(end - start));
+        } catch(e) { times.push(999); }
+    }
+    const avgPing = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+    return { ping: avgPing };
+}
+
+async function testDownload() {
+    const testSize = 100 * 1024;
+    const testUrl = NETWORK_TEST_URL + '/api/speedtest?size=' + testSize + '&t=' + Date.now();
+    const start = performance.now();
+    try {
+        const response = await fetch(testUrl, { cache: 'no-store' });
+        const data = await response.arrayBuffer();
+        const end = performance.now();
+        const durationSec = (end - start) / 1000;
+        const sizeMb = data.byteLength / (1024 * 1024);
+        const speedMbps = (sizeMb * 8) / durationSec;
+        return { download: Math.round(speedMbps * 10) / 10 };
+    } catch(e) { return { download: 0 }; }
+}
+
+async function testUpload() {
+    const testData = new Uint8Array(50 * 1024);
+    for (let i = 0; i < testData.length; i++) { testData[i] = Math.floor(Math.random() * 256); }
+    const start = performance.now();
+    try {
+        await fetch(NETWORK_TEST_URL + '/api/speedtest/upload?t=' + Date.now(), { method: 'POST', body: testData, cache: 'no-store' });
+        const end = performance.now();
+        const durationSec = (end - start) / 1000;
+        const sizeMb = testData.byteLength / (1024 * 1024);
+        const speedMbps = (sizeMb * 8) / durationSec;
+        return { upload: Math.round(speedMbps * 10) / 10 };
+    } catch(e) { return { upload: 0 }; }
+}
+
+async function testPacketLoss() {
+    const totalPings = 5;
+    let lost = 0;
+    const jitterValues = [];
+    let prevPing = null;
+    for (let i = 0; i < totalPings; i++) {
+        const start = performance.now();
+        try {
+            await fetch(NETWORK_TEST_URL + '/api/ping?t=' + Date.now() + '&i=' + i, { method: 'GET', cache: 'no-store' });
+            const end = performance.now();
+            const pingTime = Math.round(end - start);
+            if (prevPing !== null) { jitterValues.push(Math.abs(pingTime - prevPing)); }
+            prevPing = pingTime;
+        } catch(e) { lost++; }
+    }
+    const packetLoss = Math.round((lost / totalPings) * 100);
+    const jitter = jitterValues.length > 0 ? Math.round(jitterValues.reduce((a, b) => a + b, 0) / jitterValues.length) : 0;
+    return { packetLoss, jitter };
+}
+
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 // ==================== NETWORK TEST SYSTEM ====================
 let currentTestType = 'wifi';
 let selectedNetwork = 'MPT';
