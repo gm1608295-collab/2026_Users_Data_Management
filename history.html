@@ -198,49 +198,44 @@
 
 <script>
     // ==================== TOAST ====================
-    function n(m, t = "success") {
-        const e = document.getElementById("notif");
-        e.textContent = m;
-        e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
-        e.style.display = "block";
-        setTimeout(() => e.style.display = "none", 3000);
-    }
-    // ==================== SECURITY PASSWORD SYSTEM (WITH ATTEMPT LIMIT) ====================
+function n(m, t = "success") {
+    const e = document.getElementById("notif");
+    e.textContent = m;
+    e.style.background = t === "success" ? "#2ecc71" : "#e74c3c";
+    e.style.display = "block";
+    setTimeout(() => e.style.display = "none", 3000);
+}
+
+// ==================== GLOBAL DATA STORAGE ====================
+let gmailRecords = [], mlbbRecords = [], tiktokRecords = [];
+
+// ==================== SECURITY PASSWORD SYSTEM ====================
 let securityUnlocked = false;
 let hasPassword = false;
 let canChange = true;
 let daysLeft = 0;
-
-// ✅ Attempt Limit Variables
 const MAX_ATTEMPTS = 5;
-const LOCK_DURATION = 10 * 60 * 1000; // 10 minutes in ms
+const LOCK_DURATION = 10 * 60 * 1000;
 let attemptCount = 0;
 let attemptLockUntil = null;
 let attemptLockInterval = null;
 
-// ✅ Load attempt state from localStorage
 function loadAttemptState() {
     try {
         const saved = localStorage.getItem('security_attempt_state');
         if (saved) {
             const state = JSON.parse(saved);
             attemptCount = state.attemptCount || 0;
-            attemptLockUntil = state.attemptLockUntil ? new Date(state.attemptLockUntil).getTime() : null;
-            
-            // Check if lock expired
+            attemptLockUntil = state.attemptLockUntil ? state.attemptLockUntil : null;
             if (attemptLockUntil && Date.now() >= attemptLockUntil) {
                 attemptCount = 0;
                 attemptLockUntil = null;
                 localStorage.removeItem('security_attempt_state');
             }
         }
-    } catch(e) {
-        attemptCount = 0;
-        attemptLockUntil = null;
-    }
+    } catch(e) {}
 }
 
-// ✅ Save attempt state to localStorage
 function saveAttemptState() {
     try {
         localStorage.setItem('security_attempt_state', JSON.stringify({
@@ -250,12 +245,8 @@ function saveAttemptState() {
     } catch(e) {}
 }
 
-// ✅ Check if currently locked
 function isAttemptLocked() {
-    if (attemptLockUntil && Date.now() < attemptLockUntil) {
-        return true;
-    }
-    // Lock expired - reset
+    if (attemptLockUntil && Date.now() < attemptLockUntil) return true;
     if (attemptLockUntil && Date.now() >= attemptLockUntil) {
         attemptCount = 0;
         attemptLockUntil = null;
@@ -267,79 +258,55 @@ function isAttemptLocked() {
     return false;
 }
 
-// ✅ Start lock timer
 function startAttemptTimer() {
     stopAttemptTimer();
-    
     const timerEl = document.getElementById('attemptLockTimer');
     const lockBox = document.getElementById('attemptLockBox');
-    
     if (lockBox) lockBox.style.display = 'block';
     
     const update = () => {
-        if (!attemptLockUntil) {
-            stopAttemptTimer();
-            return;
-        }
-        
+        if (!attemptLockUntil) { stopAttemptTimer(); return; }
         const remaining = attemptLockUntil - Date.now();
-        
         if (remaining <= 0) {
-            // Lock expired
             attemptCount = 0;
             attemptLockUntil = null;
             saveAttemptState();
             stopAttemptTimer();
             if (lockBox) lockBox.style.display = 'none';
             document.getElementById('attemptCounter').style.display = 'none';
-            n('✅ စောင့်ဆိုင်းချိန် ပြည့်ပါပြီ။ Password ထပ်ထည့်နိုင်ပါပြီ', 'success');
+            n('✅ စောင့်ဆိုင်းချိန် ပြည့်ပါပြီ', 'success');
             return;
         }
-        
         const min = Math.floor(remaining / 60000);
         const sec = Math.floor((remaining % 60000) / 1000);
         if (timerEl) timerEl.textContent = `${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
     };
-    
     update();
     attemptLockInterval = setInterval(update, 1000);
 }
 
-// ✅ Stop lock timer
 function stopAttemptTimer() {
-    if (attemptLockInterval) {
-        clearInterval(attemptLockInterval);
-        attemptLockInterval = null;
-    }
+    if (attemptLockInterval) { clearInterval(attemptLockInterval); attemptLockInterval = null; }
 }
 
-// ✅ Check and handle attempt
 function handleFailedAttempt() {
     attemptCount++;
     saveAttemptState();
-    
-    const counterEl = document.getElementById('attemptCounter');
-    const countEl = document.getElementById('attemptCount');
-    
-    if (counterEl) counterEl.style.display = 'block';
-    if (countEl) countEl.textContent = attemptCount;
+    document.getElementById('attemptCounter').style.display = 'block';
+    document.getElementById('attemptCount').textContent = attemptCount;
     
     if (attemptCount >= MAX_ATTEMPTS) {
-        // Lock for 10 minutes
         attemptLockUntil = Date.now() + LOCK_DURATION;
         saveAttemptState();
         startAttemptTimer();
-        
-        n('⛔ အကြိမ်ရေ ၅ ကြိမ်ကျော်သွားပါပြီ။ ၁၀ မိနစ် စောင့်ဆိုင်းပါ', 'error');
-        
-        return true; // Locked
+        closeSecurityPassModal();
+        n('⛔ ၅ ကြိမ်ကျော်။ ၁၀ မိနစ် စောင့်ပါ', 'error');
+        return true;
     }
-    
-    n(`❌ Password မှားပါတယ် (${attemptCount}/${MAX_ATTEMPTS})`, 'error');
-    return false; // Not locked yet
+    n(`❌ Password မှား (${attemptCount}/5)`, 'error');
+    return false;
 }
 
-// ✅ Reset attempts on success
 function resetAttempts() {
     attemptCount = 0;
     attemptLockUntil = null;
@@ -353,70 +320,54 @@ async function loadSecurityState() {
     try {
         const token = localStorage.getItem('auth_token');
         if (!token || token === 'guest') return;
-        
         const r = await fetch('/api/get_security_pass_status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: token })
         });
         const d = await r.json();
-        
         if (d.success) {
             hasPassword = d.hasPassword;
             canChange = d.canChange;
             daysLeft = d.daysLeft;
-            
-            const btn = document.getElementById('securityPassBtn');
-            if (hasPassword) {
-                btn.innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
-            } else {
-                btn.innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
-            }
         }
     } catch(e) {}
 }
 
 async function openSecurityPassModal() {
     await loadSecurityState();
+    if (securityUnlocked) { n("✅ Already unlocked!", "success"); return; }
     
-    if (securityUnlocked) {
-        n("✅ Already unlocked!", "success");
-        return;
-    }
-    
-    // ✅ Check if currently locked
+    // ✅ Lock ကျနေရင် Timer ပြပြီး Modal မဖွင့်ဘူး
     if (isAttemptLocked()) {
         startAttemptTimer();
+        document.getElementById('attemptLockBox').style.display = 'block';
         return;
     }
     
-    // Reset fields
     document.getElementById('secNewPass').value = '';
     document.getElementById('secConfirmPass').value = '';
     document.getElementById('secUnlockPass').value = '';
+    document.getElementById('attemptLockBox').style.display = 'none';
     
-    // Update attempt counter display
     if (attemptCount > 0) {
         document.getElementById('attemptCounter').style.display = 'block';
         document.getElementById('attemptCount').textContent = attemptCount;
     }
     
-    // Load lock info
     const lockInfo = document.getElementById('lockInfo');
-    
     if (!hasPassword) {
         document.getElementById('securityPassForm').style.display = 'block';
         document.getElementById('securityUnlockForm').style.display = 'none';
-        lockInfo.style.display = 'none';
+        if (lockInfo) lockInfo.style.display = 'none';
     } else if (canChange) {
         document.getElementById('securityPassForm').style.display = 'block';
         document.getElementById('securityUnlockForm').style.display = 'block';
-        lockInfo.style.display = 'none';
+        if (lockInfo) lockInfo.style.display = 'none';
     } else {
         document.getElementById('securityPassForm').style.display = 'none';
         document.getElementById('securityUnlockForm').style.display = 'block';
-        lockInfo.style.display = 'block';
-        lockInfo.innerHTML = `⏰ Password ပြောင်းလဲရန် <b>${daysLeft} ရက်</b> စောင့်ရပါမည်။`;
+        if (lockInfo) { lockInfo.style.display = 'block'; lockInfo.innerHTML = `⏰ Password ပြောင်းရန် <b>${daysLeft} ရက်</b> စောင့်ပါ`; }
     }
     
     document.getElementById('securityPassModal').classList.add('active');
@@ -429,52 +380,35 @@ function closeSecurityPassModal() {
 async function setSecurityPassword() {
     const newPass = document.getElementById('secNewPass').value;
     const confirmPass = document.getElementById('secConfirmPass').value;
-    
     if (!newPass) return n("❌ Enter password!", "error");
-    if (newPass.length < 6) return n("❌ Password must be at least 6 characters!", "error");
+    if (newPass.length < 6) return n("❌ 6 characters minimum!", "error");
     if (newPass !== confirmPass) return n("❌ Passwords don't match!", "error");
     
     try {
         const token = localStorage.getItem('auth_token');
         const r = await fetch('/api/set_security_pass', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: token, password: newPass })
         });
         const d = await r.json();
-        
         if (d.success) {
-            hasPassword = true;
-            securityUnlocked = true;
-            canChange = false;
-            resetAttempts(); // ✅ Reset on success
-            
+            hasPassword = true; securityUnlocked = true; canChange = false; resetAttempts();
             document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
             document.getElementById('securityPassBtn').classList.add('locked');
-            
             closeSecurityPassModal();
-            n("✅ Password ထည့်သွင်းခြင်းအောင်မြင်ပါသည်", "success");
-            
+            n("✅ Password သတ်မှတ်ပြီးပါပြီ", "success");
             loadMyHistory();
-            
-            setTimeout(() => {
-                securityUnlocked = false;
-                document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
-                document.getElementById('securityPassBtn').classList.remove('locked');
-                loadMyHistory();
-            }, 300000);
-        } else {
-            n("❌ " + d.message, "error");
-        }
-    } catch(e) {
-        n("❌ Connection error!", "error");
-    }
+            setTimeout(() => { securityUnlocked = false; resetLockButton(); loadMyHistory(); }, 300000);
+        } else { n("❌ " + d.message, "error"); }
+    } catch(e) { n("❌ Connection error!", "error"); }
 }
 
 async function unlockSecurityPassword() {
-    // ✅ Check if locked
+    // ✅ Lock ကျနေရင်
     if (isAttemptLocked()) {
         startAttemptTimer();
+        document.getElementById('attemptLockBox').style.display = 'block';
+        closeSecurityPassModal();
         return;
     }
     
@@ -484,201 +418,123 @@ async function unlockSecurityPassword() {
     try {
         const token = localStorage.getItem('auth_token');
         const r = await fetch('/api/verify_security_pass', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: token, password: pass })
         });
         const d = await r.json();
-        
         if (d.success) {
-            securityUnlocked = true;
-            resetAttempts(); // ✅ Reset on success
-            closeSecurityPassModal();
+            securityUnlocked = true; resetAttempts(); closeSecurityPassModal();
             n("✅ Unlocked!", "success");
             document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock-open"></i> ✅ Unlocked';
             document.getElementById('securityPassBtn').classList.add('locked');
             loadMyHistory();
-            
-            setTimeout(() => {
-                securityUnlocked = false;
-                document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
-                document.getElementById('securityPassBtn').classList.remove('locked');
-                loadMyHistory();
-            }, 300000);
+            setTimeout(() => { securityUnlocked = false; resetLockButton(); loadMyHistory(); }, 300000);
         } else {
-            // ✅ Handle failed attempt
             handleFailedAttempt();
         }
-    } catch(e) {
-        n("❌ Connection error!", "error");
-    }
-                }
-    
-    // ==================== VIEW/EDIT DATA ====================
-    function viewData(type, userId) {
-        if (!securityUnlocked) {
-            return n("🔐 Security Password ထည့်ပါ!", "error");
-        }
-        
-        // For now show basic info
-        document.getElementById('viewDataContent').innerHTML = 
-            `<p><b>Type:</b> ${type.toUpperCase()}</p>` +
-            `<p><b>User ID:</b> ${userId}</p>` +
-            `<p style="color:rgba(255,255,255,0.4);margin-top:10px">အသေးစိတ်ကြည့်ရှုရန် feature မကြာမီထည့်ပါမည်။</p>`;
-        
-        document.getElementById('viewDataModal').classList.add('active');
-    }
-    function editData(type, userId) {
-    if (!securityUnlocked) {
-        return n("🔐 Security Password ထည့်ပါ!", "error");
-    }
-    n("✏️ Edit feature coming soon!", "success");
+    } catch(e) { n("❌ Connection error!", "error"); }
 }
 
-// ==================== EDIT RECORD (FULL) ====================
-async function editRecord(type, id) {
-    if (!securityUnlocked) {
-        return n("🔐 Security Password ထည့်ပါ!", "error");
-    }
+function resetLockButton() {
+    document.getElementById('securityPassBtn').innerHTML = '<i class="fas fa-lock"></i> Security Password ထည့်ရန်နှိပ်ပါ';
+    document.getElementById('securityPassBtn').classList.remove('locked');
+}
+
+// ==================== VIEW DATA ====================
+function viewData(type, id) {
+    if (!securityUnlocked) return n("🔐 Security Password ထည့်ပါ!", "error");
     
-    // Find data from loaded records
     let data = null;
+    if (type === 'gmail') data = gmailRecords.find(d => d.id == id);
+    else if (type === 'mlbb') data = mlbbRecords.find(d => d.id == id);
+    else if (type === 'tiktok') data = tiktokRecords.find(d => d.id == id);
+    
+    if (!data) return n("❌ Record not found!", "error");
+    
+    let html = '';
     if (type === 'gmail') {
-        data = gmailRecords.find(d => d.id === id);
+        html = `<p><b>👤 Name:</b> ${data.name || 'N/A'}</p>
+            <p><b>📧 Emails:</b> ${(data.emails || []).join(', ') || 'N/A'}</p>
+            <p><b>📱 Phones:</b> ${(data.phones || []).join(', ') || 'N/A'}</p>
+            <p><b>🔑 Password:</b> ${data.password || 'N/A'}</p>
+            <p><b>🎂 DOB:</b> ${data.dob || 'N/A'}</p>
+            <p><b>🌍 Country:</b> ${data.country || 'N/A'}</p>
+            <p><b>📍 Region:</b> ${data.region || 'N/A'}</p>`;
     } else if (type === 'mlbb') {
-        data = mlbbRecords.find(d => d.id === id);
+        html = `<p><b>🎮 In-Game Name:</b> ${data.ingame_name || 'N/A'}</p>
+            <p><b>🆔 ID:</b> ${data.ingame_id || 'N/A'}</p>
+            <p><b>🖥️ Server:</b> ${data.server_id || 'N/A'}</p>
+            <p><b>📧 Gmails:</b> ${(data.emails || []).join(', ') || 'N/A'}</p>
+            <p><b>🔑 Password:</b> ${data.password || 'N/A'}</p>
+            <p><b>🎂 DOB:</b> ${data.dob || 'N/A'}</p>
+            <p><b>🌍 Country:</b> ${data.country || 'N/A'}</p>
+            <p><b>📍 Region:</b> ${data.region || 'N/A'}</p>`;
     } else if (type === 'tiktok') {
-        data = tiktokRecords.find(d => d.id === id);
+        html = `<p><b>👤 Full Name:</b> ${data.full_name || 'N/A'}</p>
+            <p><b>👤 Last Name:</b> ${data.last_name || 'N/A'}</p>
+            <p><b>📧 Emails:</b> ${(data.emails || []).join(', ') || 'N/A'}</p>
+            <p><b>📱 Phones:</b> ${(data.phones || []).join(', ') || 'N/A'}</p>
+            <p><b>🔑 Password:</b> ${data.password || 'N/A'}</p>
+            <p><b>🎂 DOB:</b> ${data.dob || 'N/A'}</p>
+            <p><b>🌍 Country:</b> ${data.country || 'N/A'}</p>
+            <p><b>📍 Region:</b> ${data.region || 'N/A'}</p>`;
     }
     
-    if (!data) {
-        return n("❌ Record not found!", "error");
-    }
-    
-    // Build edit form HTML
-    let formHTML = '';
-    
-    if (type === 'gmail') {
-        formHTML = `
-            <input type="hidden" id="editRecordId" value="${id}">
-            <input type="hidden" id="editRecordType" value="gmail">
-            <div class="form-group">
-                <label>👤 Full Name</label>
-                <input type="text" id="editName" value="${data.name || ''}" placeholder="Enter full name">
-            </div>
-            <div class="form-group">
-                <label>📧 Email Address</label>
-                <input type="text" id="editEmails" value="${(data.emails || []).join(', ')}" placeholder="email1@gmail.com, email2@gmail.com">
-            </div>
-            <div class="form-group">
-                <label>📱 Phone Number</label>
-                <input type="text" id="editPhones" value="${(data.phones || []).join(', ')}" placeholder="09123456789, 09987654321">
-            </div>
-            <div class="form-group">
-                <label>🔑 Password</label>
-                <input type="text" id="editPassword" value="${data.password || ''}" placeholder="Enter password">
-            </div>
-            <div class="form-group">
-                <label>🎂 Date of Birth</label>
-                <input type="date" id="editDob" value="${data.dob || ''}">
-            </div>
-            <div class="form-group">
-                <label>🌍 Country</label>
-                <input type="text" id="editCountry" value="${data.country || ''}" placeholder="Country">
-            </div>
-            <div class="form-group">
-                <label>📍 Region/State</label>
-                <input type="text" id="editRegion" value="${data.region || ''}" placeholder="Region">
-            </div>
-        `;
-    } else if (type === 'mlbb') {
-        formHTML = `
-            <input type="hidden" id="editRecordId" value="${id}">
-            <input type="hidden" id="editRecordType" value="mlbb">
-            <div class="form-group">
-                <label>🎮 In-Game Name</label>
-                <input type="text" id="editIngameName" value="${data.ingame_name || ''}" placeholder="Enter in-game name">
-            </div>
-            <div class="form-group">
-                <label>🆔 In-Game ID</label>
-                <input type="text" id="editIngameId" value="${data.ingame_id || ''}" placeholder="Enter game ID">
-            </div>
-            <div class="form-group">
-                <label>🖥️ Server ID</label>
-                <input type="text" id="editServerId" value="${data.server_id || ''}" placeholder="Enter server ID">
-            </div>
-            <div class="form-group">
-                <label>📧 Gmail</label>
-                <input type="text" id="editEmails" value="${(data.emails || []).join(', ')}" placeholder="gmail1@gmail.com, gmail2@gmail.com">
-            </div>
-            <div class="form-group">
-                <label>🔑 Password</label>
-                <input type="text" id="editPassword" value="${data.password || ''}" placeholder="Enter password">
-            </div>
-            <div class="form-group">
-                <label>🎂 Date of Birth</label>
-                <input type="date" id="editDob" value="${data.dob || ''}">
-            </div>
-            <div class="form-group">
-                <label>🌍 Country</label>
-                <input type="text" id="editCountry" value="${data.country || ''}" placeholder="Country">
-            </div>
-            <div class="form-group">
-                <label>📍 Region/State</label>
-                <input type="text" id="editRegion" value="${data.region || ''}" placeholder="Region">
-            </div>
-        `;
-    } else if (type === 'tiktok') {
-        formHTML = `
-            <input type="hidden" id="editRecordId" value="${id}">
-            <input type="hidden" id="editRecordType" value="tiktok">
-            <div class="form-group">
-                <label>👤 Full Name</label>
-                <input type="text" id="editFullName" value="${data.full_name || ''}" placeholder="Enter full name">
-            </div>
-            <div class="form-group">
-                <label>👤 Last Name</label>
-                <input type="text" id="editLastName" value="${data.last_name || ''}" placeholder="Enter last name">
-            </div>
-            <div class="form-group">
-                <label>📧 Email</label>
-                <input type="text" id="editEmails" value="${(data.emails || []).join(', ')}" placeholder="email1@gmail.com, email2@gmail.com">
-            </div>
-            <div class="form-group">
-                <label>📱 Phone</label>
-                <input type="text" id="editPhones" value="${(data.phones || []).join(', ')}" placeholder="09123456789">
-            </div>
-            <div class="form-group">
-                <label>🔑 Password</label>
-                <input type="text" id="editPassword" value="${data.password || ''}" placeholder="Enter password">
-            </div>
-            <div class="form-group">
-                <label>🎂 Date of Birth</label>
-                <input type="date" id="editDob" value="${data.dob || ''}">
-            </div>
-            <div class="form-group">
-                <label>🌍 Country</label>
-                <input type="text" id="editCountry" value="${data.country || ''}" placeholder="Country">
-            </div>
-            <div class="form-group">
-                <label>📍 Region/State</label>
-                <input type="text" id="editRegion" value="${data.region || ''}" placeholder="Region">
-            </div>
-        `;
-    }
-    
-    // Show edit modal
     document.getElementById('viewDataContent').innerHTML = `
-        <h4 style="color:var(--w);margin-bottom:12px;">✏️ Edit ${type.toUpperCase()} Record</h4>
-        ${formHTML}
-        <button class="btn btn-g" onclick="saveEditedRecord()" style="margin-top:10px;">
-            <i class="fas fa-save"></i> Save Changes
-        </button>
-        <button class="btn btn-r" onclick="closeViewModal()" style="margin-top:6px;">
-            <i class="fas fa-times"></i> Cancel
-        </button>
+        <h4 style="color:var(--w);margin-bottom:10px;">📋 ${type.toUpperCase()} Record Details</h4>
+        <div style="font-size:11px;line-height:2;color:rgba(255,255,255,0.85);">${html}</div>
+        <button class="btn btn-b" onclick="closeViewModal()" style="margin-top:10px;">Close</button>
     `;
+    document.getElementById('viewDataModal').classList.add('active');
+}
+
+// ==================== EDIT RECORD ====================
+async function editRecord(type, id) {
+    if (!securityUnlocked) return n("🔐 Security Password ထည့်ပါ!", "error");
     
+    let data = null;
+    if (type === 'gmail') data = gmailRecords.find(d => d.id == id);
+    else if (type === 'mlbb') data = mlbbRecords.find(d => d.id == id);
+    else if (type === 'tiktok') data = tiktokRecords.find(d => d.id == id);
+    
+    if (!data) return n("❌ Record not found!", "error");
+    
+    let formHTML = `<input type="hidden" id="editRecordId" value="${id}"><input type="hidden" id="editRecordType" value="${type}">`;
+    
+    if (type === 'gmail') {
+        formHTML += `<div class="form-group"><label>👤 Full Name</label><input type="text" id="editName" value="${data.name||''}"></div>
+            <div class="form-group"><label>📧 Emails (comma separated)</label><input type="text" id="editEmails" value="${(data.emails||[]).join(', ')}"></div>
+            <div class="form-group"><label>📱 Phones</label><input type="text" id="editPhones" value="${(data.phones||[]).join(', ')}"></div>
+            <div class="form-group"><label>🔑 Password</label><input type="text" id="editPassword" value="${data.password||''}"></div>
+            <div class="form-group"><label>🎂 DOB</label><input type="date" id="editDob" value="${data.dob||''}"></div>
+            <div class="form-group"><label>🌍 Country</label><input type="text" id="editCountry" value="${data.country||''}"></div>
+            <div class="form-group"><label>📍 Region</label><input type="text" id="editRegion" value="${data.region||''}"></div>`;
+    } else if (type === 'mlbb') {
+        formHTML += `<div class="form-group"><label>🎮 In-Game Name</label><input type="text" id="editIngameName" value="${data.ingame_name||''}"></div>
+            <div class="form-group"><label>🆔 ID</label><input type="text" id="editIngameId" value="${data.ingame_id||''}"></div>
+            <div class="form-group"><label>🖥️ Server</label><input type="text" id="editServerId" value="${data.server_id||''}"></div>
+            <div class="form-group"><label>📧 Gmails</label><input type="text" id="editEmails" value="${(data.emails||[]).join(', ')}"></div>
+            <div class="form-group"><label>🔑 Password</label><input type="text" id="editPassword" value="${data.password||''}"></div>
+            <div class="form-group"><label>🎂 DOB</label><input type="date" id="editDob" value="${data.dob||''}"></div>
+            <div class="form-group"><label>🌍 Country</label><input type="text" id="editCountry" value="${data.country||''}"></div>
+            <div class="form-group"><label>📍 Region</label><input type="text" id="editRegion" value="${data.region||''}"></div>`;
+    } else if (type === 'tiktok') {
+        formHTML += `<div class="form-group"><label>👤 Full Name</label><input type="text" id="editFullName" value="${data.full_name||''}"></div>
+            <div class="form-group"><label>👤 Last Name</label><input type="text" id="editLastName" value="${data.last_name||''}"></div>
+            <div class="form-group"><label>📧 Emails</label><input type="text" id="editEmails" value="${(data.emails||[]).join(', ')}"></div>
+            <div class="form-group"><label>📱 Phones</label><input type="text" id="editPhones" value="${(data.phones||[]).join(', ')}"></div>
+            <div class="form-group"><label>🔑 Password</label><input type="text" id="editPassword" value="${data.password||''}"></div>
+            <div class="form-group"><label>🎂 DOB</label><input type="date" id="editDob" value="${data.dob||''}"></div>
+            <div class="form-group"><label>🌍 Country</label><input type="text" id="editCountry" value="${data.country||''}"></div>
+            <div class="form-group"><label>📍 Region</label><input type="text" id="editRegion" value="${data.region||''}"></div>`;
+    }
+    
+    document.getElementById('viewDataContent').innerHTML = `
+        <h4 style="color:var(--w);margin-bottom:10px;">✏️ Edit ${type.toUpperCase()} Record</h4>
+        ${formHTML}
+        <button class="btn btn-g" onclick="saveEditedRecord()" style="margin-top:10px;"><i class="fas fa-save"></i> Save Changes</button>
+        <button class="btn btn-r" onclick="closeViewModal()" style="margin-top:6px;"><i class="fas fa-times"></i> Cancel</button>
+    `;
     document.getElementById('viewDataModal').classList.add('active');
 }
 
@@ -686,14 +542,13 @@ async function editRecord(type, id) {
 async function saveEditedRecord() {
     const id = document.getElementById('editRecordId').value;
     const type = document.getElementById('editRecordType').value;
-    
     let data = {};
     
     if (type === 'gmail') {
         data = {
             name: document.getElementById('editName').value,
-            emails: document.getElementById('editEmails').value.split(',').map(e => e.trim()).filter(e => e),
-            phones: document.getElementById('editPhones').value.split(',').map(p => p.trim()).filter(p => p),
+            emails: document.getElementById('editEmails').value.split(',').map(e=>e.trim()).filter(e=>e),
+            phones: document.getElementById('editPhones').value.split(',').map(p=>p.trim()).filter(p=>p),
             password: document.getElementById('editPassword').value,
             dob: document.getElementById('editDob').value,
             country: document.getElementById('editCountry').value,
@@ -704,7 +559,7 @@ async function saveEditedRecord() {
             ingameName: document.getElementById('editIngameName').value,
             ingameId: document.getElementById('editIngameId').value,
             serverId: document.getElementById('editServerId').value,
-            emails: document.getElementById('editEmails').value.split(',').map(e => e.trim()).filter(e => e),
+            emails: document.getElementById('editEmails').value.split(',').map(e=>e.trim()).filter(e=>e),
             password: document.getElementById('editPassword').value,
             dob: document.getElementById('editDob').value,
             country: document.getElementById('editCountry').value,
@@ -714,8 +569,8 @@ async function saveEditedRecord() {
         data = {
             fullName: document.getElementById('editFullName').value,
             lastName: document.getElementById('editLastName').value,
-            emails: document.getElementById('editEmails').value.split(',').map(e => e.trim()).filter(e => e),
-            phones: document.getElementById('editPhones').value.split(',').map(p => p.trim()).filter(p => p),
+            emails: document.getElementById('editEmails').value.split(',').map(e=>e.trim()).filter(e=>e),
+            phones: document.getElementById('editPhones').value.split(',').map(p=>p.trim()).filter(p=>p),
             password: document.getElementById('editPassword').value,
             dob: document.getElementById('editDob').value,
             country: document.getElementById('editCountry').value,
@@ -726,54 +581,36 @@ async function saveEditedRecord() {
     try {
         const token = localStorage.getItem('auth_token');
         const r = await fetch('/api/update_user_data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, type, id, data })
         });
         const d = await r.json();
-        
-        if (d.success) {
-            closeViewModal();
-            n('✅ Record updated!', 'success');
-            loadMyHistory(); // Reload
-        } else {
-            n('❌ ' + (d.message || 'Update failed'), 'error');
-        }
-    } catch(e) {
-        n('❌ Connection error', 'error');
-    }
+        if (d.success) { closeViewModal(); n('✅ Updated!', 'success'); loadMyHistory(); }
+        else { n('❌ ' + (d.message||'Failed'), 'error'); }
+    } catch(e) { n('❌ Connection error', 'error'); }
 }
 
 // ==================== DELETE RECORD ====================
 async function deleteRecord(type, id) {
-    if (!securityUnlocked) {
-        return n("🔐 Security Password ထည့်ပါ!", "error");
-    }
-    
-    if (!confirm('ဒီ Record ကို ဖျက်မှာ သေချာလား?\nဖျက်လိုက်ရင် ပြန်ပြင်လို့မရပါ!')) return;
-    
+    if (!securityUnlocked) return n("🔐 Security Password ထည့်ပါ!", "error");
+    if (!confirm('ဖျက်မှာ သေချာလား?\nပြန်ပြင်လို့မရပါ!')) return;
     try {
         const token = localStorage.getItem('auth_token');
         const r = await fetch('/api/delete_user_data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, type, id })
         });
         const d = await r.json();
-        
-        if (d.success) {
-            n('✅ Record deleted!', 'success');
-            loadMyHistory(); // Reload history
-        } else {
-            n('❌ ' + (d.message || 'Delete failed'), 'error');
-        }
-    } catch(e) {
-        n('❌ Connection error', 'error');
-    }
-                }
-    // ==================== LOAD HISTORY (FULL) ====================
-let gmailRecords = [], mlbbRecords = [], tiktokRecords = [];
+        if (d.success) { n('✅ Deleted!', 'success'); loadMyHistory(); }
+        else { n('❌ ' + (d.message||'Failed'), 'error'); }
+    } catch(e) { n('❌ Connection error', 'error'); }
+}
 
+function closeViewModal() {
+    document.getElementById('viewDataModal').classList.remove('active');
+}
+
+// ==================== LOAD HISTORY ====================
 function loadMyHistory() {
     if (!securityUnlocked) {
         document.getElementById('myGmailHistory').innerHTML = '<div class="no-data"><i class="fas fa-lock"></i><br>ကြည့်ရှုရန် Security Password ထည့်ပါ</div>';
@@ -785,234 +622,111 @@ function loadMyHistory() {
     const renderH = (list, type) => {
         if (!list || list.length === 0) return '<div class="no-data"><i class="fas fa-inbox"></i><br>No data yet</div>';
         return list.map(item => {
-            let name = '', email = '';
-            
-            if (type === 'gmail') {
-                name = item.name || 'N/A';
-                email = (item.emails || []).join(', ');
-            } else if (type === 'mlbb') {
-                name = item.ingame_name || 'N/A';
-                email = (item.emails || []).join(', ');
-            } else if (type === 'tiktok') {
-                name = item.full_name || 'N/A';
-                email = (item.emails || []).join(', ');
-            }
-            
+            let name = item.name || item.ingame_name || item.full_name || 'N/A';
+            let email = (item.emails || []).join(', ') || 'No data';
             return `<div class="data-card">
-                <div class="card-info">
-                    <div class="card-name">${name}</div>
-                    <div class="card-email">${email || 'No data'}</div>
-                </div>
+                <div class="card-info"><div class="card-name">${name}</div><div class="card-email">${email}</div></div>
                 <div class="card-btns">
-                    <button class="btn-micro btn-view" onclick="viewData('${type}','${item.id}')"><i class="fas fa-eye"></i> View</button>
-                    <button class="btn-micro btn-edit" onclick="editRecord('${type}','${item.id}')"><i class="fas fa-edit"></i> Edit</button>
-                    <button class="btn-micro" onclick="deleteRecord('${type}','${item.id}')" style="background:rgba(231,76,60,0.2);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);"><i class="fas fa-trash"></i> Del</button>
+                    <button class="btn-micro btn-view" onclick="viewData('${type}','${item.id}')"><i class="fas fa-eye"></i></button>
+                    <button class="btn-micro btn-edit" onclick="editRecord('${type}','${item.id}')"><i class="fas fa-edit"></i></button>
+                    <button class="btn-micro" onclick="deleteRecord('${type}','${item.id}')" style="background:rgba(231,76,60,0.2);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);"><i class="fas fa-trash"></i></button>
                 </div>
             </div>`;
         }).join('');
     };
     
     fetch("/api/get_my_data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: localStorage.getItem("auth_token") })
     })
     .then(r => r.json())
     .then(d => {
-        gmailRecords = d.gmail || [];
-        mlbbRecords = d.mlbb || [];
-        tiktokRecords = d.tiktok || [];
-        
+        gmailRecords = d.gmail || []; mlbbRecords = d.mlbb || []; tiktokRecords = d.tiktok || [];
         document.getElementById('myGmailHistory').innerHTML = renderH(gmailRecords, 'gmail');
         document.getElementById('myMlbbHistory').innerHTML = renderH(mlbbRecords, 'mlbb');
         document.getElementById('myTiktokHistory').innerHTML = renderH(tiktokRecords, 'tiktok');
     })
     .catch(() => {
-        document.getElementById('myGmailHistory').innerHTML = '<div class="no-data">No data</div>';
-        document.getElementById('myMlbbHistory').innerHTML = '<div class="no-data">No data</div>';
-        document.getElementById('myTiktokHistory').innerHTML = '<div class="no-data">No data</div>';
+        document.getElementById('myGmailHistory').innerHTML = '<div class="no-data">Error loading</div>';
+        document.getElementById('myMlbbHistory').innerHTML = '<div class="no-data">Error loading</div>';
+        document.getElementById('myTiktokHistory').innerHTML = '<div class="no-data">Error loading</div>';
     });
 }
-    
-    // ==================== PAGE ACCESS CHECK ====================
-    async function checkPageAccess() {
-        try {
-            const r = await fetch('/api/admin/page_status');
-            const d = await r.json();
-            if (d.pages) {
-                const hp = d.pages.find(p => p.id === 'history');
-                if (hp && hp.status === 'off') {
-                    document.getElementById('maintenanceMessage').style.display = 'block';
-                    document.getElementById('historyContent').style.display = 'none';
-                    checkPageTimer();
-                    return false;
-                }
-            }
-            return true;
-        } catch(e) { return true; }
-    }
 
-    // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
+// ==================== PAGE ACCESS CHECK ====================
+async function checkPageAccess() {
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const hp = d.pages.find(p => p.id === 'history');
+            if (hp && hp.status === 'off') {
+                document.getElementById('maintenanceMessage').style.display = 'block';
+                document.getElementById('historyContent').style.display = 'none';
+                checkPageTimer(); return false;
+            }
+        }
+        return true;
+    } catch(e) { return true; }
+}
+
+// ==================== PAGE TIMER COUNTDOWN ====================
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
-    
     let timer = null;
-    
     try {
-        // Method 1: localStorage
         const saved = localStorage.getItem('pageTimers');
-        if (saved) {
-            const timers = JSON.parse(saved);
-            timer = timers[pageId];
-        }
-        
-        // Method 2: Cookie (for Median WebView)
+        if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
         if (!timer) {
             const cookieTimers = getCookie('pageTimers');
-            if (cookieTimers) {
-                const timers = JSON.parse(decodeURIComponent(cookieTimers));
-                timer = timers[pageId];
-            }
+            if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; }
         }
-        
-        // Method 3: SessionStorage
         if (!timer) {
             const sessionTimers = sessionStorage.getItem('pageTimers');
-            if (sessionTimers) {
-                const timers = JSON.parse(sessionTimers);
-                timer = timers[pageId];
-            }
+            if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; }
         }
     } catch(e) {}
-    
     if (!timer || timer <= Date.now()) return;
-    
     const maintMsg = document.getElementById('maintenanceMessage');
     if (maintMsg) maintMsg.style.display = 'block';
-    
     const pageBanner = document.getElementById('pageTimerBanner');
     if (pageBanner) pageBanner.style.display = 'block';
-    
     const maintTimer = document.getElementById('maintenanceCountdown');
     const pageCountdown = document.getElementById('pageTimerCountdown');
-    
     const update = () => {
         const rem = timer - Date.now();
-        
         if (rem <= 0) {
             try {
                 const saved = localStorage.getItem('pageTimers');
-                if (saved) {
-                    const timers = JSON.parse(saved);
-                    delete timers[pageId];
-                    localStorage.setItem('pageTimers', JSON.stringify(timers));
-                }
-                setCookie('pageTimers', '', -1);
-                sessionStorage.removeItem('pageTimers');
+                if (saved) { const timers = JSON.parse(saved); delete timers[pageId]; localStorage.setItem('pageTimers', JSON.stringify(timers)); }
+                setCookie('pageTimers', '', -1); sessionStorage.removeItem('pageTimers');
             } catch(e) {}
-            
-            location.reload();
-            return;
+            location.reload(); return;
         }
-        
-        const s = Math.floor(rem / 1000);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const sec = s % 60;
-        const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-        
-        if (maintTimer) maintTimer.textContent = timeStr;
-        if (pageCountdown) pageCountdown.textContent = timeStr;
+        const s = Math.floor(rem/1000), h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+        const t = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
+        if (maintTimer) maintTimer.textContent = t;
+        if (pageCountdown) pageCountdown.textContent = t;
     };
-    
-    update();
-    setInterval(update, 1000);
+    update(); setInterval(update, 1000);
 }
 
-function setCookie(name, value, days) {
-    let expires = '';
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = '; expires=' + date.toUTCString();
-    }
-    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
-}
+function setCookie(n,v,d){let e='';if(d){let t=new Date();t.setTime(t.getTime()+d*864e5);e='; expires='+t.toUTCString()}document.cookie=n+'='+encodeURIComponent(v||'')+e+'; path=/'}
+function getCookie(n){let e=n+'=',c=document.cookie.split(';');for(let i=0;i<c.length;i++){let t=c[i];while(t.charAt(0)==' ')t=t.substring(1);if(t.indexOf(e)===0)return t.substring(e.length)}return null}
 
-function getCookie(name) {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-    
-    // ==================== BG MUSIC PLAYER ====================
-    (function() {
-        const a = document.getElementById('bgAudio');
-        if (!a) return;
-        let p = [], i = 0;
-        a.volume = 0.5;
-        a.loop = false;
-        const fl = !sessionStorage.getItem('mp');
-        if (fl) { i = 0; localStorage.setItem('bgi','0'); localStorage.setItem('bgt0','0'); }
-        else { i = parseInt(localStorage.getItem('bgi')||'0'); }
-        sessionStorage.setItem('mp','1');
-        async function fp() {
-            try {
-                const r = await fetch('/api/bg_music?t='+Date.now());
-                const d = await r.json();
-                if (d.playlist && d.playlist.length>0) { p = d.playlist; return true; }
-                return false;
-            } catch(e) { return false; }
-        }
-        function pl() {
-            if (!p.length) return;
-            if (i >= p.length) i = 0;
-            const u = p[i]; a.src = u; a.load();
-            a.addEventListener('canplay', function h() { a.play().catch(()=>{}); a.removeEventListener('canplay',h); });
-        }
-        a.addEventListener('ended', function() {
-            localStorage.setItem('bgt'+i,'0');
-            i = (i+1) % p.length;
-            localStorage.setItem('bgi',i);
-            localStorage.setItem('bgt'+i,'0');
-            pl();
-        });
-        a.addEventListener('error', function() {
-            i = (i+1) % p.length;
-            localStorage.setItem('bgi',i);
-            localStorage.setItem('bgt'+i,'0');
-            pl();
-        });
-        setInterval(() => {
-            if (!a.paused && p.length>0 && a.currentTime>0) {
-                localStorage.setItem('bgi',i);
-                localStorage.setItem('bgt'+i, a.currentTime);
-            }
-        }, 1000);
-        fp().then(h => { if(h) { if(fl) i=0; pl(); } });
-        setInterval(fp, 3000);
-    })();
+// ==================== BG MUSIC PLAYER ====================
+(function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const f=!sessionStorage.getItem('mp');if(f){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(f)i=0;pl()}});setInterval(fp,3000)})();
 
-    // ==================== INIT ====================
+// ==================== INIT ====================
 (async function init() {
     const pageOn = await checkPageAccess();
     if (!pageOn) return;
     document.getElementById('historyContent').style.display = 'block';
-    
-    // ✅ Load attempt state from localStorage
     loadAttemptState();
-    
-    // ✅ Check if currently locked
     if (isAttemptLocked()) {
         startAttemptTimer();
         document.getElementById('attemptLockBox').style.display = 'block';
     }
-    
     loadSecurityState();
     loadMyHistory();
 })();
