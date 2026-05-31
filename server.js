@@ -407,6 +407,10 @@ async function initTables(p) {
     emails TEXT, phones TEXT, password VARCHAR(200),
     dob VARCHAR(50), country VARCHAR(100), region VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
+    
+`ALTER TABLE user_gmail_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
+`ALTER TABLE user_mlbb_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
+`ALTER TABLE user_tiktok_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
         
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
@@ -1159,22 +1163,15 @@ app.post('/api/user/clear-data', async (req, res) => {
     }
     
     try {
-        // ✅ JWT Verify
         const jwt = require('jsonwebtoken');
         const secretKey = process.env.JWT_SECRET || 'your-secret-key';
         let decoded;
         
-        try {
-            decoded = jwt.verify(token, secretKey);
-        } catch(e) {
-            return res.json({ success: false, message: 'Invalid session. Please login again.' });
-        }
+        try { decoded = jwt.verify(token, secretKey); } 
+        catch(e) { return res.json({ success: false, message: 'Invalid session' }); }
         
         const uid = decoded.uid || decoded.id || decoded.userId;
-        
-        if (!uid) {
-            return res.json({ success: false, message: 'Invalid token payload' });
-        }
+        if (!uid) return res.json({ success: false, message: 'Invalid token' });
         
         const p = await getPool();
         let message = '';
@@ -1184,22 +1181,18 @@ app.post('/api/user/clear-data', async (req, res) => {
                 await p.query("DELETE FROM user_gmail_data WHERE user_id = $1", [uid]);
                 message = 'Gmail Data အားလုံး ဖျက်ပြီးပါပြီ';
                 break;
-                
             case 'mlbb':
                 await p.query("DELETE FROM user_mlbb_data WHERE user_id = $1", [uid]);
                 message = 'MLBB Data အားလုံး ဖျက်ပြီးပါပြီ';
                 break;
-                
             case 'tiktok':
                 await p.query("DELETE FROM user_tiktok_data WHERE user_id = $1", [uid]);
                 message = 'TikTok Data အားလုံး ဖျက်ပြီးပါပြီ';
                 break;
-                
             case 'login_history':
                 await p.query("DELETE FROM login_history WHERE user_id = $1", [uid]);
                 message = 'Login History အားလုံး ဖျက်ပြီးပါပြီ';
                 break;
-                
             case 'all':
                 await p.query("DELETE FROM user_gmail_data WHERE user_id = $1", [uid]);
                 await p.query("DELETE FROM user_mlbb_data WHERE user_id = $1", [uid]);
@@ -1207,23 +1200,11 @@ app.post('/api/user/clear-data', async (req, res) => {
                 await p.query("DELETE FROM login_history WHERE user_id = $1", [uid]);
                 message = 'ဒေတာအားလုံး ဖျက်ပြီးပါပြီ';
                 break;
-                
             default:
                 return res.json({ success: false, message: 'Invalid clear type' });
         }
         
-        // Log the clear action
-        try {
-            await p.query(
-                "INSERT INTO clear_logs (user_id, clear_type, cleared_at) VALUES ($1, $2, NOW())",
-                [uid, type]
-            );
-        } catch(e) {
-            // Table might not exist, ignore
-        }
-        
-        console.log(`✅ Data cleared for user ${uid}, type: ${type}`);
-        
+        console.log('✅ Data cleared! User:', uid, 'Type:', type);
         res.json({ success: true, message });
         
     } catch(e) {
