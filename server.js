@@ -1400,7 +1400,7 @@ app.post('/api/save_user_data', async (req, res) => {
     }
 });
 
-// ==================== GET USER DATA (JWT) ====================
+// ==================== GET USER DATA (JWT VERSION) ====================
 app.post('/api/get_my_data', async (req, res) => {
     const { token } = req.body;
     
@@ -1413,31 +1413,129 @@ app.post('/api/get_my_data', async (req, res) => {
         const secretKey = process.env.JWT_SECRET || 'your-secret-key';
         let decoded;
         
-        try {
-            decoded = jwt.verify(token, secretKey);
-        } catch(e) {
-            return res.json({ success: true, gmail: [], mlbb: [], tiktok: [] });
-        }
+        try { decoded = jwt.verify(token, secretKey); } 
+        catch(e) { return res.json({ success: true, gmail: [], mlbb: [], tiktok: [] }); }
         
         const uid = decoded.uid || decoded.id || decoded.userId;
         if (!uid) return res.json({ success: true, gmail: [], mlbb: [], tiktok: [] });
         
         const p = await getPool();
         
-        const gmail = await p.query('SELECT * FROM user_gmail_data WHERE user_id = $1 ORDER BY created_at DESC', [uid]);
-        const mlbb = await p.query('SELECT * FROM user_mlbb_data WHERE user_id = $1 ORDER BY created_at DESC', [uid]);
-        const tiktok = await p.query('SELECT * FROM user_tiktok_data WHERE user_id = $1 ORDER BY created_at DESC', [uid]);
+        // ✅ Data အပြည့်အစုံ ဆွဲထုတ်
+        const gmail = await p.query(
+            'SELECT id, name, emails, phones, password, dob, country, region, created_at FROM user_gmail_data WHERE user_id=$1 ORDER BY created_at DESC', 
+            [uid]
+        );
+        const mlbb = await p.query(
+            'SELECT id, ingame_name, ingame_id, server_id, emails, password, dob, country, region, created_at FROM user_mlbb_data WHERE user_id=$1 ORDER BY created_at DESC', 
+            [uid]
+        );
+        const tiktok = await p.query(
+            'SELECT id, full_name, last_name, emails, phones, password, dob, country, region, created_at FROM user_tiktok_data WHERE user_id=$1 ORDER BY created_at DESC', 
+            [uid]
+        );
         
-        res.json({
-            success: true,
-            gmail: gmail.rows,
-            mlbb: mlbb.rows,
-            tiktok: tiktok.rows
+        // ✅ JSON fields တွေကို Parse လုပ်
+        const parseData = (rows) => rows.map(r => ({
+            ...r,
+            emails: typeof r.emails === 'string' ? JSON.parse(r.emails || '[]') : (r.emails || []),
+            phones: typeof r.phones === 'string' ? JSON.parse(r.phones || '[]') : (r.phones || [])
+        }));
+        
+        res.json({ 
+            success: true, 
+            gmail: parseData(gmail.rows), 
+            mlbb: parseData(mlbb.rows), 
+            tiktok: parseData(tiktok.rows) 
         });
         
     } catch(e) {
         console.error('[GET USER DATA ERROR]', e.message);
         res.json({ success: true, gmail: [], mlbb: [], tiktok: [] });
+    }
+});
+// ==================== UPDATE USER DATA (JWT VERSION) ====================
+app.post('/api/update_user_data', async (req, res) => {
+    const { token, type, id, data } = req.body;
+    
+    if (!token || !type || !id || !data) {
+        return res.json({ success: false, message: 'All fields required' });
+    }
+    
+    try {
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try { decoded = jwt.verify(token, secretKey); } 
+        catch(e) { return res.json({ success: false, message: 'Invalid session' }); }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) return res.json({ success: false, message: 'Invalid token' });
+        
+        const p = await getPool();
+        
+        if (type === 'gmail') {
+            await p.query(
+                `UPDATE user_gmail_data SET name=$1, emails=$2, phones=$3, password=$4, dob=$5, country=$6, region=$7 
+                 WHERE id=$8 AND user_id=$9`,
+                [data.name, JSON.stringify(data.emails||[]), JSON.stringify(data.phones||[]),
+                 data.password, data.dob, data.country, data.region, id, uid]
+            );
+        } else if (type === 'mlbb') {
+            await p.query(
+                `UPDATE user_mlbb_data SET ingame_name=$1, ingame_id=$2, server_id=$3, emails=$4, password=$5, dob=$6, country=$7, region=$8 
+                 WHERE id=$9 AND user_id=$10`,
+                [data.ingameName, data.ingameId, data.serverId, JSON.stringify(data.emails||[]),
+                 data.password, data.dob, data.country, data.region, id, uid]
+            );
+        } else if (type === 'tiktok') {
+            await p.query(
+                `UPDATE user_tiktok_data SET full_name=$1, last_name=$2, emails=$3, phones=$4, password=$5, dob=$6, country=$7, region=$8 
+                 WHERE id=$9 AND user_id=$10`,
+                [data.fullName, data.lastName, JSON.stringify(data.emails||[]), JSON.stringify(data.phones||[]),
+                 data.password, data.dob, data.country, data.region, id, uid]
+            );
+        }
+        
+        console.log('✅ Data updated! User:', uid, 'Type:', type, 'ID:', id);
+        res.json({ success: true, message: 'Data updated successfully!' });
+        
+    } catch(e) {
+        console.error('[UPDATE USER DATA ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// ==================== DELETE SINGLE USER DATA (JWT VERSION) ====================
+app.post('/api/delete_user_data', async (req, res) => {
+    const { token, type, id } = req.body;
+    
+    if (!token || !type || !id) {
+        return res.json({ success: false, message: 'Token, type, and id required' });
+    }
+    
+    try {
+        const jwt = require('jsonwebtoken');
+        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        let decoded;
+        
+        try { decoded = jwt.verify(token, secretKey); } 
+        catch(e) { return res.json({ success: false, message: 'Invalid session' }); }
+        
+        const uid = decoded.uid || decoded.id || decoded.userId;
+        if (!uid) return res.json({ success: false, message: 'Invalid token' });
+        
+        const p = await getPool();
+        const table = type === 'gmail' ? 'user_gmail_data' : type === 'mlbb' ? 'user_mlbb_data' : 'user_tiktok_data';
+        
+        await p.query(`DELETE FROM ${table} WHERE id=$1 AND user_id=$2`, [id, uid]);
+        
+        console.log('✅ Data deleted! User:', uid, 'Type:', type, 'ID:', id);
+        res.json({ success: true, message: 'Record deleted successfully!' });
+        
+    } catch(e) {
+        console.error('[DELETE USER DATA ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
     }
 });
 // ==================== SAVE CUSTOM PASSWORD API ====================
