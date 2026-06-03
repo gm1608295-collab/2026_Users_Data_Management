@@ -167,14 +167,8 @@
 }
 
 @keyframes onlinePulse {
-    0% {
-        transform: scale(1);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(2.5);
-        opacity: 0;
-    }
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2.5); opacity: 0; }
 }
 
 .online-counter-info {
@@ -183,11 +177,12 @@
     align-items: center;
     gap: 6px;
     min-width: 0;
+    flex-wrap: wrap;
 }
 
 .online-counter-label {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.6);
+    color: rgba(255, 255, 255, 0.7);
     white-space: nowrap;
 }
 
@@ -211,29 +206,35 @@
     border: 1px solid rgba(46, 204, 113, 0.25);
 }
 
-.online-counter-up {
+.online-change-indicator {
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 40px;
+    text-align: center;
+}
+
+.online-change-up {
     color: #2ecc71;
-    font-size: 10px;
-    font-weight: 700;
-    animation: fadeUp 0.5s ease-out;
+    animation: fadeUpAnim 2s ease-out forwards;
 }
 
-.online-counter-down {
+.online-change-down {
     color: #e74c3c;
-    font-size: 10px;
-    font-weight: 700;
-    animation: fadeUp 0.5s ease-out;
+    animation: fadeUpAnim 2s ease-out forwards;
 }
 
-@keyframes fadeUp {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-15px);
-    }
+@keyframes fadeUpAnim {
+    0% { opacity: 1; transform: translateY(0); }
+    70% { opacity: 0.5; transform: translateY(-8px); }
+    100% { opacity: 0; transform: translateY(-15px); }
+}
+
+.online-counter-tip {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.35);
+    text-align: center;
+    margin-top: 2px;
+    width: 100%;
 }
     </style>
 </head>
@@ -324,11 +325,12 @@
         <div class="online-dot-pulse"></div>
     </div>
     <div class="online-counter-info">
-        <span class="online-counter-label">🟢 Online Users:</span>
-        <span class="online-counter-number" id="onlineUserCount">1,247</span>
+        <span class="online-counter-label">🟢 ယခုအသုံးပြုနေသူ:</span>
+        <span class="online-counter-number" id="onlineUserCount">---</span>
         <span class="online-counter-badge">LIVE</span>
+        <span class="online-change-indicator" id="onlineChangeIndicator"></span>
+        <span class="online-counter-tip" id="onlineCounterTip"></span>
     </div>
-    <span id="onlineChangeIndicator" style="font-size:10px;"></span>
 </div>
             
             <!-- Social Media -->
@@ -520,103 +522,163 @@ function isValidMyanmarPhone(phone) {
     
     return false;
 }
-    // ==================== ONLINE USER COUNTER (FAKE) ====================
-let currentOnlineCount = 0;
-let onlineCounterInterval = null;
+// ==================== ONLINE USER COUNTER (MYANMAR) ====================
+let onlineCount = 0;
+let onlineInterval = null;
+let isOnlineCounterRunning = false;
+
+// ✅ localStorage ကနေ နောက်ဆုံး Count ကို သိမ်း/ယူ
+function saveOnlineCount(count) {
+    try {
+        localStorage.setItem('online_user_count', count.toString());
+        localStorage.setItem('online_user_count_time', Date.now().toString());
+    } catch(e) {}
+}
+
+function getSavedOnlineCount() {
+    try {
+        const count = localStorage.getItem('online_user_count');
+        if (count) {
+            return parseInt(count);
+        }
+    } catch(e) {}
+    return 0;
+}
 
 function getRandomOnlineUsers() {
-    // Random between 100 - 2800
     const min = 100;
     const max = 2800;
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function getSmallChange(current) {
-    // Change by -50 to +50
-    const change = Math.floor(Math.random() * 101) - 50;
+    // Change by -80 to +80
+    const change = Math.floor(Math.random() * 161) - 80;
     let newCount = current + change;
     
     // Keep within bounds
-    if (newCount < 100) newCount = 100 + Math.floor(Math.random() * 50);
-    if (newCount > 2800) newCount = 2800 - Math.floor(Math.random() * 50);
+    if (newCount < 100) newCount = 100 + Math.floor(Math.random() * 80);
+    if (newCount > 2800) newCount = 2800 - Math.floor(Math.random() * 80);
     
     return newCount;
 }
 
-function updateOnlineCounter() {
+function updateOnlineDisplay(count, diff) {
     const countEl = document.getElementById('onlineUserCount');
     const indicatorEl = document.getElementById('onlineChangeIndicator');
+    const tipEl = document.getElementById('onlineCounterTip');
     
     if (!countEl) return;
     
-    let newCount;
-    
-    if (currentOnlineCount === 0) {
-        // First time - random number
-        newCount = getRandomOnlineUsers();
-    } else {
-        // Small change from current
-        newCount = getSmallChange(currentOnlineCount);
-    }
-    
-    const diff = newCount - currentOnlineCount;
-    
-    // Update display with animation
-    countEl.textContent = newCount.toLocaleString();
+    // Update count
+    countEl.textContent = count.toLocaleString();
     
     // Show change indicator
-    if (diff > 0 && currentOnlineCount > 0) {
-        indicatorEl.className = 'online-counter-up';
-        indicatorEl.textContent = '▲' + diff;
-        setTimeout(() => { indicatorEl.textContent = ''; }, 1500);
-    } else if (diff < 0 && currentOnlineCount > 0) {
-        indicatorEl.className = 'online-counter-down';
-        indicatorEl.textContent = '▼' + Math.abs(diff);
-        setTimeout(() => { indicatorEl.textContent = ''; }, 1500);
+    if (indicatorEl) {
+        if (diff > 0) {
+            indicatorEl.className = 'online-change-indicator online-change-up';
+            indicatorEl.textContent = '▲' + diff;
+        } else if (diff < 0) {
+            indicatorEl.className = 'online-change-indicator online-change-down';
+            indicatorEl.textContent = '▼' + Math.abs(diff);
+        } else {
+            indicatorEl.textContent = '';
+        }
+        
+        // Clear indicator after animation
+        setTimeout(() => {
+            if (indicatorEl) indicatorEl.textContent = '';
+        }, 2000);
     }
     
-    // Add subtle scale animation
+    // Update tip
+    if (tipEl) {
+        const hour = new Date().getHours();
+        if (hour >= 20 || hour < 6) {
+            tipEl.textContent = '🌙 ညပိုင်းအသုံးပြုသူ အနည်းငယ်ကျဆင်းနိုင်ပါသည်';
+        } else if (hour >= 12 && hour < 16) {
+            tipEl.textContent = '☀️ နေ့လည်ပိုင်း အသုံးပြုသူ ပိုမိုများပြားနိုင်ပါသည်';
+        } else {
+            tipEl.textContent = '📊 အသုံးပြုသူဦးရေ အချိန်နှင့်အမျှ ပြောင်းလဲနိုင်ပါသည်';
+        }
+    }
+    
+    // Smooth animation
     countEl.style.transform = 'scale(1.1)';
     setTimeout(() => { countEl.style.transform = 'scale(1)'; }, 200);
-    
-    currentOnlineCount = newCount;
 }
 
 function startOnlineCounter() {
-    // Initial update
-    updateOnlineCounter();
+    if (isOnlineCounterRunning) return;
+    isOnlineCounterRunning = true;
     
-    // Random interval between 5-10 seconds
+    // ✅ အရင် Count ကို localStorage ကနေ ယူ
+    const savedCount = getSavedOnlineCount();
+    
+    if (savedCount > 0) {
+        // ✅ ရှိပြီးသား Count ကို ပြန်သုံး
+        onlineCount = savedCount;
+        updateOnlineDisplay(onlineCount, 0);
+    } else {
+        // ✅ ပထမဆုံးအကြိမ် - Random ထုတ်
+        onlineCount = getRandomOnlineUsers();
+        updateOnlineDisplay(onlineCount, 0);
+        saveOnlineCount(onlineCount);
+    }
+    
+    // ✅ Schedule next update (5-10 seconds)
     function scheduleNext() {
-        const interval = Math.floor(Math.random() * 5000) + 5000; // 5000-10000ms
-        onlineCounterInterval = setTimeout(() => {
-            updateOnlineCounter();
+        if (!isOnlineCounterRunning) return;
+        
+        const delay = Math.floor(Math.random() * 5000) + 5000;
+        onlineInterval = setTimeout(() => {
+            const oldCount = onlineCount;
+            onlineCount = getSmallChange(onlineCount);
+            const diff = onlineCount - oldCount;
+            
+            updateOnlineDisplay(onlineCount, diff);
+            saveOnlineCount(onlineCount);
+            
             scheduleNext();
-        }, interval);
+        }, delay);
     }
     
     scheduleNext();
 }
 
 function stopOnlineCounter() {
-    if (onlineCounterInterval) {
-        clearTimeout(onlineCounterInterval);
-        onlineCounterInterval = null;
+    isOnlineCounterRunning = false;
+    if (onlineInterval) {
+        clearTimeout(onlineInterval);
+        onlineInterval = null;
     }
 }
 
-// Start counter on page load
+// ✅ Page Load မှာ စတင်
 document.addEventListener('DOMContentLoaded', () => {
     startOnlineCounter();
 });
 
-// Also start when page becomes visible
+// ✅ Tab ပြောင်းတဲ့အခါ
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+        // ✅ ပြန်ဝင်လာရင် - ရှိပြီးသား Count ကို ပြန်ပြ၊ ပြီးမှ ဆက်လုပ်
+        const savedCount = getSavedOnlineCount();
+        if (savedCount > 0 && savedCount !== onlineCount) {
+            onlineCount = savedCount;
+            updateOnlineDisplay(onlineCount, 0);
+        }
         startOnlineCounter();
     } else {
+        // ✅ Tab ပြောင်းသွားရင် ရပ်၊ Count ကို သိမ်း
+        saveOnlineCount(onlineCount);
         stopOnlineCounter();
     }
+});
+
+// ✅ Page ကနေ ထွက်သွားရင် Count သိမ်း
+window.addEventListener('beforeunload', () => {
+    saveOnlineCount(onlineCount);
 });
     // ==================== PROMO CODE REDEEM ====================
     async function redeemPromoCode() {
