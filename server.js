@@ -5977,38 +5977,39 @@ app.post('/api/reseller/transactions', verifyApiKey, async (req, res) => {
 
 console.log('✅ API Key & Reseller System Ready');
 
-// ==================== LEADERBOARD API ====================
-app.get('/api/leaderboard/top_spenders', async (req, res) => {
+// ==================== WEEKLY LEADERBOARD API ====================
+app.get('/api/leaderboard/weekly_top_spenders', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Active users only: balance > 0, not banned, not guest, logged in within 30 days
-        const r = await p.query(`
+        // ✅ ဒီတစ်ပတ်အတွင်း completed orders တွေကို User အလိုက် စုပေါင်း
+        const result = await p.query(`
             SELECT 
+                u.id,
                 u.username, 
-                u.email, 
-                COALESCE(SUM(CASE WHEN o.amount > 0 AND o.status = 'approved' THEN o.amount ELSE 0 END), 0) as total_spent,
-                COUNT(CASE WHEN o.status = 'approved' THEN 1 END) as total_orders
+                u.email,
+                COALESCE(SUM(o.amount), 0) as weekly_spent
             FROM auth_users u
-            LEFT JOIN orders o ON u.id = o.user_id
-            WHERE u.login_type != 'guest'
-              AND u.id NOT IN (SELECT user_id::INT FROM banned_users)
-              AND u.last_login > NOW() - INTERVAL '30 days'
-              AND u.balance > 0
+            LEFT JOIN orders o ON u.id = o.user_id 
+                AND o.status = 'completed'
+                AND o.created_at >= date_trunc('week', CURRENT_DATE)
             GROUP BY u.id, u.username, u.email
-            HAVING COALESCE(SUM(CASE WHEN o.amount > 0 AND o.status = 'approved' THEN o.amount ELSE 0 END), 0) > 0
-            ORDER BY total_spent DESC
+            HAVING COALESCE(SUM(o.amount), 0) > 0
+            ORDER BY weekly_spent DESC
             LIMIT 10
         `);
         
-        res.json({ success: true, leaders: r.rows });
+        res.json({ 
+            success: true, 
+            leaders: result.rows,
+            week_start: new Date().toISOString()
+        });
         
     } catch(e) {
         console.error('[LEADERBOARD ERROR]', e.message);
         res.json({ success: false, leaders: [] });
     }
 });
-
 // ==================== SOCKET.IO + SERVER START ====================
 const server = http.createServer(app);
 const io = new Server(server, {
