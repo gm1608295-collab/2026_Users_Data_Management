@@ -119,6 +119,122 @@
         
         .lb-empty{text-align:center;padding:30px 15px;color:rgba(255,255,255,0.3);font-size:12px}
         .lb-loading{text-align:center;padding:20px;color:rgba(255,255,255,0.4);font-size:11px}
+         /* ========== ONLINE USER COUNTER ========== */
+.online-counter-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(46, 204, 113, 0.06);
+    border: 1.5px solid rgba(46, 204, 113, 0.2);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.online-counter-box:hover {
+    background: rgba(46, 204, 113, 0.1);
+    border-color: rgba(46, 204, 113, 0.35);
+}
+
+.online-dot-wrapper {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.online-dot {
+    width: 14px;
+    height: 14px;
+    background: #2ecc71;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.5);
+}
+
+.online-dot-pulse {
+    width: 14px;
+    height: 14px;
+    background: #2ecc71;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: onlinePulse 1.8s ease-out infinite;
+}
+
+@keyframes onlinePulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}
+
+.online-counter-info {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.online-counter-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+}
+
+.online-counter-number {
+    font-size: 16px;
+    font-weight: 700;
+    color: #2ecc71;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+}
+
+.online-counter-badge {
+    font-size: 8px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid rgba(46, 204, 113, 0.25);
+}
+
+.online-counter-up {
+    color: #2ecc71;
+    font-size: 10px;
+    font-weight: 700;
+    animation: fadeUp 0.5s ease-out;
+}
+
+.online-counter-down {
+    color: #e74c3c;
+    font-size: 10px;
+    font-weight: 700;
+    animation: fadeUp 0.5s ease-out;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+}
     </style>
 </head>
 <body>
@@ -200,6 +316,20 @@
             <div class="email-link" onclick="openEmailModal()">
                 <i class="fas fa-envelope"></i> Send us a message via Email ✉️
             </div>
+
+            <!-- Online Users Counter -->
+<div class="online-counter-box" id="onlineCounterBox">
+    <div class="online-dot-wrapper">
+        <div class="online-dot"></div>
+        <div class="online-dot-pulse"></div>
+    </div>
+    <div class="online-counter-info">
+        <span class="online-counter-label">🟢 Online Users:</span>
+        <span class="online-counter-number" id="onlineUserCount">1,247</span>
+        <span class="online-counter-badge">LIVE</span>
+    </div>
+    <span id="onlineChangeIndicator" style="font-size:10px;"></span>
+</div>
             
             <!-- Social Media -->
             <div class="section-panel">
@@ -252,8 +382,15 @@
             <span class="modal-close" onclick="closeEmailModal()">&times;</span>
             <h3><i class="fas fa-paper-plane"></i> Send Message</h3>
             <div class="form-group"><label>👤 Name</label><input type="text" id="emName" placeholder="Enter your name"></div>
-            <div class="form-group"><label>📧 Email</label><input type="email" id="emEmail" placeholder="Enter your email"></div>
-            <div class="form-group"><label>📱 Phone Number</label><input type="tel" id="emPhone" placeholder="Enter your phone number"></div>
+            <div class="form-group">
+    <label>📧 Email</label>
+    <input type="email" id="emEmail" placeholder="e.g., name@gmail.com">
+</div>
+
+<div class="form-group">
+    <label>📱 Phone Number (Optional)</label>
+    <input type="tel" id="emPhone" placeholder="e.g., 09xxxxxxxxx">
+</div>
             <div class="form-group"><label>💬 Message</label><textarea id="emMsg" placeholder="Type your message here..."></textarea></div>
             <button class="btn btn-send" id="sendBtn" onclick="sendEmail()"><i class="fas fa-paper-plane"></i> Send Message</button>
         </div>
@@ -279,37 +416,208 @@
     function closeEmailModal() { document.getElementById("emailModal").classList.remove("active"); }
 
     async function sendEmail() {
-        const na = document.getElementById("emName").value.trim();
-        const em = document.getElementById("emEmail").value.trim();
-        const ph = document.getElementById("emPhone").value.trim();
-        const ms = document.getElementById("emMsg").value.trim();
-        const btn = document.getElementById("sendBtn");
-        
-        if (!na) return n("❌ Name is required!", "error");
-        if (!em) return n("❌ Email is required!", "error");
-        if (!ms) return n("❌ Message is required!", "error");
-        
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-        
-        try {
-            await emailjs.send("service_3akzfls", "template_xqygsga", {
-                from_name: na, from_email: em,
-                phone_number: ph || 'N/A', message: ms,
-                submitted_at: new Date().toLocaleString()
-            });
-            n("✅ Message sent successfully!", "success");
-            document.getElementById("emName").value = '';
-            document.getElementById("emEmail").value = '';
-            document.getElementById("emPhone").value = '';
-            document.getElementById("emMsg").value = '';
-            closeEmailModal();
-        } catch(e) { n("❌ Failed to send. Please try again.", "error"); }
-        
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+    const na = document.getElementById("emName").value.trim();
+    const em = document.getElementById("emEmail").value.trim();
+    const ph = document.getElementById("emPhone").value.trim();
+    const ms = document.getElementById("emMsg").value.trim();
+    const btn = document.getElementById("sendBtn");
+    
+    // ✅ Validation
+    if (!na) return n("❌ Name is required!", "error");
+    if (na.length < 2) return n("❌ Name must be at least 2 characters!", "error");
+    
+    if (!em) return n("❌ Email is required!", "error");
+    if (!isValidEmail(em)) return n("❌ Please enter a valid email address! (e.g., name@gmail.com)", "error");
+    if (!isAllowedEmail(em)) return n("❌ Please use Gmail, Outlook, or Yahoo email only!", "error");
+    
+    if (!ms) return n("❌ Message is required!", "error");
+    if (ms.length < 5) return n("❌ Message must be at least 5 characters!", "error");
+    
+    // ✅ Phone Validation (Optional but if provided, must be valid)
+    if (ph && !isValidMyanmarPhone(ph)) {
+        return n("❌ Invalid Myanmar phone number! Valid formats:\n09xxxxxxxxx, 959xxxxxxxxx, +959xxxxxxxxx", "error");
     }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    
+    try {
+        await emailjs.send("service_3akzfls", "template_xqygsga", {
+            from_name: na,
+            from_email: em,
+            phone_number: ph || 'N/A',
+            message: ms,
+            submitted_at: new Date().toLocaleString()
+        });
+        
+        n("✅ Message sent successfully!", "success");
+        document.getElementById("emName").value = '';
+        document.getElementById("emEmail").value = '';
+        document.getElementById("emPhone").value = '';
+        document.getElementById("emMsg").value = '';
+        closeEmailModal();
+        
+    } catch(e) {
+        console.error('EmailJS Error:', e);
+        n("❌ Failed to send. Please try again.", "error");
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+}
 
+// ==================== EMAIL VALIDATION ====================
+function isValidEmail(email) {
+    // Standard email regex
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+}
+
+function isAllowedEmail(email) {
+    // Allow only trusted email providers
+    const allowedDomains = [
+        'gmail.com',
+        'googlemail.com',
+        'outlook.com',
+        'hotmail.com',
+        'live.com',
+        'yahoo.com',
+        'yahoo.com.mm',
+        'ymail.com',
+        'protonmail.com',
+        'icloud.com',
+        'me.com'
+    ];
+    
+    const domain = email.split('@')[1]?.toLowerCase();
+    return allowedDomains.includes(domain);
+}
+
+// ==================== MYANMAR PHONE VALIDATION ====================
+function isValidMyanmarPhone(phone) {
+    // Remove spaces, dashes
+    let cleanPhone = phone.replace(/[\s-]/g, '');
+    
+    // Myanmar phone formats:
+    // 09xxxxxxxx (11 digits)
+    // 959xxxxxxxx (10-11 digits)
+    // +959xxxxxxxx (12 digits)
+    
+    // Check 09 format (09 + 9 digits = 11 total)
+    if (/^09\d{9}$/.test(cleanPhone)) {
+        return true;
+    }
+    
+    // Check 959 format (959 + 8 digits = 11 total, or 959 + 9 digits = 12 total)
+    if (/^959\d{8,9}$/.test(cleanPhone)) {
+        return true;
+    }
+    
+    // Check +959 format (+959 + 8 digits = 12 total)
+    if (/^\+959\d{8,9}$/.test(cleanPhone)) {
+        return true;
+    }
+    
+    return false;
+}
+    // ==================== ONLINE USER COUNTER (FAKE) ====================
+let currentOnlineCount = 0;
+let onlineCounterInterval = null;
+
+function getRandomOnlineUsers() {
+    // Random between 100 - 2800
+    const min = 100;
+    const max = 2800;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getSmallChange(current) {
+    // Change by -50 to +50
+    const change = Math.floor(Math.random() * 101) - 50;
+    let newCount = current + change;
+    
+    // Keep within bounds
+    if (newCount < 100) newCount = 100 + Math.floor(Math.random() * 50);
+    if (newCount > 2800) newCount = 2800 - Math.floor(Math.random() * 50);
+    
+    return newCount;
+}
+
+function updateOnlineCounter() {
+    const countEl = document.getElementById('onlineUserCount');
+    const indicatorEl = document.getElementById('onlineChangeIndicator');
+    
+    if (!countEl) return;
+    
+    let newCount;
+    
+    if (currentOnlineCount === 0) {
+        // First time - random number
+        newCount = getRandomOnlineUsers();
+    } else {
+        // Small change from current
+        newCount = getSmallChange(currentOnlineCount);
+    }
+    
+    const diff = newCount - currentOnlineCount;
+    
+    // Update display with animation
+    countEl.textContent = newCount.toLocaleString();
+    
+    // Show change indicator
+    if (diff > 0 && currentOnlineCount > 0) {
+        indicatorEl.className = 'online-counter-up';
+        indicatorEl.textContent = '▲' + diff;
+        setTimeout(() => { indicatorEl.textContent = ''; }, 1500);
+    } else if (diff < 0 && currentOnlineCount > 0) {
+        indicatorEl.className = 'online-counter-down';
+        indicatorEl.textContent = '▼' + Math.abs(diff);
+        setTimeout(() => { indicatorEl.textContent = ''; }, 1500);
+    }
+    
+    // Add subtle scale animation
+    countEl.style.transform = 'scale(1.1)';
+    setTimeout(() => { countEl.style.transform = 'scale(1)'; }, 200);
+    
+    currentOnlineCount = newCount;
+}
+
+function startOnlineCounter() {
+    // Initial update
+    updateOnlineCounter();
+    
+    // Random interval between 5-10 seconds
+    function scheduleNext() {
+        const interval = Math.floor(Math.random() * 5000) + 5000; // 5000-10000ms
+        onlineCounterInterval = setTimeout(() => {
+            updateOnlineCounter();
+            scheduleNext();
+        }, interval);
+    }
+    
+    scheduleNext();
+}
+
+function stopOnlineCounter() {
+    if (onlineCounterInterval) {
+        clearTimeout(onlineCounterInterval);
+        onlineCounterInterval = null;
+    }
+}
+
+// Start counter on page load
+document.addEventListener('DOMContentLoaded', () => {
+    startOnlineCounter();
+});
+
+// Also start when page becomes visible
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        startOnlineCounter();
+    } else {
+        stopOnlineCounter();
+    }
+});
     // ==================== PROMO CODE REDEEM ====================
     async function redeemPromoCode() {
         const code = document.getElementById('promoCodeInput').value.trim().toUpperCase();
