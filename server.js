@@ -960,11 +960,10 @@ app.get('/auth/tiktok/callback', async (req, res) => {
         res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`);
     } catch(e) { res.send('<script>alert("Failed");window.location.href="/";</script>'); }
 });
-// ==================== GET USER DATA PASSWORDS (FROM DB) ====================
+// ==================== GET USER DATA PASSWORDS (JWT VERSION) ====================
 app.post('/api/get_passwords', async (req, res) => {
     const { token } = req.body;
     
-    // Default passwords as fallback
     const defaults = { 
         gmail_password: 'DoubleMK2008', 
         mlbb_password: 'GlobalMK2008', 
@@ -976,13 +975,25 @@ app.post('/api/get_passwords', async (req, res) => {
     }
     
     try {
-        const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        // ✅ JWT Verify
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+        let decoded;
         
-        if (isNaN(uid)) {
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        } catch(e) {
             return res.json(defaults);
         }
         
+        // ✅ userId ကို အရင်စစ်
+        const uid = decoded.userId || decoded.id || decoded.uid;
+        
+        if (!uid) {
+            return res.json(defaults);
+        }
+        
+        const p = await getPool();
         const r = await p.query(
             'SELECT gmail_pass, mlbb_pass, tiktok_pass FROM auth_users WHERE id=$1', 
             [uid]
@@ -1638,7 +1649,8 @@ app.post('/api/check_gen_status', async (req, res) => {
     try {
         // JWT Verify
         const jwt = require('jsonwebtoken');
-        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        // ✅ ဒါနဲ့ အစားထိုးပါ
+const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
         
         try {
@@ -1647,7 +1659,8 @@ app.post('/api/check_gen_status', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        const uid = decoded.uid || decoded.id || decoded.userId;
+        // ✅ ဒါနဲ့ အစားထိုးပါ
+const uid = decoded.userId || decoded.id || decoded.uid;
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
@@ -1733,7 +1746,8 @@ app.post('/api/regenerate_password', async (req, res) => {
     try {
         // JWT Verify
         const jwt = require('jsonwebtoken');
-        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        // ✅ ဒါနဲ့ အစားထိုးပါ
+const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
         
         try {
@@ -1742,7 +1756,8 @@ app.post('/api/regenerate_password', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        const uid = decoded.uid || decoded.id || decoded.userId;
+        // ✅ ဒါနဲ့ အစားထိုးပါ
+const uid = decoded.userId || decoded.id || decoded.uid;
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
@@ -1882,7 +1897,8 @@ app.post('/api/get_passwords', async (req, res) => {
     try {
         // JWT Verify
         const jwt = require('jsonwebtoken');
-        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        // ✅ ဒါနဲ့ အစားထိုးပါ
+const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
         
         try {
@@ -1895,8 +1911,8 @@ app.post('/api/get_passwords', async (req, res) => {
             });
         }
         
-        const uid = decoded.uid || decoded.id || decoded.userId;
-        
+        // ✅ ဒါနဲ့ အစားထိုးပါ
+const uid = decoded.userId || decoded.id || decoded.uid;
         if (!uid) {
             return res.json({ 
                 success: false, 
@@ -2007,7 +2023,8 @@ app.post('/api/save_type_password', async (req, res) => {
     try {
         // JWT Verify
         const jwt = require('jsonwebtoken');
-        const secretKey = process.env.JWT_SECRET || 'your-secret-key';
+        // ✅ ဒါနဲ့ အစားထိုးပါ
+const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
         
         try {
@@ -2016,7 +2033,8 @@ app.post('/api/save_type_password', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        const uid = decoded.uid || decoded.id || decoded.userId;
+        // ✅ ဒါနဲ့ အစားထိုးပါ
+const uid = decoded.userId || decoded.id || decoded.uid;
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
