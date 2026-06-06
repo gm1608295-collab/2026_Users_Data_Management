@@ -3361,10 +3361,15 @@ function generateMiniPassword(type) {
 }
 
 async function generateAndShowMiniPassword(type) {
+    // ✅ Token ရှိမရှိ အရင်စစ်
+    const token = localStorage.getItem('auth_token');
+    
+    if (!token || token === 'guest' || token === 'null' || token === 'undefined') {
+        n('❌ Please login first! No token found.', 'error');
+        return;
+    }
+    
     try {
-        const token = localStorage.getItem('auth_token');
-        
-        // ✅ Step 1: Check generation status
         const statusRes = await fetch('/api/check_gen_status', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3377,7 +3382,6 @@ async function generateAndShowMiniPassword(type) {
             return;
         }
         
-        // ✅ Step 2: First time - can generate directly
         if (statusData.isFirstTime) {
             const password = generateMiniPassword(type);
             if (password) {
@@ -3390,7 +3394,6 @@ async function generateAndShowMiniPassword(type) {
             return;
         }
         
-        // ✅ Step 3: Cooldown active - show timer + disable button
         if (statusData.cooldownActive) {
             document.getElementById(type + 'CooldownBox').style.display = 'block';
             document.getElementById(type + 'OldPassBox').style.display = 'none';
@@ -3400,12 +3403,10 @@ async function generateAndShowMiniPassword(type) {
             return;
         }
         
-        // ✅ Step 4: Cooldown passed - need old password
         if (statusData.needsOldPassword) {
             document.getElementById(type + 'OldPassBox').style.display = 'block';
             document.getElementById(type + 'CooldownBox').style.display = 'none';
             
-            // Change button to Regenerate
             const btn = document.querySelector(`#${type}Sub .btn-w`);
             if (btn) {
                 btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
@@ -3543,8 +3544,14 @@ async function saveMiniPassword(type) {
     const password = currentPasswords[type];
     if (!password) { n('❌ Password အရင် Generate လုပ်ပါ', 'error'); return; }
     
+    // ✅ Token ရှိမရှိ အရင်စစ်
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest' || token === 'null' || token === 'undefined') {
+        n('❌ Please login first!', 'error');
+        return;
+    }
+    
     try {
-        const token = localStorage.getItem('auth_token');
         const r = await fetch('/api/save_type_password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3558,9 +3565,8 @@ async function saveMiniPassword(type) {
             document.getElementById(type + 'SavePasswordBtn').style.display = 'none';
             currentPasswords[type] = '';
             
-            // ✅ Save လုပ်ပြီးရင် Cooldown စတင်
             document.getElementById(type + 'CooldownBox').style.display = 'block';
-            startCooldownTimer(type, 7 * 24 * 60 * 60 * 1000); // 7 days
+            startCooldownTimer(type, 7 * 24 * 60 * 60 * 1000);
         } else {
             n('❌ ' + (d.message || 'Save failed'), 'error');
         }
