@@ -379,10 +379,10 @@ body.tier3 .led-glow-ring {
             <div class="draw-card bought" id="boughtDrawCard"><div class="draw-icon">💳</div><div class="draw-label">Bought Draws</div><div class="draw-count" id="boughtCount">0</div></div>
             <div class="draw-card weekly-bonus" id="weeklyDrawCard"><div class="draw-icon">🎁</div><div class="draw-label">Weekly Bonus</div><div class="draw-count" id="weeklyCount">0</div></div>
         </div>
-        
-        <!-- Admin Debug Info (MK2008 Only) -->
-<div id="adminDebugInfo" style="display:none;background:#000;color:#0f0;padding:8px;font-size:10px;margin-bottom:8px;border-radius:6px;border:1px solid #f39c12;">
-    🔧 Admin Debug | Check-In: <span id="debugStatus">Checking...</span>
+
+        <!-- Debug Info -->
+<div id="debugInfo" style="background:#000;color:#0f0;padding:8px;font-size:10px;margin-bottom:8px;border-radius:6px;border:1px solid #f39c12;">
+    🔧 Debug | Check-In: <span id="debugStatus">Checking...</span>
 </div>
         
         <div class="checkin-section" id="checkinSection">
@@ -1299,18 +1299,10 @@ var UI = {
         var token = API.getToken();
         if (!token || token === 'guest') {
             document.getElementById('checkinSection').innerHTML = '';
+            document.getElementById('debugStatus').textContent = '❌ No Token';
+            document.getElementById('debugStatus').style.color = '#e74c3c';
             return;
         }
-        
-        // ✅ Admin Debug - Check if user is MK2008
-        var isAdmin = false;
-        try {
-            var userData = JSON.parse(localStorage.getItem('user') || '{}');
-            if (userData.username === 'MK2008' || userData.id === 1 || userData.email === 'admin@solom.com') {
-                isAdmin = true;
-                document.getElementById('adminDebugInfo').style.display = 'block';
-            }
-        } catch(e) {}
         
         var r = await fetch('/api/daily_checkin/status', {
             method: 'POST',
@@ -1319,20 +1311,18 @@ var UI = {
         });
         var d = await r.json();
         
-        // ✅ Admin Debug Info
-        if (isAdmin) {
-            var debugEl = document.getElementById('debugStatus');
-            if (d.success && d.events && d.events.length > 0) {
-                var info = d.events.length + ' events: ';
-                d.events.forEach(function(ev) {
-                    info += ev.event_type + '(Active:' + !ev.is_fully_ended + ') ';
-                });
-                debugEl.textContent = '✅ ' + info;
-                debugEl.style.color = '#2ecc71';
-            } else {
-                debugEl.textContent = '❌ No events (success=' + d.success + ')';
-                debugEl.style.color = '#e74c3c';
-            }
+        // ✅ Debug Info - User အားလုံး မြင်ရ
+        var debugEl = document.getElementById('debugStatus');
+        if (d.success && d.events && d.events.length > 0) {
+            var info = d.events.length + ' events: ';
+            d.events.forEach(function(ev) {
+                info += ev.event_type + '(OK) ';
+            });
+            debugEl.textContent = '✅ ' + info;
+            debugEl.style.color = '#2ecc71';
+        } else {
+            debugEl.textContent = '❌ No events (success=' + d.success + ')';
+            debugEl.style.color = '#e74c3c';
         }
         
         if (d.success && d.events && d.events.length > 0) {
@@ -1342,9 +1332,8 @@ var UI = {
             document.getElementById('checkinComingSoon').style.display = 'block';
         }
     } catch(e) {
-        if (document.getElementById('adminDebugInfo').style.display === 'block') {
-            document.getElementById('debugStatus').textContent = '❌ Error: ' + e.message;
-        }
+        document.getElementById('debugStatus').textContent = '❌ Error: ' + e.message;
+        document.getElementById('debugStatus').style.color = '#e74c3c';
         document.getElementById('checkinComingSoon').style.display = 'block';
     }
 },
