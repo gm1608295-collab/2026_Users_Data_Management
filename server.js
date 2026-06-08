@@ -1731,7 +1731,7 @@ app.post('/api/check_gen_status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== REGENERATE PASSWORD (NO AUTO-SAVE) ====================
+// ==================== REGENERATE PASSWORD (OLD PW ONCE, THEN FREE REGEN) ====================
 app.post('/api/regenerate_password', async (req, res) => {
     const { token, type, oldPassword, options } = req.body;
     
@@ -1744,7 +1744,7 @@ app.post('/api/regenerate_password', async (req, res) => {
     }
     
     try {
-        // JWT Verify
+        // ✅ JWT Verify
         const jwt = require('jsonwebtoken');
         const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
@@ -1755,11 +1755,14 @@ app.post('/api/regenerate_password', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
+        // ✅ userId ကို အရင်စစ်
         const uid = decoded.userId || decoded.id || decoded.uid;
+        
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
         
+        // ✅ Type သီးသန့် Column Names
         const lastGenCol = type === 'gmail' ? 'gmail_last_gen' : type === 'mlbb' ? 'mlbb_last_gen' : 'tiktok_last_gen';
         const cooldownCol = type === 'gmail' ? 'gmail_gen_cooldown' : type === 'mlbb' ? 'mlbb_gen_cooldown' : 'tiktok_gen_cooldown';
         const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
@@ -1778,10 +1781,11 @@ app.post('/api/regenerate_password', async (req, res) => {
         const u = user.rows[0];
         const now = new Date();
         
-        // Check cooldown
+        // ========== COOLDOWN CHECK ==========
         if (u.last_password_gen && u.password_gen_cooldown) {
             const cooldownEnd = new Date(u.password_gen_cooldown);
             
+            // Cooldown active - cannot regenerate
             if (now < cooldownEnd) {
                 const remainingMs = cooldownEnd.getTime() - now.getTime();
                 const days = Math.floor(remainingMs / 86400000);
@@ -1793,36 +1797,33 @@ app.post('/api/regenerate_password', async (req, res) => {
                 });
             }
             
-            // Cooldown passed - verify old password
-            if (!oldPassword) {
-                return res.json({
-                    success: false,
-                    message: 'Password အဟောင်းထည့်ရန် လိုအပ်ပါသည်',
-                    needsOldPassword: true
-                });
+            // ✅ Cooldown passed - verify old password ONLY IF PROVIDED
+            if (oldPassword) {
+                let passwordMatch = false;
+                
+                // Check plain text
+                if (u[plainCol] && oldPassword === u[plainCol]) {
+                    passwordMatch = true;
+                }
+                
+                // Check hash
+                if (!passwordMatch && u[hashCol]) {
+                    const bcrypt = require('bcrypt');
+                    passwordMatch = await bcrypt.compare(oldPassword, u[hashCol]);
+                }
+                
+                if (!passwordMatch) {
+                    return res.json({
+                        success: false,
+                        message: 'Password အဟောင်း မှားယွင်းနေပါသည်'
+                    });
+                }
             }
-            
-            // Verify old password
-            let passwordMatch = false;
-            
-            if (u[plainCol] && oldPassword === u[plainCol]) {
-                passwordMatch = true;
-            }
-            
-            if (!passwordMatch && u[hashCol]) {
-                const bcrypt = require('bcrypt');
-                passwordMatch = await bcrypt.compare(oldPassword, u[hashCol]);
-            }
-            
-            if (!passwordMatch) {
-                return res.json({
-                    success: false,
-                    message: 'Password အဟောင်း မှားယွင်းနေပါသည်'
-                });
-            }
+            // ✅ oldPassword မပါရင် Skip (Frontend က Flag ထားပြီးသား)
         }
+        // ========== END COOLDOWN CHECK ==========
         
-        // Generate new password
+        // ========== GENERATE NEW PASSWORD ==========
         const CHAR_SETS = {
             lower: 'abcdefghijklmnopqrstuvwxyz',
             upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
@@ -1844,9 +1845,9 @@ app.post('/api/regenerate_password', async (req, res) => {
             newPassword += charPool.charAt(Math.floor(Math.random() * charPool.length));
         }
         
-        // ✅ Database မှာ Update မလုပ်သေး! Password အသစ်ကိုပဲ ပြန်ပို့
         console.log(`✅ New password generated for user ${uid}, type: ${type} (not saved yet)`);
         
+        // ✅ Database မှာ Update မလုပ်သေး! Save နှိပ်မှ အတည်ဖြစ်မယ်
         res.json({
             success: true,
             message: 'Password အသစ် ထုတ်ပေးပြီးပါပြီ။ Save နှိပ်မှ အတည်ဖြစ်ပါမည်။',
