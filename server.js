@@ -1731,7 +1731,7 @@ app.post('/api/check_gen_status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== REGENERATE PASSWORD (VERIFY OLD + GEN NEW) ====================
+// ==================== REGENERATE PASSWORD (NO AUTO-SAVE) ====================
 app.post('/api/regenerate_password', async (req, res) => {
     const { token, type, oldPassword, options } = req.body;
     
@@ -1744,7 +1744,7 @@ app.post('/api/regenerate_password', async (req, res) => {
     }
     
     try {
-        // ✅ JWT Verify
+        // JWT Verify
         const jwt = require('jsonwebtoken');
         const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
@@ -1755,14 +1755,11 @@ app.post('/api/regenerate_password', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        // ✅ userId ကို အရင်စစ်
         const uid = decoded.userId || decoded.id || decoded.uid;
-        
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
         
-        // ✅ Type သီးသန့် Column Names
         const lastGenCol = type === 'gmail' ? 'gmail_last_gen' : type === 'mlbb' ? 'mlbb_last_gen' : 'tiktok_last_gen';
         const cooldownCol = type === 'gmail' ? 'gmail_gen_cooldown' : type === 'mlbb' ? 'mlbb_gen_cooldown' : 'tiktok_gen_cooldown';
         const plainCol = type === 'gmail' ? 'gmail_pass' : type === 'mlbb' ? 'mlbb_pass' : 'tiktok_pass';
@@ -1781,7 +1778,7 @@ app.post('/api/regenerate_password', async (req, res) => {
         const u = user.rows[0];
         const now = new Date();
         
-        // Check if cooldown active
+        // Check cooldown
         if (u.last_password_gen && u.password_gen_cooldown) {
             const cooldownEnd = new Date(u.password_gen_cooldown);
             
@@ -1847,36 +1844,14 @@ app.post('/api/regenerate_password', async (req, res) => {
             newPassword += charPool.charAt(Math.floor(Math.random() * charPool.length));
         }
         
-        // Hash new password
-        const bcrypt = require('bcrypt');
-        const saltRounds = 10;
-        const newHash = await bcrypt.hash(newPassword, saltRounds);
-        
-        // Set cooldown: 7 days from now
-        const cooldownDate = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
-        
-        // Update database
-        await p.query(
-            `UPDATE auth_users SET 
-                ${plainCol} = $1, 
-                ${hashCol} = $2, 
-                ${lastGenCol} = NOW(), 
-                ${cooldownCol} = $3,
-                passwords_generated = true,
-                passwords_viewed_at = NOW()
-            WHERE id = $4`,
-            [newPassword, newHash, cooldownDate, uid]
-        );
-        
-        console.log(`✅ Password regenerated for user ${uid}, type: ${type}`);
+        // ✅ Database မှာ Update မလုပ်သေး! Password အသစ်ကိုပဲ ပြန်ပို့
+        console.log(`✅ New password generated for user ${uid}, type: ${type} (not saved yet)`);
         
         res.json({
             success: true,
-            message: 'Password အသစ် ထုတ်ပေးပြီးပါပြီ',
+            message: 'Password အသစ် ထုတ်ပေးပြီးပါပြီ။ Save နှိပ်မှ အတည်ဖြစ်ပါမည်။',
             password: newPassword,
-            cooldownEnd: cooldownDate.toISOString(),
-            nextGeneration: cooldownDate.toISOString(),
-            warning: '⚠️ ဤ Password ကို ယခုတစ်ကြိမ်သာ မြင်ရမည်။ ချက်ချင်းသိမ်းထားပါ။ နောက် ၇ ရက်မှသာ ထပ်ထုတ်နိုင်ပါမည်။'
+            warning: '⚠️ Save မနှိပ်ရင် Password အသစ် အတည်ဖြစ်မည် မဟုတ်ပါ။'
         });
         
     } catch(e) {
@@ -2002,7 +1977,7 @@ app.post('/api/check_password_status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== SAVE TYPE PASSWORD (WITH COOLDOWN) ====================
+// ==================== SAVE TYPE PASSWORD (SAVE → DB UPDATE + COOLDOWN) ====================
 app.post('/api/save_type_password', async (req, res) => {
     const { token, type, password } = req.body;
     
@@ -2046,7 +2021,7 @@ app.post('/api/save_type_password', async (req, res) => {
         const p = await getPool();
         const now = new Date();
         
-        // ========== COOLDOWN CHECK ==========
+        // ========== COOLDOWN CHECK (PER TYPE) ==========
         const user = await p.query(
             `SELECT ${lastGenCol} as last_password_gen, ${cooldownCol} as password_gen_cooldown FROM auth_users WHERE id = $1`,
             [uid]
@@ -2069,25 +2044,18 @@ app.post('/api/save_type_password', async (req, res) => {
                 
                 return res.json({
                     success: false,
-                    message: `⏳ ${days}ရက် ${hours}နာရီ ${min}မိနစ် စောင့်ရပါသေးသည်။`
-                });
-            }
-            
-            if (now >= cooldownEnd) {
-                return res.json({
-                    success: false,
-                    message: 'Password အဟောင်းထည့်၍ အသစ်ထုတ်ရန် လိုအပ်ပါသည်။',
-                    needsOldPassword: true
+                    message: `⏳ ${days}ရက် ${hours}နာရီ ${min}မိနစ် စောင့်ရပါသေးသည်။ Cooldown ပြည့်မှသာ အသစ်ထုတ်နိုင်ပါမည်။`
                 });
             }
         }
+        // ========== END COOLDOWN CHECK ==========
         
         // Hash password
         const bcrypt = require('bcrypt');
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
-        // Set cooldown: 7 days
+        // ========== SET COOLDOWN (7 DAYS - PER TYPE) ==========
         const cooldownDate = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
         
         await p.query(
@@ -2102,7 +2070,7 @@ app.post('/api/save_type_password', async (req, res) => {
             [password, hashedPassword, cooldownDate, uid]
         );
         
-        console.log(`✅ ${type} password saved for user:`, uid);
+        console.log(`✅ ${type} password saved for user:`, uid, '| Cooldown until:', cooldownDate.toISOString());
         
         res.json({ 
             success: true, 
@@ -2117,7 +2085,6 @@ app.post('/api/save_type_password', async (req, res) => {
     }
 });
 // ==================== HISTORY SECURITY PASSWORD API (JWT) ====================
-
 // Get security password status
 app.post('/api/get_security_pass_status', async (req, res) => {
     const { token } = req.body;
