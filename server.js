@@ -1634,7 +1634,7 @@ app.post('/api/verify_data_password', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== CHECK PASSWORD GENERATION STATUS (PER TYPE) ====================
+// ==================== CHECK PASSWORD GENERATION STATUS ====================
 app.post('/api/check_gen_status', async (req, res) => {
     const { token, type } = req.body;
     
@@ -1647,20 +1647,20 @@ app.post('/api/check_gen_status', async (req, res) => {
     }
     
     try {
-        // JWT Verify
+        // ✅ JWT Verify
         const jwt = require('jsonwebtoken');
-        // ✅ ဒါနဲ့ အစားထိုးပါ
-const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
         
         try {
-            decoded = jwt.verify(token, secretKey);
+            decoded = jwt.verify(token, JWT_SECRET);
         } catch(e) {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        // ✅ ဒါနဲ့ အစားထိုးပါ
-const uid = decoded.userId || decoded.id || decoded.uid;
+        // ✅ userId ကို အရင်စစ် (Login Token က userId နဲ့ သိမ်းထား)
+        const uid = decoded.userId || decoded.id || decoded.uid;
+        
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
@@ -1682,7 +1682,7 @@ const uid = decoded.userId || decoded.id || decoded.uid;
         const u = user.rows[0];
         const now = new Date();
         
-        // First time - no password generated yet for this type
+        // First time - no password generated yet
         if (!u.last_password_gen) {
             return res.json({
                 success: true,
@@ -1716,7 +1716,7 @@ const uid = decoded.userId || decoded.id || decoded.uid;
             });
         }
         
-        // Cooldown passed - can regenerate with old password
+        // Cooldown passed - can regenerate
         return res.json({
             success: true,
             canGenerate: true,
@@ -1731,7 +1731,7 @@ const uid = decoded.userId || decoded.id || decoded.uid;
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== REGENERATE PASSWORD (PER TYPE - VERIFY OLD + GEN NEW) ====================
+// ==================== REGENERATE PASSWORD (VERIFY OLD + GEN NEW) ====================
 app.post('/api/regenerate_password', async (req, res) => {
     const { token, type, oldPassword, options } = req.body;
     
@@ -1744,20 +1744,20 @@ app.post('/api/regenerate_password', async (req, res) => {
     }
     
     try {
-        // JWT Verify
+        // ✅ JWT Verify
         const jwt = require('jsonwebtoken');
-        // ✅ ဒါနဲ့ အစားထိုးပါ
-const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
         
         try {
-            decoded = jwt.verify(token, secretKey);
+            decoded = jwt.verify(token, JWT_SECRET);
         } catch(e) {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        // ✅ ဒါနဲ့ အစားထိုးပါ
-const uid = decoded.userId || decoded.id || decoded.uid;
+        // ✅ userId ကို အရင်စစ်
+        const uid = decoded.userId || decoded.id || decoded.uid;
+        
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
@@ -1781,7 +1781,7 @@ const uid = decoded.userId || decoded.id || decoded.uid;
         const u = user.rows[0];
         const now = new Date();
         
-        // Check if this is first time or cooldown passed
+        // Check if cooldown active
         if (u.last_password_gen && u.password_gen_cooldown) {
             const cooldownEnd = new Date(u.password_gen_cooldown);
             
@@ -1808,12 +1808,10 @@ const uid = decoded.userId || decoded.id || decoded.uid;
             // Verify old password
             let passwordMatch = false;
             
-            // Check plain text
             if (u[plainCol] && oldPassword === u[plainCol]) {
                 passwordMatch = true;
             }
             
-            // Check hash
             if (!passwordMatch && u[hashCol]) {
                 const bcrypt = require('bcrypt');
                 passwordMatch = await bcrypt.compare(oldPassword, u[hashCol]);
@@ -1857,7 +1855,7 @@ const uid = decoded.userId || decoded.id || decoded.uid;
         // Set cooldown: 7 days from now
         const cooldownDate = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
         
-        // Update database - ✅ Type သီးသန့် Columns
+        // Update database
         await p.query(
             `UPDATE auth_users SET 
                 ${plainCol} = $1, 
@@ -2004,7 +2002,7 @@ app.post('/api/check_password_status', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== SAVE TYPE PASSWORD API (PER TYPE COOLDOWN) ====================
+// ==================== SAVE TYPE PASSWORD (WITH COOLDOWN) ====================
 app.post('/api/save_type_password', async (req, res) => {
     const { token, type, password } = req.body;
     
@@ -2021,20 +2019,20 @@ app.post('/api/save_type_password', async (req, res) => {
     }
     
     try {
-        // JWT Verify
+        // ✅ JWT Verify
         const jwt = require('jsonwebtoken');
-        // ✅ ဒါနဲ့ အစားထိုးပါ
-const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         let decoded;
         
         try {
-            decoded = jwt.verify(token, secretKey);
+            decoded = jwt.verify(token, JWT_SECRET);
         } catch(e) {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        // ✅ ဒါနဲ့ အစားထိုးပါ
-const uid = decoded.userId || decoded.id || decoded.uid;
+        // ✅ userId ကို အရင်စစ်
+        const uid = decoded.userId || decoded.id || decoded.uid;
+        
         if (!uid) {
             return res.json({ success: false, message: 'Invalid token payload' });
         }
@@ -2048,7 +2046,7 @@ const uid = decoded.userId || decoded.id || decoded.uid;
         const p = await getPool();
         const now = new Date();
         
-        // ========== ✅ COOLDOWN CHECK (PER TYPE) ==========
+        // ========== COOLDOWN CHECK ==========
         const user = await p.query(
             `SELECT ${lastGenCol} as last_password_gen, ${cooldownCol} as password_gen_cooldown FROM auth_users WHERE id = $1`,
             [uid]
@@ -2071,26 +2069,25 @@ const uid = decoded.userId || decoded.id || decoded.uid;
                 
                 return res.json({
                     success: false,
-                    message: `⏳ ${days}ရက် ${hours}နာရီ ${min}မိနစ် စောင့်ရပါသေးသည်။ Cooldown ပြည့်မှသာ အသစ်ထုတ်နိုင်ပါမည်।`
+                    message: `⏳ ${days}ရက် ${hours}နာရီ ${min}မိနစ် စောင့်ရပါသေးသည်။`
                 });
             }
             
             if (now >= cooldownEnd) {
                 return res.json({
                     success: false,
-                    message: 'Password အဟောင်းထည့်၍ အသစ်ထုတ်ရန် လိုအပ်ပါသည်။ Regenerate ခလုတ်ကို အသုံးပြုပါ။',
+                    message: 'Password အဟောင်းထည့်၍ အသစ်ထုတ်ရန် လိုအပ်ပါသည်။',
                     needsOldPassword: true
                 });
             }
         }
-        // ========== END COOLDOWN CHECK ==========
         
         // Hash password
         const bcrypt = require('bcrypt');
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
         
-        // ========== ✅ SET COOLDOWN (7 DAYS - PER TYPE) ==========
+        // Set cooldown: 7 days
         const cooldownDate = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
         
         await p.query(
@@ -2105,7 +2102,7 @@ const uid = decoded.userId || decoded.id || decoded.uid;
             [password, hashedPassword, cooldownDate, uid]
         );
         
-        console.log(`✅ ${type} password saved for user:`, uid, '| Cooldown until:', cooldownDate.toISOString());
+        console.log(`✅ ${type} password saved for user:`, uid);
         
         res.json({ 
             success: true, 
