@@ -3360,12 +3360,18 @@ function generateMiniPassword(type) {
     return password;
 }
 
+// ✅ Old Password Verified Flag (5 min valid)
+const oldPasswordVerified = {
+    gmail: false,
+    mlbb: false,
+    tiktok: false
+};
+
 async function generateAndShowMiniPassword(type) {
-    // ✅ Token ရှိမရှိ အရင်စစ်
     const token = localStorage.getItem('auth_token');
     
     if (!token || token === 'guest' || token === 'null' || token === 'undefined') {
-        n('❌ Please login first! No token found.', 'error');
+        n('❌ Please login first!', 'error');
         return;
     }
     
@@ -3382,18 +3388,13 @@ async function generateAndShowMiniPassword(type) {
             return;
         }
         
+        // ✅ First time - can generate directly
         if (statusData.isFirstTime) {
-            const password = generateMiniPassword(type);
-            if (password) {
-                document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
-                document.getElementById(type + 'SavePasswordBtn').style.display = 'block';
-                document.getElementById(type + 'OldPassBox').style.display = 'none';
-                document.getElementById(type + 'CooldownBox').style.display = 'none';
-                enableGenButton(type);
-            }
+            generateAndShowPassword(type);
             return;
         }
         
+        // ✅ Cooldown active - show timer
         if (statusData.cooldownActive) {
             document.getElementById(type + 'CooldownBox').style.display = 'block';
             document.getElementById(type + 'OldPassBox').style.display = 'none';
@@ -3403,7 +3404,15 @@ async function generateAndShowMiniPassword(type) {
             return;
         }
         
+        // ✅ Cooldown passed - check if old password already verified
         if (statusData.needsOldPassword) {
+            if (oldPasswordVerified[type]) {
+                // ✅ Already verified - can generate directly
+                generateAndShowPassword(type);
+                return;
+            }
+            
+            // Need old password
             document.getElementById(type + 'OldPassBox').style.display = 'block';
             document.getElementById(type + 'CooldownBox').style.display = 'none';
             
@@ -3420,6 +3429,18 @@ async function generateAndShowMiniPassword(type) {
         
     } catch(e) {
         n('❌ Connection error', 'error');
+    }
+}
+
+// ✅ Helper function
+function generateAndShowPassword(type) {
+    const password = generateMiniPassword(type);
+    if (password) {
+        document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
+        document.getElementById(type + 'SavePasswordBtn').style.display = 'block';
+        document.getElementById(type + 'OldPassBox').style.display = 'none';
+        document.getElementById(type + 'CooldownBox').style.display = 'none';
+        enableGenButton(type);
     }
     }
     // ==================== COOLDOWN TIMER ====================
@@ -3486,7 +3507,8 @@ function startCooldownTimer(type, remainingMs) {
     const oldPassInput = document.getElementById(type + 'OldPassInput');
     const oldPassword = oldPassInput ? oldPassInput.value.trim() : '';
     
-    if (!oldPassword) {
+    // ✅ Old Password မထည့်ရသေးရင် တောင်းမယ်
+    if (!oldPassword && !oldPasswordVerified[type]) {
         n('❌ Password အဟောင်း ထည့်ပါ', 'error');
         return;
     }
@@ -3502,14 +3524,29 @@ function startCooldownTimer(type, remainingMs) {
             length: parseInt(document.getElementById(type + 'PassLength').value) || 10
         };
         
+        // ✅ Old Password ရှိရင် API ကို ပို့၊ မရှိရင် (already verified) မပို့
+        const body = oldPassword ? 
+            { token, type, oldPassword, options } : 
+            { token, type, options };
+        
         const r = await fetch('/api/regenerate_password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, type, oldPassword, options })
+            body: JSON.stringify(body)
         });
         const d = await r.json();
         
         if (d.success) {
+            // ✅ Old Password မှန်ရင် ၅ မိနစ် Flag ထား
+            if (oldPassword) {
+                oldPasswordVerified[type] = true;
+                
+                // ၅ မိနစ်ကြာရင် Flag ပြန်ဖျက်
+                setTimeout(() => {
+                    oldPasswordVerified[type] = false;
+                }, 5 * 60 * 1000);
+            }
+            
             // Show new password
             currentPasswords[type] = d.password;
             document.getElementById(type + 'GeneratedPassword').textContent = d.password;
@@ -3520,7 +3557,7 @@ function startCooldownTimer(type, remainingMs) {
             
             if (oldPassInput) oldPassInput.value = '';
             
-            // Enable button back to Generate
+            // Button ကို Generate Mode ပြန်ပြောင်း
             enableGenButton(type);
             
             n('✅ Password အသစ် ထုတ်ပေးပြီးပါပြီ', 'success');
