@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lucky Spin - SOLO M Game Shop</title>
+    <title>Lucky Spin - SOLO M Game Store</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
 :root {
@@ -216,6 +216,140 @@ body.tier3 .buy-table th { color:var(--gold-light); } body.tier3 .btn-buy { back
 
 @media (max-width:380px) { :root { --wheel-size:250px; --canvas-size:500px; } .draws-container { grid-template-columns:1fr 1fr; } }
 * { border-radius: 0px !important; } 
+/* ========== SUPER PRIZE TIMER PULSE ========== */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* ========== ENHANCED FIREWORKS ========== */
+.firework-particle {
+    position: absolute;
+    border-radius: 50%;
+    animation: fireworkFly 1.5s ease-out forwards;
+    box-shadow: 0 0 6px currentColor;
+}
+
+@keyframes fireworkFly {
+    0% { transform: translate(0, 0) scale(1); opacity: 1; }
+    50% { opacity: 0.8; }
+    100% { transform: translate(var(--fx), var(--fy)) scale(0); opacity: 0; }
+}
+
+/* ========== SUPER LINK GLOW ========== */
+@keyframes superGlow {
+    0%, 100% { box-shadow: 0 0 15px rgba(255,215,0,0.5); }
+    50% { box-shadow: 0 0 35px rgba(255,215,0,0.9), 0 0 60px rgba(255,140,0,0.5); }
+}
+
+/* ========== SLIDE LIGHT ========== */
+.slide-light {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 80px;
+    background: linear-gradient(to top, rgba(255,215,0,0.7), rgba(255,140,0,0.4), transparent);
+    z-index: 5001;
+    pointer-events: none;
+    animation: slideLightUp 2.5s ease-out infinite;
+}
+
+@keyframes slideLightUp {
+    0% { transform: translateY(100%); opacity: 0; }
+    15% { transform: translateY(0); opacity: 1; }
+    85% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-200%); opacity: 0; }
+}
+/* ========== PREMIUM LED RING ========== */
+.wheel-container {
+    position: relative;
+}
+
+/* LED Ring Container */
+.led-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(var(--wheel-size) + 24px);
+    height: calc(var(--wheel-size) + 24px);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 5;
+    display: none;
+}
+
+.premium-active .led-ring {
+    display: block;
+}
+
+/* Individual LED Dots */
+.led-dot {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    animation: ledChase 1.5s linear infinite;
+    box-shadow: 0 0 6px 2px currentColor;
+}
+
+/* LED Glow Ring */
+.led-glow-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(var(--wheel-size) + 30px);
+    height: calc(var(--wheel-size) + 30px);
+    border-radius: 50%;
+    border: 3px solid transparent;
+    pointer-events: none;
+    z-index: 4;
+    display: none;
+}
+
+.premium-active .led-glow-ring {
+    display: block;
+}
+
+/* Tier Colors */
+body.tier1 .led-glow-ring {
+    border-color: rgba(205, 127, 50, 0.5);
+    box-shadow: 0 0 20px rgba(205, 127, 50, 0.3), inset 0 0 20px rgba(205, 127, 50, 0.1);
+    animation: glowPulse 2s infinite;
+}
+
+body.tier2 .led-glow-ring {
+    border-color: rgba(192, 192, 192, 0.5);
+    box-shadow: 0 0 20px rgba(192, 192, 192, 0.3), inset 0 0 20px rgba(192, 192, 192, 0.1);
+    animation: glowPulse 2s infinite;
+}
+
+body.tier3 .led-glow-ring {
+    border-color: rgba(255, 215, 0, 0.6);
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.4), inset 0 0 25px rgba(255, 215, 0, 0.15);
+    animation: glowPulse 2s infinite;
+}
+
+@keyframes glowPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+@keyframes ledChase {
+    0% { opacity: 0.3; }
+    5% { opacity: 1; }
+    15% { opacity: 0.3; }
+    100% { opacity: 0.3; }
+}
+
+/* Spinning faster when wheel spins */
+.led-ring.spinning .led-dot {
+    animation-duration: 0.3s;
+}
 </style>
 </head>
 <body id="mainBody">
@@ -255,7 +389,16 @@ body.tier3 .buy-table th { color:var(--gold-light); } body.tier3 .btn-buy { back
         
         <div class="daily-reset-timer" id="dailyResetTimer">⏰ Daily Draws Reset in: <span id="dailyTimerCountdown">--:--:--</span></div>
         
-        <div class="wheel-container"><div class="wheel-pointer"><i class="fas fa-caret-down"></i></div><canvas id="wheelCanvas" width="600" height="600"></canvas></div>
+        <div class="wheel-container">
+    <!-- ✅ LED Ring -->
+    <div class="led-ring" id="ledRing"></div>
+    
+    <!-- ✅ LED Glow Ring -->
+    <div class="led-glow-ring"></div>
+    
+    <div class="wheel-pointer"><i class="fas fa-caret-down"></i></div>
+    <canvas id="wheelCanvas" width="600" height="600"></canvas>
+        </div>
         <div class="spin-status" id="spinStatus">Ready to spin!</div>
         <div class="reset-countdown" id="resetCountdown"></div>
         
@@ -324,159 +467,921 @@ var State = {
 };
 
 var API = {
-    getToken:function(){return localStorage.getItem('auth_token');},
-    isGuest:function(){var t=this.getToken();return!t||t==='guest';},
-    headers:function(){return{'Content-Type':'application/json'};},
-    fetchRates:async function(){try{var r=await fetch('/api/spin_rates');var d=await r.json();if(d.success){State.serverRates=d.rates;}}catch(e){}},
-    syncAll:async function(){if(this.isGuest())return null;try{var b=await fetch('/api/get_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(function(r){return r.json();});var u=await fetch('/api/get_usd_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(function(r){return r.json();});var p=await fetch('/api/get_premium_status',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken()})}).then(function(r){return r.json();});return{mmkBalance:parseFloat(b.balance||0),usdBalance:parseFloat(u.usd_balance||0),isPremium:!!(p.success&&p.premium_active),premiumTier:p.premium_tier||1,premiumExpiry:p.expires_at||null,dailyDrawsRemaining:p.daily_draws_remaining||0,maxDailyDraws:p.max_daily_draws||1};}catch(e){return null;}},
-    executeSpin:async function(s){if(this.isGuest())return this._guestSpin(s);try{return await(await fetch('/api/spin/execute',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),spin_source:s})})).json();}catch(e){return null;}},
-    _guestSpin:function(s){var segs=State.getSegmentsForSource(s);var tw=segs.reduce(function(a,x){return a+x.weight;},0);var rand=Math.random()*tw;var wi=0;for(var i=0;i<segs.length;i++){rand-=segs[i].weight;if(rand<=0){wi=i;break;}}if(segs[wi].type==='usd')State.usdBalance+=segs[wi].reward;else if(segs[wi].type==='mmk')State.mmkBalance+=segs[wi].reward;else if(segs[wi].type==='free'&&s!=='daily')State.boughtDraws++;return{success:true,winIndex:wi,reward:segs[wi],mmkBalance:State.mmkBalance,usdBalance:State.usdBalance};},
-    buySpins:async function(spins,cost){if(this.isGuest())return{success:false,message:'Login required'};try{var d=await(await fetch('/api/deduct_balance',{method:'POST',headers:this.headers(),body:JSON.stringify({token:this.getToken(),amount:cost,reason:'Buy '+spins+' spins'})})).json();if(d.success){State.boughtDraws+=spins;State.mmkBalance=d.new_balance;State.save();}return d;}catch(e){return{success:false};}},
-    checkSuperPrize:async function(){if(State.superPrizeUsed)return false;var t=this.getToken();if(!t||t==='guest')return true;try{var r=await(await fetch('/api/spin/check_super',{method:'POST',headers:this.headers(),body:JSON.stringify({token:t})})).json();return!r.used;}catch(e){return true;}},
-    markSuperPrize:async function(){State.superPrizeUsed=true;State.save();var t=this.getToken();if(!t||t==='guest')return;try{await fetch('/api/spin/mark_super',{method:'POST',headers:this.headers(),body:JSON.stringify({token:t})});}catch(e){}}
+    getToken: function() { return localStorage.getItem('auth_token'); },
+    isGuest: function() { var t = this.getToken(); return !t || t === 'guest'; },
+    headers: function() { return { 'Content-Type': 'application/json' }; },
+    
+    fetchRates: async function() {
+        try {
+            var r = await fetch('/api/spin_rates');
+            var d = await r.json();
+            if (d.success) { State.serverRates = d.rates; }
+        } catch(e) {}
+    },
+    
+    syncAll: async function() {
+        if (this.isGuest()) return null;
+        
+        try {
+            // ✅ Balance
+            var b = await fetch('/api/get_balance', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token: this.getToken() })
+            }).then(function(r) { return r.json(); });
+            
+            // ✅ USD Balance
+            var u = await fetch('/api/get_usd_balance', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token: this.getToken() })
+            }).then(function(r) { return r.json(); });
+            
+            // ✅ Premium Status
+            var p = await fetch('/api/get_premium_status', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token: this.getToken() })
+            }).then(function(r) { return r.json(); });
+            
+            // ✅ Paid Spins (Bought Draws)
+            var ps = await fetch('/api/get_paid_spins', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token: this.getToken() })
+            }).then(function(r) { return r.json(); });
+            
+            console.log('🔍 Server Data:', {
+                mmk: b.balance,
+                usd: u.usd_balance,
+                premium: p.premium_active,
+                tier: p.premium_tier,
+                dailyRemaining: p.daily_draws_remaining,
+                maxDaily: p.max_daily_draws,
+                paidSpins: ps.paid_spins
+            });
+            
+            return {
+                mmkBalance: parseFloat(b.balance || 0),
+                usdBalance: parseFloat(u.usd_balance || 0),
+                isPremium: !!(p.success && p.premium_active),
+                premiumTier: p.premium_tier || 1,
+                premiumExpiry: p.expires_at || null,
+                dailyDrawsRemaining: p.daily_draws_remaining || 0,
+                maxDailyDraws: p.max_daily_draws || 1,
+                boughtDraws: parseInt(ps.paid_spins || 0),
+                weeklyBonusDraws: 0
+            };
+        } catch(e) {
+            console.error('❌ syncAll error:', e);
+            return null;
+        }
+    },
+    
+    executeSpin: async function(s) {
+        if (this.isGuest()) return this._guestSpin(s);
+        try {
+            return await (await fetch('/api/spin/execute', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token: this.getToken(), spin_source: s })
+            })).json();
+        } catch(e) { return null; }
+    },
+    
+    _guestSpin: function(s) {
+        var segs = State.getSegmentsForSource(s);
+        var tw = segs.reduce(function(a, x) { return a + x.weight; }, 0);
+        var rand = Math.random() * tw;
+        var wi = 0;
+        for (var i = 0; i < segs.length; i++) {
+            rand -= segs[i].weight;
+            if (rand <= 0) { wi = i; break; }
+        }
+        if (segs[wi].type === 'usd') State.usdBalance += segs[wi].reward;
+        else if (segs[wi].type === 'mmk') State.mmkBalance += segs[wi].reward;
+        else if (segs[wi].type === 'free' && s !== 'daily') State.boughtDraws++;
+        return { success: true, winIndex: wi, reward: segs[wi], mmkBalance: State.mmkBalance, usdBalance: State.usdBalance };
+    },
+    
+    buySpins: async function(spins, cost) {
+        if (this.isGuest()) return { success: false, message: 'Login required' };
+        try {
+            var d = await (await fetch('/api/deduct_balance', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token: this.getToken(), amount: cost, reason: 'Buy ' + spins + ' spins' })
+            })).json();
+            if (d.success) {
+                State.boughtDraws += spins;
+                State.mmkBalance = d.new_balance;
+                State.save();
+            }
+            return d;
+        } catch(e) { return { success: false }; }
+    },
+    
+    checkSuperPrize: async function() {
+        if (State.superPrizeUsed) return false;
+        var t = this.getToken();
+        if (!t || t === 'guest') return true;
+        try {
+            var r = await (await fetch('/api/spin/check_super', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token: t })
+            })).json();
+            return !r.used;
+        } catch(e) { return true; }
+    },
+    
+    markSuperPrize: async function() {
+        State.superPrizeUsed = true;
+        State.save();
+        var t = this.getToken();
+        if (!t || t === 'guest') return;
+        try {
+            await fetch('/api/spin/mark_super', {
+                method: 'POST',
+                headers: this.headers(),
+                body: JSON.stringify({ token: t })
+            });
+        } catch(e) {}
+    }
 };
 
 var WheelEngine = {
-    canvas:null, ctx:null, animFrame:null,
-    init:function(){this.canvas=document.getElementById('wheelCanvas');this.ctx=this.canvas.getContext('2d',{alpha:false});},
-    getSegments:function(){return State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS;},
-    getArcSize:function(){return(2*Math.PI)/this.getSegments().length;},
-    draw:function(angle){
-        if(!this.ctx)this.init();
-        var segs=this.getSegments();var cx=300;var cy=300;var r=270;var arc=this.getArcSize();
-        this.ctx.clearRect(0,0,600,600);
-        for(var i=0;i<segs.length;i++){var s=segs[i];var sa=i*arc+angle;var ea=sa+arc;this.ctx.beginPath();this.ctx.moveTo(cx,cy);this.ctx.arc(cx,cy,r,sa,ea);this.ctx.closePath();this.ctx.fillStyle=s.color;this.ctx.fill();this.ctx.strokeStyle='rgba(255,255,255,0.2)';this.ctx.lineWidth=1;this.ctx.stroke();this.ctx.save();this.ctx.translate(cx,cy);this.ctx.rotate(sa+arc/2);this.ctx.fillStyle='#fff';this.ctx.font='bold 11px Segoe UI';this.ctx.shadowColor='rgba(0,0,0,0.5)';this.ctx.shadowBlur=3;this.ctx.fillText(s.label,r*0.58,4);this.ctx.restore();}
-        this.ctx.beginPath();this.ctx.arc(cx,cy,r+3,0,2*Math.PI);this.ctx.lineWidth=3;
-        if(State.isPremium){if(State.premiumTier===3)this.ctx.strokeStyle='#FFD700';else if(State.premiumTier===2)this.ctx.strokeStyle='#C0C0C0';else this.ctx.strokeStyle='#CD7F32';}else{this.ctx.strokeStyle='#f39c12';}this.ctx.stroke();
-        this.ctx.beginPath();this.ctx.arc(cx,cy,28,0,2*Math.PI);this.ctx.fillStyle='#1a0a2e';this.ctx.fill();this.ctx.strokeStyle='#ffd700';this.ctx.lineWidth=2;this.ctx.stroke();
-        this.ctx.fillStyle='#fff';this.ctx.font='bold 10px Segoe UI';this.ctx.textAlign='center';this.ctx.textBaseline='middle';this.ctx.fillText('SPIN',cx,cy);
+    canvas: null,
+    ctx: null,
+    animFrame: null,
+    ledDots: [],
+    _ledAngle: 0,
+    _ledInterval: null,
+
+    // ==================== INIT ====================
+    init: function() {
+        this.canvas = document.getElementById('wheelCanvas');
+        this.ctx = this.canvas.getContext('2d', { alpha: false });
     },
-    spin:function(wi){
-        var segs=this.getSegments();var arc=(2*Math.PI)/segs.length;var ta=-(wi*arc+arc/2)-Math.PI/2;var n=ta;while(n<0)n+=2*Math.PI;
-        var tr=n+(6+Math.floor(Math.random()*3))*2*Math.PI;var sa=State.wheelAngle;var d=4000+Math.random()*500;var st=Date.now();var self=this;
-        if(this.animFrame){cancelAnimationFrame(this.animFrame);}
-        return new Promise(function(r){var a=function(){var e=Math.min((Date.now()-st)/d,1);var c=1-Math.pow(1-e,3);var ca=sa+tr*c;self.draw(ca%(2*Math.PI));State.wheelAngle=ca;if(e<1){self.animFrame=requestAnimationFrame(a);}else{r();}};self.animFrame=requestAnimationFrame(a);});
+
+    // ==================== INIT LED RING ====================
+    initLEDRing: function() {
+        var ring = document.getElementById('ledRing');
+        if (!ring) return;
+        
+        ring.innerHTML = '';
+        this.ledDots = [];
+        
+        var wheelSize = 300;
+        var ringSize = wheelSize + 24;
+        var radius = ringSize / 2;
+        var totalDots = 36;
+        
+        // ✅ Tier အလိုက် LED အရောင်
+        var colors;
+        switch(State.premiumTier) {
+            case 1: // Bronze
+                colors = ['#CD7F32', '#E8A87C', '#8B4513', '#FFD700'];
+                break;
+            case 2: // Silver
+                colors = ['#C0C0C0', '#E8E8E8', '#A0A0A0', '#FFFFFF'];
+                break;
+            case 3: // Gold
+                colors = ['#FFD700', '#FFF8DC', '#FFA500', '#FF6347'];
+                break;
+            default:
+                colors = ['#FFD700', '#FFA500', '#FF6347', '#FFF8DC'];
+        }
+        
+        for (var i = 0; i < totalDots; i++) {
+            var dot = document.createElement('div');
+            dot.className = 'led-dot';
+            
+            var angle = (i / totalDots) * Math.PI * 2 - Math.PI / 2;
+            var x = radius + Math.cos(angle) * (radius - 4);
+            var y = radius + Math.sin(angle) * (radius - 4);
+            
+            dot.style.left = x + 'px';
+            dot.style.top = y + 'px';
+            dot.style.backgroundColor = colors[i % colors.length];
+            dot.style.color = colors[i % colors.length];
+            dot.style.animationDelay = (i / totalDots * 1.5) + 's';
+            
+            ring.appendChild(dot);
+            this.ledDots.push(dot);
+        }
+        
+        this._startLEDAnimation();
+    },
+
+    // ==================== LED ANIMATION LOOP ====================
+    _startLEDAnimation: function() {
+        var self = this;
+        
+        if (this._ledInterval) {
+            clearInterval(this._ledInterval);
+        }
+        
+        this._ledInterval = setInterval(function() {
+            self._ledAngle += 0.05;
+            self._updateLEDPositions();
+        }, 50);
+    },
+
+    // ==================== UPDATE LED POSITIONS (ROTATE) ====================
+    _updateLEDPositions: function() {
+        var wheelSize = 300;
+        var ringSize = wheelSize + 24;
+        var radius = ringSize / 2;
+        var totalDots = this.ledDots.length;
+        
+        for (var i = 0; i < totalDots; i++) {
+            var dot = this.ledDots[i];
+            if (!dot) continue;
+            
+            var angle = (i / totalDots) * Math.PI * 2 - Math.PI / 2 + this._ledAngle;
+            var x = radius + Math.cos(angle) * (radius - 4);
+            var y = radius + Math.sin(angle) * (radius - 4);
+            
+            dot.style.left = x + 'px';
+            dot.style.top = y + 'px';
+        }
+    },
+
+    // ==================== SPEED UP LED WHEN SPINNING ====================
+    _speedUpLED: function() {
+        var ring = document.getElementById('ledRing');
+        if (ring) ring.classList.add('spinning');
+    },
+
+    // ==================== SLOW DOWN LED AFTER SPIN ====================
+    _slowDownLED: function() {
+        var ring = document.getElementById('ledRing');
+        if (ring) ring.classList.remove('spinning');
+    },
+
+    // ==================== GET SEGMENTS ====================
+    getSegments: function() {
+        return State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS;
+    },
+
+    // ==================== DRAW WHEEL ====================
+    draw: function(angle) {
+        if (!this.ctx) this.init();
+        
+        var segs = this.getSegments();
+        var cx = 300, cy = 300, r = 270;
+        var arc = (2 * Math.PI) / segs.length;
+        
+        // Clear canvas
+        this.ctx.clearRect(0, 0, 600, 600);
+        
+        // Draw segments
+        for (var i = 0; i < segs.length; i++) {
+            var s = segs[i];
+            var sa = i * arc + angle;
+            var ea = sa + arc;
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(cx, cy);
+            this.ctx.arc(cx, cy, r, sa, ea);
+            this.ctx.closePath();
+            this.ctx.fillStyle = s.color;
+            this.ctx.fill();
+            this.ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            this.ctx.lineWidth = 1;
+            this.ctx.stroke();
+            
+            // Draw text
+            this.ctx.save();
+            this.ctx.translate(cx, cy);
+            this.ctx.rotate(sa + arc / 2);
+            this.ctx.fillStyle = '#fff';
+            this.ctx.font = 'bold 11px Segoe UI';
+            this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            this.ctx.shadowBlur = 3;
+            this.ctx.fillText(s.label, r * 0.58, 4);
+            this.ctx.restore();
+        }
+        
+        // Outer ring
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, r + 3, 0, 2 * Math.PI);
+        this.ctx.lineWidth = 3;
+        
+        if (State.isPremium) {
+            if (State.premiumTier === 3) this.ctx.strokeStyle = '#FFD700';
+            else if (State.premiumTier === 2) this.ctx.strokeStyle = '#C0C0C0';
+            else this.ctx.strokeStyle = '#CD7F32';
+        } else {
+            this.ctx.strokeStyle = '#f39c12';
+        }
+        this.ctx.stroke();
+        
+        // Center circle
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, 28, 0, 2 * Math.PI);
+        this.ctx.fillStyle = '#1a0a2e';
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#ffd700';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+        
+        // Center text
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 10px Segoe UI';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText('SPIN', cx, cy);
+    },
+
+    // ==================== SPIN ====================
+    spin: function(wi) {
+        var segs = this.getSegments();
+        var arc = (2 * Math.PI) / segs.length;
+        
+        // ✅ Pointer က အပေါ်မှာ (12 နာရီ = -π/2)
+        var targetAngle = -(wi * arc + arc / 2) - Math.PI / 2;
+        
+        // Normalize to positive
+        var n = targetAngle;
+        while (n < 0) n += 2 * Math.PI;
+        
+        // ✅ Extra Spins (6-8 ပတ်)
+        var totalRotation = n + (6 + Math.floor(Math.random() * 3)) * 2 * Math.PI;
+        var startAngle = State.wheelAngle;
+        var duration = 4000 + Math.random() * 500;
+        var startTime = Date.now();
+        var self = this;
+        
+        if (this.animFrame) {
+            cancelAnimationFrame(this.animFrame);
+        }
+        
+        // ✅ Spin စတင်ရင် LED မြန်
+        this._speedUpLED();
+        
+        return new Promise(function(r) {
+            var a = function() {
+                var elapsed = Math.min((Date.now() - startTime) / duration, 1);
+                // ✅ Ease-out cubic
+                var ease = 1 - Math.pow(1 - elapsed, 3);
+                var currentAngle = startAngle + totalRotation * ease;
+                
+                self.draw(currentAngle % (2 * Math.PI));
+                State.wheelAngle = currentAngle;
+                
+                if (elapsed < 1) {
+                    self.animFrame = requestAnimationFrame(a);
+                } else {
+                    // ✅ Spin ပြီးရင် LED ပြန်နှေး
+                    self._slowDownLED();
+                    r();
+                }
+            };
+            self.animFrame = requestAnimationFrame(a);
+        });
     }
 };
 
 var UI = {
-    _superTimer:null, _tt:null, _fireworkTimeout:null,
-    updateBalances:function(){document.getElementById('mmkBalance').textContent=State.mmkBalance.toLocaleString()+' Ks';document.getElementById('usdBalance').textContent='$'+State.usdBalance.toFixed(2);},
-    updateDraws:function(){document.getElementById('dailyCount').textContent=State.dailyDraws;document.getElementById('boughtCount').textContent=State.boughtDraws;document.getElementById('weeklyCount').textContent=State.weeklyBonusDraws;var dl=document.querySelector('#dailyDrawCard .draw-label');if(dl)dl.textContent=State.isPremium?'Daily (T'+State.premiumTier+')':'Daily Free';this.updateSpinButton();},
-    updateSpinButton:function(){var b=document.getElementById('btnSpin');var s=document.getElementById('spinStatus');if(State.isSpinning){b.disabled=true;s.textContent='Spinning...';return;}var t=State.getTotalDraws();var src=State.getDrawSource();if(t>0){b.disabled=false;var st='';switch(src){case'daily':st='Daily';break;case'weekly_bonus':st='Weekly Bonus';break;case'bought':st='Bought';break;case'premium_bought':st='Premium Bought';break;}s.textContent=st+' - '+t+' draw(s) left';}else{b.disabled=true;s.textContent='No draws';}},
-    applyPremiumTheme:function(){var body=document.getElementById('mainBody');body.classList.remove('tier1','tier2','tier3','premium-active');if(State.isPremium){body.classList.add('premium-active');switch(State.premiumTier){case 1:body.classList.add('tier1');break;case 2:body.classList.add('tier2');break;case 3:body.classList.add('tier3');break;default:body.classList.add('tier1');}var marquee=document.getElementById('headerMarquee');if(marquee){switch(State.premiumTier){case 1:marquee.textContent='🥉 Premium Lucky Spin (Bronze) - SOLO M Game Shop';break;case 2:marquee.textContent='🥈 Premium Lucky Spin (Silver) - SOLO M Game Shop';break;case 3:marquee.textContent='🥇 Premium Lucky Spin (Gold) - SOLO M Game Shop';break;default:marquee.textContent='👑 Premium Lucky Spin - SOLO M Game Shop';}}}WheelEngine.draw(State.wheelAngle%(2*Math.PI));this.updateDraws();this.updateDailyTimer();},
-    updateDailyTimer:function(){var n=new Date();var t=new Date(n);t.setDate(t.getDate()+1);t.setHours(0,0,0,0);var d=t-n;var h=Math.floor(d/3600000);var m=Math.floor((d%3600000)/60000);var s=Math.floor((d%60000)/1000);var el=document.getElementById('dailyTimerCountdown');if(el)el.textContent=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0')+':'+s.toString().padStart(2,'0');},
-    showToast:function(m,t){t=t||'success';var toast=document.getElementById('toast');toast.textContent=m;toast.style.display='block';toast.style.background=t==='success'?'#2ecc71':t==='error'?'#e74c3c':'#3498db';toast.style.color='#fff';clearTimeout(this._tt);var self=this;this._tt=setTimeout(function(){toast.style.display='none';},3000);},
-    showResult:function(wi){
-        var segs=State.isPremium?State.getPremiumSegments():CONFIG.NORMAL_SEGMENTS;var rw=segs[wi];
-        var ic=document.getElementById('resultIcon');var tx=document.getElementById('resultText');var am=document.getElementById('resultAmount');
-        var ex=document.getElementById('resultExtra');var timer=document.getElementById('resultTimer');var cb=document.getElementById('resultCloseBtn');
-        ex.innerHTML='';timer.textContent='';cb.style.display='block';tx.classList.remove('super-text');am.classList.remove('super-text');
-        var sl=document.getElementById('slideLight');if(sl)sl.style.display='none';this.stopFireworks();
-        if(rw.type==='super'){
-            cb.style.display='none';ic.textContent='';tx.textContent='🏆 SUPER PRIZE!';tx.classList.add('super-text');
-            am.textContent='ONE TIME ONLY!';am.style.color='#e91e63';am.classList.add('super-text');
-            timer.innerHTML='⏰ 10 seconds remaining...';
-            ex.innerHTML='<p style="color:#ffd700;font-size:11px;margin:8px 0">⚠️ 1 User + 1 Account = 1 Time Limit</p><a href="'+CONFIG.SUPER_FORM_URL+'" target="_blank" class="super-link" onclick="handleSuperClaimed()" style="display:inline-block;padding:12px 25px;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;text-decoration:none;font-weight:bold;border-radius:25px;margin:8px 0;font-size:14px;animation:superGlow 1.5s infinite;">🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a><p style="color:rgba(255,255,255,0.4);font-size:9px;margin-top:8px">Link နှိပ်ပါ သို့မဟုတ် 10 စက္ကန့်စောင့်ပါ</p>';
-            openModal('resultModal');this.startFireworks();if(sl)sl.style.display='block';
-            var count=10;var self=this;clearInterval(this._superTimer);
-            this._superTimer=setInterval(function(){count--;if(count<=0){clearInterval(self._superTimer);closeResultModal();return;}timer.innerHTML='⏰ '+count+' seconds remaining...';},1000);
-        }else{
-            cb.style.display='block';timer.textContent='';
-            switch(rw.type){case'free':ic.textContent='🔄';tx.textContent='Free Spin!';am.textContent='+1 Extra Draw';am.style.color='#1abc9c';break;case'thanks':ic.textContent='😊';tx.textContent='Thank You!';am.textContent='Better luck next time';am.style.color='#7f8c8d';break;case'usd':ic.textContent='💵';tx.textContent='🎉 You Won!';am.textContent='$'+rw.reward.toFixed(2)+' USD';am.style.color='#2ecc71';break;case'mmk':ic.textContent='💰';tx.textContent='🎉 You Won!';am.textContent=rw.reward.toLocaleString()+' Ks';am.style.color='#f39c12';break;}
+    _superTimer: null,
+    _tt: null,
+    _fireworkTimeout: null,
+    _fireworkInterval: null,
+    _dailyTimerInterval: null,
+    _resetTimerInterval: null,
+
+    applyPremiumTheme: function() {
+    var body = document.getElementById('mainBody');
+    body.classList.remove('tier1', 'tier2', 'tier3', 'premium-active');
+    
+    if (State.isPremium) {
+        body.classList.add('premium-active');
+        
+        switch(State.premiumTier) {
+            case 1: body.classList.add('tier1'); break;
+            case 2: body.classList.add('tier2'); break;
+            case 3: body.classList.add('tier3'); break;
+            default: body.classList.add('tier1');
+        }
+        
+        var marquee = document.getElementById('headerMarquee');
+        if (marquee) {
+            switch(State.premiumTier) {
+                case 1: marquee.textContent = '🥉 Premium Lucky Spin (Bronze) - SOLO M Game Shop'; break;
+                case 2: marquee.textContent = '🥈 Premium Lucky Spin (Silver) - SOLO M Game Shop'; break;
+                case 3: marquee.textContent = '🥇 Premium Lucky Spin (Gold) - SOLO M Game Shop'; break;
+                default: marquee.textContent = '👑 Premium Lucky Spin - SOLO M Game Shop';
+            }
+        }
+        
+        // ✅ Premium ဆိုရင် LED Ring ဖန်တီး
+        setTimeout(function() {
+            WheelEngine.initLEDRing();
+        }, 300);
+    }
+    
+    WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
+    this.updateDraws();
+    this.updateDailyTimer();
+    this.updateResetTimer();
+},
+    // ==================== BALANCE ====================
+    updateBalances: function() {
+        document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString() + ' Ks';
+        document.getElementById('usdBalance').textContent = '$' + State.usdBalance.toFixed(2);
+    },
+
+    // ==================== DRAWS ====================
+    updateDraws: function() {
+        document.getElementById('dailyCount').textContent = State.dailyDraws;
+        document.getElementById('boughtCount').textContent = State.boughtDraws;
+        document.getElementById('weeklyCount').textContent = State.weeklyBonusDraws;
+        
+        var dl = document.querySelector('#dailyDrawCard .draw-label');
+        if (dl) dl.textContent = State.isPremium ? 'Daily (T' + State.premiumTier + ')' : 'Daily Free';
+        
+        this.updateSpinButton();
+    },
+
+    // ==================== SPIN BUTTON ====================
+    updateSpinButton: function() {
+        var b = document.getElementById('btnSpin');
+        var s = document.getElementById('spinStatus');
+        
+        if (State.isSpinning) {
+            b.disabled = true;
+            s.textContent = '🌀 Spinning...';
+            return;
+        }
+        
+        var t = State.getTotalDraws();
+        var src = State.getDrawSource();
+        
+        if (t > 0) {
+            b.disabled = false;
+            var st = '';
+            switch(src) {
+                case 'daily': st = '📅 Daily'; break;
+                case 'weekly_bonus': st = '🎁 Weekly Bonus'; break;
+                case 'bought': st = '💳 Bought'; break;
+                case 'premium_bought': st = '👑 Premium Bought'; break;
+            }
+            s.textContent = st + ' - ' + t + ' draw(s) left';
+        } else {
+            b.disabled = true;
+            s.textContent = '❌ No draws available';
+        }
+    },
+
+    // ==================== PREMIUM THEME ====================
+    applyPremiumTheme: function() {
+        var body = document.getElementById('mainBody');
+        body.classList.remove('tier1', 'tier2', 'tier3', 'premium-active');
+        
+        if (State.isPremium) {
+            body.classList.add('premium-active');
+            
+            switch(State.premiumTier) {
+                case 1: body.classList.add('tier1'); break;
+                case 2: body.classList.add('tier2'); break;
+                case 3: body.classList.add('tier3'); break;
+                default: body.classList.add('tier1');
+            }
+            
+            var marquee = document.getElementById('headerMarquee');
+            if (marquee) {
+                switch(State.premiumTier) {
+                    case 1: marquee.textContent = '🥉 Premium Lucky Spin (Bronze) - SOLO M Game Shop'; break;
+                    case 2: marquee.textContent = '🥈 Premium Lucky Spin (Silver) - SOLO M Game Shop'; break;
+                    case 3: marquee.textContent = '🥇 Premium Lucky Spin (Gold) - SOLO M Game Shop'; break;
+                    default: marquee.textContent = '👑 Premium Lucky Spin - SOLO M Game Shop';
+                }
+            }
+        }
+        
+        WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
+        this.updateDraws();
+        this.updateDailyTimer();
+        this.updateResetTimer();
+    },
+
+    // ==================== DAILY TIMER (Midnight Reset) ====================
+    updateDailyTimer: function() {
+        var self = this;
+        
+        if (this._dailyTimerInterval) {
+            clearInterval(this._dailyTimerInterval);
+        }
+        
+        var update = function() {
+            var n = new Date();
+            var t = new Date(n);
+            t.setDate(t.getDate() + 1);
+            t.setHours(0, 0, 0, 0);
+            
+            var d = t - n;
+            var h = Math.floor(d / 3600000);
+            var m = Math.floor((d % 3600000) / 60000);
+            var s = Math.floor((d % 60000) / 1000);
+            
+            var el = document.getElementById('dailyTimerCountdown');
+            if (el) {
+                el.textContent = h.toString().padStart(2, '0') + ':' + 
+                                m.toString().padStart(2, '0') + ':' + 
+                                s.toString().padStart(2, '0');
+            }
+            
+            // ✅ Timer 0 ရောက်ရင် Daily Reset
+            if (d <= 0) {
+                self.showToast('🔄 Daily Draws Reset!', 'info');
+                // Re-sync with server
+                setTimeout(async function() {
+                    var data = await API.syncAll();
+                    if (data) {
+                        State.dailyDraws = data.dailyDrawsRemaining || 0;
+                        State.save();
+                        self.updateDraws();
+                    }
+                }, 1000);
+            }
+        };
+        
+        update();
+        this._dailyTimerInterval = setInterval(update, 1000);
+    },
+
+    // ==================== RESET TIMER (Weekly) ====================
+    updateResetTimer: function() {
+        var self = this;
+        
+        if (this._resetTimerInterval) {
+            clearInterval(this._resetTimerInterval);
+        }
+        
+        var update = function() {
+            var n = new Date();
+            var daysUntilSunday = 7 - n.getDay();
+            if (daysUntilSunday === 7) daysUntilSunday = 0;
+            
+            var t = new Date(n);
+            t.setDate(t.getDate() + daysUntilSunday);
+            t.setHours(0, 0, 0, 0);
+            
+            var d = t - n;
+            var h = Math.floor(d / 3600000);
+            var m = Math.floor((d % 3600000) / 60000);
+            var s = Math.floor((d % 60000) / 1000);
+            
+            var el = document.getElementById('resetCountdown');
+            if (el) {
+                el.textContent = '🔄 Weekly Reset in: ' + 
+                                h.toString().padStart(2, '0') + ':' + 
+                                m.toString().padStart(2, '0') + ':' + 
+                                s.toString().padStart(2, '0');
+            }
+        };
+        
+        update();
+        this._resetTimerInterval = setInterval(update, 1000);
+    },
+
+    // ==================== TOAST ====================
+    showToast: function(m, t) {
+        t = t || 'success';
+        var toast = document.getElementById('toast');
+        toast.textContent = m;
+        toast.style.display = 'block';
+        toast.style.background = t === 'success' ? '#2ecc71' : t === 'error' ? '#e74c3c' : '#3498db';
+        toast.style.color = '#fff';
+        
+        clearTimeout(this._tt);
+        var self = this;
+        this._tt = setTimeout(function() {
+            toast.style.display = 'none';
+        }, 3000);
+    },
+
+    // ==================== SPIN RESULT ====================
+    showResult: function(wi) {
+        var segs = State.isPremium ? State.getPremiumSegments() : CONFIG.NORMAL_SEGMENTS;
+        var rw = segs[wi];
+        
+        var ic = document.getElementById('resultIcon');
+        var tx = document.getElementById('resultText');
+        var am = document.getElementById('resultAmount');
+        var ex = document.getElementById('resultExtra');
+        var timer = document.getElementById('resultTimer');
+        var cb = document.getElementById('resultCloseBtn');
+        
+        ex.innerHTML = '';
+        timer.textContent = '';
+        cb.style.display = 'block';
+        tx.classList.remove('super-text');
+        am.classList.remove('super-text');
+        
+        var sl = document.getElementById('slideLight');
+        if (sl) sl.style.display = 'none';
+        this.stopFireworks();
+        
+        if (rw.type === 'super') {
+            // ==================== SUPER PRIZE ====================
+            cb.style.display = 'none';
+            ic.textContent = '';
+            tx.textContent = '🏆 SUPER PRIZE!';
+            tx.classList.add('super-text');
+            am.textContent = 'ONE TIME ONLY!';
+            am.style.color = '#e91e63';
+            am.classList.add('super-text');
+            
+            timer.innerHTML = '⏰ 30 seconds remaining...';
+            
+            ex.innerHTML = '<p style="color:#ffd700;font-size:11px;margin:8px 0">⚠️ 1 User + 1 Account = 1 Time Limit</p>' +
+                '<a href="' + CONFIG.SUPER_FORM_URL + '" target="_blank" class="super-link" onclick="handleSuperClaimed()" ' +
+                'style="display:inline-block;padding:12px 25px;background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;' +
+                'text-decoration:none;font-weight:bold;border-radius:25px;margin:8px 0;font-size:14px;animation:superGlow 1.5s infinite;">' +
+                '🏆 ဆုရယူရန် ဝင်ရောက်ပါ</a>' +
+                '<p style="color:rgba(255,255,255,0.4);font-size:9px;margin-top:8px">Link နှိပ်ပါ သို့မဟုတ် 30 စက္ကန့်စောင့်ပါ</p>';
+            
+            openModal('resultModal');
+            this.startFireworks();
+            if (sl) sl.style.display = 'block';
+            
+            var count = 30;
+            var self = this;
+            clearInterval(this._superTimer);
+            
+            this._superTimer = setInterval(function() {
+                count--;
+                if (count <= 0) {
+                    clearInterval(self._superTimer);
+                    closeResultModal();
+                    return;
+                }
+                timer.innerHTML = '⏰ ' + count + ' seconds remaining...';
+                
+                // ✅ Timer နီးလာရင် အနီရောင်ပြ
+                if (count <= 10) {
+                    timer.style.color = '#e74c3c';
+                    timer.style.animation = 'pulse 0.5s infinite';
+                }
+            }, 1000);
+            
+        } else {
+            // ==================== NORMAL REWARD ====================
+            cb.style.display = 'block';
+            timer.textContent = '';
+            timer.style.color = '';
+            timer.style.animation = '';
+            
+            switch(rw.type) {
+                case 'free':
+                    ic.textContent = '🔄';
+                    tx.textContent = 'Free Spin!';
+                    am.textContent = '+1 Extra Draw';
+                    am.style.color = '#1abc9c';
+                    break;
+                case 'thanks':
+                    ic.textContent = '😊';
+                    tx.textContent = 'Thank You!';
+                    am.textContent = 'Better luck next time';
+                    am.style.color = '#7f8c8d';
+                    break;
+                case 'usd':
+                    ic.textContent = '💵';
+                    tx.textContent = '🎉 You Won!';
+                    am.textContent = '$' + rw.reward.toFixed(2) + ' USD';
+                    am.style.color = '#2ecc71';
+                    break;
+                case 'mmk':
+                    ic.textContent = '💰';
+                    tx.textContent = '🎉 You Won!';
+                    am.textContent = rw.reward.toLocaleString() + ' Ks';
+                    am.style.color = '#f39c12';
+                    break;
+            }
             openModal('resultModal');
         }
     },
-    startFireworks:function(){var c=document.getElementById('fireworksContainer');if(!c)return;c.innerHTML='';for(var i=0;i<40;i++){var p=document.createElement('div');p.className='firework-particle';p.style.left=Math.random()*100+'%';p.style.top=Math.random()*70+'%';p.style.setProperty('--fx',(Math.random()-0.5)*300+'px');p.style.setProperty('--fy',-(Math.random()*200+100)+'px');p.style.background='hsl('+Math.floor(Math.random()*60+30)+',100%,50%)';p.style.animationDuration=(Math.random()*1+1)+'s';p.style.animationDelay=Math.random()*0.5+'s';c.appendChild(p);}var self=this;clearTimeout(this._fireworkTimeout);this._fireworkTimeout=setTimeout(function(){self.stopFireworks();},3000);},
-    stopFireworks:function(){var c=document.getElementById('fireworksContainer');if(c)c.innerHTML='';var sl=document.getElementById('slideLight');if(sl)sl.style.display='none';},
-    
+
+    // ==================== FIREWORKS (ENHANCED) ====================
+    startFireworks: function() {
+        var c = document.getElementById('fireworksContainer');
+        if (!c) return;
+        c.innerHTML = '';
+        
+        var colors = [
+            '#ff0000', '#ff7700', '#ffff00', '#00ff00', '#00ffff', 
+            '#0088ff', '#7700ff', '#ff00ff', '#ff4488', '#ffdd00',
+            '#ff1744', '#ff9100', '#ffea00', '#00e676', '#00b0ff',
+            '#d500f9', '#f50057', '#ff6d00', '#aeea00', '#18ffff'
+        ];
+        
+        // ✅ Wave 1 - Big Explosions
+        for (var i = 0; i < 50; i++) {
+            var p = document.createElement('div');
+            p.className = 'firework-particle';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.top = Math.random() * 60 + '%';
+            p.style.setProperty('--fx', (Math.random() - 0.5) * 400 + 'px');
+            p.style.setProperty('--fy', -(Math.random() * 250 + 150) + 'px');
+            p.style.background = colors[Math.floor(Math.random() * colors.length)];
+            p.style.animationDuration = (Math.random() * 2 + 1) + 's';
+            p.style.animationDelay = Math.random() * 0.8 + 's';
+            p.style.width = (Math.random() * 6 + 2) + 'px';
+            p.style.height = p.style.width;
+            c.appendChild(p);
+        }
+        
+        // ✅ Wave 2 - Sparkles (0.5s delay)
+        var self = this;
+        setTimeout(function() {
+            for (var i = 0; i < 30; i++) {
+                var p = document.createElement('div');
+                p.className = 'firework-particle';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.top = Math.random() * 50 + '%';
+                p.style.setProperty('--fx', (Math.random() - 0.5) * 300 + 'px');
+                p.style.setProperty('--fy', -(Math.random() * 200 + 100) + 'px');
+                p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                p.style.animationDuration = (Math.random() * 1.5 + 0.5) + 's';
+                p.style.animationDelay = Math.random() * 0.3 + 's';
+                p.style.width = (Math.random() * 3 + 1) + 'px';
+                p.style.height = p.style.width;
+                p.style.borderRadius = '50%';
+                c.appendChild(p);
+            }
+        }, 500);
+        
+        // ✅ Wave 3 - Ring Effect (1s delay)
+        setTimeout(function() {
+            for (var i = 0; i < 20; i++) {
+                var p = document.createElement('div');
+                p.className = 'firework-particle';
+                p.style.left = '50%';
+                p.style.top = '40%';
+                var angle = (i / 20) * Math.PI * 2;
+                var dist = 150 + Math.random() * 100;
+                p.style.setProperty('--fx', Math.cos(angle) * dist + 'px');
+                p.style.setProperty('--fy', Math.sin(angle) * dist + 'px');
+                p.style.background = colors[Math.floor(Math.random() * colors.length)];
+                p.style.animationDuration = '2s';
+                p.style.animationDelay = Math.random() * 0.2 + 's';
+                p.style.width = '5px';
+                p.style.height = '5px';
+                p.style.borderRadius = '50%';
+                c.appendChild(p);
+            }
+        }, 1000);
+        
+        // ✅ Auto-cleanup
+        clearTimeout(this._fireworkTimeout);
+        this._fireworkTimeout = setTimeout(function() {
+            self.stopFireworks();
+        }, 4000);
+        
+        // ✅ Slide Light
+        var sl = document.getElementById('slideLight');
+        if (sl) sl.style.display = 'block';
+    },
+
+    stopFireworks: function() {
+        var c = document.getElementById('fireworksContainer');
+        if (c) c.innerHTML = '';
+        var sl = document.getElementById('slideLight');
+        if (sl) sl.style.display = 'none';
+        clearTimeout(this._fireworkTimeout);
+    },
+
+    // ==================== FORMAT COUNTDOWN ====================
     formatCountdown: function(totalSeconds) {
         if (totalSeconds <= 0) return '00:00:00';
         var h = Math.floor(totalSeconds / 3600);
         var m = Math.floor((totalSeconds % 3600) / 60);
         var s = totalSeconds % 60;
-        return h.toString().padStart(2,'0') + ':' + m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
+        return h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
     },
 
-    loadCheckInStatus:async function(){
-        try{var token=API.getToken();if(!token||token==='guest'){document.getElementById('checkinSection').innerHTML='';return;}
-        var r=await fetch('/api/daily_checkin/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token})});var d=await r.json();
-        if(d.success&&d.events&&d.events.length>0){document.getElementById('checkinComingSoon').style.display='none';this.renderCheckInUI(d.events);}
-        else{document.getElementById('checkinComingSoon').style.display='block';}}catch(e){document.getElementById('checkinComingSoon').style.display='block';}
-    },
-    renderCheckInUI:function(events){
-        var section=document.getElementById('checkinSection');
-        var html='';
-        var self=this;
-        
-        events.forEach(function(ev){
-            var isNormal=ev.event_type==='normal';
-            var bc=isNormal?'normal-checkin':'premium-checkin';
-            var ti=isNormal?'🎁':'👑';
-            var tt=ev.event_name||(isNormal?'Daily Check-In':'Premium Check-In');
-            var isGrace=ev.is_grace_period||false;
-            var isEnded=ev.is_fully_ended||false;
+    // ==================== CHECK-IN UI ====================
+    loadCheckInStatus: async function() {
+        try {
+            var token = API.getToken();
+            if (!token || token === 'guest') {
+                document.getElementById('checkinSection').innerHTML = '';
+                return;
+            }
+            var r = await fetch('/api/daily_checkin/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
+            var d = await r.json();
             
-            if(isEnded) return;
+            if (d.success && d.events && d.events.length > 0) {
+                document.getElementById('checkinComingSoon').style.display = 'none';
+                this.renderCheckInUI(d.events);
+            } else {
+                document.getElementById('checkinComingSoon').style.display = 'block';
+            }
+        } catch(e) {
+            document.getElementById('checkinComingSoon').style.display = 'block';
+        }
+    },
+
+    renderCheckInUI: function(events) {
+        var section = document.getElementById('checkinSection');
+        var html = '';
+        var self = this;
+        
+        events.forEach(function(ev) {
+            var isNormal = ev.event_type === 'normal';
+            var bc = isNormal ? 'normal-checkin' : 'premium-checkin';
+            var ti = isNormal ? '🎁' : '👑';
+            var tt = ev.event_name || (isNormal ? 'Daily Check-In' : 'Premium Check-In');
+            var isGrace = ev.is_grace_period || false;
+            var isEnded = ev.is_fully_ended || false;
+            
+            if (isEnded) return;
             
             if (!ev.has_started && ev.pending_countdown_seconds > 0) {
                 html += '<div class="checkin-pending" style="text-align:center;padding:20px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px">';
                 html += '<div style="font-size:30px;margin-bottom:8px;">⏳</div>';
                 html += '<div style="font-size:13px;font-weight:bold;color:#f39c12;">Event Coming Soon!</div>';
                 html += '<div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:4px;">Starts in:</div>';
-                html += '<div style="font-size:22px;font-weight:bold;color:#ffd700;font-family:Courier New,monospace;margin-top:6px;" id="pendingCountdown_'+ev.event_id+'" data-seconds="'+ev.pending_countdown_seconds+'">';
+                html += '<div style="font-size:22px;font-weight:bold;color:#ffd700;font-family:Courier New,monospace;margin-top:6px;" ' +
+                       'id="pendingCountdown_' + ev.event_id + '" data-seconds="' + ev.pending_countdown_seconds + '">';
                 html += self.formatCountdown(ev.pending_countdown_seconds);
                 html += '</div></div>';
                 return;
             }
             
-            var gb='';
-            if(isGrace){gb='<div class="grace-banner">⚠️ ပွဲတော်ပြီးဆုံးသွားပါပြီ။ ဆုများကို မရယူနိုင်တော့ပါ။ ('+ev.grace_end_date+' တွင် အပြီးတိုင်ပိတ်ပါမည်)</div>';}
+            var gb = '';
+            if (isGrace) {
+                gb = '<div class="grace-banner">⚠️ ပွဲတော်ပြီးဆုံးသွားပါပြီ။ (' + ev.grace_end_date + ' တွင် အပြီးတိုင်ပိတ်ပါမည်)</div>';
+            }
             
-            var rt=ev.reset_time||'00:00';
-            var dn=ev.start_date||'';
-            var de=ev.end_date||'';
-            var di='';
-            if(dn&&de){di='<br><small style="font-size:7px;color:rgba(255,255,255,0.35)">📅 '+dn+' → '+de+'</small>';}
+            var rt = ev.reset_time || '00:00';
+            var dn = ev.start_date || '';
+            var de = ev.end_date || '';
+            var di = '';
+            if (dn && de) {
+                di = '<br><small style="font-size:7px;color:rgba(255,255,255,0.35)">📅 ' + dn + ' → ' + de + '</small>';
+            }
             
-            var dh='';
-            ev.day_status.forEach(function(day){
-                var rw=day.reward;
-                var ri=rw&&rw.icon?rw.icon:'';
-                var re=UI.getCheckinRewardEmoji(rw?rw.type:'');
-                var rl=rw?rw.label:'';
-                var ra=rw?(rw.type==='usd'?'$'+parseFloat(rw.amount).toFixed(2):rw.type==='mmk'?parseFloat(rw.amount).toLocaleString()+' Ks':parseInt(rw.amount)+' Draw'+(parseInt(rw.amount)>1?'s':'')):'';
-                var cc='';
-                var ah='';
+            var dh = '';
+            ev.day_status.forEach(function(day) {
+                var rw = day.reward;
+                var ri = rw && rw.icon ? rw.icon : '';
+                var re = self.getCheckinRewardEmoji(rw ? rw.type : '');
+                var rl = rw ? rw.label : '';
+                var ra = rw ? (rw.type === 'usd' ? '$' + parseFloat(rw.amount).toFixed(2) : 
+                              rw.type === 'mmk' ? parseFloat(rw.amount).toLocaleString() + ' Ks' : 
+                              parseInt(rw.amount) + ' Draw' + (parseInt(rw.amount) > 1 ? 's' : '')) : '';
+                var cc = '';
+                var ah = '';
                 
-                if(day.claimed){cc='claimed';ah='<div class="day-claimed-badge">✅ Claimed</div>';}
-                else if(isGrace){cc='claimed';ah='<div class="day-missed-badge">⏰ Missed</div>';}
-                else if(day.day<ev.current_day){cc='claimed';ah='<div class="day-missed-badge">⏰ Missed</div>';}
-                else if(day.day===ev.current_day&&!ev.checked_in_today&&ev.can_claim){cc='current';ah='<button class="day-claim-btn" onclick="claimDailyReward('+ev.event_id+')">🎁 ဆုယူမည်</button>';}
-                else if(day.day===ev.current_day&&ev.checked_in_today){cc='today';ah='<div class="day-claimed-badge">✅ Claimed</div>';}
-                else if(day.day>ev.current_day){ah='<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">🔒 Locked</div>';}
-                else{ah='<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">⏰ Wait</div>';}
+                if (day.claimed) { cc = 'claimed'; ah = '<div class="day-claimed-badge">✅ Claimed</div>'; }
+                else if (isGrace) { cc = 'claimed'; ah = '<div class="day-missed-badge">⏰ Missed</div>'; }
+                else if (day.day < ev.current_day) { cc = 'claimed'; ah = '<div class="day-missed-badge">⏰ Missed</div>'; }
+                else if (day.day === ev.current_day && !ev.checked_in_today && ev.can_claim) { 
+                    cc = 'current'; 
+                    ah = '<button class="day-claim-btn" onclick="claimDailyReward(' + ev.event_id + ')">🎁 ဆုယူမည်</button>'; 
+                }
+                else if (day.day === ev.current_day && ev.checked_in_today) { cc = 'today'; ah = '<div class="day-claimed-badge">✅ Claimed</div>'; }
+                else if (day.day > ev.current_day) { ah = '<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">🔒 Locked</div>'; }
+                else { ah = '<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">⏰ Wait</div>'; }
                 
-                var ih='';
-                if(ri&&ri.length>0&&ri!=='🎁'&&ri!=='💰'&&ri!=='💵'&&ri!=='🔄'&&ri!=='🎉'&&ri!=='👑'){ih='<img class="day-reward-icon" src="'+ri+'" alt="" onerror="this.style.display=\'none\'">';}
-                else{ih='<span style="font-size:28px;display:block;text-align:center;margin-bottom:4px">'+(ri||re)+'</span>';}
+                var ih = '';
+                if (ri && ri.length > 0 && ri !== '🎁' && ri !== '💰' && ri !== '💵' && ri !== '🔄' && ri !== '🎉' && ri !== '👑') {
+                    ih = '<img class="day-reward-icon" src="' + ri + '" alt="" onerror="this.style.display=\'none\'">';
+                } else {
+                    ih = '<span style="font-size:28px;display:block;text-align:center;margin-bottom:4px">' + (ri || re) + '</span>';
+                }
                 
-                dh+='<div class="checkin-day-card '+cc+'"><div class="day-number">Day '+day.day+'</div>'+ih+'<div class="day-reward-label">'+rl+'</div><div class="day-reward-amount">'+ra+'</div>'+ah+'</div>';
+                dh += '<div class="checkin-day-card ' + cc + '"><div class="day-number">Day ' + day.day + '</div>' + ih +
+                      '<div class="day-reward-label">' + rl + '</div><div class="day-reward-amount">' + ra + '</div>' + ah + '</div>';
             });
             
-            var ed=new Date(ev.end_date);
-            var ed2=new Date(ed.getTime()+2*24*60*60*1000);
-            var now=new Date();
-            var fEnded=now>ed2;
-            
-            html+='<div class="checkin-box '+bc+'">'+gb+'<div class="checkin-header"><span class="checkin-title">'+ti+' '+tt+'</span><span class="checkin-timer">⏰ Reset: '+rt+di+'</span></div><div class="checkin-days-scroll">'+dh+'</div>'+(fEnded?'<div class="checkin-ended-text">📅 ပွဲတော်မရှိတော့ပါ</div>':'')+'</div>';
+            html += '<div class="checkin-box ' + bc + '">' + gb + '<div class="checkin-header"><span class="checkin-title">' + ti + ' ' + tt + 
+                   '</span><span class="checkin-timer">⏰ Reset: ' + rt + di + '</span></div><div class="checkin-days-scroll">' + dh + '</div></div>';
         });
         
-        html+='<div class="checkin-coming-soon" id="checkinComingSoon" style="display:none"><div class="checkin-coming-title">🎬 SOLO M Game Shop × Daily Check In Event Collab is Coming</div><div class="checkin-coming-sub">Admin မှ Event သတ်မှတ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်</div></div>';
+        html += '<div class="checkin-coming-soon" id="checkinComingSoon" style="display:none">' +
+               '<div class="checkin-coming-title">🎬 SOLO M Game Shop × Daily Check In Event Collab is Coming</div>' +
+               '<div class="checkin-coming-sub">Admin မှ Event သတ်မှတ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်</div></div>';
         
-        section.innerHTML=html;
+        section.innerHTML = html;
     },
-    getCheckinRewardEmoji:function(t){switch(t){case'mmk':return'💰';case'usd':return'💵';case'spin':return'🔄';default:return'🎁';}}
+
+    getCheckinRewardEmoji: function(t) {
+        switch(t) {
+            case 'mmk': return '💰';
+            case 'usd': return '💵';
+            case 'spin': return '🔄';
+            default: return '🎁';
+        }
+    }
 };
 
 async function claimDailyReward(eventId){
