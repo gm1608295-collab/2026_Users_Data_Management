@@ -5133,6 +5133,10 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
 app.post('/api/daily_checkin/status', async (req, res) => {
     const { token } = req.body;
     
+    // ✅ JWT Config
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+    
     if (!token || token === 'guest') {
         return res.json({ success: false, events: [] });
     }
@@ -5266,6 +5270,7 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         res.json({ success: true, events: result, server_time: now.toISOString() });
         
     } catch(e) {
+        console.error('[CHECKIN STATUS ERROR]', e.message);
         res.json({ success: false, events: [] });
     }
 });
