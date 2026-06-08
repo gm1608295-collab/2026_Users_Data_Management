@@ -5129,7 +5129,7 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== DAILY CHECK-IN STATUS (JWT FIXED - FULL) ====================
+// ==================== DAILY CHECK-IN STATUS ====================
 app.post('/api/daily_checkin/status', async (req, res) => {
     const { token } = req.body;
     
@@ -5141,7 +5141,6 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         const p = await getPool();
         let uid;
         
-        // ✅ JWT Token
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
@@ -5149,12 +5148,9 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             } catch(e) {
                 return res.json({ success: false, events: [] });
             }
-        } 
-        // ✅ Old Token
-        else if (token.startsWith('token_')) {
+        } else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''));
-        } 
-        else {
+        } else {
             return res.json({ success: false, events: [] });
         }
         
@@ -5168,37 +5164,26 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         
         const events = await p.query(
             `SELECT * FROM daily_checkin_events 
-             WHERE is_active = true 
-             AND cancelled = false
-             AND (event_type = 'normal' OR (event_type = 'premium' AND $1 = true))
-             ORDER BY start_date ASC, id DESC`,
-            [isPremium]
+             WHERE is_active = true AND cancelled = false
+             ORDER BY start_date ASC, id DESC`
         );
         
         const result = [];
         
         for (const ev of events.rows) {
             const startTime = ev.start_time || '00:00:00';
-            const resetTime = ev.end_time || '00:00:00';
+            const resetTime = ev.end_time || '14:30:00';
             const totalDays = ev.total_days;
-
-            // ✅ Safe Date parsing
-const startDateTime = new Date(ev.start_date + 'T' + (startTime || '00:00:00'));
-const endDateTime = new Date(ev.end_date + 'T' + '23:59:59');
-
-// ✅ Invalid date check
-if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
-    console.log('[CHECKIN] Invalid date for event:', ev.id, ev.start_date, ev.end_date);
-    continue; // Skip this event
-}
+            
+            const startDateTime = new Date(ev.start_date + 'T' + startTime);
+            const endDateTime = new Date(ev.end_date + 'T' + '23:59:59');
             const graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
             
-            const hasStarted = now >= startDateTime;
-            const hasEnded = now > endDateTime;
-            const isGracePeriod = (now > endDateTime && now <= graceEndDateTime);
-            const isFullyEnded = now > graceEndDateTime;
+            if (now > graceEndDateTime) continue;
+            if (ev.event_type === 'premium' && !isPremium) continue;
             
-            if (isFullyEnded) continue;
+            const hasStarted = now >= startDateTime;
+            const isGracePeriod = (now > endDateTime && now <= graceEndDateTime);
             
             let pendingCountdown = null;
             if (!hasStarted) {
@@ -5206,22 +5191,20 @@ if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
             }
             
             let currentDay = 1;
-            if (hasStarted) {
-                if (isGracePeriod) {
-                    currentDay = totalDays;
-                } else {
-                    currentDay = getCurrentDay(ev.start_date, startTime, resetTime, now, totalDays);
-                }
+            if (hasStarted && !isGracePeriod) {
+                currentDay = Math.min(Math.floor((now - startDateTime) / (24 * 60 * 60 * 1000)) + 1, totalDays);
+            } else if (isGracePeriod) {
+                currentDay = totalDays;
             }
             
             const todayCheck = await p.query(
-                "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date = $3",
+                "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3",
                 [uid, ev.id, todayStr]
             );
             const checkedInToday = todayCheck.rows.length > 0;
             
             let canClaim = false;
-            if (hasStarted && !isFullyEnded && !checkedInToday) {
+            if (hasStarted && !checkedInToday && now <= graceEndDateTime) {
                 if (isGracePeriod) {
                     const lastDayClaim = await p.query(
                         "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND day_number=$3",
@@ -5229,8 +5212,7 @@ if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
                     );
                     canClaim = lastDayClaim.rows.length === 0;
                 } else {
-                    const todayReset = new Date(todayStr + 'T' + resetTime);
-                    canClaim = (now < todayReset) && (currentDay <= totalDays);
+                    canClaim = currentDay <= totalDays;
                 }
             }
             
@@ -5268,7 +5250,7 @@ if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
                 end_time: ev.end_time,
                 grace_end_date: graceEndDateTime.toISOString().split('T')[0],
                 is_grace_period: isGracePeriod,
-                is_fully_ended: isFullyEnded,
+                is_fully_ended: now > graceEndDateTime,
                 has_started: hasStarted,
                 is_pending: !hasStarted,
                 pending_countdown_seconds: pendingCountdown,
@@ -5284,7 +5266,6 @@ if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
         res.json({ success: true, events: result, server_time: now.toISOString() });
         
     } catch(e) {
-        console.error('[CHECKIN STATUS ERROR]', e.message);
         res.json({ success: false, events: [] });
     }
 });
