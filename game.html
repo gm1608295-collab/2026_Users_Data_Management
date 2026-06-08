@@ -1391,14 +1391,70 @@ async function claimDailyReward(eventId){
     else{UI.showToast(d.message||'Claim failed','error');}}catch(e){UI.showToast('Network error','error');}
 }
 
-async function handleSpin(){
-    if(State.isSpinning)return;var s=State.getDrawSource();if(!s){UI.showToast('No draws available!','error');return;}
-    State.isSpinning=true;document.getElementById('btnSpin').disabled=true;document.getElementById('spinStatus').textContent='Spinning...';
-    State.consumeDraw(s);UI.updateDraws();var r=await API.executeSpin(s);
-    if(!r||!r.success){switch(s){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':case'premium_bought':State.boughtDraws++;break;}State.save();UI.updateDraws();UI.showToast('Spin failed!','error');State.isSpinning=false;UI.updateSpinButton();return;}
-    if(r.mmkBalance!==undefined)State.mmkBalance=r.mmkBalance;if(r.usdBalance!==undefined)State.usdBalance=r.usdBalance;
-    if(r.reward&&r.reward.type==='free'){switch(s){case'daily':State.dailyDraws++;break;case'weekly_bonus':State.weeklyBonusDraws++;break;case'bought':case'premium_bought':State.boughtDraws++;break;}}
-    State.save();UI.updateBalances();await WheelEngine.spin(r.winIndex);UI.showResult(r.winIndex);State.isSpinning=false;UI.updateDraws();UI.updateSpinButton();
+async function handleSpin() {
+    if (State.isSpinning) return;
+    
+    var s = State.getDrawSource();
+    if (!s) {
+        UI.showToast('No draws available!', 'error');
+        return;
+    }
+    
+    State.isSpinning = true;
+    document.getElementById('btnSpin').disabled = true;
+    document.getElementById('spinStatus').textContent = 'Spinning...';
+    
+    // ✅ အရင် Local Draw နှုတ်
+    State.consumeDraw(s);
+    UI.updateDraws();
+    
+    var r = await API.executeSpin(s);
+    
+    if (!r || !r.success) {
+        // ❌ Fail - Draw ပြန်ထည့်
+        switch(s) {
+            case 'daily': State.dailyDraws++; break;
+            case 'weekly_bonus': State.weeklyBonusDraws++; break;
+            case 'bought': case 'premium_bought': State.boughtDraws++; break;
+        }
+        State.save();
+        UI.updateDraws();
+        UI.showToast('Spin failed!', 'error');
+        State.isSpinning = false;
+        UI.updateSpinButton();
+        return;
+    }
+    
+    // ✅ Server က Draws Count ကို အသုံးပြု (Local State Override)
+    if (r.draws) {
+        State.dailyDraws = r.draws.daily || 0;
+        State.boughtDraws = r.draws.bought || 0;
+        State.weeklyBonusDraws = r.draws.weekly || 0;
+    }
+    
+    // ✅ Balance Update
+    if (r.mmkBalance !== undefined) State.mmkBalance = r.mmkBalance;
+    if (r.usdBalance !== undefined) State.usdBalance = r.usdBalance;
+    
+    // ✅ FREE Reward → Draw ပြန်ထည့်
+    if (r.reward && r.reward.type === 'free') {
+        switch(s) {
+            case 'daily': State.dailyDraws++; break;
+            case 'weekly_bonus': State.weeklyBonusDraws++; break;
+            case 'bought': case 'premium_bought': State.boughtDraws++; break;
+        }
+    }
+    
+    State.save();
+    UI.updateBalances();
+    UI.updateDraws();
+    
+    await WheelEngine.spin(r.winIndex);
+    UI.showResult(r.winIndex);
+    
+    State.isSpinning = false;
+    UI.updateDraws();
+    UI.updateSpinButton();
 }
 
 function handleBuySpins(spins,cost){if(State.mmkBalance<cost){UI.showToast('Balance not enough','error');return;}document.getElementById('confirmTitle').textContent='💳 Buy Spins';document.getElementById('confirmMsg').textContent=spins+' Spins - '+cost.toLocaleString()+' Ks';document.getElementById('confirmYesBtn').onclick=async function(){closeModal('confirmModal');var r=await API.buySpins(spins,cost);if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added!','success');}else{UI.showToast(r.message||'Failed','error');}};openModal('confirmModal');}
