@@ -4252,7 +4252,6 @@ app.post('/api/admin/get_user_premium', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== EXCHANGE USD TO MMK ====================
 // ==================== EXCHANGE USD TO MMK (JWT FIXED) ====================
 app.post('/api/exchange_usd_to_mmk', async (req, res) => {
     const { token, usd_amount } = req.body;
@@ -4655,7 +4654,6 @@ async function initDefaultSpinRates() {
 initDefaultSpinRates();
 
 // ==================== SPIN RATES API ====================
-
 // Get all spin rates (for game.html)
 app.get('/api/spin_rates', async (req, res) => {
     try {
