@@ -3784,7 +3784,7 @@ app.post('/api/deduct_balance', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== BUY PREMIUM (JWT FIXED) ====================
+// ==================== BUY PREMIUM (WITH WEEKLY BONUS AUTO-CLAIM) ====================
 app.post('/api/buy_premium', async (req, res) => {
     const { token, months, cost, tier } = req.body;
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
@@ -3794,7 +3794,7 @@ app.post('/api/buy_premium', async (req, res) => {
         const p = await getPool();
         let uid;
         
-        // ✅ JWT Token
+        // JWT Token
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
@@ -3803,7 +3803,7 @@ app.post('/api/buy_premium', async (req, res) => {
                 return res.json({ success: false, message: 'Invalid session' });
             }
         } 
-        // ✅ Old Token
+        // Old Token
         else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''));
         } 
@@ -3813,20 +3813,55 @@ app.post('/api/buy_premium', async (req, res) => {
         
         if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
         
+        // Check balance
         const bal = await p.query('SELECT balance FROM auth_users WHERE id=$1', [uid]);
         const balance = parseFloat(bal.rows[0]?.balance || 0);
         if (balance < cost) return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ။ Top Up လုပ်ပါ။' });
         
-        const expiry = new Date(); expiry.setMonth(expiry.getMonth() + months);
+        // Calculate expiry
+        const expiry = new Date();
+        expiry.setMonth(expiry.getMonth() + months);
         const premiumTier = tier || 1;
         
-        await p.query('UPDATE auth_users SET balance = balance - $1, premium_expiry = $2, premium_tier = $3 WHERE id = $4', [cost, expiry, premiumTier, uid]);
-        await p.query("INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')", [uid, -cost]);
-        await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
+        // Deduct balance + Set premium
+        await p.query(
+            'UPDATE auth_users SET balance = balance - $1, premium_expiry = $2, premium_tier = $3 WHERE id = $4',
+            [cost, expiry, premiumTier, uid]
+        );
         
-        res.json({ success: true, expires_at: expiry.toISOString(), premium_tier: premiumTier });
+        // Log order
+        await p.query(
+            "INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, (SELECT username FROM auth_users WHERE id=$1), $2, 'Premium Purchase', 'approved')",
+            [uid, -cost]
+        );
+        
+        // ✅ Weekly Bonus Auto-Claim (ဒီတစ်ပတ်အတွက် ချက်ချင်း)
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // တနင်္လာနေ့
+        weekStart.setHours(0, 0, 0, 0);
+        
+        const alreadyClaimed = await p.query(
+            'SELECT id FROM weekly_bonus WHERE user_id=$1 AND claimed_at >= $2',
+            [uid, weekStart]
+        );
+        
+        if (alreadyClaimed.rows.length === 0) {
+            // ဒီတစ်ပတ်အတွက် မရသေးရင် Auto-Claim
+            await p.query('INSERT INTO weekly_bonus (user_id) VALUES ($1)', [uid]);
+            console.log('✅ Weekly Bonus Auto-Claimed for new premium user:', uid);
+        }
+        
+        console.log('✅ Premium purchased for user:', uid, 'Tier:', premiumTier, 'Expiry:', expiry.toISOString());
+        
+        res.json({ 
+            success: true, 
+            expires_at: expiry.toISOString(), 
+            premium_tier: premiumTier,
+            message: 'Premium ဝယ်ယူမှု အောင်မြင်ပါသည်။ Weekly Bonus ရရှိပါပြီ။'
+        });
         
     } catch(e) { 
+        console.error('[BUY PREMIUM ERROR]', e.message);
         res.json({ success: false, message: 'Server error' }); 
     }
 });
