@@ -2861,7 +2861,7 @@ async function trackTelegramLogin(userId, username) {
         );
     } catch(e) {}
 }
-// ==================== TELEGRAM BOT (မြန်မာလို) ====================
+// ==================== TELEGRAM BOT (မြန်မာလို - ALL FIXED) ====================
 let lastUpdateId = 0;
 
 function sendTelegramMessage(chatId, text, replyMarkup = null) {
@@ -2935,7 +2935,6 @@ async function createOTP(userId) {
     return otp;
 }
 
-// ✅ NEW - Get user premium info
 async function getUserPremium(userId) {
     try {
         const p = await getPool();
@@ -2958,7 +2957,6 @@ async function getUserPremium(userId) {
     } catch(e) { return null; }
 }
 
-// ✅ NEW - Get daily check-in info
 async function getDailyCheckinStatus(userId) {
     try {
         const p = await getPool();
@@ -2982,7 +2980,6 @@ async function getDailyCheckinStatus(userId) {
     } catch(e) { return null; }
 }
 
-// ✅ NEW - Get spin history
 async function getUserSpinHistory(userId) {
     try {
         const p = await getPool();
@@ -3000,7 +2997,6 @@ async function getUserSpinHistory(userId) {
 function startLongPolling() {
     console.log('🤖 Telegram Bot စတင်ပါပြီ');
     
-    // ✅ UPDATED - New Links
     const BASE_URL = 'https://solo-m-store-security-system-and-user.onrender.com';
     
     const mainKeyboard = {
@@ -3027,9 +3023,369 @@ function startLongPolling() {
         ]
     };
     
+    // ==================== CALLBACK HANDLER ====================
+    async function handleCallback(cq) {
+        const chatId = cq.message.chat.id;
+        const data = cq.data;
+        const firstName = cq.from.first_name || 'User';
+        
+        // ✅ Answer callback query FIRST
+        try {
+            await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ callback_query_id: cq.id })
+            });
+        } catch(e) {}
+        
+        const user = await createTelegramUser(cq.from.id, firstName);
+        if (!user) {
+            sendTelegramMessage(chatId, '❌ Error ရှိနေပါသည်။ /start ကိုနှိပ်ပါ', quickKeyboard);
+            return;
+        }
+        
+        // 💳 Balance
+        if (data === 'balance') {
+            const balance = user.balance || 0;
+            sendTelegramMessage(chatId, 
+                `💳 <b>သင့်လက်ကျန်</b>\n\n` +
+                `💰 <b>${balance.toLocaleString()} ကျပ်</b>\n` +
+                `💵 ≈ $${(balance/2100).toFixed(2)} USD`,
+                quickKeyboard
+            );
+        }
+        
+        // ⭐ Stars Top Up
+        else if (data === 'topup_stars') {
+            const topupKeyboard = {
+                inline_keyboard: [
+                    [{ text: '⭐ 50 Stars', callback_data: 'pay_50' }],
+                    [{ text: '⭐ 100 Stars', callback_data: 'pay_100' }],
+                    [{ text: '⭐ 500 Stars', callback_data: 'pay_500' }],
+                    [{ text: '⭐ 1000 Stars', callback_data: 'pay_1000' }],
+                    [{ text: '« နောက်သို့', callback_data: 'back_to_main' }]
+                ]
+            };
+            sendTelegramMessage(chatId, '💰 ဖြည့်လိုသော Stars ပမာဏကို ရွေးချယ်ပါ -', topupKeyboard);
+        }
+        else if (data === 'pay_50') {
+            await sendPaymentInvoice(chatId, 50, 'Top Up 50 Stars');
+        }
+        else if (data === 'pay_100') {
+            await sendPaymentInvoice(chatId, 100, 'Top Up 100 Stars');
+        }
+        else if (data === 'pay_500') {
+            await sendPaymentInvoice(chatId, 500, 'Top Up 500 Stars');
+        }
+        else if (data === 'pay_1000') {
+            await sendPaymentInvoice(chatId, 1000, 'Top Up 1000 Stars');
+        }
+        else if (data === 'back_to_main') {
+            sendTelegramMessage(chatId, '« ပင်မစာမျက်နှာသို့ ပြန်ရောက်ပါပြီ', quickKeyboard);
+        }
+        
+        // 🔐 OTP
+        else if (data === 'otp') {
+            const otp = await createOTP(user.id);
+            sendTelegramMessage(chatId, 
+                `🔐 <b>သင့် OTP ကုဒ်</b>\n\n` +
+                `🔢 <b>${otp}</b>\n\n` +
+                `⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ。\n` +
+                `⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်。`,
+                quickKeyboard
+            );
+        }
+        
+        // 📋 Order Status
+        else if (data === 'status') {
+            const orders = await getUserOrders(cq.from.id);
+            if (orders.length === 0) {
+                sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။', quickKeyboard);
+            } else {
+                let msg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
+                orders.forEach(o => {
+                    const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+                    msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
+                });
+                sendTelegramMessage(chatId, msg, quickKeyboard);
+            }
+        }
+        
+        // 👑 Premium
+        else if (data === 'premium') {
+            const premium = await getUserPremium(cq.from.id);
+            if (premium) {
+                let msg = `👑 <b>Premium Status</b>\n\n`;
+                msg += `⭐ Tier: <b>${premium.tierName}</b>\n`;
+                if (premium.expiry) {
+                    msg += `📅 သက်တမ်းကုန်: <b>${new Date(premium.expiry).toLocaleDateString()}</b>\n`;
+                    msg += `✅ Status: ${premium.isExpired ? '❌ ကုန်သွားပါပြီ' : '✅ Active'}\n`;
+                } else {
+                    msg += `📅 Status: Free Tier\n`;
+                }
+                msg += `\n🌐 Premium ဝယ်ယူရန်: ${BASE_URL}/premium.html`;
+                sendTelegramMessage(chatId, msg, quickKeyboard);
+            }
+        }
+        
+        // 📅 Daily Check-in
+        else if (data === 'checkin') {
+            const checkin = await getDailyCheckinStatus(cq.from.id);
+            if (checkin) {
+                let msg = `📅 <b>Daily Check-in</b>\n\n`;
+                msg += `🔢 လက်ရှိနေ့: <b>Day ${checkin.currentDay}</b>\n`;
+                msg += `✅ ဒီနေ့: ${checkin.claimedToday ? '✅ ရယူပြီးပါပြီ' : '⚠️ မရယူရသေးပါ'}\n\n`;
+                msg += `🌐 Check-in လုပ်ရန်: ${BASE_URL}/game.html`;
+                sendTelegramMessage(chatId, msg, quickKeyboard);
+            }
+        }
+        
+        // 🎰 Spin History
+        else if (data === 'spins') {
+            const spins = await getUserSpinHistory(cq.from.id);
+            if (spins.length === 0) {
+                sendTelegramMessage(chatId, '🎰 Spin မလုပ်ရသေးပါ。', quickKeyboard);
+            } else {
+                let msg = '🎰 <b>နောက်ဆုံး Spin မှတ်တမ်း</b>\n\n';
+                spins.forEach(s => {
+                    const emoji = s.reward_type === 'usd' ? '💵' : '💰';
+                    msg += `${emoji} ${s.reward_amount} ${s.reward_type?.toUpperCase() || ''} | 📅 ${new Date(s.created_at).toLocaleDateString()}\n`;
+                });
+                msg += `\n🎰 Spin လုပ်ရန်: ${BASE_URL}/game.html`;
+                sendTelegramMessage(chatId, msg, quickKeyboard);
+            }
+        }
+        
+        // 🛒 Buy Code
+        else if (data === 'buycode') {
+            sendTelegramMessage(chatId, 
+                '🛒 <b>Code ဝယ်ယူရန်</b>\n\n' +
+                `🌐 ${BASE_URL}/buycode.html\n\n` +
+                '<b>Code အမျိုးအစားများ:</b>\n' +
+                '• Shhh Emote - 2,500 Ks\n' +
+                '• Golden Border - 3,500 Ks\n' +
+                '• Lucky Diamond - 2,000 Ks\n' +
+                '• Magic Durt - 1,500 Ks\n' +
+                '• Emblem Box - 1,500 Ks',
+                mainKeyboard
+            );
+        }
+    }
+    
+    // ==================== MESSAGE HANDLER ====================
+    async function handleMessage(msg) {
+        const chatId = msg.chat.id;
+        const text = (msg.text || '').trim();
+        const firstName = msg.from.first_name || 'User';
+        
+        if (text === '/start' || text === '/login') {
+            const user = await createTelegramUser(msg.from.id, firstName);
+            const welcomeMsg = user.isNew ? 
+                `🎉 <b>SOLO M Game Shop မှ ကြိုဆိုပါတယ်!</b>\n\nမင်္ဂလာပါ ${firstName}!\n\nသင့်အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ。` :
+                `👋 ပြန်လည်ကြိုဆိုပါတယ် ${firstName}!`;
+            
+            sendTelegramMessage(chatId, 
+                welcomeMsg + '\n\n' +
+                '💳 လက်ကျန်: <b>' + (user.balance || 0).toLocaleString() + ' ကျပ်</b>\n\n' +
+                '<b>🆕 Update အသစ်များ:</b>\n' +
+                '• 🔐 OTP 2-Step Login System\n' +
+                '• 🎰 Lucky Spin 2.0\n' +
+                '• 👑 Premium Tier System\n' +
+                '• 📅 Daily Check-in Rewards\n' +
+                '• 💱 USD Exchange\n' +
+                '• 💬 Chat System\n\n' +
+                'အောက်ပါ ခလုတ်များကို အသုံးပြုနိုင်ပါသည်။',
+                quickKeyboard
+            );
+        }
+        else if (text === '/help') {
+            sendTelegramMessage(chatId,
+                `📖 <b>SOLO M Game Shop</b>\n\n` +
+                `<b>Commands များ:</b>\n` +
+                `/start - အကောင့်ဝင်ရန်\n` +
+                `/help - အကူအညီ\n` +
+                `/balance - လက်ကျန်ကြည့်ရန်\n` +
+                `/otp - OTP Code\n` +
+                `/status - Order စစ်ရန်\n` +
+                `/premium - Premium Status\n` +
+                `/spins - Spin History\n` +
+                `/buy - Code ဝယ်ရန်\n\n` +
+                `<b>🆕 Features:</b>\n` +
+                '• 🔐 OTP 2-Step Login\n' +
+                '• 🎰 Lucky Spin Game\n' +
+                '• 👑 Bronze/Silver/Gold Premium\n' +
+                '• 📅 Daily Check-in System\n' +
+                '• 💱 USD Exchange\n' +
+                '• 💬 Live Chat\n\n' +
+                `<b>🌐 Website:</b> ${BASE_URL}\n` +
+                `<b>ဆက်သွယ်ရန်:</b> @Solo_m28`,
+                quickKeyboard
+            );
+        }
+        else if (text === '/balance') {
+            const user = await createTelegramUser(msg.from.id, firstName);
+            const balance = user ? (user.balance || 0) : 0;
+            sendTelegramMessage(chatId, 
+                `💳 <b>သင့်လက်ကျန်</b>\n\n` +
+                `💰 <b>${balance.toLocaleString()} ကျပ်</b>\n` +
+                `💵 ≈ $${(balance/2100).toFixed(2)} USD`,
+                quickKeyboard
+            );
+        }
+        else if (text === '/otp') {
+            const user = await createTelegramUser(msg.from.id, firstName);
+            if (user) {
+                const otp = await createOTP(user.id);
+                sendTelegramMessage(chatId, 
+                    `🔐 <b>သင့် OTP ကုဒ်</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ。\n\n🌐 ${BASE_URL}`
+                );
+            }
+        }
+        else if (text === '/status') {
+            const orders = await getUserOrders(msg.from.id);
+            if (orders.length === 0) {
+                sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။');
+            } else {
+                let msg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
+                orders.forEach(o => {
+                    const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
+                    msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
+                });
+                sendTelegramMessage(chatId, msg);
+            }
+        }
+        else if (text === '/premium') {
+            const premium = await getUserPremium(msg.from.id);
+            if (premium) {
+                let msg = `👑 <b>သင့် Premium Status</b>\n\n`;
+                msg += `⭐ Tier: <b>${premium.tierName}</b>\n`;
+                if (premium.expiry) {
+                    msg += `📅 သက်တမ်းကုန်: <b>${new Date(premium.expiry).toLocaleDateString()}</b>\n`;
+                }
+                sendTelegramMessage(chatId, msg, quickKeyboard);
+            }
+        }
+        else if (text === '/spins') {
+            const spins = await getUserSpinHistory(msg.from.id);
+            if (spins.length === 0) {
+                sendTelegramMessage(chatId, '🎰 Spin မလုပ်ရသေးပါ။');
+            } else {
+                let msg = '🎰 <b>သင့် Spin မှတ်တမ်း</b>\n\n';
+                spins.forEach(s => {
+                    msg += `🎁 ${s.reward_amount} ${s.reward_type?.toUpperCase() || ''} | 📅 ${new Date(s.created_at).toLocaleDateString()}\n`;
+                });
+                sendTelegramMessage(chatId, msg, quickKeyboard);
+            }
+        }
+        else if (text === '/buy') {
+            sendTelegramMessage(chatId, 
+                '🛒 <b>Code ဝယ်ယူရန်</b>\n\n' +
+                `🌐 ${BASE_URL}/buycode.html\n\n` +
+                '<b>ရနိုင်သော Code များ:</b>\n' +
+                '• Shhh Emote - 2,500 Ks\n' +
+                '• Golden Border - 3,500 Ks\n' +
+                '• Lucky Diamond - 2,000 Ks\n' +
+                '• Magic Durt - 1,500 Ks\n' +
+                '• Emblem Box - 1,500 Ks',
+                mainKeyboard
+            );
+        }
+        else if (text === '/topup') {
+            const topupKeyboard = {
+                inline_keyboard: [
+                    [{ text: '⭐ 50 Stars', callback_data: 'pay_50' }],
+                    [{ text: '⭐ 100 Stars', callback_data: 'pay_100' }],
+                    [{ text: '⭐ 500 Stars', callback_data: 'pay_500' }],
+                    [{ text: '⭐ 1000 Stars', callback_data: 'pay_1000' }]
+                ]
+            };
+            sendTelegramMessage(chatId, '💰 ဖြည့်လိုသော Stars ပမာဏကို ရွေးချယ်ပါ -', topupKeyboard);
+        }
+        else {
+            sendTelegramMessage(chatId, 
+                `အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n` +
+                `/start - စတင်ရန်\n` +
+                `/help - အကူအညီ\n` +
+                `/balance - လက်ကျန်ကြည့်ရန်\n` +
+                `/otp - OTP Code\n` +
+                `/status - Order မှတ်တမ်း\n` +
+                `/premium - Premium Status\n` +
+                `/spins - Spin History\n` +
+                `/buy - Code ဝယ်ယူရန်\n` +
+                `/topup - Stars ဖြည့်ရန်`,
+                quickKeyboard
+            );
+        }
+    }
+    
+    // ==================== PRE CHECKOUT HANDLER ====================
+    async function handlePreCheckout(pq) {
+        try {
+            await fetch(`${TELEGRAM_API}/answerPreCheckoutQuery`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    pre_checkout_query_id: pq.id,
+                    ok: true
+                })
+            });
+        } catch(e) {
+            console.log('Pre-checkout error:', e.message);
+        }
+    }
+    
+    // ==================== SUCCESSFUL PAYMENT HANDLER ====================
+    async function handleSuccessfulPayment(msg) {
+        const payment = msg.successful_payment;
+        const chatId = msg.chat.id;
+        const firstName = msg.from.first_name || 'User';
+        
+        const amount = payment.total_amount;
+        const currency = payment.currency;
+        
+        // Create/Get user
+        const user = await createTelegramUser(msg.from.id, firstName);
+        if (!user) return;
+        
+        try {
+            const p = await getPool();
+            
+            // Add balance (Stars → MMK conversion)
+            // 1 Star ≈ 210 Ks (example rate)
+            const mmkAmount = amount * 210;
+            
+            await p.query(
+                'UPDATE auth_users SET balance = COALESCE(balance, 0) + $1 WHERE id = $2',
+                [mmkAmount, user.id]
+            );
+            
+            // Log order
+            await p.query(
+                "INSERT INTO orders (user_id, username, amount, payment_method, status) VALUES ($1, $2, $3, $4, 'approved')",
+                [user.id, firstName, mmkAmount, 'Stars ' + amount + ' ⭐']
+            );
+            
+            sendTelegramMessage(chatId,
+                `✅ <b>ငွေဖြည့်မှု အောင်မြင်ပါသည်!</b>\n\n` +
+                `⭐ Stars: <b>${amount} ⭐</b>\n` +
+                `💰 လက်ကျန်ထည့်ငွေ: <b>${mmkAmount.toLocaleString()} ကျပ်</b>\n\n` +
+                `💳 လက်ကျန်ကြည့်ရန် /balance ကိုနှိပ်ပါ။`,
+                quickKeyboard
+            );
+            
+            // Admin notification
+            tgSend(`💎 Stars Top Up!\n👤 ${firstName}\n⭐ ${amount} Stars\n💰 +${mmkAmount.toLocaleString()} Ks`);
+            
+        } catch(e) {
+            console.log('Payment processing error:', e.message);
+            sendTelegramMessage(chatId, '❌ ငွေဖြည့်မှု မအောင်မြင်ပါ။ Admin ကိုဆက်သွယ်ပါ။');
+        }
+    }
+    
+    // ==================== MAIN POLLING LOOP ====================
     async function getUpdates() {
         try {
-            const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId + 1}&timeout=15`;
+            const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId + 1}&timeout=15&allowed_updates=["message","callback_query","pre_checkout_query"]`;
             const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
             const result = await response.json();
             
@@ -3037,277 +3393,32 @@ function startLongPolling() {
                 for (const update of result.result) {
                     lastUpdateId = update.update_id;
                     
-                    // ========== ခလုတ်နှိပ်ခြင်းများ ==========
-                    if (update.callback_query) {
-                        const cq = update.callback_query;
-                        const chatId = cq.message.chat.id;
-                        const data = cq.data;
-                        const firstName = cq.from.first_name || 'User';
-                        
-                        const user = await createTelegramUser(cq.from.id, firstName);
-                        if (!user) { sendTelegramMessage(chatId, '❌ Error ရှိနေပါသည်။ /start ကိုနှိပ်ပါ'); continue; }
-                        
-                        // 💳 Balance
-                        if (data === 'balance') {
-                            const balance = user.balance || 0;
-                            sendTelegramMessage(chatId, 
-                                `💳 <b>သင့်လက်ကျန်</b>\n\n` +
-                                `💰 <b>${balance.toLocaleString()} ကျပ်</b>\n` +
-                                `💵 ≈ $${(balance/2100).toFixed(2)} USD\n\n` +
-                                `ငွေဖြည့်ရန် Top Up ခလုတ်ကိုနှိပ်ပါ。`, 
-                                quickKeyboard
-                            );
-                        }
-                        // ⭐ Stars Top Up
-else if (data === 'topup_stars') {
-    const topupKeyboard = {
-        inline_keyboard: [
-            [{ text: '⭐ 50 Stars', callback_data: 'pay_50' }],
-            [{ text: '⭐ 100 Stars', callback_data: 'pay_100' }],
-            [{ text: '⭐ 500 Stars', callback_data: 'pay_500' }],
-            [{ text: '⭐ 1000 Stars', callback_data: 'pay_1000' }],
-            [{ text: '« နောက်သို့', callback_data: 'back_to_main' }]
-        ]
-    };
-    sendTelegramMessage(chatId, '💰 ဖြည့်လိုသော Stars ပမာဏကို ရွေးချယ်ပါ -', topupKeyboard);
-}
-else if (data === 'pay_50') {
-    await sendPaymentInvoice(chatId, 50, 'Top Up 50 Stars');
-}
-else if (data === 'pay_100') {
-    await sendPaymentInvoice(chatId, 100, 'Top Up 100 Stars');
-}
-else if (data === 'pay_500') {
-    await sendPaymentInvoice(chatId, 500, 'Top Up 500 Stars');
-}
-else if (data === 'pay_1000') {
-    await sendPaymentInvoice(chatId, 1000, 'Top Up 1000 Stars');
-}
-                        // 🔐 OTP
-                        else if (data === 'otp') {
-                            const otp = await createOTP(user.id);
-                            sendTelegramMessage(chatId, 
-                                `🔐 <b>သင့် OTP ကုဒ်</b>\n\n` +
-                                `🔢 <b>${otp}</b>\n\n` +
-                                `⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ。\n` +
-                                `⚠️ မည်သူ့ကိုမျှ မပေးပါနှင့်。\n\n` +
-                                `🌐 Login: ${BASE_URL}`, 
-                                quickKeyboard
-                            );
-                        }
-                        
-                        // 📋 Order Status
-                        else if (data === 'status') {
-                            const orders = await getUserOrders(cq.from.id);
-                            if (orders.length === 0) {
-                                sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။', quickKeyboard);
-                            } else {
-                                let msg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
-                                orders.forEach(o => {
-                                    const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
-                                    msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
-                                });
-                                sendTelegramMessage(chatId, msg, quickKeyboard);
-                            }
-                        }
-                        
-                        // ✅ NEW - 👑 Premium Info
-                        else if (data === 'premium') {
-                            const premium = await getUserPremium(cq.from.id);
-                            if (premium) {
-                                let msg = `👑 <b>Premium Status</b>\n\n`;
-                                msg += `⭐ Tier: <b>${premium.tierName}</b>\n`;
-                                if (premium.expiry) {
-                                    msg += `📅 သက်တမ်းကုန်: <b>${new Date(premium.expiry).toLocaleDateString()}</b>\n`;
-                                    msg += `✅ Status: ${premium.isExpired ? '❌ ကုန်သွားပါပြီ' : '✅ Active'}\n`;
-                                } else {
-                                    msg += `📅 Status: Free Tier\n`;
-                                }
-                                msg += `\n🌐 Premium ဝယ်ယူရန်: ${BASE_URL}/premium.html`;
-                                sendTelegramMessage(chatId, msg, quickKeyboard);
-                            }
-                        }
-                        
-                        // ✅ NEW - 📅 Daily Check-in
-                        else if (data === 'checkin') {
-                            const checkin = await getDailyCheckinStatus(cq.from.id);
-                            if (checkin) {
-                                let msg = `📅 <b>Daily Check-in</b>\n\n`;
-                                msg += `🔢 လက်ရှိနေ့: <b>Day ${checkin.currentDay}</b>\n`;
-                                msg += `✅ ဒီနေ့: ${checkin.claimedToday ? '✅ ရယူပြီးပါပြီ' : '⚠️ မရယူရသေးပါ'}\n\n`;
-                                msg += `🌐 Check-in လုပ်ရန်: ${BASE_URL}/game.html`;
-                                sendTelegramMessage(chatId, msg, quickKeyboard);
-                            }
-                        }
-                        
-                        // ✅ NEW - 🎰 Spin History
-                        else if (data === 'spins') {
-                            const spins = await getUserSpinHistory(cq.from.id);
-                            if (spins.length === 0) {
-                                sendTelegramMessage(chatId, '🎰 Spin မလုပ်ရသေးပါ。', quickKeyboard);
-                            } else {
-                                let msg = '🎰 <b>နောက်ဆုံး Spin မှတ်တမ်း</b>\n\n';
-                                spins.forEach(s => {
-                                    const emoji = s.reward_type === 'usd' ? '💵' : '💰';
-                                    msg += `${emoji} ${s.reward_amount} ${s.reward_type.toUpperCase()} | 📅 ${new Date(s.created_at).toLocaleDateString()}\n`;
-                                });
-                                msg += `\n🎰 Spin လုပ်ရန်: ${BASE_URL}/game.html`;
-                                sendTelegramMessage(chatId, msg, quickKeyboard);
-                            }
-                        }
-                        
-                        // 🛒 Buy Code
-                        else if (data === 'buycode') {
-                            sendTelegramMessage(chatId, 
-                                '🛒 <b>Code ဝယ်ယူရန်</b>\n\n' +
-                                `🌐 ${BASE_URL}/buycode.html\n\n` +
-                                '<b>Code အမျိုးအစားများ:</b>\n' +
-                                '• Shhh Emote - 2,500 Ks\n' +
-                                '• Golden Border - 3,500 Ks\n' +
-                                '• Lucky Diamond - 2,000 Ks\n' +
-                                '• Magic Durt - 1,500 Ks\n' +
-                                '• Emblem Box - 1,500 Ks', 
-                                mainKeyboard
-                            );
-                        }
-                        
-                        try { await fetch(`${TELEGRAM_API}/answerCallbackQuery`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callback_query_id: cq.id }) }); } catch(e) {}
+                    // ✅ Pre-checkout query
+                    if (update.pre_checkout_query) {
+                        await handlePreCheckout(update.pre_checkout_query);
                         continue;
                     }
                     
-                    // ========== စာတိုပေးပို့ခြင်းများ ==========
-                    const msg = update.message;
-                    if (!msg) continue;
+                    // ✅ Callback query (Button clicks)
+                    if (update.callback_query) {
+                        await handleCallback(update.callback_query);
+                        continue;
+                    }
                     
-                    const chatId = msg.chat.id;
-                    const text = (msg.text || '').trim();
-                    const firstName = msg.from.first_name || 'User';
-                    
-                    if (text === '/start' || text === '/login') {
-                        const user = await createTelegramUser(msg.from.id, firstName);
-                        const welcomeMsg = user.isNew ? 
-                            `🎉 <b>SOLO M Game Shop မှ ကြိုဆိုပါတယ်!</b>\n\nမင်္ဂလာပါ ${firstName}!\n\nသင့်အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ。` :
-                            `👋 ပြန်လည်ကြိုဆိုပါတယ် ${firstName}!`;
+                    // ✅ Message
+                    if (update.message) {
+                        const msg = update.message;
                         
-                        sendTelegramMessage(chatId, 
-                            welcomeMsg + '\n\n' +
-                            '💳 လက်ကျန်: <b>' + (user.balance || 0).toLocaleString() + ' ကျပ်</b>\n\n' +
-                            '<b>🆕 Update အသစ်များ:</b>\n' +
-                            '• 🔐 OTP 2-Step Login System\n' +
-                            '• 🎰 Lucky Spin 2.0\n' +
-                            '• 👑 Premium Tier System\n' +
-                            '• 📅 Daily Check-in Rewards\n' +
-                            '• 💱 USD Exchange\n' +
-                            '• 💬 Chat System\n\n' +
-                            'အောက်ပါ ခလုတ်များကို အသုံးပြုနိုင်ပါသည်။',
-                            quickKeyboard
-                        );
-                    }
-                    else if (text === '/help') {
-                        sendTelegramMessage(chatId,
-                            `📖 <b>SOLO M Game Shop</b>\n\n` +
-                            `<b>Commands များ:</b>\n` +
-                            `/start - အကောင့်ဝင်ရန်\n` +
-                            `/help - အကူအညီ\n` +
-                            `/balance - လက်ကျန်ကြည့်ရန်\n` +
-                            `/otp - OTP Code\n` +
-                            `/status - Order စစ်ရန်\n` +
-                            `/premium - Premium Status\n` +
-                            `/spins - Spin History\n` +
-                            `/buy - Code ဝယ်ရန်\n\n` +
-                            `<b>🆕 Features:</b>\n` +
-                            '• 🔐 OTP 2-Step Login\n' +
-                            '• 🎰 Lucky Spin Game\n' +
-                            '• 👑 Bronze/Silver/Gold Premium\n' +
-                            '• 📅 Daily Check-in System\n' +
-                            '• 💱 USD Exchange\n' +
-                            '• 💬 Live Chat\n\n' +
-                            `<b>🌐 Website:</b> ${BASE_URL}\n` +
-                            `<b>ဆက်သွယ်ရန်:</b> @Solo_m28`,
-                            quickKeyboard
-                        );
-                    }
-                    else if (text === '/balance') {
-                        const user = await createTelegramUser(msg.from.id, firstName);
-                        const balance = user ? (user.balance || 0) : 0;
-                        sendTelegramMessage(chatId, 
-                            `💳 <b>သင့်လက်ကျန်</b>\n\n` +
-                            `💰 <b>${balance.toLocaleString()} ကျပ်</b>\n` +
-                            `💵 ≈ $${(balance/2100).toFixed(2)} USD`, 
-                            quickKeyboard
-                        );
-                    }
-                    else if (text === '/otp') {
-                        const user = await createTelegramUser(msg.from.id, firstName);
-                        if (user) {
-                            const otp = await createOTP(user.id);
-                            sendTelegramMessage(chatId, 
-                                `🔐 <b>သင့် OTP ကုဒ်</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ。\n\n🌐 ${BASE_URL}`
-                            );
+                        // Successful payment
+                        if (msg.successful_payment) {
+                            await handleSuccessfulPayment(msg);
+                            continue;
                         }
-                    }
-                    else if (text === '/status') {
-                        const orders = await getUserOrders(msg.from.id);
-                        if (orders.length === 0) {
-                            sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။');
-                        } else {
-                            let msg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
-                            orders.forEach(o => {
-                                const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
-                                msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
-                            });
-                            sendTelegramMessage(chatId, msg);
+                        
+                        // Text message
+                        if (msg.text) {
+                            await handleMessage(msg);
                         }
-                    }
-                    else if (text === '/premium') {
-                        const premium = await getUserPremium(msg.from.id);
-                        if (premium) {
-                            let msg = `👑 <b>သင့် Premium Status</b>\n\n`;
-                            msg += `⭐ Tier: <b>${premium.tierName}</b>\n`;
-                            if (premium.expiry) {
-                                msg += `📅 သက်တမ်းကုန်: <b>${new Date(premium.expiry).toLocaleDateString()}</b>\n`;
-                            }
-                            sendTelegramMessage(chatId, msg, quickKeyboard);
-                        }
-                    }
-                    else if (text === '/spins') {
-                        const spins = await getUserSpinHistory(msg.from.id);
-                        if (spins.length === 0) {
-                            sendTelegramMessage(chatId, '🎰 Spin မလုပ်ရသေးပါ။');
-                        } else {
-                            let msg = '🎰 <b>သင့် Spin မှတ်တမ်း</b>\n\n';
-                            spins.forEach(s => {
-                                msg += `🎁 ${s.reward_amount} ${s.reward_type?.toUpperCase() || ''} | 📅 ${new Date(s.created_at).toLocaleDateString()}\n`;
-                            });
-                            sendTelegramMessage(chatId, msg, quickKeyboard);
-                        }
-                    }
-                    else if (text === '/buy') {
-                        sendTelegramMessage(chatId, 
-                            '🛒 <b>Code ဝယ်ယူရန်</b>\n\n' +
-                            `🌐 ${BASE_URL}/buycode.html\n\n` +
-                            '<b>ရနိုင်သော Code များ:</b>\n' +
-                            '• Shhh Emote - 2,500 Ks\n' +
-                            '• Golden Border - 3,500 Ks\n' +
-                            '• Lucky Diamond - 2,000 Ks\n' +
-                            '• Magic Durt - 1,500 Ks\n' +
-                            '• Emblem Box - 1,500 Ks', 
-                            mainKeyboard
-                        );
-                    }
-                    else {
-                        sendTelegramMessage(chatId, 
-                            `အောက်ပါ Commands များကို အသုံးပြုပါ。\n\n` +
-                            `/start - စတင်ရန်\n` +
-                            `/help - အကူအညီ\n` +
-                            `/balance - လက်ကျန်ကြည့်ရန်\n` +
-                            `/otp - OTP Code\n` +
-                            `/status - Order မှတ်တမ်း\n` +
-                            `/premium - Premium Status\n` +
-                            `/spins - Spin History\n` +
-                            `/buy - Code ဝယ်ယူရန်`,
-                            quickKeyboard
-                        );
                     }
                 }
             }
