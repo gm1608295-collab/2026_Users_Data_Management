@@ -656,6 +656,139 @@ body.modal-open .container {
     font-size: 7px;
     padding: 3px 6px;
 }
+       /* ========== CHECK-IN EVENT CARD ========== */
+.checkin-event-card {
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.3s;
+}
+.checkin-event-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+.checkin-event-card.pending {
+    border-left: 4px solid #f39c12;
+}
+.checkin-event-card.active {
+    border-left: 4px solid #2ecc71;
+}
+.checkin-event-card.ended {
+    border-left: 4px solid #7f8c8d;
+}
+.checkin-event-card.cancelled {
+    border-left: 4px solid #e74c3c;
+    opacity: 0.6;
+}
+
+.checkin-event-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.checkin-event-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex: 1;
+    min-width: 150px;
+}
+
+.checkin-event-type {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: 700;
+}
+.checkin-event-type.normal {
+    background: rgba(52, 152, 219, 0.2);
+    color: #3498db;
+    border: 1px solid rgba(52, 152, 219, 0.3);
+}
+.checkin-event-type.premium {
+    background: rgba(155, 89, 182, 0.2);
+    color: #9b59b6;
+    border: 1px solid rgba(155, 89, 182, 0.3);
+}
+
+.checkin-event-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: 700;
+}
+.checkin-event-status.pending {
+    background: rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+}
+.checkin-event-status.active {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+}
+.checkin-event-status.ended {
+    background: rgba(127, 140, 141, 0.2);
+    color: #7f8c8d;
+}
+.checkin-event-status.cancelled {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+.checkin-event-info {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.checkin-event-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.checkin-event-actions .btn {
+    font-size: 9px;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+.checkin-rewards-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+
+.checkin-reward-tag {
+    font-size: 8px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ========== COUNTDOWN DISPLAY ========== */
+.checkin-countdown {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f39c12;
+    font-family: 'Courier New', monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    margin: 4px 0;
+       }
 </style> 
 </head>
 <body>
@@ -740,9 +873,32 @@ body.modal-open .container {
                 <div class="divider"><h3><i class="fas fa-ticket-alt"></i> Buy Code Notice</h3><div class="form-group"><label>Notice Text</label><textarea id="buycodeNoticeMsg" rows="2" placeholder="Enter notice..."></textarea></div><div class="form-group"><label>Text Color</label><input type="color" id="buycodeNoticeColor" value="#ffffff" style="height:32px;padding:2px;cursor:pointer"></div><div class="btn-row"><button class="btn btn-w" onclick="postBuyCodeNotice()">Post</button><button class="btn btn-r" onclick="deleteAllBuyCodeNotices()">Delete All</button></div><div class="notice-cards" id="buycodeNoticeCards" style="margin-top:8px"></div></div>
                 <div class="divider"><h3><i class="fas fa-gift"></i> Redeem Code Management</h3><div class="form-group"><label>Category</label><select id="redeemCategory"><option value="shhh_emote">🎭 Shhh emote (2,500 Ks)</option><option value="golden_border">🏆 Golden Month Border (3,500 Ks)</option><option value="lucky_diamond">💎 Lucky Diamond Code (2,000 Ks)</option><option value="magic_durt">✨ Magic Durt (1,500 Ks)</option><option value="emblem_box">📦 Emblem Box (1,500 Ks)</option></select></div><div class="form-group"><label>Code</label><input type="text" id="redeemCode" placeholder="Enter redeem code..."></div><button class="btn btn-g" onclick="addRedeemCode()" style="width:100%"><i class="fas fa-plus"></i> Add Code</button><div id="redeemCodeList" style="max-height:200px;overflow-y:auto;margin-top:8px"></div></div>
                 
-                <!-- ===== DAILY CHECK-IN MANAGEMENT (အသစ်) ===== -->
-                <div class="divider"><h3><i class="fas fa-calendar-check"></i> Daily Check-In Event Management</h3><p class="help-note">Normal (7 days) နှင့် Premium (14 days) Check-In Event များကို စီမံခန့်ခွဲရန်။ Event မစတင်မီသာ ပြင်ဆင်/ဖျက်သိမ်းနိုင်သည်။</p><div style="display:flex;gap:6px;margin-bottom:8px"><button class="btn btn-g" onclick="openCheckinEventModal('normal')"><i class="fas fa-plus"></i> New Normal Event</button><button class="btn btn-p" onclick="openCheckinEventModal('premium')"><i class="fas fa-plus"></i> New Premium Event</button></div><div id="checkinEventsList" style="max-height:350px;overflow-y:auto"></div></div>
-                
+                <!-- ===== DAILY CHECK-IN MANAGEMENT ===== -->
+<div class="divider">
+    <h3><i class="fas fa-calendar-check"></i> Daily Check-In Event Management</h3>
+    <p class="help-note">
+        📅 Normal (7 Days) နှင့် Premium (14 Days) Event များကို စီမံခန့်ခွဲရန်။<br>
+        ⚠️ Event မစတင်မီသာ ပြင်ဆင်/ဖျက်သိမ်းနိုင်သည်။<br>
+        ⏰ Start Date/Time ရောက်ရှိပါက Event စတင်မည်ဖြစ်သည်။
+    </p>
+    
+    <!-- Action Buttons -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+        <button class="btn btn-b" onclick="openCheckinEventModal('normal')" style="flex:1;min-width:140px;">
+            <i class="fas fa-plus-circle"></i> New Normal Event (7 Days)
+        </button>
+        <button class="btn" onclick="openCheckinEventModal('premium')" style="flex:1;min-width:140px;background:linear-gradient(135deg,#9b59b6,#8e44ad);color:#fff;">
+            <i class="fas fa-crown"></i> New Premium Event (14 Days)
+        </button>
+    </div>
+    
+    <!-- Events List -->
+    <div id="checkinEventsList" style="max-height:500px;overflow-y:auto;">
+        <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:30px;">
+            <i class="fas fa-spinner fa-spin"></i> Loading events...
+        </p>
+    </div>
+</div>
                 <div class="divider"><h3><i class="fas fa-ticket-alt"></i> Promo Code Management</h3><p class="help-note">Code တစ်ခုကို 700 Ks နဲ့ ရောင်းချပါမည်။</p>
                     <div class="video-card" style="margin-bottom:10px"><h4 style="color:var(--w);font-size:12px;margin-bottom:8px">➕ Create New Promo Code</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>🔑 API Key</label><input type="text" id="promoApiKey" placeholder="PROMO-ABC-XYZ"></div><div class="form-group"><label>💰 Amount</label><input type="number" id="promoAmount" value="5000" min="1"></div><div class="form-group"><label>💱 Currency</label><select id="promoCurrency"><option value="MMK">MMK (Ks)</option><option value="USD">USD ($)</option></select></div><div class="form-group"><label>📅 Expiry Date</label><input type="date" id="promoExpiry"></div></div><button class="btn btn-g" onclick="createPromoCode()" style="width:100%;margin-top:8px"><i class="fas fa-plus"></i> Create Promo Code</button></div>
                     <div style="margin-bottom:10px"><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📋 Promo Code List</h4><div id="promoCodeList" style="max-height:250px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div>
@@ -1213,199 +1369,490 @@ async function revokeChatPremium(userId, username) {
     async function loadPromoCodes(){try{const r=await fetch('/api/admin/promo_codes');const d=await r.json();const c=document.getElementById('promoCodeList');if(d.codes&&d.codes.length>0){c.innerHTML=d.codes.map(pc=>{const statusColor=pc.used?'var(--r)':'var(--g)';const statusText=pc.used?'❌ Used':'✅ Available';return`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:4px;font-size:10px;border-left:3px solid ${statusColor};gap:8px"><div style="flex:1;min-width:0"><b style="color:var(--w)">${pc.api_key}</b><span style="font-size:8px;color:${statusColor};margin-left:4px">[${statusText}]</span><br><small style="color:rgba(255,255,255,0.5)">💰 ${parseFloat(pc.amount).toLocaleString()} ${pc.currency} ${pc.expiry_date?'| 📅 '+pc.expiry_date:''}</small></div>${!pc.used?`<button class="btn btn-r" style="font-size:9px;padding:3px 8px" onclick="deletePromoCode(${pc.id})">🗑️</button>`:''}</div>`}).join('')}else{c.innerHTML='<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No promo codes</p>'}}catch(e){}}
     async function createPromoCode(){const api_key=document.getElementById('promoApiKey').value.trim();const amount=document.getElementById('promoAmount').value;const currency=document.getElementById('promoCurrency').value;const expiry=document.getElementById('promoExpiry').value;if(!api_key)return n('❌ Enter API Key','error');if(!amount||amount<=0)return n('❌ Enter amount','error');try{const r=await fetch('/api/admin/promo_code/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key,amount:parseFloat(amount),currency,expiry_date:expiry||null})});const d=await r.json();if(d.success){n('✅ Promo code created!');document.getElementById('promoApiKey').value='';document.getElementById('promoAmount').value='5000';document.getElementById('promoExpiry').value='';loadPromoCodes()}else{n('❌ '+(d.message||'Error'),'error')}}catch(e){n('❌ Error','error')}}
     async function deletePromoCode(id){if(!confirm('Delete this promo code?'))return;try{const r=await fetch('/api/admin/promo_code/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});const d=await r.json();if(d.success){n('✅ Deleted!');loadPromoCodes()}else{n('❌ Error','error')}}catch(e){n('❌ Error','error')}}
-    
-    // ==================== DAILY CHECK-IN MANAGEMENT (အသစ်) ====================
-    async function loadCheckinEvents(){
-    try{
-        var r=await fetch('/api/admin/checkin_events');
-        var d=await r.json();
-        var c=document.getElementById('checkinEventsList');
-        if(!c)return;
-        if(d.events&&d.events.length>0){
-            // ✅ Server Time API ခေါ်
-var serverTimeRes=await fetch('/api/ping');
-var serverTimeData=await serverTimeRes.json();
-var now=new Date(serverTimeData.time);
-            c.innerHTML=d.events.map(function(evt){
-                var startDateTime=new Date(evt.start_date+'T'+(evt.start_time||'00:00:00'));
-                var endDateTime=new Date(evt.end_date+'T'+(evt.end_time||'14:30:00'));
-                var isCancelled=evt.cancelled;
-                var isStarted=startDateTime<=now;
-                var isEnded=endDateTime<=now;
-                var statusColor,statusText;
-                if(isCancelled){statusColor='var(--r)';statusText='Cancelled';}
-                else if(isEnded){statusColor='#7f8c8d';statusText='Ended';}
-                else if(isStarted){statusColor='var(--g)';statusText='Active';}
-                else{statusColor='var(--w)';statusText='Pending';}
-                var typeColor=evt.event_type==='premium'?'#9b59b6':'#3498db';
-                var typeIcon=evt.event_type==='premium'?'👑':'🎁';
-                var rewardsHtml='';
-                if(evt.rewards&&evt.rewards.length>0){
-                    rewardsHtml='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:8px">';
-                    evt.rewards.forEach(function(r){rewardsHtml+='<span style="font-size:7px;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:3px;margin:1px">D'+r.day_number+': '+(r.icon_url||'')+' '+r.reward_label+'</span>';});
-                    rewardsHtml+='</div>';
+        // ==================== DAILY CHECK-IN MANAGEMENT ====================
+async function loadCheckinEvents() {
+    try {
+        var r = await fetch('/api/admin/checkin_events');
+        var d = await r.json();
+        var c = document.getElementById('checkinEventsList');
+        if (!c) return;
+        
+        if (d.events && d.events.length > 0) {
+            var now = new Date();
+            
+            c.innerHTML = d.events.map(function(evt) {
+                var startDateTime = new Date(evt.start_date + 'T' + (evt.start_time || '00:00:00'));
+                var endDateTime = new Date(evt.end_date + 'T' + (evt.end_time || '14:30:00'));
+                var graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
+                var isCancelled = evt.cancelled;
+                var isStarted = startDateTime <= now;
+                var isEnded = now > endDateTime;
+                var isGraceEnded = now > graceEndDateTime;
+                var isFullyEnded = isEnded && isGraceEnded;
+                
+                var cardClass, statusClass, statusText;
+                if (isCancelled) {
+                    cardClass = 'cancelled';
+                    statusClass = 'cancelled';
+                    statusText = '❌ Cancelled';
+                } else if (isFullyEnded) {
+                    cardClass = 'ended';
+                    statusClass = 'ended';
+                    statusText = '✅ Ended';
+                } else if (isStarted) {
+                    cardClass = 'active';
+                    statusClass = 'active';
+                    statusText = '🟢 Active';
+                } else {
+                    cardClass = 'pending';
+                    statusClass = 'pending';
+                    statusText = '⏳ Pending';
                 }
-                var startTimeDisplay=(evt.start_time||'00:00:00').substring(0,5);
-                var resetTimeDisplay=(evt.end_time||'14:30:00').substring(0,5);
-                var html='<div style="background:rgba(0,0,0,0.35);border-radius:10px;padding:14px;margin-bottom:10px;border-left:5px solid '+typeColor+'">';
-                html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">';
-                html+='<div style="flex:1;min-width:180px"><b style="font-size:13px">'+typeIcon+' '+evt.event_name+'</b><span style="font-size:9px;color:'+statusColor+';margin-left:8px;font-weight:bold">['+statusText+']</span><br><small style="color:rgba(255,255,255,0.6);font-size:9px">📅 '+evt.start_date+' ('+startTimeDisplay+') → '+evt.end_date+' ('+resetTimeDisplay+') | 📆 '+evt.total_days+' days | ⏰ Reset: '+resetTimeDisplay+'</small></div>';
-                html+='<div style="display:flex;gap:5px;flex-shrink:0">';
-                if(!isStarted&&!isCancelled){html+='<button class="btn btn-w" style="font-size:10px;padding:6px 12px" onclick="editCheckinEvent('+evt.id+',\''+evt.event_type+'\')">✏️ Edit</button><button class="btn btn-r" style="font-size:10px;padding:6px 12px" onclick="cancelCheckinEvent('+evt.id+')">🗑️ Cancel</button>';}
-                else if(isEnded&&!isCancelled){html+='<button class="btn btn-b" style="font-size:10px;padding:6px 12px" onclick="reuseCheckinEvent('+evt.id+')">🔄 Reuse</button>';}
-                html+='</div></div>'+rewardsHtml+'</div>';
+                
+                var typeClass = evt.event_type === 'premium' ? 'premium' : 'normal';
+                var typeIcon = evt.event_type === 'premium' ? '👑' : '🎁';
+                var typeName = evt.event_type === 'premium' ? 'Premium' : 'Normal';
+                
+                var startDisplay = evt.start_date + ' ' + (evt.start_time || '00:00:00').substring(0, 5);
+                var endDisplay = evt.end_date + ' ' + (evt.end_time || '14:30:00').substring(0, 5);
+                
+                // Countdown
+                var countdownHTML = '';
+                if (!isStarted && !isCancelled) {
+                    countdownHTML = '<div class="checkin-countdown" id="adminCountdown_' + evt.id + '" data-start="' + startDateTime.toISOString() + '">Loading...</div>';
+                }
+                
+                // Rewards Preview
+                var rewardsHTML = '';
+                if (evt.rewards && evt.rewards.length > 0) {
+                    rewardsHTML = '<div class="checkin-rewards-preview">';
+                    evt.rewards.slice(0, 7).forEach(function(rw) {
+                        var icon = rw.icon_url ? rw.icon_url : rw.reward_type === 'mmk' ? '💰' : rw.reward_type === 'usd' ? '💵' : '🔄';
+                        rewardsHTML += '<span class="checkin-reward-tag">' + icon + ' D' + rw.day_number + ': ' + (rw.reward_label || rw.reward_type) + '</span>';
+                    });
+                    if (evt.rewards.length > 7) rewardsHTML += '<span class="checkin-reward-tag">+' + (evt.rewards.length - 7) + ' more</span>';
+                    rewardsHTML += '</div>';
+                }
+                
+                // Actions
+                var actionsHTML = '';
+                if (!isStarted && !isCancelled) {
+                    actionsHTML = '<button class="btn btn-w" onclick="editCheckinEvent(' + evt.id + ',\'' + evt.event_type + '\')">✏️ Edit</button>' +
+                                 '<button class="btn btn-r" onclick="cancelCheckinEvent(' + evt.id + ')">🗑️ Cancel</button>';
+                } else if (isFullyEnded && !isCancelled) {
+                    actionsHTML = '<button class="btn btn-b" onclick="reuseCheckinEvent(' + evt.id + ')">🔄 Reuse</button>';
+                } else if (isCancelled) {
+                    actionsHTML = '<span style="font-size:9px;color:rgba(255,255,255,0.4);">Cancelled</span>';
+                } else {
+                    actionsHTML = '<span style="font-size:9px;color:rgba(255,255,255,0.4);">🔒 Running</span>';
+                }
+                
+                var html = '<div class="checkin-event-card ' + cardClass + '">';
+                html += '<div class="checkin-event-header">';
+                html += '<span class="checkin-event-title">' + typeIcon + ' ' + (evt.event_name || 'Check-In Event') + '</span>';
+                html += '<span class="checkin-event-type ' + typeClass + '">' + typeName + '</span>';
+                html += '<span class="checkin-event-status ' + statusClass + '">' + statusText + '</span>';
+                html += '</div>';
+                
+                html += '<div class="checkin-event-info">';
+                html += '📅 Start: <b>' + startDisplay + '</b> | End: <b>' + endDisplay + '</b><br>';
+                html += '📆 Days: <b>' + evt.total_days + '</b> | ⏰ Reset: <b>' + (evt.end_time || '14:30:00').substring(0, 5) + '</b>';
+                html += '</div>';
+                
+                html += countdownHTML;
+                html += rewardsHTML;
+                
+                html += '<div class="checkin-event-actions">' + actionsHTML + '</div>';
+                html += '</div>';
+                
                 return html;
             }).join('');
-        }else{c.innerHTML='<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:20px">No events yet</p>';}
-    }catch(e){}
-}
-
-async function openCheckinEventModal(type){
-    var days=type==='normal'?7:14;
-    var title=type==='normal'?'🎁 Normal Daily Check-In (7 Days)':'👑 Premium Daily Check-In (14 Days)';
-    var rewardsHtml='';
-    for(var d=1;d<=days;d++){
-        rewardsHtml+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:4px"><span style="width:35px;font-size:8px">Day'+d+':</span><select id="rewardType'+d+'" style="width:60px;padding:3px;font-size:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><option value="mmk">💰MMK</option><option value="usd">💵USD</option><option value="spin">🔄Spin</option></select><input type="number" id="rewardAmount'+d+'" value="100" min="0" step="0.01" style="width:55px;padding:3px;font-size:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><input type="text" id="rewardLabel'+d+'" placeholder="Label" style="width:65px;padding:3px;font-size:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"><input type="text" id="rewardIcon'+d+'" placeholder="🎁" style="width:35px;padding:3px;font-size:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff"></div>';
+            
+            // Start countdown timers
+            startAdminCountdowns();
+        } else {
+            c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:30px">No events yet<br><br><button class="btn btn-g" onclick="openCheckinEventModal(\'normal\')">➕ Create First Event</button></p>';
+        }
+    } catch(e) {
+        document.getElementById('checkinEventsList').innerHTML = '<p style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">Error loading events</p>';
     }
-    var modal=document.createElement('div');modal.className='modal';modal.id='checkinEventModal';modal.style.display='flex';
-    modal.innerHTML='<div class="modal-box" style="max-width:500px;max-height:85vh;overflow-y:auto"><span class="modal-close" onclick="this.closest(\'.modal\').remove()">&times;</span><h3>'+title+'</h3><div class="form-group"><label>Event Name</label><input type="text" id="checkinEventName" value="'+title+'"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>📅 Start Date</label><input type="date" id="checkinStartDate"></div><div class="form-group"><label>⏰ Start Time</label><input type="time" id="checkinStartTime" value="00:00"></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>📆 Total Days</label><input type="number" id="checkinTotalDays" value="'+days+'" readonly></div><div class="form-group"><label>⏰ Daily Reset Time</label><input type="time" id="checkinResetTime" value="14:30"></div></div><h4 style="color:var(--w);font-size:11px;margin:10px 0">Rewards Configuration</h4><div style="max-height:250px;overflow-y:auto">'+rewardsHtml+'</div><button class="btn btn-g" onclick="createCheckinEvent(\''+type+'\')" style="width:100%;margin-top:10px"><i class="fas fa-save"></i> Create Event</button></div>';
-    document.body.appendChild(modal);
-    modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
 }
 
-async function createCheckinEvent(type){
-    var days=type==='normal'?7:14;
-    var name=document.getElementById('checkinEventName').value;
-    var startDate=document.getElementById('checkinStartDate').value;
-    var startTime=document.getElementById('checkinStartTime').value+':00';
-    var resetTime=document.getElementById('checkinResetTime').value+':00';
-    if(!startDate)return n('❌ Start date required','error');
-    var rewards=[];
-    for(var d=1;d<=days;d++){rewards.push({day:d,type:document.getElementById('rewardType'+d).value,amount:document.getElementById('rewardAmount'+d).value,label:document.getElementById('rewardLabel'+d).value,icon:document.getElementById('rewardIcon'+d).value});}
-    showLoading('Creating...');
-    try{
-        var r=await fetch('/api/admin/checkin_event/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:type,event_name:name,start_date:startDate,start_time:startTime,end_time:resetTime,total_days:days,rewards:rewards})});
-        var d=await r.json();
-        if(d.success){n('✅ Event created!');document.getElementById('checkinEventModal').remove();loadCheckinEvents();}else{n(d.message||'Error','error');}
-    }catch(e){n('Error','error');}
+// ==================== ADMIN COUNTDOWN TIMERS ====================
+function startAdminCountdowns() {
+    document.querySelectorAll('[id^="adminCountdown_"]').forEach(function(el) {
+        var startTime = new Date(el.getAttribute('data-start')).getTime();
+        
+        var update = function() {
+            var now = Date.now();
+            var remaining = startTime - now;
+            
+            if (remaining <= 0) {
+                el.textContent = '🟢 Started!';
+                el.style.color = '#2ecc71';
+                return;
+            }
+            
+            var totalSec = Math.floor(remaining / 1000);
+            var days = Math.floor(totalSec / 86400);
+            var hours = Math.floor((totalSec % 86400) / 3600);
+            var minutes = Math.floor((totalSec % 3600) / 60);
+            var seconds = totalSec % 60;
+            
+            var display = '';
+            if (days > 0) display += days + 'd ';
+            display += hours.toString().padStart(2, '0') + ':' + 
+                      minutes.toString().padStart(2, '0') + ':' + 
+                      seconds.toString().padStart(2, '0');
+            
+            el.textContent = '⏳ ' + display;
+        };
+        
+        update();
+        setInterval(update, 1000);
+    });
+}
+
+// ==================== OPEN CREATE EVENT MODAL ====================
+async function openCheckinEventModal(type) {
+    var days = type === 'normal' ? 7 : 14;
+    var title = type === 'normal' ? '🎁 Normal Daily Check-In (7 Days)' : '👑 Premium Daily Check-In (14 Days)';
+    
+    var rewardsHTML = '';
+    var defaultRewards = type === 'normal' ? 
+        [{day:1,type:'spin',amount:'1',label:'1 Spin',icon:'🔄'},
+         {day:2,type:'mmk',amount:'100',label:'100 Ks',icon:'💰'},
+         {day:3,type:'mmk',amount:'150',label:'150 Ks',icon:'💰'},
+         {day:4,type:'usd',amount:'0.05',label:'$0.05 USD',icon:'💵'},
+         {day:5,type:'spin',amount:'1',label:'1 Spin',icon:'🔄'},
+         {day:6,type:'usd',amount:'0.10',label:'$0.10 USD',icon:'💵'},
+         {day:7,type:'mmk',amount:'300',label:'300 Ks',icon:'🎉'}] :
+        [{day:1,type:'spin',amount:'1',label:'1 Spin',icon:'🔄'},
+         {day:2,type:'mmk',amount:'200',label:'200 Ks',icon:'💰'},
+         {day:3,type:'spin',amount:'2',label:'2 Spins',icon:'🔄'},
+         {day:4,type:'usd',amount:'0.10',label:'$0.10 USD',icon:'💵'},
+         {day:5,type:'mmk',amount:'300',label:'300 Ks',icon:'💰'},
+         {day:6,type:'usd',amount:'0.15',label:'$0.15 USD',icon:'💵'},
+         {day:7,type:'spin',amount:'2',label:'2 Spins',icon:'🔄'},
+         {day:8,type:'mmk',amount:'350',label:'350 Ks',icon:'💰'},
+         {day:9,type:'usd',amount:'0.20',label:'$0.20 USD',icon:'💵'},
+         {day:10,type:'spin',amount:'3',label:'3 Spins',icon:'🔄'},
+         {day:11,type:'mmk',amount:'400',label:'400 Ks',icon:'💰'},
+         {day:12,type:'usd',amount:'0.25',label:'$0.25 USD',icon:'💵'},
+         {day:13,type:'spin',amount:'3',label:'3 Spins',icon:'🔄'},
+         {day:14,type:'usd',amount:'0.50',label:'$0.50 USD',icon:'🎉'}];
+    
+    defaultRewards.forEach(function(rw, i) {
+        var d = i + 1;
+        var selMmk = rw.type === 'mmk' ? 'selected' : '';
+        var selUsd = rw.type === 'usd' ? 'selected' : '';
+        var selSpin = rw.type === 'spin' ? 'selected' : '';
+        
+        rewardsHTML += '<div style="display:flex;gap:5px;align-items:center;margin-bottom:6px">';
+        rewardsHTML += '<span style="width:35px;font-size:9px;flex-shrink:0;">Day ' + d + ':</span>';
+        rewardsHTML += '<select id="rewardType' + d + '" style="flex:1;min-width:55px;padding:6px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff">';
+        rewardsHTML += '<option value="mmk" ' + selMmk + '>💰 MMK</option>';
+        rewardsHTML += '<option value="usd" ' + selUsd + '>💵 USD</option>';
+        rewardsHTML += '<option value="spin" ' + selSpin + '>🔄 Spin</option>';
+        rewardsHTML += '</select>';
+        rewardsHTML += '<input type="number" id="rewardAmount' + d + '" value="' + rw.amount + '" step="0.01" style="flex:1;min-width:50px;padding:6px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff">';
+        rewardsHTML += '<input type="text" id="rewardLabel' + d + '" value="' + rw.label + '" placeholder="Label" style="flex:1.5;min-width:70px;padding:6px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff">';
+        rewardsHTML += '<input type="text" id="rewardIcon' + d + '" value="' + rw.icon + '" placeholder="🔄" style="width:40px;padding:6px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff">';
+        rewardsHTML += '</div>';
+    });
+    
+    var modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'checkinEventModal';
+    modal.style.display = 'flex';
+    modal.innerHTML = 
+        '<div class="modal-box" style="max-width:600px;max-height:85vh;overflow-y:auto">' +
+        '<span class="modal-close" onclick="this.closest(\'.modal\').remove()">&times;</span>' +
+        '<h3>' + title + '</h3>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">' +
+        '<div class="form-group"><label>📝 Event Name</label><input type="text" id="checkinEventName" value="' + title + '"></div>' +
+        '<div class="form-group"><label>📅 Start Date</label><input type="date" id="checkinStartDate"></div>' +
+        '<div class="form-group"><label>⏰ Start Time</label><input type="time" id="checkinStartTime" value="00:00"></div>' +
+        '<div class="form-group"><label>⏰ Daily Reset Time</label><input type="time" id="checkinResetTime" value="14:30"></div>' +
+        '</div>' +
+        '<h4 style="color:var(--w);font-size:12px;margin:10px 0">🎁 Rewards (' + days + ' Days)</h4>' +
+        '<div style="max-height:300px;overflow-y:auto;margin-bottom:10px">' + rewardsHTML + '</div>' +
+        '<button class="btn btn-g" onclick="createCheckinEvent(\'' + type + '\')" style="width:100%;padding:12px">' +
+        '<i class="fas fa-check-circle"></i> Confirm & Create Event</button>' +
+        '</div>';
+    
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) modal.remove();
+    });
+}
+
+// ==================== CREATE EVENT ====================
+async function createCheckinEvent(type) {
+    var days = type === 'normal' ? 7 : 14;
+    var name = document.getElementById('checkinEventName').value || (type === 'normal' ? 'Normal Daily Check-In' : 'Premium Daily Check-In');
+    var startDate = document.getElementById('checkinStartDate').value;
+    var startTime = (document.getElementById('checkinStartTime').value || '00:00') + ':00';
+    var resetTime = (document.getElementById('checkinResetTime').value || '14:30') + ':00';
+    
+    if (!startDate) return n('❌ Start date required', 'error');
+    
+    var rewards = [];
+    for (var d = 1; d <= days; d++) {
+        var typeEl = document.getElementById('rewardType' + d);
+        var amountEl = document.getElementById('rewardAmount' + d);
+        var labelEl = document.getElementById('rewardLabel' + d);
+        var iconEl = document.getElementById('rewardIcon' + d);
+        
+        if (typeEl && amountEl) {
+            rewards.push({
+                day: d,
+                type: typeEl.value,
+                amount: parseFloat(amountEl.value) || 0,
+                label: labelEl ? labelEl.value : '',
+                icon: iconEl ? iconEl.value : ''
+            });
+        }
+    }
+    
+    showLoading('Creating event...');
+    
+    try {
+        var r = await fetch('/api/admin/checkin_event/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_type: type,
+                event_name: name,
+                start_date: startDate,
+                start_time: startTime,
+                end_time: resetTime,
+                total_days: days,
+                rewards: rewards
+            })
+        });
+        var d = await r.json();
+        
+        if (d.success) {
+            n('✅ Event created! Starts: ' + startDate + ' ' + startTime.substring(0, 5));
+            var modal = document.getElementById('checkinEventModal');
+            if (modal) modal.remove();
+            loadCheckinEvents();
+        } else {
+            n('❌ ' + (d.message || 'Error'), 'error');
+        }
+    } catch(e) {
+        n('❌ Connection error', 'error');
+    }
+    
     hideLoading();
 }
 
-async function cancelCheckinEvent(eventId){
-    if(!confirm('Cancel this event?'))return;
-    try{var r=await fetch('/api/admin/checkin_event/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:eventId})});var d=await r.json();if(d.success){n('✅ Cancelled!');loadCheckinEvents();}else{n(d.message||'Error','error');}}catch(e){n('Error','error');}
+// ==================== CANCEL EVENT ====================
+async function cancelCheckinEvent(eventId) {
+    if (!confirm('⚠️ Cancel this event?\n\nOnly events that have NOT started can be cancelled.')) return;
+    
+    try {
+        var r = await fetch('/api/admin/checkin_event/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_id: eventId })
+        });
+        var d = await r.json();
+        
+        if (d.success) {
+            n('✅ Event cancelled!');
+            loadCheckinEvents();
+        } else {
+            n('❌ ' + (d.message || 'Error'), 'error');
+        }
+    } catch(e) {
+        n('❌ Error', 'error');
+    }
 }
 
-async function editCheckinEvent(eventId, type){
-    try{
-        var r=await fetch('/api/admin/checkin_events');
-        var d=await r.json();
-        var event=null;
-        if(d.events){
-            for(var i=0;i<d.events.length;i++){
-                if(d.events[i].id===eventId){event=d.events[i];break;}
+// ==================== EDIT EVENT ====================
+async function editCheckinEvent(eventId, type) {
+    try {
+        var r = await fetch('/api/admin/checkin_events');
+        var d = await r.json();
+        var event = null;
+        
+        if (d.events) {
+            for (var i = 0; i < d.events.length; i++) {
+                if (d.events[i].id === eventId) { event = d.events[i]; break; }
             }
         }
-        if(!event){n('Event not found','error');return;}
         
-        var days=event.total_days;
-        var title='✏️ Edit: '+event.event_name;
-        var startTimeVal=event.start_time?event.start_time.substring(0,5):'00:00';
-        var resetTimeVal=event.end_time?event.end_time.substring(0,5):'14:30';
+        if (!event) return n('❌ Event not found', 'error');
         
-        var rewardsHtml='';
-        if(event.rewards){
-            for(var j=0;j<event.rewards.length;j++){
-                var rw=event.rewards[j];
-                var d2=rw.day_number;
-                var selMmk=(rw.reward_type==='mmk')?'selected':'';
-                var selUsd=(rw.reward_type==='usd')?'selected':'';
-                var selSpin=(rw.reward_type==='spin')?'selected':'';
+        var now = new Date();
+        var startDateTime = new Date(event.start_date + 'T' + (event.start_time || '00:00:00'));
+        
+        if (startDateTime <= now) {
+            return n('❌ Event already started! Cannot edit.', 'error');
+        }
+        
+        var days = event.total_days;
+        var title = '✏️ Edit: ' + event.event_name;
+        var startTimeVal = (event.start_time || '00:00:00').substring(0, 5);
+        var resetTimeVal = (event.end_time || '14:30:00').substring(0, 5);
+        
+        var rewardsHTML = '';
+        if (event.rewards) {
+            event.rewards.forEach(function(rw) {
+                var d2 = rw.day_number;
+                var selMmk = rw.reward_type === 'mmk' ? 'selected' : '';
+                var selUsd = rw.reward_type === 'usd' ? 'selected' : '';
+                var selSpin = rw.reward_type === 'spin' ? 'selected' : '';
                 
-                rewardsHtml+='<div style="display:flex;gap:4px;align-items:center;margin-bottom:5px">';
-                rewardsHtml+='<span style="width:35px;font-size:9px">Day'+d2+':</span>';
-                rewardsHtml+='<select id="editRewardType'+d2+'" style="width:60px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">';
-                rewardsHtml+='<option value="mmk" '+selMmk+'>💰MMK</option>';
-                rewardsHtml+='<option value="usd" '+selUsd+'>💵USD</option>';
-                rewardsHtml+='<option value="spin" '+selSpin+'>🔄Spin</option>';
-                rewardsHtml+='</select>';
-                rewardsHtml+='<input type="number" id="editRewardAmount'+d2+'" value="'+rw.reward_amount+'" min="0" step="0.01" style="width:65px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">';
-                rewardsHtml+='<input type="text" id="editRewardLabel'+d2+'" value="'+(rw.reward_label||'').replace(/"/g,'&quot;')+'" placeholder="Label" style="width:80px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">';
-                rewardsHtml+='<input type="text" id="editRewardIcon'+d2+'" value="'+(rw.icon_url||'').replace(/"/g,'&quot;')+'" placeholder="🎁" style="width:50px;padding:4px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:4px;color:#fff">';
-                rewardsHtml+='</div>';
-            }
+                rewardsHTML += '<div style="display:flex;gap:5px;align-items:center;margin-bottom:6px">';
+                rewardsHTML += '<span style="width:35px;font-size:9px;">Day ' + d2 + ':</span>';
+                rewardsHTML += '<select id="editRewardType' + d2 + '" style="flex:1;min-width:55px;padding:6px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff">';
+                rewardsHTML += '<option value="mmk" ' + selMmk + '>💰</option>';
+                rewardsHTML += '<option value="usd" ' + selUsd + '>💵</option>';
+                rewardsHTML += '<option value="spin" ' + selSpin + '>🔄</option>';
+                rewardsHTML += '</select>';
+                rewardsHTML += '<input type="number" id="editRewardAmount' + d2 + '" value="' + rw.reward_amount + '" step="0.01" style="flex:1;min-width:50px;padding:6px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff">';
+                rewardsHTML += '<input type="text" id="editRewardLabel' + d2 + '" value="' + (rw.reward_label || '') + '" style="flex:1.5;min-width:70px;padding:6px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff">';
+                rewardsHTML += '<input type="text" id="editRewardIcon' + d2 + '" value="' + (rw.icon_url || '') + '" style="width:40px;padding:6px;font-size:9px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:#fff">';
+                rewardsHTML += '</div>';
+            });
         }
         
-        var modal=document.createElement('div');
-        modal.className='modal';
-        modal.id='editCheckinEventModal';
-        modal.style.display='flex';
-        modal.innerHTML='<div class="modal-box" style="max-width:550px;max-height:85vh;overflow-y:auto">';
-        modal.innerHTML+='<span class="modal-close" onclick="this.closest(\'.modal\').remove()">&times;</span>';
-        modal.innerHTML+='<h3>'+title+'</h3>';
-        modal.innerHTML+='<div class="form-group"><label>Event Name</label><input type="text" id="editCheckinEventName" value="'+(event.event_name||'').replace(/"/g,'&quot;')+'"></div>';
-        modal.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-        modal.innerHTML+='<div class="form-group"><label>📅 Start Date</label><input type="date" id="editCheckinStartDate" value="'+event.start_date+'"></div>';
-        modal.innerHTML+='<div class="form-group"><label>⏰ Start Time</label><input type="time" id="editCheckinStartTime" value="'+startTimeVal+'"></div>';
-        modal.innerHTML+='</div>';
-        modal.innerHTML+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-        modal.innerHTML+='<div class="form-group"><label>📆 Total Days</label><input type="number" id="editCheckinTotalDays" value="'+days+'" readonly></div>';
-        modal.innerHTML+='<div class="form-group"><label>⏰ Daily Reset Time</label><input type="time" id="editCheckinResetTime" value="'+resetTimeVal+'"></div>';
-        modal.innerHTML+='</div>';
-        modal.innerHTML+='<h4 style="color:var(--w);font-size:12px;margin:12px 0 8px">Rewards Configuration</h4>';
-        modal.innerHTML+='<div style="max-height:280px;overflow-y:auto">'+rewardsHtml+'</div>';
-        modal.innerHTML+='<button class="btn btn-g" onclick="saveEditCheckinEvent('+eventId+')" style="width:100%;margin-top:12px"><i class="fas fa-save"></i> Save Changes</button>';
-        modal.innerHTML+='</div>';
+        var modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.id = 'editCheckinEventModal';
+        modal.style.display = 'flex';
+        modal.innerHTML = 
+            '<div class="modal-box" style="max-width:600px;max-height:85vh;overflow-y:auto">' +
+            '<span class="modal-close" onclick="this.closest(\'.modal\').remove()">&times;</span>' +
+            '<h3>' + title + '</h3>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">' +
+            '<div class="form-group"><label>📝 Event Name</label><input type="text" id="editCheckinEventName" value="' + (event.event_name || '') + '"></div>' +
+            '<div class="form-group"><label>📅 Start Date</label><input type="date" id="editCheckinStartDate" value="' + event.start_date + '"></div>' +
+            '<div class="form-group"><label>⏰ Start Time</label><input type="time" id="editCheckinStartTime" value="' + startTimeVal + '"></div>' +
+            '<div class="form-group"><label>⏰ Reset Time</label><input type="time" id="editCheckinResetTime" value="' + resetTimeVal + '"></div>' +
+            '</div>' +
+            '<h4 style="color:var(--w);font-size:12px;margin:10px 0">🎁 Rewards (' + days + ' Days)</h4>' +
+            '<div style="max-height:300px;overflow-y:auto;margin-bottom:10px">' + rewardsHTML + '</div>' +
+            '<button class="btn btn-g" onclick="saveEditCheckinEvent(' + eventId + ')" style="width:100%;padding:12px">' +
+            '<i class="fas fa-save"></i> Save Changes</button>' +
+            '</div>';
+        
         document.body.appendChild(modal);
-        modal.addEventListener('click',function(e){if(e.target===modal)modal.remove();});
-    }catch(e){n('Error loading event','error');}
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) modal.remove();
+        });
+        
+    } catch(e) {
+        n('❌ Error loading event', 'error');
+    }
 }
 
-// ✅ Save Edit Function ကိုလည်း ထည့်ပါ
-async function saveEditCheckinEvent(eventId){
-    var name=document.getElementById('editCheckinEventName').value;
-    var startDate=document.getElementById('editCheckinStartDate').value;
-    var startTime=document.getElementById('editCheckinStartTime').value+':00';
-    var resetTime=document.getElementById('editCheckinResetTime').value+':00';
-    var totalDays=parseInt(document.getElementById('editCheckinTotalDays').value)||7;
+// ==================== SAVE EDIT EVENT ====================
+async function saveEditCheckinEvent(eventId) {
+    var name = document.getElementById('editCheckinEventName').value;
+    var startDate = document.getElementById('editCheckinStartDate').value;
+    var startTime = (document.getElementById('editCheckinStartTime').value || '00:00') + ':00';
+    var resetTime = (document.getElementById('editCheckinResetTime').value || '14:30') + ':00';
     
-    if(!startDate){n('❌ Start date required','error');return;}
+    if (!startDate) return n('❌ Start date required', 'error');
     
-    var rewards=[];
-    for(var d=1;d<=totalDays;d++){
-        var typeEl=document.getElementById('editRewardType'+d);
-        var amountEl=document.getElementById('editRewardAmount'+d);
-        var labelEl=document.getElementById('editRewardLabel'+d);
-        var iconEl=document.getElementById('editRewardIcon'+d);
-        if(typeEl&&amountEl){
-            rewards.push({day:d,type:typeEl.value,amount:amountEl.value,label:labelEl?labelEl.value:'',icon:iconEl?iconEl.value:''});
+    var days = 0;
+    var rewards = [];
+    
+    // Find total days from reward fields
+    for (var d = 1; d <= 14; d++) {
+        var typeEl = document.getElementById('editRewardType' + d);
+        if (typeEl) days = d;
+    }
+    
+    for (var d = 1; d <= days; d++) {
+        var typeEl = document.getElementById('editRewardType' + d);
+        var amountEl = document.getElementById('editRewardAmount' + d);
+        var labelEl = document.getElementById('editRewardLabel' + d);
+        var iconEl = document.getElementById('editRewardIcon' + d);
+        
+        if (typeEl && amountEl) {
+            rewards.push({
+                day: d,
+                type: typeEl.value,
+                amount: parseFloat(amountEl.value) || 0,
+                label: labelEl ? labelEl.value : '',
+                icon: iconEl ? iconEl.value : ''
+            });
         }
     }
     
     showLoading('Saving...');
-    try{
-        var r=await fetch('/api/admin/checkin_event/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:eventId,event_name:name,start_date:startDate,start_time:startTime,end_time:resetTime,total_days:totalDays,rewards:rewards})});
-        var d=await r.json();
-        if(d.success){n('✅ Event updated!');document.getElementById('editCheckinEventModal').remove();loadCheckinEvents();}else{n(d.message||'Error','error');}
-    }catch(e){n('Error','error');}
-    hideLoading();
-}
-async function reuseCheckinEvent(eventId){
-    var startDate=prompt('📅 ဘယ်နေ့မှ စတင်မလဲ?\n(YYYY-MM-DD)\nဥပမာ - 2026-06-01',new Date().toISOString().split('T')[0]);
-    if(!startDate)return;
-    var startTime=prompt('⏰ ဘယ်အချိန်မှ စတင်မလဲ?\n(HH:MM)\nဥပမာ - 00:00','00:00');
-    if(!startTime)return;
-    showLoading('Reusing event...');
-    try{
-        var r=await fetch('/api/admin/checkin_event/reuse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:eventId,start_date:startDate,start_time:startTime+':00'})});
-        var d=await r.json();
-        if(d.success){n('✅ Event reused! Starts: '+startDate+' → Ends: '+d.end_date);loadCheckinEvents();}else{n(d.message||'Error','error');}
-    }catch(e){n('Error','error');}
+    
+    try {
+        var r = await fetch('/api/admin/checkin_event/edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_id: eventId,
+                event_name: name,
+                start_date: startDate,
+                start_time: startTime,
+                end_time: resetTime,
+                total_days: days,
+                rewards: rewards
+            })
+        });
+        var d = await r.json();
+        
+        if (d.success) {
+            n('✅ Event updated!');
+            var modal = document.getElementById('editCheckinEventModal');
+            if (modal) modal.remove();
+            loadCheckinEvents();
+        } else {
+            n('❌ ' + (d.message || 'Error'), 'error');
+        }
+    } catch(e) {
+        n('❌ Error', 'error');
+    }
+    
     hideLoading();
 }
 
-    async function reuseCheckinEvent(eventId){const startDate=prompt('📅 ဘယ်နေ့မှ စတင်မလဲ?\n(YYYY-MM-DD)\nဥပမာ - 2026-06-01',new Date().toISOString().split('T')[0]);if(!startDate)return;const startTime=prompt('⏰ ဘယ်အချိန်မှ စတင်မလဲ?\n(HH:MM)\nဥပမာ - 00:00','00:00');if(!startTime)return;showLoading('Reusing event...');try{const r=await fetch('/api/admin/checkin_event/reuse',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event_id:eventId,start_date:startDate,start_time:startTime+':00'})});const d=await r.json();if(d.success){n('✅ Event reused! Starts: '+startDate+' → Ends: '+d.end_date);loadCheckinEvents()}else{n(d.message||'Error','error')}}catch(e){n('Error','error')}hideLoading()}
+// ==================== REUSE EVENT ====================
+async function reuseCheckinEvent(eventId) {
+    var startDate = prompt('📅 New Start Date?\n(YYYY-MM-DD)\nExample: 2026-06-15', new Date().toISOString().split('T')[0]);
+    if (!startDate) return;
     
+    var startTime = prompt('⏰ New Start Time?\n(HH:MM)\nExample: 00:00', '00:00');
+    if (!startTime) return;
+    
+    showLoading('Reusing event...');
+    
+    try {
+        var r = await fetch('/api/admin/checkin_event/reuse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event_id: eventId,
+                start_date: startDate,
+                start_time: startTime + ':00'
+            })
+        });
+        var d = await r.json();
+        
+        if (d.success) {
+            n('✅ Event reused! New Event ID: ' + d.new_event_id);
+            loadCheckinEvents();
+        } else {
+            n('❌ ' + (d.message || 'Error'), 'error');
+        }
+    } catch(e) {
+        n('❌ Error', 'error');
+    }
+    
+    hideLoading();
+}
+        
     function addBotTemplate(t){const ta=document.getElementById('botCustomMsg');const temps={announcement:'📢 Announcement\n\n',promo:'🎉 Promotion\n\n',update:'🔧 Update\n\n• \n• \n\n',warning:'⚠️ Warning\n\n'};ta.value=temps[t]||'';ta.focus()}
     async function sendBotMessage(){const msg=document.getElementById('botCustomMsg').value.trim();if(!msg)return n('Enter message','error');try{const r=await fetch('/api/admin/bot_message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});const d=await r.json();d.success?(n('✅ Sent to '+d.count+' users!'),document.getElementById('botCustomMsg').value=''):n(d.message||'Error','error')}catch(e){n('Error','error')}}
     async function saveSliderImages(){const urls=[];for(let i=1;i<=5;i++){const inp=document.getElementById('sliderUrl'+i);if(inp&&inp.value.trim())urls.push(inp.value.trim())}if(!urls.length)return n("Enter URLs","error");try{await fetch('/api/admin/slider_images',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({images:urls})});n('Saved!');for(let i=1;i<=5;i++)document.getElementById('sliderUrl'+i).value='';loadSliderPreview()}catch(e){n('Error','error')}}
