@@ -4416,9 +4416,14 @@ app.post('/api/track_premium_draw', async (req, res) => {
         res.json({ success: true });
     } catch(e) { res.json({ success: false }); }
 });
-// ==================== SPIN EXECUTE (JWT FIXED - FULL) ====================
+// ==================== SPIN EXECUTE (JWT + MMK FIX - COMPLETE) ====================
 app.post('/api/spin/execute', async (req, res) => {
     const { token, spin_source } = req.body;
+    
+    // ✅ JWT Config
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+    
     console.log('[SPIN EXECUTE] Source:', spin_source);
     
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
@@ -4511,21 +4516,38 @@ app.post('/api/spin/execute', async (req, res) => {
         for (let i = 0; i < segments.length; i++) { rand -= segments[i].weight; if (rand <= 0) { winIndex = i; break; } }
         const reward = segments[winIndex];
         
-        // Balance Update
+        // ✅ BALANCE UPDATE (MMK + USD - နှစ်ခုလုံး သီးသန့်စီ)
         const balBefore = { mmk: parseFloat(u.balance||0), usd: parseFloat(u.usd_balance||0) };
         let balAfter = { mmk: balBefore.mmk, usd: balBefore.usd };
         
-        if (reward.type === 'usd' && reward.reward > 0) { await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward.reward, uid]); balAfter.usd += reward.reward; }
-        else if (reward.type === 'mmk' && reward.reward > 0) { await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward.reward, uid]); balAfter.mmk += reward.reward; }
-        else if (reward.type === 'free' && (spin_source === 'bought' || spin_source === 'premium_bought')) { await p.query('UPDATE auth_users SET paid_spins = paid_spins + 1 WHERE id=$1', [uid]); }
+        // ✅ USD Reward
+        if (reward.type === 'usd' && reward.reward > 0) {
+            await p.query('UPDATE auth_users SET usd_balance = COALESCE(usd_balance,0) + $1 WHERE id=$2', [reward.reward, uid]);
+            balAfter.usd += reward.reward;
+        }
+        
+        // ✅ MMK Reward (သီးသန့်)
+        if (reward.type === 'mmk' && reward.reward > 0) {
+            await p.query('UPDATE auth_users SET balance = COALESCE(balance,0) + $1 WHERE id=$2', [reward.reward, uid]);
+            balAfter.mmk += reward.reward;
+        }
+        
+        // ✅ Free Spin Reward
+        if (reward.type === 'free' && (spin_source === 'bought' || spin_source === 'premium_bought')) {
+            await p.query('UPDATE auth_users SET paid_spins = paid_spins + 1 WHERE id=$1', [uid]);
+        }
         
         // Log
-        await p.query(`INSERT INTO spin_history_v2 (user_id, spin_source, reward_type, reward_amount, balance_before_mmk, balance_after_mmk, balance_before_usd, balance_after_usd) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, [uid, spin_source, reward.type, reward.reward, balBefore.mmk, balAfter.mmk, balBefore.usd, balAfter.usd]);
+        await p.query(
+            `INSERT INTO spin_history_v2 (user_id, spin_source, reward_type, reward_amount, balance_before_mmk, balance_after_mmk, balance_before_usd, balance_after_usd) 
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`, 
+            [uid, spin_source, reward.type, reward.reward, balBefore.mmk, balAfter.mmk, balBefore.usd, balAfter.usd]
+        );
         
         const updatedUser = await p.query('SELECT paid_spins FROM auth_users WHERE id=$1', [uid]);
         const updatedBought = parseInt(updatedUser.rows[0]?.paid_spins || 0);
         
-        console.log('[SPIN RESULT] ✅ User:', uid, 'Tier:', premiumTier, 'Reward:', reward.label);
+        console.log('[SPIN RESULT] ✅ User:', uid, 'Tier:', premiumTier, 'Reward:', reward.label, 'MMK:', balAfter.mmk, 'USD:', balAfter.usd);
         
         res.json({
             success: true, winIndex, reward,
@@ -4542,8 +4564,6 @@ app.post('/api/spin/execute', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
-console.log('✅ SPIN & USD API Section Ready');
-
 // ==================== CREATE SPIN RATES TABLE ====================
 async function createSpinRatesTable() {
     const query = `
