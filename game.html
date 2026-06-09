@@ -353,21 +353,6 @@ body.tier3 .led-glow-ring {
 </style>
 </head>
 <body id="mainBody">
-    <!-- Loading Screen -->
-<div id="spinLoadingScreen" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0c0e27;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s;">
-    <div style="font-size:50px;animation:spinPulse 1s infinite;">🎰</div>
-    <div style="color:#f39c12;font-size:16px;font-weight:bold;margin-top:15px;">Loading Lucky Spin...</div>
-    <div style="width:150px;height:3px;background:rgba(255,255,255,0.1);border-radius:3px;margin-top:15px;overflow:hidden;">
-        <div id="spinLoadingBar" style="height:100%;width:0%;background:linear-gradient(90deg,#f39c12,#e67e22);border-radius:3px;transition:width 0.3s;"></div>
-    </div>
-</div>
-
-<style>
-@keyframes spinPulse {
-    0%,100% { transform:scale(1);opacity:1; }
-    50% { transform:scale(1.2);opacity:0.7; }
-}
-</style>
     <div class="toast" id="toast"></div>
     <div class="transition-overlay" id="transitionOverlay"><div class="transition-text" id="transitionText">👑<br>PREMIUM<br>UNLOCKED!</div></div>
     <div class="modal-overlay" id="processingModal"><div class="modal-box processing-modal"><div class="processing-icon">👑</div><div class="processing-title" id="processingTitle">Processing Premium...</div><div class="progress-bar-container"><div class="progress-bar-fill" id="progressBarFill"></div></div><div class="progress-text" id="progressText">0%</div><div class="progress-subtext">Please wait while we activate your premium features...</div></div></div>
@@ -1502,44 +1487,65 @@ document.getElementById('btnSpin').addEventListener('click',handleSpin);
 document.querySelectorAll('.btn-buy').forEach(function(btn){btn.addEventListener('click',function(){handleBuySpins(parseInt(btn.dataset.spins),parseInt(btn.dataset.cost));});});
 document.querySelectorAll('.modal-overlay').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o&&o.id!=='processingModal')o.classList.remove('active');});});
 
-async function init() {
-    // ✅ Loading Bar Update
-    var loadingBar = document.getElementById('spinLoadingBar');
-    var loadingScreen = document.getElementById('spinLoadingScreen');
-    
-    function updateLoading(pct) {
-        if (loadingBar) loadingBar.style.width = pct + '%';
-    }
-    
-    updateLoading(10);
-    
-    // Maintenance check
+async function init(){
     try {
         var r = await fetch('/api/admin/page_status');
         var d = await r.json();
         if (d.pages) {
             var gp = d.pages.find(function(p) { return p.id === 'game'; });
             if (gp && gp.status === 'off') {
-                // ... maintenance code ...
-                if (loadingScreen) loadingScreen.style.display = 'none';
+                var timer = null;
+                try {
+                    var s = localStorage.getItem('pageTimers');
+                    if (s) { var t = JSON.parse(s); timer = t['game']; }
+                    if (!timer) {
+                        var ck = getCookie('pageTimers');
+                        if (ck) { var t = JSON.parse(decodeURIComponent(ck)); timer = t['game']; }
+                    }
+                    if (!timer) {
+                        var ss = sessionStorage.getItem('pageTimers');
+                        if (ss) { var t = JSON.parse(ss); timer = t['game']; }
+                    }
+                } catch(e) {}
+                
+                if (timer && timer > Date.now()) {
+                    document.getElementById('mainContainer').style.display = 'none';
+                    document.getElementById('maintenanceMessage').style.display = 'block';
+                    var cnt = document.getElementById('maintenanceCountdown');
+                    var upd = function() {
+                        var rem = timer - Date.now();
+                        if (rem <= 0) {
+                            try {
+                                var s = localStorage.getItem('pageTimers');
+                                if (s) { var t = JSON.parse(s); delete t['game']; localStorage.setItem('pageTimers', JSON.stringify(t)); }
+                                setCookie('pageTimers', '', -1);
+                                sessionStorage.removeItem('pageTimers');
+                            } catch(e) {}
+                            location.reload();
+                            return;
+                        }
+                        var ss = Math.floor(rem / 1000);
+                        var hh = Math.floor(ss / 3600);
+                        var mm = Math.floor((ss % 3600) / 60);
+                        var sec = ss % 60;
+                        cnt.textContent = hh.toString().padStart(2, '0') + ':' + mm.toString().padStart(2, '0') + ':' + sec.toString().padStart(2, '0');
+                    };
+                    upd();
+                    setInterval(upd, 1000);
+                    return;
+                }
+                document.getElementById('mainContainer').style.display = 'none';
+                document.getElementById('maintenanceMessage').style.display = 'block';
                 return;
             }
         }
     } catch(e) {}
     
-    updateLoading(30);
-    
     document.getElementById('mainContainer').style.display = '';
     document.getElementById('maintenanceMessage').style.display = 'none';
     
     State.load();
-    
-    updateLoading(50);
-    
     await API.fetchRates();
-    
-    updateLoading(70);
-    
     var data = await API.syncAll();
     
     if (data) {
@@ -1548,24 +1554,19 @@ async function init() {
         State.isPremium = data.isPremium;
         State.premiumTier = data.premiumTier || 1;
         State.premiumExpiry = data.premiumExpiry;
-        State.maxDailyDraws = data.maxDailyDraws || 1;
-        State.dailyDraws = data.dailyDrawsRemaining || 0;
-        State.boughtDraws = data.boughtDraws || 0;
-        State.weeklyBonusDraws = data.weeklyBonusDraws || 0;
+        State.maxDailyDraws = data.maxDailyDraws;
+        State.dailyDraws = data.dailyDrawsRemaining;
         State.checkPremiumExpiry();
         
         var today = new Date().toDateString();
         if (localStorage.getItem('spinLastResetDate') !== today) {
+            State.dailyDraws = data.maxDailyDraws || 1;
             localStorage.setItem('spinLastResetDate', today);
         }
         
-        if (State.isPremium) {
-            document.getElementById('mainBody').classList.add('premium-active');
-        }
+        if (State.isPremium) document.getElementById('mainBody').classList.add('premium-active');
         State.save();
     }
-    
-    updateLoading(85);
     
     UI.updateBalances();
     UI.applyPremiumTheme();
@@ -1573,19 +1574,6 @@ async function init() {
     WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
     UI.loadCheckInStatus();
     
-    updateLoading(100);
-    
-    // ✅ Loading Screen ဖျောက်
-    setTimeout(function() {
-        if (loadingScreen) {
-            loadingScreen.style.opacity = '0';
-            setTimeout(function() {
-                if (loadingScreen) loadingScreen.style.display = 'none';
-            }, 500);
-        }
-    }, 300);
-    
-    // Rest of timers...
     setInterval(function() { UI.updateDailyTimer(); }, 1000);
     UI.updateDailyTimer();
     
@@ -1624,7 +1612,8 @@ async function init() {
             }
         });
     }, 1000);
-  }
+    }
+init();
 </script>
 </body>
 </html>
