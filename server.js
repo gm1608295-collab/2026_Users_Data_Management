@@ -5129,28 +5129,26 @@ app.post('/api/admin/checkin_event/cancel', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-// ==================== DAILY CHECK-IN STATUS ====================
+// ==================== DAILY CHECK-IN STATUS (REAL VERSION) ====================
 app.post('/api/daily_checkin/status', async (req, res) => {
     const { token } = req.body;
-    
-    // ✅ JWT Config
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
     
     if (!token || token === 'guest') {
         return res.json({ success: false, events: [] });
     }
     
     try {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         const p = await getPool();
-        let uid;
         
+        let uid;
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
-                uid = decoded.userId;
+                uid = decoded.userId || decoded.id || decoded.uid;
             } catch(e) {
-                return res.json({ success: false, events: [] });
+                return res.json({ success: false, events: [], message: 'Invalid token' });
             }
         } else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''));
@@ -5158,14 +5156,22 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             return res.json({ success: false, events: [] });
         }
         
-        if (isNaN(uid)) return res.json({ success: false, events: [] });
+        if (!uid || isNaN(uid)) {
+            return res.json({ success: false, events: [] });
+        }
         
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
         
-        const userRes = await p.query('SELECT premium_expiry, premium_tier FROM auth_users WHERE id=$1', [uid]);
-        const isPremium = userRes.rows.length > 0 && userRes.rows[0].premium_expiry && new Date(userRes.rows[0].premium_expiry) > now;
+        // Check premium status
+        const userRes = await p.query(
+            'SELECT premium_expiry, premium_tier FROM auth_users WHERE id = $1', [uid]
+        );
+        const isPremium = userRes.rows.length > 0 && 
+                         userRes.rows[0].premium_expiry && 
+                         new Date(userRes.rows[0].premium_expiry) > now;
         
+        // Get all active events
         const events = await p.query(
             `SELECT * FROM daily_checkin_events 
              WHERE is_active = true AND cancelled = false
@@ -5183,35 +5189,44 @@ app.post('/api/daily_checkin/status', async (req, res) => {
             const endDateTime = new Date(ev.end_date + 'T' + '23:59:59');
             const graceEndDateTime = new Date(endDateTime.getTime() + 2 * 24 * 60 * 60 * 1000);
             
+            // Skip fully ended events
             if (now > graceEndDateTime) continue;
+            
+            // Skip premium events for non-premium users
             if (ev.event_type === 'premium' && !isPremium) continue;
             
             const hasStarted = now >= startDateTime;
+            const hasEnded = now > endDateTime;
             const isGracePeriod = (now > endDateTime && now <= graceEndDateTime);
             
+            // Pending countdown
             let pendingCountdown = null;
             if (!hasStarted) {
                 pendingCountdown = Math.floor((startDateTime - now) / 1000);
             }
             
+            // Current day
             let currentDay = 1;
             if (hasStarted && !isGracePeriod) {
-                currentDay = Math.min(Math.floor((now - startDateTime) / (24 * 60 * 60 * 1000)) + 1, totalDays);
+                const daysSinceStart = Math.floor((now - startDateTime) / (24 * 60 * 60 * 1000));
+                currentDay = Math.min(daysSinceStart + 1, totalDays);
             } else if (isGracePeriod) {
                 currentDay = totalDays;
             }
             
+            // Check today's claim
             const todayCheck = await p.query(
-                "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND checkin_date=$3",
+                "SELECT * FROM daily_checkins WHERE user_id = $1 AND event_id = $2 AND checkin_date = $3",
                 [uid, ev.id, todayStr]
             );
             const checkedInToday = todayCheck.rows.length > 0;
             
+            // Can claim?
             let canClaim = false;
             if (hasStarted && !checkedInToday && now <= graceEndDateTime) {
                 if (isGracePeriod) {
                     const lastDayClaim = await p.query(
-                        "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND day_number=$3",
+                        "SELECT * FROM daily_checkins WHERE user_id = $1 AND event_id = $2 AND day_number = $3",
                         [uid, ev.id, totalDays]
                     );
                     canClaim = lastDayClaim.rows.length === 0;
@@ -5220,15 +5235,17 @@ app.post('/api/daily_checkin/status', async (req, res) => {
                 }
             }
             
+            // Get rewards
             const rewards = await p.query(
-                "SELECT * FROM daily_checkin_rewards WHERE event_id=$1 ORDER BY day_number ASC",
+                "SELECT * FROM daily_checkin_rewards WHERE event_id = $1 ORDER BY day_number ASC",
                 [ev.id]
             );
             
+            // Build day status
             const dayStatus = [];
             for (let d = 1; d <= totalDays; d++) {
                 const dayClaims = await p.query(
-                    "SELECT * FROM daily_checkins WHERE user_id=$1 AND event_id=$2 AND day_number=$3",
+                    "SELECT * FROM daily_checkins WHERE user_id = $1 AND event_id = $2 AND day_number = $3",
                     [uid, ev.id, d]
                 );
                 const reward = rewards.rows.find(r => r.day_number === d);
@@ -5270,8 +5287,7 @@ app.post('/api/daily_checkin/status', async (req, res) => {
         res.json({ success: true, events: result, server_time: now.toISOString() });
         
     } catch(e) {
-        console.error('[CHECKIN STATUS ERROR]', e.message);
-        res.json({ success: false, events: [] });
+        res.json({ success: false, events: [], message: e.message });
     }
 });
 // ==================== DAILY CHECK-IN CLAIM (JWT FIXED - FULL) ====================
