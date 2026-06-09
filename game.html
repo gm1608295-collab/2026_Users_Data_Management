@@ -843,7 +843,6 @@ var WheelEngine = {
         });
     }
 };
-
 var UI = {
     _superTimer: null,
     _tt: null,
@@ -852,41 +851,6 @@ var UI = {
     _dailyTimerInterval: null,
     _resetTimerInterval: null,
 
-    applyPremiumTheme: function() {
-    var body = document.getElementById('mainBody');
-    body.classList.remove('tier1', 'tier2', 'tier3', 'premium-active');
-    
-    if (State.isPremium) {
-        body.classList.add('premium-active');
-        
-        switch(State.premiumTier) {
-            case 1: body.classList.add('tier1'); break;
-            case 2: body.classList.add('tier2'); break;
-            case 3: body.classList.add('tier3'); break;
-            default: body.classList.add('tier1');
-        }
-        
-        var marquee = document.getElementById('headerMarquee');
-        if (marquee) {
-            switch(State.premiumTier) {
-                case 1: marquee.textContent = '🥉 Premium Lucky Spin (Bronze) - SOLO M Game Shop'; break;
-                case 2: marquee.textContent = '🥈 Premium Lucky Spin (Silver) - SOLO M Game Shop'; break;
-                case 3: marquee.textContent = '🥇 Premium Lucky Spin (Gold) - SOLO M Game Shop'; break;
-                default: marquee.textContent = '👑 Premium Lucky Spin - SOLO M Game Shop';
-            }
-        }
-        
-        // ✅ Premium ဆိုရင် LED Ring ဖန်တီး
-        setTimeout(function() {
-            WheelEngine.initLEDRing();
-        }, 300);
-    }
-    
-    WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
-    this.updateDraws();
-    this.updateDailyTimer();
-    this.updateResetTimer();
-},
     // ==================== BALANCE ====================
     updateBalances: function() {
         document.getElementById('mmkBalance').textContent = State.mmkBalance.toLocaleString() + ' Ks';
@@ -935,7 +899,7 @@ var UI = {
         }
     },
 
-    // ==================== PREMIUM THEME ====================
+    // ==================== PREMIUM THEME (LED Ring ပါ) ====================
     applyPremiumTheme: function() {
         var body = document.getElementById('mainBody');
         body.classList.remove('tier1', 'tier2', 'tier3', 'premium-active');
@@ -959,6 +923,11 @@ var UI = {
                     default: marquee.textContent = '👑 Premium Lucky Spin - SOLO M Game Shop';
                 }
             }
+            
+            // ✅ LED Ring ဖန်တီး
+            setTimeout(function() {
+                WheelEngine.initLEDRing();
+            }, 300);
         }
         
         WheelEngine.draw(State.wheelAngle % (2 * Math.PI));
@@ -967,13 +936,11 @@ var UI = {
         this.updateResetTimer();
     },
 
-    // ==================== DAILY TIMER (Midnight Reset) ====================
+    // ==================== DAILY TIMER ====================
     updateDailyTimer: function() {
         var self = this;
         
-        if (this._dailyTimerInterval) {
-            clearInterval(this._dailyTimerInterval);
-        }
+        if (this._dailyTimerInterval) clearInterval(this._dailyTimerInterval);
         
         var update = function() {
             var n = new Date();
@@ -992,33 +959,17 @@ var UI = {
                                 m.toString().padStart(2, '0') + ':' + 
                                 s.toString().padStart(2, '0');
             }
-            
-            // ✅ Timer 0 ရောက်ရင် Daily Reset
-            if (d <= 0) {
-                self.showToast('🔄 Daily Draws Reset!', 'info');
-                // Re-sync with server
-                setTimeout(async function() {
-                    var data = await API.syncAll();
-                    if (data) {
-                        State.dailyDraws = data.dailyDrawsRemaining || 0;
-                        State.save();
-                        self.updateDraws();
-                    }
-                }, 1000);
-            }
         };
         
         update();
         this._dailyTimerInterval = setInterval(update, 1000);
     },
 
-    // ==================== RESET TIMER (Weekly) ====================
+    // ==================== RESET TIMER ====================
     updateResetTimer: function() {
         var self = this;
         
-        if (this._resetTimerInterval) {
-            clearInterval(this._resetTimerInterval);
-        }
+        if (this._resetTimerInterval) clearInterval(this._resetTimerInterval);
         
         var update = function() {
             var n = new Date();
@@ -1058,9 +1009,7 @@ var UI = {
         
         clearTimeout(this._tt);
         var self = this;
-        this._tt = setTimeout(function() {
-            toast.style.display = 'none';
-        }, 3000);
+        this._tt = setTimeout(function() { toast.style.display = 'none'; }, 3000);
     },
 
     // ==================== SPIN RESULT ====================
@@ -1078,23 +1027,17 @@ var UI = {
         ex.innerHTML = '';
         timer.textContent = '';
         cb.style.display = 'block';
-        tx.classList.remove('super-text');
-        am.classList.remove('super-text');
         
         var sl = document.getElementById('slideLight');
         if (sl) sl.style.display = 'none';
         this.stopFireworks();
         
         if (rw.type === 'super') {
-            // ==================== SUPER PRIZE ====================
             cb.style.display = 'none';
             ic.textContent = '';
             tx.textContent = '🏆 SUPER PRIZE!';
-            tx.classList.add('super-text');
             am.textContent = 'ONE TIME ONLY!';
             am.style.color = '#e91e63';
-            am.classList.add('super-text');
-            
             timer.innerHTML = '⏰ 30 seconds remaining...';
             
             ex.innerHTML = '<p style="color:#ffd700;font-size:11px;margin:8px 0">⚠️ 1 User + 1 Account = 1 Time Limit</p>' +
@@ -1111,137 +1054,49 @@ var UI = {
             var count = 30;
             var self = this;
             clearInterval(this._superTimer);
-            
             this._superTimer = setInterval(function() {
                 count--;
-                if (count <= 0) {
-                    clearInterval(self._superTimer);
-                    closeResultModal();
-                    return;
-                }
+                if (count <= 0) { clearInterval(self._superTimer); closeResultModal(); return; }
                 timer.innerHTML = '⏰ ' + count + ' seconds remaining...';
-                
-                // ✅ Timer နီးလာရင် အနီရောင်ပြ
-                if (count <= 10) {
-                    timer.style.color = '#e74c3c';
-                    timer.style.animation = 'pulse 0.5s infinite';
-                }
             }, 1000);
-            
         } else {
-            // ==================== NORMAL REWARD ====================
             cb.style.display = 'block';
             timer.textContent = '';
-            timer.style.color = '';
-            timer.style.animation = '';
             
             switch(rw.type) {
-                case 'free':
-                    ic.textContent = '🔄';
-                    tx.textContent = 'Free Spin!';
-                    am.textContent = '+1 Extra Draw';
-                    am.style.color = '#1abc9c';
-                    break;
-                case 'thanks':
-                    ic.textContent = '😊';
-                    tx.textContent = 'Thank You!';
-                    am.textContent = 'Better luck next time';
-                    am.style.color = '#7f8c8d';
-                    break;
-                case 'usd':
-                    ic.textContent = '💵';
-                    tx.textContent = '🎉 You Won!';
-                    am.textContent = '$' + rw.reward.toFixed(2) + ' USD';
-                    am.style.color = '#2ecc71';
-                    break;
-                case 'mmk':
-                    ic.textContent = '💰';
-                    tx.textContent = '🎉 You Won!';
-                    am.textContent = rw.reward.toLocaleString() + ' Ks';
-                    am.style.color = '#f39c12';
-                    break;
+                case 'free': ic.textContent = '🔄'; tx.textContent = 'Free Spin!'; am.textContent = '+1 Extra Draw'; am.style.color = '#1abc9c'; break;
+                case 'thanks': ic.textContent = '😊'; tx.textContent = 'Thank You!'; am.textContent = 'Better luck next time'; am.style.color = '#7f8c8d'; break;
+                case 'usd': ic.textContent = '💵'; tx.textContent = '🎉 You Won!'; am.textContent = '$' + rw.reward.toFixed(2) + ' USD'; am.style.color = '#2ecc71'; break;
+                case 'mmk': ic.textContent = '💰'; tx.textContent = '🎉 You Won!'; am.textContent = rw.reward.toLocaleString() + ' Ks'; am.style.color = '#f39c12'; break;
             }
             openModal('resultModal');
         }
     },
 
-    // ==================== FIREWORKS (ENHANCED) ====================
+    // ==================== FIREWORKS ====================
     startFireworks: function() {
         var c = document.getElementById('fireworksContainer');
         if (!c) return;
         c.innerHTML = '';
         
-        var colors = [
-            '#ff0000', '#ff7700', '#ffff00', '#00ff00', '#00ffff', 
-            '#0088ff', '#7700ff', '#ff00ff', '#ff4488', '#ffdd00',
-            '#ff1744', '#ff9100', '#ffea00', '#00e676', '#00b0ff',
-            '#d500f9', '#f50057', '#ff6d00', '#aeea00', '#18ffff'
-        ];
+        var colors = ['#ff0000','#ff7700','#ffff00','#00ff00','#00ffff','#0088ff','#7700ff','#ff00ff','#ff4488','#ffdd00'];
         
-        // ✅ Wave 1 - Big Explosions
-        for (var i = 0; i < 50; i++) {
+        for (var i = 0; i < 40; i++) {
             var p = document.createElement('div');
             p.className = 'firework-particle';
             p.style.left = Math.random() * 100 + '%';
             p.style.top = Math.random() * 60 + '%';
-            p.style.setProperty('--fx', (Math.random() - 0.5) * 400 + 'px');
-            p.style.setProperty('--fy', -(Math.random() * 250 + 150) + 'px');
+            p.style.setProperty('--fx', (Math.random() - 0.5) * 300 + 'px');
+            p.style.setProperty('--fy', -(Math.random() * 200 + 100) + 'px');
             p.style.background = colors[Math.floor(Math.random() * colors.length)];
-            p.style.animationDuration = (Math.random() * 2 + 1) + 's';
-            p.style.animationDelay = Math.random() * 0.8 + 's';
-            p.style.width = (Math.random() * 6 + 2) + 'px';
-            p.style.height = p.style.width;
+            p.style.animationDuration = (Math.random() * 1 + 1) + 's';
             c.appendChild(p);
         }
         
-        // ✅ Wave 2 - Sparkles (0.5s delay)
         var self = this;
-        setTimeout(function() {
-            for (var i = 0; i < 30; i++) {
-                var p = document.createElement('div');
-                p.className = 'firework-particle';
-                p.style.left = Math.random() * 100 + '%';
-                p.style.top = Math.random() * 50 + '%';
-                p.style.setProperty('--fx', (Math.random() - 0.5) * 300 + 'px');
-                p.style.setProperty('--fy', -(Math.random() * 200 + 100) + 'px');
-                p.style.background = colors[Math.floor(Math.random() * colors.length)];
-                p.style.animationDuration = (Math.random() * 1.5 + 0.5) + 's';
-                p.style.animationDelay = Math.random() * 0.3 + 's';
-                p.style.width = (Math.random() * 3 + 1) + 'px';
-                p.style.height = p.style.width;
-                p.style.borderRadius = '50%';
-                c.appendChild(p);
-            }
-        }, 500);
-        
-        // ✅ Wave 3 - Ring Effect (1s delay)
-        setTimeout(function() {
-            for (var i = 0; i < 20; i++) {
-                var p = document.createElement('div');
-                p.className = 'firework-particle';
-                p.style.left = '50%';
-                p.style.top = '40%';
-                var angle = (i / 20) * Math.PI * 2;
-                var dist = 150 + Math.random() * 100;
-                p.style.setProperty('--fx', Math.cos(angle) * dist + 'px');
-                p.style.setProperty('--fy', Math.sin(angle) * dist + 'px');
-                p.style.background = colors[Math.floor(Math.random() * colors.length)];
-                p.style.animationDuration = '2s';
-                p.style.animationDelay = Math.random() * 0.2 + 's';
-                p.style.width = '5px';
-                p.style.height = '5px';
-                p.style.borderRadius = '50%';
-                c.appendChild(p);
-            }
-        }, 1000);
-        
-        // ✅ Auto-cleanup
         clearTimeout(this._fireworkTimeout);
-        this._fireworkTimeout = setTimeout(function() {
-            self.stopFireworks();
-        }, 4000);
+        this._fireworkTimeout = setTimeout(function() { self.stopFireworks(); }, 3000);
         
-        // ✅ Slide Light
         var sl = document.getElementById('slideLight');
         if (sl) sl.style.display = 'block';
     },
@@ -1263,7 +1118,7 @@ var UI = {
         return h.toString().padStart(2, '0') + ':' + m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
     },
 
-    // ==================== CHECK-IN UI ====================
+    // ==================== CHECK-IN STATUS ====================
     loadCheckInStatus: async function() {
         try {
             var token = API.getToken();
@@ -1289,23 +1144,7 @@ var UI = {
         }
     },
 
-    loadCheckInStatus: async function() {
-    try {
-        var token = API.getToken();
-        if (!token || token === 'guest') {
-            document.getElementById('checkinSection').innerHTML = '';
-            document.getElementById('debugStatus').textContent = '❌ No Token';
-            document.getElementById('debugStatus').style.color = '#e74c3c';
-            return;
-        }
-        
-        var r = await fetch('/api/daily_checkin/status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token })
-        });
-        var d = await r.json();
-        
+    // ==================== RENDER CHECK-IN UI ====================
     renderCheckInUI: function(events) {
         var section = document.getElementById('checkinSection');
         var html = '';
@@ -1339,14 +1178,8 @@ var UI = {
             }
             
             var rt = ev.reset_time || '00:00';
-            var dn = ev.start_date || '';
-            var de = ev.end_date || '';
-            var di = '';
-            if (dn && de) {
-                di = '<br><small style="font-size:7px;color:rgba(255,255,255,0.35)">📅 ' + dn + ' → ' + de + '</small>';
-            }
-            
             var dh = '';
+            
             ev.day_status.forEach(function(day) {
                 var rw = day.reward;
                 var ri = rw && rw.icon ? rw.icon : '';
@@ -1381,7 +1214,7 @@ var UI = {
             });
             
             html += '<div class="checkin-box ' + bc + '">' + gb + '<div class="checkin-header"><span class="checkin-title">' + ti + ' ' + tt + 
-                   '</span><span class="checkin-timer">⏰ Reset: ' + rt + di + '</span></div><div class="checkin-days-scroll">' + dh + '</div></div>';
+                   '</span><span class="checkin-timer">⏰ Reset: ' + rt + '</span></div><div class="checkin-days-scroll">' + dh + '</div></div>';
         });
         
         html += '<div class="checkin-coming-soon" id="checkinComingSoon" style="display:none">' +
@@ -1391,6 +1224,7 @@ var UI = {
         section.innerHTML = html;
     },
 
+    // ==================== CHECK-IN REWARD EMOJI ====================
     getCheckinRewardEmoji: function(t) {
         switch(t) {
             case 'mmk': return '💰';
@@ -1400,7 +1234,6 @@ var UI = {
         }
     }
 };
-
 async function claimDailyReward(eventId){
     var token=API.getToken();if(!token||token==='guest'){UI.showToast('Please login first','error');return;}
     try{var r=await fetch('/api/daily_checkin/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token,event_id:eventId})});var d=await r.json();
