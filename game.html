@@ -1244,36 +1244,31 @@ async function handleSpin() {
     if (State.isSpinning) return;
     
     var s = State.getDrawSource();
-    if (!s) {
-        UI.showToast('No draws available!', 'error');
-        return;
-    }
+    if (!s) { UI.showToast('No draws available!', 'error'); return; }
     
     State.isSpinning = true;
     document.getElementById('btnSpin').disabled = true;
     document.getElementById('spinStatus').textContent = 'Spinning...';
     
-    // ✅ Server က Draws ကို စစ်ပြီးမှ နှုတ်မယ် (Local မှာ ကြိုမနှုတ်တော့)
+    // ✅ Server ကိုပဲ အားကိုး။ Local မှာ ဘာမှ ကြိုမလုပ်
     var r = await API.executeSpin(s);
     
     if (!r || !r.success) {
-        // ❌ Fail - Draw မနှုတ်ရသေး
         UI.showToast(r?.message || 'Spin failed!', 'error');
         State.isSpinning = false;
         UI.updateSpinButton();
         return;
     }
     
-    // ✅ Server က ပြန်ပို့တဲ့ Draws အတိုင်း အကုန်ယူ
+    // ✅ Server က ပြန်တဲ့အတိုင်း အကုန်ယူ (Local State ကို Override)
+    State.mmkBalance = r.mmkBalance || State.mmkBalance;
+    State.usdBalance = r.usdBalance || State.usdBalance;
+    
     if (r.draws) {
         State.dailyDraws = r.draws.daily || 0;
         State.boughtDraws = r.draws.bought || 0;
         State.weeklyBonusDraws = r.draws.weekly || 0;
     }
-    
-    // ✅ Server က ပြန်ပို့တဲ့ Balance အတိုင်း အကုန်ယူ
-    if (r.mmkBalance !== undefined) State.mmkBalance = r.mmkBalance;
-    if (r.usdBalance !== undefined) State.usdBalance = r.usdBalance;
     
     State.save();
     UI.updateBalances();
@@ -1285,7 +1280,7 @@ async function handleSpin() {
     State.isSpinning = false;
     UI.updateDraws();
     UI.updateSpinButton();
-}
+} 
 
 function handleBuySpins(spins,cost){if(State.mmkBalance<cost){UI.showToast('Balance not enough','error');return;}document.getElementById('confirmTitle').textContent='💳 Buy Spins';document.getElementById('confirmMsg').textContent=spins+' Spins - '+cost.toLocaleString()+' Ks';document.getElementById('confirmYesBtn').onclick=async function(){closeModal('confirmModal');var r=await API.buySpins(spins,cost);if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added!','success');}else{UI.showToast(r.message||'Failed','error');}};openModal('confirmModal');}
 
