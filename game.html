@@ -1240,6 +1240,7 @@ async function claimDailyReward(eventId){
     else{UI.showToast(d.message||'Claim failed','error');}}catch(e){UI.showToast('Network error','error');}
 }
 
+// ✅ ပြင်ဆင်ပြီး
 async function handleSpin() {
     if (State.isSpinning) return;
     
@@ -1250,7 +1251,6 @@ async function handleSpin() {
     document.getElementById('btnSpin').disabled = true;
     document.getElementById('spinStatus').textContent = 'Spinning...';
     
-    // ✅ Server ကိုပဲ အားကိုး။ Local မှာ ဘာမှ ကြိုမလုပ်
     var r = await API.executeSpin(s);
     
     if (!r || !r.success) {
@@ -1260,14 +1260,15 @@ async function handleSpin() {
         return;
     }
     
-    // ✅ Server က ပြန်တဲ့အတိုင်း အကုန်ယူ (Local State ကို Override)
-    State.mmkBalance = r.mmkBalance || State.mmkBalance;
-    State.usdBalance = r.usdBalance || State.usdBalance;
+    // ✅ Server က ပြန်တဲ့ Balance ကို တိုက်ရိုက်ယူ (|| မသုံး)
+    State.mmkBalance = Number(r.mmkBalance);
+    State.usdBalance = Number(r.usdBalance);
     
+    // ✅ Server က ပြန်တဲ့ Draws ကို တိုက်ရိုက်ယူ
     if (r.draws) {
-        State.dailyDraws = r.draws.daily || 0;
-        State.boughtDraws = r.draws.bought || 0;
-        State.weeklyBonusDraws = r.draws.weekly || 0;
+        State.dailyDraws = Number(r.draws.daily);
+        State.boughtDraws = Number(r.draws.bought);
+        State.weeklyBonusDraws = Number(r.draws.weekly);
     }
     
     State.save();
@@ -1280,8 +1281,8 @@ async function handleSpin() {
     State.isSpinning = false;
     UI.updateDraws();
     UI.updateSpinButton();
-} 
-
+}
+    
 function handleBuySpins(spins,cost){if(State.mmkBalance<cost){UI.showToast('Balance not enough','error');return;}document.getElementById('confirmTitle').textContent='💳 Buy Spins';document.getElementById('confirmMsg').textContent=spins+' Spins - '+cost.toLocaleString()+' Ks';document.getElementById('confirmYesBtn').onclick=async function(){closeModal('confirmModal');var r=await API.buySpins(spins,cost);if(r.success){UI.updateBalances();UI.updateDraws();UI.showToast(spins+' spins added!','success');}else{UI.showToast(r.message||'Failed','error');}};openModal('confirmModal');}
 
 function handleSuperClaimed(){API.markSuperPrize();closeResultModal();}
