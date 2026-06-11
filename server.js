@@ -2496,8 +2496,7 @@ app.get('/api/admin/orders', async (req, res) => {
         res.json({ orders: [], total: 0, today: 0 }); 
     } 
 });
-
-// ==================== SUBMIT ORDER (JWT FIXED) ====================
+// ==================== SUBMIT ORDER (JWT FIXED - COMPLETE) ====================
 app.post('/api/submit_order', async (req, res) => {
     try {
         const { token, amount, payment_method, screenshot, user_id } = req.body;
@@ -2506,6 +2505,8 @@ app.post('/api/submit_order', async (req, res) => {
             return res.json({ success: false, message: 'Login required' });
         }
         
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         const p = await getPool();
         let uid;
         
@@ -2513,8 +2514,10 @@ app.post('/api/submit_order', async (req, res) => {
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
-                uid = decoded.userId;
+                // ✅ Payload ထဲမှာ ဘယ် Key နဲ့ သိမ်းထားလဲ အကုန်စစ်
+                uid = decoded.userId || decoded.id || decoded.uid || decoded.user_id;
             } catch(e) {
+                console.error('[SUBMIT ORDER] JWT Error:', e.message);
                 return res.json({ success: false, message: 'Invalid token' });
             }
         } 
@@ -2527,6 +2530,10 @@ app.post('/api/submit_order', async (req, res) => {
         } 
         else {
             return res.json({ success: false, message: 'Invalid token format' });
+        }
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
         }
         
         const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [uid]);
@@ -2578,7 +2585,7 @@ app.post('/api/get_orders', async (req, res) => {
         res.json({ orders: [] }); 
     } 
 });
-// ==================== GET BALANCE (JWT FIXED) ====================
+// ==================== GET BALANCE (JWT FIXED - COMPLETE) ====================
 app.post('/api/get_balance', async (req, res) => {
     const { token } = req.body;
     
@@ -2587,6 +2594,8 @@ app.post('/api/get_balance', async (req, res) => {
     }
     
     try {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         const p = await getPool();
         let uid;
         
@@ -2594,29 +2603,47 @@ app.post('/api/get_balance', async (req, res) => {
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
-                uid = decoded.userId;
+                // ✅ Payload ထဲမှာ ဘယ် Key နဲ့ သိမ်းထားလဲ အကုန်စစ်
+                uid = decoded.userId || decoded.id || decoded.uid || decoded.user_id;
+                
+                console.log('[GET BALANCE] JWT Payload:', decoded);
+                console.log('[GET BALANCE] Found UID:', uid);
             } catch(e) {
+                console.error('[GET BALANCE] JWT Error:', e.message);
                 return res.json({ balance: 0 });
             }
         } 
-        // ✅ Old Token
+        // ✅ Old Token Format (token_xxx)
         else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''));
-            if (isNaN(uid)) return res.json({ balance: 0 });
+            if (isNaN(uid)) {
+                console.error('[GET BALANCE] Invalid old token');
+                return res.json({ balance: 0 });
+            }
         } 
         else {
+            console.error('[GET BALANCE] Unknown token format');
+            return res.json({ balance: 0 });
+        }
+        
+        if (!uid) {
+            console.error('[GET BALANCE] No UID found');
             return res.json({ balance: 0 });
         }
         
         const result = await p.query('SELECT balance FROM auth_users WHERE id = $1', [uid]);
         
         if (result.rows.length > 0) {
-            res.json({ balance: result.rows[0].balance || 0 });
+            const balance = parseFloat(result.rows[0].balance || 0);
+            console.log('[GET BALANCE] User:', uid, 'Balance:', balance);
+            res.json({ balance: balance });
         } else {
+            console.error('[GET BALANCE] User not found:', uid);
             res.json({ balance: 0 });
         }
         
     } catch(e) {
+        console.error('[GET BALANCE ERROR]', e.message);
         res.json({ balance: 0 });
     }
 });
@@ -3728,37 +3755,48 @@ const SPIN_CONFIG = {
     ]
 };
 
-// ==================== GET USD BALANCE (JWT FIXED) ====================
+// ==================== GET USD BALANCE (JWT FIXED - COMPLETE) ====================
 app.post('/api/get_usd_balance', async (req, res) => {
     const { token } = req.body;
-    if (!token || token === 'guest') return res.json({ usd_balance: 0 });
+    
+    if (!token || token === 'guest') {
+        return res.json({ usd_balance: 0 });
+    }
+    
     try {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         const p = await getPool();
         let uid;
         
-        // ✅ JWT Token
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
-                uid = decoded.userId;
+                uid = decoded.userId || decoded.id || decoded.uid || decoded.user_id;
             } catch(e) {
                 return res.json({ usd_balance: 0 });
             }
-        } 
-        // ✅ Old Token
-        else if (token.startsWith('token_')) {
+        } else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''));
-        } 
-        else {
+            if (isNaN(uid)) return res.json({ usd_balance: 0 });
+        } else {
             return res.json({ usd_balance: 0 });
         }
         
-        if (isNaN(uid)) return res.json({ usd_balance: 0 });
-        const r = await p.query('SELECT usd_balance FROM auth_users WHERE id=$1', [uid]);
-        res.json({ usd_balance: parseFloat(r.rows[0]?.usd_balance || 0) });
-    } catch(e) { res.json({ usd_balance: 0 }); }
+        if (!uid) return res.json({ usd_balance: 0 });
+        
+        const result = await p.query('SELECT usd_balance FROM auth_users WHERE id = $1', [uid]);
+        
+        if (result.rows.length > 0) {
+            res.json({ usd_balance: parseFloat(result.rows[0].usd_balance || 0) });
+        } else {
+            res.json({ usd_balance: 0 });
+        }
+        
+    } catch(e) {
+        res.json({ usd_balance: 0 });
+    }
 });
-
 // ==================== GET PAID SPINS (JWT FIXED) ====================
 app.post('/api/get_paid_spins', async (req, res) => {
     const { token } = req.body;
