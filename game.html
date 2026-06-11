@@ -1119,110 +1119,130 @@ var UI = {
 
     // ==================== CHECK-IN STATUS ====================
     loadCheckInStatus: async function() {
-        try {
-            var token = API.getToken();
-            if (!token || token === 'guest') {
-                document.getElementById('checkinSection').innerHTML = '';
-                return;
-            }
-            var r = await fetch('/api/daily_checkin/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: token })
-            });
-            var d = await r.json();
-            
-            if (d.success && d.events && d.events.length > 0) {
-                document.getElementById('checkinComingSoon').style.display = 'none';
-                this.renderCheckInUI(d.events);
-            } else {
-                document.getElementById('checkinComingSoon').style.display = 'block';
-            }
-        } catch(e) {
-            document.getElementById('checkinComingSoon').style.display = 'block';
+    try {
+        var token = API.getToken();
+        if (!token || token === 'guest') {
+            document.getElementById('checkinSection').innerHTML = '';
+            return;
         }
-    },
-
+        
+        var r = await fetch('/api/daily_checkin/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        var d = await r.json();
+        
+        // ✅ Events ရှိရင် Check-In UI ပြ
+        if (d.success && d.events && d.events.length > 0) {
+            // ✅ "Coming Soon" ဖျောက်
+            var comingSoon = document.getElementById('checkinComingSoon');
+            if (comingSoon) comingSoon.style.display = 'none';
+            
+            // ✅ Check-In UI Render
+            this.renderCheckInUI(d.events);
+        } else {
+            // ✅ Events မရှိရင် "Coming Soon" ပြ
+            var section = document.getElementById('checkinSection');
+            section.innerHTML = '<div class="checkin-coming-soon" id="checkinComingSoon">' +
+                '<div class="checkin-coming-title">🎬 SOLO M Game Shop × Daily Check In Event Collab is Coming</div>' +
+                '<div class="checkin-coming-sub">Admin မှ Event သတ်မှတ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်</div>' +
+                '</div>';
+        }
+    } catch(e) {
+        // ✅ Error ရင်လည်း "Coming Soon" ပြ
+        var section = document.getElementById('checkinSection');
+        section.innerHTML = '<div class="checkin-coming-soon" id="checkinComingSoon">' +
+            '<div class="checkin-coming-title">🎬 SOLO M Game Shop × Daily Check In Event Collab is Coming</div>' +
+            '<div class="checkin-coming-sub">Admin မှ Event သတ်မှတ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်</div>' +
+            '</div>';
+    }
+},
     // ==================== RENDER CHECK-IN UI ====================
     renderCheckInUI: function(events) {
-        var section = document.getElementById('checkinSection');
-        var html = '';
-        var self = this;
+    var section = document.getElementById('checkinSection');
+    var html = '';
+    var self = this;
+    
+    events.forEach(function(ev) {
+        var isNormal = ev.event_type === 'normal';
+        var bc = isNormal ? 'normal-checkin' : 'premium-checkin';
+        var ti = isNormal ? '🎁' : '👑';
+        var tt = ev.event_name || (isNormal ? 'Daily Check-In' : 'Premium Check-In');
+        var isGrace = ev.is_grace_period || false;
+        var isEnded = ev.is_fully_ended || false;
         
-        events.forEach(function(ev) {
-            var isNormal = ev.event_type === 'normal';
-            var bc = isNormal ? 'normal-checkin' : 'premium-checkin';
-            var ti = isNormal ? '🎁' : '👑';
-            var tt = ev.event_name || (isNormal ? 'Daily Check-In' : 'Premium Check-In');
-            var isGrace = ev.is_grace_period || false;
-            var isEnded = ev.is_fully_ended || false;
+        // ✅ Fully ended events တွေ Skip
+        if (isEnded) return;
+        
+        // ✅ Pending Events (မစသေး) - Countdown ပြ
+        if (!ev.has_started && ev.pending_countdown_seconds > 0) {
+            html += '<div class="checkin-box" style="text-align:center;padding:20px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px;border:1px solid rgba(243,156,18,0.3);">';
+            html += '<div style="font-size:30px;margin-bottom:8px;">⏳</div>';
+            html += '<div style="font-size:13px;font-weight:bold;color:#f39c12;">' + tt + '</div>';
+            html += '<div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:4px;">Event starts in:</div>';
+            html += '<div style="font-size:22px;font-weight:bold;color:#ffd700;font-family:Courier New,monospace;margin-top:6px;" ' +
+                   'id="pendingCountdown_' + ev.event_id + '" data-seconds="' + ev.pending_countdown_seconds + '">';
+            html += self.formatCountdown(ev.pending_countdown_seconds);
+            html += '</div>';
+            html += '<div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:4px;">📅 ' + ev.start_date + ' ' + (ev.start_time || '00:00:00').substring(0,5) + '</div>';
+            html += '</div>';
+            return;
+        }
+        
+        // ✅ Grace Period
+        var gb = '';
+        if (isGrace) {
+            gb = '<div class="grace-banner">⚠️ ပွဲတော်ပြီးဆုံးသွားပါပြီ။ (' + ev.grace_end_date + ' တွင် အပြီးတိုင်ပိတ်ပါမည်)</div>';
+        }
+        
+        // ✅ Day Cards
+        var dh = '';
+        ev.day_status.forEach(function(day) {
+            var rw = day.reward;
+            var ri = rw && rw.icon ? rw.icon : '';
+            var re = self.getCheckinRewardEmoji(rw ? rw.type : '');
+            var rl = rw ? rw.label : '';
+            var ra = rw ? (rw.type === 'usd' ? '$' + parseFloat(rw.amount).toFixed(2) : 
+                          rw.type === 'mmk' ? parseFloat(rw.amount).toLocaleString() + ' Ks' : 
+                          parseInt(rw.amount) + ' Draw' + (parseInt(rw.amount) > 1 ? 's' : '')) : '';
+            var cc = '';
+            var ah = '';
             
-            if (isEnded) return;
+            if (day.claimed) { cc = 'claimed'; ah = '<div class="day-claimed-badge">✅ Claimed</div>'; }
+            else if (isGrace) { cc = 'claimed'; ah = '<div class="day-missed-badge">⏰ Missed</div>'; }
+            else if (day.day < ev.current_day) { cc = 'claimed'; ah = '<div class="day-missed-badge">⏰ Missed</div>'; }
+            else if (day.day === ev.current_day && !ev.checked_in_today && ev.can_claim) { 
+                cc = 'current'; 
+                ah = '<button class="day-claim-btn" onclick="claimDailyReward(' + ev.event_id + ')">🎁 ဆုယူမည်</button>'; 
+            }
+            else if (day.day === ev.current_day && ev.checked_in_today) { cc = 'today'; ah = '<div class="day-claimed-badge">✅ Claimed</div>'; }
+            else if (day.day > ev.current_day) { ah = '<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">🔒 Locked</div>'; }
+            else { ah = '<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">⏰ Wait</div>'; }
             
-            if (!ev.has_started && ev.pending_countdown_seconds > 0) {
-                html += '<div class="checkin-pending" style="text-align:center;padding:20px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:10px">';
-                html += '<div style="font-size:30px;margin-bottom:8px;">⏳</div>';
-                html += '<div style="font-size:13px;font-weight:bold;color:#f39c12;">Event Coming Soon!</div>';
-                html += '<div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:4px;">Starts in:</div>';
-                html += '<div style="font-size:22px;font-weight:bold;color:#ffd700;font-family:Courier New,monospace;margin-top:6px;" ' +
-                       'id="pendingCountdown_' + ev.event_id + '" data-seconds="' + ev.pending_countdown_seconds + '">';
-                html += self.formatCountdown(ev.pending_countdown_seconds);
-                html += '</div></div>';
-                return;
+            var ih = '';
+            if (ri && ri.length > 0 && ri !== '🎁' && ri !== '💰' && ri !== '💵' && ri !== '🔄' && ri !== '🎉' && ri !== '👑') {
+                ih = '<img class="day-reward-icon" src="' + ri + '" alt="" onerror="this.style.display=\'none\'">';
+            } else {
+                ih = '<span style="font-size:28px;display:block;text-align:center;margin-bottom:4px">' + (ri || re) + '</span>';
             }
             
-            var gb = '';
-            if (isGrace) {
-                gb = '<div class="grace-banner">⚠️ ပွဲတော်ပြီးဆုံးသွားပါပြီ။ (' + ev.grace_end_date + ' တွင် အပြီးတိုင်ပိတ်ပါမည်)</div>';
-            }
-            
-            var rt = ev.reset_time || '00:00';
-            var dh = '';
-            
-            ev.day_status.forEach(function(day) {
-                var rw = day.reward;
-                var ri = rw && rw.icon ? rw.icon : '';
-                var re = self.getCheckinRewardEmoji(rw ? rw.type : '');
-                var rl = rw ? rw.label : '';
-                var ra = rw ? (rw.type === 'usd' ? '$' + parseFloat(rw.amount).toFixed(2) : 
-                              rw.type === 'mmk' ? parseFloat(rw.amount).toLocaleString() + ' Ks' : 
-                              parseInt(rw.amount) + ' Draw' + (parseInt(rw.amount) > 1 ? 's' : '')) : '';
-                var cc = '';
-                var ah = '';
-                
-                if (day.claimed) { cc = 'claimed'; ah = '<div class="day-claimed-badge">✅ Claimed</div>'; }
-                else if (isGrace) { cc = 'claimed'; ah = '<div class="day-missed-badge">⏰ Missed</div>'; }
-                else if (day.day < ev.current_day) { cc = 'claimed'; ah = '<div class="day-missed-badge">⏰ Missed</div>'; }
-                else if (day.day === ev.current_day && !ev.checked_in_today && ev.can_claim) { 
-                    cc = 'current'; 
-                    ah = '<button class="day-claim-btn" onclick="claimDailyReward(' + ev.event_id + ')">🎁 ဆုယူမည်</button>'; 
-                }
-                else if (day.day === ev.current_day && ev.checked_in_today) { cc = 'today'; ah = '<div class="day-claimed-badge">✅ Claimed</div>'; }
-                else if (day.day > ev.current_day) { ah = '<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">🔒 Locked</div>'; }
-                else { ah = '<div style="padding:6px 14px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center">⏰ Wait</div>'; }
-                
-                var ih = '';
-                if (ri && ri.length > 0 && ri !== '🎁' && ri !== '💰' && ri !== '💵' && ri !== '🔄' && ri !== '🎉' && ri !== '👑') {
-                    ih = '<img class="day-reward-icon" src="' + ri + '" alt="" onerror="this.style.display=\'none\'">';
-                } else {
-                    ih = '<span style="font-size:28px;display:block;text-align:center;margin-bottom:4px">' + (ri || re) + '</span>';
-                }
-                
-                dh += '<div class="checkin-day-card ' + cc + '"><div class="day-number">Day ' + day.day + '</div>' + ih +
-                      '<div class="day-reward-label">' + rl + '</div><div class="day-reward-amount">' + ra + '</div>' + ah + '</div>';
-            });
-            
-            html += '<div class="checkin-box ' + bc + '">' + gb + '<div class="checkin-header"><span class="checkin-title">' + ti + ' ' + tt + 
-                   '</span><span class="checkin-timer">⏰ Reset: ' + rt + '</span></div><div class="checkin-days-scroll">' + dh + '</div></div>';
+            dh += '<div class="checkin-day-card ' + cc + '"><div class="day-number">Day ' + day.day + '</div>' + ih +
+                  '<div class="day-reward-label">' + rl + '</div><div class="day-reward-amount">' + ra + '</div>' + ah + '</div>';
         });
         
-        html += '<div class="checkin-coming-soon" id="checkinComingSoon" style="display:none">' +
-               '<div class="checkin-coming-title">🎬 SOLO M Game Shop × Daily Check In Event Collab is Coming</div>' +
-               '<div class="checkin-coming-sub">Admin မှ Event သတ်မှတ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်</div></div>';
-        
-        section.innerHTML = html;
-    },
-
+        html += '<div class="checkin-box ' + bc + '">' + gb + '<div class="checkin-header"><span class="checkin-title">' + ti + ' ' + tt + 
+               '</span><span class="checkin-timer">⏰ Reset: ' + (ev.reset_time || '00:00').substring(0,5) + '</span></div>' +
+               '<div class="checkin-days-scroll">' + dh + '</div></div>';
+    });
+    
+    // ✅ "Coming Soon" ကို ဖျောက်ပြီး Events ပြ
+    html += '<div class="checkin-coming-soon" id="checkinComingSoon" style="display:none">' +
+           '<div class="checkin-coming-title">🎬 SOLO M Game Shop × Daily Check In Event Collab is Coming</div>' +
+           '<div class="checkin-coming-sub">Admin မှ Event သတ်မှတ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်</div></div>';
+    
+    section.innerHTML = html;
+},
     // ==================== CHECK-IN REWARD EMOJI ====================
     getCheckinRewardEmoji: function(t) {
         switch(t) {
