@@ -345,68 +345,88 @@
     background: rgba(255,255,255,0.1);
     color: #fff;
 }
-/* ========== GAME PRODUCT PANEL (2026 PREMIUM DESIGN) ========== */
-.game-product-panel {
+/* ========== GAME PRODUCT OVERLAY (FULLSCREEN MODAL) ========== */
+.game-product-overlay {
     display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 4000;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+}
+
+.game-product-overlay.active {
+    display: flex;
+}
+
+.game-product-modal {
     background: linear-gradient(160deg, #0a0d24 0%, #151a3a 50%, #0f1230 100%);
-    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border: 1.5px solid rgba(255, 255, 255, 0.12);
     border-radius: 20px;
-    padding: 18px;
-    margin-top: 14px;
-    animation: slideUp 0.35s ease;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 20px;
+    animation: modalSlideIn 0.35s ease;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
     position: relative;
-    overflow: hidden;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
 }
 
-.game-product-panel.active {
-    display: block;
-}
-
-.game-product-panel::before {
+.game-product-modal::before {
     content: '';
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 2px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
     background: linear-gradient(90deg, transparent, var(--w), #e67e22, var(--w), transparent);
 }
 
-.game-product-panel::after {
+.game-product-modal::after {
     content: 'S';
     position: absolute;
-    bottom: 8px; right: 12px;
-    font-size: 40px;
+    bottom: 10px;
+    right: 15px;
+    font-size: 45px;
     font-weight: 900;
-    color: rgba(255, 255, 255, 0.02);
+    color: rgba(255, 255, 255, 0.015);
     pointer-events: none;
 }
 
-.game-product-panel .panel-header {
+.game-product-modal .modal-header {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.game-product-panel .panel-header img {
-    width: 48px;
-    height: 48px;
+.game-product-modal .modal-header img {
+    width: 50px;
+    height: 50px;
     border-radius: 14px;
     object-fit: cover;
     border: 2px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-.game-product-panel .panel-header .panel-title {
+.game-product-modal .modal-header .modal-title {
     font-size: 16px;
     font-weight: 700;
     color: #fff;
     flex: 1;
 }
 
-.game-product-panel .panel-close {
+.game-product-modal .modal-close-btn {
     width: 32px;
     height: 32px;
     border-radius: 10px;
@@ -419,27 +439,28 @@
     align-items: center;
     justify-content: center;
     transition: all 0.25s;
+    flex-shrink: 0;
 }
 
-.game-product-panel .panel-close:hover {
+.game-product-modal .modal-close-btn:hover {
     background: #e74c3c;
     color: #fff;
     transform: rotate(90deg);
 }
 
-/* ========== PRODUCT GRID ========== */
-.product-grid {
+/* ========== MODAL PRODUCT GRID (4 PER ROW) ========== */
+.modal-product-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
 }
 
-.product-card {
+.modal-product-card {
     background: rgba(255, 255, 255, 0.03);
     border: 1.5px solid rgba(255, 255, 255, 0.06);
     border-radius: 14px;
-    padding: 12px 6px;
+    padding: 14px 6px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s;
@@ -447,81 +468,83 @@
     overflow: hidden;
 }
 
-.product-card:hover {
-    border-color: rgba(243, 156, 18, 0.4);
-    background: rgba(243, 156, 18, 0.06);
+.modal-product-card:hover {
+    border-color: rgba(243, 156, 18, 0.5);
+    background: rgba(243, 156, 18, 0.08);
     transform: translateY(-3px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
-.product-card.selected {
+.modal-product-card.selected {
     border-color: var(--w);
-    background: rgba(243, 156, 18, 0.12);
-    box-shadow: 0 0 20px rgba(243, 156, 18, 0.15);
+    background: rgba(243, 156, 18, 0.15);
+    box-shadow: 0 0 20px rgba(243, 156, 18, 0.2);
 }
 
-.product-card.selected::before {
+.modal-product-card.selected::after {
     content: '✓';
     position: absolute;
-    top: 6px; right: 6px;
-    width: 18px; height: 18px;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
     background: var(--w);
     color: #000;
-    border-radius: 5px;
-    font-size: 10px;
+    border-radius: 6px;
+    font-size: 11px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.product-card .product-img-wrap {
-    width: 56px;
-    height: 56px;
+.modal-product-img-wrap {
+    width: 60px;
+    height: 60px;
     margin: 0 auto 8px;
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
     border: 1.5px solid rgba(255, 255, 255, 0.1);
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.product-card .product-img {
+.modal-product-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 10px;
+    border-radius: 12px;
 }
 
-.product-card .product-name {
+.modal-product-name {
     font-size: 9px;
     color: rgba(255, 255, 255, 0.85);
     font-weight: 600;
-    margin-bottom: 4px;
     line-height: 1.3;
-    min-height: 24px;
+    min-height: 26px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.product-card .product-price {
+.modal-product-price {
     font-size: 13px;
     font-weight: 700;
     color: var(--w);
-}
-
-.product-card .product-original-price {
-    font-size: 8px;
-    color: rgba(255, 255, 255, 0.3);
-    text-decoration: line-through;
     margin-top: 2px;
 }
 
-/* ========== PRODUCT DETAIL PANEL ========== */
-.product-detail-panel {
+.modal-product-original {
+    font-size: 8px;
+    color: rgba(255, 255, 255, 0.3);
+    text-decoration: line-through;
+    margin-top: 1px;
+}
+
+/* ========== MODAL DETAIL PANEL ========== */
+.modal-detail-panel {
     display: none;
     background: rgba(0, 0, 0, 0.5);
     border: 1.5px solid rgba(255, 255, 255, 0.12);
@@ -532,11 +555,11 @@
     backdrop-filter: blur(10px);
 }
 
-.product-detail-panel.active {
+.modal-detail-panel.active {
     display: block;
 }
 
-.product-detail-panel .detail-header {
+.modal-detail-header {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -545,7 +568,7 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.product-detail-panel .detail-header img {
+.modal-detail-header img {
     width: 56px;
     height: 56px;
     object-fit: cover;
@@ -555,41 +578,41 @@
     border: 1.5px solid rgba(255, 255, 255, 0.15);
 }
 
-.product-detail-panel .detail-info {
+.modal-detail-info {
     flex: 1;
 }
 
-.product-detail-panel .detail-info .detail-name {
+.modal-detail-name {
     font-size: 14px;
     font-weight: 700;
     color: #fff;
 }
 
-.product-detail-panel .detail-info .detail-price {
+.modal-detail-price {
     font-size: 18px;
     font-weight: 700;
     color: var(--w);
     margin-top: 4px;
 }
 
-.product-detail-panel .detail-info .detail-original {
+.modal-detail-original {
     font-size: 10px;
     color: rgba(255, 255, 255, 0.3);
     text-decoration: line-through;
 }
 
-/* ========== ID INPUT ROW ========== */
-.id-input-row {
+/* ========== MODAL ID INPUT ROW ========== */
+.modal-id-row {
     display: flex;
     gap: 10px;
     margin-bottom: 12px;
 }
 
-.id-input-row .id-input-group {
+.modal-id-group {
     flex: 1;
 }
 
-.id-input-row .id-input-group label {
+.modal-id-group label {
     display: block;
     font-size: 9px;
     color: rgba(255, 255, 255, 0.5);
@@ -599,7 +622,7 @@
     letter-spacing: 1px;
 }
 
-.id-input-row .id-input-group input {
+.modal-id-group input {
     width: 100%;
     padding: 12px 14px;
     background: rgba(255, 255, 255, 0.04);
@@ -613,26 +636,26 @@
     transition: all 0.3s;
 }
 
-.id-input-row .id-input-group input:focus {
+.modal-id-group input:focus {
     outline: none;
     border-color: var(--w);
     box-shadow: 0 0 15px rgba(243, 156, 18, 0.1);
     background: rgba(255, 255, 255, 0.08);
 }
 
-.id-input-row .id-input-group input.invalid {
+.modal-id-group input.invalid {
     border-color: #e74c3c;
     animation: shake 0.4s;
 }
 
-/* ========== ACTION BUTTONS ========== */
-.product-action-row {
+/* ========== MODAL ACTION BUTTONS ========== */
+.modal-action-row {
     display: flex;
     gap: 10px;
     margin-top: 14px;
 }
 
-.product-action-row .btn-cancel {
+.modal-btn-cancel {
     flex: 1;
     padding: 12px;
     background: rgba(255, 255, 255, 0.04);
@@ -645,12 +668,12 @@
     transition: all 0.2s;
 }
 
-.product-action-row .btn-cancel:hover {
+.modal-btn-cancel:hover {
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
 }
 
-.product-action-row .btn-buy-now {
+.modal-btn-buy {
     flex: 2;
     padding: 12px;
     background: linear-gradient(135deg, var(--w), #e67e22);
@@ -664,12 +687,12 @@
     letter-spacing: 0.5px;
 }
 
-.product-action-row .btn-buy-now:hover:not(:disabled) {
+.modal-btn-buy:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(243, 156, 18, 0.3);
 }
 
-.product-action-row .btn-buy-now:disabled {
+.modal-btn-buy:disabled {
     opacity: 0.4;
     cursor: not-allowed;
     filter: grayscale(40%);
@@ -679,8 +702,10 @@
 .purchase-loading-overlay {
     display: none;
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 0, 0, 0.9);
     z-index: 6000;
     justify-content: center;
@@ -718,8 +743,10 @@
 .purchase-success-overlay {
     display: none;
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 0, 0, 0.9);
     z-index: 6000;
     justify-content: center;
@@ -789,8 +816,10 @@
 
 .purchase-success-box .btn-close-top {
     position: absolute;
-    top: 10px; right: 10px;
-    width: 28px; height: 28px;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -807,18 +836,33 @@
     color: #fff;
 }
 
+/* ========== ANIMATIONS ========== */
 @keyframes modalSlideIn {
-    from { opacity: 0; transform: translateY(-30px) scale(0.95); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes shake {
@@ -826,7 +870,7 @@
     25% { transform: translateX(-5px); }
     50% { transform: translateX(5px); }
     75% { transform: translateX(-3px); }
-    }
+}
     </style>
 </head>
 <body>
