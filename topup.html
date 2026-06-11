@@ -1289,338 +1289,6 @@ const PRODUCTS = {
     ]
 };
 
-let selectedProduct = { mlbb: null, pubg: null, hok: null };
-
-// ==================== RENDER GAME CARDS (MODIFIED) ====================
-function renderGameCards() {
-    var html = '';
-    
-    // MLBB Card (Clickable)
-    html += '<div class="game-card" onclick="openProductPanel(\'mlbb\')" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
-    html += '<img src="https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg" alt="MLBB">';
-    html += '<p>Mobile Legends</p><div style="font-size:8px;color:var(--g)">✅ Available</div>';
-    html += '</div>';
-    
-    // PUBG Card (Clickable)
-    html += '<div class="game-card" onclick="openProductPanel(\'pubg\')" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
-    html += '<img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg" alt="PUBG">';
-    html += '<p>PUBG Mobile</p><div style="font-size:8px;color:var(--g)">✅ Available</div>';
-    html += '</div>';
-    
-    // HOK Card (Clickable)
-    html += '<div class="game-card" onclick="openProductPanel(\'hok\')" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
-    html += '<img src="https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg" alt="HOK">';
-    html += '<p>Honor of Kings</p><div style="font-size:8px;color:var(--g)">✅ Available</div>';
-    html += '</div>';
-    
-    // Other Games (Not Available)
-    var otherGames = [
-        {name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},
-        {name:'Clash of Clans',icon:'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg'},
-        {name:'Life After',icon:'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg'},
-        {name:'Once Human',icon:'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg'},
-        {name:'Zenless Zone Zero',icon:'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg'},
-        {name:'LOL Wild Rift',icon:'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg'}
-    ];
-    
-    otherGames.forEach(function(g) {
-        html += '<div class="game-card">';
-        html += '<img src="' + g.icon + '" alt="' + g.name + '">';
-        html += '<p>' + g.name + '</p><div class="unavailable">မရသေး</div>';
-        html += '</div>';
-    });
-    
-    document.getElementById('gameGrid').innerHTML = html;
-    
-    // Render Product Grids
-    renderProductGrid('mlbb');
-    renderProductGrid('pubg');
-    renderProductGrid('hok');
-}
-
-// ==================== PURCHASE PRODUCT (WITH LOADING) ====================
-async function purchaseProduct(game) {
-    var product = selectedProduct[game];
-    if (!product) return showToast('❌ Please select a product', 'error');
-    
-    var token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest') return showToast('❌ Please login first', 'error');
-    
-    // ✅ Show Loading
-    document.getElementById('purchaseLoadingOverlay').classList.add('active');
-    
-    try {
-        var balRes = await fetch('/api/get_balance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-        });
-        var balData = await balRes.json();
-        var balance = parseFloat(balData.balance || 0);
-        
-        if (balance < product.price) {
-            document.getElementById('purchaseLoadingOverlay').classList.remove('active');
-            return showToast('❌ ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ။', 'error');
-        }
-        
-        // Build game data
-        var gameData = { game: game, product_name: product.name, price: product.price };
-        
-        if (game === 'mlbb') {
-            gameData.game_id = document.getElementById('mlbbGameId').value.trim();
-            gameData.server_id = document.getElementById('mlbbServerId').value.trim();
-        } else if (game === 'pubg') {
-            gameData.player_id = document.getElementById('pubgPlayerId').value.trim();
-        } else if (game === 'hok') {
-            gameData.player_id = document.getElementById('hokPlayerId').value.trim();
-        }
-        
-        // Submit order
-        var r = await fetch('/api/submit_order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                token: token,
-                amount: product.price,
-                payment_method: game.toUpperCase() + ' Purchase',
-                screenshot: game + '_purchase',
-                user_id: JSON.parse(localStorage.getItem('user') || '{}').id || ''
-            })
-        });
-        var d = await r.json();
-        
-        if (d.success) {
-            // Deduct balance
-            await fetch('/api/deduct_balance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, amount: product.price, reason: game.toUpperCase() + ': ' + product.name })
-            });
-            
-            // ✅ Hide Loading → Show Success
-            document.getElementById('purchaseLoadingOverlay').classList.remove('active');
-            
-            setTimeout(function() {
-                document.getElementById('purchaseSuccessOverlay').classList.add('active');
-            }, 300);
-            
-            addNotiItem('pending', '🛒 ' + game.toUpperCase() + ' - ' + product.name + ' (' + product.price.toLocaleString() + ' Ks) ဝယ်ယူမှု အောင်မြင်ပါသည်');
-            
-            // Reset
-            closeDetailPanel(game);
-            closeProductPanel(game);
-            selectedProduct[game] = null;
-            loadBalance();
-        } else {
-            document.getElementById('purchaseLoadingOverlay').classList.remove('active');
-            showToast('❌ ' + (d.message || 'Error'), 'error');
-        }
-        
-    } catch(e) {
-        document.getElementById('purchaseLoadingOverlay').classList.remove('active');
-        showToast('❌ Connection error', 'error');
-    }
-}
-
-// ==================== CLOSE SUCCESS MODAL ====================
-function closePurchaseSuccess() {
-    document.getElementById('purchaseSuccessOverlay').classList.remove('active');
-}
-
-function closePurchaseSuccess(event) {
-    if (event.target === document.getElementById('purchaseSuccessOverlay')) {
-        document.getElementById('purchaseSuccessOverlay').classList.remove('active');
-    }
-}
-// ==================== OPEN PRODUCT PANEL ====================
-function openProductPanel(game) {
-    // Close all other panels
-    document.querySelectorAll('.game-product-panel').forEach(function(p) { p.classList.remove('active'); });
-    
-    // Close all detail panels
-    document.querySelectorAll('.product-detail-panel').forEach(function(p) { p.classList.remove('active'); });
-    
-    // Open selected
-    var panel = document.getElementById(game + 'Panel');
-    if (panel) panel.classList.add('active');
-    
-    // Scroll to panel
-    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function closeProductPanel(game) {
-    var panel = document.getElementById(game + 'Panel');
-    if (panel) panel.classList.remove('active');
-    var detail = document.getElementById(game + 'DetailPanel');
-    if (detail) detail.classList.remove('active');
-}
-
-// ==================== SELECT PRODUCT ====================
-function selectProduct(game, index) {
-    var products = PRODUCTS[game] || [];
-    var p = products[index];
-    if (!p) return;
-    
-    selectedProduct[game] = { ...p, index: index };
-    
-    // Update card selection
-    document.querySelectorAll('#' + game + 'Products .product-card').forEach(function(c) { c.classList.remove('selected'); });
-    var card = document.getElementById(game + 'Card' + index);
-    if (card) card.classList.add('selected');
-    
-    // Show detail panel
-    var detailPanel = document.getElementById(game + 'DetailPanel');
-    if (detailPanel) detailPanel.classList.add('active');
-    
-    // Update detail info
-    document.getElementById(game + 'DetailImg').src = p.img;
-    document.getElementById(game + 'DetailName').textContent = p.name;
-    document.getElementById(game + 'DetailPrice').textContent = p.price.toLocaleString() + ' Ks';
-    if (p.original > 0) {
-        document.getElementById(game + 'DetailOriginal').textContent = p.original.toLocaleString() + ' Ks';
-        document.getElementById(game + 'DetailOriginal').style.display = 'block';
-    } else {
-        document.getElementById(game + 'DetailOriginal').style.display = 'none';
-    }
-    
-    // Clear inputs
-    if (game === 'mlbb') {
-        document.getElementById('mlbbGameId').value = '';
-        document.getElementById('mlbbServerId').value = '';
-        document.getElementById('mlbbBuyBtn').disabled = true;
-    } else if (game === 'pubg') {
-        document.getElementById('pubgPlayerId').value = '';
-        document.getElementById('pubgBuyBtn').disabled = true;
-    } else if (game === 'hok') {
-        document.getElementById('hokPlayerId').value = '';
-        document.getElementById('hokBuyBtn').disabled = true;
-    }
-}
-
-function closeDetailPanel(game) {
-    var detailPanel = document.getElementById(game + 'DetailPanel');
-    if (detailPanel) detailPanel.classList.remove('active');
-    selectedProduct[game] = null;
-}
-
-// ==================== VALIDATE IDS ====================
-function validateMLBBId() {
-    var id = document.getElementById('mlbbGameId').value.trim();
-    var server = document.getElementById('mlbbServerId').value.trim();
-    var btn = document.getElementById('mlbbBuyBtn');
-    
-    var idValid = id.length >= 8 && id.length <= 10 && /^\d+$/.test(id);
-    var serverValid = server.length >= 4 && server.length <= 5 && /^\d+$/.test(server);
-    
-    document.getElementById('mlbbGameId').classList.toggle('invalid', id.length > 0 && !idValid);
-    document.getElementById('mlbbServerId').classList.toggle('invalid', server.length > 0 && !serverValid);
-    
-    btn.disabled = !(idValid && serverValid && selectedProduct['mlbb']);
-}
-
-function validatePUBGId() {
-    var id = document.getElementById('pubgPlayerId').value.trim();
-    var btn = document.getElementById('pubgBuyBtn');
-    var valid = id.length >= 1;
-    
-    document.getElementById('pubgPlayerId').classList.toggle('invalid', id.length > 0 && !valid);
-    btn.disabled = !(valid && selectedProduct['pubg']);
-}
-
-function validateHOKId() {
-    var id = document.getElementById('hokPlayerId').value.trim();
-    var btn = document.getElementById('hokBuyBtn');
-    var valid = id.length >= 1;
-    
-    document.getElementById('hokPlayerId').classList.toggle('invalid', id.length > 0 && !valid);
-    btn.disabled = !(valid && selectedProduct['hok']);
-}
-
-// ==================== PURCHASE PRODUCT ====================
-async function purchaseProduct(game) {
-    var product = selectedProduct[game];
-    if (!product) return showToast('❌ Please select a product', 'error');
-    
-    var token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest') return showToast('❌ Please login first', 'error');
-    
-    // Check balance
-    try {
-        var balRes = await fetch('/api/get_balance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-        });
-        var balData = await balRes.json();
-        var balance = parseFloat(balData.balance || 0);
-        
-        if (balance < product.price) {
-            return showToast('❌ ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ။', 'error');
-        }
-        
-        // Build game data
-        var gameData = { game: game, product_name: product.name, price: product.price };
-        
-        if (game === 'mlbb') {
-            gameData.game_id = document.getElementById('mlbbGameId').value.trim();
-            gameData.server_id = document.getElementById('mlbbServerId').value.trim();
-        } else if (game === 'pubg') {
-            gameData.player_id = document.getElementById('pubgPlayerId').value.trim();
-        } else if (game === 'hok') {
-            gameData.player_id = document.getElementById('hokPlayerId').value.trim();
-        }
-        
-        // Submit order
-        var r = await fetch('/api/submit_order', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                token: token,
-                amount: product.price,
-                payment_method: game.toUpperCase() + ' Purchase',
-                screenshot: game + '_purchase',
-                user_id: JSON.parse(localStorage.getItem('user') || '{}').id || ''
-            })
-        });
-        var d = await r.json();
-        
-        if (d.success) {
-            // Deduct balance
-            await fetch('/api/deduct_balance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, amount: product.price, reason: game.toUpperCase() + ': ' + product.name })
-            });
-            
-            // Show success
-            document.getElementById('purchaseSuccessOverlay').classList.add('active');
-            addNotiItem('pending', '🛒 ' + game.toUpperCase() + ' - ' + product.name + ' (' + product.price.toLocaleString() + ' Ks) ဝယ်ယူမှု အောင်မြင်ပါသည်');
-            
-            // Reset
-            closeDetailPanel(game);
-            closeProductPanel(game);
-            selectedProduct[game] = null;
-            loadBalance();
-        } else {
-            showToast('❌ ' + (d.message || 'Error'), 'error');
-        }
-        
-    } catch(e) {
-        showToast('❌ Connection error', 'error');
-    }
-}
-
-// ==================== PURCHASE SUCCESS MODAL ====================
-function closePurchaseSuccess() {
-    document.getElementById('purchaseSuccessOverlay').classList.remove('active');
-}
-
-function closePurchaseSuccess(event) {
-    if (event.target === document.getElementById('purchaseSuccessOverlay')) {
-        document.getElementById('purchaseSuccessOverlay').classList.remove('active');
-    }
-}
-
 // ==================== MODAL PRODUCT SYSTEM ====================
 let modalSelectedProduct = { mlbb: null, pubg: null, hok: null };
 
@@ -1632,7 +1300,7 @@ function openProductOverlay(game) {
     closeModalDetail(game);
 }
 
-// Close overlay (click outside or X button)
+// Close overlay
 function closeProductOverlay(game, event) {
     if (event && event.target !== document.getElementById(game + 'Overlay')) return;
     document.getElementById(game + 'Overlay').classList.remove('active');
@@ -1734,7 +1402,7 @@ function validateModalHOK() {
     btn.disabled = !(id.length >= 1 && modalSelectedProduct['hok']);
 }
 
-// Update purchaseProduct to use modal IDs
+// ==================== PURCHASE PRODUCT (WITH LOADING) ====================
 async function purchaseProduct(game) {
     var product = modalSelectedProduct[game];
     if (!product) return showToast('❌ Please select a product', 'error');
@@ -1786,8 +1454,6 @@ async function purchaseProduct(game) {
             });
             
             document.getElementById('purchaseLoadingOverlay').classList.remove('active');
-            
-            // Close overlay first
             document.getElementById(game + 'Overlay').classList.remove('active');
             document.body.style.overflow = '';
             
@@ -1809,49 +1475,59 @@ async function purchaseProduct(game) {
     }
 }
 
-// Update renderGameCards to use overlay
+// ==================== CLOSE SUCCESS MODAL ====================
+function closePurchaseSuccess() {
+    document.getElementById('purchaseSuccessOverlay').classList.remove('active');
+}
+
+function closePurchaseSuccess(event) {
+    if (event.target === document.getElementById('purchaseSuccessOverlay')) {
+        document.getElementById('purchaseSuccessOverlay').classList.remove('active');
+    }
+}
+
+// ==================== RENDER GAME CARDS ====================
 function renderGameCards() {
     var html = '';
     
+    // MLBB Card
     html += '<div class="game-card" onclick="openProductOverlay(\'mlbb\')" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
     html += '<img src="https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg" alt="MLBB">';
     html += '<p>Mobile Legends</p><div style="font-size:8px;color:var(--g)">✅ Available</div></div>';
     
+    // PUBG Card
     html += '<div class="game-card" onclick="openProductOverlay(\'pubg\')" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
     html += '<img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg" alt="PUBG">';
     html += '<p>PUBG Mobile</p><div style="font-size:8px;color:var(--g)">✅ Available</div></div>';
     
+    // HOK Card
     html += '<div class="game-card" onclick="openProductOverlay(\'hok\')" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
     html += '<img src="https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg" alt="HOK">';
     html += '<p>Honor of Kings</p><div style="font-size:8px;color:var(--g)">✅ Available</div></div>';
     
-    // Other games...
+    // Other Games (Not Available)
     var otherGames = [
-        
-    {name:'Mobile Legends',icon:'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg'},
-    {name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},
-    {name:'PUBG Mobile',icon:'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg'},
-    {name:'Clash of Clans',icon:'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg'},
-    {name:'Honor Of King',icon:'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg'},
-    {name:'Life After',icon:'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg'},
-    {name:'Once Human',icon:'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg'},
-    {name:'Zenless Zone Zero',icon:'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg'},
-    {name:'LOL Wild Rift',icon:'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg'},
-    {name:'Farlight 84',icon:'https://i.ibb.co/J9FpbQF/70d84a2ec224ad31674df18d69dfae41.jpg'},
-    {name:'Hay Day',icon:'https://i.ibb.co/pvbd3ffY/929567f62369bdecc2ab5d3ca813a328.jpg'},
-    {name:'Genshin Impact',icon:'https://i.ibb.co/HDLQNyNB/abe019d59a86a88b52a6257ea454269e.jpg'},
-    {name:'Harry Potter',icon:'https://i.ibb.co/Mx5Hwhtg/b9fdabea7e9c7364b0a81860a554c45b.jpg'},
-    {name:'Stumble Guys',icon:'https://i.ibb.co/jvNb65TP/7ebfc026d31609ceda8f787d54515fe6.jpg'},
-    {name:'Whiteout Survival',icon:'https://i.ibb.co/SXq4FR9C/2ad9cb386a3ec90cfa0bb1c185bd5725.jpg'},
-    {name:'FRAG Pro Shooter',icon:'https://i.ibb.co/whJwVb8V/6581051ef1843e5ec6cce61fa38800ff.jpg'},
-    {name:'EAFC Mobile',icon:'https://i.ibb.co/20Fwbhw8/22e5d45bcb1460a72b844d4a60830ce4.jpg'},
-    {name:'Valorant',icon:'https://i.ibb.co/dw3FWFqP/5c95c35ce191a78b4564c3caf49720e1.jpg'},
-    {name:'Modern Strike',icon:'https://i.ibb.co/y9qCn4z/fffa14272a58a15879531ebfde7bd134.jpg'},
-    {name:'Silver and Blood',icon:'https://i.ibb.co/jkv9fFgp/dc308d9db127504128b9f87b96b872a2.jpg'},
-    {name:'Telegram Premium',icon:'https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg'},
-    {name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},
-    {name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}
-];
+        {name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},
+        {name:'Clash of Clans',icon:'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg'},
+        {name:'Life After',icon:'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg'},
+        {name:'Once Human',icon:'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg'},
+        {name:'Zenless Zone Zero',icon:'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg'},
+        {name:'LOL Wild Rift',icon:'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg'},
+        {name:'Farlight 84',icon:'https://i.ibb.co/J9FpbQF/70d84a2ec224ad31674df18d69dfae41.jpg'},
+        {name:'Hay Day',icon:'https://i.ibb.co/pvbd3ffY/929567f62369bdecc2ab5d3ca813a328.jpg'},
+        {name:'Genshin Impact',icon:'https://i.ibb.co/HDLQNyNB/abe019d59a86a88b52a6257ea454269e.jpg'},
+        {name:'Harry Potter',icon:'https://i.ibb.co/Mx5Hwhtg/b9fdabea7e9c7364b0a81860a554c45b.jpg'},
+        {name:'Stumble Guys',icon:'https://i.ibb.co/jvNb65TP/7ebfc026d31609ceda8f787d54515fe6.jpg'},
+        {name:'Whiteout Survival',icon:'https://i.ibb.co/SXq4FR9C/2ad9cb386a3ec90cfa0bb1c185bd5725.jpg'},
+        {name:'FRAG Pro Shooter',icon:'https://i.ibb.co/whJwVb8V/6581051ef1843e5ec6cce61fa38800ff.jpg'},
+        {name:'EAFC Mobile',icon:'https://i.ibb.co/20Fwbhw8/22e5d45bcb1460a72b844d4a60830ce4.jpg'},
+        {name:'Valorant',icon:'https://i.ibb.co/dw3FWFqP/5c95c35ce191a78b4564c3caf49720e1.jpg'},
+        {name:'Modern Strike',icon:'https://i.ibb.co/y9qCn4z/fffa14272a58a15879531ebfde7bd134.jpg'},
+        {name:'Silver and Blood',icon:'https://i.ibb.co/jkv9fFgp/dc308d9db127504128b9f87b96b872a2.jpg'},
+        {name:'Telegram Premium',icon:'https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg'},
+        {name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},
+        {name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}
+    ];
     
     otherGames.forEach(function(g) {
         html += '<div class="game-card"><img src="' + g.icon + '" alt="' + g.name + '"><p>' + g.name + '</p><div class="unavailable">မရသေး</div></div>';
@@ -1863,10 +1539,10 @@ function renderGameCards() {
     renderModalProductGrid('mlbb');
     renderModalProductGrid('pubg');
     renderModalProductGrid('hok');
-            }
+}
+
 // ==================== INIT ====================
 renderGameCards();
-        
 // ==================== BG MUSIC PLAYER ====================
 (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
 
