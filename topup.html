@@ -1465,22 +1465,23 @@ function validateModalHOK() {
     var btn = document.getElementById('hokModalBuyBtn');
     btn.disabled = !(id.length >= 1 && modalSelectedProduct['hok']);
 }
-
-// ==================== PURCHASE PRODUCT (WITH LOADING) ====================
+// ==================== PURCHASE PRODUCT (AUTO-APPROVED) ====================
 async function purchaseProduct(game) {
     var product = modalSelectedProduct[game];
     if (!product) return showToast('❌ Please select a product', 'error');
     
-    var token = getToken();
+    var token = localStorage.getItem('auth_token');
     if (!token || token === 'guest') return showToast('❌ Please login first', 'error');
     
+    // ✅ Loading ပြ
     document.getElementById('purchaseLoadingOverlay').classList.add('active');
     
     try {
+        // ✅ Balance စစ်
         var balRes = await fetch('/api/get_balance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: token })
+            body: JSON.stringify({ token })
         });
         var balData = await balRes.json();
         var balance = parseFloat(balData.balance || 0);
@@ -1490,6 +1491,7 @@ async function purchaseProduct(game) {
             return showToast('❌ ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ။', 'error');
         }
         
+        // ✅ Game Data ပြင်ဆင်
         var gameData = { game: game, product_name: product.name, price: product.price };
         
         if (game === 'mlbb') {
@@ -1501,42 +1503,55 @@ async function purchaseProduct(game) {
             gameData.player_id = document.getElementById('hokModalPlayerId').value.trim();
         }
         
-        var r = await fetch('/api/submit_order', {
+        // ✅ Game Purchase API ခေါ် (Auto-Approve)
+        var r = await fetch('/api/purchase_game_item', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 token: token,
-                amount: product.price,
-                payment_method: game.toUpperCase() + ' Purchase',
-                screenshot: game + '_purchase',
-                user_id: JSON.parse(localStorage.getItem('user') || '{}').id || ''
+                game: game,
+                product_name: product.name,
+                price: product.price,
+                game_id: gameData.game_id || '',
+                server_id: gameData.server_id || '',
+                player_id: gameData.player_id || ''
             })
         });
         var d = await r.json();
         
         if (d.success) {
-            await fetch('/api/deduct_balance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: token, amount: product.price, reason: game.toUpperCase() + ': ' + product.name })
-            });
-            
+            // ✅ Loading ဖျောက်
             document.getElementById('purchaseLoadingOverlay').classList.remove('active');
+            
+            // ✅ Overlay ပိတ်
             document.getElementById(game + 'Overlay').classList.remove('active');
             document.body.style.overflow = '';
             
+            // ✅ Success Modal ပြ
             setTimeout(function() {
                 document.getElementById('purchaseSuccessOverlay').classList.add('active');
             }, 300);
             
-            addNotiItem('pending', '🛒 ' + game.toUpperCase() + ' - ' + product.name + ' (' + product.price.toLocaleString() + ' Ks) ဝယ်ယူမှု အောင်မြင်ပါသည်');
+            // ✅ Noti ထည့်
+            addNotiItem('success', 
+                '✅ <b>' + game.toUpperCase() + ' - ' + product.name + '</b><br>' +
+                '💰 ဝယ်ယူမှု အောင်မြင်ပါသည်<br>' +
+                '💳 နှုတ်ငွေ: <b style="color:#e74c3c">-' + product.price.toLocaleString() + ' Ks</b><br>' +
+                '💵 လက်ကျန်: <b>' + fm(d.new_balance) + ' Ks</b>'
+            );
             
+            // ✅ Balance Update
+            document.getElementById('myBalance').textContent = fm(d.new_balance) + ' ကျပ်';
+            document.getElementById('usdBalance').textContent = '≈ $' + (d.new_balance / 2100).toFixed(2) + ' USD';
+            
+            // ✅ Reset
             modalSelectedProduct[game] = null;
             loadBalance();
         } else {
             document.getElementById('purchaseLoadingOverlay').classList.remove('active');
             showToast('❌ ' + (d.message || 'Error'), 'error');
         }
+        
     } catch(e) {
         document.getElementById('purchaseLoadingOverlay').classList.remove('active');
         showToast('❌ Connection error', 'error');
