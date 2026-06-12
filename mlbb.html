@@ -772,6 +772,24 @@ function closeSuccess(event) {
     document.getElementById('successOverlay').classList.remove('active');
 }
 
+async function loadBalance() {
+    try {
+        var token = localStorage.getItem('auth_token');
+        if (!token || token === 'guest') {
+            document.getElementById('mmkBalance').textContent = '0 Ks';
+            return;
+        }
+        var r = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        var d = await r.json();
+        document.getElementById('mmkBalance').textContent = (d.balance || 0).toLocaleString() + ' Ks';
+    } catch(e) {
+        document.getElementById('mmkBalance').textContent = '0 Ks';
+    }
+}
 // ==================== RENDER PRODUCTS ====================
 function renderProducts(products, category) {
     var html = '';
