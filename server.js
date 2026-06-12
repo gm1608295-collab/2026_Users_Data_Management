@@ -237,7 +237,7 @@ function generateToken(user) {
             login_type: user.login_type 
         },
         JWT_SECRET,
-        { expiresIn: '7d' }  // 7 ရက် သက်တမ်း
+        { expiresIn: '30d' }  // 30 ရက် သက်တမ်း
     );
 }
 
