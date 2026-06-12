@@ -3137,19 +3137,19 @@ function startLongPolling() {
     };
     
     const quickKeyboard = {
-        inline_keyboard: [
-            [{ text: '💳 လက်ကျန်ကြည့်ရန်', callback_data: 'balance' }],
-            [{ text: '⭐ Stars ဖြည့်ရန်', callback_data: 'topup_stars' }],
-            [{ text: '🔐 OTP ရယူရန်', callback_data: 'otp' }],
-            [{ text: '📋 Order စစ်ရန်', callback_data: 'status' }],
-            [{ text: '👑 Premium', callback_data: 'premium' }],
-            [{ text: '📅 Daily Check-in', callback_data: 'checkin' }],
-            [{ text: '🎰 Spin History', callback_data: 'spins' }],
-            [{ text: '🛒 Code ဝယ်ရန်', callback_data: 'buycode' }],
-            [{ text: '📞 ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }]
-            [{ text: '📱 Application ဒေါင်းရန်', url: 'https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view?usp=drivesdk' }]
-        ]
-    };
+    inline_keyboard: [
+        [{ text: '💳 လက်ကျန်ကြည့်ရန်', callback_data: 'balance' }],
+        [{ text: '⭐ Stars ဖြည့်ရန်', callback_data: 'topup_stars' }],
+        [{ text: '🔐 OTP ရယူရန်', callback_data: 'otp' }],
+        [{ text: '📋 Order စစ်ရန်', callback_data: 'status' }],
+        [{ text: '👑 Premium', callback_data: 'premium' }],
+        [{ text: '📅 Daily Check-in', callback_data: 'checkin' }],
+        [{ text: '🎰 Spin History', callback_data: 'spins' }],
+        [{ text: '🛒 Code ဝယ်ရန်', callback_data: 'buycode' }],
+        [{ text: '📞 ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }],
+        [{ text: '📱 App ဒေါင်းရန်', url: 'https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view?usp=drivesdk' }]
+    ]
+};
     
     // ==================== CALLBACK HANDLER ====================
     async function handleCallback(cq) {
@@ -3512,48 +3512,45 @@ function startLongPolling() {
     
     // ==================== MAIN POLLING LOOP ====================
     async function getUpdates() {
-        try {
-            const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId + 1}&timeout=15&allowed_updates=["message","callback_query","pre_checkout_query"]`;
-            const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
-            const result = await response.json();
-            
-            if (result.ok && result.result.length > 0) {
-                for (const update of result.result) {
-                    lastUpdateId = update.update_id;
-                    
-                    // ✅ Pre-checkout query
-                    if (update.pre_checkout_query) {
-                        await handlePreCheckout(update.pre_checkout_query);
+    try {
+        const allowed = encodeURIComponent(JSON.stringify(["message", "callback_query", "pre_checkout_query"]));
+        const url = `${TELEGRAM_API}/getUpdates?offset=${lastUpdateId + 1}&timeout=15&allowed_updates=${allowed}`;
+        
+        const response = await fetch(url, { signal: AbortSignal.timeout(20000) });
+        const result = await response.json();
+        
+        if (result.ok && result.result.length > 0) {
+            for (const update of result.result) {
+                lastUpdateId = update.update_id;
+                
+                // Callback query (Button clicks)
+                if (update.callback_query) {
+                    await handleCallback(update.callback_query);
+                    continue;
+                }
+                
+                // Pre-checkout
+                if (update.pre_checkout_query) {
+                    await handlePreCheckout(update.pre_checkout_query);
+                    continue;
+                }
+                
+                // Message
+                if (update.message) {
+                    if (update.message.successful_payment) {
+                        await handleSuccessfulPayment(update.message);
                         continue;
                     }
-                    
-                    // ✅ Callback query (Button clicks)
-                    if (update.callback_query) {
-                        await handleCallback(update.callback_query);
-                        continue;
-                    }
-                    
-                    // ✅ Message
-                    if (update.message) {
-                        const msg = update.message;
-                        
-                        // Successful payment
-                        if (msg.successful_payment) {
-                            await handleSuccessfulPayment(msg);
-                            continue;
-                        }
-                        
-                        // Text message
-                        if (msg.text) {
-                            await handleMessage(msg);
-                        }
+                    if (update.message.text) {
+                        await handleMessage(update.message);
                     }
                 }
             }
-        } catch(e) {
-            console.log('Bot Polling:', e.message);
         }
-        setTimeout(getUpdates, 500);
+    } catch(e) {
+        console.log('Bot Polling:', e.message);
+    }
+    setTimeout(getUpdates, 500);
     }
     
     getUpdates();
