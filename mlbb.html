@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MLBB - SOLO M Game Shop</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db;--orange:#e67e22}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+        body{background:#0c0e27;color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
+        .container{max-width:500px;margin:0 auto;padding-bottom:30px}
+
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,#4a1c7a,#1a1f4b);padding:14px 15px;border-radius:12px;border-bottom:3px solid var(--w)}
+        .header a{color:var(--w);font-size:20px;text-decoration:none;flex-shrink:0}
+        .header h2{color:var(--w);font-size:16px;font-weight:700}
+
+        .balance-bar{display:flex;gap:8px;margin-bottom:12px}
+        .bal-card{flex:1;background:rgba(26,31,75,0.8);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
+        .bal-value{font-size:18px;font-weight:bold;color:var(--w)}
+        .bal-label{font-size:8px;color:rgba(255,255,255,0.5)}
+
+        .product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:15px}
+        
+        .product-card{background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.3s;position:relative}
+        .product-card:hover{border-color:rgba(243,156,18,0.5);background:rgba(243,156,18,0.08);transform:translateY(-2px)}
+        .product-card.selected{border-color:var(--g);background:rgba(46,204,113,0.12);box-shadow:0 0 15px rgba(46,204,113,0.2)}
+        .product-card.selected::after{content:'✓';position:absolute;top:5px;right:5px;width:18px;height:18px;background:var(--g);color:#000;border-radius:5px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
+        
+        .product-img-wrap{width:55px;height:55px;margin:0 auto 8px;border-radius:10px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3)}
+        .product-img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+        .product-name{font-size:8px;color:rgba(255,255,255,0.8);font-weight:600;line-height:1.2;min-height:22px}
+        .product-price{font-size:12px;font-weight:700;color:var(--w)}
+        .product-original{font-size:7px;color:rgba(255,255,255,0.25);text-decoration:line-through}
+
+        .detail-panel{display:none;background:rgba(0,0,0,0.5);border:1.5px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px;margin-bottom:15px;animation:slideUp 0.3s ease}
+        .detail-panel.active{display:block}
+        
+        .detail-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+        .detail-header img{width:50px;height:50px;object-fit:cover;border-radius:10px;background:rgba(0,0,0,0.3);padding:4px}
+        .detail-name{font-size:14px;font-weight:700;color:#fff}
+        .detail-price{font-size:18px;font-weight:700;color:var(--w);margin-top:2px}
+        .detail-original{font-size:9px;color:rgba(255,255,255,0.25);text-decoration:line-through}
+
+        .id-row{display:flex;gap:8px;margin-bottom:10px}
+        .id-group{flex:1}
+        .id-group label{display:block;font-size:9px;color:rgba(255,255,255,0.5);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+        .id-group input{width:100%;padding:11px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-size:14px;text-align:center;font-weight:700;letter-spacing:2px;transition:all 0.3s}
+        .id-group input:focus{outline:none;border-color:var(--w);box-shadow:0 0 12px rgba(243,156,18,0.1)}
+
+        .action-row{display:flex;gap:8px;margin-top:12px}
+        .btn-cancel{flex:1;padding:11px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer}
+        .btn-buy{flex:2;padding:11px;background:linear-gradient(135deg,var(--w),#e67e22);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px}
+        .btn-buy:disabled{opacity:0.4;cursor:not-allowed}
+
+        .toast{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;z-index:9999;font-size:12px;font-weight:bold;display:none;box-shadow:0 5px 20px rgba(0,0,0,0.4)}
+        
+        @keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    </style>
+</head>
+<body>
+    <div class="toast" id="toast"></div>
+    
+    <div class="container">
+        <div class="header">
+            <a href="/topup.html"><i class="fas fa-arrow-left"></i></a>
+            <h2>📱 Mobile Legends</h2>
+        </div>
+        
+        <div class="balance-bar">
+            <div class="bal-card"><div class="bal-label">MMK Balance</div><div class="bal-value" id="mmkBalance">0 Ks</div></div>
+        </div>
+        
+        <div class="product-grid" id="productGrid"></div>
+        
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-header">
+                <img id="detailImg" src="" alt="">
+                <div>
+                    <div class="detail-name" id="detailName"></div>
+                    <div class="detail-price" id="detailPrice"></div>
+                    <div class="detail-original" id="detailOriginal"></div>
+                </div>
+            </div>
+            <div class="id-row">
+                <div class="id-group">
+                    <label>🆔 Game ID (8-10 digits)</label>
+                    <input type="text" id="gameId" placeholder="Game ID" maxlength="10" oninput="validateInputs()">
+                </div>
+                <div class="id-group">
+                    <label>🖥️ Server ID (4-5 digits)</label>
+                    <input type="text" id="serverId" placeholder="Server ID" maxlength="5" oninput="validateInputs()">
+                </div>
+            </div>
+            <div class="action-row">
+                <button class="btn-cancel" onclick="closeDetail()">Cancel</button>
+                <button class="btn-buy" id="buyBtn" disabled onclick="purchaseMLBB()">
+                    <i class="fas fa-shopping-cart"></i> Buy Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PRODUCTS = [
+            { name: 'Weekly Diamond', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 6886, original: 7404 },
+            { name: 'Twilight Pass', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 36421, original: 39162 },
+            { name: '5 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 438, original: 471 },
+            { name: '11 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 836, original: 899 },
+            { name: '22 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 1672, original: 1798 },
+            { name: '55 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 3940, original: 4237 },
+            { name: '56 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 4219, original: 4537 },
+            { name: '86 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 5573, original: 5992 },
+            { name: '112 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 7245, original: 7790 },
+            { name: '165 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 11901, original: 12797 },
+            { name: '172 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 11026, original: 11856 },
+            { name: '257 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 16041, original: 17248 },
+            { name: '275 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 19862, original: 21357 },
+            { name: '336 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 21773, original: 23412 },
+            { name: '565 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 39764, original: 42757 },
+            { name: '570 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 36302, original: 39034 },
+            { name: '706 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 43426, original: 46695 },
+            { name: '1163 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 81518, original: 87654 },
+            { name: '2195 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 131433, original: 141326 },
+            { name: '3688 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 219280, original: 235785 },
+            { name: '5532 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 331089, original: 356010 },
+            { name: '6042 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 409185, original: 439984 },
+            { name: '9288 Diamonds', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', price: 549932, original: 0 }
+        ];
+
+        let selectedProduct = null;
+
+        function showToast(msg, type) {
+            var t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = type === 'error' ? '#e74c3c' : '#2ecc71';
+            t.style.display = 'block';
+            setTimeout(function() { t.style.display = 'none'; }, 2500);
+        }
+
+        function renderProducts() {
+            document.getElementById('productGrid').innerHTML = PRODUCTS.map(function(p, i) {
+                var op = p.original > 0 ? '<div class="product-original">' + p.original.toLocaleString() + ' Ks</div>' : '';
+                return '<div class="product-card" onclick="selectProduct(' + i + ')" id="card' + i + '">' +
+                    '<div class="product-img-wrap"><img class="product-img" src="' + p.img + '" alt="' + p.name + '" onerror="this.src=\'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg\'"></div>' +
+                    '<div class="product-name">' + p.name + '</div>' +
+                    '<div class="product-price">' + p.price.toLocaleString() + ' Ks</div>' + op + '</div>';
+            }).join('');
+        }
+
+        function selectProduct(index) {
+            selectedProduct = PRODUCTS[index];
+            document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
+            document.getElementById('card' + index).classList.add('selected');
+            document.getElementById('detailPanel').classList.add('active');
+            document.getElementById('detailImg').src = selectedProduct.img;
+            document.getElementById('detailName').textContent = selectedProduct.name;
+            document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
+            if (selectedProduct.original > 0) {
+                document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
+                document.getElementById('detailOriginal').style.display = 'block';
+            } else { document.getElementById('detailOriginal').style.display = 'none'; }
+            document.getElementById('gameId').value = '';
+            document.getElementById('serverId').value = '';
+            document.getElementById('buyBtn').disabled = true;
+            document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('active');
+            selectedProduct = null;
+        }
+
+        function validateInputs() {
+            var id = document.getElementById('gameId').value.trim();
+            var server = document.getElementById('serverId').value.trim();
+            document.getElementById('buyBtn').disabled = !(id.length >= 8 && id.length <= 10 && /^\d+$/.test(id) && server.length >= 4 && server.length <= 5 && /^\d+$/.test(server) && selectedProduct);
+        }
+
+        async function purchaseMLBB() {
+            if (!selectedProduct) return showToast('Select a product', 'error');
+            var token = localStorage.getItem('auth_token');
+            if (!token || token === 'guest') return showToast('Login required', 'error');
+            
+            try {
+                var r = await fetch('/api/purchase_game_item', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: token, game: 'mlbb', product_name: selectedProduct.name, price: selectedProduct.price,
+                        game_id: document.getElementById('gameId').value.trim(),
+                        server_id: document.getElementById('serverId').value.trim()
+                    })
+                });
+                var d = await r.json();
+                if (d.success) {
+                    showToast('✅ Purchased! Balance: ' + d.new_balance.toLocaleString() + ' Ks');
+                    document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
+                    closeDetail();
+                } else { showToast(d.message || 'Error', 'error'); }
+            } catch(e) { showToast('Connection error', 'error'); }
+        }
+
+        async function loadBalance() {
+            try {
+                var r = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) });
+                var d = await r.json();
+                document.getElementById('mmkBalance').textContent = (d.balance || 0).toLocaleString() + ' Ks';
+            } catch(e) {}
+        }
+
+        renderProducts();
+        loadBalance();
+    </script>
+</body>
+</html>
