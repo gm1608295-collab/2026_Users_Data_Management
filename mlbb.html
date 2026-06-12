@@ -721,15 +721,46 @@ function validateInputs() {
     document.getElementById('buyBtn').disabled = !(id.length >= 8 && id.length <= 10 && /^\d+$/.test(id) && server.length >= 4 && server.length <= 5 && /^\d+$/.test(server) && selectedProduct);
 }
 
+function showToast(msg, type) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = type === 'error' ? '#e74c3c' : '#2ecc71';
+    t.style.display = 'block';
+    setTimeout(function() { t.style.display = 'none'; }, 3000);
+}
 // ==================== PURCHASE ====================
 async function purchaseMLBB() {
-    if (!selectedProduct) return showToast('Select a product', 'error');
+    if (!selectedProduct) return showToast('❌ Select a product', 'error');
+    
     var token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest') return showToast('Login required', 'error');
+    if (!token || token === 'guest') {
+        showToast('❌ Please login first', 'error');
+        return;
+    }
     
     var qty = parseInt(document.getElementById('quantity').value) || 1;
     var totalPrice = selectedProduct.price * qty;
     var productName = qty > 1 ? selectedProduct.name + ' (x' + qty + ')' : selectedProduct.name;
+    
+    // ✅ Balance စစ်
+    try {
+        var balRes = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        var balData = await balRes.json();
+        var balance = parseFloat(balData.balance || 0);
+        
+        if (balance < totalPrice) {
+            var shortage = totalPrice - balance;
+            showToast('❌ ငွေမလုံလောက်ပါ! လိုငွေ: ' + shortage.toLocaleString() + ' Ks', 'error');
+            return;
+        }
+    } catch(e) {
+        showToast('❌ Balance check failed', 'error');
+        return;
+    }
     
     // Show Loading
     document.getElementById('loadingOverlay').classList.add('active');
@@ -745,28 +776,30 @@ async function purchaseMLBB() {
         });
         var d = await r.json();
         
-        // Hide Loading
         document.getElementById('loadingOverlay').classList.remove('active');
         
         if (d.success) {
             // Show Success Modal
-            document.getElementById('successMsg').innerHTML = 'Admin ဘက်မှ ထည့်သွင်းနေပြီဖြစ်ပြီး<br><b>၃ မိနစ်</b> အတွင်း သင့်ဂိမ်းအကောင့်ထဲသို့ ရောက်ရှိပါမည်<br><br><small style="color:#e67e22">⚠️ သင်၏ဖြည့်စွက်မှု မှားယွင်းပါက ကျွန်ုပ်တို့ဘက်မှ ဝယ်ယူမှုပယ်ဖျက်မည်ဖြစ်ပြီး သင်၏ဝယ်ယူထားသောငွေပမာဏကို တစ်နာရီအတွင်း app ထဲသို့ ပြန်လည်ပေးဆောင်ပါမည်။</small>';
+            document.getElementById('successMsg').innerHTML = 
+                'Admin ဘက်မှ ထည့်သွင်းနေပြီဖြစ်ပြီး<br>' +
+                '<b style="color:#2ecc71">၃ မိနစ်</b> အတွင်း သင့်၏ဂိမ်းအကောင့်ထဲသို့ ရောက်ရှိပါမည်<br><br>' +
+                '<small style="color:#e67e22">⚠️ သင်၏ဖြည့်စွက်မှု မှားယွင်းပါက ကျွန်ုပ်တို့ဘက်မှ ဝယ်ယူမှုချက်ချင်းပယ်ဖျက်မည်ဖြစ်ပြီး ' +
+                'သင်၏ဝယ်ယူထားသောငွေပမာဏကို တစ်နာရီအတွင်း app ထဲသို့ ပြန်လည်ပေးဆောင်ပါမည်၊ပြန်ပေးငွေကို menu button ထဲက ပြန်အမ်းငွေ စာမျက်နှာထဲတွင်ရယူနိုင်ပါသည်။</small>';
             document.getElementById('successOverlay').classList.add('active');
             
-            // Add Noti
             addNotiItem('success', '✅ <b>MLBB - ' + productName + '</b><br>💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + totalPrice.toLocaleString() + ' Ks</b><br>💵 လက်ကျန်: <b>' + d.new_balance.toLocaleString() + ' Ks</b>');
             
             document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
             closeDetail();
         } else {
-            showToast(d.message || 'Error', 'error');
+            showToast('❌ ' + (d.message || 'Error'), 'error');
         }
     } catch(e) {
         document.getElementById('loadingOverlay').classList.remove('active');
-        showToast('Connection error', 'error');
+        showToast('❌ Connection error', 'error');
     }
 }
-
+        
 function closeSuccess(event) {
     if (event && event.target !== document.getElementById('successOverlay')) return;
     document.getElementById('successOverlay').classList.remove('active');
