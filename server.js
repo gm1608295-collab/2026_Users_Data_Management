@@ -3147,6 +3147,7 @@ function startLongPolling() {
             [{ text: '🎰 Spin History', callback_data: 'spins' }],
             [{ text: '🛒 Code ဝယ်ရန်', callback_data: 'buycode' }],
             [{ text: '📞 ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }]
+            [{ text: '📱 Application ဒေါင်းရန်', url: 'https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view?usp=drivesdk' }]
         ]
     };
     
