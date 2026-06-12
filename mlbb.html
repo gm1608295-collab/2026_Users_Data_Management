@@ -772,6 +772,51 @@ function closeSuccess(event) {
     document.getElementById('successOverlay').classList.remove('active');
 }
 
+// ==================== RENDER PRODUCTS ====================
+function renderProducts(products, category) {
+    var html = '';
+    if (category === 'all') {
+        var categories = ['diamonds', 'double-diamond', 'weekly-pass', 'twilight-pass', 'epic'];
+        var catNames = {
+            'diamonds': '💎 Diamonds',
+            'double-diamond': '💎 Double Diamond (First Recharge)',
+            'weekly-pass': '📅 Weekly Pass',
+            'twilight-pass': '🌙 Twilight Pass',
+            'epic': '⚔️ Epic'
+        };
+        categories.forEach(function(cat) {
+            var items = products.filter(function(p) { return p.category === cat; });
+            if (items.length > 0) {
+                html += '<div class="category-section-title"><div class="cat-dot"></div>' + (catNames[cat] || cat) + '</div>';
+                html += '<div class="product-grid">' + renderCards(items) + '</div>';
+            }
+        });
+    } else {
+        html += '<div class="product-grid">' + renderCards(products) + '</div>';
+    }
+    document.getElementById('productGrid').innerHTML = html;
+}
+
+function renderCards(products) {
+    return products.map(function(p) {
+        var op = p.original > 0 ? '<div class="product-original">' + p.original.toLocaleString() + ' Ks</div>' : '';
+        return '<div class="product-card" onclick="selectProduct(\'' + p.name + '\')">' +
+            '<div class="checkmark">✓</div>' +
+            '<div class="product-img-wrap"><img class="product-img" src="' + p.img + '" alt="' + p.name + '" onerror="this.src=\'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg\'"></div>' +
+            '<div class="product-name">' + p.name + '</div>' +
+            '<div class="product-price">' + p.price.toLocaleString() + ' Ks</div>' + op +
+            '</div>';
+    }).join('');
+}
+
+function filterCategory(category) {
+    currentCategory = category;
+    document.querySelectorAll('.category-tab').forEach(function(tab) { tab.classList.remove('active'); });
+    event.target.classList.add('active');
+    var filtered = category === 'all' ? PRODUCTS : PRODUCTS.filter(function(p) { return p.category === category; });
+    renderProducts(filtered, category);
+}
+
 // ==================== INIT ====================
 loadNotiItems();
 renderProducts(PRODUCTS, 'all');
