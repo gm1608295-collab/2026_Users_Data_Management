@@ -6,57 +6,110 @@
     <title>HOK - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db;--orange:#e67e22}
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
-        body{background:#0c0e27;color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
-        .container{max-width:500px;margin:0 auto;padding-bottom:30px}
+     :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+body{background:linear-gradient(160deg,#0a0d24 0%,#0f1235 50%,#080b1a 100%);color:var(--t);min-height:100vh;padding:12px;overflow-y:auto!important}
+.container{max-width:500px;margin:0 auto;padding-bottom:30px}
 
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,#4a1c7a,#1a1f4b);padding:14px 15px;border-radius:12px;border-bottom:3px solid var(--w)}
-        .header a{color:var(--w);font-size:20px;text-decoration:none;flex-shrink:0}
-        .header h2{color:var(--w);font-size:16px;font-weight:700}
+/* ========== HEADER ========== */
+.header{display:flex;align-items:center;gap:10px;margin-bottom:14px;background:linear-gradient(135deg,#1a0a2e,#2d1b4e);padding:14px 16px;border:1.5px solid rgba(255,255,255,0.1);position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(243,156,18,0.05),transparent);animation:headerShine 3s infinite}
+@keyframes headerShine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.header a{color:var(--w);font-size:18px;text-decoration:none;flex-shrink:0;z-index:1;transition:all 0.2s}
+.header a:hover{transform:scale(1.1)}
+.header h2{color:var(--w);font-size:15px;font-weight:700;z-index:1}
 
-        .balance-bar{display:flex;gap:8px;margin-bottom:12px}
-        .bal-card{flex:1;background:rgba(26,31,75,0.8);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
-        .bal-value{font-size:18px;font-weight:bold;color:var(--w)}
-        .bal-label{font-size:8px;color:rgba(255,255,255,0.5)}
+/* ========== BALANCE CARD (LED BORDER) ========== */
+.balance-bar{display:flex;gap:8px;margin-bottom:12px}
+.bal-card{flex:1;background:rgba(255,255,255,0.03);border:2px solid #f39c12;padding:14px 12px;text-align:center;position:relative;overflow:hidden;animation:ledBorderBalance 2s linear infinite}
+@keyframes ledBorderBalance{
+0%{border-color:#f39c12;box-shadow:0 0 10px #f39c12,0 0 20px rgba(243,156,18,0.3)}
+25%{border-color:#e74c3c;box-shadow:0 0 10px #e74c3c,0 0 20px rgba(231,76,60,0.3)}
+50%{border-color:#2ecc71;box-shadow:0 0 10px #2ecc71,0 0 20px rgba(46,204,113,0.3)}
+75%{border-color:#3498db;box-shadow:0 0 10px #3498db,0 0 20px rgba(52,152,219,0.3)}
+100%{border-color:#f39c12;box-shadow:0 0 10px #f39c12,0 0 20px rgba(243,156,18,0.3)}
+}
+.bal-value{font-size:20px;font-weight:700;color:var(--w);position:relative;z-index:1}
+.bal-label{font-size:8px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;position:relative;z-index:1}
 
-        .product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:15px}
-        
-        .product-card{background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.3s;position:relative}
-        .product-card:hover{border-color:rgba(243,156,18,0.5);background:rgba(243,156,18,0.08);transform:translateY(-2px)}
-        .product-card.selected{border-color:var(--g);background:rgba(46,204,113,0.12);box-shadow:0 0 15px rgba(46,204,113,0.2)}
-        .product-card.selected::after{content:'✓';position:absolute;top:5px;right:5px;width:18px;height:18px;background:var(--g);color:#000;border-radius:5px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
-        
-        .product-img-wrap{width:55px;height:55px;margin:0 auto 8px;border-radius:10px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3)}
-        .product-img{width:100%;height:100%;object-fit:cover;border-radius:8px}
-        .product-name{font-size:8px;color:rgba(255,255,255,0.8);font-weight:600;line-height:1.2;min-height:22px}
-        .product-price{font-size:12px;font-weight:700;color:var(--w)}
-        .product-original{font-size:7px;color:rgba(255,255,255,0.25);text-decoration:line-through}
+/* ========== CATEGORY TABS ========== */
+.category-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.category-tab{padding:8px 14px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);cursor:pointer;transition:all 0.3s;white-space:nowrap;backdrop-filter:blur(5px)}
+.category-tab:hover{background:rgba(243,156,18,0.1);border-color:rgba(243,156,18,0.3);color:#fff}
+.category-tab.active{background:linear-gradient(135deg,var(--w),#e67e22);color:#000;border-color:var(--w);font-weight:700;box-shadow:0 4px 15px rgba(243,156,18,0.3)}
 
-        .detail-panel{display:none;background:rgba(0,0,0,0.5);border:1.5px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px;margin-bottom:15px;animation:slideUp 0.3s ease}
-        .detail-panel.active{display:block}
-        
-        .detail-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
-        .detail-header img{width:50px;height:50px;object-fit:cover;border-radius:10px;background:rgba(0,0,0,0.3);padding:4px}
-        .detail-name{font-size:14px;font-weight:700;color:#fff}
-        .detail-price{font-size:18px;font-weight:700;color:var(--w);margin-top:2px}
-        .detail-original{font-size:9px;color:rgba(255,255,255,0.25);text-decoration:line-through}
+/* ========== SECTION TITLE ========== */
+.category-section-title{font-size:11px;font-weight:700;color:var(--w);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px}
+.cat-dot{width:8px;height:8px;background:var(--w);animation:dotPulse 1.5s infinite}
+@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
-        .id-row{display:flex;gap:8px;margin-bottom:10px}
-        .id-group{flex:1}
-        .id-group label{display:block;font-size:9px;color:rgba(255,255,255,0.5);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
-        .id-group input{width:100%;padding:11px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-size:14px;text-align:center;font-weight:700;letter-spacing:2px;transition:all 0.3s}
-        .id-group input:focus{outline:none;border-color:var(--w);box-shadow:0 0 12px rgba(243,156,18,0.1)}
+/* ========== PRODUCT GRID (3 PER ROW) ========== */
+.product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
 
-        .action-row{display:flex;gap:8px;margin-top:12px}
-        .btn-cancel{flex:1;padding:11px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer}
-        .btn-buy{flex:2;padding:11px;background:linear-gradient(135deg,var(--w),#e67e22);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px}
-        .btn-buy:disabled{opacity:0.4;cursor:not-allowed}
+/* ========== PRODUCT CARD (GOLD GAMING - SHARP CORNERS) ========== */
+.product-card{background:linear-gradient(160deg,#1a1000,#2d1800,#1a0c00);border:2px solid #b8860b;padding:14px 6px 10px;text-align:center;cursor:pointer;transition:all 0.3s cubic-bezier(0.25,0.8,0.25,1.2);position:relative;overflow:hidden;box-shadow:0 4px 15px rgba(184,134,11,0.3),inset 0 1px 0 rgba(255,215,0,0.1)}
+.product-card::before{content:'';position:absolute;top:-50%;left:-100%;width:60%;height:200%;background:linear-gradient(90deg,transparent,rgba(255,215,0,0.15),rgba(255,255,255,0.2),rgba(255,215,0,0.15),transparent);transform:skewX(-25deg);animation:goldSweep 3s ease-in-out infinite;z-index:3;pointer-events:none}
+@keyframes goldSweep{0%{left:-100%}100%{left:150%}}
+.product-card::after{content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:radial-gradient(circle at 50% 0%,rgba(255,215,0,0.2),transparent 70%);opacity:0;transition:opacity 0.4s;z-index:1;pointer-events:none}
+.product-card:hover::after{opacity:1}
+.product-card:hover{border-color:#ffd700;transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,0.4),0 0 25px rgba(255,215,0,0.3),0 0 50px rgba(255,215,0,0.1)}
+.product-card:active{transform:scale(0.95)}
+.product-card.selected{border-color:#2ecc71;background:linear-gradient(160deg,#0a1a0a,#0d2d0d,#0a1a0a);box-shadow:0 0 25px rgba(46,204,113,0.3),inset 0 1px 0 rgba(46,204,113,0.1)}
+.product-card.selected::after{opacity:1;background:radial-gradient(circle at 50% 0%,rgba(46,204,113,0.2),transparent 70%)}
+.product-card.selected::before{background:linear-gradient(90deg,transparent,rgba(46,204,113,0.1),rgba(255,255,255,0.15),rgba(46,204,113,0.1),transparent)}
+.product-card .checkmark{display:none}
+.product-card.selected .checkmark{display:flex;position:absolute;top:6px;right:6px;width:20px;height:20px;background:#2ecc71;color:#000;font-size:11px;font-weight:700;align-items:center;justify-content:center;z-index:5;box-shadow:0 2px 8px rgba(46,204,113,0.4)}
 
-        .toast{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;z-index:9999;font-size:12px;font-weight:bold;display:none;box-shadow:0 5px 20px rgba(0,0,0,0.4)}
-        
-        @keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+/* ========== IMAGE WRAPPER ========== */
+.product-img-wrap{width:56px;height:56px;margin:0 auto 8px;overflow:hidden;border:1.5px solid rgba(255,215,0,0.3);background:rgba(0,0,0,0.6);transition:all 0.3s;position:relative;z-index:2}
+.product-card:hover .product-img-wrap{border-color:rgba(255,215,0,0.7);box-shadow:0 0 20px rgba(255,215,0,0.2);transform:scale(1.05)}
+.product-img{width:100%;height:100%;object-fit:contain;transition:transform 0.3s}
+.product-card:hover .product-img{transform:scale(1.1)}
+
+/* ========== PRODUCT NAME ========== */
+.product-name{font-size:8.5px;color:rgba(255,255,255,0.85);font-weight:600;line-height:1.3;min-height:22px;display:flex;align-items:center;justify-content:center;position:relative;z-index:2;transition:color 0.3s}
+.product-card:hover .product-name{color:#ffd700}
+
+/* ========== PRICE BOX ========== */
+.product-price{font-size:13px;font-weight:700;color:#ffd700;background:rgba(0,0,0,0.7);border:1px solid rgba(255,215,0,0.3);padding:5px 10px;margin-top:4px;display:inline-block;position:relative;z-index:2;letter-spacing:0.5px;text-shadow:0 0 8px rgba(255,215,0,0.4);box-shadow:0 2px 8px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05);transition:all 0.3s}
+.product-card:hover .product-price{background:rgba(0,0,0,0.85);border-color:#ffd700;box-shadow:0 4px 15px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.1),0 0 15px rgba(255,215,0,0.3);transform:scale(1.05)}
+
+/* ========== ORIGINAL PRICE ========== */
+.product-original{font-size:7.5px;color:rgba(255,255,255,0.25);text-decoration:line-through;margin-top:2px;position:relative;z-index:2}
+
+/* ========== DETAIL PANEL ========== */
+.detail-panel{display:none;background:rgba(0,0,0,0.6);border:1.5px solid rgba(255,255,255,0.1);padding:18px;margin-bottom:15px;animation:slideUp 0.35s ease;backdrop-filter:blur(15px);position:relative;overflow:hidden}
+.detail-panel::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--w),transparent)}
+.detail-panel.active{display:block}
+.detail-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.detail-header img{width:50px;height:50px;object-fit:contain;background:rgba(0,0,0,0.4);padding:5px;border:1.5px solid rgba(255,255,255,0.1)}
+.detail-name{font-size:14px;font-weight:700;color:#fff}
+.detail-price{font-size:18px;font-weight:700;color:var(--w);margin-top:2px}
+.detail-original{font-size:9px;color:rgba(255,255,255,0.2);text-decoration:line-through}
+
+/* ========== ID INPUTS ========== */
+.id-row{display:flex;gap:8px;margin-bottom:10px}
+.id-group{flex:1}
+.id-group label{display:block;font-size:8px;color:rgba(255,255,255,0.4);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.id-group input{width:100%;padding:12px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.1);color:#fff;font-size:14px;text-align:center;font-weight:700;letter-spacing:2px;transition:all 0.3s}
+.id-group input:focus{outline:none;border-color:var(--w);box-shadow:0 0 15px rgba(243,156,18,0.1);background:rgba(255,255,255,0.06)}
+.id-group input.invalid{border-color:var(--r);animation:shake 0.4s}
+
+/* ========== ACTION BUTTONS ========== */
+.action-row{display:flex;gap:8px;margin-top:12px}
+.btn-cancel{flex:1;padding:12px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.btn-cancel:hover{background:rgba(255,255,255,0.06);color:#fff}
+.btn-buy{flex:2;padding:12px;background:linear-gradient(135deg,var(--w),#e67e22);border:none;color:#000;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;transition:all 0.3s}
+.btn-buy:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 25px rgba(243,156,18,0.35)}
+.btn-buy:disabled{opacity:0.35;cursor:not-allowed;filter:grayscale(40%)}
+
+/* ========== TOAST ========== */
+.toast{position:fixed;top:20px;right:20px;padding:12px 18px;z-index:9999;font-size:12px;font-weight:700;display:none;box-shadow:0 8px 30px rgba(0,0,0,0.5);animation:slideIn 0.3s ease}
+
+@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
     </style>
 </head>
 <body>
