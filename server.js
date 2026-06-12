@@ -2656,6 +2656,97 @@ app.post('/api/get_balance', async (req, res) => {
         res.json({ balance: 0 });
     }
 });
+// ==================== PURCHASE GAME ITEM (AUTO-APPROVED) ====================
+app.post('/api/purchase_game_item', async (req, res) => {
+    const { token, game, product_name, price, game_id, server_id, player_id } = req.body;
+    
+    if (!token || token === 'guest') {
+        return res.json({ success: false, message: 'Login required' });
+    }
+    
+    if (!game || !product_name || !price) {
+        return res.json({ success: false, message: 'Missing required fields' });
+    }
+    
+    try {
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+        const p = await getPool();
+        
+        let uid;
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid session' });
+            }
+        } else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+            if (isNaN(uid)) return res.json({ success: false, message: 'Invalid session' });
+        } else {
+            return res.json({ success: false, message: 'Invalid session' });
+        }
+        
+        // ✅ Balance စစ်
+        const user = await p.query('SELECT balance, username FROM auth_users WHERE id = $1', [uid]);
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'User not found' });
+        }
+        
+        const currentBalance = parseFloat(user.rows[0].balance || 0);
+        const username = user.rows[0].username || 'Unknown';
+        
+        if (currentBalance < price) {
+            return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ' });
+        }
+        
+        // ✅ Balance နှုတ်
+        const newBalance = currentBalance - price;
+        await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id = $2', [price, uid]);
+        
+        // ✅ Order History သိမ်း (Auto-Approved)
+        const paymentMethod = game.toUpperCase() + ' Purchase - ' + product_name;
+        let screenshot = game + '_' + product_name.replace(/\s+/g, '_').toLowerCase();
+        if (game_id) screenshot += '_' + game_id;
+        if (server_id) screenshot += '_' + server_id;
+        
+        await p.query(
+            'INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+            [uid, username, -price, paymentMethod, screenshot, 'approved', uid.toString()]
+        );
+        
+        // ✅ Game Purchase Log (optional)
+        const gameInfo = {
+            game: game,
+            product: product_name,
+            price: price,
+            game_id: game_id || '',
+            server_id: server_id || '',
+            player_id: player_id || ''
+        };
+        
+        console.log('✅ [GAME PURCHASE] User:', uid, 'Game:', game, 'Product:', product_name, 'Price:', price, 'New Balance:', newBalance);
+        
+        // ✅ Telegram Noti (optional)
+        try {
+            const gameDetails = game_id ? '🆔 ' + game_id + (server_id ? ' (' + server_id + ')' : '') : '';
+            tgSend('🎮 Game Purchase\n👤 ' + username + '\n🎮 ' + game.toUpperCase() + '\n📦 ' + product_name + '\n💰 ' + price.toLocaleString() + ' Ks\n' + gameDetails + '\n✅ Auto-Approved');
+        } catch(e) {}
+        
+        res.json({
+            success: true,
+            message: 'ဝယ်ယူမှု အောင်မြင်ပါသည်',
+            new_balance: newBalance,
+            product: product_name,
+            game: game
+        });
+        
+    } catch(e) {
+        console.error('[PURCHASE GAME ITEM ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== ORDER STATUS (ADMIN) ====================
 app.post('/api/admin/order_status', async (req, res) => { 
     try { 
