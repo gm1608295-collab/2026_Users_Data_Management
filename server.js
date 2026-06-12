@@ -2496,10 +2496,16 @@ app.get('/api/admin/orders', async (req, res) => {
         res.json({ orders: [], total: 0, today: 0 }); 
     } 
 });
-// ==================== SUBMIT ORDER (JWT FIXED - COMPLETE) ====================
+// ==================== SUBMIT ORDER (DEBUG VERSION) ====================
 app.post('/api/submit_order', async (req, res) => {
     try {
         const { token, amount, payment_method, screenshot, user_id } = req.body;
+        
+        // ✅ Debug - Token အပြည့်အစုံ Console ပြ
+        console.log('🔍 [SUBMIT ORDER] Token:', token);
+        console.log('🔍 [SUBMIT ORDER] Token Type:', typeof token);
+        console.log('🔍 [SUBMIT ORDER] Token Length:', token ? token.length : 0);
+        console.log('🔍 [SUBMIT ORDER] Starts With:', token ? token.substring(0, 10) : 'NULL');
         
         if (!token || token === 'guest') {
             return res.json({ success: false, message: 'Login required' });
@@ -2514,21 +2520,26 @@ app.post('/api/submit_order', async (req, res) => {
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
-                // ✅ Payload ထဲမှာ ဘယ် Key နဲ့ သိမ်းထားလဲ အကုန်စစ်
+                console.log('🔍 [SUBMIT ORDER] Decoded Payload:', JSON.stringify(decoded));
                 uid = decoded.userId || decoded.id || decoded.uid || decoded.user_id;
+                console.log('🔍 [SUBMIT ORDER] Found UID:', uid);
             } catch(e) {
-                console.error('[SUBMIT ORDER] JWT Error:', e.message);
-                return res.json({ success: false, message: 'Invalid token' });
+                console.error('🔍 [SUBMIT ORDER] JWT Error:', e.message);
+                return res.json({ success: false, message: 'Invalid token: ' + e.message });
             }
         } 
-        // ✅ Old Token Format (token_xxx)
+        // ✅ Old Token
         else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''));
-            if (isNaN(uid)) {
-                return res.json({ success: false, message: 'Invalid token' });
-            }
+            console.log('🔍 [SUBMIT ORDER] Old Token UID:', uid);
         } 
+        // ✅ Unknown Format - Direct UID?
+        else if (/^\d+$/.test(token)) {
+            uid = parseInt(token);
+            console.log('🔍 [SUBMIT ORDER] Numeric Token UID:', uid);
+        }
         else {
+            console.error('🔍 [SUBMIT ORDER] Unknown token format');
             return res.json({ success: false, message: 'Invalid token format' });
         }
         
@@ -2543,8 +2554,6 @@ app.post('/api/submit_order', async (req, res) => {
             'INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
             [uid, un, amount || 0, payment_method, screenshot || '', 'pending', user_id || uid]
         );
-        
-        try { tgSend(`🛒 New Order\n👤 ${un}\n💳 ${payment_method}\n🆔 ${user_id || uid}`); } catch(e) {}
         
         res.json({ success: true, message: 'Order submitted' });
         
