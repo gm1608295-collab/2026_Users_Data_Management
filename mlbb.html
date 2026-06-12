@@ -3,350 +3,273 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MLBB - SOLO M Game Store</title>
+    <title>MLBB - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db;--orange:#e67e22}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
-        body{background:#0c0e27;color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
+        body{background:linear-gradient(160deg,#0a0d24 0%,#0f1235 50%,#080b1a 100%);color:var(--t);min-height:100vh;padding:12px;overflow-y:auto!important}
         .container{max-width:500px;margin:0 auto;padding-bottom:30px}
 
-        .header{display:flex;align-items:center;gap:10px;margin-bottom:15px;background:linear-gradient(to right,#4a1c7a,#1a1f4b);padding:14px 15px;border-radius:12px;border-bottom:3px solid var(--w)}
-        .header a{color:var(--w);font-size:20px;text-decoration:none;flex-shrink:0}
-        .header h2{color:var(--w);font-size:16px;font-weight:700}
+        .header{display:flex;align-items:center;gap:10px;margin-bottom:14px;background:linear-gradient(135deg,#1a0a2e,#2d1b4e);padding:14px 16px;border-radius:14px;border:1.5px solid rgba(255,255,255,0.1);position:relative;overflow:hidden}
+        .header::before{content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(243,156,18,0.05),transparent);animation:headerShine 3s infinite}
+        @keyframes headerShine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+        .header a{color:var(--w);font-size:18px;text-decoration:none;flex-shrink:0;z-index:1;transition:all 0.2s}
+        .header a:hover{transform:scale(1.1)}
+        .header h2{color:var(--w);font-size:15px;font-weight:700;z-index:1}
 
         .balance-bar{display:flex;gap:8px;margin-bottom:12px}
-        .bal-card{flex:1;background:rgba(26,31,75,0.8);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
-        .bal-value{font-size:18px;font-weight:bold;color:var(--w)}
-        .bal-label{font-size:8px;color:rgba(255,255,255,0.5)}
+        .bal-card{flex:1;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 12px;text-align:center;position:relative;overflow:hidden;backdrop-filter:blur(10px)}
+        .bal-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(243,156,18,0.05) 0%,transparent 70%);animation:balGlow 3s infinite}
+        @keyframes balGlow{0%,100%{transform:translate(0,0)}50%{transform:translate(10px,-10px)}}
+        .bal-value{font-size:20px;font-weight:700;color:var(--w);position:relative;z-index:1}
+        .bal-label{font-size:8px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;position:relative;z-index:1}
 
-        .product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:15px}
-        
-        .product-card{background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 6px;text-align:center;cursor:pointer;transition:all 0.3s;position:relative}
-        .product-card:hover{border-color:rgba(243,156,18,0.5);background:rgba(243,156,18,0.08);transform:translateY(-2px)}
-        .product-card.selected{border-color:var(--g);background:rgba(46,204,113,0.12);box-shadow:0 0 15px rgba(46,204,113,0.2)}
-        .product-card.selected::after{content:'✓';position:absolute;top:5px;right:5px;width:18px;height:18px;background:var(--g);color:#000;border-radius:5px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center}
-        
-        .product-img-wrap{width:55px;height:55px;margin:0 auto 8px;border-radius:10px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.1);background:rgba(0,0,0,0.3)}
-        .product-img{width:100%;height:100%;object-fit:cover;border-radius:8px}
-        .product-name{font-size:8px;color:rgba(255,255,255,0.8);font-weight:600;line-height:1.2;min-height:22px}
-        .product-price{font-size:12px;font-weight:700;color:var(--w)}
-        .product-original{font-size:7px;color:rgba(255,255,255,0.25);text-decoration:line-through}
+        .category-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+        .category-tab{padding:8px 14px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);border-radius:20px;font-size:10px;font-weight:600;color:rgba(255,255,255,0.5);cursor:pointer;transition:all 0.3s;white-space:nowrap;backdrop-filter:blur(5px)}
+        .category-tab:hover{background:rgba(243,156,18,0.1);border-color:rgba(243,156,18,0.3);color:#fff}
+        .category-tab.active{background:linear-gradient(135deg,var(--w),#e67e22);color:#000;border-color:var(--w);font-weight:700;box-shadow:0 4px 15px rgba(243,156,18,0.3)}
 
-        .detail-panel{display:none;background:rgba(0,0,0,0.5);border:1.5px solid rgba(255,255,255,0.12);border-radius:14px;padding:16px;margin-bottom:15px;animation:slideUp 0.3s ease}
+        .category-section-title{font-size:11px;font-weight:700;color:var(--w);margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px}
+        .cat-dot{width:8px;height:8px;border-radius:2px;background:var(--w);animation:dotPulse 1.5s infinite}
+        @keyframes dotPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+        .product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:8px}
+
+        .product-card{background:rgba(255,255,255,0.02);border:1.5px solid rgba(255,255,255,0.06);border-radius:14px;padding:12px 5px;text-align:center;cursor:pointer;transition:all 0.35s;position:relative;overflow:hidden;backdrop-filter:blur(5px)}
+        .product-card::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.03),transparent);transition:left 0.5s}
+        .product-card:hover::before{left:100%}
+        .product-card:hover{border-color:rgba(243,156,18,0.5);background:rgba(243,156,18,0.06);transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,0,0,0.3)}
+        .product-card:hover .product-img-wrap{border-color:rgba(243,156,18,0.5);box-shadow:0 0 15px rgba(243,156,18,0.15)}
+        .product-card.selected{border-color:var(--g);background:rgba(46,204,113,0.08);box-shadow:0 0 20px rgba(46,204,113,0.15)}
+        .product-card.selected::after{content:'✓';position:absolute;top:5px;right:5px;width:18px;height:18px;background:var(--g);color:#000;border-radius:5px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2}
+
+        .product-img-wrap{width:54px;height:54px;margin:0 auto 7px;border-radius:12px;overflow:hidden;border:1.5px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.4);transition:all 0.3s;position:relative}
+        .product-img-wrap::after{content:'';position:absolute;top:0;left:0;width:100%;height:100%;background:linear-gradient(135deg,rgba(255,255,255,0.05),transparent);pointer-events:none}
+        .product-img{width:100%;height:100%;object-fit:contain;border-radius:10px;transition:all 0.3s}
+        .product-card:hover .product-img{transform:scale(1.08)}
+        .product-name{font-size:8px;color:rgba(255,255,255,0.75);font-weight:600;line-height:1.2;min-height:20px}
+        .product-price{font-size:11px;font-weight:700;color:var(--w);margin-top:1px}
+        .product-original{font-size:7px;color:rgba(255,255,255,0.2);text-decoration:line-through}
+
+        .detail-panel{display:none;background:rgba(0,0,0,0.6);border:1.5px solid rgba(255,255,255,0.1);border-radius:16px;padding:18px;margin-bottom:15px;animation:slideUp 0.35s ease;backdrop-filter:blur(15px);position:relative;overflow:hidden}
+        .detail-panel::before{content:'';position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--w),transparent)}
         .detail-panel.active{display:block}
-        
-        .detail-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
-        .detail-header img{width:50px;height:50px;object-fit:cover;border-radius:10px;background:rgba(0,0,0,0.3);padding:4px}
+
+        .detail-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+        .detail-header img{width:50px;height:50px;object-fit:contain;border-radius:12px;background:rgba(0,0,0,0.4);padding:5px;border:1.5px solid rgba(255,255,255,0.1)}
         .detail-name{font-size:14px;font-weight:700;color:#fff}
         .detail-price{font-size:18px;font-weight:700;color:var(--w);margin-top:2px}
-        .detail-original{font-size:9px;color:rgba(255,255,255,0.25);text-decoration:line-through}
+        .detail-original{font-size:9px;color:rgba(255,255,255,0.2);text-decoration:line-through}
 
         .id-row{display:flex;gap:8px;margin-bottom:10px}
         .id-group{flex:1}
-        .id-group label{display:block;font-size:9px;color:rgba(255,255,255,0.5);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
-        .id-group input{width:100%;padding:11px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;color:#fff;font-size:14px;text-align:center;font-weight:700;letter-spacing:2px;transition:all 0.3s}
-        .id-group input:focus{outline:none;border-color:var(--w);box-shadow:0 0 12px rgba(243,156,18,0.1)}
+        .id-group label{display:block;font-size:8px;color:rgba(255,255,255,0.4);margin-bottom:3px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+        .id-group input{width:100%;padding:12px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;color:#fff;font-size:14px;text-align:center;font-weight:700;letter-spacing:2px;transition:all 0.3s}
+        .id-group input:focus{outline:none;border-color:var(--w);box-shadow:0 0 15px rgba(243,156,18,0.1);background:rgba(255,255,255,0.06)}
+        .id-group input.invalid{border-color:var(--r);animation:shake 0.4s}
 
         .action-row{display:flex;gap:8px;margin-top:12px}
-        .btn-cancel{flex:1;padding:11px;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;cursor:pointer}
-        .btn-buy{flex:2;padding:11px;background:linear-gradient(135deg,var(--w),#e67e22);border:none;border-radius:8px;color:#000;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px}
-        .btn-buy:disabled{opacity:0.4;cursor:not-allowed}
+        .btn-cancel{flex:1;padding:12px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.08);border-radius:10px;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s}
+        .btn-cancel:hover{background:rgba(255,255,255,0.06);color:#fff}
+        .btn-buy{flex:2;padding:12px;background:linear-gradient(135deg,var(--w),#e67e22);border:none;border-radius:10px;color:#000;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:0.5px;transition:all 0.3s}
+        .btn-buy:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 25px rgba(243,156,18,0.35)}
+        .btn-buy:disabled{opacity:0.35;cursor:not-allowed;filter:grayscale(40%)}
 
-        .toast{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:8px;z-index:9999;font-size:12px;font-weight:bold;display:none;box-shadow:0 5px 20px rgba(0,0,0,0.4)}
-        
-        @keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-      /* ========== CATEGORY TABS ========== */
-.category-tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-}
+        .toast{position:fixed;top:20px;right:20px;padding:12px 18px;border-radius:10px;z-index:9999;font-size:12px;font-weight:700;display:none;box-shadow:0 8px 30px rgba(0,0,0,0.5);animation:slideIn 0.3s ease}
 
-.category-tab {
-    padding: 8px 14px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1.5px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.6);
-    cursor: pointer;
-    transition: all 0.25s;
-    white-space: nowrap;
-}
-
-.category-tab:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-}
-
-.category-tab.active {
-    background: var(--w);
-    color: #000;
-    border-color: var(--w);
-    font-weight: 700;
-}
-
-/* ========== CATEGORY SECTION TITLE ========== */
-.category-section-title {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--w);
-    margin: 16px 0 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.category-section-title .cat-icon {
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
-    object-fit: contain;
-}
+        @keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slideIn{from{opacity:0;transform:translateX(50px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-2px)}}
     </style>
 </head>
 <body>
+    <audio id="bgAudio" loop style="display:none"></audio>
     <div class="toast" id="toast"></div>
     
     <div class="container">
-    <div class="header">
-        <a href="/topup.html"><i class="fas fa-arrow-left"></i></a>
-        <h2>📱 Mobile Legends</h2>
-    </div>
-    
-    <div class="balance-bar">
-        <div class="bal-card"><div class="bal-label">MMK Balance</div><div class="bal-value" id="mmkBalance">0 Ks</div></div>
-    </div>
-    
-    <!-- ✅ Category Tabs -->
-    <div class="category-tabs" id="categoryTabs">
-        <div class="category-tab active" onclick="filterCategory('all')">All</div>
-        <div class="category-tab" onclick="filterCategory('diamonds')">Diamonds</div>
-        <div class="category-tab" onclick="filterCategory('double-diamond')">Double Diamond</div>
-        <div class="category-tab" onclick="filterCategory('weekly-pass')"> Weekly Pass</div>
-        <div class="category-tab" onclick="filterCategory('twilight-pass')">Twilight Pass</div>
-        <div class="category-tab" onclick="filterCategory('epic')">Epic Pass</div>
-    </div>
-    
-    <!-- Product Grid -->
-    <div id="productGrid"></div>
-    
-    <!-- Detail Panel -->
-    <div class="detail-panel" id="detailPanel">
-        <div class="detail-header">
-            <img id="detailImg" src="" alt="">
-            <div>
-                <div class="detail-name" id="detailName"></div>
-                <div class="detail-price" id="detailPrice"></div>
-                <div class="detail-original" id="detailOriginal"></div>
+        <div class="header">
+            <a href="/topup.html"><i class="fas fa-arrow-left"></i></a>
+            <h2>📱 Mobile Legends</h2>
+        </div>
+        
+        <div class="balance-bar">
+            <div class="bal-card"><div class="bal-label">MMK Balance</div><div class="bal-value" id="mmkBalance">0 Ks</div></div>
+        </div>
+        
+        <div class="category-tabs" id="categoryTabs">
+            <div class="category-tab active" onclick="filterCategory('all')">All</div>
+            <div class="category-tab" onclick="filterCategory('diamonds')">💎 Diamonds</div>
+            <div class="category-tab" onclick="filterCategory('double-diamond')">💎 2x Diamond</div>
+            <div class="category-tab" onclick="filterCategory('weekly-pass')">📅 Weekly</div>
+            <div class="category-tab" onclick="filterCategory('twilight-pass')">🌙 Twilight</div>
+            <div class="category-tab" onclick="filterCategory('epic')">⚔️ Epic</div>
+        </div>
+        
+        <div id="productGrid"></div>
+        
+        <div class="detail-panel" id="detailPanel">
+            <div class="detail-header">
+                <img id="detailImg" src="" alt="">
+                <div>
+                    <div class="detail-name" id="detailName"></div>
+                    <div class="detail-price" id="detailPrice"></div>
+                    <div class="detail-original" id="detailOriginal"></div>
+                </div>
+            </div>
+            <div class="id-row">
+                <div class="id-group">
+                    <label>🆔 Game ID (8-10 digits)</label>
+                    <input type="text" id="gameId" placeholder="Game ID" maxlength="10" oninput="validateInputs()">
+                </div>
+                <div class="id-group">
+                    <label>🖥️ Server ID (4-5 digits)</label>
+                    <input type="text" id="serverId" placeholder="Server ID" maxlength="5" oninput="validateInputs()">
+                </div>
+            </div>
+            <div class="action-row">
+                <button class="btn-cancel" onclick="closeDetail()">Cancel</button>
+                <button class="btn-buy" id="buyBtn" disabled onclick="purchaseMLBB()">
+                    <i class="fas fa-shopping-cart"></i> Buy Now
+                </button>
             </div>
         </div>
-        <div class="id-row">
-            <div class="id-group">
-                <label>🆔 Game ID (8-10 digits)</label>
-                <input type="text" id="gameId" placeholder="Game ID" maxlength="10" oninput="validateInputs()">
-            </div>
-            <div class="id-group">
-                <label>🖥️ Server ID (4-5 digits)</label>
-                <input type="text" id="serverId" placeholder="Server ID" maxlength="5" oninput="validateInputs()">
-            </div>
-        </div>
-        <div class="action-row">
-            <button class="btn-cancel" onclick="closeDetail()">Cancel</button>
-            <button class="btn-buy" id="buyBtn" disabled onclick="purchaseMLBB()">
-                <i class="fas fa-shopping-cart"></i> Buy Now
-            </button>
-        </div>
-    </div>
     </div>
 
     <script>
-        // ==================== PRODUCT DATA WITH CATEGORIES ====================
-const PRODUCTS = [
-    // 💎 Diamonds (20 items)
-    { name: '5 Diamonds (5+0)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 438, original: 471, category: 'diamonds' },
-    { name: '11 Diamonds (10+1)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 836, original: 899, category: 'diamonds' },
-    { name: '22 Diamonds (20+2)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 1672, original: 1798, category: 'diamonds' },
-    { name: '55 Diamonds (50+5)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 3940, original: 4237, category: 'diamonds' },
-    { name: '56 Diamonds (51+5)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 4219, original: 4537, category: 'diamonds' },
-    { name: '86 Diamonds (78+8)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 5573, original: 5992, category: 'diamonds' },
-    { name: '112 Diamonds (102+10)', img: 'https://i.ibb.co/S4MnMpXQ/01-JD9-FCWTADSQZNA61-T2-B8-RKY4.png', price: 7245, original: 7790, category: 'diamonds' },
-    { name: '165 Diamonds (150+15)', img: 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png', price: 11901, original: 12797, category: 'diamonds' },
-    { name: '172 Diamonds (156+16)', img: 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png', price: 11026, original: 11856, category: 'diamonds' },
-    { name: '257 Diamonds (234+23)', img: 'https://i.ibb.co/1GfNtVDw/01-JNK3-X6-R1-EGE5-E38-FEE5-DYSXY.png', price: 16041, original: 17248, category: 'diamonds' },
-    { name: '275 Diamonds (250+25)', img: 'https://i.ibb.co/1GfNtVDw/01-JNK3-X6-R1-EGE5-E38-FEE5-DYSXY.png', price: 19862, original: 21357, category: 'diamonds' },
-    { name: '336 Diamonds (303+33)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 21773, original: 23412, category: 'diamonds' },
-    { name: '565 Diamonds (500+65)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 39764, original: 42757, category: 'diamonds' },
-    { name: '570 Diamonds (504+66)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 36302, original: 39034, category: 'diamonds' },
-    { name: '706 Diamonds (625+81)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 43426, original: 46695, category: 'diamonds' },
-    { name: '1163 Diamonds (1007+156)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 81518, original: 87654, category: 'diamonds' },
-    { name: '2195 Diamonds (1860+335)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 131433, original: 141326, category: 'diamonds' },
-    { name: '3688 Diamonds (3099+589)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 219280, original: 235785, category: 'diamonds' },
-    { name: '5532 Diamonds (4649+883)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 331089, original: 356010, category: 'diamonds' },
-    { name: '6042 Diamonds (5035+1007)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 409185, original: 439984, category: 'diamonds' },
-    { name: '9288 Diamonds (7740+1548)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 549932, original: 0, category: 'diamonds' },
-    
-    //  Double Diamond (4 items)
-    { name: 'First Recharge 50+50 (Max)', img: 'https://i.ibb.co/JWbn70T0/01-JSEPEK616-XR3-P8-SWTFH4-TQTD.png', price: 3700, original: 3900, category: 'double-diamond' },
-    { name: 'First Recharge 150+150 (Max)', img: 'https://i.ibb.co/yMK1y2L/01-JSEPFNH4-BPJA6-TY0-HRVX8-PPX.png', price: 11100, original: 11800, category: 'double-diamond' },
-    { name: 'First Recharge 250+250 (Max)', img: 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png', price: 17500, original: 18200, category: 'double-diamond' },
-    { name: 'First Recharge 500+500 (Max)', img: 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png', price: 35900, original: 36400, category: 'double-diamond' },
-    
-    //  Weekly Pass (1 item)
-    { name: 'Weekly Diamond Pass', img: 'https://i.ibb.co/gbY4GTvk/8cfaffbfa7aa9e957bb6da56f7fed781.jpg', price: 6886, original: 7404, category: 'weekly-pass' },
-    
-    //  Twilight Pass (1 item)
-    { name: 'Twilight Pass', img: 'https://i.ibb.co/xcRdNfj/01-JED346-YHR0-Z1-YVSG81-DEMFYQ.png', price: 36421, original: 39162, category: 'twilight-pass' },
-    
-    //  Epic (2 items)
-    { name: 'Epic Treasure (အပတ်စဉ်)', img: 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg', price: 3700, original: 3900, category: 'epic' },
-    { name: 'Epic Hero (လစဉ်)', img: 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg', price: 18500, original: 19100, category: 'epic' }
-];
+        // ==================== BG MUSIC PLAYER ====================
+        (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})();
 
-let selectedProduct = null;
-let currentCategory = 'all';
+        // ==================== PRODUCT DATA ====================
+        const PRODUCTS = [
+            { name: '5 Diamonds (5+0)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 438, original: 471, category: 'diamonds' },
+            { name: '11 Diamonds (10+1)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 836, original: 899, category: 'diamonds' },
+            { name: '22 Diamonds (20+2)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 1672, original: 1798, category: 'diamonds' },
+            { name: '55 Diamonds (50+5)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 3940, original: 4237, category: 'diamonds' },
+            { name: '56 Diamonds (51+5)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 4219, original: 4537, category: 'diamonds' },
+            { name: '86 Diamonds (78+8)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 5573, original: 5992, category: 'diamonds' },
+            { name: '112 Diamonds (102+10)', img: 'https://i.ibb.co/S4MnMpXQ/01-JD9-FCWTADSQZNA61-T2-B8-RKY4.png', price: 7245, original: 7790, category: 'diamonds' },
+            { name: '165 Diamonds (150+15)', img: 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png', price: 11901, original: 12797, category: 'diamonds' },
+            { name: '172 Diamonds (156+16)', img: 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png', price: 11026, original: 11856, category: 'diamonds' },
+            { name: '257 Diamonds (234+23)', img: 'https://i.ibb.co/1GfNtVDw/01-JNK3-X6-R1-EGE5-E38-FEE5-DYSXY.png', price: 16041, original: 17248, category: 'diamonds' },
+            { name: '275 Diamonds (250+25)', img: 'https://i.ibb.co/1GfNtVDw/01-JNK3-X6-R1-EGE5-E38-FEE5-DYSXY.png', price: 19862, original: 21357, category: 'diamonds' },
+            { name: '336 Diamonds (303+33)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 21773, original: 23412, category: 'diamonds' },
+            { name: '565 Diamonds (500+65)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 39764, original: 42757, category: 'diamonds' },
+            { name: '570 Diamonds (504+66)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 36302, original: 39034, category: 'diamonds' },
+            { name: '706 Diamonds (625+81)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 43426, original: 46695, category: 'diamonds' },
+            { name: '1163 Diamonds (1007+156)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 81518, original: 87654, category: 'diamonds' },
+            { name: '2195 Diamonds (1860+335)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 131433, original: 141326, category: 'diamonds' },
+            { name: '3688 Diamonds (3099+589)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 219280, original: 235785, category: 'diamonds' },
+            { name: '5532 Diamonds (4649+883)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 331089, original: 356010, category: 'diamonds' },
+            { name: '6042 Diamonds (5035+1007)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 409185, original: 439984, category: 'diamonds' },
+            { name: '9288 Diamonds (7740+1548)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 549932, original: 0, category: 'diamonds' },
+            { name: 'First Recharge 50+50', img: 'https://i.ibb.co/JWbn70T0/01-JSEPEK616-XR3-P8-SWTFH4-TQTD.png', price: 3700, original: 3900, category: 'double-diamond' },
+            { name: 'First Recharge 150+150', img: 'https://i.ibb.co/yMK1y2L/01-JSEPFNH4-BPJA6-TY0-HRVX8-PPX.png', price: 11100, original: 11800, category: 'double-diamond' },
+            { name: 'First Recharge 250+250', img: 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png', price: 17500, original: 18200, category: 'double-diamond' },
+            { name: 'First Recharge 500+500', img: 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png', price: 35900, original: 36400, category: 'double-diamond' },
+            { name: 'Weekly Diamond Pass', img: 'https://i.ibb.co/gbY4GTvk/8cfaffbfa7aa9e957bb6da56f7fed781.jpg', price: 6886, original: 7404, category: 'weekly-pass' },
+            { name: 'Twilight Pass', img: 'https://i.ibb.co/xcRdNfj/01-JED346-YHR0-Z1-YVSG81-DEMFYQ.png', price: 36421, original: 39162, category: 'twilight-pass' },
+            { name: 'Epic Treasure (Weekly)', img: 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg', price: 3700, original: 3900, category: 'epic' },
+            { name: 'Epic Hero (Monthly)', img: 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg', price: 18500, original: 19100, category: 'epic' }
+        ];
 
-// ==================== CATEGORY FILTER ====================
-function filterCategory(category) {
-    currentCategory = category;
-    
-    // Update tabs
-    document.querySelectorAll('.category-tab').forEach(function(tab) {
-        tab.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    // Filter products
-    var filtered = category === 'all' ? PRODUCTS : PRODUCTS.filter(function(p) {
-        return p.category === category;
-    });
-    
-    renderProducts(filtered, category);
-}
+        let selectedProduct = null;
+        let currentCategory = 'all';
 
-// ==================== RENDER PRODUCTS ====================
-function renderProducts(products, category) {
-    var html = '';
-    
-    if (category === 'all') {
-        // Group by category
-        var categories = ['diamonds', 'double-diamond', 'weekly-pass', 'twilight-pass', 'epic'];
-        var catNames = {
-            'diamonds': '💎 Diamonds',
-            'double-diamond': '💎 Double Diamond (First Recharge)',
-            'weekly-pass': '📅 Weekly Pass',
-            'twilight-pass': '🌙 Twilight Pass',
-            'epic': '⚔️ Epic'
-        };
-        
-        categories.forEach(function(cat) {
-            var items = products.filter(function(p) { return p.category === cat; });
-            if (items.length > 0) {
-                html += '<div class="category-section-title">' + (catNames[cat] || cat) + '</div>';
-                html += '<div class="product-grid">' + renderProductCards(items) + '</div>';
+        function showToast(msg, type) {
+            var t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = type === 'error' ? '#e74c3c' : '#2ecc71';
+            t.style.display = 'block';
+            setTimeout(function() { t.style.display = 'none'; }, 2500);
+        }
+
+        function filterCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.category-tab').forEach(function(tab) { tab.classList.remove('active'); });
+            event.target.classList.add('active');
+            var filtered = category === 'all' ? PRODUCTS : PRODUCTS.filter(function(p) { return p.category === category; });
+            renderProducts(filtered, category);
+        }
+
+        function renderProducts(products, category) {
+            var html = '';
+            if (category === 'all') {
+                var categories = ['diamonds', 'double-diamond', 'weekly-pass', 'twilight-pass', 'epic'];
+                var catNames = { 'diamonds': '💎 Diamonds', 'double-diamond': '💎 Double Diamond (First Recharge)', 'weekly-pass': '📅 Weekly Pass', 'twilight-pass': '🌙 Twilight Pass', 'epic': '⚔️ Epic' };
+                categories.forEach(function(cat) {
+                    var items = products.filter(function(p) { return p.category === cat; });
+                    if (items.length > 0) {
+                        html += '<div class="category-section-title"><div class="cat-dot"></div>' + (catNames[cat] || cat) + '</div>';
+                        html += '<div class="product-grid">' + renderCards(items) + '</div>';
+                    }
+                });
+            } else {
+                html += '<div class="product-grid">' + renderCards(products) + '</div>';
             }
-        });
-    } else {
-        html += '<div class="product-grid">' + renderProductCards(products) + '</div>';
-    }
-    
-    document.getElementById('productGrid').innerHTML = html;
-}
+            document.getElementById('productGrid').innerHTML = html;
+        }
 
-function renderProductCards(products) {
-    return products.map(function(p, i) {
-        var op = p.original > 0 ? '<div class="product-original">' + p.original.toLocaleString() + ' Ks</div>' : '';
-        return '<div class="product-card" onclick="selectProduct(\'' + p.name + '\')">' +
-            '<div class="product-img-wrap"><img class="product-img" src="' + p.img + '" alt="' + p.name + '" onerror="this.src=\'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg\'"></div>' +
-            '<div class="product-name">' + p.name + '</div>' +
-            '<div class="product-price">' + p.price.toLocaleString() + ' Ks</div>' + op + '</div>';
-    }).join('');
-}
+        function renderCards(products) {
+            return products.map(function(p) {
+                var op = p.original > 0 ? '<div class="product-original">' + p.original.toLocaleString() + ' Ks</div>' : '';
+                return '<div class="product-card" onclick="selectProduct(\'' + p.name + '\')">' +
+                    '<div class="product-img-wrap"><img class="product-img" src="' + p.img + '" alt="' + p.name + '" onerror="this.src=\'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg\'"></div>' +
+                    '<div class="product-name">' + p.name + '</div>' +
+                    '<div class="product-price">' + p.price.toLocaleString() + ' Ks</div>' + op + '</div>';
+            }).join('');
+        }
 
-// ==================== SELECT PRODUCT ====================
-function selectProduct(productName) {
-    selectedProduct = PRODUCTS.find(function(p) { return p.name === productName; });
-    if (!selectedProduct) return;
-    
-    document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
-    event.target.closest('.product-card').classList.add('selected');
-    
-    document.getElementById('detailPanel').classList.add('active');
-    document.getElementById('detailImg').src = selectedProduct.img;
-    document.getElementById('detailName').textContent = selectedProduct.name;
-    document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
-    if (selectedProduct.original > 0) {
-        document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
-        document.getElementById('detailOriginal').style.display = 'block';
-    } else {
-        document.getElementById('detailOriginal').style.display = 'none';
-    }
-    document.getElementById('gameId').value = '';
-    document.getElementById('serverId').value = '';
-    document.getElementById('buyBtn').disabled = true;
-    document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
-}
+        function selectProduct(productName) {
+            selectedProduct = PRODUCTS.find(function(p) { return p.name === productName; });
+            if (!selectedProduct) return;
+            document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
+            event.target.closest('.product-card').classList.add('selected');
+            document.getElementById('detailPanel').classList.add('active');
+            document.getElementById('detailImg').src = selectedProduct.img;
+            document.getElementById('detailName').textContent = selectedProduct.name;
+            document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
+            if (selectedProduct.original > 0) {
+                document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
+                document.getElementById('detailOriginal').style.display = 'block';
+            } else { document.getElementById('detailOriginal').style.display = 'none'; }
+            document.getElementById('gameId').value = '';
+            document.getElementById('serverId').value = '';
+            document.getElementById('buyBtn').disabled = true;
+            document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+        }
 
-// ==================== INIT ====================
-function showToast(msg, type) {
-    var t = document.getElementById('toast');
-    t.textContent = msg;
-    t.style.background = type === 'error' ? '#e74c3c' : '#2ecc71';
-    t.style.display = 'block';
-    setTimeout(function() { t.style.display = 'none'; }, 2500);
-}
+        function closeDetail() { document.getElementById('detailPanel').classList.remove('active'); selectedProduct = null; }
 
-function closeDetail() {
-    document.getElementById('detailPanel').classList.remove('active');
-    selectedProduct = null;
-}
+        function validateInputs() {
+            var id = document.getElementById('gameId').value.trim();
+            var server = document.getElementById('serverId').value.trim();
+            document.getElementById('buyBtn').disabled = !(id.length >= 8 && id.length <= 10 && /^\d+$/.test(id) && server.length >= 4 && server.length <= 5 && /^\d+$/.test(server) && selectedProduct);
+        }
 
-function validateInputs() {
-    var id = document.getElementById('gameId').value.trim();
-    var server = document.getElementById('serverId').value.trim();
-    document.getElementById('buyBtn').disabled = !(id.length >= 8 && id.length <= 10 && /^\d+$/.test(id) && server.length >= 4 && server.length <= 5 && /^\d+$/.test(server) && selectedProduct);
-}
+        async function purchaseMLBB() {
+            if (!selectedProduct) return showToast('Select a product', 'error');
+            var token = localStorage.getItem('auth_token');
+            if (!token || token === 'guest') return showToast('Login required', 'error');
+            try {
+                var r = await fetch('/api/purchase_game_item', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token, game: 'mlbb', product_name: selectedProduct.name, price: selectedProduct.price, game_id: document.getElementById('gameId').value.trim(), server_id: document.getElementById('serverId').value.trim() }) });
+                var d = await r.json();
+                if (d.success) { showToast('✅ Purchased! Balance: ' + d.new_balance.toLocaleString() + ' Ks'); document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks'; closeDetail(); }
+                else { showToast(d.message || 'Error', 'error'); }
+            } catch(e) { showToast('Connection error', 'error'); }
+        }
 
-async function purchaseMLBB() {
-    if (!selectedProduct) return showToast('Select a product', 'error');
-    var token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest') return showToast('Login required', 'error');
-    
-    try {
-        var r = await fetch('/api/purchase_game_item', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                token: token, game: 'mlbb', product_name: selectedProduct.name, price: selectedProduct.price,
-                game_id: document.getElementById('gameId').value.trim(),
-                server_id: document.getElementById('serverId').value.trim()
-            })
-        });
-        var d = await r.json();
-        if (d.success) {
-            showToast('✅ Purchased! Balance: ' + d.new_balance.toLocaleString() + ' Ks');
-            document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
-            closeDetail();
-        } else { showToast(d.message || 'Error', 'error'); }
-    } catch(e) { showToast('Connection error', 'error'); }
-}
+        async function loadBalance() {
+            try {
+                var r = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) });
+                var d = await r.json();
+                document.getElementById('mmkBalance').textContent = (d.balance || 0).toLocaleString() + ' Ks';
+            } catch(e) {}
+        }
 
-async function loadBalance() {
-    try {
-        var r = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: localStorage.getItem('auth_token') }) });
-        var d = await r.json();
-        document.getElementById('mmkBalance').textContent = (d.balance || 0).toLocaleString() + ' Ks';
-    } catch(e) {}
-}
-
-// ✅ Init
-renderProducts(PRODUCTS, 'all');
-loadBalance();
+        renderProducts(PRODUCTS, 'all');
+        loadBalance();
     </script>
 </body>
 </html>
