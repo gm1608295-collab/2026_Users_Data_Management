@@ -1176,7 +1176,28 @@
         </div>
     </div>
     <script>
-     // ==================== TOAST NOTIFICATION ====================
+        // ==================== GET TOKEN (URL → LOCALSTORAGE) ====================
+function getToken() {
+    // ✅ URL ကနေ အရင်ယူ (Telegram WebView)
+    var params = new URLSearchParams(window.location.search);
+    var urlToken = params.get('token');
+    
+    if (urlToken && urlToken !== 'guest' && urlToken.length > 10) {
+        try { localStorage.setItem('auth_token', urlToken); } catch(e) {}
+        return urlToken;
+    }
+    
+    // ✅ localStorage ကနေ ယူ (Website/App)
+    try {
+        var localToken = localStorage.getItem('auth_token');
+        if (localToken && localToken !== 'guest') {
+            return localToken;
+        }
+    } catch(e) {}
+    
+    return null;
+}
+        // ==================== TOAST NOTIFICATION ====================
 function showToast(msg, type = 'success') {
     const toast = document.createElement('div');
     toast.textContent = msg;
@@ -1445,35 +1466,82 @@ function validateModalHOK() {
     btn.disabled = !(id.length >= 1 && modalSelectedProduct['hok']);
 }
 
-// ==================== PURCHASE PRODUCT ====================
+// ==================== PURCHASE PRODUCT (WITH LOADING) ====================
 async function purchaseProduct(game) {
     var product = modalSelectedProduct[game];
     if (!product) return showToast('❌ Please select a product', 'error');
-    var token = localStorage.getItem('auth_token');
+    
+    var token = getToken();
     if (!token || token === 'guest') return showToast('❌ Please login first', 'error');
+    
     document.getElementById('purchaseLoadingOverlay').classList.add('active');
+    
     try {
-        var balRes = await fetch('/api/get_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) });
+        var balRes = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
         var balData = await balRes.json();
         var balance = parseFloat(balData.balance || 0);
-        if (balance < product.price) { document.getElementById('purchaseLoadingOverlay').classList.remove('active'); return showToast('❌ ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ။', 'error'); }
-        var r = await fetch('/api/submit_order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: token, amount: product.price, payment_method: game.toUpperCase() + ' Purchase', screenshot: game + '_purchase', user_id: JSON.parse(localStorage.getItem('user') || '{}').id || '' }) });
+        
+        if (balance < product.price) {
+            document.getElementById('purchaseLoadingOverlay').classList.remove('active');
+            return showToast('❌ ငွေမလုံလောက်ပါ။ ငွေဖြည့်ပါ။', 'error');
+        }
+        
+        var gameData = { game: game, product_name: product.name, price: product.price };
+        
+        if (game === 'mlbb') {
+            gameData.game_id = document.getElementById('mlbbModalGameId').value.trim();
+            gameData.server_id = document.getElementById('mlbbModalServerId').value.trim();
+        } else if (game === 'pubg') {
+            gameData.player_id = document.getElementById('pubgModalPlayerId').value.trim();
+        } else if (game === 'hok') {
+            gameData.player_id = document.getElementById('hokModalPlayerId').value.trim();
+        }
+        
+        var r = await fetch('/api/submit_order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: token,
+                amount: product.price,
+                payment_method: game.toUpperCase() + ' Purchase',
+                screenshot: game + '_purchase',
+                user_id: JSON.parse(localStorage.getItem('user') || '{}').id || ''
+            })
+        });
         var d = await r.json();
+        
         if (d.success) {
-            await fetch('/api/deduct_balance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, amount: product.price, reason: game.toUpperCase() + ': ' + product.name }) });
+            await fetch('/api/deduct_balance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token, amount: product.price, reason: game.toUpperCase() + ': ' + product.name })
+            });
+            
             document.getElementById('purchaseLoadingOverlay').classList.remove('active');
             document.getElementById(game + 'Overlay').classList.remove('active');
             document.body.style.overflow = '';
-            setTimeout(function() { document.getElementById('purchaseSuccessOverlay').classList.add('active'); }, 300);
+            
+            setTimeout(function() {
+                document.getElementById('purchaseSuccessOverlay').classList.add('active');
+            }, 300);
+            
             addNotiItem('pending', '🛒 ' + game.toUpperCase() + ' - ' + product.name + ' (' + product.price.toLocaleString() + ' Ks) ဝယ်ယူမှု အောင်မြင်ပါသည်');
+            
             modalSelectedProduct[game] = null;
             loadBalance();
-        } else { document.getElementById('purchaseLoadingOverlay').classList.remove('active'); showToast('❌ ' + (d.message || 'Error'), 'error'); }
-    } catch(e) { document.getElementById('purchaseLoadingOverlay').classList.remove('active'); showToast('❌ Connection error', 'error'); }
+        } else {
+            document.getElementById('purchaseLoadingOverlay').classList.remove('active');
+            showToast('❌ ' + (d.message || 'Error'), 'error');
+        }
+    } catch(e) {
+        document.getElementById('purchaseLoadingOverlay').classList.remove('active');
+        showToast('❌ Connection error', 'error');
+    }
 }
-
-function closePurchaseSuccess() { document.getElementById('purchaseSuccessOverlay').classList.remove('active'); }
-
 // ==================== RENDER GAME CARDS ====================
 function renderGameCards() {
     var html = '';
@@ -1523,10 +1591,11 @@ async function loadTopupNotice(){try{const r=await fetch("/api/topup_notice");co
     const pageOn = await checkPageAccess();
     if (!pageOn) return;
     
-    const token = localStorage.getItem('auth_token');
-    const user = localStorage.getItem('user');
+    var token = getToken();  // ✅ getToken() သုံး
+    var user = null;
+    try { user = JSON.parse(localStorage.getItem('user') || 'null'); } catch(e) {}
     
-    if (!token || !user || token === 'guest') {
+    if (!token || token === 'guest') {
         document.getElementById('loginCheckMessage').style.display = 'block';
         document.getElementById('topupContent').style.display = 'none';
         return;
@@ -1537,8 +1606,6 @@ async function loadTopupNotice(){try{const r=await fetch("/api/topup_notice");co
     
     loadTopupNotice();
     setInterval(loadTopupNotice, 5000);
-    
-    // ✅ History ကို Page Load မှာ ကြိုတင် Load လုပ်
     loadHistory();
 })();
 
@@ -1593,7 +1660,7 @@ async function verifyUserId() {
     cb.disabled = true;
     
     try {
-        const token = localStorage.getItem('auth_token');
+        var token = getToken();
         if (!token) {
             re.className = 'id-result invalid';
             re.textContent = '❌ Please login first';
@@ -1607,7 +1674,7 @@ async function verifyUserId() {
         const r = await fetch('/api/verify_user_id', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, userId: ii })
+            body: JSON.stringify({ token: token, userId: ii })
         });
         const d = await r.json();
         
@@ -1632,21 +1699,22 @@ async function verifyUserId() {
     cb.disabled = false;
 }
         
-async function submitTopup(){
+ async function submitTopup() {
     const pm = document.getElementById('topupPayment').value;
     const ii = document.getElementById('verifyUserId').value.trim();
     const btn = document.getElementById('buyBtn');
     
-    if(!pm) return showToast('Payment ရွေးချယ်ပါ', 'error');
-    if(!iv) return showToast('User ID စစ်ဆေးပါ', 'error');
-    if(!sd) return showToast('Screenshot ထည့်ပါ', 'error');
+    if (!pm) return showToast('Payment ရွေးချယ်ပါ', 'error');
+    if (!iv) return showToast('User ID စစ်ဆေးပါ', 'error');
+    if (!sd) return showToast('Screenshot ထည့်ပါ', 'error');
     
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Buying...';
     btn.disabled = true;
     
     try {
-        // ✅ Screenshot Upload (ImgBB)
-        var su = sd; // Default: base64
+        var token = getToken();  // ✅ getToken() သုံး
+        
+        var su = sd;
         try {
             const ur = await fetch('/api/upload_image', {
                 method: 'POST',
@@ -1654,23 +1722,14 @@ async function submitTopup(){
                 body: JSON.stringify({ base64: sd })
             });
             const ud = await ur.json();
-            if (ud.success && ud.url) {
-                su = ud.url;
-                console.log('✅ Screenshot uploaded:', su.substring(0, 50));
-            } else {
-                console.log('⚠️ Screenshot upload failed, using base64');
-            }
-        } catch(uploadErr) {
-            console.log('⚠️ Screenshot upload error:', uploadErr.message);
-            // Base64 အတိုင်း ဆက်သုံး
-        }
+            if (ud.success && ud.url) su = ud.url;
+        } catch(uploadErr) {}
         
-        // ✅ Submit Order
         const r = await fetch('/api/submit_order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                token: localStorage.getItem('auth_token'),
+                token: token,
                 amount: 0,
                 payment_method: pm,
                 screenshot: su,
@@ -1679,11 +1738,10 @@ async function submitTopup(){
         });
         const d = await r.json();
         
-        if(d.success){
+        if (d.success) {
             addNotiItem('pending', 'ငွေဖြည့်သွင်းခြင်း အောင်မြင်ပါသည်။ Admin မှ အတည်ပြုပြီးသည်နှင့် ၁၀ မိနစ်အတွင်း ဖြည့်သွင်းပေးပါမည်။');
             showToast('✅ Order Submitted!', 'success');
             
-            // Reset Form
             document.getElementById('topupPayment').value = '';
             document.getElementById('topupScreenshot').value = '';
             document.getElementById('screenshotPreview').innerHTML = '';
@@ -1701,13 +1759,12 @@ async function submitTopup(){
             showToast(d.message || 'Error', 'error');
         }
     } catch(e) {
-        console.error('Submit error:', e.message);
         showToast('Connection error: ' + e.message, 'error');
     }
     
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> Buy';
     btn.disabled = false;
-}
+ }
 // ==================== ADMIN ONLY DEBUG ====================
 // Usage: topup.html?debug=MK2008
 var isDebugMode = false;
@@ -1738,12 +1795,9 @@ function debugLog(msg, color) {
 // ==================== LOAD HISTORY (FIXED) ====================
 async function loadHistory() {
     var c = document.getElementById('orderHistory');
-    var token = localStorage.getItem('auth_token');
-    
-    debugLog('🔍 Loading History...', '#3498db');
+    var token = getToken();  // ✅ getToken() သုံး
     
     if (!token || token === 'guest') {
-        debugLog('❌ No token or guest', '#e74c3c');
         c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">အကောင့်ဝင်ရန် လိုအပ်ပါသည်</p>';
         return;
     }
@@ -1751,33 +1805,20 @@ async function loadHistory() {
     c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">⏳ စစ်ဆေးနေသည်...</p>';
     
     try {
-        debugLog('📡 Sending to /api/get_orders...', '#f39c12');
-        
         var r = await fetch('/api/get_orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: token })
         });
-        
-        debugLog('📡 Status: ' + r.status, r.ok ? '#2ecc71' : '#e74c3c');
-        
         var d = await r.json();
-        
-        debugLog('📦 Orders: ' + (d.orders ? d.orders.length : 'NULL'), '#3498db');
         
         if (d.orders && d.orders.length > 0) {
             renderOrderHistory(d.orders);
             checkOrderNoti(d.orders);
-            debugLog('✅ Done! ' + d.orders.length + ' orders', '#2ecc71');
-        } else if (d.orders && d.orders.length === 0) {
-            c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">📋 အော်ဒါမှတ်တမ်း မရှိသေးပါ</p>';
-            debugLog('ℹ️ No orders', '#f39c12');
         } else {
             c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">📋 အော်ဒါမှတ်တမ်း မရှိသေးပါ</p>';
-            debugLog('⚠️ Unknown response', '#e74c3c');
         }
     } catch (e) {
-        debugLog('❌ ' + e.message, '#e74c3c');
         c.innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.5);padding:20px">❌ ဆာဗာနှင့် ချိတ်ဆက်မရပါ</p>';
     }
 }
@@ -1808,21 +1849,20 @@ function checkOrderNoti(orders){
     if(lastId>0)localStorage.setItem('topupLastOrderCheck',lastId.toString());
     if(hasNew)renderNotiDropdown();
 }
-
-// ==================== BALANCE CHANGE NOTIFICATION (Amount ပါအောင် ပြင်ဆင်) ====================
+// ==================== BALANCE CHANGE NOTIFICATION ====================
 let lastNotifiedBalance = 0;
 let lastNotifiedAmount = 0;
 let lastNotifiedTime = 0;
 
 async function checkBalanceChanges() {
-    const token = localStorage.getItem('auth_token');
+    var token = getToken();
     if (!token || token === 'guest') return;
     
     try {
         const r = await fetch('/api/get_balance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
+            body: JSON.stringify({ token: token })
         });
         const d = await r.json();
         const currentBalance = parseFloat(d.balance || 0);
@@ -1850,7 +1890,7 @@ async function checkBalanceChanges() {
             return;
         }
         
-        // ✅ ငွေတိုးလာရင် (Amount ပါမယ်)
+        // ✅ ငွေတိုးလာရင်
         if (diff > 0) {
             addNotiItem('success', 
                 '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
@@ -1877,18 +1917,18 @@ async function checkBalanceChanges() {
         console.error('Balance check error:', e);
     }
 }
-// ==================== ORDER STATUS CHECK (Amount ပါအောင် ပြင်ဆင်) ====================
+// ==================== ORDER STATUS CHECK ====================
 let lastOrderCheckId = parseInt(localStorage.getItem('topupLastOrderCheck') || '0');
 
 async function checkOrderUpdates() {
-    const token = localStorage.getItem('auth_token');
+    var token = getToken();
     if (!token || token === 'guest') return;
     
     try {
         const r = await fetch('/api/get_orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
+            body: JSON.stringify({ token: token })
         });
         const d = await r.json();
         
@@ -1897,12 +1937,10 @@ async function checkOrderUpdates() {
                 if (o.id > lastOrderCheckId) {
                     lastOrderCheckId = o.id;
                     
-                    // ✅ ငွေပမာဏ (အနှုတ်ပြင်ရင် အပေါင်းပြန်)
                     var amount = Math.abs(o.amount || 0);
                     var amountText = fm(amount) + ' ကျပ်';
                     
                     if (o.status === 'approved') {
-                        // ✅ Approved Noti - ငွေပမာဏ ပါမယ်
                         addNotiItem('success', 
                             '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
                             '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
@@ -1910,7 +1948,6 @@ async function checkOrderUpdates() {
                             '<small style="color:#2ecc71">Admin မှ အတည်ပြုပြီးပါပြီ</small>'
                         );
                     } else if (o.status === 'rejected') {
-                        // ✅ Rejected Noti
                         addNotiItem('rejected', 
                             '❌ <b>အော်ဒါ ငြင်းပယ်ခံရပါသည်</b><br>' +
                             '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
@@ -1928,6 +1965,7 @@ async function checkOrderUpdates() {
         console.error('Order check error:', e);
     }
 }
+
 // ==================== နံပါတ် Format လုပ်တဲ့ Function ====================
 function fm(n) {
     return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -1936,10 +1974,12 @@ function fm(n) {
 // ==================== Balance ကို စပြီး Load လုပ် ====================
 async function loadBalance() {
     try {
+        var token = getToken();  // ✅ getToken() သုံး
+        
         const r = await fetch('/api/get_balance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: localStorage.getItem('auth_token') })
+            body: JSON.stringify({ token: token })
         });
         const d = await r.json();
         const b = d.balance || 0;
@@ -1947,13 +1987,13 @@ async function loadBalance() {
         document.getElementById('myBalance').textContent = fm(b) + ' ကျပ်';
         document.getElementById('usdBalance').textContent = '≈ $' + (b / 2100).toFixed(2) + ' USD';
         
-        // ပထမဆုံး Balance သိမ်း
         if (lastNotifiedBalance === 0) {
             lastNotifiedBalance = b;
             localStorage.setItem('topupLastBalance', b.toString());
         }
     } catch (e) {}
 }
+
 // ==================== RENDER ORDER HISTORY (မြန်မာလို) ====================
 function renderOrderHistory(orders) {
     var c = document.getElementById('orderHistory');
