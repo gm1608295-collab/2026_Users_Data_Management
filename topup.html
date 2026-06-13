@@ -988,7 +988,7 @@ async function checkBalanceChanges() {
         const d = await r.json();
         const currentBalance = parseFloat(d.balance || 0);
         
-        // UI ကို အမြဲ Update လုပ်
+        // UI ကို အမြဲ Update
         document.getElementById('myBalance').textContent = fm(currentBalance) + ' ကျပ်';
         document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
         
@@ -999,6 +999,7 @@ async function checkBalanceChanges() {
             return;
         }
         
+        // ✅ diff တွက်ပုံမှန်အောင်ပြောင်း
         var diff = currentBalance - lastNotifiedBalance;
         
         // 1 Ks အောက် ignore
@@ -1011,24 +1012,25 @@ async function checkBalanceChanges() {
             return;
         }
         
-        // ✅ ငွေတိုးလာရင် (Top Up)
-if (diff > 0) {
-    addNotiItem('success', 
-        '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
-        '💰 ဖြည့်သွင်းငွေ: <b style="color:#2ecc71">+' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
-        '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b>'
-    );
-} 
-// ✅ ငွေလျော့ရင် (Purchase Item)
-else if (diff < -50) {
-    var deductedAmount = Math.abs(Math.floor(diff));  // အနုတ်ကို အပေါင်းပြောင်း
-    addNotiItem('pending', 
-        '🛒 <b>ပစ္စည်းဝယ်ယူမှု အောင်မြင်ပါသည်</b><br>' +
-        '💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + fm(deductedAmount) + ' ကျပ်</b><br>' +
-        '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b><br>' +
-        '<small style="color:#e67e22">သင်၏ပစ္စည်းကို ၃ မိနစ်အတွင်း လက်ခံရရှိပါမည်</small>'
-    );
-}
+        // ✅ ငွေတိုးလာရင် (Top Up) - diff က အပေါင်း
+        if (diff > 0) {
+            addNotiItem('success', 
+                '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
+                '💰 ဖြည့်သွင်းငွေ: <b style="color:#2ecc71">+' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
+                '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b>'
+            );
+        } 
+        // ✅ ငွေလျော့ရင် (Purchase) - diff က အနုတ်
+        else if (diff < -50) {
+            var deductedAmount = Math.abs(Math.floor(diff));
+            addNotiItem('pending', 
+                '🛒 <b>ပစ္စည်းဝယ်ယူမှု အောင်မြင်ပါသည်</b><br>' +
+                '💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + fm(deductedAmount) + ' ကျပ်</b><br>' +
+                '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b><br>' +
+                '<small style="color:#e67e22">သင်၏ပစ္စည်းကို ၃ မိနစ်အတွင်း လက်ခံရရှိပါမည်</small>'
+            );
+        }
+        
         lastNotifiedBalance = currentBalance;
         lastNotifiedAmount = diff;
         lastNotifiedTime = Date.now();
