@@ -9,7 +9,41 @@
         :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db;--orange:#e67e22}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
-        body{background:var(--bg);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
+        /* ========== BACKGROUND IMAGE WITH PROTECTION ========== */
+body {
+    background: url('https://i.ibb.co/wFKmxrCT/Picsart-26-05-23-23-44-24-799.jpg') no-repeat center center fixed;
+    background-size: cover;
+    position: relative;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Dark overlay for better readability */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: -1;
+}
+
+/* Optional: Add a subtle gradient overlay on top */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%);
+    pointer-events: none;
+    z-index: -1;
+}
         .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
         
         /* Balance Card */
@@ -345,7 +379,122 @@
     background: rgba(255,255,255,0.1);
     color: #fff;
 }
+/* ========== GAME CARD - UNIFIED STYLE (အကုန်လုံးတန်းတူ) ========== */
+.game-card {
+    background: linear-gradient(145deg, #1a1f3a, #0f122e);
+    border-radius: 20px;
+    padding: 16px 8px 12px;
+    text-align: center;
+    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
 
+/* Hover effect - same for all cards */
+.game-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 18px 35px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Glossy shine effect on hover */
+.game-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+    transition: left 0.5s ease;
+    pointer-events: none;
+}
+
+.game-card:hover::before {
+    left: 100%;
+}
+
+/* Border colors for available games only */
+.game-card[data-game="mlbb"] { border-bottom: 4px solid #f39c12; }
+.game-card[data-game="pubg"] { border-bottom: 4px solid #e67e22; }
+.game-card[data-game="hok"] { border-bottom: 4px solid #9b59b6; }
+
+/* Unavailable cards - grey border, no special color */
+.game-card.unavailable-card {
+    border-bottom: 4px solid #7f8c8d;
+    opacity: 0.85;
+    cursor: default;
+}
+.game-card.unavailable-card:hover {
+    transform: translateY(-3px) scale(1.01);
+    opacity: 0.9;
+}
+
+/* Images - same style for all */
+.game-card img {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    object-fit: cover;
+    margin-bottom: 8px;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s;
+}
+
+.game-card:hover img {
+    transform: scale(1.05);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Game name */
+.game-card p {
+    font-size: 11px;
+    font-weight: 600;
+    margin: 6px 0 4px;
+    color: #fff;
+    letter-spacing: 0.3px;
+}
+
+/* Status badges - same style for all */
+.game-card .available {
+    font-size: 8px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    display: inline-block;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.game-card .available.yes {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.game-card .available.no {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+/* Grid layout */
+.games {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px 12px;
+    margin: 20px 0 30px;
+    padding: 0 4px;
+}
+/* Special frame for images inside cards */
+.game-card img {
+    border-radius: 20px 8px 20px 8px;  /* Unique shape */
+    border: 2px solid transparent;
+    background: linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,215,0,0.1)) padding-box, 
+                linear-gradient(135deg, #f39c12, #e67e22) border-box;
+}       
     </style>
 </head>
 <body>
@@ -638,50 +787,57 @@ const GAMES=[
     {name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},
     {name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}
 ];
-// ✅ ဒါနဲ့ အစားထိုးပါ
+
 function renderGameCards() {
     var html = '';
     
-    // MLBB Card → mlbb.html
-    html += '<div class="game-card" onclick="window.location.href=\'/mlbb.html\'" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
-    html += '<img src="https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg" alt="MLBB">';
-    html += '<p>Mobile Legends</p><div style="font-size:8px;color:var(--g)">✅ Available</div></div>';
+    // ========== AVAILABLE GAMES ==========
+    var availableGames = [
+        { name: 'Mobile Legends', img: 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg', link: '/mlbb.html', gameId: 'mlbb' },
+        { name: 'PUBG Mobile', img: 'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg', link: '/pubg.html', gameId: 'pubg' },
+        { name: 'Honor of Kings', img: 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg', link: '/hok.html', gameId: 'hok' }
+    ];
     
-    // PUBG Card → pubg.html
-    html += '<div class="game-card" onclick="window.location.href=\'/pubg.html\'" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
-    html += '<img src="https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg" alt="PUBG">';
-    html += '<p>PUBG Mobile</p><div style="font-size:8px;color:var(--g)">✅ Available</div></div>';
+    // ========== UNAVAILABLE GAMES ==========
+    var unavailableGames = [
+        { name: 'Free Fire', img: 'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg' },
+        { name: 'Clash of Clans', img: 'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg' },
+        { name: 'Life After', img: 'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg' },
+        { name: 'Once Human', img: 'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg' },
+        { name: 'Zenless Zone Zero', img: 'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg' },
+        { name: 'LOL Wild Rift', img: 'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg' },
+        { name: 'Farlight 84', img: 'https://i.ibb.co/J9FpbQF/70d84a2ec224ad31674df18d69dfae41.jpg' },
+        { name: 'Hay Day', img: 'https://i.ibb.co/pvbd3ffY/929567f62369bdecc2ab5d3ca813a328.jpg' },
+        { name: 'Genshin Impact', img: 'https://i.ibb.co/HDLQNyNB/abe019d59a86a88b52a6257ea454269e.jpg' },
+        { name: 'Harry Potter', img: 'https://i.ibb.co/Mx5Hwhtg/b9fdabea7e9c7364b0a81860a554c45b.jpg' },
+        { name: 'Stumble Guys', img: 'https://i.ibb.co/jvNb65TP/7ebfc026d31609ceda8f787d54515fe6.jpg' },
+        { name: 'Whiteout Survival', img: 'https://i.ibb.co/SXq4FR9C/2ad9cb386a3ec90cfa0bb1c185bd5725.jpg' },
+        { name: 'FRAG Pro Shooter', img: 'https://i.ibb.co/whJwVb8V/6581051ef1843e5ec6cce61fa38800ff.jpg' },
+        { name: 'EAFC Mobile', img: 'https://i.ibb.co/20Fwbhw8/22e5d45bcb1460a72b844d4a60830ce4.jpg' },
+        { name: 'Valorant', img: 'https://i.ibb.co/dw3FWFqP/5c95c35ce191a78b4564c3caf49720e1.jpg' },
+        { name: 'Modern Strike', img: 'https://i.ibb.co/y9qCn4z/fffa14272a58a15879531ebfde7bd134.jpg' },
+        { name: 'Silver and Blood', img: 'https://i.ibb.co/jkv9fFgp/dc308d9db127504128b9f87b96b872a2.jpg' },
+        { name: 'Telegram Premium', img: 'https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg' },
+        { name: 'Facebook', img: 'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg' },
+        { name: 'TikTok', img: 'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg' }
+    ];
     
-    // HOK Card → hok.html
-    html += '<div class="game-card" onclick="window.location.href=\'/hok.html\'" style="cursor:pointer;border:2px solid rgba(243,156,18,0.3);">';
-    html += '<img src="https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg" alt="HOK">';
-    html += '<p>Honor of Kings</p><div style="font-size:8px;color:var(--g)">✅ Available</div></div>';
+    // ✅ Render Available Games (Clickable)
+    availableGames.forEach(function(g) {
+        html += '<div class="game-card" data-game="' + g.gameId + '" onclick="window.location.href=\'' + g.link + '\'" style="cursor:pointer;">';
+        html += '<img src="' + g.img + '" alt="' + g.name + '">';
+        html += '<p>' + g.name + '</p>';
+        html += '<div class="available yes">✅ Available</div>';
+        html += '</div>';
+    });
     
-    // Other Games (Not Available)
-    var otherGames = [
-    {name:'Free Fire',icon:'https://i.ibb.co/4zkNbBS/ef4811fc15f5f2ae70418dcbca37356e.jpg'},
-    {name:'Clash of Clans',icon:'https://i.ibb.co/JRD9DRkm/77d65d4a45bb4480df342081a1236ca1.jpg'},
-    {name:'Life After',icon:'https://i.ibb.co/KpzjTNLJ/12efe5d0a387d909267894328ad4d062.jpg'},
-    {name:'Once Human',icon:'https://i.ibb.co/6J7R0Jk8/e65c57cc6d27f494dde011c3cd264acf.jpg'},
-    {name:'Zenless Zone Zero',icon:'https://i.ibb.co/C3jvpZsx/644c81384d4637feec329ec6f28239db.jpg'},
-    {name:'LOL Wild Rift',icon:'https://i.ibb.co/KPx33Fj/eaec84340629280f8675f0e7e57dea65.jpg'},
-    {name:'Farlight 84',icon:'https://i.ibb.co/J9FpbQF/70d84a2ec224ad31674df18d69dfae41.jpg'},
-    {name:'Hay Day',icon:'https://i.ibb.co/pvbd3ffY/929567f62369bdecc2ab5d3ca813a328.jpg'},
-    {name:'Genshin Impact',icon:'https://i.ibb.co/HDLQNyNB/abe019d59a86a88b52a6257ea454269e.jpg'},
-    {name:'Harry Potter',icon:'https://i.ibb.co/Mx5Hwhtg/b9fdabea7e9c7364b0a81860a554c45b.jpg'},
-    {name:'Stumble Guys',icon:'https://i.ibb.co/jvNb65TP/7ebfc026d31609ceda8f787d54515fe6.jpg'},
-    {name:'Whiteout Survival',icon:'https://i.ibb.co/SXq4FR9C/2ad9cb386a3ec90cfa0bb1c185bd5725.jpg'},
-    {name:'FRAG Pro Shooter',icon:'https://i.ibb.co/whJwVb8V/6581051ef1843e5ec6cce61fa38800ff.jpg'},
-    {name:'EAFC Mobile',icon:'https://i.ibb.co/20Fwbhw8/22e5d45bcb1460a72b844d4a60830ce4.jpg'},
-    {name:'Valorant',icon:'https://i.ibb.co/dw3FWFqP/5c95c35ce191a78b4564c3caf49720e1.jpg'},
-    {name:'Modern Strike',icon:'https://i.ibb.co/y9qCn4z/fffa14272a58a15879531ebfde7bd134.jpg'},
-    {name:'Silver and Blood',icon:'https://i.ibb.co/jkv9fFgp/dc308d9db127504128b9f87b96b872a2.jpg'},
-    {name:'Telegram Premium',icon:'https://i.ibb.co/7N6f55b7/9180e0981da12d5c8a99f27615efeac4.jpg'},
-    {name:'Facebook',icon:'https://i.ibb.co/ns7PKfZM/37d52a6553fd1f2b89bce60fe80bd461.jpg'},
-    {name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}
-];
-    otherGames.forEach(function(g) {
-        html += '<div class="game-card"><img src="' + g.icon + '" alt="' + g.name + '"><p>' + g.name + '</p><div class="unavailable">မရသေး</div></div>';
+    // ✅ Render Unavailable Games (Same style, NOT clickable)
+    unavailableGames.forEach(function(g) {
+        html += '<div class="game-card unavailable-card" style="cursor:default;">';
+        html += '<img src="' + g.img + '" alt="' + g.name + '">';
+        html += '<p>' + g.name + '</p>';
+        html += '<div class="available no">❌ မရသေး</div>';
+        html += '</div>';
     });
     
     document.getElementById('gameGrid').innerHTML = html;
