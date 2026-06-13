@@ -456,6 +456,153 @@ body{background:linear-gradient(160deg,#0a0d24 0%,#0f1235 50%,#080b1a 100%);colo
     padding: 20px;
     font-size: 11px;
         }
+        /* ========== BACKGROUND IMAGE (PROTECTED) ========== */
+body {
+    background: url('https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg') no-repeat center center fixed;
+    background-size: cover;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: -1;
+}
+
+/* Screenshot Protection */
+body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* ========== USER ID VERIFY ========== */
+.id-verify-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: flex-end;
+}
+
+.id-verify-row .id-group {
+    flex: 1;
+}
+
+.id-verify-btn {
+    padding: 12px 15px;
+    background: var(--b);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    height: 46px;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.id-verify-btn:hover {
+    background: #2980b9;
+}
+
+.id-verify-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.id-verify-result {
+    font-size: 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    margin-top: 4px;
+    display: none;
+}
+
+.id-verify-result.verified {
+    display: block;
+    background: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+}
+
+.id-verify-result.invalid {
+    display: block;
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+}
+
+.id-verify-result.checking {
+    display: block;
+    background: rgba(52, 152, 219, 0.15);
+    color: #3498db;
+}
+
+/* ========== TICKET CHECKBOX ========== */
+.ticket-check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1.5px solid rgba(255, 215, 0, 0.2);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.ticket-check-row:hover {
+    border-color: rgba(255, 215, 0, 0.4);
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.ticket-check-row.checked {
+    border-color: #2ecc71;
+    background: rgba(46, 204, 113, 0.08);
+}
+
+.ticket-checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s;
+}
+
+.ticket-check-row.checked .ticket-checkbox {
+    background: #2ecc71;
+    border-color: #2ecc71;
+}
+
+.ticket-checkbox i {
+    color: #000;
+    font-size: 12px;
+    display: none;
+}
+
+.ticket-check-row.checked .ticket-checkbox i {
+    display: block;
+}
+
+.ticket-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.5;
+}
+
+.ticket-label b {
+    color: #ffd700;
+}
     </style>
 </head>
 <body>
@@ -482,8 +629,8 @@ body{background:linear-gradient(160deg,#0a0d24 0%,#0f1235 50%,#080b1a 100%);colo
         </div>
         
         <div id="productGrid"></div>
-        
-        <!-- Detail Panel -->
+  
+    <!-- Detail Panel -->
 <div class="detail-panel" id="detailPanel">
     <div class="detail-header">
         <img id="detailImg" src="" alt="">
@@ -510,14 +657,38 @@ body{background:linear-gradient(160deg,#0a0d24 0%,#0f1235 50%,#080b1a 100%);colo
         <span class="total-value" id="totalPrice">0 Ks</span>
     </div>
     
+    <!-- ✅ User ID Verify -->
+    <div class="id-verify-row">
+        <div class="id-group">
+            <label>🆔 User ID</label>
+            <input type="text" id="verifyUserId" placeholder="Enter your User ID" maxlength="10">
+        </div>
+        <button class="id-verify-btn" id="verifyBtn" onclick="verifyUserId()">
+            <i class="fas fa-check-circle"></i> Verify
+        </button>
+    </div>
+    <div class="id-verify-result" id="idVerifyResult"></div>
+    
+    <!-- Game ID & Server ID -->
     <div class="id-row">
         <div class="id-group">
-            <label>🆔 Game ID (8-10 digits)</label>
+            <label>🎮 Game ID (8-10 digits)</label>
             <input type="text" id="gameId" placeholder="Game ID" maxlength="10" oninput="validateInputs()">
         </div>
         <div class="id-group">
             <label>🖥️ Server ID (4-5 digits)</label>
             <input type="text" id="serverId" placeholder="Server ID" maxlength="5" oninput="validateInputs()">
+        </div>
+    </div>
+    
+    <!-- ✅ Ticket Checkbox -->
+    <div class="ticket-check-row" id="ticketCheckRow" onclick="toggleTicket()">
+        <div class="ticket-checkbox">
+            <i class="fas fa-check"></i>
+        </div>
+        <div class="ticket-label">
+            ✅ <b>ID အတည်ပြုပြီး ဖြစ်ပါသည်။</b> <b style="color:#2ecc71">Game ID</b> နှင့် <b style="color:#2ecc71">Server ID</b> မှန်ကန်ကြောင်း အတည်ပြုပါသည်။<br>
+            <small style="color:rgba(255,255,255,0.4)">မှားယွင်းပါက ငွေပြန်အမ်းမည် မဟုတ်ပါ။</small>
         </div>
     </div>
     
@@ -528,6 +699,7 @@ body{background:linear-gradient(160deg,#0a0d24 0%,#0f1235 50%,#080b1a 100%);colo
         </button>
     </div>
 </div>
+
 
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
@@ -667,7 +839,124 @@ document.addEventListener('click', function(e) {
         dd.classList.remove('active');
     }
 });
+// ==================== NEW VARIABLES ====================
+let isIdVerified = false;
+let isTicketChecked = false;
 
+// ==================== USER ID VERIFY ====================
+async function verifyUserId() {
+    var userId = document.getElementById('verifyUserId').value.trim();
+    var resultEl = document.getElementById('idVerifyResult');
+    var verifyBtn = document.getElementById('verifyBtn');
+    
+    if (!userId) {
+        resultEl.className = 'id-verify-result invalid';
+        resultEl.textContent = '❌ User ID ထည့်ပါ';
+        isIdVerified = false;
+        updateBuyButton();
+        return;
+    }
+    
+    resultEl.className = 'id-verify-result checking';
+    resultEl.textContent = '⏳ Checking...';
+    verifyBtn.disabled = true;
+    
+    try {
+        var token = localStorage.getItem('auth_token');
+        if (!token) {
+            resultEl.className = 'id-verify-result invalid';
+            resultEl.textContent = '❌ Please login first';
+            isIdVerified = false;
+            verifyBtn.disabled = false;
+            updateBuyButton();
+            return;
+        }
+        
+        var r = await fetch('/api/verify_user_id', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token, userId: userId })
+        });
+        var d = await r.json();
+        
+        if (d.success && d.verified) {
+            resultEl.className = 'id-verify-result verified';
+            resultEl.innerHTML = '✅ ID မှန်ကန်ပါသည်<br><small>👤 ' + (d.username || 'N/A') + ' | 📧 ' + (d.email || 'N/A') + '</small>';
+            isIdVerified = true;
+        } else {
+            resultEl.className = 'id-verify-result invalid';
+            resultEl.textContent = '❌ ID မှားယွင်းနေပါသည်';
+            isIdVerified = false;
+        }
+    } catch(e) {
+        resultEl.className = 'id-verify-result invalid';
+        resultEl.textContent = '❌ Connection error';
+        isIdVerified = false;
+    }
+    
+    verifyBtn.disabled = false;
+    updateBuyButton();
+}
+
+// ==================== TICKET CHECKBOX ====================
+function toggleTicket() {
+    isTicketChecked = !isTicketChecked;
+    var row = document.getElementById('ticketCheckRow');
+    if (isTicketChecked) {
+        row.classList.add('checked');
+    } else {
+        row.classList.remove('checked');
+    }
+    updateBuyButton();
+}
+
+// ==================== UPDATE BUY BUTTON ====================
+function updateBuyButton() {
+    var btn = document.getElementById('buyBtn');
+    var gameId = document.getElementById('gameId').value.trim();
+    var serverId = document.getElementById('serverId').value.trim();
+    var idValid = gameId.length >= 8 && gameId.length <= 10 && /^\d+$/.test(gameId);
+    var serverValid = serverId.length >= 4 && serverId.length <= 5 && /^\d+$/.test(serverId);
+    
+    btn.disabled = !(isIdVerified && isTicketChecked && idValid && serverValid && selectedProduct);
+}
+
+// ==================== VALIDATE INPUTS (UPDATED) ====================
+function validateInputs() {
+    updateBuyButton();
+}
+
+// ==================== SELECT PRODUCT (UPDATED) ====================
+function selectProduct(productName) {
+    selectedProduct = PRODUCTS.find(function(p) { return p.name === productName; });
+    if (!selectedProduct) return;
+    
+    document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
+    event.target.closest('.product-card').classList.add('selected');
+    
+    document.getElementById('detailPanel').classList.add('active');
+    document.getElementById('detailImg').src = selectedProduct.img;
+    document.getElementById('detailName').textContent = selectedProduct.name;
+    document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
+    if (selectedProduct.original > 0) {
+        document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
+        document.getElementById('detailOriginal').style.display = 'block';
+    } else { document.getElementById('detailOriginal').style.display = 'none'; }
+    
+    // Reset
+    document.getElementById('quantity').value = 1;
+    document.getElementById('totalPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
+    document.getElementById('gameId').value = '';
+    document.getElementById('serverId').value = '';
+    document.getElementById('verifyUserId').value = '';
+    document.getElementById('idVerifyResult').className = 'id-verify-result';
+    document.getElementById('idVerifyResult').textContent = '';
+    isIdVerified = false;
+    isTicketChecked = false;
+    document.getElementById('ticketCheckRow').classList.remove('checked');
+    document.getElementById('buyBtn').disabled = true;
+    document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+}
 // ==================== QUANTITY ====================
 function changeQty(delta) {
     var qtyInput = document.getElementById('quantity');
