@@ -1011,7 +1011,7 @@ async function checkBalanceChanges() {
             return;
         }
         
-        // ✅ ငွေတိုးလာရင် (Admin ထည့်ပေးတာ) - Noti ပို့မယ်
+        // ✅ ငွေတိုးလာရင် (Admin ထည့်ပေးတာ)
         if (diff > 0) {
             addNotiItem('success', 
                 '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
@@ -1019,8 +1019,17 @@ async function checkBalanceChanges() {
                 '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b>'
             );
         }
-        // ❌ ငွေလျော့ရင် (ပစ္စည်းဝယ်တာ) - Noti လုံးဝမပို့တော့ဘူး
-        // (diff < 0 ဆိုတဲ့အပိုင်းကို လုံးဝဖယ်ရှားလိုက်တယ်)
+        // ✅ ငွေလျော့ရင် (Admin နှုတ်တာ) - MLBB Noti နဲ့ မရောအောင် ပြင်မယ်
+        else if (diff < -50) {
+            var deductedAmount = Math.abs(Math.floor(diff));
+            // ⚠️ MLBB ဝယ်တာကို မပို့အောင် စစ်ဆေးချက် - ဒီနေရာမှာ ထည့်နိုင်
+            // သို့မဟုတ် ငွေနှုတ်တိုင်းပို့မယ် (Admin ကိုယ်တိုင်နှုတ်တဲ့အခါ)
+            addNotiItem('pending', 
+                '⚠️ <b>ငွေနှုတ်ယူမှု ပြုလုပ်ပြီးပါပြီ</b><br>' +
+                '💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + fm(deductedAmount) + ' ကျပ်</b><br>' +
+                '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b>'
+            );
+        }
         
         lastNotifiedBalance = currentBalance;
         lastNotifiedAmount = diff;
@@ -1054,20 +1063,21 @@ async function checkOrderUpdates() {
                     var amount = Math.abs(o.amount || 0);
                     var amountText = fm(amount) + ' ကျပ်';
                     
+                    // ✅ Order အတည်ပြုတဲ့အခါ - Top Up Noti
                     if (o.status === 'approved') {
                         addNotiItem('success', 
-                            '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
+                            '✅ <b>ငွေဖြည့်သွင်းမှု အတည်ပြုပြီးပါပြီ</b><br>' +
                             '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
                             '💰 ဖြည့်သွင်းငွေ: <b style="color:#2ecc71">+' + amountText + '</b><br>' +
-                            '<small style="color:#2ecc71">Admin မှ အတည်ပြုပြီးပါပြီ</small>'
+                            '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b>'
                         );
-                    } else if (o.status === 'rejected') {
+                    } 
+                    // ❌ Order ပယ်တဲ့အခါ
+                    else if (o.status === 'rejected') {
                         addNotiItem('rejected', 
                             '❌ <b>အော်ဒါ ငြင်းပယ်ခံရပါသည်</b><br>' +
                             '💳 ငွေပေးချေမှု: <b>' + (o.payment_method || 'N/A') + '</b><br>' +
-                            '📝 အကြောင်းရင်း: <b>' + (o.reject_reason || 'အတည်မပြုနိုင်ပါ') + '</b><br>' +
-                            '<small style="color:#e74c3c">⚠️ ငွေလွှဲပြေစာအတု(သို့)ရက်လွန်ပြေစာ(သို့)ထပ်ခါထပ်ခါတင်ခြင်းကြောင့်ဖြစ်သည်</small><br>' +
-                            '<small style="color:#e74c3c">⚠️ နောက်တစ်ကြိမ်ထပ်ဖြစ်ပါက သင့်အကောင့်အား ပိတ်ခံရနိုင်ပြီး အကောင့်ပျက်နိုင်သည်အထိ အရေးယူနိုင်ပါသည်</small>'
+                            '📝 အကြောင်းရင်း: <b>' + (o.reject_reason || 'အတည်မပြုနိုင်ပါ') + '</b>'
                         );
                     }
                 }
