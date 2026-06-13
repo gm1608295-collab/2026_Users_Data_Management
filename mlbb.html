@@ -1239,26 +1239,61 @@ async function refreshBalanceForDetail() {
 // Balance Check & Warning (Quantity ပြောင်းတိုင်း)
 async function checkBalanceAndWarn() {
     if (!selectedProduct) return;
+    
     var qty = parseInt(document.getElementById('quantity').value) || 1;
     var total = selectedProduct.price * qty;
-    var balance = await refreshBalanceForDetail();
-    var warningDiv = document.getElementById('balanceWarning');
-    var buyBtn = document.getElementById('buyBtn');
     
-    if (balance < total) {
-        var shortage = total - balance;
-        warningDiv.style.display = 'block';
+    // ✅ Loading state ပြမယ်
+    var warningDiv = document.getElementById('balanceWarning');
+    warningDiv.style.display = 'block';
+    warningDiv.style.background = 'rgba(52, 152, 219, 0.15)';
+    warningDiv.style.color = '#3498db';
+    warningDiv.style.border = '1px solid #3498db';
+    warningDiv.innerHTML = '⏳ လက်ကျန်ငွေ စစ်ဆေးနေသည်...';
+    
+    try {
+        var token = localStorage.getItem('auth_token');
+        if (!token || token === 'guest') {
+            warningDiv.innerHTML = '❌ Login ဝင်ရန် လိုအပ်ပါသည်';
+            document.getElementById('buyBtn').disabled = true;
+            return;
+        }
+        
+        // ✅ Balance ကို တိုက်ရိုက်ယူမယ် (refreshBalanceForDetail ကို မသုံးဘူး)
+        var res = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        var data = await res.json();
+        var balance = parseFloat(data.balance || 0);
+        
+        // ✅ UI ကိုလည်း Update
+        document.getElementById('currentBalanceDisplay').textContent = balance.toLocaleString() + ' Ks';
+        document.getElementById('mmkBalance').textContent = balance.toLocaleString() + ' Ks';
+        
+        var buyBtn = document.getElementById('buyBtn');
+        
+        if (balance < total) {
+            var shortage = total - balance;
+            warningDiv.style.background = 'rgba(231, 76, 60, 0.15)';
+            warningDiv.style.color = '#e74c3c';
+            warningDiv.style.border = '1px solid #e74c3c';
+            warningDiv.innerHTML = '⚠️ ငွေမလုံလောက်ပါ! လိုငွေ: ' + shortage.toLocaleString() + ' Ks';
+            buyBtn.disabled = true;
+        } else {
+            warningDiv.style.background = 'rgba(46, 204, 113, 0.1)';
+            warningDiv.style.color = '#2ecc71';
+            warningDiv.style.border = '1px solid #2ecc71';
+            warningDiv.innerHTML = '✅ ငွေလုံလောက်ပါသည်။ ဝယ်ယူနိုင်ပါသည်။';
+            // Buy button ကို updateBuyButton() က ထပ်စစ်ဦးမယ်
+        }
+        
+    } catch(e) {
+        console.error('Balance check error:', e);
         warningDiv.style.background = 'rgba(231, 76, 60, 0.15)';
         warningDiv.style.color = '#e74c3c';
-        warningDiv.style.border = '1px solid #e74c3c';
-        warningDiv.innerHTML = '⚠️ ငွေမလုံလောက်ပါ! လိုငွေ: ' + shortage.toLocaleString() + ' Ks';
-        buyBtn.disabled = true;
-    } else {
-        warningDiv.style.display = 'block';
-        warningDiv.style.background = 'rgba(46, 204, 113, 0.1)';
-        warningDiv.style.color = '#2ecc71';
-        warningDiv.style.border = '1px solid #2ecc71';
-        warningDiv.innerHTML = '✅ ငွေလုံလောက်ပါသည်။ ဝယ်ယူနိုင်ပါသည်။';
+        warningDiv.innerHTML = '❌ လက်ကျန်ငွေ စစ်ဆေး၍မရပါ';
     }
 }
 // ==================== NEW VARIABLES ====================
