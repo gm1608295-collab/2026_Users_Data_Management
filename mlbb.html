@@ -1072,13 +1072,21 @@ function loadNotiItems() {
     renderNotiDropdown();
 }
 
-function addNotiItem(type, message) {
-    notiItems.unshift({ type: type, message: message, time: new Date().toISOString(), read: false });
+function addNotiItem(type, message, productImg) {
+    var notiItem = { 
+        type: type, 
+        message: message, 
+        time: new Date().toISOString(), 
+        read: false,
+        productImg: productImg || null
+    };
+    notiItems.unshift(notiItem);
     unreadCount++;
     if (notiItems.length > 50) notiItems.pop();
     localStorage.setItem('mlbbNotiItems', JSON.stringify(notiItems));
     localStorage.setItem('mlbbNotiUnread', unreadCount.toString());
     updateNotiBadge();
+    renderNotiDropdown();
 }
 
 function updateNotiBadge() {
@@ -1115,10 +1123,17 @@ function renderNotiDropdown() {
     empty.style.display = 'none';
     list.innerHTML = notiItems.map(function(n) {
         var cls = n.type === 'success' ? 'success' : 'pending';
-        return '<div class="noti-item ' + cls + '">' + n.message + '<div class="noti-time">' + new Date(n.time).toLocaleString() + '</div></div>';
+        var imgHtml = '';
+        if (n.productImg) {
+            imgHtml = '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.05);">' +
+                '<img src="' + n.productImg + '" style="width:36px;height:36px;object-fit:contain;border-radius:8px;background:rgba(0,0,0,0.3);padding:4px;">' +
+                '<span style="font-size:9px;color:rgba(255,255,255,0.5);">' + (n.message.match(/<b>(.*?)<\/b>/) ? n.message.match(/<b>(.*?)<\/b>/)[1] : 'Product') + '</span>' +
+                '</div>';
+        }
+        return '<div class="noti-item ' + cls + '">' + n.message + imgHtml + '<div class="noti-time">' + new Date(n.time).toLocaleString() + '</div></div>';
     }).join('');
 }
-
+        
 document.addEventListener('click', function(e) {
     var dd = document.getElementById('notiDropdown');
     var bell = document.querySelector('.noti-bell');
@@ -1250,24 +1265,28 @@ function updateBuyButton() {
     var btn = document.getElementById('buyBtn');
     var gameId = document.getElementById('gameId').value.trim();
     var serverId = document.getElementById('serverId').value.trim();
+    var userId = document.getElementById('verifyUserId').value.trim();
+    
     var idValid = gameId.length >= 8 && gameId.length <= 10 && /^\d+$/.test(gameId);
     var serverValid = serverId.length >= 4 && serverId.length <= 5 && /^\d+$/.test(serverId);
+    var userIdValid = userId.length >= 6 && /^\d+$/.test(userId);
     
-    btn.disabled = !(isIdVerified && isTicketChecked && idValid && serverValid && selectedProduct);
+    btn.disabled = !(isIdVerified && isTicketChecked && idValid && serverValid && userIdValid && selectedProduct);
 }
 
 // ==================== VALIDATE INPUTS (UPDATED) ====================
 function validateInputs() {
     updateBuyButton();
-}
-
+    }
 // ==================== SELECT PRODUCT (UPDATED) ====================
 function selectProduct(productName) {
     selectedProduct = PRODUCTS.find(function(p) { return p.name === productName; });
     if (!selectedProduct) return;
     
     document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
-    event.target.closest('.product-card').classList.add('selected');
+    if (event && event.target) {
+        event.target.closest('.product-card').classList.add('selected');
+    }
     
     document.getElementById('detailPanel').classList.add('active');
     document.getElementById('detailImg').src = selectedProduct.img;
@@ -1276,21 +1295,35 @@ function selectProduct(productName) {
     if (selectedProduct.original > 0) {
         document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
         document.getElementById('detailOriginal').style.display = 'block';
-    } else { document.getElementById('detailOriginal').style.display = 'none'; }
+    } else { 
+        document.getElementById('detailOriginal').style.display = 'none'; 
+    }
     
-    // Reset
     document.getElementById('quantity').value = 1;
     document.getElementById('totalPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
+    
+    // ✅ Reset all ID fields
     document.getElementById('gameId').value = '';
     document.getElementById('serverId').value = '';
     document.getElementById('verifyUserId').value = '';
     document.getElementById('idVerifyResult').className = 'id-verify-result';
     document.getElementById('idVerifyResult').textContent = '';
+    
     isIdVerified = false;
     isTicketChecked = false;
     document.getElementById('ticketCheckRow').classList.remove('checked');
     document.getElementById('buyBtn').disabled = true;
     document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+    
+    // Balance Refresh (if function exists)
+    if (typeof refreshBalanceForDetail === 'function') {
+        refreshBalanceForDetail().then(function() {
+            if (selectedProduct) {
+                var qty = parseInt(document.getElementById('quantity').value) || 1;
+                checkBalanceAndWarn();
+            }
+        });
+    }
 }
 // ==================== QUANTITY ====================
 function changeQty(delta) {
@@ -1310,46 +1343,6 @@ function updateTotal() {
         var total = selectedProduct.price * qty;
         document.getElementById('totalPrice').textContent = total.toLocaleString() + ' Ks';
     }
-}
-
-// ==================== SELECT PRODUCT ====================
-function selectProduct(productName) {
-    selectedProduct = PRODUCTS.find(function(p) { return p.name === productName; });
-    if (!selectedProduct) return;
-    
-    document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
-    event.target.closest('.product-card').classList.add('selected');
-    
-    document.getElementById('detailPanel').classList.add('active');
-    document.getElementById('detailImg').src = selectedProduct.img;
-    document.getElementById('detailName').textContent = selectedProduct.name;
-    document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
-    if (selectedProduct.original > 0) {
-        document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
-        document.getElementById('detailOriginal').style.display = 'block';
-    } else { document.getElementById('detailOriginal').style.display = 'none'; }
-    
-    document.getElementById('quantity').value = 1;
-    document.getElementById('totalPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
-    document.getElementById('gameId').value = '';
-    document.getElementById('serverId').value = '';
-    document.getElementById('verifyUserId').value = '';
-    document.getElementById('idVerifyResult').className = 'id-verify-result';
-    document.getElementById('idVerifyResult').textContent = '';
-    isIdVerified = false;
-    isTicketChecked = false;
-    document.getElementById('ticketCheckRow').classList.remove('checked');
-    document.getElementById('buyBtn').disabled = true;
-    document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
-    
-    // ✅ ဒီနေရာမှာ ထည့်ပါ (Balance Refresh)
-    refreshBalanceForDetail().then(function() {
-        if (selectedProduct) {
-            var qty = parseInt(document.getElementById('quantity').value) || 1;
-            var total = selectedProduct.price * qty;
-            checkBalanceAndWarn();
-        }
-    });
 }
 
 function closeDetail() { document.getElementById('detailPanel').classList.remove('active'); selectedProduct = null; }
@@ -1377,6 +1370,13 @@ async function purchaseMLBB() {
         return;
     }
     
+    // ✅ User ID ထပ်စစ် (အရန်အနေနဲ့)
+    var userId = document.getElementById('verifyUserId').value.trim();
+    if (!userId || userId.length < 6) {
+        showToast('❌ Please enter and verify your User ID first', 'error');
+        return;
+    }
+    
     var qty = parseInt(document.getElementById('quantity').value) || 1;
     var totalPrice = selectedProduct.price * qty;
     var productName = qty > 1 ? selectedProduct.name + ' (x' + qty + ')' : selectedProduct.name;
@@ -1401,14 +1401,17 @@ async function purchaseMLBB() {
         return;
     }
     
-    // Show Loading
     document.getElementById('loadingOverlay').classList.add('active');
     
     try {
         var r = await fetch('/api/purchase_game_item', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                token: token, game: 'mlbb', product_name: productName, price: totalPrice,
+                token: token, 
+                game: 'mlbb', 
+                product_name: productName, 
+                price: totalPrice,
                 game_id: document.getElementById('gameId').value.trim(),
                 server_id: document.getElementById('serverId').value.trim()
             })
@@ -1418,15 +1421,18 @@ async function purchaseMLBB() {
         document.getElementById('loadingOverlay').classList.remove('active');
         
         if (d.success) {
-            // Show Success Modal
             document.getElementById('successMsg').innerHTML = 
                 'Admin ဘက်မှ ထည့်သွင်းနေပြီဖြစ်ပြီး<br>' +
                 '<b style="color:#2ecc71">၃ မိနစ်</b> အတွင်း သင့်၏ဂိမ်းအကောင့်ထဲသို့ ရောက်ရှိပါမည်<br><br>' +
                 '<small style="color:#e67e22">⚠️ သင်၏ဖြည့်စွက်မှု မှားယွင်းပါက ကျွန်ုပ်တို့ဘက်မှ ဝယ်ယူမှုချက်ချင်းပယ်ဖျက်မည်ဖြစ်ပြီး ' +
-                'သင်၏ဝယ်ယူထားသောငွေပမာဏကို တစ်နာရီအတွင်း app ထဲသို့ ပြန်လည်ပေးဆောင်ပါမည်၊ပြန်ပေးငွေကို menu button ထဲက ပြန်အမ်းငွေ စာမျက်နှာထဲတွင်ရယူနိုင်ပါသည်။</small>';
+                'သင်၏ဝယ်ယူထားသောငွေပမာဏကို တစ်နာရီအတွင်း app ထဲသို့ ပြန်လည်ပေးဆောင်ပါမည်။</small>';
             document.getElementById('successOverlay').classList.add('active');
             
-            addNotiItem('success', '✅ <b>MLBB - ' + productName + '</b><br>💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + totalPrice.toLocaleString() + ' Ks</b><br>💵 လက်ကျန်: <b>' + d.new_balance.toLocaleString() + ' Ks</b>');
+            // ✅ Noti ထဲမှာ Product Image ထည့်မယ်
+            addNotiItem('success', 
+                '✅ <b>MLBB - ' + productName + '</b><br>💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + totalPrice.toLocaleString() + ' Ks</b><br>💵 လက်ကျန်: <b>' + d.new_balance.toLocaleString() + ' Ks</b>',
+                selectedProduct.img
+            );
             
             document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
             closeDetail();
