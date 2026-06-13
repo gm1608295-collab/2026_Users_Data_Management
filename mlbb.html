@@ -766,6 +766,76 @@ body {
     from { opacity: 0; transform: translateY(-20px) scale(0.95); }
     to { opacity: 1; transform: translateY(0) scale(1); }
         }
+        /* ========== BALANCE CUSTOM COLOR (အစိမ်းရောင်) ========== */
+.balance-bar .bal-value {
+    color: #2ecc71 !important;
+    font-size: 22px;
+    text-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
+}
+
+.balance-bar .bal-label {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* ========== PRODUCT PRICE (ရွှေရောင် - မပြောင်းရ) ========== */
+.product-price {
+    color: #ffd700 !important;
+    background: rgba(0, 0, 0, 0.7);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+/* ========== TOTAL PRICE BOX (ပြာရောင်) ========== */
+.total-price-box {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1.5px solid #3498db;
+    border-radius: 8px;
+}
+
+.total-label {
+    color: #3498db;
+}
+
+.total-value {
+    color: #3498db !important;
+    text-shadow: 0 0 8px rgba(52, 152, 219, 0.3);
+}
+
+/* ========== DETAIL PANEL PRICE (လိမ္မော်ရောင်) ========== */
+.detail-price {
+    color: #e67e22 !important;
+    font-size: 20px;
+}
+
+/* ========== BALANCE INFO BOX (အစိမ်းရောင်) ========== */
+#balanceInfoBox {
+    background: rgba(46, 204, 113, 0.08);
+    border: 1.5px solid #2ecc71;
+    border-radius: 8px;
+}
+
+#balanceInfoBox .total-label {
+    color: #2ecc71;
+}
+
+#balanceInfoBox .total-value {
+    color: #2ecc71 !important;
+}
+        
+        /* ========== SUCCESS MODAL PRODUCT IMAGE ========== */
+.success-product-img {
+    margin-bottom: 12px;
+    animation: productPop 0.4s ease-out;
+}
+
+@keyframes productPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    80% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.success-product-img img {
+    box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
+}
     </style>
 </head>
 <body>
@@ -828,7 +898,7 @@ body {
     </div>
     <!-- Balance Info -->
 <div class="total-price-box" id="balanceInfoBox" style="margin-bottom: 12px;">
-    <span class="total-label">💰 Your Balance</span>
+    <span class="total-label">💰 လက်ကျန်ငွေ (Your Balance)</span>
     <span class="total-value" id="currentBalanceDisplay">0 Ks</span>
 </div>
 <div id="balanceWarning" style="font-size: 10px; text-align: center; margin-bottom: 12px; padding: 6px; border-radius: 6px; display: none;"></div>
@@ -982,7 +1052,9 @@ body {
 <div class="success-overlay" id="successOverlay" onclick="closeSuccess(event)">
     <div class="success-box" onclick="event.stopPropagation()">
         <button class="success-close" onclick="closeSuccess()">✕</button>
-        <div class="success-icon">✅</div>
+        <div class="success-product-img" id="successProductImg" style="text-align:center; margin-bottom:10px;">
+            <img id="successProductImage" src="" alt="" style="width:70px;height:70px;object-fit:contain;border-radius:12px;background:rgba(255,215,0,0.1);padding:8px;border:2px solid var(--g);">
+        </div>
         <div class="success-title">ဝယ်ယူမှု အောင်မြင်ပါသည်</div>
         <div class="success-msg" id="successMsg">
             Admin ဘက်မှ ထည့်သွင်းနေပြီဖြစ်ပြီး<br>
@@ -1167,26 +1239,26 @@ async function refreshBalanceForDetail() {
 // Balance Check & Warning (Quantity ပြောင်းတိုင်း)
 async function checkBalanceAndWarn() {
     if (!selectedProduct) return;
-    const qty = parseInt(document.getElementById('quantity').value) || 1;
-    const total = selectedProduct.price * qty;
-    const balance = await refreshBalanceForDetail();
-    const warningDiv = document.getElementById('balanceWarning');
-    const buyBtn = document.getElementById('buyBtn');
+    var qty = parseInt(document.getElementById('quantity').value) || 1;
+    var total = selectedProduct.price * qty;
+    var balance = await refreshBalanceForDetail();
+    var warningDiv = document.getElementById('balanceWarning');
+    var buyBtn = document.getElementById('buyBtn');
     
     if (balance < total) {
-        const shortage = total - balance;
+        var shortage = total - balance;
         warningDiv.style.display = 'block';
         warningDiv.style.background = 'rgba(231, 76, 60, 0.15)';
         warningDiv.style.color = '#e74c3c';
-        warningDiv.innerHTML = `⚠️ Insufficient balance! Need ${shortage.toLocaleString()} Ks more.`;
+        warningDiv.style.border = '1px solid #e74c3c';
+        warningDiv.innerHTML = '⚠️ ငွေမလုံလောက်ပါ! လိုငွေ: ' + shortage.toLocaleString() + ' Ks';
         buyBtn.disabled = true;
     } else {
         warningDiv.style.display = 'block';
-        warningDiv.style.background = 'rgba(46, 204, 113, 0.15)';
+        warningDiv.style.background = 'rgba(46, 204, 113, 0.1)';
         warningDiv.style.color = '#2ecc71';
-        warningDiv.innerHTML = `✅ Sufficient balance. You can purchase.`;
-        // Buy button ကို မပိတ်သေးဘူး (အခြား validation တွေရှိသေးရင် သူတို့က ထပ်စစ်မယ်)
-        // updateBuyButton() ထဲမှာ ပြန်ပိတ်ခံရနိုင်တယ်
+        warningDiv.style.border = '1px solid #2ecc71';
+        warningDiv.innerHTML = '✅ ငွေလုံလောက်ပါသည်။ ဝယ်ယူနိုင်ပါသည်။';
     }
 }
 // ==================== NEW VARIABLES ====================
@@ -1421,21 +1493,30 @@ async function purchaseMLBB() {
         document.getElementById('loadingOverlay').classList.remove('active');
         
         if (d.success) {
-            document.getElementById('successMsg').innerHTML = 
-                'Admin ဘက်မှ ထည့်သွင်းနေပြီဖြစ်ပြီး<br>' +
-                '<b style="color:#2ecc71">၃ မိနစ်</b> အတွင်း သင့်၏ဂိမ်းအကောင့်ထဲသို့ ရောက်ရှိပါမည်<br><br>' +
-                '<small style="color:#e67e22">⚠️ သင်၏ဖြည့်စွက်မှု မှားယွင်းပါက ကျွန်ုပ်တို့ဘက်မှ ဝယ်ယူမှုချက်ချင်းပယ်ဖျက်မည်ဖြစ်ပြီး ' +
-                'သင်၏ဝယ်ယူထားသောငွေပမာဏကို တစ်နာရီအတွင်း app ထဲသို့ ပြန်လည်ပေးဆောင်ပါမည်။</small>';
-            document.getElementById('successOverlay').classList.add('active');
-            
-            // ✅ Noti ထဲမှာ Product Image ထည့်မယ်
-            addNotiItem('success', 
-                '✅ <b>MLBB - ' + productName + '</b><br>💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + totalPrice.toLocaleString() + ' Ks</b><br>💵 လက်ကျန်: <b>' + d.new_balance.toLocaleString() + ' Ks</b>',
-                selectedProduct.img
-            );
-            
-            document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
-            closeDetail();
+    // ✅ Product Image ကို Success Modal ထဲထည့်မယ်
+    var successImg = document.getElementById('successProductImage');
+    if (successImg && selectedProduct && selectedProduct.img) {
+        successImg.src = selectedProduct.img;
+        successImg.alt = selectedProduct.name;
+    }
+    
+    document.getElementById('successMsg').innerHTML = 
+        '<b>' + productName + '</b> ဝယ်ယူမှု အောင်မြင်ပါသည်။<br>' +
+        'Admin ဘက်မှ ထည့်သွင်းနေပြီဖြစ်ပြီး<br>' +
+        '<b style="color:#2ecc71">၃ မိနစ်</b> အတွင်း သင့်၏ဂိမ်းအကောင့်ထဲသို့ ရောက်ရှိပါမည်<br><br>' +
+        '<small style="color:#e67e22">⚠️ သင်၏ဖြည့်စွက်မှု မှားယွင်းပါက ကျွန်ုပ်တို့ဘက်မှ ဝယ်ယူမှုချက်ချင်းပယ်ဖျက်မည်ဖြစ်ပြီး ' +
+        'သင်၏ဝယ်ယူထားသောငွေပမာဏကို တစ်နာရီအတွင်း app ထဲသို့ ပြန်လည်ပေးဆောင်ပါမည်။</small>';
+    
+    document.getElementById('successOverlay').classList.add('active');
+    
+    addNotiItem('success', 
+        '✅ <b>MLBB - ' + productName + '</b><br>💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + totalPrice.toLocaleString() + ' Ks</b><br>💵 လက်ကျန်: <b>' + d.new_balance.toLocaleString() + ' Ks</b>',
+        selectedProduct.img
+    );
+    
+    document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
+    closeDetail();
+}
         } else {
             showToast('❌ ' + (d.message || 'Error'), 'error');
         }
@@ -1448,6 +1529,13 @@ async function purchaseMLBB() {
 function closeSuccess(event) {
     if (event && event.target !== document.getElementById('successOverlay')) return;
     document.getElementById('successOverlay').classList.remove('active');
+    
+    // ✅ Modal ပိတ်တဲ့အခါ ပုံကို ပြန်ရှင်းမယ်
+    var successImg = document.getElementById('successProductImage');
+    if (successImg) {
+        successImg.src = '';
+        successImg.alt = '';
+    }
 }
 
 async function loadBalance() {
