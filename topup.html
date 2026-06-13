@@ -999,7 +999,6 @@ async function checkBalanceChanges() {
             return;
         }
         
-        // ✅ diff တွက်ပုံမှန်အောင်ပြောင်း
         var diff = currentBalance - lastNotifiedBalance;
         
         // 1 Ks အောက် ignore
@@ -1012,24 +1011,16 @@ async function checkBalanceChanges() {
             return;
         }
         
-        // ✅ ငွေတိုးလာရင် (Top Up) - diff က အပေါင်း
+        // ✅ ငွေတိုးလာရင် (Admin ထည့်ပေးတာ) - Noti ပို့မယ်
         if (diff > 0) {
             addNotiItem('success', 
                 '✅ <b>ငွေဖြည့်သွင်းမှု အောင်မြင်ပါသည်</b><br>' +
                 '💰 ဖြည့်သွင်းငွေ: <b style="color:#2ecc71">+' + fm(Math.floor(diff)) + ' ကျပ်</b><br>' +
                 '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b>'
             );
-        } 
-        // ✅ ငွေလျော့ရင် (Purchase) - diff က အနုတ်
-        else if (diff < -50) {
-            var deductedAmount = Math.abs(Math.floor(diff));
-            addNotiItem('pending', 
-                '🛒 <b>ပစ္စည်းဝယ်ယူမှု အောင်မြင်ပါသည်</b><br>' +
-                '💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + fm(deductedAmount) + ' ကျပ်</b><br>' +
-                '💳 လက်ကျန်ငွေ: <b>' + fm(currentBalance) + ' ကျပ်</b><br>' +
-                '<small style="color:#e67e22">သင်၏ပစ္စည်းကို ၃ မိနစ်အတွင်း လက်ခံရရှိပါမည်</small>'
-            );
         }
+        // ❌ ငွေလျော့ရင် (ပစ္စည်းဝယ်တာ) - Noti လုံးဝမပို့တော့ဘူး
+        // (diff < 0 ဆိုတဲ့အပိုင်းကို လုံးဝဖယ်ရှားလိုက်တယ်)
         
         lastNotifiedBalance = currentBalance;
         lastNotifiedAmount = diff;
