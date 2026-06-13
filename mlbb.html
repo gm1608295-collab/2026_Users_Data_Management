@@ -826,6 +826,12 @@ body {
         <span class="total-label">Total:</span>
         <span class="total-value" id="totalPrice">0 Ks</span>
     </div>
+    <!-- Balance Info -->
+<div class="total-price-box" id="balanceInfoBox" style="margin-bottom: 12px;">
+    <span class="total-label">💰 Your Balance</span>
+    <span class="total-value" id="currentBalanceDisplay">0 Ks</span>
+</div>
+<div id="balanceWarning" style="font-size: 10px; text-align: center; margin-bottom: 12px; padding: 6px; border-radius: 6px; display: none;"></div>
     
     <!-- ✅ User ID Verify + Guide Link -->
     <div class="id-verify-row">
@@ -1120,6 +1126,54 @@ document.addEventListener('click', function(e) {
         dd.classList.remove('active');
     }
 });
+
+// Balance ကို Detail Panel အတွက် Refresh လုပ်ခြင်း
+async function refreshBalanceForDetail() {
+    const token = localStorage.getItem('auth_token');
+    if (!token || token === 'guest') {
+        document.getElementById('currentBalanceDisplay').textContent = '0 Ks';
+        return 0;
+    }
+    try {
+        const res = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        const data = await res.json();
+        const bal = parseFloat(data.balance || 0);
+        document.getElementById('currentBalanceDisplay').textContent = bal.toLocaleString() + ' Ks';
+        return bal;
+    } catch(e) {
+        return 0;
+    }
+}
+
+// Balance Check & Warning (Quantity ပြောင်းတိုင်း)
+async function checkBalanceAndWarn() {
+    if (!selectedProduct) return;
+    const qty = parseInt(document.getElementById('quantity').value) || 1;
+    const total = selectedProduct.price * qty;
+    const balance = await refreshBalanceForDetail();
+    const warningDiv = document.getElementById('balanceWarning');
+    const buyBtn = document.getElementById('buyBtn');
+    
+    if (balance < total) {
+        const shortage = total - balance;
+        warningDiv.style.display = 'block';
+        warningDiv.style.background = 'rgba(231, 76, 60, 0.15)';
+        warningDiv.style.color = '#e74c3c';
+        warningDiv.innerHTML = `⚠️ Insufficient balance! Need ${shortage.toLocaleString()} Ks more.`;
+        buyBtn.disabled = true;
+    } else {
+        warningDiv.style.display = 'block';
+        warningDiv.style.background = 'rgba(46, 204, 113, 0.15)';
+        warningDiv.style.color = '#2ecc71';
+        warningDiv.innerHTML = `✅ Sufficient balance. You can purchase.`;
+        // Buy button ကို မပိတ်သေးဘူး (အခြား validation တွေရှိသေးရင် သူတို့က ထပ်စစ်မယ်)
+        // updateBuyButton() ထဲမှာ ပြန်ပိတ်ခံရနိုင်တယ်
+    }
+}
 // ==================== NEW VARIABLES ====================
 let isIdVerified = false;
 let isTicketChecked = false;
@@ -1279,8 +1333,23 @@ function selectProduct(productName) {
     document.getElementById('totalPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
     document.getElementById('gameId').value = '';
     document.getElementById('serverId').value = '';
+    document.getElementById('verifyUserId').value = '';
+    document.getElementById('idVerifyResult').className = 'id-verify-result';
+    document.getElementById('idVerifyResult').textContent = '';
+    isIdVerified = false;
+    isTicketChecked = false;
+    document.getElementById('ticketCheckRow').classList.remove('checked');
     document.getElementById('buyBtn').disabled = true;
     document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+    
+    // ✅ ဒီနေရာမှာ ထည့်ပါ (Balance Refresh)
+    refreshBalanceForDetail().then(function() {
+        if (selectedProduct) {
+            var qty = parseInt(document.getElementById('quantity').value) || 1;
+            var total = selectedProduct.price * qty;
+            checkBalanceAndWarn();
+        }
+    });
 }
 
 function closeDetail() { document.getElementById('detailPanel').classList.remove('active'); selectedProduct = null; }
