@@ -423,49 +423,56 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     50% { opacity: 1; }
 }
 
-       /* ========== FORCE UPDATE OVERLAY ========== */
-.force-update-overlay {
+       /* ========== BOTTOM FORCE UPDATE BAR (Swipe Up) ========== */
+.force-update-bottom-bar {
     position: fixed;
-    top: 0;
+    bottom: 0;
     left: 0;
     width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    backdrop-filter: blur(10px);
-    z-index: 10000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.force-update-modal {
-    background: linear-gradient(145deg, #1a1f4b, #0f1235);
-    border: 2px solid #f39c12;
-    border-radius: 20px;
-    padding: 30px 25px;
-    width: 90%;
-    max-width: 400px;
-    text-align: center;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    animation: slideUp 0.4s ease;
+    background: linear-gradient(135deg, #1a1f4b, #0f1235);
+    border-top: 3px solid #f39c12;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    transform: translateY(100%);
+    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    animation: slideUp 0.5s ease forwards;
 }
 
 @keyframes slideUp {
-    from { transform: translateY(30px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    0% { transform: translateY(100%); }
+    100% { transform: translateY(0); }
+}
+
+.force-update-bottom-bar.hide {
+    animation: slideDown 0.5s ease forwards;
+}
+
+@keyframes slideDown {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(100%); }
+}
+
+.force-update-inner {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.force-update-content {
+    flex: 2;
+    min-width: 180px;
 }
 
 .force-update-icon {
-    font-size: 60px;
+    font-size: 28px;
     color: #f39c12;
-    margin-bottom: 15px;
-    animation: pulse 1.5s infinite;
+    flex-shrink: 0;
+    animation: pulse 1s infinite;
 }
 
 @keyframes pulse {
@@ -474,67 +481,95 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
 }
 
 .force-update-title {
-    font-size: 22px;
+    font-size: 12px;
     font-weight: bold;
     color: #f39c12;
-    margin-bottom: 8px;
-}
-
-.force-update-subtitle {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.5);
-    margin-bottom: 20px;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 .force-update-message {
-    font-size: 14px;
-    color: #fff;
-    line-height: 1.6;
-    margin-bottom: 15px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.4;
 }
 
 .force-update-version {
-    font-size: 11px;
+    font-size: 8px;
     color: #2ecc71;
-    margin-bottom: 20px;
+    margin-top: 2px;
     font-family: monospace;
 }
 
+.force-update-buttons {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 .force-update-btn {
-    width: 100%;
-    padding: 14px;
     background: linear-gradient(135deg, #f39c12, #e67e22);
     border: none;
-    border-radius: 10px;
+    padding: 8px 20px;
+    border-radius: 30px;
     color: #000;
-    font-size: 16px;
+    font-size: 11px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s;
-    margin-bottom: 10px;
+    white-space: nowrap;
 }
 
 .force-update-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(243, 156, 18, 0.4);
+    box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
 }
 
 .force-update-close {
     background: transparent;
     border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 7px 15px;
+    border-radius: 30px;
     color: rgba(255, 255, 255, 0.5);
-    width: 100%;
-    padding: 12px;
-    border-radius: 10px;
+    font-size: 10px;
     cursor: not-allowed;
-    font-size: 13px;
 }
 
-.force-update-close:hover {
-    background: rgba(231, 76, 60, 0.1);
+.force-update-close.active {
+    cursor: pointer;
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.force-update-close.active:hover {
+    background: rgba(231, 76, 60, 0.2);
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+/* Handle swipe up to close? No - force update only */
+.force-update-bottom-bar {
+    cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .force-update-inner {
+        padding: 10px 12px;
+        flex-direction: column;
+        text-align: center;
+    }
+    .force-update-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+    .force-update-btn {
+        flex: 1;
+        text-align: center;
+    }
 }
    </style>
 </head>
@@ -921,7 +956,7 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
 </div>
     
 <script>
-    // ==================== FORCE UPDATE SYSTEM ====================
+    // ==================== BOTTOM FORCE UPDATE SYSTEM ====================
 let forceUpdateActive = false;
 let forceUpdateData = null;
 
@@ -930,33 +965,45 @@ async function checkForceUpdate() {
         const r = await fetch('/api/force_update/status');
         const d = await r.json();
         
+        const bar = document.getElementById('forceUpdateBottomBar');
+        if (!bar) return;
+        
         if (d.success && d.is_active) {
             forceUpdateActive = true;
             forceUpdateData = d;
             
-            // Show overlay
-            const overlay = document.getElementById('forceUpdateOverlay');
-            const messageEl = document.getElementById('forceUpdateMessage');
-            const versionEl = document.getElementById('forceUpdateVersion');
+            // Update content
+            const msgEl = document.getElementById('forceUpdateMessageText');
+            const versionEl = document.getElementById('forceUpdateVersionText');
+            const badgeEl = document.getElementById('forceUpdateVersionBadge');
             
-            if (messageEl && d.message) {
-                messageEl.innerHTML = d.message.replace(/\n/g, '<br>');
+            if (msgEl && d.message) {
+                msgEl.innerHTML = d.message.replace(/\n/g, '<br>');
             }
             if (versionEl && d.version_name) {
                 versionEl.innerHTML = `📦 Version: ${d.version_name} (Code: ${d.version_code})`;
+                if (badgeEl) badgeEl.textContent = `v${d.version_name}`;
             }
             
-            overlay.style.display = 'flex';
+            // Show bar with animation
+            bar.style.display = 'block';
+            bar.classList.remove('hide');
             
-            // Prevent body scroll
+            // Prevent body scroll (optional - so user can't scroll past)
             document.body.style.overflow = 'hidden';
+            document.body.style.paddingBottom = '80px';
+            
         } else {
-            // Hide if already shown
             if (forceUpdateActive) {
-                const overlay = document.getElementById('forceUpdateOverlay');
-                if (overlay) {
-                    overlay.style.display = 'none';
-                    document.body.style.overflow = '';
+                // Hide bar with animation
+                const bar = document.getElementById('forceUpdateBottomBar');
+                if (bar) {
+                    bar.classList.add('hide');
+                    setTimeout(() => {
+                        bar.style.display = 'none';
+                        document.body.style.overflow = '';
+                        document.body.style.paddingBottom = '';
+                    }, 500);
                 }
                 forceUpdateActive = false;
             }
@@ -968,13 +1015,9 @@ async function checkForceUpdate() {
 
 function performForceUpdate() {
     if (forceUpdateData && forceUpdateData.apk_url) {
-        // Open download link
         window.open(forceUpdateData.apk_url, '_blank');
-        
-        // Show toast that update is required
-        showToast('⚠️ ကျေးဇူးပြု၍ APK ကို အဆင့်မြှင့်တင်ပါ။ Update လုပ်ပြီးမှသာ ဆက်သုံးနိုင်မည်။', 'error');
+        showToast('⚠️ ကျေးဇူးပြု၍ APK ကို အဆင့်မြှင့်တင်ပါ။ Update ပြီးမှသာ ဆက်သုံးနိုင်မည်။', 'error');
     } else {
-        // Default download link
         window.open('https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view', '_blank');
     }
 }
