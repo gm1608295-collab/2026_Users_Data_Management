@@ -502,9 +502,50 @@
         display: none;
     }
     .otp-error-msg.show { display: block; }
-</style>
+
+        /* ========== SPLASH SCREEN - BANNER SIZE ========== */
+.splash-screen {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 20px);
+    max-width: 500px;
+    height: auto;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    border-radius: 12px;
+    overflow: hidden;
+    transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+}
+
+.splash-video {
+    width: 100%;
+    height: auto;
+    max-height: 150px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+    box-shadow: 0 5px 25px rgba(243,156,18,0.3);
+}
+
+.splash-screen.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
+    </style>
 </head>
 <body>
+    <!-- ==================== SPLASH SCREEN (MP4 ANIMATION) ==================== -->
+    <div class="splash-screen" id="splashScreen">
+        <video class="splash-video" id="splashVideo" autoplay muted playsinline>
+            <source src="https://files.catbox.moe/7ioyp0.mp4" type="video/mp4">
+        </video>
+    </div>
+    
     <!-- Stars Background -->
     <div class="stars-bg" id="starsBg"></div>
 
@@ -1036,6 +1077,51 @@
     </div>
 </div>
 <script>
+    // ==================== SPLASH SCREEN ====================
+(function() {
+    const splash = document.getElementById('splashScreen');
+    const video = document.getElementById('splashVideo');
+    
+    if (!splash || !video) return;
+    
+    // ✅ Session Storage နဲ့ စစ် (တစ်ခါပဲပြဖို့)
+    const hasSeen = sessionStorage.getItem('hasSeenSplash');
+    
+    if (hasSeen) {
+        splash.style.display = 'none';
+        return;
+    }
+    
+    // ✅ First time - show splash
+    sessionStorage.setItem('hasSeenSplash', 'true');
+    splash.style.display = 'flex';
+    
+    // Video ပြီးရင် Fade-out
+    video.addEventListener('ended', function() {
+        splash.classList.add('fade-out');
+        setTimeout(function() {
+            splash.style.display = 'none';
+        }, 800);
+    });
+    
+    // Error ဖြစ်ရင် ချက်ချင်းဖျောက်
+    video.addEventListener('error', function() {
+        splash.classList.add('fade-out');
+        setTimeout(function() {
+            splash.style.display = 'none';
+        }, 500);
+    });
+    
+    // Fallback: 8 စက္ကန့်ထက်ကြာရင် အတင်းဖျောက်
+    setTimeout(function() {
+        if (splash.style.display !== 'none') {
+            splash.classList.add('fade-out');
+            setTimeout(function() {
+                splash.style.display = 'none';
+            }, 500);
+        }
+    }, 8000);
+})();
 // ==================== STARS BACKGROUND ====================
 (function(){
     const c = document.getElementById('starsBg');
