@@ -457,13 +457,11 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     <!-- ==================== SPLASH SCREEN (MP4 ANIMATION) ==================== -->
     <div class="splash-screen" id="splashScreen">
         <video class="splash-video" id="splashVideo" autoplay muted playsinline>
-            <source src="https://lottie.host/97cabb4c-7c56-4b34-ab4d-a74e5087bf1c/X557bkUGWe.mp4" type="video/mp4">
+            <source src="https://files.catbox.moe/7ioyp0.mp4" type="video/mp4">
         </video>
     </div>
 
     <div class="container">
-        <!-- ==================== TOP BANNER IMAGE ==================== -->
-        ...
         <!-- ==================== TOP BANNER IMAGE ==================== -->
     <div style="position:relative;border-radius:12px;overflow:hidden;margin-bottom:10px;box-shadow:0 5px 25px rgba(243,156,18,0.3);">
         
@@ -471,7 +469,7 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
         <div style="position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;background:linear-gradient(45deg,#ff0000,#ff7300,#fffb00,#48ff00,#00ffd5,#002bff,#7a00ff,#ff00c8,#ff0000);background-size:400% 400%;z-index:-1;animation:ledBorder 3s linear infinite;border-radius:14px;"></div>
         
         <!-- Banner Image -->
-        <img src="https://i.ibb.co/zV94MBB5/file-00000000766472088e6a4cc736e81f24.png" 
+        <img src="https://i.ibb.co/RT99hkvw/file-00000000cbdc7208b3dbfa85e5ec0111.png" 
              style="width:100%;height:80px;object-fit:cover;display:block;position:relative;z-index:1;"
              alt="Banner"
              onerror="this.style.display='none'">
@@ -611,7 +609,7 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
         
         <!-- Android Button -->
         <div style="flex:1;min-width:140px;max-width:200px;">
-            <a href="https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view?usp=drivesdk" 
+            <a href="https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk" 
                target="_blank"
                style="display:block;background:#1a1f4b;color:#fff;padding:12px 16px;border:1px solid rgba(255,255,255,0.2);text-decoration:none;font-size:12px;font-weight:600;text-align:center;">
                 <i class="fab fa-android" style="margin-right:6px;"></i> Android
@@ -738,7 +736,7 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
 <div class="sidebar-close-btn" onclick="closeSidebar()"><i class="fas fa-times"></i></div>
     <!-- ==================== SIDEBAR BANNER IMAGE ==================== -->
 <div style="flex-shrink:0;padding:0;">
-    <img src="https://i.ibb.co/gFbkvmzk/file-00000000dcc4720898b49299c01fc6b7.png" 
+    <img src="https://i.ibb.co/zV94MBB5/file-00000000766472088e6a4cc736e81f24.png" 
          alt="Banner"
          style="width:100%;height:150px;object-fit:cover;display:block;"
          onerror="this.style.display='none'">
@@ -821,12 +819,28 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
 </div>
 
 <script>
-    // ==================== SPLASH SCREEN ====================
+    // ==================== SPLASH SCREEN (Only on first visit or page reload) ====================
 document.addEventListener('DOMContentLoaded', function() {
     const splash = document.getElementById('splashScreen');
     const video = document.getElementById('splashVideo');
     
     if (!splash || !video) return;
+    
+    // ✅ Check if this is a real page reload (not navigation within site)
+    // navigationCount = 0 means first visit OR actual page reload
+    let navCount = parseInt(sessionStorage.getItem('splashNavigationCount') || '0');
+    
+    // ✅ Increase count for next navigation
+    sessionStorage.setItem('splashNavigationCount', (navCount + 1).toString());
+    
+    // ✅ If this is NOT the first navigation (page-to-page), hide splash immediately
+    if (navCount > 0) {
+        splash.style.display = 'none';
+        return;
+    }
+    
+    // ✅ First visit OR page reload - Show splash screen
+    splash.style.display = 'flex';
     
     // Video ပြီးသွားရင် Fade-out
     video.addEventListener('ended', function() {
@@ -836,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 800);
     });
     
-    // Error ဖြစ်ရင် (Video load မရင်) ချက်ချင်းဖျောက်
+    // Error ဖြစ်ရင် ချက်ချင်းဖျောက်
     video.addEventListener('error', function() {
         splash.classList.add('fade-out');
         setTimeout(function() {
@@ -844,7 +858,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     });
     
-    // Fallback: 5 စက္ကန့်ထက်ကြာရင် အတင်းဖျောက်
+    // Fallback: 8 စက္ကန့်ထက်ကြာရင် အတင်းဖျောက်
     setTimeout(function() {
         if (splash.style.display !== 'none') {
             splash.classList.add('fade-out');
@@ -852,7 +866,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 splash.style.display = 'none';
             }, 500);
         }
-    }, 5000);
+    }, 8000);
+});
+
+// ✅ Reset splash counter when page is actually reloaded (F5 or Ctrl+R)
+window.addEventListener('beforeunload', function() {
+    // This runs before page reload, reset counter so splash shows again
+    sessionStorage.setItem('splashNavigationCount', '0');
 });
     // ==================== SIDEBAR ====================
     function openSidebar(){const u=JSON.parse(localStorage.getItem('user')||'{}');document.getElementById("sidebarName").textContent=u.username||'User';document.getElementById("sidebarEmail").textContent=u.email||'user@mlbb.com';document.getElementById("sidebarAvatar").textContent=(u.username||'U').charAt(0).toUpperCase();document.getElementById("sidebarPanel").classList.add("active");document.getElementById("sidebarOverlay").classList.add("active");document.body.style.overflow='hidden'}
