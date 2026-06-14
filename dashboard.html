@@ -422,10 +422,48 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     0%, 100% { opacity: 0.3; }
     50% { opacity: 1; }
 }
+       /* ========== SPLASH SCREEN ========== */
+.splash-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #0a0a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    transition: opacity 0.8s ease-out, visibility 0.8s ease-out;
+}
+
+.splash-video {
+    width: 80%;
+    max-width: 400px;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.splash-screen.fade-out {
+    opacity: 0;
+    visibility: hidden;
+}
    </style>
 </head>
 <body>
     <div class="container">
+    
+    <!-- ==================== SPLASH SCREEN (MP4 ANIMATION) ==================== -->
+    <div class="splash-screen" id="splashScreen">
+        <video class="splash-video" id="splashVideo" autoplay muted playsinline>
+            <source src="https://lottie.host/97cabb4c-7c56-4b34-ab4d-a74e5087bf1c/X557bkUGWe.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <div class="container">
+        <!-- ==================== TOP BANNER IMAGE ==================== -->
+        ...
         <!-- ==================== TOP BANNER IMAGE ==================== -->
     <div style="position:relative;border-radius:12px;overflow:hidden;margin-bottom:10px;box-shadow:0 5px 25px rgba(243,156,18,0.3);">
         
@@ -783,6 +821,39 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
 </div>
 
 <script>
+    // ==================== SPLASH SCREEN ====================
+document.addEventListener('DOMContentLoaded', function() {
+    const splash = document.getElementById('splashScreen');
+    const video = document.getElementById('splashVideo');
+    
+    if (!splash || !video) return;
+    
+    // Video ပြီးသွားရင် Fade-out
+    video.addEventListener('ended', function() {
+        splash.classList.add('fade-out');
+        setTimeout(function() {
+            splash.style.display = 'none';
+        }, 800);
+    });
+    
+    // Error ဖြစ်ရင် (Video load မရင်) ချက်ချင်းဖျောက်
+    video.addEventListener('error', function() {
+        splash.classList.add('fade-out');
+        setTimeout(function() {
+            splash.style.display = 'none';
+        }, 500);
+    });
+    
+    // Fallback: 5 စက္ကန့်ထက်ကြာရင် အတင်းဖျောက်
+    setTimeout(function() {
+        if (splash.style.display !== 'none') {
+            splash.classList.add('fade-out');
+            setTimeout(function() {
+                splash.style.display = 'none';
+            }, 500);
+        }
+    }, 5000);
+});
     // ==================== SIDEBAR ====================
     function openSidebar(){const u=JSON.parse(localStorage.getItem('user')||'{}');document.getElementById("sidebarName").textContent=u.username||'User';document.getElementById("sidebarEmail").textContent=u.email||'user@mlbb.com';document.getElementById("sidebarAvatar").textContent=(u.username||'U').charAt(0).toUpperCase();document.getElementById("sidebarPanel").classList.add("active");document.getElementById("sidebarOverlay").classList.add("active");document.body.style.overflow='hidden'}
     function closeSidebar(){document.getElementById("sidebarPanel").classList.remove("active");document.getElementById("sidebarOverlay").classList.remove("active");document.body.style.overflow=''}
