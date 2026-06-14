@@ -10,7 +10,14 @@
   :root{--bg:#0a0a1a;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--g:#2ecc71;--t:#fff;--r:#e74c3c;--b:#3498db}
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
 html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
-body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;padding:15px;overflow-y:auto!important}
+body {
+    background: linear-gradient(rgba(10, 10, 30, 0.75), rgba(10, 10, 30, 0.75)), 
+                url('https://i.ibb.co/xKBM4tKK/a9a00eb6fcd713fa39f9a0b7ab6e5342-1.jpg') center/cover no-repeat fixed;
+    color: var(--t);
+    min-height: 100vh;
+    padding: 15px;
+    overflow-y: auto !important;
+}
 .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
 
 /* ========== HEADER ========== */
@@ -44,7 +51,10 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
 /* ========== SCROLL AREA ========== */
 .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
 
-/* ========== GAME GRID - UNIQUE DESIGN ========== */
+/* ========== TOAST NOTIFICATION ========== */
+.notif-toast{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
+
+/* ========== GAME GRID ========== */
 .game-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -52,86 +62,64 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     margin-bottom: 20px;
 }
 
-/* ========== UNIQUE GAME CARDS (Copper + Chocolate) ========== */
+/* ========== GAME CARD - DIAMOND SHAPE (ခပ်ပြားပြား) ========== */
 .game-card {
+    background: linear-gradient(145deg, #b87333, #7b3f00);
     padding: 18px 10px 15px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    
+    /* Diamond Shape - ခပ်ပြားပြား */
+    clip-path: polygon(50% 0%, 85% 15%, 100% 50%, 85% 85%, 50% 100%, 15% 85%, 0% 50%, 15% 15%);
 }
 
-/* Shiny Sweep Effect (အဖြူရောင်အလင်းတန်း) */
+/* Shiny Sweep Effect - 3 seconds interval */
 .game-card::before {
     content: '';
     position: absolute;
     top: -50%;
-    left: -60%;
-    width: 120%;
-    height: 180%;
-    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.25), transparent);
+    left: -100%;
+    width: 80%;
+    height: 200%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.3), transparent);
     transform: rotate(25deg);
-    transition: left 0.5s ease-in-out;
-    opacity: 0;
+    animation: cardSweep 3s ease-in-out infinite;
     pointer-events: none;
+    opacity: 0;
 }
-.game-card:hover::before {
-    left: 120%;
-    opacity: 1;
+
+@keyframes cardSweep {
+    0% {
+        left: -100%;
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    30% {
+        left: 150%;
+        opacity: 1;
+    }
+    31% {
+        opacity: 0;
+    }
+    100% {
+        left: 150%;
+        opacity: 0;
+    }
 }
 
 .game-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-5px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* ========== PER CARD UNIQUE STYLES ========== */
-/* Card 1 - Shhh Emote */
-.game-card[data-game="shhh_emote"] {
-    background: linear-gradient(145deg, #b87333, #7b3f00);
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    border-bottom: 3px solid #ffd700;
-}
-
-/* Card 2 - Golden Border */
-.game-card[data-game="golden_border"] {
-    background: linear-gradient(145deg, #cd7f32, #5a2e00);
-    border-radius: 20px 40px 20px 40px;
-    border-left: 3px solid #f39c12;
-}
-
-/* Card 3 - Lucky Diamond */
-.game-card[data-game="lucky_diamond"] {
-    background: linear-gradient(145deg, #d69e6a, #6b3a1f);
-    border-radius: 40% 60% 60% 40% / 40% 50% 50% 60%;
-    border-top: 3px solid #ffd700;
-}
-
-/* Card 4 - Magic Durt */
-.game-card[data-game="magic_durt"] {
-    background: linear-gradient(145deg, #a0522d, #4a2a10);
-    border-radius: 15px 45px 15px 45px;
-    border-right: 3px solid #e67e22;
-}
-
-/* Card 5 - Emblem Box */
-.game-card[data-game="emblem_box"] {
-    background: linear-gradient(145deg, #8b5a2b, #3a1f0a);
-    border-radius: 60% 40% 40% 60% / 60% 30% 70% 40%;
-    border-bottom: 3px solid #f39c12;
-}
-
-/* Card 6 - Promo Code */
-.game-card[data-game="promo_codes"] {
-    background: linear-gradient(145deg, #9e6b3e, #4a2a10);
-    border-radius: 25px 15px 35px 5px;
-    border-left: 3px solid #ffd700;
-}
-
-/* ========== IMAGE WRAPPER (Unique frame per card) ========== */
+/* ========== IMAGE WRAPPER (ပုံမှန်လေးထောင့်) ========== */
 .game-card .img-wrap {
     width: 60px;
     height: 60px;
@@ -140,38 +128,15 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    border: 2px solid #ffd700;
     transition: all 0.3s;
 }
 
-.game-card[data-game="shhh_emote"] .img-wrap {
-    border-radius: 40% 60% 60% 40% / 40% 50% 50% 60%;
-    border: 2px solid #ffd700;
-}
-.game-card[data-game="golden_border"] .img-wrap {
-    border-radius: 20px 5px 20px 5px;
-    border: 2px solid #ffd700;
-}
-.game-card[data-game="lucky_diamond"] .img-wrap {
-    border-radius: 60% 40% 40% 60% / 60% 30% 70% 40%;
-    border: 2px solid #f39c12;
-}
-.game-card[data-game="magic_durt"] .img-wrap {
-    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
-    border: 2px solid #e67e22;
-}
-.game-card[data-game="emblem_box"] .img-wrap {
-    border-radius: 15px 35px 15px 35px;
-    border: 2px solid #ffd700;
-}
-.game-card[data-game="promo_codes"] .img-wrap {
-    border-radius: 35px 15px 35px 15px;
-    border: 2px solid #f39c12;
-}
-
 .game-card:hover .img-wrap {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 0 0 4px rgba(255,215,0,0.3);
+    transform: scale(1.03);
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
 }
 
 .game-card img {
@@ -179,12 +144,14 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     height: 50px;
     object-fit: cover;
     transition: transform 0.3s;
-}
-.game-card:hover img {
-    transform: scale(1.1);
+    border-radius: 6px;
 }
 
-/* ========== TEXT BOX STYLES ========== */
+.game-card:hover img {
+    transform: scale(1.05);
+}
+
+/* ========== TEXT BOX (ပုံမှန်အတိုင်း) ========== */
 .game-card .card-name {
     font-size: 9px;
     font-weight: 800;
@@ -192,8 +159,8 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     margin: 6px 0 4px;
     display: inline-block;
     padding: 3px 10px;
-    background: rgba(0,0,0,0.5);
-    border-radius: 20px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 15px;
     color: #fff;
 }
 
@@ -204,8 +171,8 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     margin: 4px 0 2px;
     display: inline-block;
     padding: 2px 8px;
-    background: rgba(0,0,0,0.5);
-    border-radius: 15px;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 12px;
 }
 
 .game-card .code-count {
@@ -213,23 +180,30 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     padding: 2px 8px;
     border-radius: 12px;
     display: inline-block;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.55);
     color: #2ecc71;
     font-weight: bold;
 }
 
 /* Sold Out style */
 .game-card.sold-out {
-    opacity: 0.6;
+    opacity: 0.65;
     filter: grayscale(30%);
     cursor: not-allowed;
 }
 .game-card.sold-out:hover {
     transform: none;
 }
-/* ========== TOAST NOTIFICATION ========== */
-.notif-toast{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
 
+/* Card colors (Copper + Chocolate - တူညီအောင်) */
+.game-card[data-game="shhh_emote"],
+.game-card[data-game="golden_border"],
+.game-card[data-game="lucky_diamond"],
+.game-card[data-game="magic_durt"],
+.game-card[data-game="emblem_box"],
+.game-card[data-game="promo_codes"] {
+    background: linear-gradient(145deg, #b87333, #7b3f00);
+}
 /* ========== CATEGORY MODAL ========== */
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
 .modal.active{display:flex}
