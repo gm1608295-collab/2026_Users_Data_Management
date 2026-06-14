@@ -422,7 +422,120 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     0%, 100% { opacity: 0.3; }
     50% { opacity: 1; }
 }
-       
+
+       /* ========== FORCE UPDATE OVERLAY ========== */
+.force-update-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.force-update-modal {
+    background: linear-gradient(145deg, #1a1f4b, #0f1235);
+    border: 2px solid #f39c12;
+    border-radius: 20px;
+    padding: 30px 25px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.4s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.force-update-icon {
+    font-size: 60px;
+    color: #f39c12;
+    margin-bottom: 15px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.force-update-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #f39c12;
+    margin-bottom: 8px;
+}
+
+.force-update-subtitle {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 20px;
+}
+
+.force-update-message {
+    font-size: 14px;
+    color: #fff;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+.force-update-version {
+    font-size: 11px;
+    color: #2ecc71;
+    margin-bottom: 20px;
+    font-family: monospace;
+}
+
+.force-update-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 10px;
+}
+
+.force-update-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(243, 156, 18, 0.4);
+}
+
+.force-update-close {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.5);
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    cursor: not-allowed;
+    font-size: 13px;
+}
+
+.force-update-close:hover {
+    background: rgba(231, 76, 60, 0.1);
+}
    </style>
 </head>
 <body>
@@ -783,8 +896,93 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
         </button>
     </div>
 </div>
-
+<!-- ==================== FORCE UPDATE OVERLAY ==================== -->
+<div id="forceUpdateOverlay" style="display:none;" class="force-update-overlay">
+    <div class="force-update-modal">
+        <div class="force-update-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="force-update-title">⚠️ FORCED UPDATE REQUIRED</div>
+        <div class="force-update-subtitle">အဆင့်မြှင့်တင်ရန် လိုအပ်ပါသည်</div>
+        <div class="force-update-message" id="forceUpdateMessage">
+            📱 APK version အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်<br>
+            ကျေးဇူးပြု၍ အဆင့်မြှင့်တင်ပါရန်
+        </div>
+        <div class="force-update-version" id="forceUpdateVersion">
+            Version: 1.0.0
+        </div>
+        <button class="force-update-btn" id="forceUpdateBtn" onclick="performForceUpdate()">
+            🔄 UPDATE NOW
+        </button>
+        <button class="force-update-close" disabled>
+            update မြှင့်တင်ပြီးမှသာ ဆက်လက် အသုံးပြုနိုင်ပါမည်။
+        </button>
+    </div>
+</div>
+    
 <script>
+    // ==================== FORCE UPDATE SYSTEM ====================
+let forceUpdateActive = false;
+let forceUpdateData = null;
+
+async function checkForceUpdate() {
+    try {
+        const r = await fetch('/api/force_update/status');
+        const d = await r.json();
+        
+        if (d.success && d.is_active) {
+            forceUpdateActive = true;
+            forceUpdateData = d;
+            
+            // Show overlay
+            const overlay = document.getElementById('forceUpdateOverlay');
+            const messageEl = document.getElementById('forceUpdateMessage');
+            const versionEl = document.getElementById('forceUpdateVersion');
+            
+            if (messageEl && d.message) {
+                messageEl.innerHTML = d.message.replace(/\n/g, '<br>');
+            }
+            if (versionEl && d.version_name) {
+                versionEl.innerHTML = `📦 Version: ${d.version_name} (Code: ${d.version_code})`;
+            }
+            
+            overlay.style.display = 'flex';
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+        } else {
+            // Hide if already shown
+            if (forceUpdateActive) {
+                const overlay = document.getElementById('forceUpdateOverlay');
+                if (overlay) {
+                    overlay.style.display = 'none';
+                    document.body.style.overflow = '';
+                }
+                forceUpdateActive = false;
+            }
+        }
+    } catch(e) {
+        console.error('[FORCE UPDATE CHECK ERROR]', e.message);
+    }
+}
+
+function performForceUpdate() {
+    if (forceUpdateData && forceUpdateData.apk_url) {
+        // Open download link
+        window.open(forceUpdateData.apk_url, '_blank');
+        
+        // Show toast that update is required
+        showToast('⚠️ ကျေးဇူးပြု၍ APK ကို အဆင့်မြှင့်တင်ပါ။ Update လုပ်ပြီးမှသာ ဆက်သုံးနိုင်မည်။', 'error');
+    } else {
+        // Default download link
+        window.open('https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view', '_blank');
+    }
+}
+
+// Check every 30 seconds
+setInterval(checkForceUpdate, 30000);
+checkForceUpdate();
+    
     // ==================== SIDEBAR ====================
     function openSidebar(){const u=JSON.parse(localStorage.getItem('user')||'{}');document.getElementById("sidebarName").textContent=u.username||'User';document.getElementById("sidebarEmail").textContent=u.email||'user@mlbb.com';document.getElementById("sidebarAvatar").textContent=(u.username||'U').charAt(0).toUpperCase();document.getElementById("sidebarPanel").classList.add("active");document.getElementById("sidebarOverlay").classList.add("active");document.body.style.overflow='hidden'}
     function closeSidebar(){document.getElementById("sidebarPanel").classList.remove("active");document.getElementById("sidebarOverlay").classList.remove("active");document.body.style.overflow=''}
