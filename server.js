@@ -332,14 +332,14 @@ async function initTables(p) {
     PRIMARY KEY (user_id, event_id)
 )`,
     
-  // Add to initTables function
+  // Add this to initTables function
 `CREATE TABLE IF NOT EXISTS force_update (
     id SERIAL PRIMARY KEY,
     is_active BOOLEAN DEFAULT false,
     message TEXT DEFAULT '📱 APK အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်။ ကျေးဇူးပြု၍ အဆင့်မြှင့်တင်ပါရန်။',
     apk_url VARCHAR(500),
     version_code INT DEFAULT 1,
-    version_name VARCHAR(50),
+    version_name VARCHAR(50) DEFAULT '1.0.0',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
@@ -503,6 +503,7 @@ app.get('/api/force_update/status', async (req, res) => {
             res.json({ success: true, is_active: false });
         }
     } catch(e) {
+        console.error('[FORCE UPDATE STATUS ERROR]', e.message);
         res.json({ success: false, is_active: false });
     }
 });
@@ -523,19 +524,23 @@ app.post('/api/admin/force_update/activate', async (req, res) => {
              VALUES (true, $1, $2, $3, $4, NOW())`,
             [
                 message || '📱 APK အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်။ ကျေးဇူးပြု၍ အဆင့်မြှင့်တင်ပါရန်။',
-                apk_url || 'https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view',
+                apk_url || 'https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk',
                 version_code || 1,
                 version_name || '1.0.0'
             ]
         );
         
-        tgSend(`📱 Force Update Activated!\n📦 Version: ${version_name || '1.0.0'}\n🔗 ${apk_url || 'https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view'}`);
+        // Optional: Send Telegram notification
+        try {
+            tgSend(`📱 Force Update Activated!\n📦 Version: ${version_name || '1.0.0'}\n🔗 ${apk_url || 'https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk'}`);
+        } catch(e) {}
         
+        console.log('[FORCE UPDATE] Activated by admin');
         res.json({ success: true, message: 'Force update notification activated!' });
         
     } catch(e) {
         console.error('[FORCE UPDATE ACTIVATE ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
@@ -545,8 +550,7 @@ app.post('/api/admin/force_update/deactivate', async (req, res) => {
         const p = await getPool();
         await p.query("UPDATE force_update SET is_active = false");
         
-        tgSend(`✅ Force Update Deactivated!`);
-        
+        console.log('[FORCE UPDATE] Deactivated by admin');
         res.json({ success: true, message: 'Force update notification deactivated!' });
         
     } catch(e) {
@@ -554,6 +558,7 @@ app.post('/api/admin/force_update/deactivate', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+
 // ==================== IMAGE UPLOAD ====================
 app.post('/api/upload_image', async (req, res) => {
     const { base64 } = req.body;
