@@ -885,11 +885,73 @@ body {
     color: rgba(255, 255, 255, 0.6);
 }
 
-/* ========== PRODUCT PRICE (ရွှေရောင် - မပြောင်းရ) ========== */
+/* ========== PRICE BOX - DISCOUNT STYLES ========== */
 .product-price {
-    color: #ffd700 !important;
+    font-size: 13px;
+    font-weight: 700;
     background: rgba(0, 0, 0, 0.7);
-    border-color: rgba(255, 215, 0, 0.3);
+    padding: 5px 10px;
+    margin-top: 4px;
+    display: inline-block;
+    position: relative;
+    z-index: 2;
+    letter-spacing: 0.5px;
+    transition: all 0.3s;
+}
+
+/* Original price (crossed out) - အနီရောင်၊ ဖြတ်ကြောင်း */
+.original-price-crossed {
+    font-size: 9px;
+    color: #e74c3c !important;
+    text-decoration: line-through;
+    margin-right: 6px;
+    opacity: 0.8;
+}
+
+/* Discounted price (current price) - အစိမ်းရောင် */
+.discounted-price {
+    color: #2ecc71 !important;
+    font-size: 14px;
+    font-weight: 800;
+    text-shadow: 0 0 5px rgba(46, 204, 113, 0.3);
+}
+
+/* Normal price (no discount) - ရွှေရောင် */
+.normal-price {
+    color: #ffd700 !important;
+}
+
+/* Detail panel discount price */
+.detail-price.discounted {
+    color: #2ecc71 !important;
+}
+
+.detail-price.normal {
+    color: #e67e22 !important;
+}
+
+.detail-original {
+    font-size: 9px;
+    color: #e74c3c !important;
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+/* Timer badge color */
+.discount-timer-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: #2ecc71 !important;
+    font-size: 9px;
+    font-weight: bold;
+    z-index: 10;
+    white-space: nowrap;
+    font-family: monospace;
+    text-shadow: 0 0 2px rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.5);
+    padding: 2px 5px;
+    border-radius: 8px;
 }
 
 /* ========== TOTAL PRICE BOX (ပြာရောင်) ========== */
@@ -1543,21 +1605,24 @@ function applyDiscountToProducts() {
         
         if (priceEl && nameEl && !priceEl.classList.contains('discount-applied')) {
             const productName = nameEl.textContent.trim();
-            const originalPrice = parseInt(priceEl.textContent.replace(/[^0-9]/g, ''));
-            let discountAmount = getProductDiscount(productName);
-            let discountedPrice = originalPrice - discountAmount;
+            const product = PRODUCTS.find(p => p.name === productName);
             
-            if (discountedPrice < DISCOUNT_CONFIG.minPrice) {
-                discountedPrice = DISCOUNT_CONFIG.minPrice;
-            }
-            if (discountedPrice <= 0) {
-                discountedPrice = DISCOUNT_CONFIG.absoluteMin;
-            }
-            
-            if (discountedPrice !== originalPrice) {
-                card.setAttribute('data-original-price', originalPrice);
-                card.setAttribute('data-discounted-price', discountedPrice);
-                priceEl.innerHTML = `<span class="original-price-crossed">${originalPrice.toLocaleString()} Ks</span> ${discountedPrice.toLocaleString()} Ks`;
+            if (product && product.discounted && product.original_price) {
+                // Clear existing content
+                priceEl.innerHTML = '';
+                
+                // Add original price (crossed out)
+                const originalSpan = document.createElement('span');
+                originalSpan.className = 'original-price-crossed';
+                originalSpan.textContent = product.original_price.toLocaleString() + ' Ks';
+                priceEl.appendChild(originalSpan);
+                
+                // Add discounted price (red color)
+                const discountSpan = document.createElement('span');
+                discountSpan.className = 'discounted-price';
+                discountSpan.textContent = product.price.toLocaleString() + ' Ks';
+                priceEl.appendChild(discountSpan);
+                
                 priceEl.classList.add('discount-applied');
                 
                 if (!card.querySelector('.discount-timer-badge')) {
@@ -2060,21 +2125,29 @@ function selectProduct(productName) {
     document.getElementById('detailName').textContent = selectedProduct.name;
     
     // ✅ Show discounted price in detail panel if applicable
-    if (selectedProduct.discounted && selectedProduct.original_price) {
-        document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
-        document.getElementById('detailOriginal').textContent = selectedProduct.original_price.toLocaleString() + ' Ks';
+if (selectedProduct.discounted && selectedProduct.original_price) {
+    document.getElementById('detailPrice').innerHTML = selectedProduct.price.toLocaleString() + ' Ks';
+    document.getElementById('detailOriginal').innerHTML = selectedProduct.original_price.toLocaleString() + ' Ks';
+    document.getElementById('detailOriginal').style.display = 'block';
+    // ✅ Discounted price - အစိမ်းရောင်
+    document.getElementById('detailPrice').style.color = '#2ecc71';
+    document.getElementById('detailPrice').style.fontWeight = 'bold';
+    // ✅ Original price - အနီရောင် (ဖြတ်ကြောင်း)
+    document.getElementById('detailOriginal').style.color = '#e74c3c';
+    document.getElementById('detailOriginal').style.textDecoration = 'line-through';
+} else {
+    document.getElementById('detailPrice').innerHTML = selectedProduct.price.toLocaleString() + ' Ks';
+    document.getElementById('detailPrice').style.color = '#e67e22';
+    document.getElementById('detailPrice').style.fontWeight = 'bold';
+    if (selectedProduct.original > 0) {
+        document.getElementById('detailOriginal').innerHTML = selectedProduct.original.toLocaleString() + ' Ks';
         document.getElementById('detailOriginal').style.display = 'block';
-        document.getElementById('detailPrice').style.color = '#e74c3c';  // Discount color (red)
-    } else {
-        document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
-        if (selectedProduct.original > 0) {
-            document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
-            document.getElementById('detailOriginal').style.display = 'block';
-        } else { 
-            document.getElementById('detailOriginal').style.display = 'none'; 
-        }
-        document.getElementById('detailPrice').style.color = '#e67e22';  // Normal price color (orange)
+        document.getElementById('detailOriginal').style.color = 'rgba(255,255,255,0.4)';
+        document.getElementById('detailOriginal').style.textDecoration = 'line-through';
+    } else { 
+        document.getElementById('detailOriginal').style.display = 'none'; 
     }
+      }
     
     // Reset quantity
     document.getElementById('quantity').value = 1;
@@ -2285,12 +2358,20 @@ function renderProducts(products, category) {
 
 function renderCards(products) {
     return products.map(function(p) {
+        // Check if product has discount
+        const hasDiscount = p.discounted && p.original_price;
+        const displayPrice = hasDiscount ? p.price : p.price;
+        const originalPriceHtml = hasDiscount ? `<span class="original-price-crossed">${p.original_price.toLocaleString()} Ks</span>` : '';
+        const priceClass = hasDiscount ? 'discounted-price' : 'normal-price';
+        
         var op = p.original > 0 ? '<div class="product-original">' + p.original.toLocaleString() + ' Ks</div>' : '';
+        
         return '<div class="product-card" data-category="' + p.category + '" onclick="selectProduct(\'' + p.name + '\')">' +
             '<div class="checkmark">✓</div>' +
             '<div class="product-img-wrap"><img class="product-img" src="' + p.img + '" alt="' + p.name + '" onerror="this.src=\'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg\'"></div>' +
             '<div class="product-name">' + p.name + '</div>' +
-            '<div class="product-price">' + p.price.toLocaleString() + ' Ks</div>' + op +
+            '<div class="product-price">' + originalPriceHtml + '<span class="' + priceClass + '">' + displayPrice.toLocaleString() + ' Ks</span></div>' +
+            op +
             '</div>';
     }).join('');
 }
