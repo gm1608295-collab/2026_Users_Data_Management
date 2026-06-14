@@ -837,32 +837,137 @@ body {
     box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
 }
 
-        /* ========== DISCOUNT TIMER BADGE (ဘောင်မပါ) ========== */
+    /* ========== DISCOUNT TIMER BADGE (အပေါ်ညာဘက်ထောင့်) ========== */
 .discount-timer-badge {
     position: absolute;
-    top: 3px;
-    right: 3px;
+    top: 5px;
+    right: 5px;
     color: #e74c3c;
-    font-size: 6px;
+    font-size: 10px;        /* 6px → 10px (ကြီးလာ) */
     font-weight: bold;
     z-index: 10;
     white-space: nowrap;
     font-family: monospace;
-    text-shadow: 0 0 3px rgba(0,0,0,0.5);
+    text-shadow: 0 0 2px rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.3);  /* နောက်ခံအနည်းငယ်ထည့် */
+    padding: 2px 5px;
+    border-radius: 8px;
 }
 
-/* Waiting timer (စတင်ရန်အချိန်) - ဘောင်မပါ */
+/* Waiting timer (စတင်ရန်အချိန်) */
 .waiting-timer {
     position: absolute;
-    top: 3px;
-    right: 3px;
+    top: 5px;
+    right: 5px;
     color: #f39c12;
-    font-size: 6px;
+    font-size: 10px;        /* 6px → 10px (ကြီးလာ) */
     font-family: monospace;
     z-index: 10;
     white-space: nowrap;
-    text-shadow: 0 0 3px rgba(0,0,0,0.5);
+    text-shadow: 0 0 2px rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.3);
+    padding: 2px 5px;
+    border-radius: 8px;
 }
+
+    /* ========== DISCOUNT ANNOUNCEMENT STYLES ========== */
+.discount-announcement {
+    background: linear-gradient(135deg, #1a1f4b, #0f1235);
+    border: 2px solid #f39c12;
+    border-radius: 16px;
+    margin: 10px 0 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    animation: glowPulse 2s infinite;
+}
+
+@keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(243,156,18,0.3); }
+    50% { box-shadow: 0 0 0 3px rgba(243,156,18,0.15); }
+}
+
+.discount-header {
+    background: linear-gradient(90deg, #f39c12, #e67e22);
+    padding: 10px 12px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 12px;
+    color: #000;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.discount-header i {
+    font-size: 14px;
+}
+
+.discount-message {
+    padding: 12px 15px;
+    text-align: center;
+    border-bottom: 1px dashed rgba(255,255,255,0.1);
+}
+
+.discount-message p {
+    margin: 5px 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.85);
+}
+
+.discount-message strong {
+    color: #f39c12;
+}
+
+/* Discount Table */
+.discount-table-wrapper {
+    padding: 0 10px 10px;
+    overflow-x: auto;
+}
+
+.discount-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+}
+
+.discount-table th {
+    background: rgba(243,156,18,0.15);
+    color: #f39c12;
+    padding: 8px 5px;
+    text-align: left;
+    font-weight: bold;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.discount-table td {
+    padding: 6px 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.8);
+    font-size: 9px;
+}
+
+.discount-table .discount-price-cell {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.discount-footer {
+    background: rgba(0,0,0,0.3);
+    padding: 8px 12px;
+    text-align: center;
+    font-size: 9px;
+    color: #ffd700;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.discount-footer i {
+    margin-right: 5px;
+    }
     </style>
 </head>
 <body>
@@ -878,14 +983,65 @@ body {
         <div class="balance-bar">
             <div class="bal-card"><div class="bal-label">MMK Balance</div><div class="bal-value" id="mmkBalance">0 Ks</div></div>
         </div>
+
+        <!-- ========== SPECIAL DISCOUNT ANNOUNCEMENT ========== -->
+<div class="discount-announcement" id="discountAnnouncement" style="display: none;">
+    <div class="discount-header">
+        <i class="fas fa-gem"></i>
+        <span>🎉 SPECIAL DISCOUNT FESTIVAL 🎉</span>
+        <i class="fas fa-gem"></i>
+    </div>
+    
+    <div class="discount-message">
+        <p>📢 <strong>SOLO M Game Shop</strong> မှ ကြေငြာချက်</p>
+        <p>✨ အထူးလျှော့ဈေးပွဲတော်ကြီး <strong id="eventStartDate"></strong> ရက်နေ့ ည 8:00 နာရီတွင် စတင်မည်ဖြစ်ပြီး <strong id="eventEndDate"></strong> ရက်နေ့အထိ ကြာမြင့်မည်ဖြစ်ပါသည်။</p>
+        <p>⚡ အမြန်ဆုံးဝယ်ယူလိုက်ပါ... အခွင့်အရေးကောင်း လက်မလွတ်စေနှင့်!</p>
+    </div>
+    
+    <!-- Discount Table -->
+    <div class="discount-table-wrapper">
+        <table class="discount-table">
+            <thead>
+                <tr>
+                    <th>ပစ္စည်းအမျိုးအစား</th>
+                    <th>ပစ္စည်းအမည်</th>
+                    <th>မူရင်းဈေး (Ks)</th>
+                    <th>လျှော့ဈေး (Ks)</th>
+                 </tr>
+            </thead>
+            <tbody>
+                <!-- Weekly Pass -->
+                <tr><td> Weekly Pass</td><td>Weekly Diamond Pass</td><td>6,886</td><td class="discount-price-cell">-700</td></tr>
+                <!-- Twilight Pass -->
+                <tr><td> Twilight Pass</td><td>Twilight Pass</td><td>36,421</td><td class="discount-price-cell">-1,000</td></tr>
+                <!-- Double Diamond -->
+                <tr><td>💎 Double Diamond</td><td>First Recharge 50+50</td><td>3,700</td><td class="discount-price-cell">-200</td></tr>
+                <tr><td>💎 Double Diamond</td><td>First Recharge 150+150</td><td>11,100</td><td class="discount-price-cell">-500</td></tr>
+                <tr><td>💎 Double Diamond</td><td>First Recharge 250+250</td><td>17,500</td><td class="discount-price-cell">-500</td></tr>
+                <tr><td>💎 Double Diamond</td><td>First Recharge 500+500</td><td>35,900</td><td class="discount-price-cell">-500</td></tr>
+                <!-- Epic -->
+                <tr><td> အပတ်စဉ် Epic</td><td>Epic Treasure (Weekly)</td><td>3,700</td><td class="discount-price-cell">-200</td></tr>
+                <tr><td> လစဉ် Epic</td><td>Epic Hero (Monthly)</td><td>18,500</td><td class="discount-price-cell">-500</td></tr>
+                <!-- Small Diamonds -->
+                <tr><td>💎 Diamonds</td><td>5, 11, 22, 55, 56, 86 Diamonds</td><td>438 ~ 5,573</td><td class="discount-price-cell">-50</td></tr>
+                <!-- Large Diamonds -->
+                <tr><td>💎 Diamonds</td><td>112 ~ 9288 Diamonds</td><td>7,245 ~ 549,932</td><td class="discount-price-cell">-500</td></tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="discount-footer">
+        <i class="fas fa-clock"></i> အချိန်ကုန်ဆုံးခါနီး အမြန်ဝယ်ယူပါ။
+    </div>
+</div>
         
         <div class="category-tabs" id="categoryTabs">
             <div class="category-tab active" onclick="filterCategory('all')">All</div>
-            <div class="category-tab" onclick="filterCategory('diamonds')">💎 Diamonds</div>
-            <div class="category-tab" onclick="filterCategory('double-diamond')">💎 2x Diamond</div>
-            <div class="category-tab" onclick="filterCategory('weekly-pass')">📅 Weekly</div>
-            <div class="category-tab" onclick="filterCategory('twilight-pass')">🌙 Twilight</div>
-            <div class="category-tab" onclick="filterCategory('epic')">⚔️ Epic</div>
+            <div class="category-tab" onclick="filterCategory('diamonds')"> Diamonds</div>
+            <div class="category-tab" onclick="filterCategory('double-diamond')"> 2x Diamond</div>
+            <div class="category-tab" onclick="filterCategory('weekly-pass')"> Weekly</div>
+            <div class="category-tab" onclick="filterCategory('twilight-pass')"> Twilight</div>
+            <div class="category-tab" onclick="filterCategory('epic')"> Epic</div>
         </div>
         
         <div id="productGrid"></div>
@@ -1104,6 +1260,40 @@ body {
 </div>
 
     <script>
+        // Update announcement dates
+function updateAnnouncementDates() {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
+    
+    if (now > startDate) {
+        startDate.setDate(startDate.getDate() + 1);
+    }
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + DISCOUNT_CONFIG.durationDays);
+    endDate.setHours(endDate.getHours() + DISCOUNT_CONFIG.durationHours);
+    
+    const startDateStr = startDate.toLocaleDateString('my-MM', { year: 'numeric', month: 'long', day: 'numeric' });
+    const endDateStr = endDate.toLocaleDateString('my-MM', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    const startEl = document.getElementById('eventStartDate');
+    const endEl = document.getElementById('eventEndDate');
+    if (startEl) startEl.textContent = startDateStr;
+    if (endEl) endEl.textContent = endDateStr;
+}
+
+// Show announcement
+function showAnnouncement() {
+    const announcement = document.getElementById('discountAnnouncement');
+    if (announcement) {
+        announcement.style.display = 'block';
+        updateAnnouncementDates();
+    }
+}
+
+// Call this in your init function
+// showAnnouncement();
         // ==================== DISCOUNT SYSTEM (PRODUCT SPECIFIC) ====================
 const DISCOUNT_CONFIG = {
     startHour: 20,           // 8:00 PM
@@ -1980,6 +2170,7 @@ function filterCategory(category) {
 }
 
 // ==================== INIT ====================
+showAnnouncement();
 // At the end of your window.onload or init function
 initDiscountSystem();
 loadNotiItems();
