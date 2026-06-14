@@ -1094,7 +1094,6 @@ body.modal-open .container {
         <div id="forceUpdateStatus" style="margin-top: 8px; font-size: 9px; padding: 6px; border-radius: 6px; text-align: center; display: none;"></div>
     </div>
                 </div>
-                
                 <!-- ===== DAILY CHECK-IN MANAGEMENT ===== -->
 <div class="divider">
     <h3><i class="fas fa-calendar-check"></i> Daily Check-In Event Management</h3>
@@ -1381,7 +1380,7 @@ body.modal-open .container {
     async function loadCurrentVideo(){try{const r=await fetch('/api/video');const d=await r.json();const info=document.getElementById('currentVideoInfo');if(d.success&&d.url){info.innerHTML=`📹 <a href="${d.originalUrl||d.url}" target="_blank" style="color:var(--b)">${(d.originalUrl||d.url).substring(0,40)}...</a>`}else{info.innerHTML='<span style="color:rgba(255,255,255,0.5)">📹 No video</span>'}}catch(e){}}
     async function deleteVideo(){if(!confirm('Delete?'))return;try{await fetch('/api/admin/video/delete',{method:'POST'});n('✅ Deleted!');document.getElementById('videoUrl').value='';loadCurrentVideo()}catch(e){n('Error','error')}}
 
-   // ==================== FORCE UPDATE ADMIN ====================
+// ==================== FORCE UPDATE ADMIN ====================
 async function activateForceUpdate() {
     const message = document.getElementById('forceUpdateMessage').value.trim();
     const apk_url = document.getElementById('forceUpdateApkUrl').value.trim();
@@ -1403,12 +1402,7 @@ async function activateForceUpdate() {
         const r = await fetch('/api/admin/force_update/activate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                message: message,
-                apk_url: apk_url,
-                version_code: version_code,
-                version_name: version_name
-            })
+            body: JSON.stringify({ message, apk_url, version_code, version_name })
         });
         const d = await r.json();
         
@@ -1433,14 +1427,15 @@ async function activateForceUpdate() {
     setTimeout(() => {
         statusDiv.style.display = 'none';
     }, 5000);
-} 
+}
 
 async function deactivateForceUpdate() {
     if (!confirm('⚠️ Force update notification ကို ဖယ်ရှားမှာ သေချာပါသလား?\n\nDashboard မှ bottom bar ပျောက်သွားပါမည်။')) return;
     
     const statusDiv = document.getElementById('forceUpdateStatus');
-    statusDiv.className = 'force-update-status loading';
     statusDiv.style.display = 'block';
+    statusDiv.style.background = 'rgba(243,156,18,0.1)';
+    statusDiv.style.color = '#f39c12';
     statusDiv.innerHTML = '⏳ Deactivating...';
     
     try {
@@ -1451,19 +1446,19 @@ async function deactivateForceUpdate() {
         const d = await r.json();
         
         if (d.success) {
-            statusDiv.className = 'force-update-status success';
+            statusDiv.style.background = 'rgba(46,204,113,0.15)';
+            statusDiv.style.color = '#2ecc71';
             statusDiv.innerHTML = '✅ Force update deactivated!';
             n('✅ Notification cancelled!', 'success');
-            
-            const badge = document.getElementById('forceUpdateActiveBadge');
-            if (badge) badge.style.display = 'none';
         } else {
-            statusDiv.className = 'force-update-status error';
+            statusDiv.style.background = 'rgba(231,76,60,0.15)';
+            statusDiv.style.color = '#e74c3c';
             statusDiv.innerHTML = '❌ ' + (d.message || 'Error');
             n('❌ Deactivation failed', 'error');
         }
     } catch(e) {
-        statusDiv.className = 'force-update-status error';
+        statusDiv.style.background = 'rgba(231,76,60,0.15)';
+        statusDiv.style.color = '#e74c3c';
         statusDiv.innerHTML = '❌ Connection error';
         n('❌ Server error', 'error');
     }
@@ -1471,7 +1466,7 @@ async function deactivateForceUpdate() {
     setTimeout(() => {
         statusDiv.style.display = 'none';
     }, 5000);
-}
+        }
 
 // Check current status on page load
 async function checkForceUpdateStatus() {
