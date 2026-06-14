@@ -423,152 +423,247 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
     50% { opacity: 1; }
 }
 
-       /* ========== BOTTOM FORCE UPDATE BAR (Swipe Up) ========== */
+    /* ========== BOTTOM FORCE UPDATE BAR - PREMIUM DESIGN ========== */
 .force-update-bottom-bar {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: linear-gradient(135deg, #1a1f4b, #0f1235);
-    border-top: 3px solid #f39c12;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 30px);
+    max-width: 520px;
+    background: linear-gradient(135deg, rgba(15, 20, 40, 0.95), rgba(10, 12, 28, 0.98));
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(243, 156, 18, 0.2);
     z-index: 9999;
-    transform: translateY(100%);
-    transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-    animation: slideUp 0.5s ease forwards;
+    transform: translateX(-50%) translateY(120%);
+    transition: transform 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+    cursor: pointer;
 }
 
-@keyframes slideUp {
-    0% { transform: translateY(100%); }
-    100% { transform: translateY(0); }
+.force-update-bottom-bar.show {
+    transform: translateX(-50%) translateY(0);
 }
 
 .force-update-bottom-bar.hide {
-    animation: slideDown 0.5s ease forwards;
+    transform: translateX(-50%) translateY(120%);
 }
 
-@keyframes slideDown {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(100%); }
+/* LED Lightning Border Effect */
+.force-update-bottom-bar::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(90deg, 
+        #ff0000, #ff7300, #fffb00, #48ff00,
+        #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000
+    );
+    background-size: 200% 100%;
+    border-radius: 22px;
+    z-index: -1;
+    animation: lightningBorder 1.5s linear infinite;
+    opacity: 0.7;
 }
 
+@keyframes lightningBorder {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Inner content */
 .force-update-inner {
-    max-width: 500px;
-    margin: 0 auto;
-    padding: 12px 16px;
+    padding: 16px 18px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
 }
 
-.force-update-content {
-    flex: 2;
-    min-width: 180px;
-}
-
+/* Zigzag divider between icon and content */
 .force-update-icon {
-    font-size: 28px;
-    color: #f39c12;
-    flex-shrink: 0;
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.8; }
-}
-
-.force-update-title {
-    font-size: 12px;
-    font-weight: bold;
-    color: #f39c12;
-    margin-bottom: 3px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #f39c12, #e67e22);
+    border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+    animation: morphIcon 3s ease-in-out infinite;
 }
 
+@keyframes morphIcon {
+    0% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
+    25% { border-radius: 58% 42% 75% 25% / 43% 47% 53% 57%; }
+    50% { border-radius: 50% 50% 50% 50% / 50% 50% 50% 50%; }
+    75% { border-radius: 42% 58% 37% 63% / 39% 50% 50% 61%; }
+    100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
+}
+
+.force-update-icon i {
+    font-size: 26px;
+    color: #000;
+    text-shadow: 0 0 5px rgba(255,255,255,0.5);
+    animation: iconPulse 1s infinite;
+}
+
+@keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Content area */
+.force-update-content {
+    flex: 1;
+}
+
+/* Lightning text divider */
+.force-update-title {
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 5px;
+    display: inline-block;
+    background: linear-gradient(90deg, #ff3399, #f39c12, #ff3399);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: titleGradient 2s linear infinite;
+    letter-spacing: 0.5px;
+}
+
+@keyframes titleGradient {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+}
+
+.force-update-version-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    font-size: 7px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    color: #fff;
+    margin-left: 8px;
+    vertical-align: middle;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+/* Message with zigzag underline */
 .force-update-message {
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.7);
-    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.45;
+    margin-bottom: 4px;
+    position: relative;
+    display: inline-block;
 }
 
+.force-update-message::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, #f39c12, #f39c12 6px, transparent 6px, transparent 12px);
+}
+
+/* Version text */
 .force-update-version {
     font-size: 8px;
     color: #2ecc71;
-    margin-top: 2px;
     font-family: monospace;
-}
-
-.force-update-buttons {
+    letter-spacing: 1px;
+    margin-top: 6px;
     display: flex;
-    gap: 8px;
-    flex-shrink: 0;
+    align-items: center;
+    gap: 6px;
 }
 
+.force-update-version::before {
+    content: '⚡';
+    font-size: 8px;
+    animation: blink 1s infinite;
+}
+
+/* Button - Unique shape */
 .force-update-btn {
     background: linear-gradient(135deg, #f39c12, #e67e22);
     border: none;
-    padding: 8px 20px;
-    border-radius: 30px;
+    padding: 10px 22px;
+    border-radius: 30px 10px 30px 10px;
     color: #000;
     font-size: 11px;
-    font-weight: bold;
+    font-weight: 800;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+    flex-shrink: 0;
+}
+
+.force-update-btn i {
+    font-size: 12px;
+    animation: rotateIcon 0.8s ease-in-out infinite;
+}
+
+@keyframes rotateIcon {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 .force-update-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
-}
-
-.force-update-close {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 7px 15px;
-    border-radius: 30px;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 10px;
-    cursor: not-allowed;
-}
-
-.force-update-close.active {
-    cursor: pointer;
-    color: #fff;
-    border-color: rgba(255, 255, 255, 0.4);
-}
-
-.force-update-close.active:hover {
-    background: rgba(231, 76, 60, 0.2);
-    border-color: #e74c3c;
-    color: #e74c3c;
-}
-
-/* Handle swipe up to close? No - force update only */
-.force-update-bottom-bar {
-    cursor: pointer;
+    transform: translateY(-3px) scale(1.02);
+    border-radius: 10px 30px 10px 30px;
+    box-shadow: 0 8px 25px rgba(243, 156, 18, 0.5);
 }
 
 /* Responsive */
 @media (max-width: 480px) {
-    .force-update-inner {
-        padding: 10px 12px;
-        flex-direction: column;
-        text-align: center;
+    .force-update-bottom-bar {
+        width: calc(100% - 20px);
+        bottom: 10px;
     }
-    .force-update-buttons {
+    .force-update-inner {
+        padding: 12px 14px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .force-update-icon {
+        width: 40px;
+        height: 40px;
+    }
+    .force-update-icon i {
+        font-size: 20px;
+    }
+    .force-update-btn {
+        padding: 8px 16px;
+        font-size: 10px;
         width: 100%;
         justify-content: center;
     }
-    .force-update-btn {
-        flex: 1;
+    .force-update-content {
+        flex: 1 1 100%;
         text-align: center;
+    }
+    .force-update-title {
+        font-size: 12px;
+    }
+    .force-update-message::after {
+        width: 80%;
+        left: 10%;
     }
 }
    </style>
@@ -820,27 +915,26 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
     </div>
 </div>
 
-        <!-- ==================== BOTTOM FORCE UPDATE BAR ==================== -->
+        <!-- ==================== BOTTOM FORCE UPDATE BAR - PREMIUM ==================== -->
 <div id="forceUpdateBottomBar" class="force-update-bottom-bar" style="display: none;">
     <div class="force-update-inner">
         <div class="force-update-icon">
-            <i class="fas fa-exclamation-triangle"></i>
+            <i class="fas fa-bolt"></i>
         </div>
         <div class="force-update-content">
             <div class="force-update-title">
-                ⚠️ အဆင်မြှင့်တင်ရန်
-                <span id="forceUpdateVersionBadge" style="font-size: 8px; background: #e74c3c; padding: 2px 6px; border-radius: 10px;">New APK</span>
+                 Lasted Version အဆင့်မြှင့်တင်ခြင်း 
+                <span class="force-update-version-badge" id="forceUpdateVersionBadge">NEW</span>
             </div>
             <div class="force-update-message" id="forceUpdateMessageText">
-                📱 APK latest version အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်။ ကျေးဇူးပြု၍ အဆင့်မြှင့်တင်ပါရန်။
-            </div>
-            <div class="force-update-version" id="forceUpdateVersionText">
+                📱 APK latest version အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်။ ကျေးဇူးပြု၍ နောက်ဆုံးအဆင့်သို့ အဆင့်မြှင့်တင်ပါ။
+            </div>div          <div class="force-update-version" id="forceUpdateVersionText">
                 Version: 1.0.0
             </div>
         </div>
         <div class="force-update-buttons">
-            <button class="force-update-btn" id="forceUpdateNowBtn" onclick="performForceUpdate()">
-                🔄 UPDATE NOW
+            <button class="force-update-btn" onclick="performForceUpdate()">
+                <i class="fas fa-sync-alt"></i> UPDATE NOW
             </button>
         </div>
     </div>
@@ -969,12 +1063,7 @@ async function checkForceUpdate() {
         const d = await r.json();
         
         const bar = document.getElementById('forceUpdateBottomBar');
-        if (!bar) {
-            console.log('[FORCE UPDATE] Bar element not found');
-            return;
-        }
-        
-        console.log('[FORCE UPDATE] Response:', d);
+        if (!bar) return;
         
         if (d.success && d.is_active) {
             forceUpdateActive = true;
@@ -995,7 +1084,10 @@ async function checkForceUpdate() {
             
             // Show bar with animation
             bar.style.display = 'block';
-            bar.classList.remove('hide');
+            setTimeout(() => {
+                bar.classList.add('show');
+                bar.classList.remove('hide');
+            }, 50);
             
             // Prevent body scroll
             document.body.style.overflow = 'hidden';
@@ -1003,10 +1095,10 @@ async function checkForceUpdate() {
             
         } else {
             if (forceUpdateActive) {
-                // Hide bar with animation
                 const bar = document.getElementById('forceUpdateBottomBar');
                 if (bar) {
                     bar.classList.add('hide');
+                    bar.classList.remove('show');
                     setTimeout(() => {
                         bar.style.display = 'none';
                         document.body.style.overflow = '';
@@ -1033,7 +1125,6 @@ function performForceUpdate() {
 // Check every 30 seconds
 setInterval(checkForceUpdate, 30000);
 checkForceUpdate();
-    
     // ==================== SIDEBAR ====================
     function openSidebar(){const u=JSON.parse(localStorage.getItem('user')||'{}');document.getElementById("sidebarName").textContent=u.username||'User';document.getElementById("sidebarEmail").textContent=u.email||'user@mlbb.com';document.getElementById("sidebarAvatar").textContent=(u.username||'U').charAt(0).toUpperCase();document.getElementById("sidebarPanel").classList.add("active");document.getElementById("sidebarOverlay").classList.add("active");document.body.style.overflow='hidden'}
     function closeSidebar(){document.getElementById("sidebarPanel").classList.remove("active");document.getElementById("sidebarOverlay").classList.remove("active");document.body.style.overflow=''}
