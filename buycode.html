@@ -165,7 +165,29 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
         <div class="qr-box" id="qrBoxContent"></div>
     </div>
  <script>
-// ==================== HARDCODED DATA ====================
+// ==================== GET TOKEN (JWT FORMAT) ====================
+function getToken() {
+    // URL ကနေ အရင်ယူ (Telegram WebView)
+    var params = new URLSearchParams(window.location.search);
+    var urlToken = params.get('token');
+    
+    if (urlToken && urlToken !== 'guest' && urlToken.length > 10) {
+        try { localStorage.setItem('auth_token', urlToken); } catch(e) {}
+        return urlToken;
+    }
+    
+    // localStorage ကနေ ယူ
+    try {
+        var localToken = localStorage.getItem('auth_token');
+        if (localToken && localToken !== 'guest') {
+            return localToken;
+        }
+    } catch(e) {}
+    
+    return null;
+}
+     
+     // ==================== HARDCODED DATA ====================
 var CATEGORIES = {
     "shhh_emote":{name:"Shhh emote",icon:"https://i.ibb.co/KprVCy87/icon-reward2-Q0a-Xg-C62.png",price:2500,codes:[{id:1,code:"2359x2s4zqzq23fb8"},{id:2,code:"29jwchdgqyvj23f5e"},{id:3,code:"29hg4rbrxt6h23f5e"},{id:4,code:"29kqjbw949z823f5e"}]},
     "golden_border":{name:"Golden Month Border",icon:"https://i.ibb.co/LXVHQfk3/icon-reward1-D7w-Nl-OTn.png",price:3500,codes:[{id:5,code:"27e32tq495s423f5q"},{id:6,code:"27ffr6w3h9ka23f5q"},{id:7,code:"27gpet7tyr4g23f5q"},{id:8,code:"27h77fcrekx923f5q"}]},
@@ -388,7 +410,10 @@ function buyCode(codeId){
     if(!codeId||isNaN(codeId)){n('❌ Invalid Code ID','error');return}
     var cat=CATEGORIES[currentCategoryKey]; if(!cat){n('❌ Category not found','error');return}
     if(currentBalance<cat.price){n('ငွေမလုံလောက်ပါ','error');return}
-    var token=localStorage.getItem('auth_token'); if(!token){n('❌ Please login first','error');return}
+    
+    // ✅ getToken() ကိုသုံးပါ
+    var token = getToken(); 
+    if(!token || token === 'guest'){n('❌ Please login first','error');return}
     
     fetch('/api/buy_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:token,codeId:parseInt(codeId)})})
     .then(function(r){return r.json()}).then(function(d){
@@ -405,7 +430,6 @@ function buyCode(codeId){
         }else{n(d.message||'Error','error')}
     }).catch(function(e){n('Connection error','error')});
 }
-
 // ==================== PROMO CODE MODAL ====================
 function openPromoCodeModal() {
     var codes = CATEGORIES['promo_codes'].codes;
@@ -501,8 +525,9 @@ function buyPromoCodeClick(codeId) {
 }
 
 function buyPromoCode(codeId) {
-    var token = localStorage.getItem('auth_token');
-    if (!token) { n('❌ Please login first', 'error'); return; }
+     // ✅ getToken() ကိုသုံးပါ
+    var token = getToken();
+    if (!token || token === 'guest') { n('❌ Please login first', 'error'); return; }
     
     fetch('/api/buy_promo_code', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -590,7 +615,24 @@ async function checkPageAccess() {
     if (!pageOn) return;
     document.getElementById('buycodeContent').style.display = 'block';
     renderGameCards();
-    fetch('/api/get_balance',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:localStorage.getItem('auth_token')})}).then(function(r){return r.json()}).then(function(d){currentBalance=d.balance||0;document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD'}).catch(function(){});
+    
+    // ✅ getToken() ကိုသုံးပါ
+    var token = getToken();
+    if (!token || token === 'guest') {
+        document.getElementById('myBalance').textContent = '0 Ks';
+        document.getElementById('usdBalance').textContent = '≈ $0.00 USD';
+    } else {
+        fetch('/api/get_balance',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({token:token})
+        }).then(function(r){return r.json()}).then(function(d){
+            currentBalance=d.balance||0;
+            document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
+            document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
+        }).catch(function(){});
+    }
+    
     loadNotice();
     setInterval(loadNotice,5000);
 })();
