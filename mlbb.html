@@ -1669,19 +1669,21 @@ function startWaitingTimer(targetStartTime) {
 // Check and start discount if time is right
 function checkAndStartDiscount() {
     const now = new Date();
-    const targetStart = new Date(now);
-    targetStart.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
     
-    if (now > targetStart) {
-        targetStart.setDate(targetStart.getDate() + 1);
-    }
+    console.log('[DISCOUNT] Current time:', now.toString());
+    console.log('[DISCOUNT] Current hour:', currentHour, 'minute:', currentMinute);
     
+    // Check if discount is already active
     if (discountActive && discountEndTime) {
         if (Date.now() < discountEndTime.getTime()) {
+            console.log('[DISCOUNT] Already active, continuing...');
             startDiscountTimerDisplay();
             applyDiscountToProducts();
             return true;
         } else {
+            console.log('[DISCOUNT] Discount expired');
             discountActive = false;
             discountEndTime = null;
             saveDiscountState();
@@ -1690,34 +1692,47 @@ function checkAndStartDiscount() {
         }
     }
     
-    if (now >= targetStart) {
+    // Check if current time is past or equal to start time (8:00 PM)
+    const isStartTimeReached = (currentHour > DISCOUNT_CONFIG.startHour) || 
+                                (currentHour === DISCOUNT_CONFIG.startHour && currentMinute >= DISCOUNT_CONFIG.startMinute);
+    
+    console.log('[DISCOUNT] Is start time reached?', isStartTimeReached);
+    
+    if (isStartTimeReached) {
+        // Start discount immediately
+        console.log('[DISCOUNT] Starting discount now!');
         discountActive = true;
         discountEndTime = new Date();
         discountEndTime.setDate(discountEndTime.getDate() + DISCOUNT_CONFIG.durationDays);
         discountEndTime.setHours(discountEndTime.getHours() + DISCOUNT_CONFIG.durationHours);
         discountEndTime.setMinutes(discountEndTime.getMinutes() + DISCOUNT_CONFIG.durationMinutes);
         discountEndTime.setSeconds(discountEndTime.getSeconds() + DISCOUNT_CONFIG.durationSeconds);
+        
+        console.log('[DISCOUNT] End time:', discountEndTime.toString());
+        
         saveDiscountState();
         updateProductsPricesWithDiscount();
         renderProducts(PRODUCTS, currentCategory);
+        
         setTimeout(() => {
             applyDiscountToProducts();
             startDiscountTimerDisplay();
         }, 100);
         return true;
     } else {
+        // Calculate time until start
+        const targetStart = new Date(now);
+        targetStart.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
+        
+        // If current time is after start hour, set to tomorrow
+        if (currentHour >= DISCOUNT_CONFIG.startHour) {
+            targetStart.setDate(targetStart.getDate() + 1);
+        }
+        
+        console.log('[DISCOUNT] Waiting for start time:', targetStart.toString());
         startWaitingTimer(targetStart);
         return false;
     }
-}
-
-// Initialize discount system
-function initDiscountSystem() {
-    loadDiscountState();
-    if (discountActive) {
-        updateProductsPricesWithDiscount();
-    }
-    checkAndStartDiscount();
 }
         
         // ==================== BG MUSIC PLAYER ====================
