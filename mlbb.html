@@ -603,7 +603,7 @@ body {
 .ticket-label b {
     color: #ffd700;
 }
-        /* ========== PRODUCT CARD - ALL 4 CORNERS CUT ========== */
+/* ========== PRODUCT CARD - ALL 4 CORNERS CUT (DIAGONAL) ========== */
 .product-card {
     background: linear-gradient(160deg, #1a1000, #2d1800, #1a0c00);
     border: 2px solid #b8860b;
@@ -615,34 +615,76 @@ body {
     overflow: hidden;
     box-shadow: 0 4px 15px rgba(184, 134, 11, 0.3), inset 0 1px 0 rgba(255, 215, 0, 0.1);
     
-    /* ✅ ထောင့်လေးခုလုံးဖြတ် (All 4 corners cut) */
+    /* ✅ ထောင့်လေးခုလုံးဖြတ် (15% offset နဲ့ ပိုသိသာ) */
     clip-path: polygon(
-        5% 0%,           /* top-left cut */
-        95% 0%,          /* top-right cut */
-        100% 5%,         /* top-right */
-        100% 95%,        /* bottom-right */
-        95% 100%,        /* bottom-right cut */
-        5% 100%,         /* bottom-left cut */
-        0% 95%,          /* bottom-left */
-        0% 5%            /* top-left */
+        8% 0%,
+        92% 0%,
+        100% 8%,
+        100% 92%,
+        92% 100%,
+        8% 100%,
+        0% 92%,
+        0% 8%
     );
 }
 
-/* Hover effect */
+/* Shine effect */
+.product-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -100%;
+    width: 60%;
+    height: 200%;
+    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.15), rgba(255,255,255,0.2), rgba(255,215,0,0.15), transparent);
+    transform: skewX(-25deg);
+    animation: goldSweep 3s ease-in-out infinite;
+    z-index: 3;
+    pointer-events: none;
+}
+
+@keyframes goldSweep {
+    0% { left: -100%; }
+    100% { left: 150%; }
+}
+
+.product-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 0%, rgba(255,215,0,0.2), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.product-card:hover::after {
+    opacity: 1;
+}
+
 .product-card:hover {
     border-color: #ffd700;
     transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 25px rgba(255,215,0,0.3);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 25px rgba(255,215,0,0.3), 0 0 50px rgba(255,215,0,0.1);
+    /* Hover မှာ အနည်းငယ် ဖြတ်တောက်မှုလျှော့ပြီး ပိုချွန်အောင် */
     clip-path: polygon(
-        3% 0%,
-        97% 0%,
-        100% 3%,
-        100% 97%,
-        97% 100%,
-        3% 100%,
-        0% 97%,
-        0% 3%
+        4% 0%,
+        96% 0%,
+        100% 4%,
+        100% 96%,
+        96% 100%,
+        4% 100%,
+        0% 96%,
+        0% 4%
     );
+}
+
+.product-card:active {
+    transform: scale(0.95);
 }
 
 /* Selected card */
@@ -652,10 +694,20 @@ body {
     box-shadow: 0 0 25px rgba(46,204,113,0.3), inset 0 1px 0 rgba(46,204,113,0.1);
 }
 
+.product-card.selected::after {
+    opacity: 1;
+    background: radial-gradient(circle at 50% 0%, rgba(46,204,113,0.2), transparent 70%);
+}
+
+.product-card.selected::before {
+    background: linear-gradient(90deg, transparent, rgba(46,204,113,0.1), rgba(255,255,255,0.15), rgba(46,204,113,0.1), transparent);
+}
+
 /* Checkmark for selected card */
 .product-card .checkmark {
     display: none;
 }
+
 .product-card.selected .checkmark {
     display: flex;
     position: absolute;
