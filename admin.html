@@ -1377,7 +1377,7 @@ body.modal-open .container {
     async function loadCurrentVideo(){try{const r=await fetch('/api/video');const d=await r.json();const info=document.getElementById('currentVideoInfo');if(d.success&&d.url){info.innerHTML=`📹 <a href="${d.originalUrl||d.url}" target="_blank" style="color:var(--b)">${(d.originalUrl||d.url).substring(0,40)}...</a>`}else{info.innerHTML='<span style="color:rgba(255,255,255,0.5)">📹 No video</span>'}}catch(e){}}
     async function deleteVideo(){if(!confirm('Delete?'))return;try{await fetch('/api/admin/video/delete',{method:'POST'});n('✅ Deleted!');document.getElementById('videoUrl').value='';loadCurrentVideo()}catch(e){n('Error','error')}}
 
-    // ==================== FORCE UPDATE ADMIN ====================
+    // ==================== FORCE UPDATE ADMIN (BOTTOM BAR) ====================
 async function activateForceUpdate() {
     const message = document.getElementById('forceUpdateMessage').value.trim();
     const apk_url = document.getElementById('forceUpdateApkUrl').value.trim();
@@ -1390,9 +1390,8 @@ async function activateForceUpdate() {
     }
     
     const statusDiv = document.getElementById('forceUpdateStatus');
+    statusDiv.className = 'force-update-status loading';
     statusDiv.style.display = 'block';
-    statusDiv.style.background = 'rgba(243,156,18,0.1)';
-    statusDiv.style.color = '#f39c12';
     statusDiv.innerHTML = '⏳ Activating force update...';
     
     try {
@@ -1404,19 +1403,20 @@ async function activateForceUpdate() {
         const d = await r.json();
         
         if (d.success) {
-            statusDiv.style.background = 'rgba(46,204,113,0.15)';
-            statusDiv.style.color = '#2ecc71';
-            statusDiv.innerHTML = '✅ Force update activated! Dashboard will show overlay.';
+            statusDiv.className = 'force-update-status success';
+            statusDiv.innerHTML = '✅ Force update activated! Bottom bar will appear on Dashboard.';
             n('✅ Force update notification activated!', 'success');
+            
+            // Show active badge
+            const badge = document.getElementById('forceUpdateActiveBadge');
+            if (badge) badge.style.display = 'inline-block';
         } else {
-            statusDiv.style.background = 'rgba(231,76,60,0.15)';
-            statusDiv.style.color = '#e74c3c';
+            statusDiv.className = 'force-update-status error';
             statusDiv.innerHTML = '❌ ' + (d.message || 'Error');
             n('❌ Activation failed', 'error');
         }
     } catch(e) {
-        statusDiv.style.background = 'rgba(231,76,60,0.15)';
-        statusDiv.style.color = '#e74c3c';
+        statusDiv.className = 'force-update-status error';
         statusDiv.innerHTML = '❌ Connection error';
         n('❌ Server error', 'error');
     }
@@ -1427,12 +1427,11 @@ async function activateForceUpdate() {
 }
 
 async function deactivateForceUpdate() {
-    if (!confirm('⚠️ Force update notification ကို ဖယ်ရှားမှာ သေချာပါသလား?\n\nDashboard မှ overlay ပျောက်သွားပါမည်။')) return;
+    if (!confirm('⚠️ Force update notification ကို ဖယ်ရှားမှာ သေချာပါသလား?\n\nDashboard မှ bottom bar ပျောက်သွားပါမည်။')) return;
     
     const statusDiv = document.getElementById('forceUpdateStatus');
+    statusDiv.className = 'force-update-status loading';
     statusDiv.style.display = 'block';
-    statusDiv.style.background = 'rgba(243,156,18,0.1)';
-    statusDiv.style.color = '#f39c12';
     statusDiv.innerHTML = '⏳ Deactivating...';
     
     try {
@@ -1443,19 +1442,19 @@ async function deactivateForceUpdate() {
         const d = await r.json();
         
         if (d.success) {
-            statusDiv.style.background = 'rgba(46,204,113,0.15)';
-            statusDiv.style.color = '#2ecc71';
+            statusDiv.className = 'force-update-status success';
             statusDiv.innerHTML = '✅ Force update deactivated!';
             n('✅ Notification cancelled!', 'success');
+            
+            const badge = document.getElementById('forceUpdateActiveBadge');
+            if (badge) badge.style.display = 'none';
         } else {
-            statusDiv.style.background = 'rgba(231,76,60,0.15)';
-            statusDiv.style.color = '#e74c3c';
+            statusDiv.className = 'force-update-status error';
             statusDiv.innerHTML = '❌ ' + (d.message || 'Error');
             n('❌ Deactivation failed', 'error');
         }
     } catch(e) {
-        statusDiv.style.background = 'rgba(231,76,60,0.15)';
-        statusDiv.style.color = '#e74c3c';
+        statusDiv.className = 'force-update-status error';
         statusDiv.innerHTML = '❌ Connection error';
         n('❌ Server error', 'error');
     }
@@ -1463,7 +1462,20 @@ async function deactivateForceUpdate() {
     setTimeout(() => {
         statusDiv.style.display = 'none';
     }, 5000);
+}
+
+// Check current status on page load
+async function checkForceUpdateStatus() {
+    try {
+        const r = await fetch('/api/force_update/status');
+        const d = await r.json();
+        const badge = document.getElementById('forceUpdateActiveBadge');
+        if (badge) {
+            badge.style.display = (d.success && d.is_active) ? 'inline-block' : 'none';
         }
+    } catch(e) {}
+}
+checkForceUpdateStatus();
         
     // ==================== USERS WITH DEVICE INFO (အသစ်) ====================
     async function loadAdminData(){
