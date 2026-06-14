@@ -819,7 +819,33 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
         Powered by Median.co
     </div>
 </div>
-            
+
+        <!-- ==================== BOTTOM FORCE UPDATE BAR ==================== -->
+<div id="forceUpdateBottomBar" class="force-update-bottom-bar" style="display: none;">
+    <div class="force-update-inner">
+        <div class="force-update-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="force-update-content">
+            <div class="force-update-title">
+                ⚠️ အဆင်မြှင့်တင်ရန်
+                <span id="forceUpdateVersionBadge" style="font-size: 8px; background: #e74c3c; padding: 2px 6px; border-radius: 10px;">New APK</span>
+            </div>
+            <div class="force-update-message" id="forceUpdateMessageText">
+                📱 APK latest version အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်။ ကျေးဇူးပြု၍ အဆင့်မြှင့်တင်ပါရန်။
+            </div>
+            <div class="force-update-version" id="forceUpdateVersionText">
+                Version: 1.0.0
+            </div>
+        </div>
+        <div class="force-update-buttons">
+            <button class="force-update-btn" id="forceUpdateNowBtn" onclick="performForceUpdate()">
+                🔄 UPDATE NOW
+            </button>
+        </div>
+    </div>
+</div>
+        
             <!-- Video Player -->
             <div class="video-container" id="videoContainer" style="display:none">
                 <video id="dashboardVideo" controls playsinline webkit-playsinline muted autoplay style="display:none"></video>
@@ -931,29 +957,6 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
         </button>
     </div>
 </div>
-<!-- ==================== FORCE UPDATE OVERLAY ==================== -->
-<div id="forceUpdateOverlay" style="display:none;" class="force-update-overlay">
-    <div class="force-update-modal">
-        <div class="force-update-icon">
-            <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <div class="force-update-title">⚠️ FORCED UPDATE REQUIRED</div>
-        <div class="force-update-subtitle">အဆင့်မြှင့်တင်ရန် လိုအပ်ပါသည်</div>
-        <div class="force-update-message" id="forceUpdateMessage">
-            📱 APK version အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်<br>
-            ကျေးဇူးပြု၍ အဆင့်မြှင့်တင်ပါရန်
-        </div>
-        <div class="force-update-version" id="forceUpdateVersion">
-            Version: 1.0.0
-        </div>
-        <button class="force-update-btn" id="forceUpdateBtn" onclick="performForceUpdate()">
-            🔄 UPDATE NOW
-        </button>
-        <button class="force-update-close" disabled>
-            update မြှင့်တင်ပြီးမှသာ ဆက်လက် အသုံးပြုနိုင်ပါမည်။
-        </button>
-    </div>
-</div>
     
 <script>
     // ==================== BOTTOM FORCE UPDATE SYSTEM ====================
@@ -966,7 +969,12 @@ async function checkForceUpdate() {
         const d = await r.json();
         
         const bar = document.getElementById('forceUpdateBottomBar');
-        if (!bar) return;
+        if (!bar) {
+            console.log('[FORCE UPDATE] Bar element not found');
+            return;
+        }
+        
+        console.log('[FORCE UPDATE] Response:', d);
         
         if (d.success && d.is_active) {
             forceUpdateActive = true;
@@ -989,7 +997,7 @@ async function checkForceUpdate() {
             bar.style.display = 'block';
             bar.classList.remove('hide');
             
-            // Prevent body scroll (optional - so user can't scroll past)
+            // Prevent body scroll
             document.body.style.overflow = 'hidden';
             document.body.style.paddingBottom = '80px';
             
