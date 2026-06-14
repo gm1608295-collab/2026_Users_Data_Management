@@ -54,23 +54,67 @@ body {
 /* ========== TOAST NOTIFICATION ========== */
 .notif-toast{position:fixed;top:20px;right:20px;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none;font-weight:bold}
 
-/* ========== GAME CARD - DIAMOND SHAPE (စစ်စစ်) ========== */
+/* ========== GAME GRID ========== */
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+/* ========== GAME CARD - DIAMOND STYLE (အကုန်တူတူ) ========== */
 .game-card {
-    background: linear-gradient(145deg, #b87333, #7b3f00);
-    padding: 18px 10px 15px;
+    background: linear-gradient(145deg, #1a1a3a, #0f0f2a);
+    border: 2px solid;
+    border-image: none;
+    padding: 14px 8px 12px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
     
-    /* ✅ Diamond Shape - စစ်စစ် (ဘဲဥပုံမဟုတ်ဘူး) */
-    clip-path: polygon(50% 0%, 80% 20%, 100% 50%, 80% 80%, 50% 100%, 20% 80%, 0% 50%, 20% 20%);
+    /* ထောင့်တစ်စေင်းချွန်ချွန်ဖြတ် */
+    clip-path: polygon(8% 0%, 92% 0%, 100% 8%, 100% 92%, 92% 100%, 8% 100%, 0% 92%, 0% 8%);
 }
 
-/* ✅ Shiny Sweep Effect - 3 စက္ကန့်တစ်ခါသာ */
+/* Diamond border colors (အရောင်တောက်) */
+.game-card[data-game="shhh_emote"] { border-color: #3498db; }
+.game-card[data-game="golden_border"] { border-color: #f39c12; }
+.game-card[data-game="lucky_diamond"] { border-color: #2ecc71; }
+.game-card[data-game="magic_durt"] { border-color: #e74c3c; }
+.game-card[data-game="emblem_box"] { border-color: #9b59b6; }
+.game-card[data-game="promo_codes"] { border-color: #ffd700; }
+
+/* Glowing border effect (ဘေးဘောင်တွေပဲ တောက်မယ်) */
+.game-card[data-game="shhh_emote"] { box-shadow: 0 0 10px rgba(52,152,219,0.3), inset 0 0 5px rgba(52,152,219,0.1); }
+.game-card[data-game="golden_border"] { box-shadow: 0 0 10px rgba(243,156,18,0.3), inset 0 0 5px rgba(243,156,18,0.1); }
+.game-card[data-game="lucky_diamond"] { box-shadow: 0 0 10px rgba(46,204,113,0.3), inset 0 0 5px rgba(46,204,113,0.1); }
+.game-card[data-game="magic_durt"] { box-shadow: 0 0 10px rgba(231,76,60,0.3), inset 0 0 5px rgba(231,76,60,0.1); }
+.game-card[data-game="emblem_box"] { box-shadow: 0 0 10px rgba(155,89,182,0.3), inset 0 0 5px rgba(155,89,182,0.1); }
+.game-card[data-game="promo_codes"] { box-shadow: 0 0 10px rgba(255,215,0,0.3), inset 0 0 5px rgba(255,215,0,0.1); }
+
+/* Diamond inner texture (စိန်ရဲ့ကျော်ရိုး) */
+.game-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent 0px,
+        transparent 15px,
+        rgba(255,255,255,0.03) 15px,
+        rgba(255,255,255,0.03) 30px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Shiny sweep effect (အဖြူရောင်အလင်းတန်း - 3 sec တစ်ခါ) */
 .game-card::before {
     content: '';
     position: absolute;
@@ -78,81 +122,65 @@ body {
     left: -100%;
     width: 80%;
     height: 200%;
-    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.35), transparent);
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.15), transparent);
     transform: rotate(25deg);
-    animation: cardSweep 3s ease-in-out infinite;
-    pointer-events: none;
+    transition: left 0.5s ease-in-out;
     opacity: 0;
+    pointer-events: none;
+    z-index: 2;
+    animation: sweepShine 3s ease-in-out infinite;
 }
 
-@keyframes cardSweep {
-    0% {
-        left: -100%;
-        opacity: 0;
-    }
-    5% {
-        opacity: 1;
-    }
-    15% {
-        left: 150%;
-        opacity: 1;
-    }
-    16% {
-        opacity: 0;
-    }
-    100% {
-        left: 150%;
-        opacity: 0;
-    }
+@keyframes sweepShine {
+    0% { left: -100%; opacity: 0; }
+    10% { left: -100%; opacity: 0; }
+    15% { left: 120%; opacity: 1; }
+    20% { left: 120%; opacity: 0; }
+    100% { left: 120%; opacity: 0; }
 }
 
 .game-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.5);
+    transform: translateY(-4px);
+    filter: brightness(1.05);
 }
 
-/* ========== IMAGE WRAPPER ========== */
+/* ========== IMAGE WRAPPER (ပုံမန်လေးထောင့်) ========== */
 .game-card .img-wrap {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 12px;
+    width: 55px;
+    height: 55px;
+    margin: 0 auto 10px;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0,0,0,0.4);
     border-radius: 8px;
-    border: 2px solid #ffd700;
     transition: all 0.3s;
+    border: 1px solid rgba(255,255,255,0.15);
 }
 
 .game-card:hover .img-wrap {
     transform: scale(1.03);
-    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.3);
+    border-color: rgba(255,255,255,0.3);
 }
 
 .game-card img {
-    width: 50px;
-    height: 50px;
+    width: 48px;
+    height: 48px;
     object-fit: cover;
     transition: transform 0.3s;
-    border-radius: 6px;
 }
 
-.game-card:hover img {
-    transform: scale(1.05);
-}
-
-/* ========== TEXT BOX ========== */
+/* ========== TEXT BOX STYLES (ပုံမန်) ========== */
 .game-card .card-name {
     font-size: 9px;
     font-weight: 800;
-    letter-spacing: 1px;
-    margin: 6px 0 4px;
+    letter-spacing: 0.5px;
+    margin: 5px 0 3px;
     display: inline-block;
     padding: 3px 10px;
-    background: rgba(0, 0, 0, 0.55);
-    border-radius: 15px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 6px;
     color: #fff;
 }
 
@@ -160,42 +188,33 @@ body {
     font-size: 9px;
     font-weight: bold;
     color: #ffd700;
-    margin: 4px 0 2px;
+    margin: 3px 0 2px;
     display: inline-block;
     padding: 2px 8px;
-    background: rgba(0, 0, 0, 0.55);
-    border-radius: 12px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 6px;
 }
 
 .game-card .code-count {
     font-size: 7px;
     padding: 2px 8px;
-    border-radius: 12px;
+    border-radius: 6px;
     display: inline-block;
-    background: rgba(0, 0, 0, 0.55);
+    background: rgba(0,0,0,0.6);
     color: #2ecc71;
     font-weight: bold;
 }
 
 /* Sold Out style */
 .game-card.sold-out {
-    opacity: 0.65;
-    filter: grayscale(30%);
+    opacity: 0.6;
+    filter: grayscale(40%);
     cursor: not-allowed;
 }
 .game-card.sold-out:hover {
     transform: none;
 }
-
-/* Card colors (အားလုံးတူညီအောင်) */
-.game-card[data-game="shhh_emote"],
-.game-card[data-game="golden_border"],
-.game-card[data-game="lucky_diamond"],
-.game-card[data-game="magic_durt"],
-.game-card[data-game="emblem_box"],
-.game-card[data-game="promo_codes"] {
-    background: linear-gradient(145deg, #b87333, #7b3f00);
-}
+        
 /* ========== CATEGORY MODAL ========== */
 .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:5000;justify-content:center;align-items:center}
 .modal.active{display:flex}
