@@ -2303,13 +2303,13 @@ function filterCategory(category) {
     renderProducts(filtered, category);
 }
 
-// ==================== INIT ====================
+        // ==================== INIT ====================
 // ✅ First load products
 renderProducts(PRODUCTS, 'all');
 loadBalance();
 loadNotiItems();
 
-// ✅ FORCE TEST - Show discount immediately (ချက်ချင်းပြဖို့)
+// ✅ FORCE TEST - Show discount immediately
 console.log('[FORCE] Activating discount now...');
 
 // Manually activate discount
@@ -2318,19 +2318,32 @@ discountEndTime = new Date();
 discountEndTime.setDate(discountEndTime.getDate() + 5);
 discountEndTime.setHours(23, 59, 59, 59);
 
-// Update PRODUCTS prices
+// ✅ CRITICAL: Update PRODUCTS array prices
+console.log('[FORCE] Original PRODUCTS prices:');
 for (let i = 0; i < PRODUCTS.length; i++) {
-    if (!PRODUCTS[i].discounted) {
+    console.log(PRODUCTS[i].name + ': ' + PRODUCTS[i].price);
+    
+    // Store original price if not already
+    if (!PRODUCTS[i].original_price) {
         PRODUCTS[i].original_price = PRODUCTS[i].price;
-        let discountAmount = getProductDiscount(PRODUCTS[i].name);
-        let discountedPrice = PRODUCTS[i].price - discountAmount;
-        
-        if (discountedPrice < 50) discountedPrice = 50;
-        if (discountedPrice <= 0) discountedPrice = 10;
-        
-        PRODUCTS[i].price = discountedPrice;
-        PRODUCTS[i].discounted = true;
     }
+    
+    // Calculate discounted price
+    let discountAmount = getProductDiscount(PRODUCTS[i].name);
+    let discountedPrice = PRODUCTS[i].original_price - discountAmount;
+    
+    // Apply min price limits
+    if (discountedPrice < DISCOUNT_CONFIG.minPrice) {
+        discountedPrice = DISCOUNT_CONFIG.minPrice;
+    }
+    if (discountedPrice <= 0) {
+        discountedPrice = DISCOUNT_CONFIG.absoluteMin;
+    }
+    
+    PRODUCTS[i].price = discountedPrice;
+    PRODUCTS[i].discounted = true;
+    
+    console.log('  -> Discounted: ' + PRODUCTS[i].price + ' (discount: ' + discountAmount + ')');
 }
 
 // Re-render products with new prices
@@ -2342,17 +2355,13 @@ setTimeout(() => {
         const priceEl = card.querySelector('.product-price');
         const nameEl = card.querySelector('.product-name');
         
-        if (priceEl && nameEl && !priceEl.classList.contains('discount-applied')) {
+        if (priceEl && nameEl) {
             const productName = nameEl.textContent.trim();
-            const originalPrice = parseInt(priceEl.textContent.replace(/[^0-9]/g, ''));
-            let discountAmount = getProductDiscount(productName);
-            let discountedPrice = originalPrice - discountAmount;
+            // Find product from PRODUCTS array to get discounted price
+            const product = PRODUCTS.find(p => p.name === productName);
             
-            if (discountedPrice < 50) discountedPrice = 50;
-            if (discountedPrice <= 0) discountedPrice = 10;
-            
-            if (discountedPrice !== originalPrice) {
-                priceEl.innerHTML = `<span class="original-price-crossed">${originalPrice.toLocaleString()} Ks</span> ${discountedPrice.toLocaleString()} Ks`;
+            if (product && product.discounted && product.original_price) {
+                priceEl.innerHTML = `<span class="original-price-crossed">${product.original_price.toLocaleString()} Ks</span> ${product.price.toLocaleString()} Ks`;
                 priceEl.classList.add('discount-applied');
                 
                 if (!card.querySelector('.discount-timer-badge')) {
@@ -2374,6 +2383,7 @@ startDiscountTimerDisplay();
 showAnnouncement();
 
 console.log('[FORCE] Discount should be visible now');
-    </script>
+console.log('[FORCE] Check first product price:', PRODUCTS[0].name, PRODUCTS[0].price);
+   </script>
 </body>
 </html>
