@@ -332,6 +332,18 @@ async function initTables(p) {
     PRIMARY KEY (user_id, event_id)
 )`,
     
+  // Add to initTables function
+`CREATE TABLE IF NOT EXISTS force_update (
+    id SERIAL PRIMARY KEY,
+    is_active BOOLEAN DEFAULT false,
+    message TEXT DEFAULT '📱 APK အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်။ ကျေးဇူးပြု၍ အဆင့်မြှင့်တင်ပါရန်။',
+    apk_url VARCHAR(500),
+    version_code INT DEFAULT 1,
+    version_name VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
+        
         // ========== CHAT SYSTEM ==========
 `CREATE TABLE IF NOT EXISTS chat_rooms (
     id SERIAL PRIMARY KEY, 
@@ -466,6 +478,81 @@ const ALL_PAGES = [
 ALL_PAGES.forEach(async (pg) => {
     await pools[0].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
     await pools[1].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
+});
+// ==================== FORCE UPDATE SYSTEM ====================
+
+// Get current force update status (for Dashboard)
+app.get('/api/force_update/status', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            "SELECT is_active, message, apk_url, version_code, version_name, updated_at FROM force_update ORDER BY id DESC LIMIT 1"
+        );
+        
+        if (r.rows.length > 0 && r.rows[0].is_active) {
+            res.json({ 
+                success: true, 
+                is_active: true, 
+                message: r.rows[0].message,
+                apk_url: r.rows[0].apk_url,
+                version_code: r.rows[0].version_code,
+                version_name: r.rows[0].version_name,
+                updated_at: r.rows[0].updated_at
+            });
+        } else {
+            res.json({ success: true, is_active: false });
+        }
+    } catch(e) {
+        res.json({ success: false, is_active: false });
+    }
+});
+
+// Admin: Activate force update
+app.post('/api/admin/force_update/activate', async (req, res) => {
+    const { message, apk_url, version_code, version_name } = req.body;
+    
+    try {
+        const p = await getPool();
+        
+        // Deactivate all first
+        await p.query("UPDATE force_update SET is_active = false");
+        
+        // Insert new force update
+        await p.query(
+            `INSERT INTO force_update (is_active, message, apk_url, version_code, version_name, updated_at) 
+             VALUES (true, $1, $2, $3, $4, NOW())`,
+            [
+                message || '📱 APK အသစ်ထွက်ရှိပြီးဖြစ်ပါသည်။ ကျေးဇူးပြု၍ အဆင့်မြှင့်တင်ပါရန်။',
+                apk_url || 'https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view',
+                version_code || 1,
+                version_name || '1.0.0'
+            ]
+        );
+        
+        tgSend(`📱 Force Update Activated!\n📦 Version: ${version_name || '1.0.0'}\n🔗 ${apk_url || 'https://drive.google.com/file/d/1KszISVzDVps1WqyYP4vQyU7nUZbitC67/view'}`);
+        
+        res.json({ success: true, message: 'Force update notification activated!' });
+        
+    } catch(e) {
+        console.error('[FORCE UPDATE ACTIVATE ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Admin: Deactivate force update
+app.post('/api/admin/force_update/deactivate', async (req, res) => {
+    try {
+        const p = await getPool();
+        await p.query("UPDATE force_update SET is_active = false");
+        
+        tgSend(`✅ Force Update Deactivated!`);
+        
+        res.json({ success: true, message: 'Force update notification deactivated!' });
+        
+    } catch(e) {
+        console.error('[FORCE UPDATE DEACTIVATE ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
 });
 // ==================== IMAGE UPLOAD ====================
 app.post('/api/upload_image', async (req, res) => {
