@@ -970,11 +970,49 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
 </div>
     
 <script>
-    // ==================== FORCE UPDATE SYSTEM ====================
+    // ==================== FORCE UPDATE SYSTEM (TEST MODE - FORCED SHOW) ====================
 let forceUpdateActive = false;
 let forceUpdateData = null;
 
+// ✅ Test data - Force show the bar for testing
+function forceShowTestBar() {
+    const bar = document.getElementById('forceUpdateBottomBar');
+    if (!bar) return;
+    
+    forceUpdateActive = true;
+    forceUpdateData = {
+        success: true,
+        is_active: true,
+        message: '📱 APK latest version 2.0.0 ထွက်ရှိပြီးဖြစ်ပါသည်။\nကျေးဇူးပြု၍ နောက်ဆုံးဗားရှင်းသို့ အဆင့်မြှင့်တင်ပါရန်။',
+        apk_url: 'https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk',
+        version_code: 2,
+        version_name: '2.0.0'
+    };
+    
+    // Update content
+    const msgEl = document.getElementById('forceUpdateMessageText');
+    const versionEl = document.getElementById('forceUpdateVersionText');
+    
+    if (msgEl) msgEl.innerHTML = forceUpdateData.message.replace(/\n/g, '<br>');
+    if (versionEl) versionEl.innerHTML = `📦 New Version: ${forceUpdateData.version_name}`;
+    
+    // Show bar
+    bar.style.display = 'block';
+    setTimeout(() => {
+        bar.classList.add('show');
+        bar.classList.remove('hide');
+    }, 50);
+    
+    console.log('[TEST MODE] Force update bar shown');
+}
+
 async function checkForceUpdate() {
+    // ✅ TEST MODE - Uncomment the line below to show bar without server
+    forceShowTestBar();
+    return;
+    
+    // Original code (commented out for testing)
+    /*
     try {
         const r = await fetch('/api/force_update/status');
         const d = await r.json();
@@ -982,11 +1020,8 @@ async function checkForceUpdate() {
         const bar = document.getElementById('forceUpdateBottomBar');
         if (!bar) return;
         
-        // Get current user ID
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         const userId = user.id || 'guest';
-        
-        // Check if this user has already updated
         const updatedKey = `force_update_done_${userId}`;
         const hasUpdated = localStorage.getItem(updatedKey) === 'true';
         
@@ -994,20 +1029,17 @@ async function checkForceUpdate() {
             forceUpdateActive = true;
             forceUpdateData = d;
             
-            // Update content
             const msgEl = document.getElementById('forceUpdateMessageText');
             const versionEl = document.getElementById('forceUpdateVersionText');
             
             if (msgEl && d.message) msgEl.innerHTML = d.message.replace(/\n/g, '<br>');
             if (versionEl && d.version_name) versionEl.innerHTML = `📦 New Version: ${d.version_name}`;
             
-            // Show bar
             bar.style.display = 'block';
             setTimeout(() => {
                 bar.classList.add('show');
                 bar.classList.remove('hide');
             }, 50);
-            
         } else {
             if (forceUpdateActive) {
                 bar.classList.add('hide');
@@ -1021,18 +1053,17 @@ async function checkForceUpdate() {
     } catch(e) {
         console.error('[FORCE UPDATE CHECK ERROR]', e.message);
     }
+    */
 }
 
 function performForceUpdate() {
     const url = forceUpdateData?.apk_url || 'https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk';
     window.open(url, '_blank');
     
-    // Mark as updated for this user
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userId = user.id || 'guest';
     localStorage.setItem(`force_update_done_${userId}`, 'true');
     
-    // Hide bar immediately
     const bar = document.getElementById('forceUpdateBottomBar');
     if (bar) {
         bar.classList.add('hide');
@@ -1046,9 +1077,10 @@ function performForceUpdate() {
     forceUpdateActive = false;
 }
 
-// Check every 30 seconds
-setInterval(checkForceUpdate, 30000);
-checkForceUpdate();
+// Check immediately
+setTimeout(() => {
+    checkForceUpdate();
+}, 1000);
     // ==================== SIDEBAR ====================
     function openSidebar(){const u=JSON.parse(localStorage.getItem('user')||'{}');document.getElementById("sidebarName").textContent=u.username||'User';document.getElementById("sidebarEmail").textContent=u.email||'user@mlbb.com';document.getElementById("sidebarAvatar").textContent=(u.username||'U').charAt(0).toUpperCase();document.getElementById("sidebarPanel").classList.add("active");document.getElementById("sidebarOverlay").classList.add("active");document.body.style.overflow='hidden'}
     function closeSidebar(){document.getElementById("sidebarPanel").classList.remove("active");document.getElementById("sidebarOverlay").classList.remove("active");document.body.style.overflow=''}
