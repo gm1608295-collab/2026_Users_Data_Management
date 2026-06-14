@@ -970,100 +970,75 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
 </div>
     
 <script>
-    // ==================== FORCE UPDATE SYSTEM (TEST MODE - FORCED SHOW) ====================
+    // ==================== FORCE UPDATE SYSTEM (LOCALSTORAGE CONTROL) ====================
 let forceUpdateActive = false;
 let forceUpdateData = null;
 
-// ✅ Test data - Force show the bar for testing
-function forceShowTestBar() {
-    const bar = document.getElementById('forceUpdateBottomBar');
-    if (!bar) return;
-    
-    forceUpdateActive = true;
-    forceUpdateData = {
-        success: true,
-        is_active: true,
-        message: '📱 APK latest version 2.0.0 ထွက်ရှိပြီးဖြစ်ပါသည်။\nကျေးဇူးပြု၍ နောက်ဆုံးဗားရှင်းသို့ အဆင့်မြှင့်တင်ပါရန်။',
-        apk_url: 'https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk',
-        version_code: 2,
-        version_name: '2.0.0'
-    };
-    
-    // Update content
-    const msgEl = document.getElementById('forceUpdateMessageText');
-    const versionEl = document.getElementById('forceUpdateVersionText');
-    
-    if (msgEl) msgEl.innerHTML = forceUpdateData.message.replace(/\n/g, '<br>');
-    if (versionEl) versionEl.innerHTML = `📦 New Version: ${forceUpdateData.version_name}`;
-    
-    // Show bar
-    bar.style.display = 'block';
-    setTimeout(() => {
-        bar.classList.add('show');
-        bar.classList.remove('hide');
-    }, 50);
-    
-    console.log('[TEST MODE] Force update bar shown');
+// Admin control via localStorage (ဒါကို Admin Panel မှာ သတ်မှတ်နိုင်)
+function loadForceUpdateSettings() {
+    // Load from localStorage
+    const saved = localStorage.getItem('force_update_settings');
+    if (saved) {
+        try {
+            const settings = JSON.parse(saved);
+            forceUpdateData = settings;
+            return settings.is_active;
+        } catch(e) {}
+    }
+    return false;
+}
+
+function saveForceUpdateSettings(settings) {
+    localStorage.setItem('force_update_settings', JSON.stringify(settings));
 }
 
 async function checkForceUpdate() {
-    // ✅ TEST MODE - Uncomment the line below to show bar without server
-    forceShowTestBar();
-    return;
+    const bar = document.getElementById('forceUpdateBottomBar');
+    if (!bar) return;
     
-    // Original code (commented out for testing)
-    /*
-    try {
-        const r = await fetch('/api/force_update/status');
-        const d = await r.json();
+    // Get settings from localStorage
+    const settings = loadForceUpdateSettings();
+    
+    if (settings) {
+        forceUpdateActive = true;
+        forceUpdateData = settings;
         
-        const bar = document.getElementById('forceUpdateBottomBar');
-        if (!bar) return;
+        // Update content
+        const msgEl = document.getElementById('forceUpdateMessageText');
+        const versionEl = document.getElementById('forceUpdateVersionText');
         
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const userId = user.id || 'guest';
-        const updatedKey = `force_update_done_${userId}`;
-        const hasUpdated = localStorage.getItem(updatedKey) === 'true';
+        if (msgEl && settings.message) msgEl.innerHTML = settings.message.replace(/\n/g, '<br>');
+        if (versionEl && settings.version_name) versionEl.innerHTML = `📦 New Version: ${settings.version_name}`;
         
-        if (d.success && d.is_active && !hasUpdated) {
-            forceUpdateActive = true;
-            forceUpdateData = d;
-            
-            const msgEl = document.getElementById('forceUpdateMessageText');
-            const versionEl = document.getElementById('forceUpdateVersionText');
-            
-            if (msgEl && d.message) msgEl.innerHTML = d.message.replace(/\n/g, '<br>');
-            if (versionEl && d.version_name) versionEl.innerHTML = `📦 New Version: ${d.version_name}`;
-            
-            bar.style.display = 'block';
+        // Show bar
+        bar.style.display = 'block';
+        setTimeout(() => {
+            bar.classList.add('show');
+            bar.classList.remove('hide');
+        }, 50);
+        
+    } else {
+        if (forceUpdateActive) {
+            bar.classList.add('hide');
+            bar.classList.remove('show');
             setTimeout(() => {
-                bar.classList.add('show');
-                bar.classList.remove('hide');
-            }, 50);
-        } else {
-            if (forceUpdateActive) {
-                bar.classList.add('hide');
-                bar.classList.remove('show');
-                setTimeout(() => {
-                    bar.style.display = 'none';
-                }, 300);
-                forceUpdateActive = false;
-            }
+                bar.style.display = 'none';
+            }, 300);
+            forceUpdateActive = false;
         }
-    } catch(e) {
-        console.error('[FORCE UPDATE CHECK ERROR]', e.message);
     }
-    */
 }
 
 function performForceUpdate() {
     const url = forceUpdateData?.apk_url || 'https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk';
     window.open(url, '_blank');
     
+    // Mark as updated for this user
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userId = user.id || 'guest';
     localStorage.setItem(`force_update_done_${userId}`, 'true');
     
+    // Hide bar
     const bar = document.getElementById('forceUpdateBottomBar');
     if (bar) {
         bar.classList.add('hide');
@@ -1076,6 +1051,26 @@ function performForceUpdate() {
     showToast('✅ Update completed! Thank you.', 'success');
     forceUpdateActive = false;
 }
+
+// Admin function to activate (call this from browser console or admin panel)
+window.activateForceUpdateLocal = function(message, version, url) {
+    const settings = {
+        is_active: true,
+        message: message || '📱 APK latest version 2.0.0 ထွက်ရှိပြီးဖြစ်ပါသည်။\nကျေးဇူးပြု၍ နောက်ဆုံးဗားရှင်းသို့ အဆင့်မြှင့်တင်ပါရန်။',
+        apk_url: url || 'https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk',
+        version_code: 2,
+        version_name: version || '2.0.0'
+    };
+    saveForceUpdateSettings(settings);
+    checkForceUpdate();
+    console.log('✅ Force update activated!');
+};
+
+window.deactivateForceUpdateLocal = function() {
+    localStorage.removeItem('force_update_settings');
+    checkForceUpdate();
+    console.log('✅ Force update deactivated!');
+};
 
 // Check immediately
 setTimeout(() => {
