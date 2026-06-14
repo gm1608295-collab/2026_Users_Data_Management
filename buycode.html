@@ -165,7 +165,7 @@ body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);m
         <div class="qr-box" id="qrBoxContent"></div>
     </div>
  <script>
-// ==================== GET TOKEN (JWT FORMAT) ====================
+// ==================== GET TOKEN (OLD FORMAT FOR API) ====================
 function getToken() {
     // URL ကနေ အရင်ယူ (Telegram WebView)
     var params = new URLSearchParams(window.location.search);
@@ -180,6 +180,18 @@ function getToken() {
     try {
         var localToken = localStorage.getItem('auth_token');
         if (localToken && localToken !== 'guest') {
+            // ✅ JWT token ဖြစ်နေရင် user_id ကို ထုတ်ယူပြီး token_ format ပြောင်း
+            if (localToken.startsWith('eyJ')) {
+                try {
+                    var payload = JSON.parse(atob(localToken.split('.')[1]));
+                    var userId = payload.userId || payload.id || payload.uid;
+                    if (userId) {
+                        return 'token_' + userId;
+                    }
+                } catch(e) {
+                    console.log('JWT parse error:', e);
+                }
+            }
             return localToken;
         }
     } catch(e) {}
@@ -346,6 +358,29 @@ function loadPromoCodesForCards() {
         }
     }).catch(function() {});
 }
+
+     async function loadBalance() {
+    var token = getToken();
+    if (!token || token === 'guest') {
+        document.getElementById('myBalance').textContent = '0 Ks';
+        document.getElementById('usdBalance').textContent = '≈ $0.00 USD';
+        return;
+    }
+    
+    try {
+        const r = await fetch('/api/get_balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: token })
+        });
+        const d = await r.json();
+        currentBalance = d.balance || 0;
+        document.getElementById('myBalance').textContent = fm(currentBalance) + ' Ks';
+        document.getElementById('usdBalance').textContent = '≈ $' + (currentBalance / 2100).toFixed(2) + ' USD';
+    } catch(e) {
+        console.error('Balance load error:', e);
+    }
+     }
 // ==================== CATEGORY MODAL ====================
 function openCategory(key) {
     // ✅ Promo Code ဆိုရင် သီးသန့် modal
@@ -616,27 +651,12 @@ async function checkPageAccess() {
     document.getElementById('buycodeContent').style.display = 'block';
     renderGameCards();
     
-    // ✅ getToken() ကိုသုံးပါ
-    var token = getToken();
-    if (!token || token === 'guest') {
-        document.getElementById('myBalance').textContent = '0 Ks';
-        document.getElementById('usdBalance').textContent = '≈ $0.00 USD';
-    } else {
-        fetch('/api/get_balance',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({token:token})
-        }).then(function(r){return r.json()}).then(function(d){
-            currentBalance=d.balance||0;
-            document.getElementById('myBalance').textContent=fm(currentBalance)+' Ks';
-            document.getElementById('usdBalance').textContent='≈ $'+(currentBalance/2100).toFixed(2)+' USD';
-        }).catch(function(){});
-    }
+    // ✅ Load balance using getToken()
+    await loadBalance();
     
     loadNotice();
-    setInterval(loadNotice,5000);
+    setInterval(loadNotice, 5000);
 })();
-
 // ==================== PAGE TIMER COUNTDOWN ====================
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
