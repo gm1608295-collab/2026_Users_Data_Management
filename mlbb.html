@@ -836,6 +836,67 @@ body {
 .success-product-img img {
     box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
 }
+
+        /* ========== DISCOUNT TIMER BADGE ========== */
+.discount-timer-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #fff;
+    font-size: 7px;
+    font-weight: bold;
+    padding: 3px 6px;
+    border-radius: 10px;
+    z-index: 10;
+    white-space: nowrap;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 8px rgba(231,76,60,0.5);
+    animation: pulseRed 1s infinite;
+}
+
+@keyframes pulseRed {
+    0%, 100% { opacity: 0.9; }
+    50% { opacity: 0.6; }
+}
+
+/* Discount price style */
+.product-card .discount-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e74c3c;
+    background: rgba(231,76,60,0.15);
+    border: 1px solid #e74c3c;
+    padding: 5px 10px;
+    margin-top: 4px;
+    display: inline-block;
+    position: relative;
+    z-index: 2;
+    letter-spacing: 0.5px;
+    border-radius: 6px;
+}
+
+.product-card .original-price-crossed {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    text-decoration: line-through;
+    margin-right: 5px;
+}
+
+/* Waiting timer style */
+.waiting-timer {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.6);
+    color: #f39c12;
+    font-size: 6px;
+    padding: 2px 5px;
+    border-radius: 8px;
+    font-family: monospace;
+    z-index: 10;
+}
     </style>
 </head>
 <body>
@@ -1077,6 +1138,274 @@ body {
 </div>
 
     <script>
+        // ==================== DISCOUNT TIMER SYSTEM ====================
+const DISCOUNT_CONFIG = {
+    startHour: 20,        // 8:00 PM (24-hour format)
+    startMinute: 0,
+    durationDays: 5,      // 5 days
+    durationHours: 24,    // 24 hours
+    durationMinutes: 59,
+    durationSeconds: 59,
+    discountAmount: 500    // လျှော့မယ့်ပမာဏ (Ks)
+};
+
+let discountActive = false;
+let discountEndTime = null;
+let timerInterval = null;
+
+// Load saved state from localStorage
+function loadDiscountState() {
+    const saved = localStorage.getItem('mlbb_discount_state');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            discountActive = data.active;
+            discountEndTime = data.endTime ? new Date(data.endTime) : null;
+            
+            // Check if discount has expired
+            if (discountActive && discountEndTime && Date.now() > discountEndTime.getTime()) {
+                discountActive = false;
+                discountEndTime = null;
+                localStorage.removeItem('mlbb_discount_state');
+            }
+            return;
+        } catch(e) {}
+    }
+    
+    discountActive = false;
+    discountEndTime = null;
+}
+
+// Save state to localStorage
+function saveDiscountState() {
+    localStorage.setItem('mlbb_discount_state', JSON.stringify({
+        active: discountActive,
+        endTime: discountEndTime ? discountEndTime.toISOString() : null
+    }));
+}
+
+// Check if discount should start
+function checkAndStartDiscount() {
+    const now = new Date();
+    const targetStart = new Date(now);
+    targetStart.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
+    
+    // If current time is past today's start time, set to tomorrow
+    if (now > targetStart) {
+        targetStart.setDate(targetStart.getDate() + 1);
+    }
+    
+    // Check if discount is already active
+    if (discountActive && discountEndTime) {
+        if (Date.now() < discountEndTime.getTime()) {
+            startTimerDisplay();
+            applyDiscountToProducts();
+            return true;
+        } else {
+            discountActive = false;
+            discountEndTime = null;
+            saveDiscountState();
+            removeDiscountFromProducts();
+            return false;
+        }
+    }
+    
+    // Check if we should start discount now
+    if (now >= targetStart) {
+        // Start discount immediately
+        discountActive = true;
+        discountEndTime = new Date();
+        discountEndTime.setDate(discountEndTime.getDate() + DISCOUNT_CONFIG.durationDays);
+        discountEndTime.setHours(discountEndTime.getHours() + DISCOUNT_CONFIG.durationHours);
+        discountEndTime.setMinutes(discountEndTime.getMinutes() + DISCOUNT_CONFIG.durationMinutes);
+        discountEndTime.setSeconds(discountEndTime.getSeconds() + DISCOUNT_CONFIG.durationSeconds);
+        saveDiscountState();
+        applyDiscountToProducts();
+        startTimerDisplay();
+        return true;
+    } else {
+        // Waiting for start time
+        startWaitingTimer(targetStart);
+        return false;
+    }
+}
+
+// Apply discount to all products
+function applyDiscountToProducts() {
+    if (!discountActive) return;
+    
+    document.querySelectorAll('.product-card').forEach(card => {
+        const priceEl = card.querySelector('.product-price');
+        const originalPriceEl = card.querySelector('.product-original');
+        
+        if (priceEl && !priceEl.classList.contains('discount-applied')) {
+            const originalPrice = parseInt(priceEl.textContent.replace(/[^0-9]/g, ''));
+            const discountedPrice = originalPrice - DISCOUNT_CONFIG.discountAmount;
+            
+            if (discountedPrice > 0) {
+                // Store original price
+                card.setAttribute('data-original-price', originalPrice);
+                card.setAttribute('data-discounted-price', discountedPrice);
+                
+                // Update display
+                priceEl.innerHTML = `<span class="original-price-crossed">${originalPrice.toLocaleString()} Ks</span> ${discountedPrice.toLocaleString()} Ks`;
+                priceEl.classList.add('discount-applied');
+                
+                // Add timer badge if not exists
+                if (!card.querySelector('.discount-timer-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'discount-timer-badge';
+                    badge.id = `timer_${Date.now()}_${Math.random()}`;
+                    card.style.position = 'relative';
+                    card.appendChild(badge);
+                }
+            }
+        }
+    });
+}
+
+// Remove discount from products
+function removeDiscountFromProducts() {
+    document.querySelectorAll('.product-card').forEach(card => {
+        const priceEl = card.querySelector('.product-price');
+        const badge = card.querySelector('.discount-timer-badge');
+        const waitingTimer = card.querySelector('.waiting-timer');
+        
+        if (badge) badge.remove();
+        if (waitingTimer) waitingTimer.remove();
+        
+        if (priceEl && priceEl.classList.contains('discount-applied')) {
+            const originalPrice = card.getAttribute('data-original-price');
+            if (originalPrice) {
+                priceEl.innerHTML = `${parseInt(originalPrice).toLocaleString()} Ks`;
+                priceEl.classList.remove('discount-applied');
+            }
+        }
+    });
+    
+    // Also update PRODUCTS array for detail panel
+    for (let i = 0; i < PRODUCTS.length; i++) {
+        if (PRODUCTS[i].discounted) {
+            PRODUCTS[i].price = PRODUCTS[i].original_price;
+            PRODUCTS[i].discounted = false;
+        }
+    }
+    
+    // Re-render products to be safe
+    renderProducts(PRODUCTS, currentCategory);
+}
+
+// Start timer display (countdown)
+function startTimerDisplay() {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    timerInterval = setInterval(() => {
+        if (!discountActive || !discountEndTime) {
+            clearInterval(timerInterval);
+            return;
+        }
+        
+        const now = Date.now();
+        const remaining = discountEndTime.getTime() - now;
+        
+        if (remaining <= 0) {
+            // Discount expired
+            clearInterval(timerInterval);
+            discountActive = false;
+            discountEndTime = null;
+            saveDiscountState();
+            removeDiscountFromProducts();
+            return;
+        }
+        
+        const totalSec = Math.floor(remaining / 1000);
+        const days = Math.floor(totalSec / 86400);
+        const hours = Math.floor((totalSec % 86400) / 3600);
+        const minutes = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+        
+        const timeStr = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+        
+        // Update all timer badges
+        document.querySelectorAll('.discount-timer-badge').forEach(badge => {
+            badge.textContent = `⏰ ${timeStr}`;
+        });
+    }, 1000);
+}
+
+// Start waiting timer (until discount starts)
+function startWaitingTimer(targetStartTime) {
+    if (timerInterval) clearInterval(timerInterval);
+    
+    const waitingInterval = setInterval(() => {
+        // Check if discount should start now
+        const now = new Date();
+        if (now >= targetStartTime) {
+            clearInterval(waitingInterval);
+            checkAndStartDiscount();
+            return;
+        }
+        
+        const remaining = targetStartTime.getTime() - now.getTime();
+        const hours = Math.floor(remaining / 3600000);
+        const minutes = Math.floor((remaining % 3600000) / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        
+        const waitingStr = `စတင်ရန် ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        
+        document.querySelectorAll('.product-card').forEach(card => {
+            let waitingEl = card.querySelector('.waiting-timer');
+            if (!waitingEl) {
+                waitingEl = document.createElement('div');
+                waitingEl.className = 'waiting-timer';
+                card.style.position = 'relative';
+                card.appendChild(waitingEl);
+            }
+            waitingEl.textContent = `⏳ ${waitingStr}`;
+        });
+    }, 1000);
+}
+
+// Update PRODUCTS array prices when discount is active
+function updateProductsPricesWithDiscount() {
+    if (!discountActive) return;
+    
+    for (let i = 0; i < PRODUCTS.length; i++) {
+        if (!PRODUCTS[i].discounted) {
+            PRODUCTS[i].original_price = PRODUCTS[i].price;
+            PRODUCTS[i].price = PRODUCTS[i].price - DISCOUNT_CONFIG.discountAmount;
+            PRODUCTS[i].discounted = true;
+            if (PRODUCTS[i].price < 0) PRODUCTS[i].price = 0;
+        }
+    }
+}
+
+// Initialize discount system
+function initDiscountSystem() {
+    loadDiscountState();
+    
+    // Update PRODUCTS prices if discount was active
+    if (discountActive) {
+        updateProductsPricesWithDiscount();
+    }
+    
+    const isActive = checkAndStartDiscount();
+    
+    if (isActive) {
+        updateProductsPricesWithDiscount();
+        // Re-render products with new prices
+        renderProducts(PRODUCTS, currentCategory);
+        // Re-apply discount styles to cards
+        setTimeout(() => {
+            applyDiscountToProducts();
+        }, 100);
+    }
+}
+
+// Call this when page loads (after PRODUCTS is defined)
+// Add to your existing window.onload or init function:
+// initDiscountSystem();
+        
         // ==================== BG MUSIC PLAYER ====================
         (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})();
 
@@ -1390,39 +1719,55 @@ function selectProduct(productName) {
     selectedProduct = PRODUCTS.find(function(p) { return p.name === productName; });
     if (!selectedProduct) return;
     
+    // Remove selected class from all cards and add to clicked card
     document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
     if (event && event.target) {
         event.target.closest('.product-card').classList.add('selected');
     }
     
+    // Show detail panel
     document.getElementById('detailPanel').classList.add('active');
     document.getElementById('detailImg').src = selectedProduct.img;
     document.getElementById('detailName').textContent = selectedProduct.name;
-    document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
-    if (selectedProduct.original > 0) {
-        document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
+    
+    // ✅ Show discounted price in detail panel if applicable
+    if (selectedProduct.discounted && selectedProduct.original_price) {
+        document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
+        document.getElementById('detailOriginal').textContent = selectedProduct.original_price.toLocaleString() + ' Ks';
         document.getElementById('detailOriginal').style.display = 'block';
-    } else { 
-        document.getElementById('detailOriginal').style.display = 'none'; 
+        document.getElementById('detailPrice').style.color = '#e74c3c';  // Discount color (red)
+    } else {
+        document.getElementById('detailPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
+        if (selectedProduct.original > 0) {
+            document.getElementById('detailOriginal').textContent = selectedProduct.original.toLocaleString() + ' Ks';
+            document.getElementById('detailOriginal').style.display = 'block';
+        } else { 
+            document.getElementById('detailOriginal').style.display = 'none'; 
+        }
+        document.getElementById('detailPrice').style.color = '#e67e22';  // Normal price color (orange)
     }
     
+    // Reset quantity
     document.getElementById('quantity').value = 1;
     document.getElementById('totalPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
     
-    // ✅ Reset all ID fields
+    // Reset all ID fields
     document.getElementById('gameId').value = '';
     document.getElementById('serverId').value = '';
     document.getElementById('verifyUserId').value = '';
     document.getElementById('idVerifyResult').className = 'id-verify-result';
     document.getElementById('idVerifyResult').textContent = '';
     
+    // Reset verification flags
     isIdVerified = false;
     isTicketChecked = false;
     document.getElementById('ticketCheckRow').classList.remove('checked');
     document.getElementById('buyBtn').disabled = true;
+    
+    // Scroll to detail panel
     document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
     
-    // Balance Refresh (if function exists)
+    // ✅ Balance Refresh (if function exists)
     if (typeof refreshBalanceForDetail === 'function') {
         refreshBalanceForDetail().then(function() {
             if (selectedProduct) {
@@ -1630,6 +1975,8 @@ function filterCategory(category) {
 }
 
 // ==================== INIT ====================
+// At the end of your window.onload or init function
+initDiscountSystem();
 loadNotiItems();
 renderProducts(PRODUCTS, 'all');
 loadBalance();
