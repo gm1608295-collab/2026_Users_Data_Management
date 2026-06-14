@@ -2309,13 +2309,71 @@ renderProducts(PRODUCTS, 'all');
 loadBalance();
 loadNotiItems();
 
-// ✅ Initialize discount system (this will check time and apply discount)
-initDiscountSystem();
+// ✅ FORCE TEST - Show discount immediately (ချက်ချင်းပြဖို့)
+console.log('[FORCE] Activating discount now...');
 
-// ✅ Show announcement after discount system is ready
+// Manually activate discount
+discountActive = true;
+discountEndTime = new Date();
+discountEndTime.setDate(discountEndTime.getDate() + 5);
+discountEndTime.setHours(23, 59, 59, 59);
+
+// Update PRODUCTS prices
+for (let i = 0; i < PRODUCTS.length; i++) {
+    if (!PRODUCTS[i].discounted) {
+        PRODUCTS[i].original_price = PRODUCTS[i].price;
+        let discountAmount = getProductDiscount(PRODUCTS[i].name);
+        let discountedPrice = PRODUCTS[i].price - discountAmount;
+        
+        if (discountedPrice < 50) discountedPrice = 50;
+        if (discountedPrice <= 0) discountedPrice = 10;
+        
+        PRODUCTS[i].price = discountedPrice;
+        PRODUCTS[i].discounted = true;
+    }
+}
+
+// Re-render products with new prices
+renderProducts(PRODUCTS, 'all');
+
+// Apply discount styles to cards
 setTimeout(() => {
-    showAnnouncement();
-}, 500);
+    document.querySelectorAll('.product-card').forEach(card => {
+        const priceEl = card.querySelector('.product-price');
+        const nameEl = card.querySelector('.product-name');
+        
+        if (priceEl && nameEl && !priceEl.classList.contains('discount-applied')) {
+            const productName = nameEl.textContent.trim();
+            const originalPrice = parseInt(priceEl.textContent.replace(/[^0-9]/g, ''));
+            let discountAmount = getProductDiscount(productName);
+            let discountedPrice = originalPrice - discountAmount;
+            
+            if (discountedPrice < 50) discountedPrice = 50;
+            if (discountedPrice <= 0) discountedPrice = 10;
+            
+            if (discountedPrice !== originalPrice) {
+                priceEl.innerHTML = `<span class="original-price-crossed">${originalPrice.toLocaleString()} Ks</span> ${discountedPrice.toLocaleString()} Ks`;
+                priceEl.classList.add('discount-applied');
+                
+                if (!card.querySelector('.discount-timer-badge')) {
+                    const badge = document.createElement('div');
+                    badge.className = 'discount-timer-badge';
+                    badge.textContent = '⏰ 4d 23h 59m 59s';
+                    card.style.position = 'relative';
+                    card.appendChild(badge);
+                }
+            }
+        }
+    });
+}, 100);
+
+// Start timer display
+startDiscountTimerDisplay();
+
+// Show announcement
+showAnnouncement();
+
+console.log('[FORCE] Discount should be visible now');
     </script>
 </body>
 </html>
