@@ -616,6 +616,92 @@ body::after {
     background: rgba(46,204,113,0.2);
     border-color: #2ecc71;
 }
+        /* ========== ORDER SEARCH BAR ========== */
+.order-search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+.order-search-input {
+    flex: 1;
+    padding: 10px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 12px;
+}
+.order-search-input:focus {
+    outline: none;
+    border-color: var(--w);
+}
+
+/* ========== COPY ICON STYLE ========== */
+.copy-icon {
+    cursor: pointer;
+    margin-left: 8px;
+    color: var(--w);
+    font-size: 9px;
+    transition: all 0.2s;
+}
+.copy-icon:hover {
+    transform: scale(1.1);
+    color: #2ecc71;
+}
+
+/* ========== USER ID DISPLAY ========== */
+.user-id-display {
+    margin-bottom: 5px;
+    padding: 6px 12px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    font-size: 11px;
+    text-align: center;
+    color: var(--w);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.user-id-display i {
+    font-size: 12px;
+}
+
+/* ========== ORDER CARD IMPROVEMENTS ========== */
+.order-card {
+    background: rgba(0,0,0,0.4);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    border-left: 4px solid;
+    transition: all 0.2s;
+}
+.order-card:hover {
+    background: rgba(0,0,0,0.5);
+    transform: translateX(2px);
+}
+
+.order-game-id {
+    background: rgba(0,0,0,0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 10px;
+    margin-top: 4px;
+}
+
+.order-status.checking {
+    background: rgba(243,156,18,0.15);
+    color: #f39c12;
+}
+.order-status.approved {
+    background: rgba(46,204,113,0.15);
+    color: #2ecc71;
+}
+.order-status.rejected {
+    background: rgba(231,76,60,0.15);
+    color: #e74c3c;
+}
     </style>
 </head>
 <body>
@@ -745,6 +831,12 @@ body::after {
                 </div>
                 <div class="tab-content" id="history">
     <div class="section">
+        <!-- Search by Order ID -->
+        <div class="order-search-bar">
+            <input type="text" id="orderSearchInput" class="order-search-input" placeholder="🔍 Search by Order ID..." onkeyup="if(event.key==='Enter') searchOrderById()">
+            <button class="btn btn-b" onclick="searchOrderById()" style="padding:10px 16px;"><i class="fas fa-search"></i> Search</button>
+        </div>
+        
         <!-- Game Filter Tabs -->
         <div class="order-filter-tabs">
             <div class="filter-tab active" data-filter="all" onclick="filterOrders('all')">All Orders</div>
@@ -770,11 +862,11 @@ body::after {
         </div>
     </div>
     <script>
-        // ==================== ORDER HISTORY V2 ====================
+          // ==================== ORDER HISTORY V3 (COMPLETE) ====================
 let allOrders = [];
 let currentFilter = 'all';
-let currentPageDate = 0; // 0 = today, 1 = yesterday, etc.
-let dateOptions = [];
+let currentPageDate = 0;
+let currentSearchOrderId = '';
 
 // Format date to English (YYYY-MM-DD)
 function formatDateEng(date) {
@@ -811,9 +903,6 @@ function detectGameType(order) {
     if (product.includes('token') || payment.includes('hok')) {
         return 'hok';
     }
-    if (payment.includes('wave') || payment.includes('a+') || payment.includes('kpay')) {
-        return 'topup';
-    }
     return 'topup';
 }
 
@@ -831,31 +920,30 @@ function renderDatePagination(orders) {
     let dates = getAvailableDates(orders);
     let html = '';
     
-    // Today button
     let todayStr = formatDateEng(new Date());
-    html += `<div class="page-date ${currentPageDate === 0 ? 'active' : ''} today" onclick="setPageDate(0, 'today')">Today</div>`;
+    html += `<div class="page-date ${currentPageDate === 0 ? 'active' : ''} today" onclick="setPageDate(0)">Today</div>`;
     
-    // Date buttons
     dates.forEach((date, idx) => {
         let dayNum = idx + 1;
-        html += `<div class="page-date ${currentPageDate === dayNum ? 'active' : ''}" onclick="setPageDate(${dayNum}, '${date}')">${dayNum}</div>`;
+        html += `<div class="page-date ${currentPageDate === dayNum ? 'active' : ''}" onclick="setPageDate(${dayNum})">${dayNum}</div>`;
     });
     
     document.getElementById('datePagination').innerHTML = html;
 }
 
 // Set page date
-function setPageDate(daysAgo, dateStr) {
+function setPageDate(daysAgo) {
     currentPageDate = daysAgo;
     renderFilteredOrders();
 }
 
-// Filter orders by game type and date
+// Filter orders by game type
 function filterOrders(type) {
     currentFilter = type;
     currentPageDate = 0;
+    currentSearchOrderId = '';
+    document.getElementById('orderSearchInput').value = '';
     
-    // Update active tab
     document.querySelectorAll('.filter-tab').forEach(tab => {
         tab.classList.remove('active');
         if (tab.getAttribute('data-filter') === type) {
@@ -866,22 +954,38 @@ function filterOrders(type) {
     renderFilteredOrders();
 }
 
-// Get orders for current date
-function getOrdersByDate(orders, daysAgo) {
-    if (daysAgo === 0) {
-        let todayStr = formatDateEng(new Date());
-        return orders.filter(order => formatDateEng(order.created_at) === todayStr);
+// Search order by ID
+function searchOrderById() {
+    let searchInput = document.getElementById('orderSearchInput');
+    let orderId = searchInput.value.trim();
+    
+    if (!orderId) {
+        currentSearchOrderId = '';
+        renderFilteredOrders();
+        return;
     }
     
-    let targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() - daysAgo);
-    let targetStr = formatDateEng(targetDate);
-    return orders.filter(order => formatDateEng(order.created_at) === targetStr);
+    currentSearchOrderId = orderId;
+    renderFilteredOrders();
+}
+
+// Copy order ID to clipboard
+function copyOrderId(orderId) {
+    navigator.clipboard.writeText(orderId).then(() => {
+        showToast('✅ Order ID copied: ' + orderId, 'success');
+    }).catch(() => {
+        prompt('Copy Order ID:', orderId);
+    });
 }
 
 // Render filtered orders
 function renderFilteredOrders() {
     let filtered = [...allOrders];
+    
+    // Filter by search Order ID
+    if (currentSearchOrderId) {
+        filtered = filtered.filter(order => order.id.toString() === currentSearchOrderId);
+    }
     
     // Filter by game type
     if (currentFilter !== 'all') {
@@ -906,12 +1010,26 @@ function renderFilteredOrders() {
     renderDatePagination(allOrders);
 }
 
+// Get status text and class
+function getStatusInfo(status) {
+    switch(status) {
+        case 'approved':
+            return { text: '✅ Approved', class: 'approved', color: '#2ecc71' };
+        case 'rejected':
+            return { text: '❌ Rejected', class: 'rejected', color: '#e74c3c' };
+        case 'checking':
+            return { text: '⏳ Checking...', class: 'checking', color: '#f39c12' };
+        default:
+            return { text: '⏳ Pending', class: 'pending', color: '#f39c12' };
+    }
+}
+
 // Render order cards
 function renderOrderCards(orders) {
     let container = document.getElementById('orderHistoryList');
     
     if (orders.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);">No orders found</div>';
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size:40px;margin-bottom:10px;display:block;"></i>No orders found</div>';
         return;
     }
     
@@ -919,56 +1037,59 @@ function renderOrderCards(orders) {
     orders.forEach(order => {
         let gameType = detectGameType(order);
         let gameName = '';
-        let gameIdHtml = '';
+        let gameDetailHtml = '';
+        let statusInfo = getStatusInfo(order.status);
         
         switch(gameType) {
             case 'mlbb':
                 gameName = 'Mobile Legends';
-                if (order.game_id || order.server_id) {
-                    gameIdHtml = `<div class="order-info-row">
+                gameDetailHtml = `
+                    <div class="order-info-row">
                         <span class="order-info-label">Game ID:</span>
-                        <span class="order-info-value">${order.game_id || 'N/A'} ${order.server_id ? '(SID: ' + order.server_id + ')' : ''}</span>
-                    </div>`;
-                }
+                        <span class="order-info-value">${order.game_id || 'N/A'}</span>
+                    </div>
+                    <div class="order-info-row">
+                        <span class="order-info-label">Server ID:</span>
+                        <span class="order-info-value">${order.server_id || 'N/A'}</span>
+                    </div>
+                `;
                 break;
             case 'pubg':
                 gameName = 'PUBG Mobile';
-                if (order.player_id) {
-                    gameIdHtml = `<div class="order-info-row">
+                gameDetailHtml = `
+                    <div class="order-info-row">
                         <span class="order-info-label">Player ID:</span>
-                        <span class="order-info-value">${order.player_id}</span>
-                    </div>`;
-                }
+                        <span class="order-info-value">${order.player_id || 'N/A'}</span>
+                    </div>
+                `;
                 break;
             case 'hok':
                 gameName = 'Honor of Kings';
-                if (order.player_id) {
-                    gameIdHtml = `<div class="order-info-row">
+                gameDetailHtml = `
+                    <div class="order-info-row">
                         <span class="order-info-label">Player ID:</span>
-                        <span class="order-info-value">${order.player_id}</span>
-                    </div>`;
-                }
+                        <span class="order-info-value">${order.player_id || 'N/A'}</span>
+                    </div>
+                `;
                 break;
             case 'topup':
                 gameName = 'Top Up';
-                if (order.submitted_user_id) {
-                    gameIdHtml = `<div class="order-info-row">
-                        <span class="order-info-label">User ID:</span>
-                        <span class="order-info-value">${order.submitted_user_id}</span>
-                    </div>`;
-                }
+                gameDetailHtml = `
+                    <div class="order-info-row">
+                        <span class="order-info-label">Submitted User ID:</span>
+                        <span class="order-info-value">${order.submitted_user_id || 'N/A'}</span>
+                    </div>
+                `;
                 break;
         }
         
         let productName = order.product_name || order.payment_method || 'Unknown';
         let amount = Math.abs(order.amount || 0);
-        let statusClass = order.status;
-        let statusText = order.status === 'pending' ? 'Pending' : (order.status === 'approved' ? 'Approved' : 'Rejected');
         
         let screenshotHtml = '';
         if (order.screenshot && order.screenshot.startsWith('http')) {
             screenshotHtml = `<div class="order-screenshot">
-                <img src="${order.screenshot}" class="screenshot-thumb" onclick="showScreenshotModal('${order.screenshot}')">
+                <img src="${order.screenshot}" class="screenshot-thumb" onclick="showScreenshotModal('${order.screenshot}')" onerror="this.style.display='none'">
             </div>`;
         }
         
@@ -976,16 +1097,31 @@ function renderOrderCards(orders) {
         if (order.status === 'rejected' && order.reject_reason) {
             rejectHtml = `<div class="order-info-row">
                 <span class="order-info-label">Reason:</span>
-                <span class="order-info-value" style="color:#e74c3c;">${order.reject_reason}</span>
+                <span class="order-info-value" style="color:#e74c3c;">${escapeHtml(order.reject_reason)}</span>
             </div>`;
         }
         
-        html += `<div class="order-card ${gameType}">
+        let checkingHtml = '';
+        if (order.status === 'pending' || order.status === 'checking') {
+            checkingHtml = `<div class="order-info-row">
+                <span class="order-info-label">Status:</span>
+                <span class="order-info-value" style="color:#f39c12;">⏳ Admin စစ်ဆေးနေပါသည်...</span>
+            </div>`;
+        }
+        
+        html += `<div class="order-card ${gameType}" data-order-id="${order.id}">
             <div class="order-card-header">
                 <div class="order-game ${gameType}">${gameName}</div>
-                <div class="order-status ${statusClass}">${statusText}</div>
+                <div class="order-status ${statusInfo.class}" style="background:${statusInfo.color}15; color:${statusInfo.color};">${statusInfo.text}</div>
             </div>
             <div class="order-card-body">
+                <div class="order-info-row">
+                    <span class="order-info-label">Order ID:</span>
+                    <span class="order-info-value">
+                        #${order.id}
+                        <i class="fas fa-copy" onclick="copyOrderId('${order.id}')" style="cursor:pointer;margin-left:8px;color:var(--w);font-size:9px;"></i>
+                    </span>
+                </div>
                 <div class="order-info-row">
                     <span class="order-info-label">Product:</span>
                     <span class="order-info-value">${escapeHtml(productName)}</span>
@@ -998,8 +1134,9 @@ function renderOrderCards(orders) {
                     <span class="order-info-label">Date:</span>
                     <span class="order-info-value">${formatDateTimeEng(order.created_at)}</span>
                 </div>
-                ${gameIdHtml}
+                ${gameDetailHtml}
                 ${rejectHtml}
+                ${checkingHtml}
                 ${screenshotHtml}
             </div>
         </div>`;
@@ -1008,31 +1145,39 @@ function renderOrderCards(orders) {
     container.innerHTML = html;
 }
 
-// Screenshot modal
-function showScreenshotModal(url) {
-    let modal = document.getElementById('screenshotModal');
-    let img = document.getElementById('modalImage');
-    img.src = url;
-    modal.style.display = 'flex';
+// Show user ID in top bar
+function displayUserInfo() {
+    try {
+        let user = JSON.parse(localStorage.getItem('user') || '{}');
+        let token = getToken();
+        
+        if (user && user.id) {
+            let userIdDisplay = document.getElementById('userIdDisplay');
+            if (!userIdDisplay) {
+                let balanceCard = document.querySelector('.balance-card');
+                if (balanceCard) {
+                    let div = document.createElement('div');
+                    div.id = 'userIdDisplay';
+                    div.style.cssText = 'margin-bottom:5px;padding:4px 8px;background:rgba(0,0,0,0.3);border-radius:8px;font-size:10px;text-align:center;color:var(--w);';
+                    div.innerHTML = `<i class="fas fa-id-card"></i> Your User ID: <b>${user.id.toString().padStart(6, '0')}</b> <i class="fas fa-copy" onclick="copyUserId('${user.id}')" style="cursor:pointer;margin-left:5px;"></i>`;
+                    balanceCard.insertBefore(div, balanceCard.firstChild);
+                }
+            } else {
+                userIdDisplay.innerHTML = `<i class="fas fa-id-card"></i> Your User ID: <b>${user.id.toString().padStart(6, '0')}</b> <i class="fas fa-copy" onclick="copyUserId('${user.id}')" style="cursor:pointer;margin-left:5px;"></i>`;
+            }
+        }
+    } catch(e) {}
 }
 
-function closeScreenshotModal() {
-    document.getElementById('screenshotModal').style.display = 'none';
-}
-
-// Escape HTML
-function escapeHtml(text) {
-    if (!text) return '';
-    return text.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
+function copyUserId(userId) {
+    let paddedId = userId.toString().padStart(6, '0');
+    navigator.clipboard.writeText(paddedId).then(() => {
+        showToast('✅ User ID copied: ' + paddedId, 'success');
     });
 }
 
-// Load orders with product_name
-async function loadOrdersV2() {
+// Load orders
+async function loadOrdersV3() {
     let token = getToken();
     if (!token || token === 'guest') {
         document.getElementById('orderHistoryList').innerHTML = '<div style="text-align:center;padding:40px;">Please login to view orders</div>';
@@ -1051,13 +1196,36 @@ async function loadOrdersV2() {
             allOrders = data.orders;
             renderFilteredOrders();
         } else {
-            document.getElementById('orderHistoryList').innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);">No orders found</div>';
+            document.getElementById('orderHistoryList').innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);"><i class="fas fa-shopping-bag" style="font-size:40px;margin-bottom:10px;display:block;"></i>No orders found</div>';
         }
     } catch(e) {
         console.error('Load orders error:', e);
         document.getElementById('orderHistoryList').innerHTML = '<div style="text-align:center;padding:40px;">Failed to load orders</div>';
     }
-                                                                   }
+}
+
+// Show screenshot modal
+function showScreenshotModal(url) {
+    let modal = document.getElementById('screenshotModal');
+    let img = document.getElementById('modalImage');
+    img.src = url;
+    modal.style.display = 'flex';
+}
+
+function closeScreenshotModal() {
+    document.getElementById('screenshotModal').style.display = 'none';
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
+        }
         // ==================== GET TOKEN (URL → LOCALSTORAGE) ====================
 function getToken() {
     // ✅ URL ကနေ အရင်ယူ (Telegram WebView)
