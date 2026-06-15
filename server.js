@@ -2754,6 +2754,7 @@ app.post('/api/get_balance', async (req, res) => {
         res.json({ balance: 0 });
     }
 });
+
 // ==================== PURCHASE GAME ITEM (AUTO-APPROVED) ====================
 app.post('/api/purchase_game_item', async (req, res) => {
     const { token, game, product_name, price, game_id, server_id, player_id } = req.body;
@@ -2786,7 +2787,7 @@ app.post('/api/purchase_game_item', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        // ✅ Balance စစ်
+        // Check balance
         const user = await p.query('SELECT balance, username FROM auth_users WHERE id = $1', [uid]);
         if (user.rows.length === 0) {
             return res.json({ success: false, message: 'User not found' });
@@ -2799,42 +2800,42 @@ app.post('/api/purchase_game_item', async (req, res) => {
             return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ' });
         }
         
-        // ✅ Balance နှုတ်
+        // Deduct balance
         const newBalance = currentBalance - price;
         await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id = $2', [price, uid]);
         
-        // ✅ Order History သိမ်း (Auto-Approved)
-        const paymentMethod = game.toUpperCase() + ' Purchase - ' + product_name;
-        let screenshot = game + '_' + product_name.replace(/\s+/g, '_').toLowerCase();
-        if (game_id) screenshot += '_' + game_id;
-        if (server_id) screenshot += '_' + server_id;
+        // ✅ FIXED: Insert order with ALL fields (product_name, game_id, server_id, player_id)
+        const paymentMethod = game.toUpperCase() + ' Purchase';
         
         await p.query(
-            'INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-            [uid, username, -price, paymentMethod, screenshot, 'approved', uid.toString()]
+            `INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id, product_name, game_id, server_id, player_id) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [
+                uid, 
+                username, 
+                -price, 
+                paymentMethod, 
+                '',  // screenshot (game purchase doesn't have screenshot)
+                'pending',  // ❗ ဒါကို 'pending' ထားရင် Admin approve လုပ်ရမယ်
+                uid.toString(),
+                product_name,  // ✅ product_name
+                game_id || null,  // ✅ game_id
+                server_id || null,  // ✅ server_id
+                player_id || null   // ✅ player_id
+            ]
         );
-        
-        // ✅ Game Purchase Log (optional)
-        const gameInfo = {
-            game: game,
-            product: product_name,
-            price: price,
-            game_id: game_id || '',
-            server_id: server_id || '',
-            player_id: player_id || ''
-        };
         
         console.log('✅ [GAME PURCHASE] User:', uid, 'Game:', game, 'Product:', product_name, 'Price:', price, 'New Balance:', newBalance);
         
-        // ✅ Telegram Noti (optional)
+        // Telegram notification
         try {
             const gameDetails = game_id ? '🆔 ' + game_id + (server_id ? ' (' + server_id + ')' : '') : '';
-            tgSend('🎮 Game Purchase\n👤 ' + username + '\n🎮 ' + game.toUpperCase() + '\n📦 ' + product_name + '\n💰 ' + price.toLocaleString() + ' Ks\n' + gameDetails + '\n✅ Auto-Approved');
+            tgSend('🎮 Game Purchase\n👤 ' + username + '\n🎮 ' + game.toUpperCase() + '\n📦 ' + product_name + '\n💰 ' + price.toLocaleString() + ' Ks\n' + gameDetails + '\n⏳ Pending');
         } catch(e) {}
         
         res.json({
             success: true,
-            message: 'ဝယ်ယူမှု အောင်မြင်ပါသည်',
+            message: 'ဝယ်ယူမှု အောင်မြင်ပါသည်။ Admin မှ အတည်ပြုပါမည်။',
             new_balance: newBalance,
             product: product_name,
             game: game
