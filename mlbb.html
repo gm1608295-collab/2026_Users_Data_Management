@@ -2400,87 +2400,26 @@ function filterCategory(category) {
     }
 }
 
-        // ==================== INIT ====================
+  // ==================== INIT ====================
 // ✅ First load products
 renderProducts(PRODUCTS, 'all');
 loadBalance();
 loadNotiItems();
 
-// ✅ FORCE TEST - Show discount immediately
-console.log('[FORCE] Activating discount now...');
+// ✅ Initialize discount system (Real Mode - based on actual time)
+console.log('[REAL MODE] Initializing discount system...');
+console.log('[REAL MODE] Current time:', new Date().toString());
+console.log('[REAL MODE] Start hour:', DISCOUNT_CONFIG.startHour + ':00');
 
-// Manually activate discount
-discountActive = true;
-discountEndTime = new Date();
-discountEndTime.setDate(discountEndTime.getDate() + 5);
-discountEndTime.setHours(23, 59, 59, 59);
+// Start the automatic discount system
+initDiscountSystem();
 
-// ✅ CRITICAL: Update PRODUCTS array prices
-console.log('[FORCE] Original PRODUCTS prices:');
-for (let i = 0; i < PRODUCTS.length; i++) {
-    console.log(PRODUCTS[i].name + ': ' + PRODUCTS[i].price);
-    
-    // Store original price if not already
-    if (!PRODUCTS[i].original_price) {
-        PRODUCTS[i].original_price = PRODUCTS[i].price;
-    }
-    
-    // Calculate discounted price
-    let discountAmount = getProductDiscount(PRODUCTS[i].name);
-    let discountedPrice = PRODUCTS[i].original_price - discountAmount;
-    
-    // Apply min price limits
-    if (discountedPrice < DISCOUNT_CONFIG.minPrice) {
-        discountedPrice = DISCOUNT_CONFIG.minPrice;
-    }
-    if (discountedPrice <= 0) {
-        discountedPrice = DISCOUNT_CONFIG.absoluteMin;
-    }
-    
-    PRODUCTS[i].price = discountedPrice;
-    PRODUCTS[i].discounted = true;
-    
-    console.log('  -> Discounted: ' + PRODUCTS[i].price + ' (discount: ' + discountAmount + ')');
-}
-
-// Re-render products with new prices
-renderProducts(PRODUCTS, 'all');
-
-// Apply discount styles to cards
+// ✅ Show announcement after discount system is ready
 setTimeout(() => {
-    document.querySelectorAll('.product-card').forEach(card => {
-        const priceEl = card.querySelector('.product-price');
-        const nameEl = card.querySelector('.product-name');
-        
-        if (priceEl && nameEl) {
-            const productName = nameEl.textContent.trim();
-            // Find product from PRODUCTS array to get discounted price
-            const product = PRODUCTS.find(p => p.name === productName);
-            
-            if (product && product.discounted && product.original_price) {
-                priceEl.innerHTML = `<span class="original-price-crossed">${product.original_price.toLocaleString()} Ks</span> ${product.price.toLocaleString()} Ks`;
-                priceEl.classList.add('discount-applied');
-                
-                if (!card.querySelector('.discount-timer-badge')) {
-                    const badge = document.createElement('div');
-                    badge.className = 'discount-timer-badge';
-                    badge.textContent = '⏰ 4d 23h 59m 59s';
-                    card.style.position = 'relative';
-                    card.appendChild(badge);
-                }
-            }
-        }
-    });
-}, 100);
+    showAnnouncement();
+}, 500);
 
-// Start timer display
-startDiscountTimerDisplay();
-
-// Show announcement
-showAnnouncement();
-
-console.log('[FORCE] Discount should be visible now');
-console.log('[FORCE] Check first product price:', PRODUCTS[0].name, PRODUCTS[0].price);
-   </script>
+console.log('[REAL MODE] Discount system initialized. Waiting for start time...');
+    </script>
 </body>
 </html>
