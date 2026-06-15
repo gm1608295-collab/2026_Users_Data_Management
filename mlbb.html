@@ -1731,14 +1731,16 @@ function startWaitingTimer(targetStartTime) {
     }, 1000);
 }
 
-// Check and start discount if time is right
+    // Check and start discount if time is right
 function checkAndStartDiscount() {
     const now = new Date();
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
+    console.log('[DISCOUNT] ========== CHECKING ==========');
     console.log('[DISCOUNT] Current time:', now.toString());
     console.log('[DISCOUNT] Current hour:', currentHour, 'minute:', currentMinute);
+    console.log('[DISCOUNT] Target start hour:', DISCOUNT_CONFIG.startHour + ':00');
     
     // Check if discount is already active
     if (discountActive && discountEndTime) {
@@ -1756,6 +1758,61 @@ function checkAndStartDiscount() {
             return false;
         }
     }
+    
+    // Check if current time is past or equal to start time (8:00 PM)
+    // ဒီနေ့ ည 8:00 ရောက်ပြီလား? ဒါမှမဟုတ် ကျော်နေပြီလား?
+    let isStartTimeReached = false;
+    
+    if (currentHour > DISCOUNT_CONFIG.startHour) {
+        // 8 နာရီကျော်နေပြီ (9 PM, 10 PM, etc.)
+        isStartTimeReached = true;
+        console.log('[DISCOUNT] Hour is past start hour');
+    } else if (currentHour === DISCOUNT_CONFIG.startHour && currentMinute >= DISCOUNT_CONFIG.startMinute) {
+        // 8:00 အတိအကျ သို့ 8:xx
+        isStartTimeReached = true;
+        console.log('[DISCOUNT] Exactly at or after start time');
+    } else {
+        console.log('[DISCOUNT] Start time not reached yet');
+    }
+    
+    console.log('[DISCOUNT] Is start time reached?', isStartTimeReached);
+    
+    if (isStartTimeReached) {
+        // Start discount immediately
+        console.log('[DISCOUNT] ✅ STARTING DISCOUNT NOW!');
+        discountActive = true;
+        discountEndTime = new Date();
+        discountEndTime.setDate(discountEndTime.getDate() + DISCOUNT_CONFIG.durationDays);
+        discountEndTime.setHours(discountEndTime.getHours() + DISCOUNT_CONFIG.durationHours);
+        discountEndTime.setMinutes(discountEndTime.getMinutes() + DISCOUNT_CONFIG.durationMinutes);
+        discountEndTime.setSeconds(discountEndTime.getSeconds() + DISCOUNT_CONFIG.durationSeconds);
+        
+        console.log('[DISCOUNT] End time:', discountEndTime.toString());
+        
+        saveDiscountState();
+        updateProductsPricesWithDiscount();
+        renderProducts(PRODUCTS, currentCategory);
+        
+        setTimeout(() => {
+            applyDiscountToProducts();
+            startDiscountTimerDisplay();
+        }, 100);
+        return true;
+    } else {
+        // Calculate time until start (for waiting timer)
+        const targetStart = new Date(now);
+        targetStart.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
+        
+        // If current time is after start hour, set to tomorrow
+        if (currentHour >= DISCOUNT_CONFIG.startHour) {
+            targetStart.setDate(targetStart.getDate() + 1);
+        }
+        
+        console.log('[DISCOUNT] Waiting for start time:', targetStart.toString());
+        startWaitingTimer(targetStart);
+        return false;
+    }
+}
     
     // Check if current time is past or equal to start time (8:00 PM)
     const isStartTimeReached = (currentHour > DISCOUNT_CONFIG.startHour) || 
@@ -2411,9 +2468,26 @@ console.log('[REAL MODE] Initializing discount system...');
 console.log('[REAL MODE] Current time:', new Date().toString());
 console.log('[REAL MODE] Start hour:', DISCOUNT_CONFIG.startHour + ':00');
 
-// Start the automatic discount system
-initDiscountSystem();
-
+// Initialize discount system
+function initDiscountSystem() {
+    console.log('[DISCOUNT] ========== INIT DISCOUNT SYSTEM ==========');
+    loadDiscountState();
+    
+    if (discountActive) {
+        console.log('[DISCOUNT] Previously active, restoring...');
+        updateProductsPricesWithDiscount();
+        renderProducts(PRODUCTS, currentCategory);
+        setTimeout(() => {
+            applyDiscountToProducts();
+            startDiscountTimerDisplay();
+        }, 100);
+    } else {
+        console.log('[DISCOUNT] Not active, checking if should start...');
+    }
+    
+    checkAndStartDiscount();
+        }
+        
 // ✅ Show announcement after discount system is ready
 setTimeout(() => {
     showAnnouncement();
