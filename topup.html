@@ -1459,34 +1459,28 @@ function renderTopupNotice(d){const b=document.getElementById('topupNoticeBanner
 async function loadTopupNotice(){try{const r=await fetch("/api/topup_notice");const d=await r.json();if(d.success&&d.message){renderTopupNotice(d)}else{document.getElementById('topupNoticeBanner').style.display='none'}}catch(e){}}
 
 // ✅ Init function ထဲမှာ ဒါကိုထည့်ပါ
-// ==================== INIT ====================
-async function init() {
-    console.log('[INIT] Page loading...');
+(async function init() {
+    const pageOn = await checkPageAccess();
+    if (!pageOn) return;
     
-    await loadBalance();
-    await loadOrdersV3();   // ✅ ဒါကို ခေါ်မယ်
-    await loadTopupNotice();
-    loadNotiItems();
+    var token = getToken();
+    var user = null;
+    try { user = JSON.parse(localStorage.getItem('user') || 'null'); } catch(e) {}
     
-    if (typeof renderGameCards === 'function') {
-        renderGameCards();
+    if (!token || token === 'guest') {
+        document.getElementById('loginCheckMessage').style.display = 'block';
+        document.getElementById('topupContent').style.display = 'none';
+        return;
     }
     
-    displayUserInfo();
+    document.getElementById('loginCheckMessage').style.display = 'none';
+    document.getElementById('topupContent').style.display = 'block';
     
-    try {
-        let user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (user && user.id) {
-            document.getElementById('verifyUserId').value = user.id.toString().padStart(6, '0');
-        }
-    } catch(e) {}
+    loadTopupNotice();
+    setInterval(loadTopupNotice, 5000);
+    loadHistory();
     
-    console.log('[INIT] Page ready');
-}
-
-init();
-setInterval(checkBalanceChanges, 10000);
-setInterval(checkOrderUpdates, 30000);
+    renderGameCards();
     
 })();
 // ==================== VARIABLES ====================
@@ -2064,27 +2058,17 @@ document.addEventListener('visibilitychange', function() {
 async function init() {
     console.log('[INIT] Page loading...');
     
-    // 1. Load balance
     await loadBalance();
-    
-    // 2. Load order history with NEW system (V3)
-    await loadOrdersV3();  // ✅ V2 ကို V3 ပြောင်းပါ
-    
-    // 3. Load topup notice
+    await loadOrdersV3();   // ✅ ဒါက order history ကို load
     await loadTopupNotice();
-    
-    // 4. Load noti items
     loadNotiItems();
     
-    // 5. Load game cards
     if (typeof renderGameCards === 'function') {
         renderGameCards();
     }
     
-    // 6. Display user ID on top bar
-    displayUserInfo();  // ✅ User ID ပြမယ်
+    displayUserInfo();
     
-    // 7. Set logged in user ID to verify field
     try {
         let user = JSON.parse(localStorage.getItem('user') || '{}');
         if (user && user.id) {
@@ -2095,10 +2079,7 @@ async function init() {
     console.log('[INIT] Page ready');
 }
 
-// ✅ Start the app
 init();
-
-// ✅ Auto refresh timers
 setInterval(checkBalanceChanges, 10000);
 setInterval(checkOrderUpdates, 30000);
   </script>
