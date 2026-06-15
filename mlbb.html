@@ -1441,462 +1441,106 @@ body {
 </div>
 
     <script>
-        // Update announcement dates
-function updateAnnouncementDates() {
-    const now = new Date();
-    const startDate = new Date(now);
-    startDate.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
+     // ==================== BG MUSIC PLAYER ====================
+(function() {
+    const a = document.getElementById('bgAudio');
+    if (!a) return;
+    let p = [], i = 0;
+    a.volume = 0.5;
+    a.loop = false;
+    const fl = !sessionStorage.getItem('mp');
+    if (fl) { i = 0; localStorage.setItem('bgi', '0'); localStorage.setItem('bgt0', '0'); }
+    else { i = parseInt(localStorage.getItem('bgi') || '0'); }
+    sessionStorage.setItem('mp', '1');
     
-    if (now > startDate) {
-        startDate.setDate(startDate.getDate() + 1);
-    }
-    
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + DISCOUNT_CONFIG.durationDays);
-    endDate.setHours(endDate.getHours() + DISCOUNT_CONFIG.durationHours);
-    
-    const startDateStr = startDate.toLocaleDateString('my-MM', { year: 'numeric', month: 'long', day: 'numeric' });
-    const endDateStr = endDate.toLocaleDateString('my-MM', { year: 'numeric', month: 'long', day: 'numeric' });
-    
-    const startEl = document.getElementById('eventStartDate');
-    const endEl = document.getElementById('eventEndDate');
-    if (startEl) startEl.textContent = startDateStr;
-    if (endEl) endEl.textContent = endDateStr;
-}
-
-// Show announcement
-function showAnnouncement() {
-    const announcement = document.getElementById('discountAnnouncement');
-    if (announcement) {
-        announcement.style.display = 'block';
-        updateAnnouncementDates();
-    }
-}
-
-// Call this in your init function
-// showAnnouncement();
-        // ==================== DISCOUNT SYSTEM (PRODUCT SPECIFIC) ====================
-const DISCOUNT_CONFIG = {
-    startHour: 20,           // 8:00 PM
-    startMinute: 0,
-    durationDays: 5,
-    durationHours: 23,
-    durationMinutes: 59,
-    durationSeconds: 59,
-    minPrice: 50,            // အနည်းဆုံးဈေး
-    absoluteMin: 10,         // အရမ်းနည်းရင် ဒီဈေးထား
-    
-    // ✅ Product-specific discounts
-    productDiscounts: {
-        // Weekly Pass
-        "Weekly Diamond Pass": 700,
-        
-        // Twilight Pass
-        "Twilight Pass": 1000,
-        
-        // Double Diamond (First Recharge)
-        "First Recharge 50+50": 200,
-        "First Recharge 150+150": 500,
-        "First Recharge 250+250": 500,
-        "First Recharge 500+500": 500,
-        
-        // Epic
-        "Epic Treasure (Weekly)": 200,
-        "Epic Hero (Monthly)": 500,
-        
-        // Normal Diamonds - Small discount (50 Ks)
-        "5 Diamonds (5+0)": 50,
-        "11 Diamonds (10+1)": 50,
-        "22 Diamonds (20+2)": 50,
-        "55 Diamonds (50+5)": 50,
-        "56 Diamonds (51+5)": 50,
-        "86 Diamonds (78+8)": 50,
-        
-        // Normal Diamonds - 500 discount
-        "112 Diamonds (102+10)": 500,
-        "165 Diamonds (150+15)": 500,
-        "172 Diamonds (156+16)": 500,
-        "257 Diamonds (234+23)": 500,
-        "275 Diamonds (250+25)": 500,
-        "336 Diamonds (303+33)": 500,
-        "565 Diamonds (500+65)": 500,
-        "570 Diamonds (504+66)": 500,
-        "706 Diamonds (625+81)": 500,
-        "1163 Diamonds (1007+156)": 500,
-        "2195 Diamonds (1860+335)": 500,
-        "3688 Diamonds (3099+589)": 500,
-        "5532 Diamonds (4649+883)": 500,
-        "6042 Diamonds (5035+1007)": 500,
-        "9288 Diamonds (7740+1548)": 500
-    }
-};
-
-let discountActive = false;
-let discountEndTime = null;
-let discountTimerInterval = null;
-
-// Get discount amount for a product
-function getProductDiscount(productName) {
-    if (DISCOUNT_CONFIG.productDiscounts[productName]) {
-        return DISCOUNT_CONFIG.productDiscounts[productName];
-    }
-    return 500; // Default discount
-}
-
-// Load saved state from localStorage
-function loadDiscountState() {
-    const saved = localStorage.getItem('mlbb_discount_state');
-    if (saved) {
+    async function fp() {
         try {
-            const data = JSON.parse(saved);
-            discountActive = data.active;
-            discountEndTime = data.endTime ? new Date(data.endTime) : null;
-            
-            if (discountActive && discountEndTime && Date.now() > discountEndTime.getTime()) {
-                discountActive = false;
-                discountEndTime = null;
-                localStorage.removeItem('mlbb_discount_state');
+            const r = await fetch('/api/bg_music?t=' + Date.now());
+            const d = await r.json();
+            if (d.playlist && d.playlist.length > 0) {
+                p = d.playlist;
+                return true;
             }
-            return;
-        } catch(e) {}
-    }
-    discountActive = false;
-    discountEndTime = null;
-}
-
-// Save state to localStorage
-function saveDiscountState() {
-    localStorage.setItem('mlbb_discount_state', JSON.stringify({
-        active: discountActive,
-        endTime: discountEndTime ? discountEndTime.toISOString() : null
-    }));
-}
-
-// Update PRODUCTS array prices with discount
-function updateProductsPricesWithDiscount() {
-    if (!discountActive) return;
-    
-    for (let i = 0; i < PRODUCTS.length; i++) {
-        if (!PRODUCTS[i].discounted) {
-            PRODUCTS[i].original_price = PRODUCTS[i].price;
-            let discountAmount = getProductDiscount(PRODUCTS[i].name);
-            let discountedPrice = PRODUCTS[i].price - discountAmount;
-            
-            if (discountedPrice < DISCOUNT_CONFIG.minPrice) {
-                discountedPrice = DISCOUNT_CONFIG.minPrice;
-            }
-            if (discountedPrice <= 0) {
-                discountedPrice = DISCOUNT_CONFIG.absoluteMin;
-            }
-            
-            PRODUCTS[i].price = discountedPrice;
-            PRODUCTS[i].discounted = true;
-        }
-    }
-}
-
-// Apply discount to displayed cards
-function applyDiscountToProducts() {
-    if (!discountActive) return;
-    
-    document.querySelectorAll('.product-card').forEach(card => {
-        const priceEl = card.querySelector('.product-price');
-        const nameEl = card.querySelector('.product-name');
-        
-        if (priceEl && nameEl && !priceEl.classList.contains('discount-applied')) {
-            const productName = nameEl.textContent.trim();
-            const product = PRODUCTS.find(p => p.name === productName);
-            
-            if (product && product.discounted && product.original_price) {
-                // Clear existing content
-                priceEl.innerHTML = '';
-                
-                // Add original price (crossed out)
-                const originalSpan = document.createElement('span');
-                originalSpan.className = 'original-price-crossed';
-                originalSpan.textContent = product.original_price.toLocaleString() + ' Ks';
-                priceEl.appendChild(originalSpan);
-                
-                // Add discounted price (red color)
-                const discountSpan = document.createElement('span');
-                discountSpan.className = 'discounted-price';
-                discountSpan.textContent = product.price.toLocaleString() + ' Ks';
-                priceEl.appendChild(discountSpan);
-                
-                priceEl.classList.add('discount-applied');
-                
-                if (!card.querySelector('.discount-timer-badge')) {
-                    const badge = document.createElement('div');
-                    badge.className = 'discount-timer-badge';
-                    card.style.position = 'relative';
-                    card.appendChild(badge);
-                }
-            }
-        }
-    });
-}
-
-// Remove discount from products
-function removeDiscountFromProducts() {
-    document.querySelectorAll('.product-card').forEach(card => {
-        const priceEl = card.querySelector('.product-price');
-        const badge = card.querySelector('.discount-timer-badge');
-        const waitingTimer = card.querySelector('.waiting-timer');
-        
-        if (badge) badge.remove();
-        if (waitingTimer) waitingTimer.remove();
-        
-        if (priceEl && priceEl.classList.contains('discount-applied')) {
-            const originalPrice = card.getAttribute('data-original-price');
-            if (originalPrice) {
-                priceEl.innerHTML = `${parseInt(originalPrice).toLocaleString()} Ks`;
-                priceEl.classList.remove('discount-applied');
-            }
-        }
-    });
-    
-    for (let i = 0; i < PRODUCTS.length; i++) {
-        if (PRODUCTS[i].discounted && PRODUCTS[i].original_price) {
-            PRODUCTS[i].price = PRODUCTS[i].original_price;
-            PRODUCTS[i].discounted = false;
-            delete PRODUCTS[i].original_price;
-        }
-    }
-    
-    renderProducts(PRODUCTS, currentCategory);
-}
-
-// Start countdown timer display
-function startDiscountTimerDisplay() {
-    if (discountTimerInterval) clearInterval(discountTimerInterval);
-    
-    discountTimerInterval = setInterval(() => {
-        if (!discountActive || !discountEndTime) {
-            clearInterval(discountTimerInterval);
-            return;
-        }
-        
-        const remaining = discountEndTime.getTime() - Date.now();
-        
-        if (remaining <= 0) {
-            clearInterval(discountTimerInterval);
-            discountActive = false;
-            discountEndTime = null;
-            saveDiscountState();
-            removeDiscountFromProducts();
-            return;
-        }
-        
-        const totalSec = Math.floor(remaining / 1000);
-        const days = Math.floor(totalSec / 86400);
-        const hours = Math.floor((totalSec % 86400) / 3600);
-        const minutes = Math.floor((totalSec % 3600) / 60);
-        const secs = totalSec % 60;
-        const timeStr = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
-        
-        document.querySelectorAll('.discount-timer-badge').forEach(badge => {
-            badge.textContent = `⏰ ${timeStr}`;
-        });
-    }, 1000);
-}
-
-// Start waiting timer (until discount starts)
-function startWaitingTimer(targetStartTime) {
-    if (discountTimerInterval) clearInterval(discountTimerInterval);
-    
-    const waitingInterval = setInterval(() => {
-        const now = new Date();
-        if (now >= targetStartTime) {
-            clearInterval(waitingInterval);
-            checkAndStartDiscount();
-            return;
-        }
-        
-        const remaining = targetStartTime.getTime() - now.getTime();
-        const hours = Math.floor(remaining / 3600000);
-        const minutes = Math.floor((remaining % 3600000) / 60000);
-        const seconds = Math.floor((remaining % 60000) / 1000);
-        const waitingStr = `⏳ ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
-        
-        document.querySelectorAll('.product-card').forEach(card => {
-            let waitingEl = card.querySelector('.waiting-timer');
-            if (!waitingEl) {
-                waitingEl = document.createElement('div');
-                waitingEl.className = 'waiting-timer';
-                card.style.position = 'relative';
-                card.appendChild(waitingEl);
-            }
-            waitingEl.textContent = waitingStr;
-        });
-    }, 1000);
-}
-
-    // Check and start discount if time is right
-function checkAndStartDiscount() {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    
-    console.log('[DISCOUNT] ========== CHECKING ==========');
-    console.log('[DISCOUNT] Current time:', now.toString());
-    console.log('[DISCOUNT] Current hour:', currentHour, 'minute:', currentMinute);
-    console.log('[DISCOUNT] Target start hour:', DISCOUNT_CONFIG.startHour + ':00');
-    
-    // Check if discount is already active
-    if (discountActive && discountEndTime) {
-        if (Date.now() < discountEndTime.getTime()) {
-            console.log('[DISCOUNT] Already active, continuing...');
-            startDiscountTimerDisplay();
-            applyDiscountToProducts();
-            return true;
-        } else {
-            console.log('[DISCOUNT] Discount expired');
-            discountActive = false;
-            discountEndTime = null;
-            saveDiscountState();
-            removeDiscountFromProducts();
             return false;
+        } catch(e) { return false; }
+    }
+    
+    function pl() {
+        if (!p.length) return;
+        if (i >= p.length) i = 0;
+        const u = p[i];
+        a.src = u;
+        a.load();
+        a.addEventListener('canplay', function h() {
+            a.play().catch(() => {});
+            a.removeEventListener('canplay', h);
+        });
+    }
+    
+    a.addEventListener('ended', function() {
+        localStorage.setItem('bgt' + i, '0');
+        i = (i + 1) % p.length;
+        localStorage.setItem('bgi', i);
+        localStorage.setItem('bgt' + i, '0');
+        pl();
+    });
+    
+    a.addEventListener('error', function() {
+        i = (i + 1) % p.length;
+        localStorage.setItem('bgi', i);
+        localStorage.setItem('bgt' + i, '0');
+        pl();
+    });
+    
+    setInterval(() => {
+        if (!a.paused && p.length > 0 && a.currentTime > 0) {
+            localStorage.setItem('bgi', i);
+            localStorage.setItem('bgt' + i, a.currentTime);
         }
-    }
+    }, 1000);
     
-    // Check if current time is past or equal to start time (8:00 PM)
-    // ဒီနေ့ ည 8:00 ရောက်ပြီလား? ဒါမှမဟုတ် ကျော်နေပြီလား?
-    let isStartTimeReached = false;
-    
-    if (currentHour > DISCOUNT_CONFIG.startHour) {
-        // 8 နာရီကျော်နေပြီ (9 PM, 10 PM, etc.)
-        isStartTimeReached = true;
-        console.log('[DISCOUNT] Hour is past start hour');
-    } else if (currentHour === DISCOUNT_CONFIG.startHour && currentMinute >= DISCOUNT_CONFIG.startMinute) {
-        // 8:00 အတိအကျ သို့ 8:xx
-        isStartTimeReached = true;
-        console.log('[DISCOUNT] Exactly at or after start time');
-    } else {
-        console.log('[DISCOUNT] Start time not reached yet');
-    }
-    
-    console.log('[DISCOUNT] Is start time reached?', isStartTimeReached);
-    
-    if (isStartTimeReached) {
-        // Start discount immediately
-        console.log('[DISCOUNT] ✅ STARTING DISCOUNT NOW!');
-        discountActive = true;
-        discountEndTime = new Date();
-        discountEndTime.setDate(discountEndTime.getDate() + DISCOUNT_CONFIG.durationDays);
-        discountEndTime.setHours(discountEndTime.getHours() + DISCOUNT_CONFIG.durationHours);
-        discountEndTime.setMinutes(discountEndTime.getMinutes() + DISCOUNT_CONFIG.durationMinutes);
-        discountEndTime.setSeconds(discountEndTime.getSeconds() + DISCOUNT_CONFIG.durationSeconds);
-        
-        console.log('[DISCOUNT] End time:', discountEndTime.toString());
-        
-        saveDiscountState();
-        updateProductsPricesWithDiscount();
-        renderProducts(PRODUCTS, currentCategory);
-        
-        setTimeout(() => {
-            applyDiscountToProducts();
-            startDiscountTimerDisplay();
-        }, 100);
-        return true;
-    } else {
-        // Calculate time until start (for waiting timer)
-        const targetStart = new Date(now);
-        targetStart.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
-        
-        // If current time is after start hour, set to tomorrow
-        if (currentHour >= DISCOUNT_CONFIG.startHour) {
-            targetStart.setDate(targetStart.getDate() + 1);
-        }
-        
-        console.log('[DISCOUNT] Waiting for start time:', targetStart.toString());
-        startWaitingTimer(targetStart);
-        return false;
-    }
-}
-    
-    // Check if current time is past or equal to start time (8:00 PM)
-    const isStartTimeReached = (currentHour > DISCOUNT_CONFIG.startHour) || 
-                                (currentHour === DISCOUNT_CONFIG.startHour && currentMinute >= DISCOUNT_CONFIG.startMinute);
-    
-    console.log('[DISCOUNT] Is start time reached?', isStartTimeReached);
-    
-    if (isStartTimeReached) {
-        // Start discount immediately
-        console.log('[DISCOUNT] Starting discount now!');
-        discountActive = true;
-        discountEndTime = new Date();
-        discountEndTime.setDate(discountEndTime.getDate() + DISCOUNT_CONFIG.durationDays);
-        discountEndTime.setHours(discountEndTime.getHours() + DISCOUNT_CONFIG.durationHours);
-        discountEndTime.setMinutes(discountEndTime.getMinutes() + DISCOUNT_CONFIG.durationMinutes);
-        discountEndTime.setSeconds(discountEndTime.getSeconds() + DISCOUNT_CONFIG.durationSeconds);
-        
-        console.log('[DISCOUNT] End time:', discountEndTime.toString());
-        
-        saveDiscountState();
-        updateProductsPricesWithDiscount();
-        renderProducts(PRODUCTS, currentCategory);
-        
-        setTimeout(() => {
-            applyDiscountToProducts();
-            startDiscountTimerDisplay();
-        }, 100);
-        return true;
-    } else {
-        // Calculate time until start
-        const targetStart = new Date(now);
-        targetStart.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
-        
-        // If current time is after start hour, set to tomorrow
-        if (currentHour >= DISCOUNT_CONFIG.startHour) {
-            targetStart.setDate(targetStart.getDate() + 1);
-        }
-        
-        console.log('[DISCOUNT] Waiting for start time:', targetStart.toString());
-        startWaitingTimer(targetStart);
-        return false;
-    }
-}
-        
-        // ==================== BG MUSIC PLAYER ====================
-        (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})();
+    fp().then(h => { if (h) { if (fl) i = 0; pl(); } });
+    setInterval(fp, 3000);
+})();
 
-        // ==================== PRODUCT DATA ====================
-        const PRODUCTS = [
-            { name: '5 Diamonds (5+0)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 438, original: 471, category: 'diamonds' },
-            { name: '11 Diamonds (10+1)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 836, original: 899, category: 'diamonds' },
-            { name: '22 Diamonds (20+2)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 1672, original: 1798, category: 'diamonds' },
-            { name: '55 Diamonds (50+5)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 3940, original: 4237, category: 'diamonds' },
-            { name: '56 Diamonds (51+5)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 4219, original: 4537, category: 'diamonds' },
-            { name: '86 Diamonds (78+8)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 5573, original: 5992, category: 'diamonds' },
-            { name: '112 Diamonds (102+10)', img: 'https://i.ibb.co/S4MnMpXQ/01-JD9-FCWTADSQZNA61-T2-B8-RKY4.png', price: 7245, original: 7790, category: 'diamonds' },
-            { name: '165 Diamonds (150+15)', img: 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png', price: 11901, original: 12797, category: 'diamonds' },
-            { name: '172 Diamonds (156+16)', img: 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png', price: 11026, original: 11856, category: 'diamonds' },
-            { name: '257 Diamonds (234+23)', img: 'https://i.ibb.co/1GfNtVDw/01-JNK3-X6-R1-EGE5-E38-FEE5-DYSXY.png', price: 16041, original: 17248, category: 'diamonds' },
-            { name: '275 Diamonds (250+25)', img: 'https://i.ibb.co/1GfNtVDw/01-JNK3-X6-R1-EGE5-E38-FEE5-DYSXY.png', price: 19862, original: 21357, category: 'diamonds' },
-            { name: '336 Diamonds (303+33)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 21773, original: 23412, category: 'diamonds' },
-            { name: '565 Diamonds (500+65)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 39764, original: 42757, category: 'diamonds' },
-            { name: '570 Diamonds (504+66)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 36302, original: 39034, category: 'diamonds' },
-            { name: '706 Diamonds (625+81)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 43426, original: 46695, category: 'diamonds' },
-            { name: '1163 Diamonds (1007+156)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 81518, original: 87654, category: 'diamonds' },
-            { name: '2195 Diamonds (1860+335)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 131433, original: 141326, category: 'diamonds' },
-            { name: '3688 Diamonds (3099+589)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 219280, original: 235785, category: 'diamonds' },
-            { name: '5532 Diamonds (4649+883)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 331089, original: 356010, category: 'diamonds' },
-            { name: '6042 Diamonds (5035+1007)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 409185, original: 439984, category: 'diamonds' },
-            { name: '9288 Diamonds (7740+1548)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 549932, original: 0, category: 'diamonds' },
-            { name: 'First Recharge 50+50', img: 'https://i.ibb.co/JWbn70T0/01-JSEPEK616-XR3-P8-SWTFH4-TQTD.png', price: 3700, original: 3900, category: 'double-diamond' },
-            { name: 'First Recharge 150+150', img: 'https://i.ibb.co/yMK1y2L/01-JSEPFNH4-BPJA6-TY0-HRVX8-PPX.png', price: 11100, original: 11800, category: 'double-diamond' },
-            { name: 'First Recharge 250+250', img: 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png', price: 17500, original: 18200, category: 'double-diamond' },
-            { name: 'First Recharge 500+500', img: 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png', price: 35900, original: 36400, category: 'double-diamond' },
-            { name: 'Weekly Diamond Pass', img: 'https://i.ibb.co/gbY4GTvk/8cfaffbfa7aa9e957bb6da56f7fed781.jpg', price: 6886, original: 7404, category: 'weekly-pass' },
-            { name: 'Twilight Pass', img: 'https://i.ibb.co/xcRdNfj/01-JED346-YHR0-Z1-YVSG81-DEMFYQ.png', price: 36421, original: 39162, category: 'twilight-pass' },
-            { name: 'Epic Treasure (Weekly)', img: 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg', price: 3700, original: 3900, category: 'epic' },
-            { name: 'Epic Hero (Monthly)', img: 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg', price: 18500, original: 19100, category: 'epic' }
-        ];
+// ==================== PRODUCT DATA ====================
+const PRODUCTS = [
+    { name: '5 Diamonds (5+0)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 438, original: 471, category: 'diamonds' },
+    { name: '11 Diamonds (10+1)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 836, original: 899, category: 'diamonds' },
+    { name: '22 Diamonds (20+2)', img: 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png', price: 1672, original: 1798, category: 'diamonds' },
+    { name: '55 Diamonds (50+5)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 3940, original: 4237, category: 'diamonds' },
+    { name: '56 Diamonds (51+5)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 4219, original: 4537, category: 'diamonds' },
+    { name: '86 Diamonds (78+8)', img: 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png', price: 5573, original: 5992, category: 'diamonds' },
+    { name: '112 Diamonds (102+10)', img: 'https://i.ibb.co/S4MnMpXQ/01-JD9-FCWTADSQZNA61-T2-B8-RKY4.png', price: 7245, original: 7790, category: 'diamonds' },
+    { name: '165 Diamonds (150+15)', img: 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png', price: 11901, original: 12797, category: 'diamonds' },
+    { name: '172 Diamonds (156+16)', img: 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png', price: 11026, original: 11856, category: 'diamonds' },
+    { name: '257 Diamonds (234+23)', img: 'https://i.ibb.co/1GfNtVDw/01-JNK3-X6-R1-EGE5-E38-FEE5-DYSXY.png', price: 16041, original: 17248, category: 'diamonds' },
+    { name: '275 Diamonds (250+25)', img: 'https://i.ibb.co/1GfNtVDw/01-JNK3-X6-R1-EGE5-E38-FEE5-DYSXY.png', price: 19862, original: 21357, category: 'diamonds' },
+    { name: '336 Diamonds (303+33)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 21773, original: 23412, category: 'diamonds' },
+    { name: '565 Diamonds (500+65)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 39764, original: 42757, category: 'diamonds' },
+    { name: '570 Diamonds (504+66)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 36302, original: 39034, category: 'diamonds' },
+    { name: '706 Diamonds (625+81)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 43426, original: 46695, category: 'diamonds' },
+    { name: '1163 Diamonds (1007+156)', img: 'https://i.ibb.co/XkrRkH0d/01-JNK3-YAQ4084-H5-RECG54-QH91-Y.png', price: 81518, original: 87654, category: 'diamonds' },
+    { name: '2195 Diamonds (1860+335)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 131433, original: 141326, category: 'diamonds' },
+    { name: '3688 Diamonds (3099+589)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 219280, original: 235785, category: 'diamonds' },
+    { name: '5532 Diamonds (4649+883)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 331089, original: 356010, category: 'diamonds' },
+    { name: '6042 Diamonds (5035+1007)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 409185, original: 439984, category: 'diamonds' },
+    { name: '9288 Diamonds (7740+1548)', img: 'https://i.ibb.co/qHJWDvt/01-JD9-GN0-VZH91-D954-Z00-FZD0-GD.png', price: 549932, original: 0, category: 'diamonds' },
+    { name: 'First Recharge 50+50', img: 'https://i.ibb.co/JWbn70T0/01-JSEPEK616-XR3-P8-SWTFH4-TQTD.png', price: 3700, original: 3900, category: 'double-diamond' },
+    { name: 'First Recharge 150+150', img: 'https://i.ibb.co/yMK1y2L/01-JSEPFNH4-BPJA6-TY0-HRVX8-PPX.png', price: 11100, original: 11800, category: 'double-diamond' },
+    { name: 'First Recharge 250+250', img: 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png', price: 17500, original: 18200, category: 'double-diamond' },
+    { name: 'First Recharge 500+500', img: 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png', price: 35900, original: 36400, category: 'double-diamond' },
+    { name: 'Weekly Diamond Pass', img: 'https://i.ibb.co/gbY4GTvk/8cfaffbfa7aa9e957bb6da56f7fed781.jpg', price: 6886, original: 7404, category: 'weekly-pass' },
+    { name: 'Twilight Pass', img: 'https://i.ibb.co/xcRdNfj/01-JED346-YHR0-Z1-YVSG81-DEMFYQ.png', price: 36421, original: 39162, category: 'twilight-pass' },
+    { name: 'Epic Treasure (Weekly)', img: 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg', price: 3700, original: 3900, category: 'epic' },
+    { name: 'Epic Hero (Monthly)', img: 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg', price: 18500, original: 19100, category: 'epic' }
+];
 
-        let selectedProduct = null;
+let selectedProduct = null;
 let currentCategory = 'all';
 let notiItems = [];
 let unreadCount = 0;
+
 // ==================== INFO MODALS ====================
 function openUserIdGuide() {
     document.getElementById('userIdGuideModal').classList.add('active');
@@ -1915,6 +1559,7 @@ function closePurchaseInfo(event) {
     if (event && event.target !== document.getElementById('purchaseInfoModal')) return;
     document.getElementById('purchaseInfoModal').classList.remove('active');
 }
+
 // ==================== NOTI SYSTEM ====================
 function loadNotiItems() {
     var saved = localStorage.getItem('mlbbNotiItems');
@@ -1985,7 +1630,7 @@ function renderNotiDropdown() {
         return '<div class="noti-item ' + cls + '">' + n.message + imgHtml + '<div class="noti-time">' + new Date(n.time).toLocaleString() + '</div></div>';
     }).join('');
 }
-        
+
 document.addEventListener('click', function(e) {
     var dd = document.getElementById('notiDropdown');
     var bell = document.querySelector('.noti-bell');
@@ -1994,7 +1639,7 @@ document.addEventListener('click', function(e) {
     }
 });
 
-// Balance ကို Detail Panel အတွက် Refresh လုပ်ခြင်း
+// ==================== BALANCE REFRESH ====================
 async function refreshBalanceForDetail() {
     const token = localStorage.getItem('auth_token');
     if (!token || token === 'guest') {
@@ -2016,14 +1661,10 @@ async function refreshBalanceForDetail() {
     }
 }
 
-// Balance Check & Warning (Quantity ပြောင်းတိုင်း)
 async function checkBalanceAndWarn() {
     if (!selectedProduct) return;
-    
     var qty = parseInt(document.getElementById('quantity').value) || 1;
     var total = selectedProduct.price * qty;
-    
-    // ✅ Loading state ပြမယ်
     var warningDiv = document.getElementById('balanceWarning');
     warningDiv.style.display = 'block';
     warningDiv.style.background = 'rgba(52, 152, 219, 0.15)';
@@ -2038,8 +1679,6 @@ async function checkBalanceAndWarn() {
             document.getElementById('buyBtn').disabled = true;
             return;
         }
-        
-        // ✅ Balance ကို တိုက်ရိုက်ယူမယ် (refreshBalanceForDetail ကို မသုံးဘူး)
         var res = await fetch('/api/get_balance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2047,11 +1686,8 @@ async function checkBalanceAndWarn() {
         });
         var data = await res.json();
         var balance = parseFloat(data.balance || 0);
-        
-        // ✅ UI ကိုလည်း Update
         document.getElementById('currentBalanceDisplay').textContent = balance.toLocaleString() + ' Ks';
         document.getElementById('mmkBalance').textContent = balance.toLocaleString() + ' Ks';
-        
         var buyBtn = document.getElementById('buyBtn');
         
         if (balance < total) {
@@ -2066,21 +1702,18 @@ async function checkBalanceAndWarn() {
             warningDiv.style.color = '#2ecc71';
             warningDiv.style.border = '1px solid #2ecc71';
             warningDiv.innerHTML = '✅ ငွေလုံလောက်ပါသည်။ ဝယ်ယူနိုင်ပါသည်။';
-            // Buy button ကို updateBuyButton() က ထပ်စစ်ဦးမယ်
         }
-        
     } catch(e) {
-        console.error('Balance check error:', e);
         warningDiv.style.background = 'rgba(231, 76, 60, 0.15)';
         warningDiv.style.color = '#e74c3c';
         warningDiv.innerHTML = '❌ လက်ကျန်ငွေ စစ်ဆေး၍မရပါ';
     }
 }
-// ==================== NEW VARIABLES ====================
+
+// ==================== USER ID VERIFY ====================
 let isIdVerified = false;
 let isTicketChecked = false;
 
-// ==================== USER ID VERIFY ====================
 async function verifyUserId() {
     var userId = document.getElementById('verifyUserId').value.trim();
     var resultEl = document.getElementById('idVerifyResult');
@@ -2135,7 +1768,6 @@ async function verifyUserId() {
     updateBuyButton();
 }
 
-// ==================== TICKET CHECKBOX ====================
 function toggleTicket() {
     isTicketChecked = !isTicketChecked;
     var row = document.getElementById('ticketCheckRow');
@@ -2147,95 +1779,21 @@ function toggleTicket() {
     updateBuyButton();
 }
 
-// ==================== UPDATE BUY BUTTON ====================
 function updateBuyButton() {
     var btn = document.getElementById('buyBtn');
     var gameId = document.getElementById('gameId').value.trim();
     var serverId = document.getElementById('serverId').value.trim();
     var userId = document.getElementById('verifyUserId').value.trim();
-    
     var idValid = gameId.length >= 8 && gameId.length <= 10 && /^\d+$/.test(gameId);
     var serverValid = serverId.length >= 4 && serverId.length <= 5 && /^\d+$/.test(serverId);
     var userIdValid = userId.length >= 6 && /^\d+$/.test(userId);
-    
     btn.disabled = !(isIdVerified && isTicketChecked && idValid && serverValid && userIdValid && selectedProduct);
 }
 
-// ==================== VALIDATE INPUTS (UPDATED) ====================
 function validateInputs() {
     updateBuyButton();
-    }
-// ==================== SELECT PRODUCT (UPDATED) ====================
-function selectProduct(productName) {
-    selectedProduct = PRODUCTS.find(function(p) { return p.name === productName; });
-    if (!selectedProduct) return;
-    
-    // Remove selected class from all cards and add to clicked card
-    document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
-    if (event && event.target) {
-        event.target.closest('.product-card').classList.add('selected');
-    }
-    
-    // Show detail panel
-    document.getElementById('detailPanel').classList.add('active');
-    document.getElementById('detailImg').src = selectedProduct.img;
-    document.getElementById('detailName').textContent = selectedProduct.name;
-    
-    // ✅ Show discounted price in detail panel if applicable
-if (selectedProduct.discounted && selectedProduct.original_price) {
-    document.getElementById('detailPrice').innerHTML = selectedProduct.price.toLocaleString() + ' Ks';
-    document.getElementById('detailOriginal').innerHTML = selectedProduct.original_price.toLocaleString() + ' Ks';
-    document.getElementById('detailOriginal').style.display = 'block';
-    // ✅ Discounted price - အစိမ်းရောင်
-    document.getElementById('detailPrice').style.color = '#2ecc71';
-    document.getElementById('detailPrice').style.fontWeight = 'bold';
-    // ✅ Original price - အနီရောင် (ဖြတ်ကြောင်း)
-    document.getElementById('detailOriginal').style.color = '#e74c3c';
-    document.getElementById('detailOriginal').style.textDecoration = 'line-through';
-} else {
-    document.getElementById('detailPrice').innerHTML = selectedProduct.price.toLocaleString() + ' Ks';
-    document.getElementById('detailPrice').style.color = '#e67e22';
-    document.getElementById('detailPrice').style.fontWeight = 'bold';
-    if (selectedProduct.original > 0) {
-        document.getElementById('detailOriginal').innerHTML = selectedProduct.original.toLocaleString() + ' Ks';
-        document.getElementById('detailOriginal').style.display = 'block';
-        document.getElementById('detailOriginal').style.color = 'rgba(255,255,255,0.4)';
-        document.getElementById('detailOriginal').style.textDecoration = 'line-through';
-    } else { 
-        document.getElementById('detailOriginal').style.display = 'none'; 
-    }
-      }
-    
-    // Reset quantity
-    document.getElementById('quantity').value = 1;
-    document.getElementById('totalPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
-    
-    // Reset all ID fields
-    document.getElementById('gameId').value = '';
-    document.getElementById('serverId').value = '';
-    document.getElementById('verifyUserId').value = '';
-    document.getElementById('idVerifyResult').className = 'id-verify-result';
-    document.getElementById('idVerifyResult').textContent = '';
-    
-    // Reset verification flags
-    isIdVerified = false;
-    isTicketChecked = false;
-    document.getElementById('ticketCheckRow').classList.remove('checked');
-    document.getElementById('buyBtn').disabled = true;
-    
-    // Scroll to detail panel
-    document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
-    
-    // ✅ Balance Refresh (if function exists)
-    if (typeof refreshBalanceForDetail === 'function') {
-        refreshBalanceForDetail().then(function() {
-            if (selectedProduct) {
-                var qty = parseInt(document.getElementById('quantity').value) || 1;
-                checkBalanceAndWarn();
-            }
-        });
-    }
 }
+
 // ==================== QUANTITY ====================
 function changeQty(delta) {
     var qtyInput = document.getElementById('quantity');
@@ -2256,7 +1814,10 @@ function updateTotal() {
     }
 }
 
-function closeDetail() { document.getElementById('detailPanel').classList.remove('active'); selectedProduct = null; }
+function closeDetail() {
+    document.getElementById('detailPanel').classList.remove('active');
+    selectedProduct = null;
+}
 
 function showToast(msg, type) {
     var t = document.getElementById('toast');
@@ -2265,28 +1826,24 @@ function showToast(msg, type) {
     t.style.display = 'block';
     setTimeout(function() { t.style.display = 'none'; }, 3000);
 }
+
 // ==================== PURCHASE ====================
 async function purchaseMLBB() {
     if (!selectedProduct) return showToast('❌ Select a product', 'error');
-    
     var token = localStorage.getItem('auth_token');
     if (!token || token === 'guest') {
         showToast('❌ Please login first', 'error');
         return;
     }
-    
-    // ✅ User ID ထပ်စစ် (အရန်အနေနဲ့)
     var userId = document.getElementById('verifyUserId').value.trim();
     if (!userId || userId.length < 6) {
         showToast('❌ Please enter and verify your User ID first', 'error');
         return;
     }
-    
     var qty = parseInt(document.getElementById('quantity').value) || 1;
     var totalPrice = selectedProduct.price * qty;
     var productName = qty > 1 ? selectedProduct.name + ' (x' + qty + ')' : selectedProduct.name;
     
-    // ✅ Balance စစ်
     try {
         var balRes = await fetch('/api/get_balance', {
             method: 'POST',
@@ -2295,7 +1852,6 @@ async function purchaseMLBB() {
         });
         var balData = await balRes.json();
         var balance = parseFloat(balData.balance || 0);
-        
         if (balance < totalPrice) {
             var shortage = totalPrice - balance;
             showToast('❌ ငွေမလုံလောက်ပါ! လိုငွေ: ' + shortage.toLocaleString() + ' Ks', 'error');
@@ -2322,47 +1878,31 @@ async function purchaseMLBB() {
             })
         });
         var d = await r.json();
-        
         document.getElementById('loadingOverlay').classList.remove('active');
         
         if (d.success) {
-    // ✅ Product Image ကို Success Modal ထဲထည့်မယ်
-    var successImg = document.getElementById('successProductImage');
-    if (successImg && selectedProduct && selectedProduct.img) {
-        successImg.src = selectedProduct.img;
-        successImg.alt = selectedProduct.name;
-    }
-    
-    document.getElementById('successMsg').innerHTML = 
-        '<b>' + productName + '</b> ဝယ်ယူမှု အောင်မြင်ပါသည်။<br>' +
-        'Admin ဘက်မှ ထည့်သွင်းနေပြီဖြစ်ပြီး<br>' +
-        '<b style="color:#2ecc71">၃ မိနစ်</b> အတွင်း သင့်၏ဂိမ်းအကောင့်ထဲသို့ ရောက်ရှိပါမည်<br><br>' +
-        '<small style="color:#e67e22">⚠️ သင်၏ဖြည့်စွက်မှု မှားယွင်းပါက ကျွန်ုပ်တို့ဘက်မှ ဝယ်ယူမှုချက်ချင်းပယ်ဖျက်မည်ဖြစ်ပြီး ' +
-        'သင်၏ဝယ်ယူထားသောငွေပမာဏကို တစ်နာရီအတွင်း app ထဲသို့ ပြန်လည်ပေးဆောင်ပါမည်။</small>';
-    
-    document.getElementById('successOverlay').classList.add('active');
-    
-    addNotiItem('success', 
-        '✅ <b>MLBB - ' + productName + '</b><br>💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + totalPrice.toLocaleString() + ' Ks</b><br>💵 လက်ကျန်: <b>' + d.new_balance.toLocaleString() + ' Ks</b>',
-        selectedProduct.img
-    );
-    
-    document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
-    closeDetail();
-} else {
-    showToast('❌ ' + (d.message || 'Error'), 'error');
+            var successImg = document.getElementById('successProductImage');
+            if (successImg && selectedProduct && selectedProduct.img) {
+                successImg.src = selectedProduct.img;
+                successImg.alt = selectedProduct.name;
+            }
+            document.getElementById('successMsg').innerHTML = '<b>' + productName + '</b> ဝယ်ယူမှု အောင်မြင်ပါသည်။<br>Admin ဘက်မှ ထည့်သွင်းနေပြီဖြစ်ပြီး<br><b style="color:#2ecc71">၃ မိနစ်</b> အတွင်း သင့်၏ဂိမ်းအကောင့်ထဲသို့ ရောက်ရှိပါမည်';
+            document.getElementById('successOverlay').classList.add('active');
+            addNotiItem('success', '✅ <b>MLBB - ' + productName + '</b><br>💰 နှုတ်ငွေ: <b style="color:#e74c3c">-' + totalPrice.toLocaleString() + ' Ks</b><br>💵 လက်ကျန်: <b>' + d.new_balance.toLocaleString() + ' Ks</b>', selectedProduct.img);
+            document.getElementById('mmkBalance').textContent = d.new_balance.toLocaleString() + ' Ks';
+            closeDetail();
+        } else {
+            showToast('❌ ' + (d.message || 'Error'), 'error');
         }
     } catch(e) {
         document.getElementById('loadingOverlay').classList.remove('active');
         showToast('❌ Connection error', 'error');
     }
 }
-        
+
 function closeSuccess(event) {
     if (event && event.target !== document.getElementById('successOverlay')) return;
     document.getElementById('successOverlay').classList.remove('active');
-    
-    // ✅ Modal ပိတ်တဲ့အခါ ပုံကို ပြန်ရှင်းမယ်
     var successImg = document.getElementById('successProductImage');
     if (successImg) {
         successImg.src = '';
@@ -2388,6 +1928,7 @@ async function loadBalance() {
         document.getElementById('mmkBalance').textContent = '0 Ks';
     }
 }
+
 // ==================== RENDER PRODUCTS ====================
 function renderProducts(products, category) {
     var html = '';
@@ -2412,25 +1953,18 @@ function renderProducts(products, category) {
     }
     document.getElementById('productGrid').innerHTML = html;
     
-    // ✅ Render ပြီးတိုင်း Discount ပြန်သုံးမယ်
     if (discountActive) {
-        setTimeout(function() {
-            applyDiscountToProducts();
-            startDiscountTimerDisplay();
-        }, 50);
+        setTimeout(function() { applyDiscountToProducts(); startDiscountTimerDisplay(); }, 50);
     }
 }
-        
+
 function renderCards(products) {
     return products.map(function(p) {
-        // Check if product has discount
         const hasDiscount = p.discounted && p.original_price;
         const displayPrice = hasDiscount ? p.price : p.price;
         const originalPriceHtml = hasDiscount ? `<span class="original-price-crossed">${p.original_price.toLocaleString()} Ks</span>` : '';
         const priceClass = hasDiscount ? 'discounted-price' : 'normal-price';
-        
         var op = p.original > 0 ? '<div class="product-original">' + p.original.toLocaleString() + ' Ks</div>' : '';
-        
         return '<div class="product-card" data-category="' + p.category + '" onclick="selectProduct(\'' + p.name + '\')">' +
             '<div class="checkmark">✓</div>' +
             '<div class="product-img-wrap"><img class="product-img" src="' + p.img + '" alt="' + p.name + '" onerror="this.src=\'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg\'"></div>' +
@@ -2440,87 +1974,329 @@ function renderCards(products) {
             '</div>';
     }).join('');
 }
-        
+
 function filterCategory(category) {
     currentCategory = category;
     document.querySelectorAll('.category-tab').forEach(function(tab) { tab.classList.remove('active'); });
     event.target.classList.add('active');
     var filtered = category === 'all' ? PRODUCTS : PRODUCTS.filter(function(p) { return p.category === category; });
     renderProducts(filtered, category);
-    
-    // ✅ Category ပြောင်းပြီးရင် Discount ကို ပြန်သုံးမယ်
     if (discountActive) {
-        setTimeout(function() {
-            applyDiscountToProducts();
-            startDiscountTimerDisplay();
-        }, 50);
+        setTimeout(function() { applyDiscountToProducts(); startDiscountTimerDisplay(); }, 50);
     }
 }
-// ==================== FORCE TEST INIT ====================
-// ✅ First load products
-renderProducts(PRODUCTS, 'all');
-loadBalance();
-loadNotiItems();
 
-// ✅ FORCE TEST - Activate discount immediately
-console.log('[FORCE] Activating discount now...');
-
-discountActive = true;
-discountEndTime = new Date();
-discountEndTime.setDate(discountEndTime.getDate() + 5);
-discountEndTime.setHours(23, 59, 59, 59);
-
-// Update PRODUCTS array prices
-for (let i = 0; i < PRODUCTS.length; i++) {
-    if (!PRODUCTS[i].original_price) {
-        PRODUCTS[i].original_price = PRODUCTS[i].price;
+// ==================== SELECT PRODUCT ====================
+function selectProduct(productName) {
+    selectedProduct = PRODUCTS.find(function(p) { return p.name === productName; });
+    if (!selectedProduct) return;
+    
+    document.querySelectorAll('.product-card').forEach(function(c) { c.classList.remove('selected'); });
+    if (event && event.target) {
+        event.target.closest('.product-card').classList.add('selected');
     }
-    let discountAmount = getProductDiscount(PRODUCTS[i].name);
-    let discountedPrice = PRODUCTS[i].original_price - discountAmount;
     
-    if (discountedPrice < 50) discountedPrice = 50;
-    if (discountedPrice <= 0) discountedPrice = 10;
+    document.getElementById('detailPanel').classList.add('active');
+    document.getElementById('detailImg').src = selectedProduct.img;
+    document.getElementById('detailName').textContent = selectedProduct.name;
     
-    PRODUCTS[i].price = discountedPrice;
-    PRODUCTS[i].discounted = true;
+    if (selectedProduct.discounted && selectedProduct.original_price) {
+        document.getElementById('detailPrice').innerHTML = selectedProduct.price.toLocaleString() + ' Ks';
+        document.getElementById('detailOriginal').innerHTML = selectedProduct.original_price.toLocaleString() + ' Ks';
+        document.getElementById('detailOriginal').style.display = 'block';
+        document.getElementById('detailPrice').style.color = '#2ecc71';
+        document.getElementById('detailPrice').style.fontWeight = 'bold';
+        document.getElementById('detailOriginal').style.color = '#e74c3c';
+        document.getElementById('detailOriginal').style.textDecoration = 'line-through';
+    } else {
+        document.getElementById('detailPrice').innerHTML = selectedProduct.price.toLocaleString() + ' Ks';
+        document.getElementById('detailPrice').style.color = '#e67e22';
+        document.getElementById('detailPrice').style.fontWeight = 'bold';
+        if (selectedProduct.original > 0) {
+            document.getElementById('detailOriginal').innerHTML = selectedProduct.original.toLocaleString() + ' Ks';
+            document.getElementById('detailOriginal').style.display = 'block';
+            document.getElementById('detailOriginal').style.color = 'rgba(255,255,255,0.4)';
+            document.getElementById('detailOriginal').style.textDecoration = 'line-through';
+        } else { 
+            document.getElementById('detailOriginal').style.display = 'none'; 
+        }
+    }
+    
+    document.getElementById('quantity').value = 1;
+    document.getElementById('totalPrice').textContent = selectedProduct.price.toLocaleString() + ' Ks';
+    document.getElementById('gameId').value = '';
+    document.getElementById('serverId').value = '';
+    document.getElementById('verifyUserId').value = '';
+    document.getElementById('idVerifyResult').className = 'id-verify-result';
+    document.getElementById('idVerifyResult').textContent = '';
+    isIdVerified = false;
+    isTicketChecked = false;
+    document.getElementById('ticketCheckRow').classList.remove('checked');
+    document.getElementById('buyBtn').disabled = true;
+    document.getElementById('detailPanel').scrollIntoView({ behavior: 'smooth' });
+    
+    if (typeof refreshBalanceForDetail === 'function') {
+        refreshBalanceForDetail().then(function() {
+            if (selectedProduct) {
+                var qty = parseInt(document.getElementById('quantity').value) || 1;
+                checkBalanceAndWarn();
+            }
+        });
+    }
 }
 
-// Re-render
-renderProducts(PRODUCTS, 'all');
+// ==================== DISCOUNT SYSTEM ====================
+const DISCOUNT_CONFIG = {
+    startHour: 20, startMinute: 0,
+    durationDays: 5, durationHours: 23, durationMinutes: 59, durationSeconds: 59,
+    minPrice: 50, absoluteMin: 10,
+    productDiscounts: {
+        "Weekly Diamond Pass": 700, "Twilight Pass": 1000,
+        "First Recharge 50+50": 200, "First Recharge 150+150": 500,
+        "First Recharge 250+250": 500, "First Recharge 500+500": 500,
+        "Epic Treasure (Weekly)": 200, "Epic Hero (Monthly)": 500,
+        "5 Diamonds (5+0)": 50, "11 Diamonds (10+1)": 50,
+        "22 Diamonds (20+2)": 50, "55 Diamonds (50+5)": 50,
+        "56 Diamonds (51+5)": 50, "86 Diamonds (78+8)": 50,
+        "112 Diamonds (102+10)": 500, "165 Diamonds (150+15)": 500,
+        "172 Diamonds (156+16)": 500, "257 Diamonds (234+23)": 500,
+        "275 Diamonds (250+25)": 500, "336 Diamonds (303+33)": 500,
+        "565 Diamonds (500+65)": 500, "570 Diamonds (504+66)": 500,
+        "706 Diamonds (625+81)": 500, "1163 Diamonds (1007+156)": 500,
+        "2195 Diamonds (1860+335)": 500, "3688 Diamonds (3099+589)": 500,
+        "5532 Diamonds (4649+883)": 500, "6042 Diamonds (5035+1007)": 500,
+        "9288 Diamonds (7740+1548)": 500
+    }
+};
 
-// Apply discount styles and timer
-setTimeout(() => {
+let discountActive = false;
+let discountEndTime = null;
+let discountTimerInterval = null;
+
+function getProductDiscount(productName) {
+    return DISCOUNT_CONFIG.productDiscounts[productName] || 500;
+}
+
+function loadDiscountState() {
+    const saved = localStorage.getItem('mlbb_discount_state');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            discountActive = data.active;
+            discountEndTime = data.endTime ? new Date(data.endTime) : null;
+            if (discountActive && discountEndTime && Date.now() > discountEndTime.getTime()) {
+                discountActive = false;
+                discountEndTime = null;
+                localStorage.removeItem('mlbb_discount_state');
+            }
+        } catch(e) {}
+    }
+}
+
+function saveDiscountState() {
+    localStorage.setItem('mlbb_discount_state', JSON.stringify({
+        active: discountActive,
+        endTime: discountEndTime ? discountEndTime.toISOString() : null
+    }));
+}
+
+function updateProductsPricesWithDiscount() {
+    if (!discountActive) return;
+    for (let i = 0; i < PRODUCTS.length; i++) {
+        if (!PRODUCTS[i].discounted) {
+            PRODUCTS[i].original_price = PRODUCTS[i].price;
+            let discountAmount = getProductDiscount(PRODUCTS[i].name);
+            let discountedPrice = PRODUCTS[i].price - discountAmount;
+            if (discountedPrice < DISCOUNT_CONFIG.minPrice) discountedPrice = DISCOUNT_CONFIG.minPrice;
+            if (discountedPrice <= 0) discountedPrice = DISCOUNT_CONFIG.absoluteMin;
+            PRODUCTS[i].price = discountedPrice;
+            PRODUCTS[i].discounted = true;
+        }
+    }
+}
+
+function applyDiscountToProducts() {
+    if (!discountActive) return;
     document.querySelectorAll('.product-card').forEach(card => {
         const priceEl = card.querySelector('.product-price');
         const nameEl = card.querySelector('.product-name');
-        
-        if (priceEl && nameEl) {
+        if (priceEl && nameEl && !priceEl.classList.contains('discount-applied')) {
             const productName = nameEl.textContent.trim();
             const product = PRODUCTS.find(p => p.name === productName);
-            
             if (product && product.discounted && product.original_price) {
                 priceEl.innerHTML = `<span class="original-price-crossed">${product.original_price.toLocaleString()} Ks</span> <span class="discounted-price">${product.price.toLocaleString()} Ks</span>`;
                 priceEl.classList.add('discount-applied');
-                
                 if (!card.querySelector('.discount-timer-badge')) {
                     const badge = document.createElement('div');
                     badge.className = 'discount-timer-badge';
-                    badge.textContent = '⏰ 4d 23h 59m 59s';
                     card.style.position = 'relative';
                     card.appendChild(badge);
                 }
             }
         }
     });
-}, 100);
+}
 
-// Start timer
-startDiscountTimerDisplay();
+function removeDiscountFromProducts() {
+    document.querySelectorAll('.product-card').forEach(card => {
+        const priceEl = card.querySelector('.product-price');
+        const badge = card.querySelector('.discount-timer-badge');
+        const waitingTimer = card.querySelector('.waiting-timer');
+        if (badge) badge.remove();
+        if (waitingTimer) waitingTimer.remove();
+        if (priceEl && priceEl.classList.contains('discount-applied')) {
+            const originalPrice = card.getAttribute('data-original-price');
+            if (originalPrice) {
+                priceEl.innerHTML = `${parseInt(originalPrice).toLocaleString()} Ks`;
+                priceEl.classList.remove('discount-applied');
+            }
+        }
+    });
+    for (let i = 0; i < PRODUCTS.length; i++) {
+        if (PRODUCTS[i].discounted && PRODUCTS[i].original_price) {
+            PRODUCTS[i].price = PRODUCTS[i].original_price;
+            PRODUCTS[i].discounted = false;
+            delete PRODUCTS[i].original_price;
+        }
+    }
+    renderProducts(PRODUCTS, currentCategory);
+}
 
-// Show announcement
-showAnnouncement();
+function startDiscountTimerDisplay() {
+    if (discountTimerInterval) clearInterval(discountTimerInterval);
+    discountTimerInterval = setInterval(() => {
+        if (!discountActive || !discountEndTime) { clearInterval(discountTimerInterval); return; }
+        const remaining = discountEndTime.getTime() - Date.now();
+        if (remaining <= 0) {
+            clearInterval(discountTimerInterval);
+            discountActive = false;
+            discountEndTime = null;
+            saveDiscountState();
+            removeDiscountFromProducts();
+            return;
+        }
+        const totalSec = Math.floor(remaining / 1000);
+        const days = Math.floor(totalSec / 86400);
+        const hours = Math.floor((totalSec % 86400) / 3600);
+        const minutes = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+        const timeStr = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+        document.querySelectorAll('.discount-timer-badge').forEach(badge => { badge.textContent = `⏰ ${timeStr}`; });
+    }, 1000);
+}
 
-console.log('[FORCE] Discount should be visible now');
+function startWaitingTimer(targetStartTime) {
+    if (discountTimerInterval) clearInterval(discountTimerInterval);
+    const waitingInterval = setInterval(() => {
+        const now = new Date();
+        if (now >= targetStartTime) {
+            clearInterval(waitingInterval);
+            checkAndStartDiscount();
+            return;
+        }
+        const remaining = targetStartTime.getTime() - now.getTime();
+        const hours = Math.floor(remaining / 3600000);
+        const minutes = Math.floor((remaining % 3600000) / 60000);
+        const seconds = Math.floor((remaining % 60000) / 1000);
+        const waitingStr = `⏳ ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        document.querySelectorAll('.product-card').forEach(card => {
+            let waitingEl = card.querySelector('.waiting-timer');
+            if (!waitingEl) {
+                waitingEl = document.createElement('div');
+                waitingEl.className = 'waiting-timer';
+                card.style.position = 'relative';
+                card.appendChild(waitingEl);
+            }
+            waitingEl.textContent = waitingStr;
+        });
+    }, 1000);
+}
+
+function checkAndStartDiscount() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    
+    if (discountActive && discountEndTime) {
+        if (Date.now() < discountEndTime.getTime()) {
+            startDiscountTimerDisplay();
+            applyDiscountToProducts();
+            return true;
+        } else {
+            discountActive = false;
+            discountEndTime = null;
+            saveDiscountState();
+            removeDiscountFromProducts();
+            return false;
+        }
+    }
+    
+    const isStartTimeReached = (currentHour > DISCOUNT_CONFIG.startHour) || (currentHour === DISCOUNT_CONFIG.startHour && currentMinute >= DISCOUNT_CONFIG.startMinute);
+    
+    if (isStartTimeReached) {
+        discountActive = true;
+        discountEndTime = new Date();
+        discountEndTime.setDate(discountEndTime.getDate() + DISCOUNT_CONFIG.durationDays);
+        discountEndTime.setHours(discountEndTime.getHours() + DISCOUNT_CONFIG.durationHours);
+        discountEndTime.setMinutes(discountEndTime.getMinutes() + DISCOUNT_CONFIG.durationMinutes);
+        discountEndTime.setSeconds(discountEndTime.getSeconds() + DISCOUNT_CONFIG.durationSeconds);
+        saveDiscountState();
+        updateProductsPricesWithDiscount();
+        renderProducts(PRODUCTS, currentCategory);
+        setTimeout(() => { applyDiscountToProducts(); startDiscountTimerDisplay(); }, 100);
+        return true;
+    } else {
+        const targetStart = new Date(now);
+        targetStart.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
+        if (currentHour >= DISCOUNT_CONFIG.startHour) targetStart.setDate(targetStart.getDate() + 1);
+        startWaitingTimer(targetStart);
+        return false;
+    }
+}
+
+function initDiscountSystem() {
+    loadDiscountState();
+    if (discountActive) {
+        updateProductsPricesWithDiscount();
+        renderProducts(PRODUCTS, currentCategory);
+        setTimeout(() => { applyDiscountToProducts(); startDiscountTimerDisplay(); }, 100);
+    }
+    checkAndStartDiscount();
+}
+
+// ==================== ANNOUNCEMENT ====================
+function updateAnnouncementDates() {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
+    if (now > startDate) startDate.setDate(startDate.getDate() + 1);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + DISCOUNT_CONFIG.durationDays);
+    endDate.setHours(endDate.getHours() + DISCOUNT_CONFIG.durationHours);
+    
+    const startDateStr = startDate.toLocaleDateString('my-MM', { year: 'numeric', month: 'long', day: 'numeric' });
+    const endDateStr = endDate.toLocaleDateString('my-MM', { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    const startEl = document.getElementById('eventStartDate');
+    const endEl = document.getElementById('eventEndDate');
+    if (startEl) startEl.textContent = startDateStr;
+    if (endEl) endEl.textContent = endDateStr;
+}
+
+function showAnnouncement() {
+    const announcement = document.getElementById('discountAnnouncement');
+    if (announcement) {
+        announcement.style.display = 'block';
+        updateAnnouncementDates();
+    }
+}
+
+// ==================== INIT ====================
+renderProducts(PRODUCTS, 'all');
+loadBalance();
+loadNotiItems();
+initDiscountSystem();
+setTimeout(() => { showAnnouncement(); }, 500);           
     </script>
 </body>
 </html>
