@@ -2804,7 +2804,9 @@ app.post('/api/purchase_game_item', async (req, res) => {
         const newBalance = currentBalance - price;
         await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id = $2', [price, uid]);
         
-        // ✅ FIXED: Insert order with ALL fields (product_name, game_id, server_id, player_id)
+        // ✅ Get product image URL based on game and product
+        let productImageUrl = getProductImageUrl(game, product_name);
+        
         const paymentMethod = game.toUpperCase() + ' Purchase';
         
         await p.query(
@@ -2815,13 +2817,13 @@ app.post('/api/purchase_game_item', async (req, res) => {
                 username, 
                 -price, 
                 paymentMethod, 
-                '',  // screenshot (game purchase doesn't have screenshot)
-                'pending',  // ❗ ဒါကို 'pending' ထားရင် Admin approve လုပ်ရမယ်
+                productImageUrl,  // ✅ Game Icon ကို screenshot အဖြစ်သိမ်း
+                'pending',
                 uid.toString(),
-                product_name,  // ✅ product_name
-                game_id || null,  // ✅ game_id
-                server_id || null,  // ✅ server_id
-                player_id || null   // ✅ player_id
+                product_name,
+                game_id || null,
+                server_id || null,
+                player_id || null
             ]
         );
         
@@ -2838,7 +2840,8 @@ app.post('/api/purchase_game_item', async (req, res) => {
             message: 'ဝယ်ယူမှု အောင်မြင်ပါသည်။ Admin မှ အတည်ပြုပါမည်။',
             new_balance: newBalance,
             product: product_name,
-            game: game
+            game: game,
+            product_image: productImageUrl
         });
         
     } catch(e) {
@@ -2846,6 +2849,61 @@ app.post('/api/purchase_game_item', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+
+// ✅ Helper function to get product image URL
+function getProductImageUrl(game, productName) {
+    // MLBB Product Images
+    const mlbbImages = {
+        '5 Diamonds (5+0)': 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png',
+        '11 Diamonds (10+1)': 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png',
+        '22 Diamonds (20+2)': 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png',
+        '55 Diamonds (50+5)': 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png',
+        '56 Diamonds (51+5)': 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png',
+        '86 Diamonds (78+8)': 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png',
+        '112 Diamonds (102+10)': 'https://i.ibb.co/S4MnMpXQ/01-JD9-FCWTADSQZNA61-T2-B8-RKY4.png',
+        '165 Diamonds (150+15)': 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png',
+        'Weekly Diamond Pass': 'https://i.ibb.co/gbY4GTvk/8cfaffbfa7aa9e957bb6da56f7fed781.jpg',
+        'Twilight Pass': 'https://i.ibb.co/xcRdNfj/01-JED346-YHR0-Z1-YVSG81-DEMFYQ.png',
+        'First Recharge 50+50': 'https://i.ibb.co/JWbn70T0/01-JSEPEK616-XR3-P8-SWTFH4-TQTD.png',
+        'First Recharge 150+150': 'https://i.ibb.co/yMK1y2L/01-JSEPFNH4-BPJA6-TY0-HRVX8-PPX.png',
+        'First Recharge 250+250': 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png',
+        'First Recharge 500+500': 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png',
+        'Epic Treasure (Weekly)': 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg',
+        'Epic Hero (Monthly)': 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg'
+    };
+    
+    // PUBG Product Images
+    const pubgImages = {
+        '60 UC': 'https://i.ibb.co/pBXCsdCW/01-K85-PFFBFP3-DQJXKGG9-JD9-YN2.jpg',
+        '325 UC': 'https://i.ibb.co/23v79K9p/01-K85-PNG8-XXYY0-M19-ZVFZMT7-D6.jpg',
+        '660 UC': 'https://i.ibb.co/Ldqz4LMY/01-K85-R7-JPGWH903890-XQXV3-JFN.jpg',
+        '1800 UC': 'https://i.ibb.co/Ldqz4LMY/01-K85-R7-JPGWH903890-XQXV3-JFN.jpg',
+        '3850 UC': 'https://i.ibb.co/Jj2xWCq5/01-K85-RDSC9-JWH8-W1-K15-R8-QZCGY.jpg',
+        '8100 UC': 'https://i.ibb.co/Jj2xWCq5/01-K85-RDSC9-JWH8-W1-K15-R8-QZCGY.jpg'
+    };
+    
+    // HOK Product Images
+    const hokImages = {
+        '16 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '80 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '240 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '400 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '560 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '800 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '1200 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '2400 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg'
+    };
+    
+    if (game === 'mlbb') {
+        return mlbbImages[productName] || 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg';
+    } else if (game === 'pubg') {
+        return pubgImages[productName] || 'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg';
+    } else if (game === 'hok') {
+        return hokImages[productName] || 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg';
+    }
+    
+    return '';
+}
 // ==================== ORDER STATUS (ADMIN) ====================
 app.post('/api/admin/order_status', async (req, res) => { 
     try { 
