@@ -1459,29 +1459,34 @@ function renderTopupNotice(d){const b=document.getElementById('topupNoticeBanner
 async function loadTopupNotice(){try{const r=await fetch("/api/topup_notice");const d=await r.json();if(d.success&&d.message){renderTopupNotice(d)}else{document.getElementById('topupNoticeBanner').style.display='none'}}catch(e){}}
 
 // ✅ Init function ထဲမှာ ဒါကိုထည့်ပါ
-(async function init() {
-    const pageOn = await checkPageAccess();
-    if (!pageOn) return;
+// ==================== INIT ====================
+async function init() {
+    console.log('[INIT] Page loading...');
     
-    var token = getToken();
-    var user = null;
-    try { user = JSON.parse(localStorage.getItem('user') || 'null'); } catch(e) {}
+    await loadBalance();
+    await loadOrdersV3();   // ✅ ဒါကို ခေါ်မယ်
+    await loadTopupNotice();
+    loadNotiItems();
     
-    if (!token || token === 'guest') {
-        document.getElementById('loginCheckMessage').style.display = 'block';
-        document.getElementById('topupContent').style.display = 'none';
-        return;
+    if (typeof renderGameCards === 'function') {
+        renderGameCards();
     }
     
-    document.getElementById('loginCheckMessage').style.display = 'none';
-    document.getElementById('topupContent').style.display = 'block';
+    displayUserInfo();
     
-    loadTopupNotice();
-    setInterval(loadTopupNotice, 5000);
-    loadHistory();
+    try {
+        let user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (user && user.id) {
+            document.getElementById('verifyUserId').value = user.id.toString().padStart(6, '0');
+        }
+    } catch(e) {}
     
-    // ✅ ဒီတစ်ကြောင်း ထည့်လိုက်ပါ
-    renderGameCards();
+    console.log('[INIT] Page ready');
+}
+
+init();
+setInterval(checkBalanceChanges, 10000);
+setInterval(checkOrderUpdates, 30000);
     
 })();
 // ==================== VARIABLES ====================
