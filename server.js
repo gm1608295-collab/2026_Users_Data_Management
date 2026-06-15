@@ -2860,7 +2860,141 @@ app.post('/api/admin/order_status', async (req, res) => {
         res.json({ success: false }); 
     } 
 });
-
+// ==================== REJECT ORDER WITH AUTO REFUND ====================
+app.post('/api/admin/order/reject', async (req, res) => {
+    const { id, reason } = req.body;
+    if (!id) return res.json({ success: false, message: 'Order ID required' });
+    
+    try {
+        const p = await getPool();
+        
+        // Get order details
+        const order = await p.query('SELECT * FROM orders WHERE id = $1', [id]);
+        if (order.rows.length === 0) {
+            return res.json({ success: false, message: 'Order not found' });
+        }
+        
+        const o = order.rows[0];
+        const userId = o.user_id;
+        const amount = Math.abs(parseFloat(o.amount || 0));
+        
+        // Update order status to rejected
+        await p.query(
+            'UPDATE orders SET status = $1, reject_reason = $2 WHERE id = $3',
+            ['rejected', reason || 'အချက်အလက်များ မှန်ကန်မှုမရှိပါ', id]
+        );
+        
+        // ✅ Auto refund if amount > 0
+        if (amount > 0 && userId) {
+            await p.query(
+                'UPDATE auth_users SET balance = COALESCE(balance, 0) + $1 WHERE id = $2',
+                [amount, userId]
+            );
+            console.log(`[REFUND] User ${userId} refunded ${amount} Ks for order ${id}`);
+        }
+        
+        res.json({ success: true, message: 'Order rejected and refunded' });
+        
+    } catch(e) {
+        console.error('[REJECT ORDER ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// ==================== GET ORDER BY ID ====================
+app.post('/api/order/by_id', async (req, res) => {
+    const { orderId, token } = req.body;
+    
+    if (!orderId) return res.json({ success: false, message: 'Order ID required' });
+    
+    try {
+        const p = await getPool();
+        let uid = null;
+        
+        // Verify token
+        if (token && token !== 'guest') {
+            if (token.startsWith('eyJ')) {
+                try {
+                    const decoded = jwt.verify(token, JWT_SECRET);
+                    uid = decoded.userId;
+                } catch(e) {}
+            } else if (token.startsWith('token_')) {
+                uid = parseInt(token.replace('token_', ''));
+            }
+        }
+        
+        const order = await p.query('SELECT * FROM orders WHERE id = $1', [orderId]);
+        
+        if (order.rows.length === 0) {
+            return res.json({ success: false, message: 'Order not found' });
+        }
+        
+        const o = order.rows[0];
+        
+        // Check if user owns this order (if logged in)
+        if (uid && o.user_id !== uid) {
+            return res.json({ success: false, message: 'Not your order' });
+        }
+        
+        res.json({ success: true, order: o });
+        
+    } catch(e) {
+        console.error('[ORDER BY ID ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+// ==================== BULK APPROVE ALL PENDING ORDERS ====================
+app.post('/api/admin/orders/approve_all_pending', async (req, res) => {
+    try {
+        const p = await getPool();
+        
+        // Get all pending orders
+        const pendingOrders = await p.query(
+            "SELECT * FROM orders WHERE status = 'pending' ORDER BY id ASC"
+        );
+        
+        if (pendingOrders.rows.length === 0) {
+            return res.json({ success: false, message: 'No pending orders' });
+        }
+        
+        let approvedCount = 0;
+        let totalAmount = 0;
+        
+        for (const order of pendingOrders.rows) {
+            const userId = order.user_id;
+            const amount = Math.abs(parseFloat(order.amount || 0));
+            
+            // Update order status
+            await p.query(
+                "UPDATE orders SET status = 'approved' WHERE id = $1",
+                [order.id]
+            );
+            
+            // Add balance to user
+            if (amount > 0 && userId) {
+                await p.query(
+                    'UPDATE auth_users SET balance = COALESCE(balance, 0) + $1 WHERE id = $2',
+                    [amount, userId]
+                );
+                totalAmount += amount;
+            }
+            
+            approvedCount++;
+        }
+        
+        console.log(`[BULK APPROVE] Approved ${approvedCount} orders, total amount: ${totalAmount} Ks`);
+        
+        res.json({ 
+            success: true, 
+            message: `✅ Approved ${approvedCount} orders, total +${totalAmount.toLocaleString()} Ks`,
+            count: approvedCount,
+            total_amount: totalAmount
+        });
+        
+    } catch(e) {
+        console.error('[BULK APPROVE ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== NOTICES ====================
 app.get('/api/notice', async (req, res) => { 
     try { 
