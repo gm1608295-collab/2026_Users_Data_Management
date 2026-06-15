@@ -423,6 +423,12 @@ async function initTables(p) {
 `ALTER TABLE user_gmail_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
 `ALTER TABLE user_mlbb_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
 `ALTER TABLE user_tiktok_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
+
+        // ========== ORDERS TABLE - ADD MISSING COLUMNS ==========
+`ALTER TABLE orders ADD COLUMN IF NOT EXISTS product_name TEXT`,
+`ALTER TABLE orders ADD COLUMN IF NOT EXISTS game_id VARCHAR(50)`,
+`ALTER TABLE orders ADD COLUMN IF NOT EXISTS server_id VARCHAR(50)`,
+`ALTER TABLE orders ADD COLUMN IF NOT EXISTS player_id VARCHAR(50)`,
         
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
