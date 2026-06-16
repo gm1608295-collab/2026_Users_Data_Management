@@ -272,6 +272,13 @@ async function initTables(p) {
         // ========== USER & AUTH ==========
         `CREATE TABLE IF NOT EXISTS auth_users (id SERIAL PRIMARY KEY, username VARCHAR(100), email VARCHAR(200), phone VARCHAR(50), password VARCHAR(255), google_id VARCHAR(200), login_type VARCHAR(10) DEFAULT 'local', avatar VARCHAR(500), gmail_pass VARCHAR(100) DEFAULT 'DoubleMK2008', mlbb_pass VARCHAR(100) DEFAULT 'GlobalMK2008', tiktok_pass VARCHAR(100) DEFAULT 'DoubleMK2008', balance DECIMAL DEFAULT 0, usd_balance DECIMAL DEFAULT 0, premium_expiry TIMESTAMP, paid_spins INT DEFAULT 0, premium_tier INT DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, last_login TIMESTAMP)`,
         
+         // ========== PAGE TIMER (SERVER SIDE) ==========
+        `CREATE TABLE IF NOT EXISTS page_timers (
+            page_id VARCHAR(50) PRIMARY KEY,
+            timer_end TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        
         // ========== SECURITY ==========
         `CREATE TABLE IF NOT EXISTS login_history (id SERIAL PRIMARY KEY, user_id INT NOT NULL, username VARCHAR(100), login_type VARCHAR(20), ip_address VARCHAR(50), device_info VARCHAR(300), device_type VARCHAR(50), device_brand VARCHAR(100), device_model VARCHAR(100), browser VARCHAR(50), is_mobile BOOLEAN DEFAULT false, user_agent TEXT, login_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`,
         `CREATE TABLE IF NOT EXISTS device_sessions (id SERIAL PRIMARY KEY, user_id INT NOT NULL, token VARCHAR(200) NOT NULL, device_name VARCHAR(300), device_type VARCHAR(50), device_brand VARCHAR(100), device_model VARCHAR(100), browser VARCHAR(50), ip_address VARCHAR(50), user_agent TEXT, is_active BOOLEAN DEFAULT true, last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(user_id, token))`,
@@ -1057,6 +1064,75 @@ app.get('/auth/tiktok/callback', async (req, res) => {
         trackLogin(nu.rows[0].id, user.display_name, 'tiktok', req);
         res.send(`<script>localStorage.setItem("auth_token","token_${nu.rows[0].id}");localStorage.setItem("user",JSON.stringify({id:${nu.rows[0].id},username:"${user.display_name}",email:"tiktok@user.com",login_type:"tiktok"}));window.location.href="/dashboard";</script>`);
     } catch(e) { res.send('<script>alert("Failed");window.location.href="/";</script>'); }
+});
+// ==================== SET PAGE TIMER (ADMIN) ====================
+app.post('/api/admin/set_page_timer', async (req, res) => {
+    const { page_id, duration_seconds } = req.body;
+    
+    if (!page_id || !duration_seconds) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+    
+    try {
+        const p = await getPool();
+        const timerEnd = new Date(Date.now() + duration_seconds * 1000);
+        
+        // Save to database
+        await p.query(
+            `INSERT INTO page_timers (page_id, timer_end, updated_at) 
+             VALUES ($1, $2, NOW()) 
+             ON CONFLICT (page_id) DO UPDATE SET timer_end = $2, updated_at = NOW()`,
+            [page_id, timerEnd]
+        );
+        
+        // Also turn page OFF
+        await p.query(
+            "INSERT INTO page_status (page_id, status) VALUES ($1, 'off') ON CONFLICT (page_id) DO UPDATE SET status = 'off'",
+            [page_id]
+        );
+        
+        console.log(`[PAGE TIMER] ${page_id} will turn ON at ${timerEnd.toISOString()}`);
+        res.json({ success: true, timer_end: timerEnd.toISOString() });
+        
+    } catch(e) {
+        console.error('[SET PAGE TIMER ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// ==================== CHECK PAGE TIMER (PUBLIC) ====================
+app.get('/api/page_timer/:page_id', async (req, res) => {
+    const { page_id } = req.params;
+    
+    try {
+        const p = await getPool();
+        const r = await p.query(
+            'SELECT timer_end FROM page_timers WHERE page_id = $1 AND timer_end > NOW()',
+            [page_id]
+        );
+        
+        if (r.rows.length > 0) {
+            const timerEnd = new Date(r.rows[0].timer_end);
+            const remainingMs = timerEnd.getTime() - Date.now();
+            
+            res.json({
+                success: true,
+                is_active: true,
+                timer_end: timerEnd.toISOString(),
+                remaining_seconds: Math.floor(remainingMs / 1000)
+            });
+        } else {
+            // Check if page should be turned ON
+            await p.query(
+                "UPDATE page_status SET status = 'on' WHERE page_id = $1 AND status = 'off'",
+                [page_id]
+            );
+            res.json({ success: true, is_active: false });
+        }
+    } catch(e) {
+        console.error('[PAGE TIMER ERROR]', e.message);
+        res.json({ success: false, is_active: false });
+    }
 });
 // ==================== GET USER DATA PASSWORDS (JWT VERSION) ====================
 app.post('/api/get_passwords', async (req, res) => {
