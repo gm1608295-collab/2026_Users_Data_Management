@@ -1623,32 +1623,35 @@ body.modal-open .container {
         document.getElementById('adminBox').style.display = 'block';
         showLoading('Loading...');
         try {
-            await Promise.all([
-    loadAdminData(),
-    loadAdminOrders('all'),
-    loadPageToggles(),
-    loadCurrentPlaylist(),
-    loadSliderPreview(),
-    loadCurrentVideo(),
-    loadNoticeList(),
-    loadBuyCodeNoticeList(),
-    loadTopupNoticeList(),
-    loadRedeemCodes(),
-    loadSpinRates(),
-    loadResellers(),
-    loadResellerTransactions(),
-    loadExchangeRate(),
-    loadPromoCodes(),
-    loadCheckinEvents(),
-    loadAdminOrderTable()   // ✅ ဒီတစ်ကြောင်းကို ထည့်ပါ
-]);
-            updateBackupInfo();
-            hideLoading();
-            n('✅ Loaded');
-            startAutoRefresh();
-        } catch(e) {
-            hideLoading();
-            n('Error', 'error');
+    await Promise.all([
+        loadAdminData(),
+        loadAdminOrders('all'),
+        loadPageToggles(),
+        loadCurrentPlaylist(),
+        loadSliderPreview(),
+        loadCurrentVideo(),
+        loadNoticeList(),
+        loadBuyCodeNoticeList(),
+        loadTopupNoticeList(),
+        loadRedeemCodes(),
+        loadSpinRates(),
+        loadResellers(),
+        loadResellerTransactions(),
+        loadExchangeRate(),
+        loadPromoCodes(),
+        loadCheckinEvents()
+    ]);
+    
+    // ✅ ဒီမှာ သပ်သပ် ခေါ်ပါ
+    await loadAdminOrderTable();
+    
+    updateBackupInfo();
+    hideLoading();
+    n('✅ Loaded');
+    startAutoRefresh();
+} catch(e) {
+    hideLoading();
+    n('Error', 'error');
         }
     } else {
         n('Wrong password', 'error');
