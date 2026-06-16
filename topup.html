@@ -2054,10 +2054,116 @@ document.addEventListener('visibilitychange', function() {
         });
     }
 });
+        // ==================== PAGE TIMER SYSTEM (အကုန်လုံးအတူတူ) ====================
+
+function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
+}
+
+function getCookie(name) {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+async function checkPageTimer() {
+    const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
+    
+    let timer = null;
+    
+    try {
+        // localStorage ကနေ ယူ
+        const saved = localStorage.getItem('pageTimers');
+        if (saved) {
+            const timers = JSON.parse(saved);
+            timer = timers[pageId];
+        }
+        
+        // Cookie ကနေ ယူ
+        if (!timer) {
+            const cookieTimers = getCookie('pageTimers');
+            if (cookieTimers) {
+                const timers = JSON.parse(decodeURIComponent(cookieTimers));
+                timer = timers[pageId];
+            }
+        }
+        
+        // SessionStorage ကနေ ယူ
+        if (!timer) {
+            const sessionTimers = sessionStorage.getItem('pageTimers');
+            if (sessionTimers) {
+                const timers = JSON.parse(sessionTimers);
+                timer = timers[pageId];
+            }
+        }
+    } catch(e) {}
+    
+    const banner = document.getElementById('pageTimerBanner');
+    const countdown = document.getElementById('pageTimerCountdown');
+    const maintMsg = document.getElementById('maintenanceMessage');
+    
+    // Timer မရှိရင် အကုန်ဖျောက်
+    if (!timer || timer <= Date.now()) {
+        if (banner) banner.style.display = 'none';
+        if (maintMsg) maintMsg.style.display = 'none';
+        return;
+    }
+    
+    // Timer ရှိရင် ပြ
+    if (banner) banner.style.display = 'block';
+    if (maintMsg) maintMsg.style.display = 'block';
+    
+    const update = () => {
+        const rem = timer - Date.now();
+        
+        if (rem <= 0) {
+            // Timer ကုန်ရင် ဖျောက်ပြီး Refresh
+            if (banner) banner.style.display = 'none';
+            if (maintMsg) maintMsg.style.display = 'none';
+            
+            try {
+                const saved = localStorage.getItem('pageTimers');
+                if (saved) {
+                    const timers = JSON.parse(saved);
+                    delete timers[pageId];
+                    localStorage.setItem('pageTimers', JSON.stringify(timers));
+                }
+                setCookie('pageTimers', '', -1);
+                sessionStorage.removeItem('pageTimers');
+            } catch(e) {}
+            
+            location.reload();
+            return;
+        }
+        
+        const totalSec = Math.floor(rem / 1000);
+        const hours = Math.floor(totalSec / 3600);
+        const minutes = Math.floor((totalSec % 3600) / 60);
+        const seconds = totalSec % 60;
+        const timeStr = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        
+        if (countdown) countdown.textContent = timeStr;
+    };
+    
+    update();
+    setInterval(update, 1000);
+}
  // ==================== INIT ====================
 async function init() {
     console.log('[INIT] Page loading...');
-    
+     // ✅ Page Timer ကို စစ်
+    await checkPageTimer();
     await loadBalance();
     await loadOrdersV3();   // ✅ ဒါက order history ကို load
     await loadTopupNotice();
