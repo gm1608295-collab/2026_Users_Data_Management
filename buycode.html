@@ -913,23 +913,6 @@ checkNewCodes();
 // ==================== BG MUSIC PLAYER ====================
 (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
 
-// ==================== PAGE ACCESS CHECK ====================
-async function checkPageAccess() {
-    try {
-        const r = await fetch('/api/admin/page_status');
-        const d = await r.json();
-        if (d.pages) {
-            const bc = d.pages.find(p => p.id === 'buycode');
-            if (bc && bc.status === 'off') {
-                document.getElementById('maintenanceMessage').style.display = 'block';
-                document.getElementById('buycodeContent').style.display = 'none';
-                checkPageTimer();
-                return false;
-            }
-        }
-        return true;
-    } catch(e) { return true; }
-}
 
 // ==================== INIT ====================
 (async function init() {
@@ -948,51 +931,25 @@ async function checkPageAccess() {
     loadNotice();
     setInterval(loadNotice, 5000);
 })();
-// ==================== PAGE TIMER COUNTDOWN ====================
-async function checkPageTimer() {
-    const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
-    let timer = null;
+   
+     async function checkPageAccess() {
     try {
-        const saved = localStorage.getItem('pageTimers');
-        if (saved) { const timers = JSON.parse(saved); timer = timers[pageId]; }
-        if (!timer) { const cookieTimers = getCookie('pageTimers'); if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); timer = timers[pageId]; } }
-        if (!timer) { const sessionTimers = sessionStorage.getItem('pageTimers'); if (sessionTimers) { const timers = JSON.parse(sessionTimers); timer = timers[pageId]; } }
-    } catch(e) {}
-    if (!timer || timer <= Date.now()) return;
-    const maintMsg = document.getElementById('maintenanceMessage');
-    if (maintMsg) maintMsg.style.display = 'block';
-    const pageBanner = document.getElementById('pageTimerBanner');
-    if (pageBanner) pageBanner.style.display = 'block';
-    const maintTimer = document.getElementById('maintenanceCountdown');
-    const pageCountdown = document.getElementById('pageTimerCountdown');
-    const update = () => {
-        const rem = timer - Date.now();
-        if (rem <= 0) {
-            try { const saved = localStorage.getItem('pageTimers'); if (saved) { const timers = JSON.parse(saved); delete timers[pageId]; localStorage.setItem('pageTimers', JSON.stringify(timers)); } setCookie('pageTimers', '', -1); sessionStorage.removeItem('pageTimers'); } catch(e) {}
-            location.reload(); return;
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const bc = d.pages.find(p => p.id === 'buycode');
+            if (bc && bc.status === 'off') {
+                // ⚠️ ဒီနေရာမှာ checkPageTimer() ကို မခေါ်တော့ဘူး
+                // maintenanceMessage ကို ပြဖို့ မလိုတော့ဘူး
+                // Server-side timer က ကိုင်တွယ်မယ်
+                return false;
+            }
         }
-        const s = Math.floor(rem / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-        const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-        if (maintTimer) maintTimer.textContent = timeStr;
-        if (pageCountdown) pageCountdown.textContent = timeStr;
-    };
-    update();
-    setInterval(update, 1000);
-}
-function setCookie(name, value, days) {
-    let expires = '';
-    if (days) { const date = new Date(); date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000)); expires = '; expires=' + date.toUTCString(); }
-    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
-}
-function getCookie(name) {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) { let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
-    return null;
-}
+        return true;
+    } catch(e) { return true; }
+     }
      // ==================== UNIVERSAL PAGE TIMER (SERVER-SIDE) ====================
 async function checkPageTimerServer() {
-    // Get current page ID from URL
     const pageId = window.location.pathname.replace('.html', '').replace('/', '') || 'dashboard';
     
     try {
@@ -1000,33 +957,32 @@ async function checkPageTimerServer() {
         const d = await r.json();
         
         if (d.success && d.is_active && d.remaining_seconds > 0) {
-            // Show maintenance mode
-            showMaintenanceMode(d.remaining_seconds, pageId);
+            showMaintenanceMode(d.remaining_seconds);
             return true;
         } else {
-            // Page is ON - hide maintenance
             hideMaintenanceMode();
             return false;
         }
     } catch(e) {
         console.error('[PAGE TIMER] Error:', e.message);
+        hideMaintenanceMode();
         return false;
     }
 }
 
-function showMaintenanceMode(remainingSeconds, pageId) {
-    // Hide main content
-    const content = document.getElementById('mainContainer') || document.getElementById('contactContent') || document.querySelector('.container');
-    if (content) content.style.display = 'none';
-    
-    // Show maintenance message
+function showMaintenanceMode(remainingSeconds) {
+    // ✅ 1. ရှိပြီးသား Maintenance Div ကို ရှာပါ
     let maintDiv = document.getElementById('maintenanceMessage');
+    
+    // ✅ 2. မရှိရင် အသစ်ဖန်တီးပါ
     if (!maintDiv) {
         maintDiv = document.createElement('div');
         maintDiv.id = 'maintenanceMessage';
-        maintDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px;';
+        maintDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;';
         document.body.prepend(maintDiv);
     }
+    
+    // ✅ 3. ပါဝင်တဲ့ Content ကို ပြပါ
     maintDiv.style.display = 'flex';
     maintDiv.innerHTML = `
         <div style="font-size:70px;color:#f39c12;margin-bottom:20px;">
@@ -1041,12 +997,16 @@ function showMaintenanceMode(remainingSeconds, pageId) {
         <div style="font-size:28px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace;margin:15px 0;" id="serverCountdown">
             --:--:--
         </div>
-        <a href="/dashboard" class="maintenance-btn" style="display:inline-block;padding:12px 30px;background:#f39c12;color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px;">
+        <a href="/dashboard" style="display:inline-block;padding:12px 30px;background:#f39c12;color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px;">
             <i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့
         </a>
     `;
     
-    // Start countdown
+    // ✅ 4. အောက်ခံစာမျက်နှာကို ဖျောက်ပါ
+    const content = document.querySelector('.container') || document.querySelector('.content') || document.getElementById('mainContainer');
+    if (content) content.style.display = 'none';
+    
+    // ✅ 5. Countdown စတင်ပါ
     startServerCountdown(remainingSeconds);
 }
 
@@ -1075,10 +1035,12 @@ function startServerCountdown(seconds) {
 
 function hideMaintenanceMode() {
     const maintDiv = document.getElementById('maintenanceMessage');
-    if (maintDiv) maintDiv.style.display = 'none';
-    
-    const content = document.getElementById('mainContainer') || document.getElementById('contactContent') || document.querySelector('.container');
-    if (content) content.style.display = 'block';
+    if (maintDiv) {
+        maintDiv.style.display = 'none';
+        // ⚠️ အောက်ခံစာမျက်နှာကို ပြန်ပြပါ
+        const content = document.querySelector('.container') || document.querySelector('.content') || document.getElementById('mainContainer');
+        if (content) content.style.display = 'block';
+    }
 }
 </script>
 </body>
