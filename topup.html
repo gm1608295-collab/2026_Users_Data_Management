@@ -2205,34 +2205,45 @@ async function checkPageAccess(){
         if(d.pages){
             const tp=d.pages.find(p=>p.id==='topup');
             if(tp&&tp.status==='off'){
+                // ✅ Maintenance Message ကိုပြပါ
                 document.getElementById('maintenanceMessage').style.display='block';
                 document.getElementById('topupContent').style.display='none';
                 document.getElementById('loginCheckMessage').style.display='none';
-                // ✅ ဒီမှာ checkPageTimer ကိုခေါ်
+                
+                // ✅ Page Timer Banner ကိုဖျောက်ပါ (ထပ်မပြစေရန်)
+                const banner = document.getElementById('pageTimerBanner');
+                if (banner) banner.style.display = 'none';
+                
+                // ✅ Timer ကိုစတင်ပါ
                 checkPageTimer();
                 return false;
             }
         }
-        // ✅ Page ON ရင် Timer ကိုစစ် (ဒါပေမယ့် Banner ကိုပြဖို့)
+        // ✅ Page ON ဖြစ်ရင် Maintenance Message ဖျောက်
+        document.getElementById('maintenanceMessage').style.display='none';
+        document.getElementById('topupContent').style.display='block';
+        
+        // ✅ Page Timer Banner ကိုစစ်ပါ
         checkPageTimer();
         return true;
-    }catch(e){return true;}
+    }catch(e){
+        document.getElementById('maintenanceMessage').style.display='none';
+        document.getElementById('topupContent').style.display='block';
+        return true;
+    }
 }
-        
+
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
     
     let timer = null;
     
     try {
-        // localStorage ကနေ ယူ
         const saved = localStorage.getItem('pageTimers');
         if (saved) {
             const timers = JSON.parse(saved);
             timer = timers[pageId];
         }
-        
-        // Cookie ကနေ ယူ
         if (!timer) {
             const cookieTimers = getCookie('pageTimers');
             if (cookieTimers) {
@@ -2240,8 +2251,6 @@ async function checkPageTimer() {
                 timer = timers[pageId];
             }
         }
-        
-        // SessionStorage ကနေ ယူ
         if (!timer) {
             const sessionTimers = sessionStorage.getItem('pageTimers');
             if (sessionTimers) {
@@ -2254,6 +2263,7 @@ async function checkPageTimer() {
     const banner = document.getElementById('pageTimerBanner');
     const countdown = document.getElementById('pageTimerCountdown');
     const maintMsg = document.getElementById('maintenanceMessage');
+    const maintCountdown = document.getElementById('maintenanceCountdown');
     
     // Timer မရှိရင် အကုန်ဖျောက်
     if (!timer || timer <= Date.now()) {
@@ -2262,15 +2272,33 @@ async function checkPageTimer() {
         return;
     }
     
-    // Timer ရှိရင် ပြ
-    if (banner) banner.style.display = 'block';
-    if (maintMsg) maintMsg.style.display = 'block';
+    // ✅ Page Status ကို စစ်ပါ (Page OFF ဖြစ်ရင် Banner ကိုမပြပါနဲ့)
+    let isPageOff = false;
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const tp = d.pages.find(p => p.id === pageId);
+            if (tp && tp.status === 'off') {
+                isPageOff = true;
+            }
+        }
+    } catch(e) {}
+    
+    // ✅ Page OFF ဖြစ်ရင် Maintenance Message ပဲပြပါ (Banner မပြပါနဲ့)
+    if (isPageOff) {
+        if (maintMsg) maintMsg.style.display = 'block';
+        if (banner) banner.style.display = 'none';
+    } else {
+        // Page ON ဖြစ်ပေမယ့် Timer ရှိရင် Banner ပြပါ
+        if (banner) banner.style.display = 'block';
+        if (maintMsg) maintMsg.style.display = 'none';
+    }
     
     const update = () => {
         const rem = timer - Date.now();
         
         if (rem <= 0) {
-            // Timer ကုန်ရင် ဖျောက်ပြီး Refresh
             if (banner) banner.style.display = 'none';
             if (maintMsg) maintMsg.style.display = 'none';
             
@@ -2295,7 +2323,9 @@ async function checkPageTimer() {
         const seconds = totalSec % 60;
         const timeStr = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
         
+        // ✅ Countdown ကို နှစ်နေရာလုံးမှာ ပြပါ
         if (countdown) countdown.textContent = timeStr;
+        if (maintCountdown) maintCountdown.textContent = timeStr;
     };
     
     update();
