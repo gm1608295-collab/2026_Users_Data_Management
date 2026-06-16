@@ -933,6 +933,10 @@ async function checkPageAccess() {
 
 // ==================== INIT ====================
 (async function init() {
+    // ✅ Server-side timer ကို အရင်စစ်
+    const isMaintenance = await checkPageTimerServer();
+    if (isMaintenance) return; // ပြုပြင်နေရင် ရပ်
+    
     const pageOn = await checkPageAccess();
     if (!pageOn) return;
     document.getElementById('buycodeContent').style.display = 'block';
@@ -985,6 +989,96 @@ function getCookie(name) {
     const ca = document.cookie.split(';');
     for (let i = 0; i < ca.length; i++) { let c = ca[i]; while (c.charAt(0) === ' ') c = c.substring(1, c.length); if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length); }
     return null;
+}
+     // ==================== UNIVERSAL PAGE TIMER (SERVER-SIDE) ====================
+async function checkPageTimerServer() {
+    // Get current page ID from URL
+    const pageId = window.location.pathname.replace('.html', '').replace('/', '') || 'dashboard';
+    
+    try {
+        const r = await fetch('/api/page_timer/' + pageId);
+        const d = await r.json();
+        
+        if (d.success && d.is_active && d.remaining_seconds > 0) {
+            // Show maintenance mode
+            showMaintenanceMode(d.remaining_seconds, pageId);
+            return true;
+        } else {
+            // Page is ON - hide maintenance
+            hideMaintenanceMode();
+            return false;
+        }
+    } catch(e) {
+        console.error('[PAGE TIMER] Error:', e.message);
+        return false;
+    }
+}
+
+function showMaintenanceMode(remainingSeconds, pageId) {
+    // Hide main content
+    const content = document.getElementById('mainContainer') || document.getElementById('contactContent') || document.querySelector('.container');
+    if (content) content.style.display = 'none';
+    
+    // Show maintenance message
+    let maintDiv = document.getElementById('maintenanceMessage');
+    if (!maintDiv) {
+        maintDiv = document.createElement('div');
+        maintDiv.id = 'maintenanceMessage';
+        maintDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px;';
+        document.body.prepend(maintDiv);
+    }
+    maintDiv.style.display = 'flex';
+    maintDiv.innerHTML = `
+        <div style="font-size:70px;color:#f39c12;margin-bottom:20px;">
+            <i class="fas fa-tools"></i>
+        </div>
+        <div style="font-size:20px;font-weight:bold;color:#f39c12;margin-bottom:10px;">
+            ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်
+        </div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:8px;">
+            စာမျက်နှာ ပြန်ဖွင့်ရန်
+        </div>
+        <div style="font-size:28px;font-weight:bold;color:#f39c12;font-family:'Courier New',monospace;margin:15px 0;" id="serverCountdown">
+            --:--:--
+        </div>
+        <a href="/dashboard" class="maintenance-btn" style="display:inline-block;padding:12px 30px;background:#f39c12;color:#000;text-decoration:none;border-radius:8px;font-weight:bold;font-size:14px;margin-top:10px;">
+            <i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့
+        </a>
+    `;
+    
+    // Start countdown
+    startServerCountdown(remainingSeconds);
+}
+
+function startServerCountdown(seconds) {
+    const el = document.getElementById('serverCountdown');
+    if (!el) return;
+    
+    let remaining = seconds;
+    
+    const update = () => {
+        if (remaining <= 0) {
+            location.reload();
+            return;
+        }
+        
+        const h = Math.floor(remaining / 3600);
+        const m = Math.floor((remaining % 3600) / 60);
+        const s = remaining % 60;
+        el.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        remaining--;
+    };
+    
+    update();
+    setInterval(update, 1000);
+}
+
+function hideMaintenanceMode() {
+    const maintDiv = document.getElementById('maintenanceMessage');
+    if (maintDiv) maintDiv.style.display = 'none';
+    
+    const content = document.getElementById('mainContainer') || document.getElementById('contactContent') || document.querySelector('.container');
+    if (content) content.style.display = 'block';
 }
 </script>
 </body>
