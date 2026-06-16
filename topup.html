@@ -938,31 +938,16 @@ body::after {
     <div class="copy-notif" id="copyNotif"></div>
     
     <div class="container" id="mainContainer">
-        <!-- Page Timer Banner - Enhanced -->
-<div class="page-timer-banner" id="pageTimerBanner">
-    <div class="timer-content">
-        <div class="timer-header">
-            <i class="fas fa-tools timer-icon"></i>
-            <span class="timer-title">🔧 ယခု top up စာမျက်နှာကိုပြုပြင်နေပါသည်</span>
-        </div>
-        <div class="timer-body">
-            <div class="timer-clock">
-                <i class="fas fa-clock"></i>
-                <span class="timer-countdown" id="pageTimerCountdown">--:--:--</span>
-            </div>
-            <div class="timer-message">
-                <p>စာမျက်နှာကို ပြန်လည်ပြင်ဆင်(သို့)အဆင့်မြှင့်တင် ပေးနေပါသည်။</p>
-                <p class="timer-sub">ကျေးဇူးပြု၍ စောင့်ဆိုင်းပေးပါ။</p>
-            </div>
-        </div>
-        <div class="timer-footer">
-            <a href="/dashboard" class="timer-back-btn">
-                <i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့
-            </a>
-        </div>
+        <!-- Maintenance Message -->
+<div id="maintenanceMessage" style="display:none">
+    <div class="maintenance-container">
+        <div class="maintenance-icon"><i class="fas fa-tools"></i></div>
+        <div class="maintenance-title">ယခုစာမျက်နှာကို ပြုပြင်မွမ်းမံနေပါသည်</div>
+        <div class="maintenance-subtitle">စာမျက်နှာ ပြန်ဖွင့်ရန်</div>
+        <div class="maintenance-timer" id="maintenanceCountdown">--:--:--</div>
+        <a href="/dashboard" class="maintenance-btn"><i class="fas fa-arrow-left"></i> ပင်မစာမျက်နှာသို့</a>
     </div>
 </div>
-        
         <div id="loginCheckMessage" style="display:none">
             <div class="login-required"><i class="fas fa-lock"></i><h3>ငွေဖြည့်ရန် အကောင့်ဝင်ရန် လိုအပ်ပါသည်</h3><p>ငွေဖြည့်သွင်းခြင်းမပြုမီ အကောင့်ဝင်ရောက်ရန် လိုအပ်ပါသည်။</p><a href="/">Login Page သို့သွားရန်</a></div>
         </div>
@@ -1498,113 +1483,6 @@ function showToast(msg, type = 'success') {
     toast.style.cssText = `position:fixed;top:20px;right:20px;background:${bg};color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:bold;z-index:99999;animation:fadeInOut 2.5s forwards;box-shadow:0 5px 20px rgba(0,0,0,0.4)`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2500);
-}
-
-// ==================== PAGE ACCESS CHECK ====================
-async function checkPageAccess(){
-    try{
-        const r=await fetch('/api/admin/page_status');const d=await r.json();
-        if(d.pages){const tp=d.pages.find(p=>p.id==='topup');if(tp&&tp.status==='off'){document.getElementById('maintenanceMessage').style.display='block';document.getElementById('topupContent').style.display='none';document.getElementById('loginCheckMessage').style.display='none';checkPageTimer();return false}}
-        return true;
-    }catch(e){return true;}
-}
-
-// ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
-async function checkPageTimer() {
-    const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
-    
-    let timer = null;
-    
-    try {
-        // Method 1: localStorage
-        const saved = localStorage.getItem('pageTimers');
-        if (saved) {
-            const timers = JSON.parse(saved);
-            timer = timers[pageId];
-        }
-        
-        // Method 2: Cookie (for Median WebView)
-        if (!timer) {
-            const cookieTimers = getCookie('pageTimers');
-            if (cookieTimers) {
-                const timers = JSON.parse(decodeURIComponent(cookieTimers));
-                timer = timers[pageId];
-            }
-        }
-        
-        // Method 3: SessionStorage
-        if (!timer) {
-            const sessionTimers = sessionStorage.getItem('pageTimers');
-            if (sessionTimers) {
-                const timers = JSON.parse(sessionTimers);
-                timer = timers[pageId];
-            }
-        }
-    } catch(e) {}
-    
-    if (!timer || timer <= Date.now()) return;
-    
-    const maintMsg = document.getElementById('maintenanceMessage');
-    if (maintMsg) maintMsg.style.display = 'block';
-    
-    const pageBanner = document.getElementById('pageTimerBanner');
-    if (pageBanner) pageBanner.style.display = 'block';
-    
-    const maintTimer = document.getElementById('maintenanceCountdown');
-    const pageCountdown = document.getElementById('pageTimerCountdown');
-    
-    const update = () => {
-        const rem = timer - Date.now();
-        
-        if (rem <= 0) {
-            try {
-                const saved = localStorage.getItem('pageTimers');
-                if (saved) {
-                    const timers = JSON.parse(saved);
-                    delete timers[pageId];
-                    localStorage.setItem('pageTimers', JSON.stringify(timers));
-                }
-                setCookie('pageTimers', '', -1);
-                sessionStorage.removeItem('pageTimers');
-            } catch(e) {}
-            
-            location.reload();
-            return;
-        }
-        
-        const s = Math.floor(rem / 1000);
-        const h = Math.floor(s / 3600);
-        const m = Math.floor((s % 3600) / 60);
-        const sec = s % 60;
-        const timeStr = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-        
-        if (maintTimer) maintTimer.textContent = timeStr;
-        if (pageCountdown) pageCountdown.textContent = timeStr;
-    };
-    
-    update();
-    setInterval(update, 1000);
-}
-
-function setCookie(name, value, days) {
-    let expires = '';
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = '; expires=' + date.toUTCString();
-    }
-    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
-}
-
-function getCookie(name) {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
 }
 // ==================== GAME CARDS ====================
 const GAMES=[
@@ -2320,6 +2198,27 @@ function getCookie(name) {
     return null;
 }
 
+async function checkPageAccess(){
+    try{
+        const r=await fetch('/api/admin/page_status');
+        const d=await r.json();
+        if(d.pages){
+            const tp=d.pages.find(p=>p.id==='topup');
+            if(tp&&tp.status==='off'){
+                document.getElementById('maintenanceMessage').style.display='block';
+                document.getElementById('topupContent').style.display='none';
+                document.getElementById('loginCheckMessage').style.display='none';
+                // ✅ ဒီမှာ checkPageTimer ကိုခေါ်
+                checkPageTimer();
+                return false;
+            }
+        }
+        // ✅ Page ON ရင် Timer ကိုစစ် (ဒါပေမယ့် Banner ကိုပြဖို့)
+        checkPageTimer();
+        return true;
+    }catch(e){return true;}
+}
+        
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
     
@@ -2405,7 +2304,12 @@ async function checkPageTimer() {
  // ==================== INIT ====================
 async function init() {
     console.log('[INIT] Page loading...');
-     // ✅ Page Timer ကို စစ်
+     const pageOn = await checkPageAccess();
+    if (!pageOn) {
+        // Page OFF ဖြစ်နေရင် ဘာမှမလုပ်ပါနဲ့
+        return;
+    }
+    // ✅ Page Timer ကို စစ်
     await checkPageTimer();
     await loadBalance();
     await loadOrdersV3();   // ✅ ဒါက order history ကို load
