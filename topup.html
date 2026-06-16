@@ -931,6 +931,37 @@ body::after {
         justify-content: center;
     }
         }
+        /* ========== PAGE TIMER & MAINTENANCE FIX ========== */
+#topupContent {
+    display: block !important;
+}
+
+#maintenanceMessage {
+    display: none !important;
+}
+
+#pageTimerBanner {
+    display: none !important;
+}
+
+/* Maintenance Message ကို ပြတဲ့အခါ */
+#maintenanceMessage.active {
+    display: flex !important;
+}
+
+/* Page Timer Banner ကို ပြတဲ့အခါ */
+#pageTimerBanner.active {
+    display: block !important;
+}
+
+/* Login Check Message */
+#loginCheckMessage {
+    display: none !important;
+}
+
+#loginCheckMessage.active {
+    display: block !important;
+}
     </style>
 </head>
 <body>
@@ -2200,41 +2231,44 @@ function getCookie(name) {
 
 async function checkPageAccess(){
     try{
-        const r=await fetch('/api/admin/page_status');
-        const d=await r.json();
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        
         if(d.pages){
-            const tp=d.pages.find(p=>p.id==='topup');
-            if(tp&&tp.status==='off'){
-                // ✅ Maintenance Message ကိုပြပါ
-                document.getElementById('maintenanceMessage').style.display='block';
-                document.getElementById('topupContent').style.display='none';
-                document.getElementById('loginCheckMessage').style.display='none';
+            const tp = d.pages.find(p => p.id === 'topup');
+            
+            if(tp && tp.status === 'off'){
+                // ========== PAGE OFF ==========
+                document.getElementById('maintenanceMessage').style.display = 'flex';
+                document.getElementById('topupContent').style.display = 'none';
+                document.getElementById('loginCheckMessage').style.display = 'none';
+                document.getElementById('pageTimerBanner').style.display = 'none';
                 
-                // ✅ Page Timer Banner ကိုဖျောက်ပါ (ထပ်မပြစေရန်)
-                const banner = document.getElementById('pageTimerBanner');
-                if (banner) banner.style.display = 'none';
-                
-                // ✅ Timer ကိုစတင်ပါ
                 checkPageTimer();
                 return false;
             }
         }
-        // ✅ Page ON ဖြစ်ရင် Maintenance Message ဖျောက်
-        document.getElementById('maintenanceMessage').style.display='none';
-        document.getElementById('topupContent').style.display='block';
         
-        // ✅ Page Timer Banner ကိုစစ်ပါ
+        // ========== PAGE ON ==========
+        document.getElementById('maintenanceMessage').style.display = 'none';
+        document.getElementById('topupContent').style.display = 'block';
+        document.getElementById('loginCheckMessage').style.display = 'none';
+        
+        // Timer ရှိမရှိစစ်
         checkPageTimer();
+        
         return true;
-    }catch(e){
-        document.getElementById('maintenanceMessage').style.display='none';
-        document.getElementById('topupContent').style.display='block';
+        
+    } catch(e){
+        document.getElementById('maintenanceMessage').style.display = 'none';
+        document.getElementById('topupContent').style.display = 'block';
+        document.getElementById('loginCheckMessage').style.display = 'none';
         return true;
     }
 }
 
 async function checkPageTimer() {
-    const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
+    const pageId = window.location.pathname.replace('.html','').replace('/','') || 'topup';
     
     let timer = null;
     
@@ -2262,45 +2296,21 @@ async function checkPageTimer() {
     
     const banner = document.getElementById('pageTimerBanner');
     const countdown = document.getElementById('pageTimerCountdown');
-    const maintMsg = document.getElementById('maintenanceMessage');
-    const maintCountdown = document.getElementById('maintenanceCountdown');
     
-    // Timer မရှိရင် အကုန်ဖျောက်
+    // Timer မရှိရင် Banner ဖျောက်
     if (!timer || timer <= Date.now()) {
         if (banner) banner.style.display = 'none';
-        if (maintMsg) maintMsg.style.display = 'none';
         return;
     }
     
-    // ✅ Page Status ကို စစ်ပါ (Page OFF ဖြစ်ရင် Banner ကိုမပြပါနဲ့)
-    let isPageOff = false;
-    try {
-        const r = await fetch('/api/admin/page_status');
-        const d = await r.json();
-        if (d.pages) {
-            const tp = d.pages.find(p => p.id === pageId);
-            if (tp && tp.status === 'off') {
-                isPageOff = true;
-            }
-        }
-    } catch(e) {}
-    
-    // ✅ Page OFF ဖြစ်ရင် Maintenance Message ပဲပြပါ (Banner မပြပါနဲ့)
-    if (isPageOff) {
-        if (maintMsg) maintMsg.style.display = 'block';
-        if (banner) banner.style.display = 'none';
-    } else {
-        // Page ON ဖြစ်ပေမယ့် Timer ရှိရင် Banner ပြပါ
-        if (banner) banner.style.display = 'block';
-        if (maintMsg) maintMsg.style.display = 'none';
-    }
+    // Timer ရှိရင် Banner ပြ
+    if (banner) banner.style.display = 'block';
     
     const update = () => {
         const rem = timer - Date.now();
         
         if (rem <= 0) {
             if (banner) banner.style.display = 'none';
-            if (maintMsg) maintMsg.style.display = 'none';
             
             try {
                 const saved = localStorage.getItem('pageTimers');
@@ -2323,14 +2333,12 @@ async function checkPageTimer() {
         const seconds = totalSec % 60;
         const timeStr = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
         
-        // ✅ Countdown ကို နှစ်နေရာလုံးမှာ ပြပါ
         if (countdown) countdown.textContent = timeStr;
-        if (maintCountdown) maintCountdown.textContent = timeStr;
     };
     
     update();
     setInterval(update, 1000);
-}
+            }
  // ==================== INIT ====================
 async function init() {
     console.log('[INIT] Page loading...');
