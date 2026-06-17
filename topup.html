@@ -893,7 +893,27 @@ body::after {
     box-shadow: 0 5px 15px rgba(243, 156, 18, 0.2);
     color: #ffd700;
 }
-        
+  /* ========== ORDER CARD - PRODUCT IMAGE ========== */
+.order-screenshot {
+    margin-top: 8px;
+    display: flex;
+    justify-content: center;
+}
+.screenshot-thumb {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.3);
+    padding: 4px;
+    transition: all 0.2s;
+}
+.screenshot-thumb:hover {
+    transform: scale(1.05);
+    border-color: var(--w);
+}      
     </style>
 </head>
 <body>
@@ -1145,10 +1165,10 @@ function filterOrders(type) {
     renderFilteredOrders();
 }
 
-// Search order by ID
+// ==================== SEARCH ORDER BY ID (ပြင်ဆင်ပြီး) ====================
 function searchOrderById() {
-    let searchInput = document.getElementById('orderSearchInput');
-    let orderId = searchInput.value.trim();
+    var searchInput = document.getElementById('orderSearchInput');
+    var orderId = searchInput.value.trim();
     
     if (!orderId) {
         currentSearchOrderId = '';
@@ -1156,9 +1176,22 @@ function searchOrderById() {
         return;
     }
     
+    // ✅ ရှာဖွေမှု မြန်ဆန်စေရန်
     currentSearchOrderId = orderId;
+    
+    // ✅ ရှာဖွေတွေ့ရင် သက်ဆိုင်ရာ Order ကိုသာ ပြမယ်
+    var found = allOrders.some(function(order) {
+        return order.id.toString() === orderId;
+    });
+    
+    if (!found) {
+        var container = document.getElementById('orderHistoryList');
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);"><i class="fas fa-search" style="font-size:40px;margin-bottom:10px;display:block;"></i>Order ID <b style="color:#f39c12;">#' + orderId + '</b> မတွေ့ပါ<br><small style="font-size:10px;">ကျေးဇူးပြု၍ ပြန်စစ်ဆေးပါ</small></div>';
+        return;
+    }
+    
     renderFilteredOrders();
-}
+        }
 
 // Copy order ID to clipboard
 function copyOrderId(orderId) {
@@ -1169,38 +1202,48 @@ function copyOrderId(orderId) {
     });
 }
 
-// Render filtered orders
+// ==================== RENDER FILTERED ORDERS (ပြင်ဆင်ပြီး) ====================
 function renderFilteredOrders() {
-    let filtered = [...allOrders];
+    var filtered = [...allOrders];
     
-    // Filter by search Order ID
+    // ✅ Search Order ID (အတိအကျရှာ)
     if (currentSearchOrderId) {
-        filtered = filtered.filter(order => order.id.toString() === currentSearchOrderId);
+        filtered = filtered.filter(function(order) {
+            return order.id.toString() === currentSearchOrderId;
+        });
     }
     
     // Filter by game type
     if (currentFilter !== 'all') {
-        filtered = filtered.filter(order => detectGameType(order) === currentFilter);
+        filtered = filtered.filter(function(order) {
+            return detectGameType(order) === currentFilter;
+        });
     }
     
     // Filter by date
     if (currentPageDate !== 0) {
-        let targetDate = new Date();
+        var targetDate = new Date();
         targetDate.setDate(targetDate.getDate() - currentPageDate);
-        let targetStr = formatDateEng(targetDate);
-        filtered = filtered.filter(order => formatDateEng(order.created_at) === targetStr);
+        var targetStr = formatDateEng(targetDate);
+        filtered = filtered.filter(function(order) {
+            return formatDateEng(order.created_at) === targetStr;
+        });
     } else {
-        let todayStr = formatDateEng(new Date());
-        filtered = filtered.filter(order => formatDateEng(order.created_at) === todayStr);
+        var todayStr = formatDateEng(new Date());
+        filtered = filtered.filter(function(order) {
+            return formatDateEng(order.created_at) === todayStr;
+        });
     }
     
     // Sort by newest first
-    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    filtered.sort(function(a, b) {
+        return new Date(b.created_at) - new Date(a.created_at);
+    });
     
     renderOrderCards(filtered);
     renderDatePagination(allOrders);
 }
-
+        
 // Get status text and class
 function getStatusInfo(status) {
     switch(status) {
@@ -1214,22 +1257,31 @@ function getStatusInfo(status) {
             return { text: '⏳ Pending', class: 'pending', color: '#f39c12' };
     }
 }
-
-// Render order cards
+// ==================== RENDER ORDER CARDS (ပြင်ဆင်ပြီး) ====================
 function renderOrderCards(orders) {
-    let container = document.getElementById('orderHistoryList');
+    var container = document.getElementById('orderHistoryList');
     
     if (orders.length === 0) {
         container.innerHTML = '<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size:40px;margin-bottom:10px;display:block;"></i>No orders found</div>';
         return;
     }
     
-    let html = '';
-    orders.forEach(order => {
-        let gameType = detectGameType(order);
-        let gameName = '';
-        let gameDetailHtml = '';
-        let statusInfo = getStatusInfo(order.status);
+    var html = '';
+    orders.forEach(function(order) {
+        var gameType = detectGameType(order);
+        var gameName = '';
+        var gameDetailHtml = '';
+        var statusInfo = getStatusInfo(order.status);
+        
+        // ✅ Game Type အလိုက် ပုံပါအောင် ထည့်
+        var productImage = '';
+        if (order.screenshot && order.screenshot.startsWith('http')) {
+            // ✅ Order မှာ သိမ်းထားတဲ့ ပုံကို သုံး
+            productImage = order.screenshot;
+        } else {
+            // ✅ မရှိရင် Game Type ပုံပြန်ထုတ်
+            productImage = getGameImageUrl(gameType);
+        }
         
         switch(gameType) {
             case 'mlbb':
@@ -1274,30 +1326,45 @@ function renderOrderCards(orders) {
                 break;
         }
         
-        let productName = order.product_name || order.payment_method || 'Unknown';
-        let amount = Math.abs(order.amount || 0);
+        var productName = order.product_name || order.payment_method || 'Unknown';
+        var amount = Math.abs(order.amount || 0);
         
-        let screenshotHtml = '';
+        // ✅ Screenshot/Product Image
+        var screenshotHtml = '';
         if (order.screenshot && order.screenshot.startsWith('http')) {
-            screenshotHtml = `<div class="order-screenshot">
-                <img src="${order.screenshot}" class="screenshot-thumb" onclick="showScreenshotModal('${order.screenshot}')" onerror="this.style.display='none'">
-            </div>`;
+            // ✅ Order မှာသိမ်းထားတဲ့ ပုံ (Game Items အတွက်)
+            screenshotHtml = `
+                <div class="order-screenshot">
+                    <img src="${order.screenshot}" class="screenshot-thumb" onclick="showScreenshotModal('${order.screenshot}')" onerror="this.style.display='none'">
+                </div>
+            `;
+        } else if (productImage) {
+            // ✅ ပုံမရှိရင် Default Game Image
+            screenshotHtml = `
+                <div class="order-screenshot">
+                    <img src="${productImage}" class="screenshot-thumb" style="opacity:0.6;" onclick="showScreenshotModal('${productImage}')" onerror="this.style.display='none'">
+                </div>
+            `;
         }
         
-        let rejectHtml = '';
+        var rejectHtml = '';
         if (order.status === 'rejected' && order.reject_reason) {
-            rejectHtml = `<div class="order-info-row">
-                <span class="order-info-label">Reason:</span>
-                <span class="order-info-value" style="color:#e74c3c;">${escapeHtml(order.reject_reason)}</span>
-            </div>`;
+            rejectHtml = `
+                <div class="order-info-row">
+                    <span class="order-info-label">Reason:</span>
+                    <span class="order-info-value" style="color:#e74c3c;">${escapeHtml(order.reject_reason)}</span>
+                </div>
+            `;
         }
         
-        let checkingHtml = '';
+        var checkingHtml = '';
         if (order.status === 'pending' || order.status === 'checking') {
-            checkingHtml = `<div class="order-info-row">
-                <span class="order-info-label">Status:</span>
-                <span class="order-info-value" style="color:#f39c12;">⏳ Admin စစ်ဆေးနေပါသည်...</span>
-            </div>`;
+            checkingHtml = `
+                <div class="order-info-row">
+                    <span class="order-info-label">Status:</span>
+                    <span class="order-info-value" style="color:#f39c12;">⏳ Admin စစ်ဆေးနေပါသည်...</span>
+                </div>
+            `;
         }
         
         html += `<div class="order-card ${gameType}" data-order-id="${order.id}">
@@ -1334,6 +1401,17 @@ function renderOrderCards(orders) {
     });
     
     container.innerHTML = html;
+}
+
+// ✅ Game Image URL Helper
+function getGameImageUrl(gameType) {
+    var images = {
+        'mlbb': 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg',
+        'pubg': 'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg',
+        'hok': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        'topup': 'https://i.ibb.co/wFKmxrCT/Picsart-26-05-23-23-44-24-799.jpg'
+    };
+    return images[gameType] || 'https://i.ibb.co/wFKmxrCT/Picsart-26-05-23-23-44-24-799.jpg';
 }
 
 // Show user ID in top bar
