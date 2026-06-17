@@ -430,6 +430,9 @@ async function initTables(p) {
 `ALTER TABLE orders ADD COLUMN IF NOT EXISTS game_id VARCHAR(50)`,
 `ALTER TABLE orders ADD COLUMN IF NOT EXISTS server_id VARCHAR(50)`,
 `ALTER TABLE orders ADD COLUMN IF NOT EXISTS player_id VARCHAR(50)`,
+
+        // ✅ Add timer_end column to page_status
+        `ALTER TABLE page_status ADD COLUMN IF NOT EXISTS timer_end TIMESTAMP`,
         
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
