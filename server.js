@@ -486,6 +486,139 @@ ALL_PAGES.forEach(async (pg) => {
     await pools[0].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
     await pools[1].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
 });
+// ==================== PAGE TIMER SYSTEM (SERVER-SIDE) ====================
+
+// Get page timer status (for user pages)
+app.get('/api/page_timer/:pageId', async (req, res) => {
+    const { pageId } = req.params;
+    
+    try {
+        const p = await getPool();
+        
+        // Check if page is OFF with timer
+        const status = await p.query(
+            "SELECT status, timer_end FROM page_status WHERE page_id = $1",
+            [pageId]
+        );
+        
+        if (status.rows.length === 0) {
+            return res.json({ success: true, status: 'on', timer_end: null });
+        }
+        
+        const row = status.rows[0];
+        const isOff = row.status === 'off';
+        const timerEnd = row.timer_end ? new Date(row.timer_end) : null;
+        const now = new Date();
+        
+        // If timer expired, auto-turn ON
+        if (isOff && timerEnd && timerEnd <= now) {
+            await p.query(
+                "UPDATE page_status SET status = 'on', timer_end = NULL WHERE page_id = $1",
+                [pageId]
+            );
+            return res.json({ success: true, status: 'on', timer_end: null });
+        }
+        
+        res.json({
+            success: true,
+            status: row.status,
+            timer_end: timerEnd ? timerEnd.toISOString() : null
+        });
+        
+    } catch(e) {
+        console.error('[PAGE TIMER ERROR]', e.message);
+        res.json({ success: false, status: 'on', timer_end: null });
+    }
+});
+
+// Admin: Set page timer (for admin panel)
+app.post('/api/admin/set_page_timer', async (req, res) => {
+    const { page_id, duration_seconds } = req.body;
+    
+    if (!page_id || !duration_seconds || duration_seconds <= 0) {
+        return res.json({ success: false, message: 'Invalid parameters' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Calculate timer end time
+        const timerEnd = new Date(Date.now() + (duration_seconds * 1000));
+        
+        // Update page status: OFF with timer
+        await p.query(
+            "INSERT INTO page_status (page_id, status, timer_end, updated_at) VALUES ($1, 'off', $2, NOW()) ON CONFLICT (page_id) DO UPDATE SET status = 'off', timer_end = $2, updated_at = NOW()",
+            [page_id, timerEnd]
+        );
+        
+        console.log('[PAGE TIMER] Set for', page_id, 'Duration:', duration_seconds, 's, Ends at:', timerEnd.toISOString());
+        
+        res.json({ 
+            success: true, 
+            message: 'Timer set!',
+            timer_end: timerEnd.toISOString()
+        });
+        
+    } catch(e) {
+        console.error('[SET PAGE TIMER ERROR]', e.message);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
+// Admin: Cancel page timer
+app.post('/api/admin/cancel_page_timer', async (req, res) => {
+    const { page_id } = req.body;
+    
+    if (!page_id) {
+        return res.json({ success: false, message: 'Page ID required' });
+    }
+    
+    try {
+        const p = await getPool();
+        
+        // Turn ON and remove timer
+        await p.query(
+            "UPDATE page_status SET status = 'on', timer_end = NULL WHERE page_id = $1",
+            [page_id]
+        );
+        
+        console.log('[PAGE TIMER] Cancelled for', page_id);
+        
+        res.json({ success: true, message: 'Timer cancelled!' });
+        
+    } catch(e) {
+        console.error('[CANCEL PAGE TIMER ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// Auto-check expired timers (run every 30 seconds)
+async function autoCheckTimers() {
+    try {
+        const p = await getPool();
+        const now = new Date();
+        
+        // Find expired timers
+        const expired = await p.query(
+            "SELECT page_id FROM page_status WHERE status = 'off' AND timer_end IS NOT NULL AND timer_end <= $1",
+            [now]
+        );
+        
+        for (const row of expired.rows) {
+            await p.query(
+                "UPDATE page_status SET status = 'on', timer_end = NULL WHERE page_id = $1",
+                [row.page_id]
+            );
+            console.log('[AUTO TIMER] Page', row.page_id, 'auto-turned ON');
+        }
+        
+    } catch(e) {
+        console.error('[AUTO TIMER CHECK ERROR]', e.message);
+    }
+}
+
+// Run auto-check every 30 seconds
+setInterval(autoCheckTimers, 30000);
 // ==================== FORCE UPDATE SYSTEM ====================
 
 // Get current force update status (for Dashboard)
