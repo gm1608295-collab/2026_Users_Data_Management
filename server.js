@@ -2733,72 +2733,6 @@ app.get('/api/admin/orders', async (req, res) => {
         res.json({ orders: [], total: 0, today: 0 }); 
     } 
 });
-// ==================== SUBMIT ORDER (DEBUG VERSION) ====================
-app.post('/api/submit_order', async (req, res) => {
-    try {
-        const { token, amount, payment_method, screenshot, user_id } = req.body;
-        
-        // ✅ Debug - Token အပြည့်အစုံ Console ပြ
-        console.log('🔍 [SUBMIT ORDER] Token:', token);
-        console.log('🔍 [SUBMIT ORDER] Token Type:', typeof token);
-        console.log('🔍 [SUBMIT ORDER] Token Length:', token ? token.length : 0);
-        console.log('🔍 [SUBMIT ORDER] Starts With:', token ? token.substring(0, 10) : 'NULL');
-        
-        if (!token || token === 'guest') {
-            return res.json({ success: false, message: 'Login required' });
-        }
-        
-        const jwt = require('jsonwebtoken');
-        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
-        const p = await getPool();
-        let uid;
-        
-        // ✅ JWT Token
-        if (token.startsWith('eyJ')) {
-            try {
-                const decoded = jwt.verify(token, JWT_SECRET);
-                console.log('🔍 [SUBMIT ORDER] Decoded Payload:', JSON.stringify(decoded));
-                uid = decoded.userId || decoded.id || decoded.uid || decoded.user_id;
-                console.log('🔍 [SUBMIT ORDER] Found UID:', uid);
-            } catch(e) {
-                console.error('🔍 [SUBMIT ORDER] JWT Error:', e.message);
-                return res.json({ success: false, message: 'Invalid token: ' + e.message });
-            }
-        } 
-        // ✅ Old Token
-        else if (token.startsWith('token_')) {
-            uid = parseInt(token.replace('token_', ''));
-            console.log('🔍 [SUBMIT ORDER] Old Token UID:', uid);
-        } 
-        // ✅ Unknown Format - Direct UID?
-        else if (/^\d+$/.test(token)) {
-            uid = parseInt(token);
-            console.log('🔍 [SUBMIT ORDER] Numeric Token UID:', uid);
-        }
-        else {
-            console.error('🔍 [SUBMIT ORDER] Unknown token format');
-            return res.json({ success: false, message: 'Invalid token format' });
-        }
-        
-        if (!uid) {
-            return res.json({ success: false, message: 'Invalid token payload' });
-        }
-        
-        const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [uid]);
-        const un = user.rows[0]?.username || 'Unknown';
-        
-        await p.query(
-            'INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id) VALUES ($1,$2,$3,$4,$5,$6,$7)',
-            [uid, un, amount || 0, payment_method, screenshot || '', 'pending', user_id || uid]
-        );
-        
-        res.json({ success: true, message: 'Order submitted' });
-        
-    } catch(e) {
-        console.error('[SUBMIT ORDER ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
-    }
-});
 
 // ==================== GET USER ORDERS (JWT FIXED) ====================
 app.post('/api/get_orders', async (req, res) => { 
@@ -2894,7 +2828,7 @@ app.post('/api/get_balance', async (req, res) => {
     }
 });
 
-// ==================== PURCHASE GAME ITEM (AUTO-APPROVED) ====================
+// ==================== PURCHASE GAME ITEM (AUTO-APPROVED - FIXED) ====================
 app.post('/api/purchase_game_item', async (req, res) => {
     const { token, game, product_name, price, game_id, server_id, player_id } = req.body;
     
@@ -2948,21 +2882,23 @@ app.post('/api/purchase_game_item', async (req, res) => {
         
         const paymentMethod = game.toUpperCase() + ' Purchase';
         
+        // ✅ ORDER TYPE: 'game' လို့ သတ်မှတ်ပါ (Top-Up နဲ့ ခွဲခြားရန်)
         await p.query(
-            `INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id, product_name, game_id, server_id, player_id) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            `INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id, product_name, game_id, server_id, player_id, order_type) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
                 uid, 
                 username, 
                 -price, 
                 paymentMethod, 
-                productImageUrl,  // ✅ Game Icon ကို screenshot အဖြစ်သိမ်း
+                productImageUrl,
                 'pending',
                 uid.toString(),
                 product_name,
                 game_id || null,
                 server_id || null,
-                player_id || null
+                player_id || null,
+                'game'  // ✅ order_type = 'game'
             ]
         );
         
@@ -2988,8 +2924,7 @@ app.post('/api/purchase_game_item', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
-
-// ✅ Helper function to get product image URL
+// ==================== GET PRODUCT IMAGE URL ====================
 function getProductImageUrl(game, productName) {
     // MLBB Product Images
     const mlbbImages = {
@@ -3043,6 +2978,57 @@ function getProductImageUrl(game, productName) {
     
     return '';
 }
+// ==================== SUBMIT ORDER (TOP-UP ONLY) ====================
+app.post('/api/submit_order', async (req, res) => {
+    try {
+        const { token, amount, payment_method, screenshot, user_id } = req.body;
+        
+        if (!token || token === 'guest') {
+            return res.json({ success: false, message: 'Login required' });
+        }
+        
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+        const p = await getPool();
+        let uid;
+        
+        // JWT Token
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId || decoded.id || decoded.uid || decoded.user_id;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid token' });
+            }
+        } else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''));
+        } else if (/^\d+$/.test(token)) {
+            uid = parseInt(token);
+        } else {
+            return res.json({ success: false, message: 'Invalid token format' });
+        }
+        
+        if (!uid) {
+            return res.json({ success: false, message: 'Invalid token payload' });
+        }
+        
+        const user = await p.query('SELECT username FROM auth_users WHERE id=$1', [uid]);
+        const un = user.rows[0]?.username || 'Unknown';
+        
+        // ✅ ORDER TYPE: 'topup' လို့ သတ်မှတ်ပါ
+        await p.query(
+            `INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id, order_type) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [uid, un, amount || 0, payment_method, screenshot || '', 'pending', user_id || uid, 'topup']
+        );
+        
+        res.json({ success: true, message: 'Order submitted' });
+        
+    } catch(e) {
+        console.error('[SUBMIT ORDER ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== ORDER STATUS (ADMIN) ====================
 app.post('/api/admin/order_status', async (req, res) => { 
     try { 
