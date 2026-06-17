@@ -2674,6 +2674,7 @@ async function rejectTopupOrder(id) {
 // 2. GAME ORDERS (MLBB / PUBG / HOK) - NO BALANCE ADD
 // ============================================================
 
+// ==================== LOAD GAME ORDERS (FIXED) ====================
 async function loadAdminOrderTable() {
     const wrap = document.getElementById('adminOrderTableWrap');
     if (!wrap) return;
@@ -2682,18 +2683,42 @@ async function loadAdminOrderTable() {
     
     try {
         const r = await fetch('/api/admin/orders?filter=all');
+        
+        // ✅ Response ကောင်းကောင်းလား စစ်
+        if (!r.ok) {
+            throw new Error('HTTP ' + r.status);
+        }
+        
         const d = await r.json();
+        
+        // ✅ Data ရှိမရှိ စစ်
+        if (!d.orders) {
+            d.orders = [];
+        }
+        
+        console.log('[ADMIN] Orders loaded:', d.orders.length);
         
         // ✅ Game Orders ကိုပဲ ပြမယ် (order_type = 'game')
         adminAllOrders = d.orders.filter(o => o.order_type === 'game');
+        
+        if (adminAllOrders.length === 0) {
+            wrap.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size:50px;"></i><p style="margin-top:15px;">No game orders found</p></div>';
+            return;
+        }
+        
         renderAdminOrderTable();
         renderAdminDateNumbers();
+        
     } catch(e) {
-        console.error('Load orders error:', e);
-        wrap.innerHTML = '<div style="text-align:center;padding:40px;color:var(--r);">Error loading orders</div>';
+        console.error('[LOAD GAME ORDERS ERROR]', e.message);
+        wrap.innerHTML = `<div style="text-align:center;padding:40px;color:var(--r);">
+            <i class="fas fa-exclamation-triangle" style="font-size:30px;display:block;margin-bottom:10px;"></i>
+            Error loading orders: ${e.message}
+            <br><br>
+            <button class="btn btn-b" onclick="loadAdminOrderTable()" style="margin-top:10px;">🔄 Retry</button>
+        </div>`;
     }
 }
-
 // ✅ Approve Game Order (Balance မထည့်ရဘူး - ငွေနှုတ်ပြီးသား)
 async function approveGameOrder(id, userId, amount) {
     if (amount <= 0) {
