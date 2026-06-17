@@ -2571,10 +2571,8 @@ async function subBalance(uid) {
     searchUser();
     loadAdminData();
 }
-
-// ==================== ORDER FUNCTIONS (COMPLETE REWRITE) ====================
 // ============================================================
-// 1. TOP-UP ORDERS (ငွေဖြည့်အော်ဒါများ) - NO INPUT BOX
+// 1. TOP-UP ORDERS (ငွေဖြည့်အော်ဒါများ) - NO BALANCE ADD
 // ============================================================
 
 async function loadAdminOrders(f) {
@@ -2586,13 +2584,16 @@ async function loadAdminOrders(f) {
         document.getElementById("totalOrders").textContent = d.total || 0;
         document.getElementById("todayOrders").textContent = d.today || 0;
         
-        if (!d.orders || d.orders.length === 0) {
-            c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:15px;text-align:center">No orders</p>';
+        // ✅ Top-Up Orders ကိုပဲ ပြမယ် (order_type = 'topup' သို့မဟုတ် NULL)
+        let topupOrders = d.orders.filter(o => o.order_type === 'topup' || o.order_type === null || o.order_type === undefined);
+        
+        if (!topupOrders || topupOrders.length === 0) {
+            c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:15px;text-align:center">No top-up orders</p>';
             return;
         }
         
         let cd = '', h = '';
-        d.orders.forEach(o => {
+        topupOrders.forEach(o => {
             const ds = new Date(o.created_at).toLocaleDateString('my-MM', {year:'numeric', month:'short', day:'numeric'});
             if (ds !== cd) { cd = ds; h += `<div class="order-date-header">📅 ${ds}</div>`; }
             
@@ -2611,8 +2612,8 @@ async function loadAdminOrders(f) {
                     <span style="font-size:8px;color:${statusColor};font-weight:bold;">${statusText}</span>
                     ${o.screenshot ? `<img src="${o.screenshot}" class="screenshot-preview" onclick="zoomImage('${o.screenshot}')">` : '📷'}
                     ${isPending ? `
-                        <button class="btn btn-g" style="font-size:9px;padding:3px 6px;" onclick="approveOrder(${o.id}, ${o.user_id}, ${amount})">✓</button>
-                        <button class="btn btn-r" style="font-size:9px;padding:3px 6px;" onclick="rejectOrder(${o.id}, ${o.user_id})">✕</button>
+                        <button class="btn btn-g" style="font-size:9px;padding:3px 6px;" onclick="approveTopupOrder(${o.id}, ${o.user_id}, ${amount})">✓</button>
+                        <button class="btn btn-r" style="font-size:9px;padding:3px 6px;" onclick="rejectTopupOrder(${o.id})">✕</button>
                     ` : ''}
                 </div>
             </div>`;
@@ -2621,16 +2622,16 @@ async function loadAdminOrders(f) {
     } catch(e) { console.error('Load orders error:', e); }
 }
 
-// Approve Top-Up Order
-async function approveOrder(id, userId, amount) {
+// ✅ Approve Top-Up Order (Balance ထည့်ပေးရမယ်)
+async function approveTopupOrder(id, userId, amount) {
     if (amount <= 0) {
         showNotif('❌ Invalid amount', 'error');
         return;
     }
     
-    if (!confirm(`✅ Approve order #${id} with ${amount.toLocaleString()} Ks?`)) return;
+    if (!confirm(`✅ Approve top-up order #${id} with ${amount.toLocaleString()} Ks?`)) return;
     
-    showLoading('Approving...');
+    showLoading('Approving top-up...');
     try {
         await fetch('/api/admin/order_status', {
             method: 'POST',
@@ -2642,34 +2643,35 @@ async function approveOrder(id, userId, amount) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: userId, amount: parseFloat(amount) })
         });
-        showNotif('✅ Order #' + id + ' approved!', 'success');
+        showNotif('✅ Top-up order #' + id + ' approved! +' + amount.toLocaleString() + ' Ks', 'success');
         loadAdminOrders(currentOrderFilter);
         loadAdminData();
     } catch(e) { showNotif('Error', 'error'); }
-    hideLoading();
+    hideLoading(); // ✅ Loading ပျောက်ဖို့ ထည့်
 }
 
-// Reject Top-Up Order (No Loading, No Notification)
-async function rejectOrder(id, userId) {
-    if (!confirm(`❌ Reject order #${id}?`)) return;
+// ✅ Reject Top-Up Order (Balance ပြန်မထည့်ရဘူး)
+async function rejectTopupOrder(id) {
+    if (!confirm(`❌ Reject top-up order #${id}?`)) return;
     
-    const reason = 'အချက်အလက်များ မှန်ကန်မှုမရှိသောကြောင့်ဖြစ်ပါသည်။ နောက်တစ်နာရီအတွင်း ငွေပြန်အမ်းပေးပါမည်။';
+    const reason = 'အချက်အလက်များ မှန်ကန်မှုမရှိသောကြောင့်ဖြစ်ပါသည်။';
     
+    showLoading('Rejecting top-up...');
     try {
         await fetch('/api/admin/order/reject', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id, reason })
         });
+        showNotif('❌ Top-up order #' + id + ' rejected!', 'error');
         loadAdminOrders(currentOrderFilter);
         loadAdminData();
-    } catch(e) {
-        console.error('Reject error:', e);
-    }
+    } catch(e) { showNotif('Error', 'error'); }
+    hideLoading(); // ✅ Loading ပျောက်ဖို့ ထည့်
 }
 
 // ============================================================
-// 2. GAME ORDERS (MLBB / PUBG / HOK) - NO INPUT BOX
+// 2. GAME ORDERS (MLBB / PUBG / HOK) - NO BALANCE ADD
 // ============================================================
 
 async function loadAdminOrderTable() {
@@ -2681,7 +2683,9 @@ async function loadAdminOrderTable() {
     try {
         const r = await fetch('/api/admin/orders?filter=all');
         const d = await r.json();
-        adminAllOrders = d.orders || [];
+        
+        // ✅ Game Orders ကိုပဲ ပြမယ် (order_type = 'game')
+        adminAllOrders = d.orders.filter(o => o.order_type === 'game');
         renderAdminOrderTable();
         renderAdminDateNumbers();
     } catch(e) {
@@ -2690,95 +2694,58 @@ async function loadAdminOrderTable() {
     }
 }
 
-function renderAdminDateNumbers() {
-    const container = document.getElementById('adminDateNumbers');
-    if (!container) return;
+// ✅ Approve Game Order (Balance မထည့်ရဘူး - ငွေနှုတ်ပြီးသား)
+async function approveGameOrder(id, userId, amount) {
+    if (amount <= 0) {
+        showNotif('❌ Invalid amount', 'error');
+        return;
+    }
     
-    const dates = [...new Set(adminAllOrders.map(o => o.created_at.split('T')[0]))];
-    dates.sort().reverse();
+    if (!confirm(`✅ Approve game order #${id} with ${amount.toLocaleString()} Ks?`)) return;
     
-    let html = '';
-    dates.forEach((date, idx) => {
-        const dayNum = idx + 1;
-        const isActive = (adminCurrentDate === `day_${dayNum}`);
-        html += `<button class="date-number-btn ${isActive ? 'active' : ''}" onclick="adminSetDateFilter('day_${dayNum}')" style="min-width:35px;height:35px;border-radius:50%;background:${isActive ? 'var(--w)' : 'rgba(255,255,255,0.05)'};color:${isActive ? '#000' : '#fff'};border:1px solid rgba(255,255,255,0.15);cursor:pointer;font-size:11px;font-weight:600;transition:all 0.2s;">${dayNum}</button>`;
-    });
-    container.innerHTML = html;
+    showLoading('Approving game order...');
+    try {
+        await fetch('/api/admin/order_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, status: 'approved' })
+        });
+        // ✅ Game Order အတွက် Balance မထည့်ရဘူး
+        showNotif('✅ Game order #' + id + ' approved!', 'success');
+        loadAdminOrderTable();
+        loadAdminData();
+    } catch(e) { showNotif('Error', 'error'); }
+    hideLoading(); // ✅ Loading ပျောက်ဖို့ ထည့်
 }
 
-function detectGameTypeAdmin(order) {
-    let product = (order.product_name || '').toLowerCase();
-    let payment = (order.payment_method || '').toLowerCase();
+// ✅ Reject Game Order (Balance ပြန်ထည့်ရမယ် - Refund)
+async function rejectGameOrder(id, userId) {
+    if (!confirm(`❌ Reject game order #${id}? This will refund the user.`)) return;
     
-    if (product.includes('diamond') || product.includes('weekly') || product.includes('twilight') || product.includes('epic') || product.includes('recharge')) {
-        return 'mlbb';
-    }
-    if (product.includes('uc') || payment.includes('pubg')) {
-        return 'pubg';
-    }
-    if (product.includes('token') || payment.includes('hok')) {
-        return 'hok';
-    }
-    return 'topup';
+    const reason = 'အချက်အလက်များ မှန်ကန်မှုမရှိသောကြောင့်ဖြစ်ပါသည်။ ငွေပြန်အမ်းပေးပါမည်။';
+    
+    showLoading('Rejecting game order...');
+    try {
+        // ✅ Reject API က Auto Refund လုပ်ပေးတယ်
+        await fetch('/api/admin/order/reject', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, reason })
+        });
+        showNotif('❌ Game order #' + id + ' rejected! Refunded.', 'error');
+        loadAdminOrderTable();
+        loadAdminData();
+    } catch(e) { showNotif('Error', 'error'); }
+    hideLoading(); // ✅ Loading ပျောက်ဖို့ ထည့်
 }
 
-function adminSetDateFilter(dateType) {
-    adminCurrentDate = dateType;
-    
-    document.querySelectorAll('.admin-date-btn').forEach(btn => btn.classList.remove('active'));
-    if (dateType === 'today') {
-        const todayBtn = document.querySelector('.admin-date-btn[onclick*="today"]');
-        if (todayBtn) todayBtn.classList.add('active');
-    } else if (dateType === 'yesterday') {
-        const yesterdayBtn = document.querySelector('.admin-date-btn[onclick*="yesterday"]');
-        if (yesterdayBtn) yesterdayBtn.classList.add('active');
-    }
-    
-    renderAdminOrderTable();
-}
-
-function adminSetGameFilter(gameType) {
-    adminCurrentFilter = gameType;
-    
-    document.querySelectorAll('.admin-game-btn').forEach(btn => btn.classList.remove('active'));
-    const activeBtn = Array.from(document.querySelectorAll('.admin-game-btn')).find(btn => btn.textContent.toLowerCase().includes(gameType));
-    if (activeBtn) activeBtn.classList.add('active');
-    
-    renderAdminOrderTable();
-}
-
-function renderAdminOrderTable() {
-    let filtered = [...adminAllOrders];
-    
-    if (adminCurrentFilter !== 'all') {
-        filtered = filtered.filter(order => detectGameTypeAdmin(order) === adminCurrentFilter);
-    }
-    
-    const todayStr = new Date().toISOString().split('T')[0];
-    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    
-    if (adminCurrentDate === 'today') {
-        filtered = filtered.filter(order => order.created_at.split('T')[0] === todayStr);
-    } else if (adminCurrentDate === 'yesterday') {
-        filtered = filtered.filter(order => order.created_at.split('T')[0] === yesterdayStr);
-    } else if (adminCurrentDate.startsWith('day_')) {
-        const daysAgo = parseInt(adminCurrentDate.split('_')[1]);
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() - daysAgo);
-        const targetStr = targetDate.toISOString().split('T')[0];
-        filtered = filtered.filter(order => order.created_at.split('T')[0] === targetStr);
-    }
-    
-    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    renderAdminOrderTableHTML(filtered);
-}
-
+// ==================== RENDER GAME ORDER TABLE (FIXED) ====================
 function renderAdminOrderTableHTML(orders) {
     const wrap = document.getElementById('adminOrderTableWrap');
     if (!wrap) return;
     
     if (orders.length === 0) {
-        wrap.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size:50px;"></i><p style="margin-top:15px;">No orders found</p></div>';
+        wrap.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size:50px;"></i><p style="margin-top:15px;">No game orders found</p></div>';
         return;
     }
     
@@ -2858,52 +2825,6 @@ function renderAdminOrderTableHTML(orders) {
     
     wrap.innerHTML = html;
 }
-
-async function approveGameOrder(id, userId, amount) {
-    if (amount <= 0) {
-        showNotif('❌ Invalid amount', 'error');
-        return;
-    }
-    
-    if (!confirm(`✅ Approve game order #${id} with ${amount.toLocaleString()} Ks?`)) return;
-    
-    showLoading('Approving...');
-    try {
-        await fetch('/api/admin/order_status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, status: 'approved' })
-        });
-        await fetch('/api/admin/update_balance', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: userId, amount: parseFloat(amount) })
-        });
-        showNotif('✅ Order #' + id + ' approved!', 'success');
-        loadAdminOrderTable();
-        loadAdminData();
-    } catch(e) { showNotif('Error', 'error'); }
-    hideLoading();
-}
-
-async function rejectGameOrder(id, userId) {
-    if (!confirm(`❌ Reject game order #${id}?`)) return;
-    
-    const reason = 'အချက်အလက်များ မှန်ကန်မှုမရှိသောကြောင့်ဖြစ်ပါသည်။ နောက်တစ်နာရီအတွင်း ငွေပြန်အမ်းပေးပါမည်။';
-    
-    try {
-        await fetch('/api/admin/order/reject', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id, reason })
-        });
-        loadAdminOrderTable();
-        loadAdminData();
-    } catch(e) {
-        console.error('Reject error:', e);
-    }
-}
-
 // ============================================================
 // 3. FULL ORDER MODAL (More Orders) - NO INPUT BOX
 // ============================================================
