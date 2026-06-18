@@ -14,19 +14,19 @@ const { Server } = require('socket.io');
 const app = express();
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 app.use(express.static(__dirname));
 // ==================== AUTO WAKE-UP ====================
 setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
 
 // ==================== DATABASE - 5 POOLS AUTO-SWITCH ====================
-const DB1 = 'postgresql://neondb_owner:npg_3lq1dLYxvgVX@ep-misty-base-amkxcayc-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB2 = 'postgresql://neondb_owner:npg_6RwnXBl5LKQt@ep-damp-sea-a46t7qil-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB3 = 'postgresql://neondb_owner:npg_LVD3pNxhd1vi@ep-withered-violet-aprnlbey-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB4 = 'postgresql://neondb_owner:npg_ntqgkA5OVL8P@ep-noisy-resonance-aqy8odea-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB5 = 'postgresql://neondb_owner:npg_KuFVvHic4m0Y@ep-orange-paper-aqn9ak7c-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB1 = 'postgresql://neondb_owner:npg_cDtxrl79uOzF@ep-blue-king-aikgcvcv-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const DB2 = 'postgresql://neondb_owner:npg_aS8fgplv6jcB@ep-holy-shadow-ai8e2677-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const DB3 = 'postgresql://neondb_owner:npg_VBM54jHQqwFD@ep-fancy-dust-adpr12ef-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const DB4 = 'postgresql://neondb_owner:npg_M6QLisaY1Gku@ep-patient-water-at9gutw4-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const DB5 = 'postgresql://neondb_owner:npg_mM5yoxfpCZ1V@ep-young-poetry-adqal9f8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
 
 const pools = [
     new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }), // 5s ကနေ 10s သို့
@@ -2705,7 +2705,7 @@ app.post('/api/admin/update_balance', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
-// ==================== ORDERS ====================
+// ==================== ADMIN ORDERS (FIXED) ====================
 app.get('/api/admin/orders', async (req, res) => { 
     try { 
         const p = await getPool(); 
@@ -2713,6 +2713,7 @@ app.get('/api/admin/orders', async (req, res) => {
         let query = 'SELECT * FROM orders'; 
         const params = []; 
         const today = new Date().toISOString().split('T')[0]; 
+        
         if (filter === 'today') { 
             query += " WHERE DATE(created_at)=$1"; 
             params.push(today); 
@@ -2721,20 +2722,24 @@ app.get('/api/admin/orders', async (req, res) => {
             params.push(new Date(Date.now()-86400000).toISOString().split('T')[0]); 
         } 
         query += ' ORDER BY id DESC'; 
+        
         const r = await p.query(query, params); 
         const totalR = await p.query("SELECT COUNT(*) FROM orders"); 
         const todayR = await p.query("SELECT COUNT(*) FROM orders WHERE DATE(created_at)=$1", [today]); 
+        
+        console.log('[ADMIN ORDERS] Total:', totalR.rows[0].count, 'Today:', todayR.rows[0].count);
+        
         res.json({ 
             orders: r.rows, 
             total: parseInt(totalR.rows[0].count), 
             today: parseInt(todayR.rows[0].count) 
         }); 
     } catch(e) { 
+        console.error('[ADMIN ORDERS ERROR]', e.message); 
         res.json({ orders: [], total: 0, today: 0 }); 
     } 
 });
-
-// ==================== GET USER ORDERS (JWT FIXED) ====================
+// ==================== GET USER ORDERS (FIXED) ====================
 app.post('/api/get_orders', async (req, res) => { 
     try { 
         const p = await getPool();
@@ -2759,9 +2764,14 @@ app.post('/api/get_orders', async (req, res) => {
             return res.json({ orders: [] });
         }
         
+        // ✅ Get ALL orders (both topup AND game)
         const r = await p.query('SELECT * FROM orders WHERE user_id=$1 ORDER BY id DESC', [uid]); 
+        
+        console.log('[GET ORDERS] User:', uid, 'Total orders:', r.rows.length);
+        
         res.json({ orders: r.rows }); 
     } catch(e) { 
+        console.error('[GET ORDERS ERROR]', e.message);
         res.json({ orders: [] }); 
     } 
 });
@@ -2827,10 +2837,11 @@ app.post('/api/get_balance', async (req, res) => {
         res.json({ balance: 0 });
     }
 });
-
-// ==================== PURCHASE GAME ITEM (AUTO-APPROVED - FIXED) ====================
+// ==================== PURCHASE GAME ITEM (FIXED) ====================
 app.post('/api/purchase_game_item', async (req, res) => {
     const { token, game, product_name, price, game_id, server_id, player_id } = req.body;
+    
+    console.log('🔍 [PURCHASE GAME] Request:', { game, product_name, price });
     
     if (!token || token === 'guest') {
         return res.json({ success: false, message: 'Login required' });
@@ -2849,7 +2860,7 @@ app.post('/api/purchase_game_item', async (req, res) => {
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
-                uid = decoded.userId;
+                uid = decoded.userId || decoded.id || decoded.uid;
             } catch(e) {
                 return res.json({ success: false, message: 'Invalid session' });
             }
@@ -2860,7 +2871,7 @@ app.post('/api/purchase_game_item', async (req, res) => {
             return res.json({ success: false, message: 'Invalid session' });
         }
         
-        // Check balance
+        // ✅ Check balance
         const user = await p.query('SELECT balance, username FROM auth_users WHERE id = $1', [uid]);
         if (user.rows.length === 0) {
             return res.json({ success: false, message: 'User not found' });
@@ -2873,19 +2884,19 @@ app.post('/api/purchase_game_item', async (req, res) => {
             return res.json({ success: false, message: 'ငွေမလုံလောက်ပါ' });
         }
         
-        // Deduct balance
+        // ✅ Deduct balance
         const newBalance = currentBalance - price;
         await p.query('UPDATE auth_users SET balance = balance - $1 WHERE id = $2', [price, uid]);
         
-        // ✅ Get product image URL based on game and product
+        // ✅ Get product image URL
         let productImageUrl = getProductImageUrl(game, product_name);
         
         const paymentMethod = game.toUpperCase() + ' Purchase';
         
-        // ✅ ORDER TYPE: 'game' လို့ သတ်မှတ်ပါ (Top-Up နဲ့ ခွဲခြားရန်)
-        await p.query(
-            `INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id, product_name, game_id, server_id, player_id, order_type) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+        // ✅ INSERT with order_type = 'game'
+        const insertResult = await p.query(
+            `INSERT INTO orders (user_id, username, amount, payment_method, screenshot, status, submitted_user_id, product_name, game_id, server_id, player_id, order_type, created_at) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW()) RETURNING id`,
             [
                 uid, 
                 username, 
@@ -2902,9 +2913,11 @@ app.post('/api/purchase_game_item', async (req, res) => {
             ]
         );
         
-        console.log('✅ [GAME PURCHASE] User:', uid, 'Game:', game, 'Product:', product_name, 'Price:', price, 'New Balance:', newBalance);
+        const orderId = insertResult.rows[0].id;
         
-        // Telegram notification
+        console.log('✅ [GAME PURCHASE] Order ID:', orderId, 'User:', uid, 'Game:', game, 'Product:', product_name, 'Price:', price, 'New Balance:', newBalance);
+        
+        // ✅ Telegram notification
         try {
             const gameDetails = game_id ? '🆔 ' + game_id + (server_id ? ' (' + server_id + ')' : '') : '';
             tgSend('🎮 Game Purchase\n👤 ' + username + '\n🎮 ' + game.toUpperCase() + '\n📦 ' + product_name + '\n💰 ' + price.toLocaleString() + ' Ks\n' + gameDetails + '\n⏳ Pending');
@@ -2912,16 +2925,17 @@ app.post('/api/purchase_game_item', async (req, res) => {
         
         res.json({
             success: true,
-            message: 'ဝယ်ယူမှု အောင်မြင်ပါသည်။ Admin မှ အတည်ပြုပါမည်။',
+            message: 'ဝယ်ယူမှု အောင်မြင်ပါသည်။ Admin မှ ၃ မိနစ်အတွင်း အတည်ပြုပါမည်။',
             new_balance: newBalance,
             product: product_name,
             game: game,
-            product_image: productImageUrl
+            product_image: productImageUrl,
+            order_id: orderId
         });
         
     } catch(e) {
         console.error('[PURCHASE GAME ITEM ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' });
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 // ==================== GET PRODUCT IMAGE URL ====================
