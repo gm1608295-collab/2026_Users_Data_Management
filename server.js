@@ -22,12 +22,12 @@ setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onr
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
 
 // ==================== DATABASE - 5 POOLS AUTO-SWITCH ====================
-const DB1 = 'postgresql://neondb_owner:npg_cDtxrl79uOzF@ep-blue-king-aikgcvcv-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const DB2 = 'postgresql://neondb_owner:npg_aS8fgplv6jcB@ep-holy-shadow-ai8e2677-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const DB3 = 'postgresql://neondb_owner:npg_VBM54jHQqwFD@ep-fancy-dust-adpr12ef-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const DB4 = 'postgresql://neondb_owner:npg_M6QLisaY1Gku@ep-patient-water-at9gutw4-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const DB5 = 'postgresql://neondb_owner:npg_mM5yoxfpCZ1V@ep-young-poetry-adqal9f8-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-
+// ဒီအတိုင်း ပြန်ထည့်ပါ
+const DB1 = 'postgresql://neondb_owner:npg_3lq1dLYxvgVX@ep-misty-base-amkxcayc-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB2 = 'postgresql://neondb_owner:npg_6RwnXBl5LKQt@ep-damp-sea-a46t7qil-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB3 = 'postgresql://neondb_owner:npg_LVD3pNxhd1vi@ep-withered-violet-aprnlbey-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB4 = 'postgresql://neondb_owner:npg_ntqgkA5OVL8P@ep-noisy-resonance-aqy8odea-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
+const DB5 = 'postgresql://neondb_owner:npg_KuFVvHic4m0Y@ep-orange-paper-aqn9ak7c-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
 const pools = [
     new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }), // 5s ကနေ 10s သို့
     new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000 }),
