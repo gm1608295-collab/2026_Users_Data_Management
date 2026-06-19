@@ -2682,37 +2682,21 @@ async function loadAdminOrderTable() {
     
     try {
         const r = await fetch('/api/admin/orders?filter=all');
-        
-        if (!r.ok) {
-            throw new Error('HTTP ' + r.status);
-        }
-        
         const d = await r.json();
         
-        if (!d.orders) {
-            d.orders = [];
-        }
-        
+        if (!d.orders) d.orders = [];
         console.log('[ADMIN] Total orders:', d.orders.length);
         
-        // ✅ ALL orders ကိုပြမယ် (ခွဲမခြားတော့ဘူး)
-        adminAllOrders = d.orders;
-        
-        if (adminAllOrders.length === 0) {
-            wrap.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size:50px;"></i><p style="margin-top:15px;">No orders found</p></div>';
-            return;
-        }
+        adminAllOrders = d.orders; // ✅ Global variable ကို update လုပ်ရန်
         
         renderAdminOrderTable();
         renderAdminDateNumbers();
-        
     } catch(e) {
         console.error('[LOAD GAME ORDERS ERROR]', e.message);
         wrap.innerHTML = `<div style="text-align:center;padding:40px;color:var(--r);">
             <i class="fas fa-exclamation-triangle" style="font-size:30px;display:block;margin-bottom:10px;"></i>
             Error loading orders: ${e.message}
-            <br><br>
-            <button class="btn btn-b" onclick="loadAdminOrderTable()" style="margin-top:10px;">🔄 Retry</button>
+            <br><br><button class="btn btn-b" onclick="loadAdminOrderTable()" style="margin-top:10px;">🔄 Retry</button>
         </div>`;
     }
 }
@@ -2761,14 +2745,29 @@ async function rejectGameOrder(id, userId) {
     } catch(e) { showNotif('Error', 'error'); }
     hideLoading(); // ✅ Loading ပျောက်ဖို့ ထည့်
 }
-
 // ==================== RENDER GAME ORDER TABLE (FIXED) ====================
-function renderAdminOrderTableHTML(orders) {
+function renderAdminOrderTable() {
     const wrap = document.getElementById('adminOrderTableWrap');
     if (!wrap) return;
     
-    if (orders.length === 0) {
-        wrap.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size:50px;"></i><p style="margin-top:15px;">No game orders found</p></div>';
+    // Filter by game type and date
+    let filtered = [...adminAllOrders];
+    if (adminCurrentFilter !== 'all') {
+        filtered = filtered.filter(o => detectGameTypeAdmin(o) === adminCurrentFilter);
+    }
+    if (adminCurrentDate === 'today') {
+        const today = new Date().toISOString().split('T')[0];
+        filtered = filtered.filter(o => new Date(o.created_at).toISOString().split('T')[0] === today);
+    } else if (adminCurrentDate === 'yesterday') {
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        filtered = filtered.filter(o => new Date(o.created_at).toISOString().split('T')[0] === yesterday);
+    }
+    
+    // Sort newest first
+    filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    if (filtered.length === 0) {
+        wrap.innerHTML = '<div style="text-align:center;padding:60px;color:rgba(255,255,255,0.4);"><i class="fas fa-inbox" style="font-size:50px;"></i><p style="margin-top:15px;">No orders found</p></div>';
         return;
     }
     
@@ -2790,7 +2789,7 @@ function renderAdminOrderTableHTML(orders) {
             </thead>
             <tbody>`;
     
-    orders.forEach(order => {
+    filtered.forEach(order => {
         const gameType = detectGameTypeAdmin(order);
         const amount = Math.abs(order.amount || 0);
         const isPending = order.status === 'pending';
@@ -2842,12 +2841,26 @@ function renderAdminOrderTableHTML(orders) {
         </tr>`;
     });
     
-    html += `</tbody>
-        </table>
-    </div>`;
-    
+    html += `</tbody></table></div>`;
     wrap.innerHTML = html;
 }
+
+// ✅ Helper function to detect game type (already exists, but ensure it's correct)
+function detectGameTypeAdmin(order) {
+    let product = (order.product_name || '').toLowerCase();
+    let payment = (order.payment_method || '').toLowerCase();
+    
+    if (product.includes('diamond') || product.includes('weekly') || product.includes('twilight') || product.includes('epic') || product.includes('recharge')) {
+        return 'mlbb';
+    }
+    if (product.includes('uc') || payment.includes('pubg')) {
+        return 'pubg';
+    }
+    if (product.includes('token') || payment.includes('hok')) {
+        return 'hok';
+    }
+    return 'topup';
+        }
 // ============================================================
 // 3. FULL ORDER MODAL (More Orders) - NO INPUT BOX
 // ============================================================
