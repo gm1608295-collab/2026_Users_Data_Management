@@ -433,7 +433,10 @@ async function initTables(p) {
 
         // ✅ Add timer_end column to page_status
         `ALTER TABLE page_status ADD COLUMN IF NOT EXISTS timer_end TIMESTAMP`,
-        
+
+        // ========== ADD MISSING COLUMNS TO ORDERS TABLE ==========
+`ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type VARCHAR(50) DEFAULT 'topup'`,
+`ALTER TABLE orders ADD COLUMN IF NOT EXISTS sender_premium_tier INT DEFAULT 0`,
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_sender ON chat_messages(sender_id)`,
