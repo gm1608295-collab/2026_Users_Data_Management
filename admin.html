@@ -2745,12 +2745,11 @@ async function rejectGameOrder(id, userId) {
     } catch(e) { showNotif('Error', 'error'); }
     hideLoading(); // ✅ Loading ပျောက်ဖို့ ထည့်
 }
-// ==================== RENDER GAME ORDER TABLE (FIXED) ====================
+// ==================== RENDER GAME ORDER TABLE WITH IMAGES (ADMIN) ====================
 function renderAdminOrderTable() {
     const wrap = document.getElementById('adminOrderTableWrap');
     if (!wrap) return;
     
-    // Filter by game type and date
     let filtered = [...adminAllOrders];
     if (adminCurrentFilter !== 'all') {
         filtered = filtered.filter(o => detectGameTypeAdmin(o) === adminCurrentFilter);
@@ -2763,7 +2762,6 @@ function renderAdminOrderTable() {
         filtered = filtered.filter(o => new Date(o.created_at).toISOString().split('T')[0] === yesterday);
     }
     
-    // Sort newest first
     filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     
     if (filtered.length === 0) {
@@ -2793,6 +2791,10 @@ function renderAdminOrderTable() {
         const gameType = detectGameTypeAdmin(order);
         const amount = Math.abs(order.amount || 0);
         const isPending = order.status === 'pending';
+        const productName = order.product_name || order.payment_method || '-';
+        
+        // ✅ Product Image ရှာပါ
+        const productImage = getProductImageAdmin(gameType, productName);
         
         let gameColor = '';
         let gameIdDisplay = '';
@@ -2815,16 +2817,17 @@ function renderAdminOrderTable() {
         const statusText = order.status === 'approved' ? '✅ Approved' : order.status === 'rejected' ? '❌ Rejected' : '⏳ Pending';
         const statusColor = order.status === 'approved' ? '#2ecc71' : order.status === 'rejected' ? '#e74c3c' : '#f39c12';
         
+        // ✅ Image Show (Product Image ကို ပြမယ်)
         let screenshotHtml = '—';
-        if (order.screenshot && order.screenshot.startsWith('http')) {
-            screenshotHtml = `<img src="${order.screenshot}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="zoomImage('${order.screenshot}')" onerror="this.style.display='none'">`;
+        if (productImage) {
+            screenshotHtml = `<img src="${productImage}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;cursor:pointer;background:rgba(0,0,0,0.3);padding:2px;" onclick="zoomImage('${productImage}')" onerror="this.style.display='none'">`;
         }
         
         html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
             <td style="padding:10px 8px;"><b style="color:var(--w);">#${order.id}</b></td>
             <td style="padding:10px 8px;">${escapeHtml(order.username || 'N/A')}<br><small style="color:rgba(255,255,255,0.5);">ID: ${order.user_id}</small></td>
             <td style="padding:10px 8px;"><span style="background:${gameColor}20;color:${gameColor};padding:4px 10px;border-radius:20px;font-size:9px;font-weight:bold;">${gameType.toUpperCase()}</span></td>
-            <td style="padding:10px 8px;">${escapeHtml(order.product_name || order.payment_method || '-')}</td>
+            <td style="padding:10px 8px;">${escapeHtml(productName)}</td>
             <td style="padding:10px 8px;"><b style="color:var(--w);">${amount.toLocaleString()} Ks</b></td>
             <td style="padding:10px 8px;font-size:10px;">${gameIdDisplay}</td>
             <td style="padding:10px 8px;text-align:center;">${screenshotHtml}</td>
@@ -2843,6 +2846,59 @@ function renderAdminOrderTable() {
     
     html += `</tbody></table></div>`;
     wrap.innerHTML = html;
+        }
+        // ✅ Admin အတွက် Product Image ရှာတဲ့ Function
+function getProductImageAdmin(gameType, productName) {
+    if (!productName) return '';
+    
+    const mlbbImages = {
+        '5 Diamonds (5+0)': 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png',
+        '11 Diamonds (10+1)': 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png',
+        '22 Diamonds (20+2)': 'https://i.ibb.co/Nftqx8f/01-JS3-SZBBHTF0-QMWNE3-VY3-SH7-V.png',
+        '55 Diamonds (50+5)': 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png',
+        '56 Diamonds (51+5)': 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png',
+        '86 Diamonds (78+8)': 'https://i.ibb.co/JWNBm8YQ/01-JNK3-Q7-NM1-K2-RHXAP8-ZSQHAMQ.png',
+        '112 Diamonds (102+10)': 'https://i.ibb.co/S4MnMpXQ/01-JD9-FCWTADSQZNA61-T2-B8-RKY4.png',
+        '165 Diamonds (150+15)': 'https://i.ibb.co/QF2QrQzZ/01-JNK3-K4-CF78-HAW68-VY2-B8-MVNZ.png',
+        'Weekly Diamond Pass': 'https://i.ibb.co/gbY4GTvk/8cfaffbfa7aa9e957bb6da56f7fed781.jpg',
+        'Twilight Pass': 'https://i.ibb.co/xcRdNfj/01-JED346-YHR0-Z1-YVSG81-DEMFYQ.png',
+        'First Recharge 50+50': 'https://i.ibb.co/JWbn70T0/01-JSEPEK616-XR3-P8-SWTFH4-TQTD.png',
+        'First Recharge 150+150': 'https://i.ibb.co/yMK1y2L/01-JSEPFNH4-BPJA6-TY0-HRVX8-PPX.png',
+        'First Recharge 250+250': 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png',
+        'First Recharge 500+500': 'https://i.ibb.co/BHS071wB/01-JSEPG6-R0-J4-AMCXEQWHY0-V9-PW.png',
+        'Epic Treasure (Weekly)': 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg',
+        'Epic Hero (Monthly)': 'https://i.ibb.co/7JnFxhNQ/01-KG538-P2-SD5-RGD4-V8-MMWE0-HN6.jpg'
+    };
+    
+    const pubgImages = {
+        '60 UC': 'https://i.ibb.co/pBXCsdCW/01-K85-PFFBFP3-DQJXKGG9-JD9-YN2.jpg',
+        '325 UC': 'https://i.ibb.co/23v79K9p/01-K85-PNG8-XXYY0-M19-ZVFZMT7-D6.jpg',
+        '660 UC': 'https://i.ibb.co/Ldqz4LMY/01-K85-R7-JPGWH903890-XQXV3-JFN.jpg',
+        '1800 UC': 'https://i.ibb.co/Ldqz4LMY/01-K85-R7-JPGWH903890-XQXV3-JFN.jpg',
+        '3850 UC': 'https://i.ibb.co/Jj2xWCq5/01-K85-RDSC9-JWH8-W1-K15-R8-QZCGY.jpg',
+        '8100 UC': 'https://i.ibb.co/Jj2xWCq5/01-K85-RDSC9-JWH8-W1-K15-R8-QZCGY.jpg'
+    };
+    
+    const hokImages = {
+        '16 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '80 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '240 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '400 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '560 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '800 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '1200 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg',
+        '2400 Tokens': 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg'
+    };
+    
+    if (gameType === 'mlbb') {
+        return mlbbImages[productName] || 'https://i.ibb.co/XkST52ZT/9dad5c0fde6524c0fcffbb3b6060adf8.jpg';
+    } else if (gameType === 'pubg') {
+        return pubgImages[productName] || 'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg';
+    } else if (gameType === 'hok') {
+        return hokImages[productName] || 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg';
+    }
+    
+    return '';
 }
 
 // ✅ Helper function to detect game type (already exists, but ensure it's correct)
