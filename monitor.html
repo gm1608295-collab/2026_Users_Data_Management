@@ -3,117 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>24/7 Security Monitor - SOLO M</title>
+    <title>Advanced Security Monitor - SOLO M</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0a0a1a;--p:#1a1f4b;--w:#f39c12;--g:#2ecc71;--r:#e74c3c;--t:#fff}
+        :root{--bg:#0a0a1a;--p:#1a1f4b;--w:#f39c12;--g:#2ecc71;--r:#e74c3c;--b:#3498db;--t:#fff}
         *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
         body{background:linear-gradient(160deg,#0a0d24 0%,#0f1235 50%,#080b1a 100%);color:var(--t);min-height:100vh;padding:12px;overflow-y:auto}
-        .container{max-width:1000px;margin:0 auto}
-        .header{background:var(--p);padding:15px;text-align:center;border-radius:12px;border-bottom:4px solid var(--r);margin-bottom:20px}
-        .header h1{font-size:20px;color:var(--r);display:flex;align-items:center;justify-content:center;gap:10px}
-        .header .sub{font-size:12px;color:rgba(255,255,255,0.6)}
+        .container{max-width:1400px;margin:0 auto}
+        .header{background:var(--p);padding:20px;text-align:center;border-radius:12px;border-bottom:4px solid var(--r);margin-bottom:20px}
+        .header h1{font-size:24px;color:var(--r);display:flex;align-items:center;justify-content:center;gap:10px}
         
-        /* Login Box */
+        /* Login */
         .login-box{max-width:400px;margin:100px auto;background:var(--p);padding:30px;border-radius:12px;text-align:center;border:2px solid var(--w)}
-        .login-box input{width:100%;padding:12px;margin:15px 0;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-size:14px;text-align:center}
+        .login-box input{width:100%;padding:12px;margin:10px 0;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-size:14px;text-align:center}
         .login-box button{width:100%;padding:12px;background:var(--w);color:#000;border:none;border-radius:8px;font-weight:bold;font-size:14px;cursor:pointer}
-        .login-box .error{color:var(--r);margin-top:10px;font-size:12px;display:none}
         
-        /* Dashboard Grid */
-        .monitor-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:15px;margin-bottom:20px}
-        .stat-card{background:rgba(26,31,75,0.7);padding:15px;border-radius:10px;border-left:4px solid var(--w);text-align:center}
-        .stat-card .num{font-size:28px;font-weight:bold;color:var(--w)}
-        .stat-card .lbl{font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px}
+        /* Stats */
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:15px;margin-bottom:20px}
+        .stat-card{background:rgba(26,31,75,0.7);padding:15px;border-radius:10px;text-align:center;border-left:4px solid var(--w)}
+        .stat-card .num{font-size:24px;font-weight:bold;color:var(--w)}
+        .stat-card .lbl{font-size:10px;color:rgba(255,255,255,0.5)}
         .stat-card.red{border-left-color:var(--r)}
         .stat-card.red .num{color:var(--r)}
         
-        .section{background:rgba(26,31,75,0.5);border-radius:10px;padding:15px;margin-bottom:20px;border:1px solid rgba(255,255,255,0.05)}
-        .section h3{color:var(--w);font-size:14px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px;display:flex;align-items:center;gap:8px}
+        /* Main Data Table */
+        .table-wrap{background:rgba(26,31,75,0.4);border-radius:12px;padding:15px;overflow-x:auto;border:1px solid rgba(255,255,255,0.05)}
+        table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+        th{background:rgba(0,0,0,0.4);color:var(--w);padding:12px 8px;text-align:left;position:sticky;top:0;z-index:10;border-bottom:2px solid rgba(255,255,255,0.1)}
+        td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle}
+        tr:hover td{background:rgba(255,255,255,0.03)}
+        .clickable{cursor:pointer;color:var(--b);font-weight:bold}
+        .clickable:hover{text-decoration:underline}
+        .badge{font-size:9px;padding:3px 8px;border-radius:10px;font-weight:bold}
+        .badge.high{background:rgba(231,76,60,0.2);color:var(--r)}
+        .badge.medium{background:rgba(243,156,18,0.2);color:var(--w)}
+        .badge.low{background:rgba(46,204,113,0.2);color:var(--g)}
         
-        .history-row{display:flex;justify-content:space-between;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:4px;font-size:12px;border-left:3px solid var(--w)}
-        .history-row:hover{background:rgba(0,0,0,0.3)}
-        .badge-suspicious{background:var(--r);color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:bold}
-        .badge-warning{background:var(--w);color:#000;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:bold}
-        .badge-ok{background:var(--g);color:#000;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:bold}
+        /* Modal */
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:2000;justify-content:center;align-items:center}
+        .modal.active{display:flex}
+        .modal-box{background:var(--p);padding:20px;border-radius:12px;width:90%;max-width:700px;max-height:80vh;overflow-y:auto;border:2px solid var(--w)}
+        .modal-box .close{float:right;color:var(--r);cursor:pointer;font-size:20px}
+        .history-item{background:rgba(0,0,0,0.2);padding:8px 12px;border-radius:6px;margin-bottom:4px;font-size:11px;border-left:3px solid var(--b)}
         
-        .search-box{display:flex;gap:8px;margin-bottom:15px}
-        .search-box input{flex:1;padding:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:13px}
-        .search-box button{padding:10px 20px;background:var(--p);color:#fff;border:1px solid rgba(255,255,255,0.1);border-radius:6px;cursor:pointer}
-        
-        .user-detail-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:2000;justify-content:center;align-items:center}
-        .user-detail-modal.active{display:flex}
-        .detail-box{background:var(--p);padding:20px;border-radius:12px;width:90%;max-width:600px;max-height:80vh;overflow-y:auto;border:2px solid var(--w)}
-        .detail-box .close{float:right;color:var(--r);cursor:pointer;font-size:20px}
-        
-        @media(max-width:600px){.monitor-grid{grid-template-columns:1fr 1fr}}
+        @media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr}}
     </style>
 </head>
 <body>
-    <div class="container" id="appContainer">
-        <!-- Login Section -->
+    <div class="container">
+        <!-- Login -->
         <div class="login-box" id="loginBox">
-            <h2 style="color:var(--w);margin-bottom:10px;"><i class="fas fa-shield-alt"></i> Security Monitor</h2>
-            <p style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:20px;">Admin Access Only</p>
-            <input type="password" id="monitorPass" placeholder="Enter Admin Password" onkeydown="if(event.key==='Enter') unlockMonitor()">
-            <button onclick="unlockMonitor()"><i class="fas fa-unlock"></i> Unlock System</button>
-            <div class="error" id="loginError">Wrong Password!</div>
+            <h2 style="color:var(--w);"><i class="fas fa-shield-alt"></i> Monitor</h2>
+            <p style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:15px;">Admin Access Only</p>
+            <input type="password" id="monitorPass" placeholder="Enter Password" onkeydown="if(event.key==='Enter') unlockMonitor()">
+            <button onclick="unlockMonitor()"><i class="fas fa-unlock"></i> Unlock</button>
+            <div id="loginError" style="color:var(--r);margin-top:8px;display:none;">Wrong Password!</div>
         </div>
 
-        <!-- Dashboard Section (Hidden) -->
+        <!-- Dashboard -->
         <div id="dashboardBox" style="display:none;">
             <div class="header">
-                <h1><i class="fas fa-eye"></i> 24/7 MONITOR</h1>
-                <div class="sub">Real-time Suspicious Activity & Cyber Security Tracking</div>
+                <h1><i class="fas fa-eye"></i> 24/7 LIVE USER ACTIVITY</h1>
+                <div style="font-size:12px;color:rgba(255,255,255,0.6);">Full History & Real-time Monitoring</div>
             </div>
 
-            <!-- Stats -->
-            <div class="monitor-grid" id="statsGrid">
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card"><div class="num" id="totalUsers">0</div><div class="lbl">Total Accounts</div></div>
                 <div class="stat-card"><div class="num" id="todayLogins">0</div><div class="lbl">Today's Logins</div></div>
                 <div class="stat-card"><div class="num" id="newUsers">0</div><div class="lbl">New Users Today</div></div>
-                <div class="stat-card red"><div class="num" id="suspiciousCount">0</div><div class="lbl">⚠️ Suspicious IPs</div></div>
-                <div class="stat-card" style="border-left-color:var(--b);"><div class="num" style="color:var(--b);" id="systemTime">--:--</div><div class="lbl">Server Time (24h)</div></div>
+                <div class="stat-card red"><div class="num" id="suspiciousCount">0</div><div class="lbl">⚠️ Suspicious</div></div>
             </div>
 
-            <!-- Suspicious Accounts -->
-            <div class="section">
-                <h3><i class="fas fa-skull" style="color:var(--r);"></i> High-Risk Accounts (Multiple IPs/Devices in 24h)</h3>
-                <div id="suspiciousList"><p style="color:rgba(255,255,255,0.4);text-align:center;padding:20px;">No suspicious activity detected.</p></div>
-            </div>
-
-            <!-- Search & User Detail -->
-            <div class="section">
-                <h3><i class="fas fa-search"></i> Search User Activity</h3>
-                <div class="search-box">
-                    <input type="number" id="searchUserId" placeholder="Enter User ID (e.g. 42)">
-                    <button onclick="searchUserHistory()"><i class="fas fa-search"></i> Search</button>
+            <div class="table-wrap">
+                <div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:center;flex-wrap:wrap;gap:10px;">
+                    <h3 style="color:var(--w);font-size:16px;"><i class="fas fa-users"></i> All User Activity Stream</h3>
+                    <input type="text" id="searchInput" placeholder="Search by ID, Username, or Email..." onkeyup="filterTable()" style="padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px;min-width:200px;">
                 </div>
-                <div id="userSearchResult"></div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th><th>User</th><th>Total Logins</th><th>Unique IPs</th><th>Devices</th><th>Last Active</th><th>Last Device</th><th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTableBody">
+                        <tr><td colspan="8" style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">Loading data...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- User Detail Modal -->
-    <div class="user-detail-modal" id="userDetailModal" onclick="if(event.target===this) closeDetail()">
-        <div class="detail-box">
-            <span class="close" onclick="closeDetail()">&times;</span>
-            <h3 style="color:var(--w);margin-bottom:15px;">User ID: <span id="detailUserId">-</span></h3>
-            <div id="detailHistoryList"></div>
+    <!-- History Modal -->
+    <div class="modal" id="historyModal" onclick="if(event.target===this) closeHistory()">
+        <div class="modal-box">
+            <span class="close" onclick="closeHistory()">&times;</span>
+            <h3 style="color:var(--w);margin-bottom:15px;">User: <span id="modalUserName" style="color:#fff;">-</span></h3>
+            <div style="margin-bottom:10px;display:flex;gap:10px;font-size:12px;">
+                <span>Total Logins: <b id="modalTotalLogins">0</b></span>
+                <span>IPs: <b id="modalIPs">0</b></span>
+                <span>Devices: <b id="modalDevices">0</b></span>
+            </div>
+            <div id="historyList" style="border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;"></div>
         </div>
     </div>
 
     <script>
-        const MONITOR_PASS_HASH = "$2b$10$XeN/2HtPBf4DLh1.SjNKmuUzpjCRjhEa.wwknw6enjJc5a27l7ZkK"; // Hash of MK21082008
+        const PASS_HASH = "$2b$10$XeN/2HtPBf4DLh1.SjNKmuUzpjCRjhEa.wwknw6enjJc5a27l7ZkK";
+        let allUsers = [];
 
         async function unlockMonitor() {
             const pass = document.getElementById('monitorPass').value;
             const err = document.getElementById('loginError');
             err.style.display = 'none';
 
-            // Client-side check (Fast)
             const r = await fetch('/api/admin/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password: pass })
             });
             const d = await r.json();
@@ -121,74 +125,83 @@
             if (d.success) {
                 document.getElementById('loginBox').style.display = 'none';
                 document.getElementById('dashboardBox').style.display = 'block';
-                loadStats();
-                loadSuspicious();
-                setInterval(loadStats, 15000); // Auto-refresh every 15s
-                setInterval(loadSuspicious, 30000);
-                updateClock();
-                setInterval(updateClock, 1000);
+                loadAllData();
+                setInterval(loadAllData, 10000); // Auto refresh every 10 seconds
             } else {
                 err.style.display = 'block';
             }
         }
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('systemTime').textContent = now.toLocaleTimeString('en-GB', {hour12:false});
-        }
-
-        async function loadStats() {
+        async function loadAllData() {
             try {
-                const res = await fetch('/api/monitor/stats', {
+                // Load Stats
+                const statsRes = await fetch('/api/monitor/stats', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: localStorage.getItem('auth_token') })
                 });
-                const d = await res.json();
-                if(d.success) {
-                    document.getElementById('todayLogins').textContent = d.today_logins || 0;
-                    document.getElementById('newUsers').textContent = d.new_users || 0;
-                    document.getElementById('suspiciousCount').textContent = d.suspicious_ips || 0;
+                const stats = await statsRes.json();
+                if(stats.success) {
+                    document.getElementById('totalUsers').textContent = stats.total_users || 0;
+                    document.getElementById('todayLogins').textContent = stats.today_logins || 0;
+                    document.getElementById('newUsers').textContent = stats.new_users || 0;
+                    document.getElementById('suspiciousCount').textContent = stats.suspicious_count || 0;
                 }
-            } catch(e) {}
-        }
 
-        async function loadSuspicious() {
-            try {
-                const res = await fetch('/api/monitor/suspicious_accounts', {
+                // Load All Users Activity
+                const usersRes = await fetch('/api/monitor/all_users_activity', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: localStorage.getItem('auth_token') })
                 });
-                const d = await res.json();
-                const c = document.getElementById('suspiciousList');
-                if(d.success && d.accounts.length > 0) {
-                    c.innerHTML = d.accounts.map(u => `
-                        <div class="history-row" style="border-left-color:var(--r);">
-                            <div>
-                                <b style="color:var(--w);">ID: ${u.user_id}</b> (${u.username || 'N/A'})
-                                <br><small>IPs: ${u.ip_count} | Devices: ${u.device_count}</small>
-                            </div>
-                            <div>
-                                <span class="badge-suspicious">⚠️ SUSPICIOUS</span>
-                                <button onclick="viewUserDetail(${u.user_id})" style="background:var(--w);color:#000;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:10px;margin-left:8px;">View</button>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    c.innerHTML = '<p style="color:rgba(255,255,255,0.4);text-align:center;padding:20px;">✅ No suspicious accounts detected.</p>';
+                const usersData = await usersRes.json();
+                if(usersData.success) {
+                    allUsers = usersData.users;
+                    renderTable(allUsers);
                 }
-            } catch(e) {}
+            } catch(e) { console.error(e); }
         }
 
-        async function searchUserHistory() {
-            const uid = document.getElementById('searchUserId').value.trim();
-            if(!uid) return alert('Enter a User ID');
-            viewUserDetail(uid);
+        function renderTable(users) {
+            const tbody = document.getElementById('activityTableBody');
+            if(!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">No user activity found.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map(u => {
+                const riskLevel = (u.unique_ips >= 3 || u.unique_devices >= 4) ? 'high' : (u.unique_ips >= 2 ? 'medium' : 'low');
+                const statusText = riskLevel === 'high' ? '⚠️ High Risk' : riskLevel === 'medium' ? '⚠️ Warning' : '✅ Normal';
+                
+                return `<tr>
+                    <td><span class="clickable" onclick="openHistory(${u.id}, '${u.username || 'N/A'}')">#${u.id}</span></td>
+                    <td>
+                        <b>${u.username || 'N/A'}</b><br>
+                        <span style="font-size:10px;color:rgba(255,255,255,0.5);">${u.email || '-'}</span>
+                    </td>
+                    <td>${u.total_logins || 0}</td>
+                    <td>${u.unique_ips || 0}</td>
+                    <td>${u.unique_devices || 0}</td>
+                    <td style="font-size:11px;">${u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</td>
+                    <td style="font-size:10px;color:rgba(255,255,255,0.6);">${u.last_device || 'N/A'}</td>
+                    <td><span class="badge ${riskLevel}">${statusText}</span></td>
+                </tr>`;
+            }).join('');
         }
 
-        async function viewUserDetail(userId) {
-            document.getElementById('detailUserId').textContent = userId;
-            document.getElementById('userDetailModal').classList.add('active');
-            document.getElementById('detailHistoryList').innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);">Loading history...</p>';
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            if(!query) { renderTable(allUsers); return; }
+            const filtered = allUsers.filter(u => 
+                u.id.toString().includes(query) || 
+                (u.username && u.username.toLowerCase().includes(query)) || 
+                (u.email && u.email.toLowerCase().includes(query))
+            );
+            renderTable(filtered);
+        }
+
+        async function openHistory(userId, username) {
+            document.getElementById('modalUserName').textContent = username + ' (ID: ' + userId + ')';
+            document.getElementById('historyList').innerHTML = '<p style="text-align:center;padding:20px;color:rgba(255,255,255,0.4);">Loading full history...</p>';
+            document.getElementById('historyModal').classList.add('active');
 
             try {
                 const res = await fetch('/api/monitor/user_history', {
@@ -196,30 +209,38 @@
                     body: JSON.stringify({ token: localStorage.getItem('auth_token'), user_id: userId })
                 });
                 const d = await res.json();
-                if(d.success && d.history.length > 0) {
-                    document.getElementById('detailHistoryList').innerHTML = d.history.map(h => `
-                        <div class="history-row">
-                            <div>
-                                <b>${h.login_at}</b><br>
-                                <small>${h.device_info || 'Unknown Device'} (${h.device_type})</small>
+                
+                if(d.success) {
+                    document.getElementById('modalTotalLogins').textContent = d.history.length;
+                    const uniqueIPs = [...new Set(d.history.map(h => h.ip_address))];
+                    const uniqueDevices = [...new Set(d.history.map(h => h.device_info))];
+                    document.getElementById('modalIPs').textContent = uniqueIPs.length;
+                    document.getElementById('modalDevices').textContent = uniqueDevices.length;
+
+                    if(d.history.length > 0) {
+                        document.getElementById('historyList').innerHTML = d.history.map(h => `
+                            <div class="history-item">
+                                <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:5px;">
+                                    <span><b>${h.login_at}</b></span>
+                                    <span style="color:var(--b);">${h.ip_address}</span>
+                                </div>
+                                <div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:4px;">
+                                    ${h.device_info || 'Unknown Device'} (${h.device_type}) • ${h.browser || 'Unknown Browser'}
+                                </div>
                             </div>
-                            <div style="text-align:right;">
-                                <span style="color:var(--b);">${h.ip_address}</span><br>
-                                <span style="font-size:10px;color:rgba(255,255,255,0.5);">${h.browser}</span>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    document.getElementById('detailHistoryList').innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);">No history found.</p>';
+                        `).join('');
+                    } else {
+                        document.getElementById('historyList').innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);padding:20px;">No login history found for this user.</p>';
+                    }
                 }
             } catch(e) {
-                document.getElementById('detailHistoryList').innerHTML = '<p style="color:var(--r);text-align:center;">Error loading data.</p>';
+                document.getElementById('historyList').innerHTML = '<p style="color:var(--r);text-align:center;">Error loading history.</p>';
             }
         }
 
-        function closeDetail() {
-            document.getElementById('userDetailModal').classList.remove('active');
+        function closeHistory() {
+            document.getElementById('historyModal').classList.remove('active');
         }
     </script>
 </body>
-  </html>
+</html>
