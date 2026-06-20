@@ -2572,7 +2572,7 @@ async function subBalance(uid) {
     loadAdminData();
 }
 // ============================================================
-// 1. TOP-UP ORDERS (ငွေဖြည့်အော်ဒါများ) - NO BALANCE ADD
+// 1. TOP-UP ORDERS (ငွေဖြည့်အော်ဒါများ) - FIXED
 // ============================================================
 
 async function loadAdminOrders(f) {
@@ -2584,11 +2584,11 @@ async function loadAdminOrders(f) {
         document.getElementById("totalOrders").textContent = d.total || 0;
         document.getElementById("todayOrders").textContent = d.today || 0;
         
-        // ✅ Top-Up Orders ကိုပဲ ပြမယ် (order_type = 'topup' သို့မဟုတ် NULL)
-        let topupOrders = d.orders.filter(o => o.order_type === 'topup' || o.order_type === null || o.order_type === undefined);
+        // ✅ Filter ဖယ်ပြီး အကုန်ပြမယ်
+        let topupOrders = d.orders; 
         
         if (!topupOrders || topupOrders.length === 0) {
-            c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:15px;text-align:center">No top-up orders</p>';
+            c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);padding:15px;text-align:center">No orders found</p>';
             return;
         }
         
@@ -2621,7 +2621,6 @@ async function loadAdminOrders(f) {
         c.innerHTML = h;
     } catch(e) { console.error('Load orders error:', e); }
 }
-
 // ✅ Approve Top-Up Order (Balance ထည့်ပေးရမယ်)
 async function approveTopupOrder(id, userId, amount) {
     if (amount <= 0) {
@@ -2745,23 +2744,16 @@ async function rejectGameOrder(id, userId) {
     } catch(e) { showNotif('Error', 'error'); }
     hideLoading(); // ✅ Loading ပျောက်ဖို့ ထည့်
 }
-// ==================== RENDER GAME ORDER TABLE WITH IMAGES (ADMIN) ====================
+
+        // ==================== RENDER GAME ORDER TABLE (FIXED - SHOW ALL) ====================
 function renderAdminOrderTable() {
     const wrap = document.getElementById('adminOrderTableWrap');
     if (!wrap) return;
     
+    // ✅ Filter တွေ အကုန်ဖယ်ပြီး အကုန်ပြမယ်
     let filtered = [...adminAllOrders];
-    if (adminCurrentFilter !== 'all') {
-        filtered = filtered.filter(o => detectGameTypeAdmin(o) === adminCurrentFilter);
-    }
-    if (adminCurrentDate === 'today') {
-        const today = new Date().toISOString().split('T')[0];
-        filtered = filtered.filter(o => new Date(o.created_at).toISOString().split('T')[0] === today);
-    } else if (adminCurrentDate === 'yesterday') {
-        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-        filtered = filtered.filter(o => new Date(o.created_at).toISOString().split('T')[0] === yesterday);
-    }
     
+    // Sort newest first (အသစ်ဆုံးက အပေါ်ဆုံး)
     filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     
     if (filtered.length === 0) {
@@ -2793,7 +2785,7 @@ function renderAdminOrderTable() {
         const isPending = order.status === 'pending';
         const productName = order.product_name || order.payment_method || '-';
         
-        // ✅ Product Image ရှာပါ
+        // Product Image ရှာပါ
         const productImage = getProductImageAdmin(gameType, productName);
         
         let gameColor = '';
@@ -2817,7 +2809,7 @@ function renderAdminOrderTable() {
         const statusText = order.status === 'approved' ? '✅ Approved' : order.status === 'rejected' ? '❌ Rejected' : '⏳ Pending';
         const statusColor = order.status === 'approved' ? '#2ecc71' : order.status === 'rejected' ? '#e74c3c' : '#f39c12';
         
-        // ✅ Image Show (Product Image ကို ပြမယ်)
+        // Image Show (Product Image ကို ပြမယ်)
         let screenshotHtml = '—';
         if (productImage) {
             screenshotHtml = `<img src="${productImage}" style="width:40px;height:40px;object-fit:contain;border-radius:6px;cursor:pointer;background:rgba(0,0,0,0.3);padding:2px;" onclick="zoomImage('${productImage}')" onerror="this.style.display='none'">`;
@@ -2846,7 +2838,7 @@ function renderAdminOrderTable() {
     
     html += `</tbody></table></div>`;
     wrap.innerHTML = html;
-        }
+}
         // ✅ Admin အတွက် Product Image ရှာတဲ့ Function
 function getProductImageAdmin(gameType, productName) {
     if (!productName) return '';
