@@ -437,6 +437,23 @@ async function initTables(p) {
         // ========== ADD MISSING COLUMNS TO ORDERS TABLE ==========
 `ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_type VARCHAR(50) DEFAULT 'topup'`,
 `ALTER TABLE orders ADD COLUMN IF NOT EXISTS sender_premium_tier INT DEFAULT 0`,
+      
+        // ========== MONITORING SYSTEM TABLES & COLUMNS ==========
+        `ALTER TABLE login_history ADD COLUMN IF NOT EXISTS country VARCHAR(100)`,
+        `ALTER TABLE login_history ADD COLUMN IF NOT EXISTS city VARCHAR(100)`,
+        `ALTER TABLE login_history ADD COLUMN IF NOT EXISTS isp VARCHAR(200)`,
+        `ALTER TABLE device_sessions ADD COLUMN IF NOT EXISTS device_fingerprint VARCHAR(200)`,
+        `CREATE TABLE IF NOT EXISTS blocked_ips (
+            ip_address VARCHAR(50) PRIMARY KEY,
+            blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        `CREATE TABLE IF NOT EXISTS admin_activity_log (
+            id SERIAL PRIMARY KEY,
+            action VARCHAR(100),
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`,
+        
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_sender ON chat_messages(sender_id)`,
@@ -635,6 +652,101 @@ app.get('/api/page_timer/:pageId', async (req, res) => {
         res.json({ success: false, status: 'on', timer_end: null });
     }
 });
+// ============================================================
+// MONITORING & SECURITY SYSTEM APIS (FULL VERSION - ALL FEATURES)
+// ============================================================
+
+// 1. GET IP GEOLOCATION (Country/City Detection)
+async function getIPLocation(ip) {
+    if (!ip || ip === '127.0.0.1' || ip === '::1') return { country: 'Localhost', city: 'Local' };
+    try {
+        const res = await fetch(`http://ip-api.com/json/${ip}?fields=status,country,regionName,city,isp,query`);
+        const data = await res.json();
+        if (data.status === 'success') {
+            return { country: data.country, city: data.city, isp: data.isp };
+        }
+        return { country: 'Unknown', city: 'Unknown', isp: 'Unknown' };
+    } catch(e) {
+        return { country: 'Error', city: 'Error', isp: 'Error' };
+    }
+}
+
+// 2. MODIFIED LOGIN TRACKING (To save Location and Device Fingerprint)
+// Replace your existing trackLogin function with this one
+async function trackLogin(userId, username, loginType, req) {
+    try {
+        const p = await getPool();
+        const ua = req.headers['user-agent'] || '';
+        const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'Unknown';
+        const info = detectDevice(ua);
+        
+        // Get IP Location
+        const location = await getIPLocation(ip);
+        
+        // Generate Simple Device Fingerprint
+        const deviceFingerprint = 'dev_' + userId + '_' + ip.replace(/\./g, '_') + '_' + ua.substring(0, 30).replace(/[^a-zA-Z0-9]/g, '_');
+        
+        // Save login history (with new columns)
+        await p.query(
+            `INSERT INTO login_history (user_id, username, login_type, ip_address, device_info, device_type, device_brand, device_model, browser, is_mobile, user_agent, country, city, isp) 
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
+            [userId, username, loginType, ip, info.name, info.type, info.brand, info.model, info.browser, info.isMobile, ua, location.country, location.city, location.isp]
+        ).catch(e => console.log('Login history error:', e.message));
+        
+        // Save device session with fingerprint
+        await p.query(
+            `INSERT INTO device_sessions (user_id, token, device_name, device_type, device_brand, device_model, browser, ip_address, user_agent, device_fingerprint) 
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+             ON CONFLICT (user_id, token) DO UPDATE SET last_activity=NOW(), is_active=true, ip_address=$8`,
+            [userId, deviceFingerprint, info.name, info.type, info.brand, info.model, info.browser, ip, ua, deviceFingerprint]
+        ).catch(e => console.log('Device session error:', e.message));
+        
+    } catch(e) {
+        console.error('[LOGIN TRACK ERROR]', e.message);
+    }
+}
+
+// 3. GET ADMIN ACTIVITY LOG
+app.post('/api/monitor/admin_logs', async (req, res) => {
+    const { token } = req.body;
+    if (!token) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        const logs = await p.query(`SELECT action, details, created_at FROM admin_activity_log ORDER BY created_at DESC LIMIT 50`);
+        res.json({ success: true, logs: logs.rows });
+    } catch(e) {
+        res.json({ success: false, logs: [] });
+    }
+});
+
+// 4. BLOCK / UNBLOCK IP ADDRESS
+app.post('/api/monitor/block_ip', async (req, res) => {
+    const { token, ip_address } = req.body;
+    if (!token || !ip_address) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        await p.query(`INSERT INTO blocked_ips (ip_address) VALUES ($1) ON CONFLICT (ip_address) DO NOTHING`, [ip_address]);
+        res.json({ success: true, message: 'IP Blocked!' });
+    } catch(e) { res.json({ success: false }); }
+});
+
+app.post('/api/monitor/unblock_ip', async (req, res) => {
+    const { token, ip_address } = req.body;
+    if (!token || !ip_address) return res.json({ success: false });
+    try {
+        const p = await getPool();
+        await p.query(`DELETE FROM blocked_ips WHERE ip_address = $1`, [ip_address]);
+        res.json({ success: true, message: 'IP Unblocked!' });
+    } catch(e) { res.json({ success: false }); }
+});
+
+// 5. ADMIN ACTION LOGGER (Call this in approve/reject functions)
+async function logAdminAction(action, details) {
+    try {
+        const p = await getPool();
+        await p.query(`INSERT INTO admin_activity_log (action, details) VALUES ($1, $2)`, [action, details]);
+    } catch(e) {}
+            }
 
 // Admin: Set page timer (for admin panel)
 app.post('/api/admin/set_page_timer', async (req, res) => {
