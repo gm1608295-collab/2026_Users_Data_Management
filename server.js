@@ -5247,7 +5247,7 @@ async function initDefaultSpinRates() {
         { rate_type: 'premium_tier1', segment_label: '1000 Ks', reward: 1000, reward_type: 'mmk', segment_color: '#c9a84c', weight: 14 },
         { rate_type: 'premium_tier1', segment_label: '$0.50', reward: 0.50, reward_type: 'usd', segment_color: '#e74c3c', weight: 17 },
         { rate_type: 'premium_tier1', segment_label: '$0.75', reward: 0.75, reward_type: 'usd', segment_color: '#e67e22', weight: 15 },
-        { rate_type: 'premium_tier1', segment_label: '$1.00', reward: 1.00, reward_type: 'usd', segment_color: '#2ecc71', weight: 12 },
+        { rate_type: 'premiuavailable'lable'er1', segment_label: '$1.00', reward: 1.00, reward_type: 'usd', segment_color: '#2ecc71', weight: 12 },
         { rate_type: 'premium_tier1', segment_label: '$2.00', reward: 2.00, reward_type: 'usd', segment_color: '#9b59b6', weight: 9 },
         { rate_type: 'premium_tier1', segment_label: '$3.00', reward: 3.00, reward_type: 'usd', segment_color: '#e91e63', weight: 6 },
         { rate_type: 'premium_tier1', segment_label: 'SUPER', reward: 0, reward_type: 'super', segment_color: '#ff1744', weight: 5 },
@@ -5473,7 +5473,7 @@ app.post('/api/buy_promo_code', async (req, res) => {
         );
         
         if (code.rows.length === 0) {
-            return res.json({ success: false, message: 'Promo code not available' });
+            return res.json({ success: false, message: 'ရောင်းကုန်သွားပါပြီ(သို့)ပွဲတော်ပြီးသွားပါပြီ' });
         }
         
         const c = code.rows[0];
