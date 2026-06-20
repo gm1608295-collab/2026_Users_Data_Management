@@ -493,10 +493,10 @@ ALL_PAGES.forEach(async (pg) => {
     await pools[1].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
 });
 // ============================================================
-// MONITORING & SECURITY SYSTEM APIS (NEW)
+// MONITORING & SECURITY SYSTEM APIS (FULL HISTORY VERSION)
 // ============================================================
 
-// 1. Get Daily Stats (Today's Logins, New Users, Suspicious Count)
+// 1. Dashboard Stats (Today + Total Accounts)
 app.post('/api/monitor/stats', async (req, res) => {
     const { token } = req.body;
     if (!token) return res.json({ success: false });
@@ -505,60 +505,67 @@ app.post('/api/monitor/stats', async (req, res) => {
         const p = await getPool();
         const today = new Date().toISOString().split('T')[0];
 
+        // Total Registered Users
+        const totalUsers = await p.query("SELECT COUNT(*) as cnt FROM auth_users");
         // Today's Logins
         const logins = await p.query("SELECT COUNT(*) as cnt FROM login_history WHERE DATE(login_at) = $1", [today]);
         // New Users Today
         const newUsers = await p.query("SELECT COUNT(*) as cnt FROM auth_users WHERE DATE(created_at) = $1", [today]);
-        // Suspicious (Same IP with multiple User IDs today)
+        // Suspicious (Users with > 2 IPs in 24h)
         const suspicious = await p.query(`
-            SELECT ip_address, COUNT(DISTINCT user_id) as user_count 
+            SELECT COUNT(DISTINCT user_id) as cnt
             FROM login_history 
-            WHERE DATE(login_at) = $1 
-            GROUP BY ip_address 
-            HAVING COUNT(DISTINCT user_id) > 3
-        `, [today]);
+            WHERE login_at > NOW() - INTERVAL '24 hours'
+            GROUP BY user_id
+            HAVING COUNT(DISTINCT ip_address) >= 2
+        `);
 
         res.json({
             success: true,
+            total_users: parseInt(totalUsers.rows[0].cnt),
             today_logins: parseInt(logins.rows[0].cnt),
             new_users: parseInt(newUsers.rows[0].cnt),
-            suspicious_ips: suspicious.rows.length,
-            suspicious_details: suspicious.rows
+            suspicious_count: suspicious.rows.length
         });
     } catch(e) {
         res.json({ success: false, message: e.message });
     }
 });
 
-// 2. Get All Suspicious Accounts (Multiple IPs / Devices within 24h)
-app.post('/api/monitor/suspicious_accounts', async (req, res) => {
+// 2. All User Activity Stream (Order by Last Login)
+app.post('/api/monitor/all_users_activity', async (req, res) => {
     const { token } = req.body;
     if (!token) return res.json({ success: false });
 
     try {
         const p = await getPool();
-        // Detect users with more than 3 different IPs in 24 hours
+        // Get all users with their latest login info
         const result = await p.query(`
             SELECT 
-                user_id, 
-                u.username, 
-                COUNT(DISTINCT ip_address) as ip_count, 
-                COUNT(DISTINCT device_info) as device_count,
-                MAX(login_at) as last_login
-            FROM login_history lh
-            JOIN auth_users u ON lh.user_id = u.id
-            WHERE login_at > NOW() - INTERVAL '24 hours'
-            GROUP BY user_id, u.username
-            HAVING COUNT(DISTINCT ip_address) >= 3 OR COUNT(DISTINCT device_info) >= 4
-            ORDER BY last_login DESC
+                u.id,
+                u.username,
+                u.email,
+                u.balance,
+                u.created_at,
+                MAX(lh.login_at) as last_login,
+                COUNT(lh.id) as total_logins,
+                COUNT(DISTINCT lh.ip_address) as unique_ips,
+                COUNT(DISTINCT lh.device_info) as unique_devices,
+                (SELECT device_info FROM login_history WHERE user_id = u.id ORDER BY login_at DESC LIMIT 1) as last_device,
+                (SELECT ip_address FROM login_history WHERE user_id = u.id ORDER BY login_at DESC LIMIT 1) as last_ip,
+                (SELECT browser FROM login_history WHERE user_id = u.id ORDER BY login_at DESC LIMIT 1) as last_browser
+            FROM auth_users u
+            LEFT JOIN login_history lh ON u.id = lh.user_id
+            GROUP BY u.id, u.username, u.email, u.balance, u.created_at
+            ORDER BY last_login DESC NULLS LAST
         `);
-        res.json({ success: true, accounts: result.rows });
+        res.json({ success: true, users: result.rows });
     } catch(e) {
-        res.json({ success: false, accounts: [] });
+        res.json({ success: false, users: [] });
     }
 });
 
-// 3. Get Full User Login History (Detailed View)
+// 3. Full User Login History (Detailed View) - No changes, keep as is
 app.post('/api/monitor/user_history', async (req, res) => {
     const { token, user_id } = req.body;
     if (!token || !user_id) return res.json({ success: false });
@@ -577,7 +584,7 @@ app.post('/api/monitor/user_history', async (req, res) => {
             FROM login_history 
             WHERE user_id = $1 
             ORDER BY login_at DESC 
-            LIMIT 50
+            LIMIT 100
         `, [user_id]);
         res.json({ success: true, history: history.rows });
     } catch(e) {
