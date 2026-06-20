@@ -17,6 +17,9 @@ app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders:
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
 app.use(express.static(__dirname));
+
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 // ==================== AUTO WAKE-UP ====================
 setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
@@ -747,6 +750,7 @@ async function logAdminAction(action, details) {
         await p.query(`INSERT INTO admin_activity_log (action, details) VALUES ($1, $2)`, [action, details]);
     } catch(e) {}
             }
+
 // ==================== BAN CHECK MIDDLEWARE (UPDATED: IP BLOCK) ====================
 async function banCheckMiddleware(req, res, next) {
     const protectedPages = [
@@ -759,7 +763,6 @@ async function banCheckMiddleware(req, res, next) {
     const path = req.path;
     
     if (protectedPages.some(p => path === p || path.startsWith(p))) {
-        const token = req.cookies?.auth_token;
         const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
                         || req.socket?.remoteAddress 
                         || req.ip 
@@ -768,7 +771,7 @@ async function banCheckMiddleware(req, res, next) {
         try {
             const p = await getPool();
 
-            // ✅ 1. IP Address ကို စစ်ဆေးပါ
+            // ✅ 1. IP Address ကို အမြဲတမ်း စစ်ဆေးပါ (Token ရှိမရှိ မစစ်ပါနဲ့)
             const ipCheck = await p.query('SELECT * FROM blocked_ips WHERE ip_address = $1', [clientIP]);
             if (ipCheck.rows.length > 0) {
                 // IP Block ခံထားရင် Login Page ပြန်ပို့ပါ
@@ -776,7 +779,8 @@ async function banCheckMiddleware(req, res, next) {
                 return res.redirect('/?ip_banned=1');
             }
 
-            // ✅ 2. User ID ကို စစ်ဆေးပါ (အဟောင်းအတိုင်း)
+            // ✅ 2. User ID ကို စစ်ဆေးပါ (Token ရှိရင်)
+            const token = req.cookies?.auth_token;
             if (token && token !== 'guest') {
                 const uid = parseInt(token.replace('token_', ''));
                 if (!isNaN(uid)) {
