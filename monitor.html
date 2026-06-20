@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Advanced Security Monitor - SOLO M</title>
+    <title>Ultimate Security Monitor - SOLO M</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root{--bg:#0a0a1a;--p:#1a1f4b;--w:#f39c12;--g:#2ecc71;--r:#e74c3c;--b:#3498db;--t:#fff}
@@ -26,9 +26,14 @@
         .stat-card.red{border-left-color:var(--r)}
         .stat-card.red .num{color:var(--r)}
         
-        /* Main Data Table */
+        /* Notification Bar */
+        .notification-bar{display:none;background:rgba(231,76,60,0.2);border:1px solid var(--r);padding:12px;border-radius:8px;margin-bottom:15px;color:#fff;font-size:13px;align-items:center;gap:10px;animation:flash 1s infinite;}
+        @keyframes flash { 0%,100%{opacity:1} 50%{opacity:0.5} }
+        .notification-bar.active{display:flex}
+        
+        /* Table */
         .table-wrap{background:rgba(26,31,75,0.4);border-radius:12px;padding:15px;overflow-x:auto;border:1px solid rgba(255,255,255,0.05)}
-        table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+        table{width:100%;border-collapse:collapse;font-size:12px;min-width:1000px}
         th{background:rgba(0,0,0,0.4);color:var(--w);padding:12px 8px;text-align:left;position:sticky;top:0;z-index:10;border-bottom:2px solid rgba(255,255,255,0.1)}
         td{padding:10px 8px;border-bottom:1px solid rgba(255,255,255,0.03);vertical-align:middle}
         tr:hover td{background:rgba(255,255,255,0.03)}
@@ -46,14 +51,18 @@
         .modal-box .close{float:right;color:var(--r);cursor:pointer;font-size:20px}
         .history-item{background:rgba(0,0,0,0.2);padding:8px 12px;border-radius:6px;margin-bottom:4px;font-size:11px;border-left:3px solid var(--b)}
         
-        @media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr}}
+        /* IP Block Button */
+        .block-btn{background:var(--r);color:#fff;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;margin-left:5px;}
+        .block-btn:hover{opacity:0.8}
+        .unblock-btn{background:var(--g);color:#000;border:none;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:10px;margin-left:5px;}
     </style>
 </head>
 <body>
+    <audio id="alertSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
     <div class="container">
         <!-- Login -->
         <div class="login-box" id="loginBox">
-            <h2 style="color:var(--w);"><i class="fas fa-shield-alt"></i> Monitor</h2>
+            <h2 style="color:var(--w);"><i class="fas fa-shield-alt"></i> Ultimate Monitor</h2>
             <p style="font-size:12px;color:rgba(255,255,255,0.5);margin-bottom:15px;">Admin Access Only</p>
             <input type="password" id="monitorPass" placeholder="Enter Password" onkeydown="if(event.key==='Enter') unlockMonitor()">
             <button onclick="unlockMonitor()"><i class="fas fa-unlock"></i> Unlock</button>
@@ -63,8 +72,14 @@
         <!-- Dashboard -->
         <div id="dashboardBox" style="display:none;">
             <div class="header">
-                <h1><i class="fas fa-eye"></i> 24/7 LIVE USER ACTIVITY</h1>
-                <div style="font-size:12px;color:rgba(255,255,255,0.6);">Full History & Real-time Monitoring</div>
+                <h1><i class="fas fa-eye"></i> 24/7 ULTIMATE SECURITY MONITOR</h1>
+                <div style="font-size:12px;color:rgba(255,255,255,0.6);">Real-time Geolocation, Device Fingerprint, IP Blocking & Admin Logs</div>
+            </div>
+
+            <!-- Notification Bar -->
+            <div class="notification-bar" id="notificationBar">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="notificationText">New Suspicious Activity Detected!</span>
             </div>
 
             <div class="stats-grid" id="statsGrid">
@@ -76,19 +91,27 @@
 
             <div class="table-wrap">
                 <div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:center;flex-wrap:wrap;gap:10px;">
-                    <h3 style="color:var(--w);font-size:16px;"><i class="fas fa-users"></i> All User Activity Stream</h3>
+                    <h3 style="color:var(--w);font-size:16px;"><i class="fas fa-users"></i> All User Activity Stream (With Location)</h3>
                     <input type="text" id="searchInput" placeholder="Search by ID, Username, or Email..." onkeyup="filterTable()" style="padding:8px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#fff;font-size:12px;min-width:200px;">
                 </div>
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th><th>User</th><th>Total Logins</th><th>Unique IPs</th><th>Devices</th><th>Last Active</th><th>Last Device</th><th>Status</th>
+                            <th>ID</th><th>User</th><th>Country</th><th>Logins</th><th>IPs</th><th>Devices</th><th>Last Active</th><th>Last Device</th><th>Status</th><th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="activityTableBody">
-                        <tr><td colspan="8" style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">Loading data...</td></tr>
+                        <tr><td colspan="10" style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">Loading data...</td></tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Admin Activity Log -->
+            <div class="table-wrap" style="margin-top:20px;">
+                <h3 style="color:var(--w);font-size:16px;margin-bottom:10px;"><i class="fas fa-history"></i> Admin Action Log</h3>
+                <div id="adminLogList" style="font-size:12px;color:rgba(255,255,255,0.6);">
+                    <p style="text-align:center;">Loading logs...</p>
+                </div>
             </div>
         </div>
     </div>
@@ -98,11 +121,6 @@
         <div class="modal-box">
             <span class="close" onclick="closeHistory()">&times;</span>
             <h3 style="color:var(--w);margin-bottom:15px;">User: <span id="modalUserName" style="color:#fff;">-</span></h3>
-            <div style="margin-bottom:10px;display:flex;gap:10px;font-size:12px;">
-                <span>Total Logins: <b id="modalTotalLogins">0</b></span>
-                <span>IPs: <b id="modalIPs">0</b></span>
-                <span>Devices: <b id="modalDevices">0</b></span>
-            </div>
             <div id="historyList" style="border-top:1px solid rgba(255,255,255,0.05);padding-top:10px;"></div>
         </div>
     </div>
@@ -110,6 +128,7 @@
     <script>
         const PASS_HASH = "$2b$10$XeN/2HtPBf4DLh1.SjNKmuUzpjCRjhEa.wwknw6enjJc5a27l7ZkK";
         let allUsers = [];
+        let previousSuspiciousCount = 0;
 
         async function unlockMonitor() {
             const pass = document.getElementById('monitorPass').value;
@@ -126,7 +145,8 @@
                 document.getElementById('loginBox').style.display = 'none';
                 document.getElementById('dashboardBox').style.display = 'block';
                 loadAllData();
-                setInterval(loadAllData, 10000); // Auto refresh every 10 seconds
+                loadAdminLogs();
+                setInterval(() => { loadAllData(); loadAdminLogs(); }, 10000); // Auto refresh every 10 seconds
             } else {
                 err.style.display = 'block';
             }
@@ -134,7 +154,6 @@
 
         async function loadAllData() {
             try {
-                // Load Stats
                 const statsRes = await fetch('/api/monitor/stats', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: localStorage.getItem('auth_token') })
@@ -144,10 +163,17 @@
                     document.getElementById('totalUsers').textContent = stats.total_users || 0;
                     document.getElementById('todayLogins').textContent = stats.today_logins || 0;
                     document.getElementById('newUsers').textContent = stats.new_users || 0;
-                    document.getElementById('suspiciousCount').textContent = stats.suspicious_count || 0;
+                    
+                    const currentSuspicious = stats.suspicious_count || 0;
+                    document.getElementById('suspiciousCount').textContent = currentSuspicious;
+
+                    // Real-time Alert Logic
+                    if(currentSuspicious > previousSuspiciousCount) {
+                        triggerAlert('⚠️ New Suspicious Account Detected! Check the list below.');
+                    }
+                    previousSuspiciousCount = currentSuspicious;
                 }
 
-                // Load All Users Activity
                 const usersRes = await fetch('/api/monitor/all_users_activity', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: localStorage.getItem('auth_token') })
@@ -163,7 +189,7 @@
         function renderTable(users) {
             const tbody = document.getElementById('activityTableBody');
             if(!users || users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">No user activity found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:rgba(255,255,255,0.4);">No user activity found.</td></tr>';
                 return;
             }
             
@@ -177,12 +203,16 @@
                         <b>${u.username || 'N/A'}</b><br>
                         <span style="font-size:10px;color:rgba(255,255,255,0.5);">${u.email || '-'}</span>
                     </td>
+                    <td style="font-size:10px;">${u.last_country || 'N/A'}</td>
                     <td>${u.total_logins || 0}</td>
                     <td>${u.unique_ips || 0}</td>
                     <td>${u.unique_devices || 0}</td>
                     <td style="font-size:11px;">${u.last_login ? new Date(u.last_login).toLocaleString() : 'Never'}</td>
                     <td style="font-size:10px;color:rgba(255,255,255,0.6);">${u.last_device || 'N/A'}</td>
                     <td><span class="badge ${riskLevel}">${statusText}</span></td>
+                    <td>
+                        <button class="block-btn" onclick="blockIP('${u.last_ip || 'Unknown'}')">Block IP</button>
+                    </td>
                 </tr>`;
             }).join('');
         }
@@ -209,14 +239,7 @@
                     body: JSON.stringify({ token: localStorage.getItem('auth_token'), user_id: userId })
                 });
                 const d = await res.json();
-                
                 if(d.success) {
-                    document.getElementById('modalTotalLogins').textContent = d.history.length;
-                    const uniqueIPs = [...new Set(d.history.map(h => h.ip_address))];
-                    const uniqueDevices = [...new Set(d.history.map(h => h.device_info))];
-                    document.getElementById('modalIPs').textContent = uniqueIPs.length;
-                    document.getElementById('modalDevices').textContent = uniqueDevices.length;
-
                     if(d.history.length > 0) {
                         document.getElementById('historyList').innerHTML = d.history.map(h => `
                             <div class="history-item">
@@ -225,12 +248,12 @@
                                     <span style="color:var(--b);">${h.ip_address}</span>
                                 </div>
                                 <div style="font-size:10px;color:rgba(255,255,255,0.6);margin-top:4px;">
-                                    ${h.device_info || 'Unknown Device'} (${h.device_type}) • ${h.browser || 'Unknown Browser'}
+                                    ${h.device_info || 'Unknown Device'} (${h.device_type}) • ${h.browser || 'Unknown Browser'} • 📍 ${h.country || 'Unknown'}
                                 </div>
                             </div>
                         `).join('');
                     } else {
-                        document.getElementById('historyList').innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);padding:20px;">No login history found for this user.</p>';
+                        document.getElementById('historyList').innerHTML = '<p style="text-align:center;color:rgba(255,255,255,0.4);padding:20px;">No login history found.</p>';
                     }
                 }
             } catch(e) {
@@ -240,6 +263,43 @@
 
         function closeHistory() {
             document.getElementById('historyModal').classList.remove('active');
+        }
+
+        function triggerAlert(message) {
+            const bar = document.getElementById('notificationBar');
+            document.getElementById('notificationText').textContent = message;
+            bar.classList.add('active');
+            document.getElementById('alertSound').play();
+            setTimeout(() => { bar.classList.remove('active'); }, 8000);
+        }
+
+        async function blockIP(ip) {
+            if(!confirm('Block IP: ' + ip + '?')) return;
+            await fetch('/api/monitor/block_ip', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: localStorage.getItem('auth_token'), ip_address: ip })
+            });
+            alert('IP Blocked!');
+            loadAllData();
+        }
+
+        async function loadAdminLogs() {
+            const res = await fetch('/api/monitor/admin_logs', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: localStorage.getItem('auth_token') })
+            });
+            const d = await res.json();
+            const logDiv = document.getElementById('adminLogList');
+            if(d.success && d.logs.length > 0) {
+                logDiv.innerHTML = d.logs.map(log => `
+                    <div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <span style="color:var(--w);">${log.action}</span> - ${log.details} 
+                        <span style="float:right;font-size:10px;color:rgba(255,255,255,0.4);">${new Date(log.created_at).toLocaleString()}</span>
+                    </div>
+                `).join('');
+            } else {
+                logDiv.innerHTML = '<p style="text-align:center;">No admin actions yet.</p>';
+            }
         }
     </script>
 </body>
