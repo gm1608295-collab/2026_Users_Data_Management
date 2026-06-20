@@ -747,7 +747,52 @@ async function logAdminAction(action, details) {
         await p.query(`INSERT INTO admin_activity_log (action, details) VALUES ($1, $2)`, [action, details]);
     } catch(e) {}
             }
+// ==================== BAN CHECK MIDDLEWARE (UPDATED: IP BLOCK) ====================
+async function banCheckMiddleware(req, res, next) {
+    const protectedPages = [
+        '/dashboard', '/topup.html', '/buycode.html', '/data.html', 
+        '/history.html', '/password.html', '/recovery.html', 
+        '/contact.html', '/game.html', '/exchange.html',
+        '/chat.html', '/chatpremium.html', '/group.html', '/profile.html'
+    ];
+    
+    const path = req.path;
+    
+    if (protectedPages.some(p => path === p || path.startsWith(p))) {
+        const token = req.cookies?.auth_token;
+        const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
+                        || req.socket?.remoteAddress 
+                        || req.ip 
+                        || '0.0.0.0';
 
+        try {
+            const p = await getPool();
+
+            // ✅ 1. IP Address ကို စစ်ဆေးပါ
+            const ipCheck = await p.query('SELECT * FROM blocked_ips WHERE ip_address = $1', [clientIP]);
+            if (ipCheck.rows.length > 0) {
+                // IP Block ခံထားရင် Login Page ပြန်ပို့ပါ
+                console.log(`[IP BLOCK] Blocked IP attempted access: ${clientIP}`);
+                return res.redirect('/?ip_banned=1');
+            }
+
+            // ✅ 2. User ID ကို စစ်ဆေးပါ (အဟောင်းအတိုင်း)
+            if (token && token !== 'guest') {
+                const uid = parseInt(token.replace('token_', ''));
+                if (!isNaN(uid)) {
+                    const r = await p.query('SELECT * FROM banned_users WHERE user_id = $1', [uid]);
+                    if (r.rows.length > 0) {
+                        return res.redirect('/?banned=1');
+                    }
+                }
+            }
+        } catch(e) {
+            console.error('[BAN CHECK ERROR]', e.message);
+        }
+    }
+    
+    next();
+}
 // Admin: Set page timer (for admin panel)
 app.post('/api/admin/set_page_timer', async (req, res) => {
     const { page_id, duration_seconds } = req.body;
