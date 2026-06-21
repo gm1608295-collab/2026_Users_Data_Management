@@ -1993,7 +1993,7 @@ const GAMES=[
     {name:'TikTok',icon:'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg'}
 ];
 
-// ==================== GAME CARDS ====================
+// ==================== TOPUP PAGE GAME CARDS RENDER (WITH TIMER BADGE) ====================
 function renderGameCards() {
     var html = '';
     
@@ -2003,6 +2003,20 @@ function renderGameCards() {
         { name: 'PUBG Mobile', img: 'https://i.ibb.co/ccpjJN58/6cff530cefe3c08a01e01353e676d3ad.jpg', link: '/pubg.html', gameId: 'pubg' },
         { name: 'Honor of Kings', img: 'https://i.ibb.co/VcX4s8zY/e4597b399a7fe0d3af3af2f16461f647.jpg', link: '/hok.html', gameId: 'hok' }
     ];
+    
+    // ✅ Render Available Games (Clickable)
+    availableGames.forEach(function(g) {
+        html += '<div class="game-card" data-game="' + g.gameId + '" onclick="window.location.href=\'' + g.link + '\'" style="cursor:pointer; position:relative;">';
+        html += '<img src="' + g.img + '" alt="' + g.name + '">';
+        html += '<p>' + g.name + '</p>';
+        
+        // ✅ MLBB, PUBG, HOK အတွက် Discount Timer Badge ထည့်မယ် (စကနေ hidden ထားမယ်)
+        // ဒီ Badge ကို updateTopupGameCardTimers() က ထိန်းချုပ်ပြီး Data ရှိမှ ပြမယ်
+        html += `<div class="discount-timer-badge" id="${g.gameId}TopupTimer" style="display:none; position:absolute; top:5px; right:5px; background:rgba(0,0,0,0.8); color:#2ecc71; font-size:9px; font-weight:bold; padding:2px 6px; border-radius:8px; border:1px solid #2ecc71; z-index:10; font-family:monospace; pointer-events:none;">⏰ 0d 00h 00m 00s</div>`;
+        
+        html += '<div class="available yes">✅ Available</div>';
+        html += '</div>';
+    });
     
     // ========== UNAVAILABLE GAMES ==========
     var unavailableGames = [
@@ -2028,16 +2042,6 @@ function renderGameCards() {
         { name: 'TikTok', img: 'https://i.ibb.co/pjW4xzKR/8664a29ebba03efa6cd56aca834079f7.jpg' }
     ];
     
-    // ✅ Render Available Games (Clickable)
-    availableGames.forEach(function(g) {
-        html += '<div class="game-card" data-game="' + g.gameId + '" onclick="window.location.href=\'' + g.link + '\'" style="cursor:pointer;">';
-        html += '<img src="' + g.img + '" alt="' + g.name + '">';
-        html += '<p>' + g.name + '</p>';
-        html += '<div class="available yes">✅ Available</div>';
-        html += '</div>';
-    });
-    
-    // ✅ Render Unavailable Games (Same style, NOT clickable)
     unavailableGames.forEach(function(g) {
         html += '<div class="game-card" style="cursor:default; opacity:0.6; filter: grayscale(40%);">';
         html += '<img src="' + g.img + '" alt="' + g.name + '">';
@@ -2047,7 +2051,105 @@ function renderGameCards() {
     });
     
     document.getElementById('gameGrid').innerHTML = html;
+    
+    // ✅ Game Card တွေ ပြီးသွားရင် Timer Update Function ကို စခေါ်မယ်
+    updateTopupGameCardTimers();
 }
+
+// ==================== TOPUP PAGE: REAL-TIME GAME CARD TIMER UPDATER ====================
+// ဒီ Function က localStorage ထဲက Data ကို ၁ စက္ကန့်တိုင်း ဖတ်ပြီး Game Card တွေပေါ်မှာ Timer ပြပေးမယ်
+function updateTopupGameCardTimers() {
+    // 1. MLBB Timer စစ်ဆေးခြင်း
+    const mlbbData = localStorage.getItem('mlbb_discount_timer_data');
+    const mlbbBadge = document.getElementById('mlbbTopupTimer');
+    if (mlbbData && mlbbBadge) {
+        try {
+            const data = JSON.parse(mlbbData);
+            const now = Date.now();
+            if (data.endTime > now) {
+                mlbbBadge.style.display = 'block';
+                // ကျန်တဲ့အချိန်ကို ပြန်တွက်ပြီး ပြမယ်
+                const remaining = data.endTime - now;
+                const totalSec = Math.floor(remaining / 1000);
+                const days = Math.floor(totalSec / 86400);
+                const hours = Math.floor((totalSec % 86400) / 3600);
+                const minutes = Math.floor((totalSec % 3600) / 60);
+                const secs = totalSec % 60;
+                mlbbBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+            } else {
+                mlbbBadge.style.display = 'none';
+                localStorage.removeItem('mlbb_discount_timer_data');
+            }
+        } catch(e) { 
+            if (mlbbBadge) mlbbBadge.style.display = 'none'; 
+        }
+    } else if (mlbbBadge) {
+        mlbbBadge.style.display = 'none';
+    }
+
+    // 2. PUBG Timer စစ်ဆေးခြင်း (အကယ်၍ PUBG မှာလည်း ဒီလိုစနစ်ရှိရင်)
+    const pubgData = localStorage.getItem('pubg_discount_timer_data');
+    const pubgBadge = document.getElementById('pubgTopupTimer');
+    if (pubgData && pubgBadge) {
+        try {
+            const data = JSON.parse(pubgData);
+            const now = Date.now();
+            if (data.endTime > now) {
+                pubgBadge.style.display = 'block';
+                const remaining = data.endTime - now;
+                const totalSec = Math.floor(remaining / 1000);
+                const days = Math.floor(totalSec / 86400);
+                const hours = Math.floor((totalSec % 86400) / 3600);
+                const minutes = Math.floor((totalSec % 3600) / 60);
+                const secs = totalSec % 60;
+                pubgBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+            } else {
+                pubgBadge.style.display = 'none';
+                localStorage.removeItem('pubg_discount_timer_data');
+            }
+        } catch(e) { 
+            if (pubgBadge) pubgBadge.style.display = 'none'; 
+        }
+    } else if (pubgBadge) {
+        pubgBadge.style.display = 'none';
+    }
+
+    // 3. HOK Timer စစ်ဆေးခြင်း (အကယ်၍ HOK မှာလည်း ဒီလိုစနစ်ရှိရင်)
+    const hokData = localStorage.getItem('hok_discount_timer_data');
+    const hokBadge = document.getElementById('hokTopupTimer');
+    if (hokData && hokBadge) {
+        try {
+            const data = JSON.parse(hokData);
+            const now = Date.now();
+            if (data.endTime > now) {
+                hokBadge.style.display = 'block';
+                const remaining = data.endTime - now;
+                const totalSec = Math.floor(remaining / 1000);
+                const days = Math.floor(totalSec / 86400);
+                const hours = Math.floor((totalSec % 86400) / 3600);
+                const minutes = Math.floor((totalSec % 3600) / 60);
+                const secs = totalSec % 60;
+                hokBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+            } else {
+                hokBadge.style.display = 'none';
+                localStorage.removeItem('hok_discount_timer_data');
+            }
+        } catch(e) { 
+            if (hokBadge) hokBadge.style.display = 'none'; 
+        }
+    } else if (hokBadge) {
+        hokBadge.style.display = 'none';
+    }
+}
+
+// ✅ 1 စက္ကန့်တိုင်း Update လုပ်မယ် (Page ပေါ်ရောက်နေသမျှ ဆက်ပြီး ရေတွက်နေမယ်)
+setInterval(updateTopupGameCardTimers, 1000);
+
+// ✅ Page စတင်တက်လာတဲ့အခါ ချက်ချင်း Update လုပ်မယ်
+setTimeout(function() {
+    updateTopupGameCardTimers();
+}, 500);
+        
 // ==================== BG MUSIC PLAYER ====================
 (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})()
 
