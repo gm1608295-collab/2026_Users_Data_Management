@@ -171,50 +171,53 @@ body::after {
     backdrop-filter: blur(2px);
 }
 /* ============================================================== */
-/* NOTI DROPDOWN - EXACTLY LIKE MLBB (FIXED POSITION)             */
+/* NOTIFICATION SYSTEM - FIXED TO TOP RIGHT CORNER                 */
 /* ============================================================== */
 .noti-container {
-    position: fixed;
-    top: 60px;
-    right: 15px;
-    z-index: 9999;
+    position: fixed;      /* ✅ Screen ပေါ်မှာ ပုံသေနေအောင် */
+    top: 15px;            /* ✅ အပေါ်ဘက် 15px အကွာ */
+    right: 15px;          /* ✅ ညာဘက်အစွန်းမှာ ကပ်နေအောင် */
+    z-index: 9999;        /* ✅ ဘာနဲ့မှ မပိတ်အောင် */
 }
 
 .noti-bell {
-    width: 40px;
-    height: 40px;
+    width: 45px;
+    height: 45px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1.5px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
     cursor: pointer;
-    font-size: 18px;
+    font-size: 20px;
     color: #f39c12;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .noti-bell:hover {
-    background: rgba(243, 156, 18, 0.15);
+    background: rgba(243, 156, 18, 0.2);
     border-color: #f39c12;
+    transform: scale(1.05);
 }
 
 .noti-badge {
     position: absolute;
     top: -4px;
     right: -4px;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     background: #e74c3c;
     color: #fff;
-    font-size: 8px;
+    font-size: 9px;
     font-weight: 700;
     display: none;
     align-items: center;
     justify-content: center;
+    border: 2px solid #0a0a1a; /* Badge နဲ့ Icon ကြား ကွာဟမှု ရှင်းအောင် */
 }
 
 .noti-badge.show {
@@ -223,48 +226,45 @@ body::after {
 
 .noti-dropdown {
     display: none;
-    position: absolute;
-    top: 48px;
-    right: 0;
-    width: 280px;
-    max-height: 300px;
+    position: absolute;   /* ✅ Icon အောက်မှာ ကျလာအောင် */
+    top: 55px;            /* ✅ Icon နဲ့ Dropdown အကွာအဝေး */
+    right: 0;             /* ✅ ညာဘက်ကိုပဲ သေချာပြအောင် */
+    width: 300px;
+    max-height: 350px;
     overflow-y: auto;
-    background: #0f1235;
-    border: 1.5px solid rgba(255, 255, 255, 0.12);
-    padding: 10px;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+    background: rgba(15, 19, 41, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 0px;
-    clip-path: none; /* ✅ MLBB အတိုင်း Cut-corner မလုပ်တော့ဘူး */
+    padding: 12px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
 }
 
 .noti-dropdown.active {
     display: block;
 }
 
+/* Dropdown Scrollbar */
+.noti-dropdown::-webkit-scrollbar { width: 4px; }
+.noti-dropdown::-webkit-scrollbar-thumb { background: #f39c12; border-radius: 0px; }
+
 .noti-item {
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.3);
     padding: 10px 12px;
     margin-bottom: 6px;
     font-size: 10px;
     border-left: 3px solid #f39c12;
-    line-height: 1.6;
+    line-height: 1.5;
     color: rgba(255, 255, 255, 0.85);
 }
 
-.noti-item.success {
-    border-left-color: #2ecc71;
-    background: rgba(46, 204, 113, 0.1);
-}
-
-.noti-item.pending {
-    border-left-color: #e67e22;
-    background: rgba(230, 126, 34, 0.1);
-}
+.noti-item.success { border-left-color: #2ecc71; background: rgba(46,204,113,0.05); }
+.noti-item.pending { border-left-color: #e67e22; background: rgba(230,126,34,0.05); }
 
 .noti-item .noti-time {
     font-size: 8px;
-    color: rgba(255, 255, 255, 0.35);
-    margin-top: 5px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 4px;
     text-align: right;
 }
 
@@ -1240,19 +1240,22 @@ body::after {
 <div class="balance-card">
     <a href="/dashboard" class="back-btn-top"><i class="fas fa-arrow-left"></i> Back</a>
     
-    <!-- ✅ MLBB အတိုင်း Noti Bell ကို ဒီနေရာမှာ ထားပါ -->
-    <div class="noti-bell" onclick="toggleNotiDropdown()">
-        <i class="fas fa-bell"></i>
-        <span class="noti-badge" id="notiBadge">0</span>
-    </div>
-    
+    <!-- Balance Card with Back Button (Noti Bell moved outside) -->
+<div class="balance-card">
+    <a href="/dashboard" class="back-btn-top"><i class="fas fa-arrow-left"></i> Back</a>
     <div class="amount" id="myBalance">0 Ks</div>
     <div class="label">Myanmar Kyat (MMK)</div>
     <div class="usd-amount" id="usdBalance">≈ $0.00 USD</div>
 </div>
 
-<!-- ✅ MLBB အတိုင်း Noti Dropdown ကို Balance Card အပြင်မှာ ထားပါ -->
+<!-- ✅ NOTIFICATION SYSTEM (MLBB STYLE - FIXED TO TOP RIGHT) -->
 <div class="noti-container" id="notiContainer">
+    <!-- Noti Bell Icon (ညာဘက်အပေါ်မှာ ပုံသေနေရမယ်) -->
+    <div class="noti-bell" onclick="toggleNotiDropdown()">
+        <i class="fas fa-bell"></i>
+        <span class="noti-badge" id="notiBadge">0</span>
+    </div>
+    <!-- Noti Dropdown (Icon အောက်မှာ ကျလာမယ်) -->
     <div class="noti-dropdown" id="notiDropdown">
         <div class="noti-empty" id="notiEmpty"><i class="fas fa-bell-slash"></i> No notifications</div>
         <div id="notiList"></div>
