@@ -1443,14 +1443,14 @@ body {
     <script>
      // ==================== DISCOUNT SYSTEM (PRODUCT SPECIFIC) ====================
 const DISCOUNT_CONFIG = {
-    startHour: 3,           // 3:00 PM
+    startHour: 7,           // 7:00 PM
     startMinute: 0,
-    durationDays: 5,
+    durationDays: 2,
     durationHours: 23,
     durationMinutes: 59,
     durationSeconds: 59,
-    minPrice: 50,
-    absoluteMin: 10,
+    minPrice: 500,
+    absoluteMin: 100,
     
     productDiscounts: {
         "Weekly Diamond Pass": 700,
@@ -1559,11 +1559,13 @@ function applyDiscountToProducts() {
 }
 
 function removeDiscountFromProducts() {
+    // ✅ Product Card တွေပေါ်က Timer နဲ့ ဈေးနှုန်းတွေကို ပြန်ပြောင်း
     document.querySelectorAll('.product-card').forEach(card => {
         const badge = card.querySelector('.discount-timer-badge');
         const waitingTimer = card.querySelector('.waiting-timer');
         if (badge) badge.remove();
         if (waitingTimer) waitingTimer.remove();
+        
         const priceEl = card.querySelector('.product-price');
         if (priceEl && priceEl.classList.contains('discount-applied')) {
             const productName = card.querySelector('.product-name')?.textContent.trim();
@@ -1574,6 +1576,14 @@ function removeDiscountFromProducts() {
             }
         }
     });
+
+    // ✅ [အရေးကြီးဆုံးအပိုင်း] Discount Announcement Banner ကို ဖျက်ပစ်မယ်
+    const announcement = document.getElementById('discountAnnouncement');
+    if (announcement) {
+        announcement.style.display = 'none'; // ⚡ ဒါကြောင့် ပျောက်သွားမှာပါ!
+    }
+
+    // ✅ Product Data တွေကို မူရင်းဈေးပြန်ပြောင်း
     for (let i = 0; i < PRODUCTS.length; i++) {
         if (PRODUCTS[i].discounted && PRODUCTS[i].original_price) {
             PRODUCTS[i].price = PRODUCTS[i].original_price;
@@ -1642,36 +1652,69 @@ function startWaitingTimer(targetStartTime) {
 
 function checkAndStartDiscount() {
     const now = new Date();
+    
+    console.log('[DISCOUNT] Checking Local Time:', now.toString());
+    
+    // ✅ 1. Local Storage ထဲမှာ တစ်ခါစပြီးသား Discount ရှိမရှိ စစ်ပါ
+    const savedDiscount = localStorage.getItem('mlbb_discount_active');
+    
+    if (savedDiscount) {
+        try {
+            const data = JSON.parse(savedDiscount);
+            const savedStartTime = new Date(data.startTime);
+            const durationMs = (DISCOUNT_CONFIG.durationDays * 86400000) + 
+                               (DISCOUNT_CONFIG.durationHours * 3600000) + 
+                               (DISCOUNT_CONFIG.durationMinutes * 60000) + 
+                               (DISCOUNT_CONFIG.durationSeconds * 1000);
+            const endTime = new Date(savedStartTime.getTime() + durationMs);
+            
+            // ✅ အကယ်၍ စပြီးသားဖြစ်ပြီး၊ အချိန်မကုန်သေးရင် ဆက်ထားမယ်
+            if (now < endTime) {
+                discountActive = true;
+                discountEndTime = endTime;
+                updateProductsPricesWithDiscount();
+                renderProducts(PRODUCTS, currentCategory);
+                setTimeout(() => {
+                    applyDiscountToProducts();
+                    startDiscountTimerDisplay();
+                }, 100);
+                return true;
+            } else {
+                // ✅ အချိန်ကုန်သွားပြီဆိုရင် Local Storage က ဖျက်ပစ်မယ်
+                localStorage.removeItem('mlbb_discount_active');
+                discountActive = false;
+                discountEndTime = null;
+                removeDiscountFromProducts();
+                return false;
+            }
+        } catch(e) {}
+    }
+    
+    // ✅ 2. Local Storage ထဲမှာ မရှိသေးရင်၊ အခုအချိန်က စတင်ချိန် ရောက်ပြီလား စစ်ပါ
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
-    console.log('[DISCOUNT] Checking - Hour:', currentHour, 'Minute:', currentMinute);
-    
-    if (discountActive && discountEndTime) {
-        if (Date.now() < discountEndTime.getTime()) {
-            startDiscountTimerDisplay();
-            applyDiscountToProducts();
-            return true;
-        } else {
-            discountActive = false;
-            discountEndTime = null;
-            saveDiscountState();
-            removeDiscountFromProducts();
-            return false;
-        }
-    }
-    
+    // စတင်ချိန် ရောက်နေပြီဆိုရင်
     const isStartTimeReached = (currentHour > DISCOUNT_CONFIG.startHour) || 
-                                (currentHour === DISCOUNT_CONFIG.startHour && currentMinute >= DISCOUNT_CONFIG.startMinute);
+                               (currentHour === DISCOUNT_CONFIG.startHour && currentMinute >= DISCOUNT_CONFIG.startMinute);
     
     if (isStartTimeReached) {
+        // ✅ Discount ကို စပြီး Local Storage ထဲမှာ မှတ်ထားမယ်
+        const startTime = new Date();
+        const durationMs = (DISCOUNT_CONFIG.durationDays * 86400000) + 
+                           (DISCOUNT_CONFIG.durationHours * 3600000) + 
+                           (DISCOUNT_CONFIG.durationMinutes * 60000) + 
+                           (DISCOUNT_CONFIG.durationSeconds * 1000);
+        const endTime = new Date(startTime.getTime() + durationMs);
+        
+        // Save to localStorage
+        localStorage.setItem('mlbb_discount_active', JSON.stringify({
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString()
+        }));
+        
         discountActive = true;
-        discountEndTime = new Date();
-        discountEndTime.setDate(discountEndTime.getDate() + DISCOUNT_CONFIG.durationDays);
-        discountEndTime.setHours(discountEndTime.getHours() + DISCOUNT_CONFIG.durationHours);
-        discountEndTime.setMinutes(discountEndTime.getMinutes() + DISCOUNT_CONFIG.durationMinutes);
-        discountEndTime.setSeconds(discountEndTime.getSeconds() + DISCOUNT_CONFIG.durationSeconds);
-        saveDiscountState();
+        discountEndTime = endTime;
         updateProductsPricesWithDiscount();
         renderProducts(PRODUCTS, currentCategory);
         setTimeout(() => {
@@ -1680,33 +1723,31 @@ function checkAndStartDiscount() {
         }, 100);
         return true;
     } else {
+        // ✅ 3. စတင်ချိန် မရောက်သေးရင်၊ စတင်မည့်အချိန်ကို တွက်ပြီး Waiting Timer ပြမယ်
         const targetStart = new Date(now);
         targetStart.setHours(DISCOUNT_CONFIG.startHour, DISCOUNT_CONFIG.startMinute, 0, 0);
-        if (currentHour >= DISCOUNT_CONFIG.startHour) {
+        // အကယ်၍ နာရီက စတင်ချိန်ထက် ကျော်နေပြီဆိုရင် မနက်ဖြန်ကို ရွှေ့မယ်
+        if (now > targetStart) {
             targetStart.setDate(targetStart.getDate() + 1);
         }
         startWaitingTimer(targetStart);
         return false;
     }
-}
+    }
 
 function initDiscountSystem() {
     console.log('[DISCOUNT] Initializing...');
-    loadDiscountState();
-    if (discountActive && discountEndTime && Date.now() < discountEndTime.getTime()) {
-        updateProductsPricesWithDiscount();
-        renderProducts(PRODUCTS, currentCategory);
-        setTimeout(() => {
-            applyDiscountToProducts();
-            startDiscountTimerDisplay();
-        }, 100);
-    } else {
-        discountActive = false;
-        discountEndTime = null;
-        checkAndStartDiscount();
-    }
-}
-
+    checkAndStartDiscount();
+    
+    // ✅ ဒီအပိုင်းကို ဖယ်လိုက်ပါ (သို့) ပြင်ပါ။
+    // setTimeout(function() { showAnnouncement(); }, 500);  <-- ဒါကို ဖျက်ပစ်ပါ။
+    
+    // ✅ အစား ဒါကို ထားပါ။ (Discount ရှိမရှိ အလိုအလျောက် စစ်ပြီးပြမယ်)
+    setTimeout(function() { 
+        showAnnouncement(); 
+    }, 500);
+        }
+        
 function updateAnnouncementDates() {
     const now = new Date();
     const startDate = new Date(now);
@@ -1725,12 +1766,16 @@ function updateAnnouncementDates() {
 
 function showAnnouncement() {
     const announcement = document.getElementById('discountAnnouncement');
-    if (announcement) {
+    if (!announcement) return;
+    
+    // ✅ Discount ဖြစ်နေမှသာ Banner ပြမယ်။ (Discount ကုန်သွားရင် ပျောက်သွားမယ်)
+    if (discountActive) {
         announcement.style.display = 'block';
         updateAnnouncementDates();
+    } else {
+        announcement.style.display = 'none';
     }
-}
-
+        }
 // ==================== BG MUSIC PLAYER ====================
 (function(){const a=document.getElementById('bgAudio');if(!a)return;let p=[],i=0;a.volume=0.5;a.loop=false;const fl=!sessionStorage.getItem('mp');if(fl){i=0;localStorage.setItem('bgi','0');localStorage.setItem('bgt0','0')}else{i=parseInt(localStorage.getItem('bgi')||'0')}sessionStorage.setItem('mp','1');async function fp(){try{const r=await fetch('/api/bg_music?t='+Date.now());const d=await r.json();if(d.playlist&&d.playlist.length>0){p=d.playlist;return true}return false}catch(e){return false}}function pl(){if(!p.length)return;if(i>=p.length)i=0;const u=p[i];a.src=u;a.load();a.addEventListener('canplay',function h(){a.play().catch(()=>{});a.removeEventListener('canplay',h)})}a.addEventListener('ended',function(){localStorage.setItem('bgt'+i,'0');i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});a.addEventListener('error',function(){i=(i+1)%p.length;localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,'0');pl()});setInterval(()=>{if(!a.paused&&p.length>0&&a.currentTime>0){localStorage.setItem('bgi',i);localStorage.setItem('bgt'+i,a.currentTime)}},1000);fp().then(h=>{if(h){if(fl)i=0;pl()}});setInterval(fp,3000)})();
 
