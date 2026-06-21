@@ -767,7 +767,7 @@ input, textarea, select {
     position: absolute;
     top: 12px;
     right: 12px;
-    z-index: 10;
+    z-index: 999;
     background: rgba(255, 255, 255, 0.05);
     border: 1.5px solid rgba(255, 255, 255, 0.15);
     border-radius: 0px; /* ထောင့်ချွန် */
@@ -3342,6 +3342,174 @@ document.getElementById('userGuideModal').addEventListener('click', function(e) 
     const t = localStorage.getItem('auth_token');
     if(t && t !== 'guest') window.location.href = '/dashboard';
 })();
+    // ==============================================================
+// MULTI-LANGUAGE SYSTEM (ASIAN LANGUAGES) - JS LOGIC
+// ==============================================================
+
+// 3. Get Current Language
+let currentLang = localStorage.getItem('site_lang') || 'en';
+
+// 4. Toggle Dropdown
+function toggleLangDropdown() {
+    const dd = document.getElementById('langDropdown');
+    if (dd) {
+        dd.classList.toggle('active');
+    }
+}
+
+// 5. Render Dropdown Options
+function renderLangDropdown() {
+    const dd = document.getElementById('langDropdown');
+    if (!dd) return;
+    dd.innerHTML = LANG_LIST.map(lang => `
+        <div class="lang-option ${lang.code === currentLang ? 'active-lang' : ''}" onclick="switchLanguage('${lang.code}')">
+            <span class="flag">${lang.flag}</span> ${lang.label}
+        </div>
+    `).join('');
+}
+
+// 6. Switch Language
+function switchLanguage(code) {
+    if (code === currentLang) {
+        document.getElementById('langDropdown').classList.remove('active');
+        return;
+    }
+    currentLang = code;
+    localStorage.setItem('site_lang', code);
+    document.getElementById('langDropdown').classList.remove('active');
+    
+    // ✅ Auto Refresh & Reload
+    window.location.reload();
+}
+
+// 7. Translate Page Text
+function translatePage() {
+    const t = LANG_DATA[currentLang];
+    if (!t) return;
+    
+    // Update Current Language Label
+    const currentLangData = LANG_LIST.find(l => l.code === currentLang);
+    document.getElementById('currentLangLabel').textContent = currentLangData ? currentLangData.label : 'English';
+
+    // Guest Warning
+    const gwHeader = document.querySelector('.guest-warning .gw-header span');
+    if(gwHeader) gwHeader.textContent = t.guest_warning;
+    
+    // Guest Table
+    const table = document.querySelector('.gw-table tbody');
+    if(table) {
+        const rows = t.guest_table.rows;
+        table.innerHTML = rows.map(r => `
+            <tr>
+                <td class="feature-name">${r.name}</td>
+                <td class="feature-status ${r.guest === 'Yes' ? 'available' : r.guest === 'Limited' ? 'limited' : 'locked'}">
+                    ${r.guest === 'Yes' ? '<i class="fas fa-check-circle"></i> ' : r.guest === 'Limited' ? '<i class="fas fa-minus-circle"></i> ' : '<i class="fas fa-times-circle"></i> '} ${r.guest}
+                </td>
+                <td class="feature-status available">
+                    <i class="fas fa-check-circle"></i> ${r.reg}
+                </td>
+            </tr>
+        `).join('');
+        // Update Headers
+        const ths = document.querySelectorAll('.gw-table thead th');
+        if(ths.length >= 3) {
+            ths[0].textContent = t.guest_table.feature;
+            ths[1].textContent = t.guest_table.guest;
+            ths[2].textContent = t.guest_table.registered;
+        }
+    }
+
+    // Login Card
+    const cardHeader = document.querySelector('.card .card-header');
+    if(cardHeader) {
+        const h2 = cardHeader.querySelector('h2');
+        const p = cardHeader.querySelector('p');
+        if(h2) h2.textContent = t.login_title;
+        if(p) p.textContent = t.login_sub;
+    }
+
+    const labels = document.querySelectorAll('.card .form-group label');
+    if(labels.length >= 2) {
+        labels[0].textContent = t.email_label;
+        labels[1].textContent = t.pass_label;
+    }
+    
+    const inputs = document.querySelectorAll('.card .input-wrapper input');
+    if(inputs.length >= 2) {
+        inputs[0].placeholder = t.email_placeholder;
+        inputs[1].placeholder = t.pass_placeholder;
+    }
+
+    const loginBtn = document.querySelector('.btn-login');
+    if(loginBtn) loginBtn.innerHTML = `<i class="fas fa-sign-in-alt"></i> ${t.login_btn}`;
+    
+    // Forget Password
+    const forgetSpan = document.querySelector('.forget-password span');
+    const forgetA = document.querySelector('.forget-password a');
+    if(forgetSpan) forgetSpan.textContent = t.forget_pass;
+    if(forgetA) forgetA.textContent = t.qr_recovery;
+    
+    // Divider
+    const divider = document.querySelector('.divider');
+    if(divider) divider.textContent = t.divider_text;
+    
+    // Social Buttons
+    const googleBtn = document.querySelector('.social-btn.google');
+    const telegramBtn = document.querySelector('.social-btn.telegram');
+    const guestBtn = document.querySelector('.social-btn.guest');
+    const qrBtn = document.querySelector('.social-btn.qr-login');
+    
+    if(googleBtn) googleBtn.innerHTML = `<img src="https://www.google.com/favicon.ico" alt="Google"> ${t.google_btn}`;
+    if(telegramBtn) telegramBtn.innerHTML = `<img src="https://telegram.org/favicon.ico" alt="Telegram"> ${t.telegram_btn}`;
+    if(guestBtn) guestBtn.innerHTML = `<img src="https://i.ibb.co/sJzYxZyW/guests.jpg" alt="Guest"> ${t.guest_btn}`;
+    if(qrBtn) qrBtn.innerHTML = `<i class="fas fa-qrcode" style="font-size:16px;color:#f39c12"></i> ${t.qr_login_btn}`;
+
+    // Register Section
+    const regTitle = document.querySelector('.register-section h3');
+    if(regTitle) regTitle.textContent = t.reg_title;
+    
+    const regLabels = document.querySelectorAll('.register-section .form-group label');
+    const regInputs = document.querySelectorAll('.register-section .input-wrapper input');
+    
+    if(regLabels.length >= 5) {
+        regLabels[0].textContent = t.reg_username_label;
+        regLabels[1].textContent = t.reg_email_label;
+        regLabels[2].textContent = t.reg_phone_label;
+        regLabels[3].textContent = t.reg_pass_label;
+        regLabels[4].textContent = t.reg_confirm_label;
+    }
+    
+    if(regInputs.length >= 5) {
+        regInputs[0].placeholder = t.reg_username_placeholder;
+        regInputs[1].placeholder = t.reg_email_placeholder;
+        regInputs[2].placeholder = t.reg_phone_placeholder;
+        regInputs[3].placeholder = t.reg_pass_placeholder;
+        regInputs[4].placeholder = t.reg_confirm_placeholder;
+    }
+    
+    const emailErr = document.getElementById('emailError');
+    const phoneErr = document.getElementById('phoneError');
+    const passErr = document.getElementById('passwordError');
+    const confirmErr = document.getElementById('confirmError');
+    
+    if(emailErr) emailErr.textContent = t.reg_email_error;
+    if(phoneErr) phoneErr.textContent = t.reg_phone_error;
+    if(passErr) passErr.textContent = t.reg_pass_error;
+    if(confirmErr) confirmErr.textContent = t.reg_confirm_error;
+    
+    const regBtn = document.querySelector('.btn-register');
+    if(regBtn) regBtn.innerHTML = `<i class="fas fa-user-plus"></i> ${t.reg_btn}`;
+    
+    const toggleText = document.querySelector('.register-section .toggle-text');
+    if(toggleText) toggleText.innerHTML = `${t.reg_toggle_text} <a onclick="toggleRegister()">${t.reg_toggle_link}</a>`;
+}
+
+// 8. Initialize on Load
+document.addEventListener('DOMContentLoaded', function() {
+    renderLangDropdown();
+    translatePage();
+});
+    
 </script>
 </body>
 </html>
