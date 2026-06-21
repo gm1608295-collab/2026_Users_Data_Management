@@ -1175,7 +1175,7 @@ body {
     
     <div class="discount-message">
         <p>📢 <strong>SOLO M Game Shop</strong> မှ ကြေငြာချက်</p>
-        <p>✨ အထူးလျှော့ဈေးပွဲတော်ကြီး <strong>ဇွန်လ ၂၁ ရက်၊ ၂၀၂၆</strong> ရက်နေ့ ည 9:15 နာရီတွင် စတင်မည်ဖြစ်ပြီး <strong>ဇွန်လ ၂၄ ရက်၊ ၂၀၂၆</strong> ရက်နေ့ ည 9:15 နာရီအထိ ကြာမြင့်မည်ဖြစ်ပါသည်။</p>
+        <p>✨ အထူးလျှော့ဈေးပွဲတော်ကြီး <strong>ဇွန်လ ၂၁ ရက်၊ ၂၀၂၆</strong> ရက်နေ့ မနက် ၇ နာရီတွင် စတင်မည်ဖြစ်ပြီး <strong>ဇွန်လ ၂၄ ရက်၊ ၂၀၂၆</strong> ရက်နေ့ မနက် ၇ နာရီအထိ ကြာမြင့်မည်ဖြစ်ပါသည်။</p>
         <p>⚡ အမြန်ဆုံးဝယ်ယူလိုက်ပါ... အခွင့်အရေးကောင်း လက်မလွတ်စေနှင့်!</p>
     </div>
     
@@ -1597,18 +1597,13 @@ function removeDiscountFromProducts() {
 // ==================== MLBB PAGE DISCOUNT TIMER (SAVE TO LOCALSTORAGE) ====================
 function startDiscountTimerDisplay() {
     if (discountTimerInterval) clearInterval(discountTimerInterval);
-    
     discountTimerInterval = setInterval(() => {
-        // Discount မရှိတော့ရင် Timer ရပ်ပြီး Data ဖျက်မယ်
         if (!discountActive || !discountEndTime) {
             clearInterval(discountTimerInterval);
             localStorage.removeItem('mlbb_discount_timer_data');
             return;
         }
-        
         const remaining = discountEndTime.getTime() - Date.now();
-        
-        // Timer ကုန်သွားရင်
         if (remaining <= 0) {
             clearInterval(discountTimerInterval);
             discountActive = false;
@@ -1618,8 +1613,6 @@ function startDiscountTimerDisplay() {
             localStorage.removeItem('mlbb_discount_timer_data');
             return;
         }
-        
-        // ကျန်တဲ့အချိန်ကို ပုံစံချပြီး ရေတွက်မယ်
         const totalSec = Math.floor(remaining / 1000);
         const days = Math.floor(totalSec / 86400);
         const hours = Math.floor((totalSec % 86400) / 3600);
@@ -1627,16 +1620,16 @@ function startDiscountTimerDisplay() {
         const secs = totalSec % 60;
         const timeStr = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
         
-        // MLBB Page ပေါ်က Badge တွေ Update
         document.querySelectorAll('.discount-timer-badge').forEach(badge => {
-            badge.textContent = `⏰ ${timeStr}`;
+            badge.textContent = `${timeStr}`;
         });
 
-        // ✅ အရေးကြီးဆုံး: ဒီ Timer Data ကို localStorage ထဲ သိမ်းမယ် (Top Up Page က ဖတ်နိုင်အောင်)
+        // ✅ Discount Timer Data ကို localStorage ထဲ သိမ်းမယ်
         localStorage.setItem('mlbb_discount_timer_data', JSON.stringify({
             game: 'mlbb',
             endTime: discountEndTime.getTime(),
-            timeString: timeStr
+            timeString: timeStr,
+            isActive: true
         }));
     }, 1000);
 }
@@ -1647,14 +1640,19 @@ function startWaitingTimer(targetStartTime) {
         const now = new Date();
         if (now >= targetStartTime) {
             clearInterval(waitingTimerInterval);
+            // ✅ စတင်ချိန်ရောက်ရင် Waiting Data ကို ဖျက်ပြီး Discount စမယ်
+            localStorage.removeItem('mlbb_waiting_timer_data');
             checkAndStartDiscount();
             return;
         }
         const remaining = targetStartTime.getTime() - now.getTime();
-        const hours = Math.floor(remaining / 3600000);
+        const days = Math.floor(remaining / 86400000);
+        const hours = Math.floor((remaining % 86400000) / 3600000);
         const minutes = Math.floor((remaining % 3600000) / 60000);
         const seconds = Math.floor((remaining % 60000) / 1000);
-        const waitingStr = `⏳ ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        const waitingStr = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
+        
+        // ✅ Game Page ပေါ်မှာ Waiting Timer ပြမယ်
         document.querySelectorAll('.product-card').forEach(card => {
             let waitingEl = card.querySelector('.waiting-timer');
             if (!waitingEl) {
@@ -1664,11 +1662,18 @@ function startWaitingTimer(targetStartTime) {
                 card.style.position = 'relative';
                 card.appendChild(waitingEl);
             }
-            waitingEl.textContent = waitingStr;
+            waitingEl.textContent = `⏳ ${waitingStr}`;
         });
+
+        // ✅ [အရေးကြီးဆုံး] Waiting Timer Data ကို localStorage ထဲ သိမ်းမယ် (Top Up Page က ဖတ်နိုင်အောင်)
+        localStorage.setItem('mlbb_waiting_timer_data', JSON.stringify({
+            game: 'mlbb',
+            targetStartTime: targetStartTime.getTime(),
+            timeString: waitingStr
+        }));
     }, 1000);
 }
-
+        
 function checkAndStartDiscount() {
     const now = new Date();
     
