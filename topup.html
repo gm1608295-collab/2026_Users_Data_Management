@@ -44,141 +44,397 @@ body::after {
     pointer-events: none;
     z-index: -1;
 }
-        .container{max-width:500px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
-        
-        /* Balance Card */
-        .balance-card{background:linear-gradient(135deg,var(--a),#1a1f4b);border-radius:12px;padding:20px;text-align:center;margin-bottom:15px;border:2px solid var(--w);flex-shrink:0;position:relative}
-        .balance-card .amount{font-size:34px;font-weight:bold;color:var(--w)}
-        .balance-card .label{font-size:11px;color:rgba(255,255,255,0.7)}
-        .balance-card .usd-amount{font-size:13px;color:var(--g);margin-top:4px}
-        
-        /* Back Button - Inside Balance Card (Top Left) */
-        .back-btn-top{position:absolute;top:8px;left:12px;color:var(--w);font-size:13px;text-decoration:none;z-index:5;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.1);padding:4px 10px;border-radius:5px;transition:all 0.2s}
-        .back-btn-top:hover{background:rgba(255,255,255,0.2)}
-        .back-btn-top i{font-size:14px}
-        
-        /* Notification Bell - Inside Balance Card (Top Right) */
-        .noti-bell{position:absolute;top:8px;right:12px;cursor:pointer;font-size:18px;color:var(--w);transition:all 0.3s;z-index:5}
-        .noti-bell:hover{transform:scale(1.15)}
-        .noti-bell .badge{position:absolute;top:-5px;right:-5px;background:var(--r);color:#fff;font-size:8px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;display:none}
-        .noti-bell .badge.show{display:flex}
+/* ============================================================== */
+/* BALANCE CARD - GLASS OVERLAY STYLE (Like Game Cards)            */
+/* ============================================================== */
+.balance-card {
+    /* နောက်ခံ Glass Effect */
+    background: rgba(10, 10, 26, 0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    
+    /* Frame Background Image (Ornate Style) */
+    background-image: url('https://i.ibb.co/qF5bsd4d/3f97210f95105167fc4f94b5a8d9544d.jpg');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    
+    border: 2px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 25px rgba(243, 156, 18, 0.15), inset 0 0 30px rgba(255, 215, 0, 0.05);
+    
+    /* Cut Corners (8% offset) */
+    clip-path: polygon(8% 0, 92% 0, 100% 8%, 100% 92%, 92% 100%, 8% 100%, 0% 92%, 0% 8%);
+    
+    padding: 25px 20px;
+    text-align: center;
+    margin-bottom: 15px;
+    position: relative;
+    flex-shrink: 0;
+    overflow: hidden;
+}
 
-        .noti-dropdown .noti-item.pending {
-    border-left-color: var(--orange);
-    background: rgba(230,126,34,0.15);
+.balance-card .amount {
+    font-size: 36px;
+    font-weight: 900;
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    position: relative;
+    z-index: 2;
 }
-.noti-dropdown .noti-item.success {
-    border-left-color: var(--g);
-    background: rgba(46,204,113,0.15);
+.balance-card .label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 4px;
+    letter-spacing: 1px;
+    position: relative;
+    z-index: 2;
 }
-.noti-dropdown .noti-item.rejected {
-    border-left-color: var(--r);
-    background: rgba(231,76,60,0.15);
+.balance-card .usd-amount {
+    font-size: 13px;
+    color: #2ecc71;
+    margin-top: 4px;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
 }
-        /* Noti Dropdown */
-        .noti-dropdown{display:none;position:absolute;right:0;top:30px;width:280px;max-height:280px;overflow-y:auto;background:#1a1f4b;border:2px solid var(--w);border-radius:10px;z-index:100;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
-        .noti-dropdown.active{display:block}
-        .noti-dropdown .noti-item{background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;margin-bottom:6px;font-size:10px;border-left:3px solid var(--w);line-height:1.6}
-        .noti-dropdown .noti-item.pending{border-left-color:var(--orange);background:rgba(230,126,34,0.1)}
-        .noti-dropdown .noti-item.success{border-left-color:var(--g);background:rgba(46,204,113,0.1)}
-        .noti-dropdown .noti-item.rejected{border-left-color:var(--r);background:rgba(231,76,60,0.1)}
-        .noti-dropdown .noti-item .noti-time{font-size:8px;color:rgba(255,255,255,0.4);margin-top:4px;text-align:right}
-        .noti-dropdown .noti-empty{text-align:center;color:rgba(255,255,255,0.4);padding:15px;font-size:11px}
-        
-        .tabs{display:flex;gap:5px;margin-bottom:15px;flex-shrink:0}
-        .tab{flex:1;padding:10px;text-align:center;background:rgba(255,255,255,0.05);border-radius:6px;font-size:12px;cursor:pointer;color:var(--t)}
-        .tab.active{background:var(--a);color:var(--w)}
-        .tab-content{display:none}.tab-content.active{display:block}
-        .scroll-content{flex:1;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;padding-bottom:20px}
-        .section{background:rgba(26,31,75,0.6);border-radius:10px;padding:15px;margin-bottom:15px}
-        .section h3{color:var(--w);font-size:14px;margin-bottom:10px;text-align:center}
-        
-        /* Top Up Notice */
-        .topup-notice-banner{background:linear-gradient(135deg,rgba(74,28,122,0.3),rgba(26,31,75,0.5));border:1px solid rgba(243,156,18,0.4);border-radius:10px;padding:12px 15px;margin-bottom:12px;position:relative;overflow:hidden;display:none}
-        .topup-notice-banner::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--w);border-radius:2px}
-        .topup-notice-header{font-size:10px;color:var(--w);font-weight:bold;margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase}
-        .topup-notice-msg{font-size:12px;font-weight:bold;line-height:1.5}
-        .topup-notice-time{font-size:9px;color:rgba(255,255,255,0.5);margin-top:6px;text-align:right}
-        
-        .guide-box{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:10px}
-        .guide-box .guide-title{color:var(--w);font-size:12px;font-weight:bold;margin-bottom:8px;text-align:center}
-        .guide-box .step-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:10px;color:rgba(255,255,255,0.85);border-bottom:1px solid rgba(255,255,255,0.05)}
-        .guide-box .step-item:last-child{border-bottom:none}
-        .guide-box .step-num{background:var(--w);color:#000;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;flex-shrink:0}
-        .guide-box .step-text{flex:1;line-height:1.6}
-        .guide-box .contact-note{text-align:center;font-size:10px;color:var(--b);margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)}
-        
-        .payment-card{background:rgba(0,0,0,0.4);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-        .payment-card img{width:45px;height:45px;border-radius:8px;object-fit:cover;flex-shrink:0}
-        .payment-info{flex:1}
-        .payment-info .pay-name{color:var(--w);font-weight:bold;font-size:13px}
-        .payment-info .pay-number{font-size:14px;margin:2px 0}
-        .payment-info .pay-owner{font-size:10px;color:rgba(255,255,255,0.5)}
-        .copy-btn{background:var(--a);color:var(--t);border:none;padding:8px 12px;border-radius:5px;font-size:11px;cursor:pointer}
-        .copy-btn:disabled{opacity:0.4;cursor:not-allowed;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.3)}
-        
-        .payment-card.unavailable{opacity:0.6;border:1px solid rgba(231,76,60,0.3)}
-        .payment-card.unavailable .pay-name{color:var(--r)}
-        .payment-card.unavailable .pay-number{color:rgba(231,76,60,0.7);font-size:11px;font-style:italic}
-        .payment-card.unavailable .pay-owner{color:rgba(255,255,255,0.3)}
-        .payment-card.unavailable img{opacity:0.5}
-        
-        .form-group{margin-bottom:10px}.form-group label{display:block;font-size:12px;margin-bottom:3px;color:#ccc}
-        .form-group input,.form-group select{width:100%;padding:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;color:var(--t);font-size:13px}
-        .form-group select option{background:var(--bg);color:var(--t)}
-        
-        .id-row{display:flex;gap:8px;align-items:flex-end}
-        .id-row .form-group{flex:1;margin-bottom:0}
-        .check-id-btn{padding:10px 15px;background:var(--b);color:var(--t);border:none;border-radius:6px;font-size:12px;cursor:pointer;height:42px}
-        .id-result{font-size:11px;margin-top:5px;padding:6px 10px;border-radius:4px;display:none}
-        .id-result.verified{display:block;background:rgba(46,204,113,0.15);color:var(--g)}
-        .id-result.invalid{display:block;background:rgba(231,76,60,0.15);color:var(--r)}
-        .id-result.checking{display:block;background:rgba(52,152,219,0.15);color:var(--b)}
-        
-        .file-upload-wrapper{position:relative;width:100%}
-        .file-upload-wrapper input[type="file"]{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2}
-        .file-upload-box{background:rgba(255,255,255,0.08);border:2px dashed rgba(255,255,255,0.3);border-radius:8px;padding:20px;text-align:center;cursor:pointer}
-        .file-upload-box.has-file{border-color:var(--g);border-style:solid;background:rgba(46,204,113,0.1)}
-        .file-upload-box i{font-size:30px;color:var(--w);margin-bottom:8px;display:block}
-        .file-upload-box .upload-text{font-size:13px;color:var(--t)}
-        .file-upload-box .upload-hint{font-size:10px;color:rgba(255,255,255,0.4);margin-top:4px}
-        
-        .btn-row{display:flex;gap:8px;margin-top:10px}
-        .btn-row button{flex:1;padding:12px;border:none;border-radius:6px;font-size:13px;font-weight:bold;cursor:pointer}
-        .buy-btn{background:var(--g);color:#000}.buy-btn:disabled{opacity:0.5;cursor:not-allowed}
-        
-        .topup-btn{width:100%;padding:12px;background:var(--a);color:var(--t);border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer;margin-bottom:15px}
-        
-        .history-item{background:rgba(0,0,0,0.3);padding:10px 12px;border-radius:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
-        .history-item .status-badge{font-size:9px;padding:4px 10px;border-radius:10px;font-weight:bold}
-        .status-pending{background:rgba(243,156,18,0.2);color:var(--w)}
-        .status-approved{background:rgba(46,204,113,0.2);color:var(--g)}
-        .status-rejected{background:rgba(231,76,60,0.2);color:var(--r)}
-        .history-detail{display:none;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px;margin-bottom:5px;font-size:11px}
-        .history-detail img{max-width:100%;border-radius:6px;max-height:200px;object-fit:contain}
-        
-        .reject-reason-box{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.4);border-radius:8px;padding:12px;margin:10px 0}
-        .reject-reason-box .reject-title{color:var(--r);font-size:11px;font-weight:bold;margin-bottom:6px;display:flex;align-items:center;gap:6px}
-        .reject-reason-box .reject-title i{font-size:14px}
-        .reject-reason-box .reject-msg{color:rgba(255,255,255,0.85);font-size:10px;line-height:1.7;word-break:break-word}
-        
-        .games{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:15px}
-        .game-card{background:rgba(26,31,75,0.6);border-radius:10px;padding:12px 10px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
-        .game-card img{width:50px;height:50px;border-radius:10px;margin-bottom:6px;object-fit:cover}
-        .game-card p{font-size:10px;color:var(--t);margin-top:3px}
-        .game-card .unavailable{font-size:8px;color:var(--r);margin-top:2px}
-        
-        .copy-notif{position:fixed;top:20px;right:20px;background:var(--g);color:#000;padding:10px 15px;border-radius:6px;font-size:13px;z-index:9999;display:none}
-        
-        #paymentSection{display:none}
-        #guideBox{display:none}
-        
-        .login-required{text-align:center;padding:40px 20px}
-        .login-required i{font-size:50px;color:var(--w);margin-bottom:15px}
-        .login-required h3{color:var(--w);margin-bottom:10px}
-        .login-required p{color:rgba(255,255,255,0.7);font-size:12px;margin-bottom:15px}
-        .login-required a{color:var(--w);text-decoration:underline}
-        
+
+/* Back Button & Noti Bell - Sharp Corners & Glass */
+.back-btn-top, .noti-bell {
+    position: absolute;
+    top: 12px;
+    z-index: 10;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0px !important;
+    backdrop-filter: blur(2px);
+    transition: all 0.3s;
+}
+.back-btn-top {
+    left: 12px;
+    color: #f39c12;
+    font-size: 12px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+}
+.noti-bell {
+    right: 12px;
+    cursor: pointer;
+    font-size: 18px;
+    color: #f39c12;
+    padding: 6px 10px;
+}
+.back-btn-top:hover, .noti-bell:hover {
+    background: rgba(0, 0, 0, 0.8);
+    border-color: #f39c12;
+    transform: scale(1.05);
+}
+
+.noti-bell .badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 9px;
+    width: 18px;
+    height: 18px;
+    border-radius: 0px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    display: none;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.noti-bell .badge.show { display: flex; }
+
+/* User ID Display */
+.user-id-display {
+    margin-bottom: 10px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0px;
+    font-size: 11px;
+    text-align: center;
+    color: #f39c12;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 2;
+    backdrop-filter: blur(2px);
+}
+
+/* ============================================================== */
+/* NOTI DROPDOWN - CUT CORNERS & GLASS                             */
+/* ============================================================== */
+.noti-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 40px;
+    width: 280px;
+    max-height: 280px;
+    overflow-y: auto;
+    background: rgba(15, 19, 41, 0.9);
+    backdrop-filter: blur(8px);
+    border: 1.5px solid rgba(255, 215, 0, 0.3);
+    border-radius: 0px !important;
+    clip-path: polygon(8% 0, 92% 0, 100% 8%, 100% 92%, 92% 100%, 8% 100%, 0% 92%, 0% 8%);
+    z-index: 100;
+    padding: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
+.noti-dropdown.active { display: block; }
+.noti-dropdown::-webkit-scrollbar { width: 4px; }
+.noti-dropdown::-webkit-scrollbar-thumb { background: #f39c12; border-radius: 0px; }
+
+.noti-dropdown .noti-item {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px;
+    border-radius: 0px !important;
+    margin-bottom: 6px;
+    font-size: 10px;
+    border-left: 3px solid #f39c12;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.85);
+}
+.noti-dropdown .noti-item.pending { border-left-color: #e67e22; background: rgba(230,126,34,0.1); }
+.noti-dropdown .noti-item.success { border-left-color: #2ecc71; background: rgba(46,204,113,0.1); }
+.noti-dropdown .noti-item.rejected { border-left-color: #e74c3c; background: rgba(231,76,60,0.1); }
+.noti-dropdown .noti-item .noti-time { font-size: 8px; color: rgba(255,255,255,0.4); margin-top: 4px; text-align: right; }
+.noti-dropdown .noti-empty { text-align: center; color: rgba(255,255,255,0.4); padding: 15px; font-size: 11px; }
+
+/* ============================================================== */
+/* TABS & SECTIONS - SHARP CORNERS                                */
+/* ============================================================== */
+.tabs { display: flex; gap: 5px; margin-bottom: 15px; flex-shrink: 0; }
+.tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0px !important;
+    font-size: 12px;
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.3s;
+}
+.tab.active {
+    background: #4a1c7a;
+    color: #f39c12;
+    border-color: #f39c12;
+}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.scroll-content { flex: 1; overflow-y: auto!important; -webkit-overflow-scrolling: touch!important; padding-bottom: 20px; }
+.section {
+    background: rgba(10, 10, 26, 0.6);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0px !important;
+    clip-path: polygon(4% 0, 96% 0, 100% 4%, 100% 96%, 96% 100%, 4% 100%, 0% 96%, 0% 4%);
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.section h3 { color: #f39c12; font-size: 14px; margin-bottom: 10px; text-align: center; }
+
+/* ============================================================== */
+/* TOP UP NOTICE BANNER (GLASS + CUT CORNERS)                     */
+/* ============================================================== */
+.topup-notice-banner {
+    background: rgba(10, 10, 26, 0.6);
+    backdrop-filter: blur(4px);
+    border: 1.5px solid rgba(243, 156, 18, 0.4);
+    clip-path: polygon(6% 0, 94% 0, 100% 6%, 100% 94%, 94% 100%, 6% 100%, 0% 94%, 0% 6%);
+    border-radius: 0px !important;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+    display: none;
+}
+.topup-notice-banner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #f39c12;
+    border-radius: 0px;
+}
+.topup-notice-header { font-size: 10px; color: #f39c12; font-weight: bold; margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+.topup-notice-msg { font-size: 12px; font-weight: bold; line-height: 1.5; }
+.topup-notice-time { font-size: 9px; color: rgba(255,255,255,0.5); margin-top: 6px; text-align: right; }
+
+/* ============================================================== */
+/* GUIDE BOX (How to top-up)                                      */
+/* ============================================================== */
+.guide-box {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0px !important;
+    padding: 12px;
+    margin-bottom: 10px;
+}
+.guide-box .guide-title { color: #f39c12; font-size: 12px; font-weight: bold; margin-bottom: 8px; text-align: center; }
+.guide-box .step-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; font-size: 10px; color: rgba(255,255,255,0.85); border-bottom: 1px solid rgba(255,255,255,0.05); }
+.guide-box .step-item:last-child { border-bottom: none; }
+.guide-box .step-num { background: #f39c12; color: #000; width: 18px; height: 18px; border-radius: 0px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; flex-shrink: 0; }
+.guide-box .step-text { flex: 1; line-height: 1.6; }
+.guide-box .contact-note { text-align: center; font-size: 10px; color: #3498db; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+/* ============================================================== */
+/* PAYMENT CARDS (Sharp Corners)                                  */
+/* ============================================================== */
+.payment-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0px !important;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.payment-card img { width: 45px; height: 45px; border-radius: 0px; object-fit: cover; flex-shrink: 0; }
+.payment-info { flex: 1; }
+.payment-info .pay-name { color: #f39c12; font-weight: bold; font-size: 13px; }
+.payment-info .pay-number { font-size: 14px; margin: 2px 0; }
+.payment-info .pay-owner { font-size: 10px; color: rgba(255,255,255,0.5); }
+.copy-btn {
+    background: #4a1c7a;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 0px !important;
+    font-size: 11px;
+    cursor: pointer;
+}
+.copy-btn:disabled { opacity: 0.4; cursor: not-allowed; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); }
+.payment-card.unavailable { opacity: 0.6; border: 1px solid rgba(231,76,60,0.3); }
+.payment-card.unavailable .pay-name { color: #e74c3c; }
+.payment-card.unavailable .pay-number { color: rgba(231,76,60,0.7); font-size: 11px; font-style: italic; }
+.payment-card.unavailable .pay-owner { color: rgba(255,255,255,0.3); }
+.payment-card.unavailable img { opacity: 0.5; }
+
+/* ============================================================== */
+/* TOP-UP FORM & INPUTS (Sharp Corners)                           */
+/* ============================================================== */
+.form-group { margin-bottom: 10px; }
+.form-group label { display: block; font-size: 12px; margin-bottom: 3px; color: #ccc; }
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0px !important;
+    color: #fff;
+    font-size: 13px;
+}
+.form-group select option { background: #0a0a1a; color: #fff; }
+
+.id-row { display: flex; gap: 8px; align-items: flex-end; }
+.id-row .form-group { flex: 1; margin-bottom: 0; }
+.check-id-btn {
+    padding: 10px 15px;
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 0px !important;
+    font-size: 12px;
+    cursor: pointer;
+    height: 42px;
+}
+.id-result { font-size: 11px; margin-top: 5px; padding: 6px 10px; border-radius: 0px; display: none; }
+.id-result.verified { display: block; background: rgba(46,204,113,0.15); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+.id-result.invalid { display: block; background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+.id-result.checking { display: block; background: rgba(52,152,219,0.15); color: #3498db; border: 1px solid rgba(52,152,219,0.3); }
+
+.file-upload-wrapper { position: relative; width: 100%; }
+.file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2; }
+.file-upload-box {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 0px !important;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+}
+.file-upload-box.has-file { border-color: #2ecc71; border-style: solid; background: rgba(46,204,113,0.1); }
+.file-upload-box i { font-size: 30px; color: #f39c12; margin-bottom: 8px; display: block; }
+.file-upload-box .upload-text { font-size: 13px; color: #fff; }
+.file-upload-box .upload-hint { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+.btn-row { display: flex; gap: 8px; margin-top: 10px; }
+.btn-row button { flex: 1; padding: 12px; border: none; border-radius: 0px !important; font-size: 13px; font-weight: bold; cursor: pointer; }
+.buy-btn { background: #2ecc71; color: #000; }
+.buy-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.topup-btn { width: 100%; padding: 12px; background: #4a1c7a; color: #fff; border: none; border-radius: 0px !important; font-size: 14px; font-weight: bold; cursor: pointer; margin-bottom: 15px; }
+
+/* ============================================================== */
+/* HISTORY ITEMS                                                   */
+/* ============================================================== */
+.history-item { background: rgba(0,0,0,0.3); padding: 10px 12px; border-radius: 0px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+.history-item .status-badge { font-size: 9px; padding: 4px 10px; border-radius: 0px; font-weight: bold; }
+.status-pending { background: rgba(243,156,18,0.2); color: #f39c12; border: 1px solid rgba(243,156,18,0.3); }
+.status-approved { background: rgba(46,204,113,0.2); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+.status-rejected { background: rgba(231,76,60,0.2); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+.history-detail { display: none; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 0px; margin-bottom: 5px; font-size: 11px; }
+.history-detail img { max-width: 100%; border-radius: 0px; max-height: 200px; object-fit: contain; }
+
+.reject-reason-box { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.4); border-radius: 0px; padding: 12px; margin: 10px 0; }
+.reject-reason-box .reject-title { color: #e74c3c; font-size: 11px; font-weight: bold; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.reject-reason-box .reject-title i { font-size: 14px; }
+.reject-reason-box .reject-msg { color: rgba(255,255,255,0.85); font-size: 10px; line-height: 1.7; word-break: break-word; }
+
+/* ============================================================== */
+/* POPULAR GAMES CARD (UNIFIED ORNATE STYLE) - ခင်ဗျားရဲ့ Game    */
+/* ============================================================== */
+.games { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+.game-card {
+    background: rgba(10, 10, 26, 0.6);
+    background-image: url('https://i.ibb.co/L9rZ5R9/ornate-frame-example.png');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    backdrop-filter: blur(2px);
+    
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    clip-path: polygon(8% 0, 92% 0, 100% 8%, 100% 92%, 92% 100%, 8% 100%, 0% 92%, 0% 8%);
+    border-radius: 0px !important;
+    padding: 16px 8px 12px;
+    text-align: center;
+    transition: all 0.3s;
+}
+.game-card:hover { transform: translateY(-4px) scale(1.02); border-color: #f39c12; box-shadow: 0 0 20px rgba(243,156,18,0.2); }
+.game-card img { width: 50px; height: 50px; border-radius: 0px; margin-bottom: 6px; object-fit: cover; }
+.game-card p { font-size: 10px; color: #fff; margin-top: 3px; }
+.game-card .unavailable { font-size: 8px; color: #e74c3c; margin-top: 2px; }
+
+/* ============================================================== */
+/* COPY NOTIFICATION & LOGIN REQUIRED                             */
+/* ============================================================== */
+.copy-notif { position: fixed; top: 20px; right: 20px; background: #2ecc71; color: #000; padding: 10px 15px; border-radius: 0px; font-size: 13px; z-index: 9999; display: none; }
+
+#paymentSection { display: none; }
+#guideBox { display: none; }
+
+.login-required { text-align: center; padding: 40px 20px; }
+.login-required i { font-size: 50px; color: #f39c12; margin-bottom: 15px; }
+.login-required h3 { color: #f39c12; margin-bottom: 10px; }
+.login-required p { color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 15px; }
+.login-required a { color: #f39c12; text-decoration: underline; }
+     
         /* Maintenance */
         .maintenance-container{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}
         .maintenance-icon{font-size:80px;color:var(--w);margin-bottom:20px;animation:pulse 2s infinite}
