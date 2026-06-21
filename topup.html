@@ -2056,89 +2056,166 @@ function renderGameCards() {
     updateTopupGameCardTimers();
 }
 
-// ==================== TOPUP PAGE: REAL-TIME GAME CARD TIMER UPDATER ====================
-// ဒီ Function က localStorage ထဲက Data ကို ၁ စက္ကန့်တိုင်း ဖတ်ပြီး Game Card တွေပေါ်မှာ Timer ပြပေးမယ်
+// ==================== TOPUP PAGE: UPDATE GAME CARD TIMERS (WAITING + DISCOUNT) ====================
 function updateTopupGameCardTimers() {
-    // 1. MLBB Timer စစ်ဆေးခြင်း
-    const mlbbData = localStorage.getItem('mlbb_discount_timer_data');
+    // ---------- 1. MLBB ----------
+    const mlbbWaitingData = localStorage.getItem('mlbb_waiting_timer_data');
+    const mlbbDiscountData = localStorage.getItem('mlbb_discount_timer_data');
     const mlbbBadge = document.getElementById('mlbbTopupTimer');
-    if (mlbbData && mlbbBadge) {
-        try {
-            const data = JSON.parse(mlbbData);
-            const now = Date.now();
-            if (data.endTime > now) {
-                mlbbBadge.style.display = 'block';
-                // ကျန်တဲ့အချိန်ကို ပြန်တွက်ပြီး ပြမယ်
-                const remaining = data.endTime - now;
-                const totalSec = Math.floor(remaining / 1000);
-                const days = Math.floor(totalSec / 86400);
-                const hours = Math.floor((totalSec % 86400) / 3600);
-                const minutes = Math.floor((totalSec % 3600) / 60);
-                const secs = totalSec % 60;
-                mlbbBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
-            } else {
-                mlbbBadge.style.display = 'none';
-                localStorage.removeItem('mlbb_discount_timer_data');
-            }
-        } catch(e) { 
-            if (mlbbBadge) mlbbBadge.style.display = 'none'; 
+    
+    if (mlbbBadge) {
+        // ✅ Waiting Timer (စရန်ကျန်) ကို ဦးစားပေး စစ်မယ် (အဝါရောင်)
+        if (mlbbWaitingData) {
+            try {
+                const data = JSON.parse(mlbbWaitingData);
+                const now = Date.now();
+                if (data.targetStartTime > now) {
+                    mlbbBadge.style.display = 'block';
+                    mlbbBadge.style.color = '#f39c12'; // အဝါရောင်
+                    mlbbBadge.style.borderColor = '#f39c12';
+                    
+                    // Real-time တွက်ပြီး ပြမယ်
+                    const remaining = data.targetStartTime - now;
+                    const days = Math.floor(remaining / 86400000);
+                    const hours = Math.floor((remaining % 86400000) / 3600000);
+                    const minutes = Math.floor((remaining % 3600000) / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    mlbbBadge.textContent = `⏳ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
+                } else {
+                    localStorage.removeItem('mlbb_waiting_timer_data');
+                    mlbbBadge.style.display = 'none';
+                }
+            } catch(e) { mlbbBadge.style.display = 'none'; }
         }
-    } else if (mlbbBadge) {
-        mlbbBadge.style.display = 'none';
+        // ✅ Discount Timer (လျှော့နေ) (အစိမ်းရောင်)
+        else if (mlbbDiscountData) {
+            try {
+                const data = JSON.parse(mlbbDiscountData);
+                const now = Date.now();
+                if (data.endTime > now) {
+                    mlbbBadge.style.display = 'block';
+                    mlbbBadge.style.color = '#2ecc71'; // အစိမ်းရောင်
+                    mlbbBadge.style.borderColor = '#2ecc71';
+                    
+                    const remaining = data.endTime - now;
+                    const totalSec = Math.floor(remaining / 1000);
+                    const days = Math.floor(totalSec / 86400);
+                    const hours = Math.floor((totalSec % 86400) / 3600);
+                    const minutes = Math.floor((totalSec % 3600) / 60);
+                    const secs = totalSec % 60;
+                    mlbbBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+                } else {
+                    localStorage.removeItem('mlbb_discount_timer_data');
+                    mlbbBadge.style.display = 'none';
+                }
+            } catch(e) { mlbbBadge.style.display = 'none'; }
+        } 
+        // ✅ Data လုံးဝမရှိရင် Hide လုပ်မယ်
+        else {
+            mlbbBadge.style.display = 'none';
+        }
     }
 
-    // 2. PUBG Timer စစ်ဆေးခြင်း (အကယ်၍ PUBG မှာလည်း ဒီလိုစနစ်ရှိရင်)
-    const pubgData = localStorage.getItem('pubg_discount_timer_data');
+    // ---------- 2. PUBG (အကယ်၍ PUBG မှာလည်း Timer ရှိရင်) ----------
+    const pubgWaitingData = localStorage.getItem('pubg_waiting_timer_data');
+    const pubgDiscountData = localStorage.getItem('pubg_discount_timer_data');
     const pubgBadge = document.getElementById('pubgTopupTimer');
-    if (pubgData && pubgBadge) {
-        try {
-            const data = JSON.parse(pubgData);
-            const now = Date.now();
-            if (data.endTime > now) {
-                pubgBadge.style.display = 'block';
-                const remaining = data.endTime - now;
-                const totalSec = Math.floor(remaining / 1000);
-                const days = Math.floor(totalSec / 86400);
-                const hours = Math.floor((totalSec % 86400) / 3600);
-                const minutes = Math.floor((totalSec % 3600) / 60);
-                const secs = totalSec % 60;
-                pubgBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
-            } else {
-                pubgBadge.style.display = 'none';
-                localStorage.removeItem('pubg_discount_timer_data');
-            }
-        } catch(e) { 
-            if (pubgBadge) pubgBadge.style.display = 'none'; 
+    
+    if (pubgBadge) {
+        if (pubgWaitingData) {
+            try {
+                const data = JSON.parse(pubgWaitingData);
+                const now = Date.now();
+                if (data.targetStartTime > now) {
+                    pubgBadge.style.display = 'block';
+                    pubgBadge.style.color = '#f39c12';
+                    pubgBadge.style.borderColor = '#f39c12';
+                    const remaining = data.targetStartTime - now;
+                    const days = Math.floor(remaining / 86400000);
+                    const hours = Math.floor((remaining % 86400000) / 3600000);
+                    const minutes = Math.floor((remaining % 3600000) / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    pubgBadge.textContent = `⏳ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
+                } else {
+                    localStorage.removeItem('pubg_waiting_timer_data');
+                    pubgBadge.style.display = 'none';
+                }
+            } catch(e) { pubgBadge.style.display = 'none'; }
         }
-    } else if (pubgBadge) {
-        pubgBadge.style.display = 'none';
+        else if (pubgDiscountData) {
+            try {
+                const data = JSON.parse(pubgDiscountData);
+                const now = Date.now();
+                if (data.endTime > now) {
+                    pubgBadge.style.display = 'block';
+                    pubgBadge.style.color = '#2ecc71';
+                    pubgBadge.style.borderColor = '#2ecc71';
+                    const remaining = data.endTime - now;
+                    const totalSec = Math.floor(remaining / 1000);
+                    const days = Math.floor(totalSec / 86400);
+                    const hours = Math.floor((totalSec % 86400) / 3600);
+                    const minutes = Math.floor((totalSec % 3600) / 60);
+                    const secs = totalSec % 60;
+                    pubgBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+                } else {
+                    localStorage.removeItem('pubg_discount_timer_data');
+                    pubgBadge.style.display = 'none';
+                }
+            } catch(e) { pubgBadge.style.display = 'none'; }
+        } else {
+            pubgBadge.style.display = 'none';
+        }
     }
 
-    // 3. HOK Timer စစ်ဆေးခြင်း (အကယ်၍ HOK မှာလည်း ဒီလိုစနစ်ရှိရင်)
-    const hokData = localStorage.getItem('hok_discount_timer_data');
+    // ---------- 3. HOK (အကယ်၍ HOK မှာလည်း Timer ရှိရင်) ----------
+    const hokWaitingData = localStorage.getItem('hok_waiting_timer_data');
+    const hokDiscountData = localStorage.getItem('hok_discount_timer_data');
     const hokBadge = document.getElementById('hokTopupTimer');
-    if (hokData && hokBadge) {
-        try {
-            const data = JSON.parse(hokData);
-            const now = Date.now();
-            if (data.endTime > now) {
-                hokBadge.style.display = 'block';
-                const remaining = data.endTime - now;
-                const totalSec = Math.floor(remaining / 1000);
-                const days = Math.floor(totalSec / 86400);
-                const hours = Math.floor((totalSec % 86400) / 3600);
-                const minutes = Math.floor((totalSec % 3600) / 60);
-                const secs = totalSec % 60;
-                hokBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
-            } else {
-                hokBadge.style.display = 'none';
-                localStorage.removeItem('hok_discount_timer_data');
-            }
-        } catch(e) { 
-            if (hokBadge) hokBadge.style.display = 'none'; 
+    
+    if (hokBadge) {
+        if (hokWaitingData) {
+            try {
+                const data = JSON.parse(hokWaitingData);
+                const now = Date.now();
+                if (data.targetStartTime > now) {
+                    hokBadge.style.display = 'block';
+                    hokBadge.style.color = '#f39c12';
+                    hokBadge.style.borderColor = '#f39c12';
+                    const remaining = data.targetStartTime - now;
+                    const days = Math.floor(remaining / 86400000);
+                    const hours = Math.floor((remaining % 86400000) / 3600000);
+                    const minutes = Math.floor((remaining % 3600000) / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    hokBadge.textContent = `⏳ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
+                } else {
+                    localStorage.removeItem('hok_waiting_timer_data');
+                    hokBadge.style.display = 'none';
+                }
+            } catch(e) { hokBadge.style.display = 'none'; }
         }
-    } else if (hokBadge) {
-        hokBadge.style.display = 'none';
+        else if (hokDiscountData) {
+            try {
+                const data = JSON.parse(hokDiscountData);
+                const now = Date.now();
+                if (data.endTime > now) {
+                    hokBadge.style.display = 'block';
+                    hokBadge.style.color = '#2ecc71';
+                    hokBadge.style.borderColor = '#2ecc71';
+                    const remaining = data.endTime - now;
+                    const totalSec = Math.floor(remaining / 1000);
+                    const days = Math.floor(totalSec / 86400);
+                    const hours = Math.floor((totalSec % 86400) / 3600);
+                    const minutes = Math.floor((totalSec % 3600) / 60);
+                    const secs = totalSec % 60;
+                    hokBadge.textContent = `⏰ ${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+                } else {
+                    localStorage.removeItem('hok_discount_timer_data');
+                    hokBadge.style.display = 'none';
+                }
+            } catch(e) { hokBadge.style.display = 'none'; }
+        } else {
+            hokBadge.style.display = 'none';
+        }
     }
 }
 
