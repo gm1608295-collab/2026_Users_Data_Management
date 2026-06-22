@@ -124,73 +124,145 @@
         <div class="footer">© 2026 SOLO M Game Shop</div>
     </div>
         <script>
-    // ==================== RENDER EVENTS FROM SERVER ====================
-    async function renderEvents() {
-        const container = document.getElementById('eventsList');
-        const today = new Date();
-        today.setHours(0,0,0,0);
+            // ==================== DASHBOARD EVENTS (DATA IN HTML) ====================
+const EVENTS_DATA = [
+    {
+        id: 1,
+        title: "S41 New Hero Creation Contest",
+        subtitle: "ဖန်တီးလိုက်ပါ ဆုကြေးများစွာ ရယူလိုက်ပါ",
+        startDate: "2026-06-01",
+        endDate: "2026-06-30",
+        status: "active",
+        actionLink: "https://sg-play.mobilelegends.com/events/v26edf9dgugc/global",
+        actionText: "ဝင်ရောက်ယှဉ်ပြိုင်မည်"
+    },
+    {
+        id: 2,
+        title: "MLBB x Transformers Collaboration",
+        subtitle: "Optimus Prime & Bumblebee Skins များ ထွက်ရှိမည်",
+        startDate: "2026-07-01",
+        endDate: "2026-07-31",
+        status: "upcoming",
+        actionLink: "#",
+        actionText: "Coming Soon"
+    },
+    {
+        id: 3,
+        title: "Diamond Festival 2026",
+        subtitle: "Double Diamond Event ကြီး ပြန်လာပြီ",
+        startDate: "2026-08-01",
+        endDate: "2026-08-15",
+        status: "upcoming",
+        actionLink: "#",
+        actionText: "Coming Soon"
+    }
+];
 
-        let html = '';
-        let hasEvent = false;
+function loadDashboardEvents() {
+    const container = document.getElementById('upcomingEventsContainer');
+    if (!container) return;
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    let foundEvent = null;
+    
+    // Find the first active or upcoming event
+    for (const evt of EVENTS_DATA) {
+        const start = new Date(evt.startDate + 'T00:00:00');
+        const end = evt.endDate ? new Date(evt.endDate + 'T23:59:59') : null;
+        
+        if (evt.status === 'active' || (start <= today && (!end || today <= end))) {
+            foundEvent = evt;
+            break;
+        } else if (evt.status === 'upcoming' || start > today) {
+            foundEvent = evt;
+            break;
+        }
+    }
+    
+    if (foundEvent) {
+        container.style.display = 'block';
+        document.getElementById('eventTitle').textContent = foundEvent.title;
+        document.getElementById('eventSubtitle').textContent = foundEvent.subtitle || '';
+        
+        const actionBtn = document.getElementById('eventActionBtn');
+        if (foundEvent.actionLink && foundEvent.actionLink !== '#') {
+            actionBtn.style.display = 'inline-block';
+            document.getElementById('eventActionLink').href = foundEvent.actionLink;
+            document.getElementById('eventActionLink').textContent = foundEvent.actionText || 'ဝင်ရောက်ကြည့်ရှုရန်';
+        } else {
+            actionBtn.style.display = 'none';
+        }
+    } else {
+        container.style.display = 'none';
+    }
+}
 
-        try {
-            const r = await fetch('/api/admin/events');
-            const d = await r.json();
+// Dashboard ပေါ်လာတိုင်း ဒါကို run ပါ
+setTimeout(() => {
+    loadDashboardEvents();
+}, 500);
+            // ==================== RENDER EVENTS FROM DASHBOARD DATA ====================
+function renderEvents() {
+    const container = document.getElementById('eventsList');
+    const today = new Date();
+    today.setHours(0,0,0,0);
 
-            if (d.success && d.events && d.events.length > 0) {
-                // Sort by start date
-                const sortedEvents = d.events.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+    let html = '';
+    let hasEvent = false;
 
-                sortedEvents.forEach(evt => {
-                    const start = new Date(evt.start_date + 'T00:00:00');
-                    const end = evt.end_date ? new Date(evt.end_date + 'T23:59:59') : null;
+    // Dashboard ထဲက EVENTS_DATA ကို သုံးမယ် (Global variable ဖြစ်နေလို့ ဒီမှာ ဖတ်လို့ရတယ်)
+    // အကယ်၍ Dashboard နဲ့ Events Page က သီးသန့်ဆိုရင် EVENTS_DATA ကို ဒီမှာပဲ ပြန်ရေးထားလို့ရပါတယ်။
+    // ဒါပေမယ့် သင်က Data တစ်နေရာတည်းမှာ ထားချင်တာမို့ Dashboard ထဲက EVENTS_DATA ကို ဖတ်မယ်။
+    const data = typeof EVENTS_DATA !== 'undefined' ? EVENTS_DATA : [];
+    
+    data.forEach(evt => {
+        const start = new Date(evt.startDate + 'T00:00:00');
+        const end = evt.endDate ? new Date(evt.endDate + 'T23:59:59') : null;
 
-                    let statusText = '';
-                    let cardClass = '';
+        let statusText = '';
+        let cardClass = '';
 
-                    if (evt.status === 'ended') {
-                        statusText = '✅ ပြီးဆုံးပြီ';
-                        cardClass = 'ended';
-                    } else if (evt.status === 'active' || (start <= today && (!end || today <= end))) {
-                        statusText = '🟢 ဖြစ်ပွားဆဲ';
-                        cardClass = 'active';
-                    } else if (evt.status === 'upcoming' || start > today) {
-                        statusText = '⏳ လာမည်';
-                        cardClass = 'upcoming';
-                    } else {
-                        statusText = '✅ ပြီးဆုံးပြီ';
-                        cardClass = 'ended';
-                    }
-
-                    // Only show active and upcoming (ပြီးသွားတာတွေကို ဖျောက်ချင်ရင် ဒီ condition ကိုဖယ်ပါ)
-                    if (statusText === '✅ ပြီးဆုံးပြီ') return;
-
-                    hasEvent = true;
-                    html += `
-                        <div class="timeline-item ${cardClass}">
-                            <div class="status-tag">${statusText}</div>
-                            <div class="event-title">${evt.title}</div>
-                            <div class="event-sub">${evt.subtitle || ''}</div>
-                        </div>
-                    `;
-                });
-            }
-        } catch(e) {
-            console.error('[EVENTS ERROR]', e);
+        if (evt.status === 'ended') {
+            statusText = '✅ ပြီးဆုံးပြီ';
+            cardClass = 'ended';
+        } else if (evt.status === 'active' || (start <= today && (!end || today <= end))) {
+            statusText = '🟢 ဖြစ်ပွားဆဲ';
+            cardClass = 'active';
+        } else if (evt.status === 'upcoming' || start > today) {
+            statusText = '⏳ လာမည်';
+            cardClass = 'upcoming';
+        } else {
+            statusText = '✅ ပြီးဆုံးပြီ';
+            cardClass = 'ended';
         }
 
-        if (!hasEvent) {
-            html = `<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);">
-                <i class="fas fa-calendar-times" style="font-size:50px;display:block;margin-bottom:15px;"></i>
-                ဒီလအတွက် Event မရှိသေးပါ။
-            </div>`;
-        }
+        // Only show active and upcoming
+        if (statusText === '✅ ပြီးဆုံးပြီ') return;
 
-        container.innerHTML = html;
+        hasEvent = true;
+        html += `
+            <div class="timeline-item ${cardClass}">
+                <div class="status-tag">${statusText}</div>
+                <div class="event-title">${evt.title}</div>
+                <div class="event-sub">${evt.subtitle || ''}</div>
+            </div>
+        `;
+    });
+
+    if (!hasEvent) {
+        html = `<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);">
+            <i class="fas fa-calendar-times" style="font-size:50px;display:block;margin-bottom:15px;"></i>
+            ဒီလအတွက် Event မရှိသေးပါ။
+        </div>`;
     }
 
-    // ==================== INIT ====================
-    renderEvents();
+    container.innerHTML = html;
+}
+
+// ==================== INIT ====================
+renderEvents();
    </script>
 </body>
   </html>
