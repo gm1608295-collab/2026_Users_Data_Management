@@ -1130,12 +1130,13 @@
     <!-- Header -->
     <div class="tg-header">
         <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i></a>
-        <a href="/chatpremium.html" id="premiumBtn" style="background:linear-gradient(135deg,#f39c12,#e67e22);color:#000;text-decoration:none;font-weight:700;border:2px solid #fff;box-shadow:0 2px 8px rgba(243,156,18,0.3);padding:6px 16px !important;font-size:10px !important;">
+        <a href="/chatpremium.html" id="premiumBtn" style="background:linear-gradient(135deg,#f39c12,#e67e22);color:#000;text-decoration:none;font-weight:700;padding:6px 16px;font-size:10px;border-radius:20px;border:2px solid #fff;box-shadow:0 2px 8px rgba(243,156,18,0.3);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;">
     <span class="wave-text">
         <span class="wave-letter">P</span><span class="wave-letter">r</span><span class="wave-letter">e</span><span class="wave-letter">m</span><span class="wave-letter">i</span><span class="wave-letter">u</span><span class="wave-letter">m</span>
     </span> 
     ဝင်ရန်
         </a>
+        
         <div class="title"><i class="fas fa-comments"></i> စကားပြော</div>
         <span class="online-badge" id="onlineCount">0 online</span>
         <span class="premium-badge" id="premiumBadge"></span>
@@ -1478,9 +1479,14 @@ async function getCurrentUser() {
     return null;
 }
     function initSocket() {
+    // ✅ Reconnection timeout ကို ပိုကြာအောင် ထားမယ်
     socket = io(window.location.origin, {
-        transports: ['polling', 'websocket'],
-        reconnection: true
+        transports: ['websocket', 'polling'], // WebSocket ကို ဦးစားပေး
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000
     });
     
     socket.on('connect', function() {
@@ -1490,10 +1496,16 @@ async function getCurrentUser() {
                 userId: currentUser.id,
                 username: currentUser.username
             });
-            // ✅ Force load rooms & users on connect
+            // Force load rooms & users on connect
             loadRooms();
             loadUsersList();
         }
+    });
+    
+    // ✅ Disconnect ဖြစ်ရင် Auto-reconnect လုပ်မယ်
+    socket.on('disconnect', function(reason) {
+        console.log('[SOCKET] Disconnected:', reason);
+        // Reconnect logic ကို socket.io က auto လုပ်ပေးမှာပါ
     });
     
     socket.on('new_message', function(msg){
