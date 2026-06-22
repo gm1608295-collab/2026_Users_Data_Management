@@ -456,6 +456,20 @@ async function initTables(p) {
             details TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`,
+
+        // ========== EVENTS TABLE ==========
+`CREATE TABLE IF NOT EXISTS events (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    subtitle TEXT,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    status VARCHAR(20) DEFAULT 'upcoming',
+    action_link VARCHAR(500),
+    action_text VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
         
         // ========== INDEXES ==========
         `CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id)`,
@@ -885,6 +899,54 @@ async function autoCheckTimers() {
 
 // Run auto-check every 30 seconds
 setInterval(autoCheckTimers, 30000);
+
+// ==================== EVENTS MANAGEMENT (ADMIN) ====================
+// Get all events
+app.get('/api/admin/events', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM events ORDER BY id DESC');
+        res.json({ success: true, events: r.rows });
+    } catch(e) {
+        res.json({ success: false, events: [] });
+    }
+});
+
+// Create new event
+app.post('/api/admin/event/create', async (req, res) => {
+    const { title, subtitle, start_date, end_date, status, action_link, action_text } = req.body;
+    
+    if (!title || !start_date) {
+        return res.json({ success: false, message: 'Title and Start Date required' });
+    }
+    
+    try {
+        const p = await getPool();
+        await p.query(
+            `INSERT INTO events (title, subtitle, start_date, end_date, status, action_link, action_text) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [title, subtitle || '', start_date, end_date || null, status || 'upcoming', action_link || '', action_text || '']
+        );
+        res.json({ success: true, message: 'Event created!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
+// Delete event
+app.post('/api/admin/event/delete', async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.json({ success: false, message: 'ID required' });
+    
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM events WHERE id = $1', [id]);
+        res.json({ success: true, message: 'Deleted!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
 // ==================== FORCE UPDATE SYSTEM ====================
 
 // Get current force update status (for Dashboard)
