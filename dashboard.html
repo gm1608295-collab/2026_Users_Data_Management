@@ -949,11 +949,47 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
          style="width:100%;height:150px;object-fit:cover;display:block;"
          onerror="this.style.display='none'">
 </div>
-      <div class="sidebar-profile">
-        <div class="sidebar-avatar" id="sidebarAvatar">S</div>
-        <div class="sidebar-profile-name" id="sidebarName">User</div>
-        <div class="sidebar-profile-email" id="sidebarEmail">user@mlbb.com</div>
+      <!-- ==================== SIDEBAR PROFILE (NEW DESIGN) ==================== -->
+<div class="sidebar-profile" style="position:relative; text-align:center; padding:15px 15px 20px; border-bottom:1px solid rgba(255,255,255,0.1); flex-shrink:0;">
+    
+    <!-- ✅ 3-Dot Menu (ဘယ်ဘက်အပေါ်ထောင့်) -->
+    <div style="position:absolute; top:8px; left:10px; z-index:20;">
+        <div class="profile-dots-menu" onclick="toggleProfileMenu()" style="width:28px; height:28px; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; color:#fff; font-size:14px;">
+            ⋮
+        </div>
+        
+        <!-- Delete Photo Dropdown (အစက်သုံးစက်နှိပ်ရင် ပေါ်လာမယ်) -->
+        <div id="profileDeleteMenu" style="display:none; position:absolute; top:32px; left:0; background:rgba(20,15,35,0.95); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.1); border-radius:6px; padding:6px 0; width:120px; box-shadow:0 8px 25px rgba(0,0,0,0.4); z-index:25;">
+            <div onclick="deleteProfilePhoto()" style="padding:8px 14px; font-size:11px; color:#e74c3c; cursor:pointer; display:flex; align-items:center; gap:8px; transition:0.2s;">
+                <i class="fas fa-trash-alt" style="font-size:11px;"></i> Delete Photo
+            </div>
+        </div>
     </div>
+
+    <!-- ✅ Avatar Image & Name on Top -->
+    <div style="position:relative; display:inline-block; margin-bottom:8px;">
+        <!-- Profile Image -->
+        <img id="sidebarAvatarImg" src="" 
+             style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:3px solid #f39c12; box-shadow:0 4px 15px rgba(0,0,0,0.4); display:none; background:transparent;"
+             onerror="this.style.display='none'; document.getElementById('sidebarAvatarText').style.display='flex';">
+        
+        <!-- Text Avatar (ပုံမရှိရင် ပြမယ်) -->
+        <div id="sidebarAvatarText" style="width:70px; height:70px; border-radius:50%; background:linear-gradient(135deg,#4a1c7a,#f39c12); display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:bold; color:#fff; border:3px solid #f39c12; box-shadow:0 4px 15px rgba(0,0,0,0.4);">
+            S
+        </div>
+    </div>
+
+    <!-- ✅ Name & Email (ပုံရဲ့ အပေါ်ဘက်မှာ) -->
+    <div class="sidebar-profile-name" id="sidebarName" style="color:#fff; font-size:14px; font-weight:bold; margin-bottom:2px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">User</div>
+    <div class="sidebar-profile-email" id="sidebarEmail" style="color:rgba(255,255,255,0.7); font-size:10px; word-break:break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">user@mlbb.com</div>
+
+    <!-- ✅ Upload Button (ပုံရဲ့ အောက်ဘက်မှာ) -->
+    <label for="profilePhotoInput" style="display:inline-block; margin-top:10px; padding:5px 12px; background:rgba(243,156,18,0.15); border:1px solid rgba(243,156,18,0.3); border-radius:20px; color:#f39c12; font-size:10px; font-weight:bold; cursor:pointer; transition:all 0.2s;">
+        <i class="fas fa-camera" style="margin-right:4px;"></i> Upload Photo
+    </label>
+    <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" onchange="uploadProfilePhoto(this)">
+
+</div>
     <div class="sidebar-menu-area">
         <div class="sidebar-section-title">Main Menu</div>
         <a href="/topup.html" class="s-item">
@@ -1134,7 +1170,102 @@ setTimeout(() => {
     checkForceUpdate();
 }, 1000);
     // ==================== SIDEBAR ====================
-    function openSidebar(){const u=JSON.parse(localStorage.getItem('user')||'{}');document.getElementById("sidebarName").textContent=u.username||'User';document.getElementById("sidebarEmail").textContent=u.email||'user@mlbb.com';document.getElementById("sidebarAvatar").textContent=(u.username||'U').charAt(0).toUpperCase();document.getElementById("sidebarPanel").classList.add("active");document.getElementById("sidebarOverlay").classList.add("active");document.body.style.overflow='hidden'}
+    function openSidebar() {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    // Update Name & Email
+    document.getElementById("sidebarName").textContent = u.username || 'User';
+    document.getElementById("sidebarEmail").textContent = u.email || 'user@mlbb.com';
+    
+    // Load Profile Photo
+    const savedPhoto = localStorage.getItem('profilePhoto_' + u.id);
+    const img = document.getElementById('sidebarAvatarImg');
+    const textAvatar = document.getElementById('sidebarAvatarText');
+    
+    if (savedPhoto) {
+        img.src = savedPhoto;
+        img.style.display = 'block';
+        textAvatar.style.display = 'none';
+        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    } else {
+        img.style.display = 'none';
+        textAvatar.style.display = 'flex';
+        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    }
+    
+    document.getElementById("sidebarPanel").classList.add("active");
+    document.getElementById("sidebarOverlay").classList.add("active");
+    document.body.style.overflow = 'hidden';
+    }
+    // ✅ 3-Dot Menu Toggle
+function toggleProfileMenu() {
+    const menu = document.getElementById('profileDeleteMenu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+// ✅ Upload Profile Photo
+function uploadProfilePhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!u.id) {
+        showToast('❌ User ID not found', 'error');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Image = e.target.result;
+        
+        // Save to localStorage
+        localStorage.setItem('profilePhoto_' + u.id, base64Image);
+        
+        // Update sidebar immediately
+        const img = document.getElementById('sidebarAvatarImg');
+        const textAvatar = document.getElementById('sidebarAvatarText');
+        img.src = base64Image;
+        img.style.display = 'block';
+        textAvatar.style.display = 'none';
+        
+        showToast('✅ Profile photo uploaded!', 'success');
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input so same file can be re-uploaded
+    input.value = '';
+}
+
+// ✅ Delete Profile Photo
+function deleteProfilePhoto() {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!u.id) return;
+    
+    if (!confirm('Are you sure you want to delete your profile photo?')) return;
+    
+    localStorage.removeItem('profilePhoto_' + u.id);
+    
+    // Update sidebar immediately
+    const img = document.getElementById('sidebarAvatarImg');
+    const textAvatar = document.getElementById('sidebarAvatarText');
+    img.style.display = 'none';
+    textAvatar.style.display = 'flex';
+    textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    
+    // Close menu
+    document.getElementById('profileDeleteMenu').style.display = 'none';
+    
+    showToast('🗑️ Photo deleted!', 'error');
+}
+
+// ✅ Close menu when clicking outside
+document.addEventListener('click', function(e) {
+    const menu = document.getElementById('profileDeleteMenu');
+    const dotBtn = document.querySelector('.profile-dots-menu');
+    if (menu && dotBtn && !dotBtn.contains(e.target) && !menu.contains(e.target)) {
+        menu.style.display = 'none';
+    }
+});
     function closeSidebar(){document.getElementById("sidebarPanel").classList.remove("active");document.getElementById("sidebarOverlay").classList.remove("active");document.body.style.overflow=''}
 
     function openMLBBEvent() {
