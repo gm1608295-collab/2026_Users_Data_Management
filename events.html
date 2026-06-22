@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Event Updates - SOLO M Game Store</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--r:#e74c3c;--g:#2ecc71;--w:#f39c12;--b:#3498db;--t:#fff}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        html,body{height:auto!important;min-height:100vh!important;overflow-y:auto!important}
+        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);padding:15px}
+        .container{max-width:600px;margin:0 auto;padding-bottom:30px}
+        
+        /* Header */
+        .header{background:linear-gradient(to right,var(--a),var(--p));padding:15px;border-radius:12px;border-bottom:4px solid var(--w);margin-bottom:15px;text-align:center;position:relative}
+        .header h1{font-size:18px;color:var(--w);display:flex;align-items:center;justify-content:center;gap:8px}
+        .back-btn{position:absolute;left:15px;top:15px;color:#fff;font-size:20px;text-decoration:none}
+
+        /* ========== TIMELINE STYLE (စာသားသက်သက်) ========== */
+        .timeline-container {
+            position: relative;
+            padding-left: 25px;
+        }
+
+        /* Timeline Vertical Line */
+        .timeline-container::before {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 7px;
+            bottom: 5px;
+            width: 2px;
+            background: linear-gradient(to bottom, #4a1c7a, #f39c12, #4a1c7a);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 25px;
+            padding: 0 15px;
+        }
+
+        /* Timeline Dot */
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -22px;
+            top: 6px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4a1c7a;
+            border: 2px solid #f39c12;
+            box-shadow: 0 0 10px rgba(243,156,18,0.3);
+            z-index: 1;
+        }
+
+        /* Active Event Dot (ပန်းရောင်) */
+        .timeline-item.active::before {
+            background: #ff3399;
+            border-color: #ff3399;
+            box-shadow: 0 0 15px rgba(255,51,153,0.5);
+        }
+
+        /* Upcoming Event Dot (အပြာရောင်) */
+        .timeline-item.upcoming::before {
+            background: #3498db;
+            border-color: #3498db;
+            box-shadow: 0 0 15px rgba(52,152,219,0.4);
+        }
+
+        .timeline-item .status-tag {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .timeline-item.active .status-tag {
+            color: #ff3399;
+            border-color: #ff3399;
+            background: rgba(255,51,153,0.1);
+        }
+
+        .timeline-item.upcoming .status-tag {
+            color: #3498db;
+            border-color: #3498db;
+            background: rgba(52,152,219,0.1);
+        }
+
+        .timeline-item .event-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+            margin: 2px 0;
+        }
+
+        .timeline-item .event-sub {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.5;
+            margin-top: 2px;
+        }
+        
+        .footer{text-align:center;padding:15px;color:rgba(255,255,255,0.4);font-size:10px}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/dashboard" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+            <h1><i class="fas fa-calendar-alt" style="color:#ff3399;"></i> ဒီလအတွက် Event Update များ</h1>
+        </div>
+
+        <div class="timeline-container" id="eventsList">
+            <!-- JavaScript က Event တွေကို ဒီထဲမှာ ထုတ်ပေးမယ် -->
+        </div>
+
+        <div class="footer">© 2026 SOLO M Game Shop</div>
+    </div>
+        <script>
+    // ==================== RENDER EVENTS FROM SERVER ====================
+    async function renderEvents() {
+        const container = document.getElementById('eventsList');
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        let html = '';
+        let hasEvent = false;
+
+        try {
+            const r = await fetch('/api/admin/events');
+            const d = await r.json();
+
+            if (d.success && d.events && d.events.length > 0) {
+                // Sort by start date
+                const sortedEvents = d.events.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+                sortedEvents.forEach(evt => {
+                    const start = new Date(evt.start_date + 'T00:00:00');
+                    const end = evt.end_date ? new Date(evt.end_date + 'T23:59:59') : null;
+
+                    let statusText = '';
+                    let cardClass = '';
+
+                    if (evt.status === 'ended') {
+                        statusText = '✅ ပြီးဆုံးပြီ';
+                        cardClass = 'ended';
+                    } else if (evt.status === 'active' || (start <= today && (!end || today <= end))) {
+                        statusText = '🟢 ဖြစ်ပွားဆဲ';
+                        cardClass = 'active';
+                    } else if (evt.status === 'upcoming' || start > today) {
+                        statusText = '⏳ လာမည်';
+                        cardClass = 'upcoming';
+                    } else {
+                        statusText = '✅ ပြီးဆုံးပြီ';
+                        cardClass = 'ended';
+                    }
+
+                    // Only show active and upcoming (ပြီးသွားတာတွေကို ဖျောက်ချင်ရင် ဒီ condition ကိုဖယ်ပါ)
+                    if (statusText === '✅ ပြီးဆုံးပြီ') return;
+
+                    hasEvent = true;
+                    html += `
+                        <div class="timeline-item ${cardClass}">
+                            <div class="status-tag">${statusText}</div>
+                            <div class="event-title">${evt.title}</div>
+                            <div class="event-sub">${evt.subtitle || ''}</div>
+                        </div>
+                    `;
+                });
+            }
+        } catch(e) {
+            console.error('[EVENTS ERROR]', e);
+        }
+
+        if (!hasEvent) {
+            html = `<div style="text-align:center;padding:40px;color:rgba(255,255,255,0.4);">
+                <i class="fas fa-calendar-times" style="font-size:50px;display:block;margin-bottom:15px;"></i>
+                ဒီလအတွက် Event မရှိသေးပါ။
+            </div>`;
+        }
+
+        container.innerHTML = html;
+    }
+
+    // ==================== INIT ====================
+    renderEvents();
+   </script>
+</body>
+  </html>
