@@ -1420,6 +1420,40 @@ body.modal-open .container {
         <div id="forceUpdateStatus" style="margin-top: 8px; font-size: 9px; padding: 6px; border-radius: 6px; text-align: center; display: none;"></div>
     </div>
                 </div>
+
+                <!-- ==================== EVENT MANAGEMENT (NEW SECTION) ==================== -->
+<div class="divider">
+    <h3><i class="fas fa-calendar-alt" style="color:#ff3399;"></i> Event Update Management</h3>
+    <p class="help-note">Dashboard နဲ့ Events Page မှာ ပြသမယ့် Event အသစ်တွေကို ဒီကနေ ထည့်သွင်းနိုင်ပါတယ်။</p>
+    
+    <div class="video-card" style="margin-bottom:12px">
+        <h4 style="color:var(--w);font-size:12px;margin-bottom:8px">➕ Create New Event</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <div class="form-group"><label>📌 Event Title</label><input type="text" id="adminEventTitle" placeholder="S41 New Hero Contest"></div>
+            <div class="form-group"><label>📅 Start Date</label><input type="date" id="adminEventStartDate"></div>
+            <div class="form-group"><label>📅 End Date</label><input type="date" id="adminEventEndDate"></div>
+            <div class="form-group"><label>📊 Status</label>
+                <select id="adminEventStatus">
+                    <option value="upcoming">⏳ Upcoming</option>
+                    <option value="active">🟢 Active</option>
+                    <option value="ended">✅ Ended</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group"><label>📝 Subtitle</label><input type="text" id="adminEventSubtitle" placeholder="Optimus Prime & Bumblebee Skins များ"></div>
+        <div class="form-group"><label>🔗 Action Link (Optional)</label><input type="text" id="adminEventLink" placeholder="https://..."></div>
+        <div class="form-group"><label>🔘 Button Text (Optional)</label><input type="text" id="adminEventBtnText" placeholder="ဝင်ရောက်ယှဉ်ပြိုင်မည်"></div>
+        <button class="btn btn-g" onclick="createAdminEvent()" style="width:100%;margin-top:6px"><i class="fas fa-plus"></i> Create Event</button>
+    </div>
+    
+    <div style="margin-top:10px">
+        <h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📋 Existing Events</h4>
+        <div id="adminEventList" style="max-height:300px;overflow-y:auto">
+            <p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p>
+        </div>
+    </div>
+</div>
+                
                 <!-- ===== DAILY CHECK-IN MANAGEMENT ===== -->
 <div class="divider">
     <h3><i class="fas fa-calendar-check"></i> Daily Check-In Event Management</h3>
@@ -1719,6 +1753,7 @@ function startAutoRefresh() {
             loadAdminData(),
             loadAdminOrders(currentOrderFilter),
             loadPageToggles(),
+            loadAdminEvents(),
             loadSpinRates(),
             loadResellers(),
             loadResellerTransactions(),
@@ -1727,7 +1762,84 @@ function startAutoRefresh() {
         ]);
     }, 5000);
 }
+// ==================== ADMIN EVENT MANAGEMENT ====================
+async function loadAdminEvents() {
+    try {
+        const r = await fetch('/api/admin/events');
+        const d = await r.json();
+        const c = document.getElementById('adminEventList');
+        if (d.success && d.events.length > 0) {
+            c.innerHTML = d.events.map(evt => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:6px;margin-bottom:4px;font-size:10px;border-left:3px solid ${evt.status === 'active' ? '#2ecc71' : evt.status === 'upcoming' ? '#3498db' : '#7f8c8d'};gap:8px">
+                    <div style="flex:1;min-width:0">
+                        <b style="color:#fff">${evt.title}</b>
+                        <br><small style="color:rgba(255,255,255,0.5)">📅 ${evt.start_date} ${evt.end_date ? '→ ' + evt.end_date : ''} | ${evt.status}</small>
+                    </div>
+                    <button class="btn btn-r" style="font-size:9px;padding:3px 8px" onclick="deleteAdminEvent(${evt.id})">Del</button>
+                </div>
+            `).join('');
+        } else {
+            c.innerHTML = '<p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">No events yet</p>';
+        }
+    } catch(e) {}
+}
 
+async function createAdminEvent() {
+    const title = document.getElementById('adminEventTitle').value.trim();
+    const subtitle = document.getElementById('adminEventSubtitle').value.trim();
+    const start_date = document.getElementById('adminEventStartDate').value;
+    const end_date = document.getElementById('adminEventEndDate').value || null;
+    const status = document.getElementById('adminEventStatus').value;
+    const action_link = document.getElementById('adminEventLink').value.trim();
+    const action_text = document.getElementById('adminEventBtnText').value.trim();
+    
+    if (!title || !start_date) return n('❌ Title and Start Date required', 'error');
+    
+    try {
+        const r = await fetch('/api/admin/event/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, subtitle, start_date, end_date, status, action_link, action_text })
+        });
+        const d = await r.json();
+        if (d.success) {
+            n('✅ Event created!');
+            document.getElementById('adminEventTitle').value = '';
+            document.getElementById('adminEventSubtitle').value = '';
+            document.getElementById('adminEventStartDate').value = '';
+            document.getElementById('adminEventEndDate').value = '';
+            document.getElementById('adminEventLink').value = '';
+            document.getElementById('adminEventBtnText').value = '';
+            loadAdminEvents();
+        } else {
+            n('❌ ' + (d.message || 'Error'), 'error');
+        }
+    } catch(e) {
+        n('❌ Connection error', 'error');
+    }
+}
+
+async function deleteAdminEvent(id) {
+    if (!confirm('Delete this event?')) return;
+    try {
+        const r = await fetch('/api/admin/event/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        const d = await r.json();
+        if (d.success) {
+            n('✅ Deleted!');
+            loadAdminEvents();
+        } else {
+            n('❌ Error', 'error');
+        }
+    } catch(e) {}
+}
+
+// Admin Panel ကို Unlock လုပ်ပြီး Load လုပ်တဲ့အခါ Event တွေကိုပါ Load လုပ်ဖို့ အောက်ပါအတိုင်း ထည့်ပါ
+// unlockAdmin() function ထဲက Promise.all ထဲမှာ loadAdminEvents(); ကို ထည့်ပေးရပါမယ်။
+// ဥပမာ - await Promise.all([..., loadAdminEvents(), ...]);
 // ==================== BACKUP & RESTORE ====================
 async function backupDatabase() {
     showLoading('Backing up...');
