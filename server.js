@@ -14,8 +14,8 @@ const { Server } = require('socket.io');
 const app = express();
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
-app.use(express.json({ limit: '2mb' }));
-app.use(express.urlencoded({ limit: '2mb', extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(express.static(__dirname));
 
 const cookieParser = require('cookie-parser');
@@ -3840,7 +3840,7 @@ function startLongPolling() {
         [{ text: '🎰 Spin History', callback_data: 'spins' }],
         [{ text: '🛒 Code ဝယ်ရန်', callback_data: 'buycode' }],
         [{ text: '📞 ဆက်သွယ်ရန်', url: 'https://t.me/Solo_m28' }],
-        [{ text: '📱 App ဒေါင်းရန်', url: 'https://drive.google.com/file/d/1z6WndDyaHyLARgjWh9BFVBFgeNUMyCum/view?usp=drivesdk' }]
+        [{ text: '📱 App ဒေါင်းရန်', url: 'https://drive.google.com/file/d/13Adx-ucYt7JzDxR1ZFOxV2pUH6UtLxqd/view?usp=drivesdk' }]
     ]
 };
     
