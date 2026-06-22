@@ -1436,9 +1436,28 @@ app.post('/api/logout', (req, res) => res.json({ success: true }));
 app.post('/api/check_banned', async (req, res) => {
     try {
         const p = await getPool();
-        const r = await p.query('SELECT * FROM banned_users WHERE user_id=$1', [req.body.userId]);
+        const userId = req.body.userId;
+        
+        // ✅ userId ကို သေချာ parse လုပ်မယ်
+        let uid = null;
+        if (typeof userId === 'string') {
+            // token_xxx ပုံစံ ဖယ်ရှား
+            const cleaned = userId.replace('token_', '');
+            if (/^\d+$/.test(cleaned)) {
+                uid = parseInt(cleaned, 10);
+            }
+        } else if (typeof userId === 'number') {
+            uid = userId;
+        }
+        
+        if (uid === null || isNaN(uid)) {
+            return res.json({ banned: false });
+        }
+        
+        const r = await p.query('SELECT * FROM banned_users WHERE user_id = $1', [uid]);
         res.json({ banned: r.rows.length > 0 });
     } catch(e) {
+        console.error('[CHECK BAN ERROR]', e.message);
         res.json({ banned: false });
     }
 });
@@ -2383,7 +2402,6 @@ app.post('/api/regenerate_password', async (req, res) => {
             }
             // ✅ oldPassword မပါရင် Skip (Frontend က Flag ထားပြီးသား)
         }
-        // ========== END COOLDOWN CHECK ==========
         
         // ========== GENERATE NEW PASSWORD ==========
         const CHAR_SETS = {
@@ -2818,9 +2836,20 @@ app.post('/api/verify_user_id', async (req, res) => {
     try {
         const p = await getPool();
         
+        // ✅ userId ကို integer အဖြစ် သေချာ parse မယ်
+        let uid = null;
+        const cleanUserId = userId.toString().replace('token_', '');
+        if (/^\d+$/.test(cleanUserId)) {
+            uid = parseInt(cleanUserId, 10);
+        }
+        
+        if (uid === null || isNaN(uid)) {
+            return res.json({ success: true, verified: false, message: 'Invalid User ID format' });
+        }
+        
         const result = await p.query(
             'SELECT id, username, email FROM auth_users WHERE id = $1',
-            [parseInt(userId)]
+            [uid]
         );
         
         if (result.rows.length > 0) {
@@ -3112,27 +3141,28 @@ app.post('/api/get_balance', async (req, res) => {
         const jwt = require('jsonwebtoken');
         const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
         const p = await getPool();
-        let uid;
+        let uid = null;
         
-        // ✅ JWT Token
+        // ✅ JWT Token စစ်ဆေး
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
-                // ✅ Payload ထဲမှာ ဘယ် Key နဲ့ သိမ်းထားလဲ အကုန်စစ်
                 uid = decoded.userId || decoded.id || decoded.uid || decoded.user_id;
-                
-                console.log('[GET BALANCE] JWT Payload:', decoded);
-                console.log('[GET BALANCE] Found UID:', uid);
             } catch(e) {
                 console.error('[GET BALANCE] JWT Error:', e.message);
                 return res.json({ balance: 0 });
             }
         } 
-        // ✅ Old Token Format (token_xxx)
+        // ✅ Old Token Format (token_xxx) စစ်ဆေး
         else if (token.startsWith('token_')) {
-            uid = parseInt(token.replace('token_', ''));
+            const uidStr = token.replace('token_', '');
+            if (!/^\d+$/.test(uidStr)) { // 숫자만 있는지 확인
+                console.error('[GET BALANCE] Invalid old token format');
+                return res.json({ balance: 0 });
+            }
+            uid = parseInt(uidStr, 10);
             if (isNaN(uid)) {
-                console.error('[GET BALANCE] Invalid old token');
+                console.error('[GET BALANCE] Invalid old token ID');
                 return res.json({ balance: 0 });
             }
         } 
