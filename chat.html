@@ -1450,6 +1450,8 @@ async function confirmUpload(){
 // ==================== USER & SOCKET ====================
 async function getCurrentUser() {
     const t = localStorage.getItem('auth_token');
+    console.log('[DEBUG] Token found:', t ? t.substring(0, 15) + '...' : 'None');
+    
     if (!t || t === 'guest') {
         document.body.innerHTML = '<div style="text-align:center;padding:50px"><h3>Please login</h3><a href="/">Login</a></div>';
         return null;
@@ -1461,28 +1463,36 @@ async function getCurrentUser() {
             body: JSON.stringify({ token: t })
         });
         const d = await r.json();
-        if (d.success) {
-            currentUser = d.user; // ✅ ဒီ line က သေချာနေဖို့လိုတယ်
+        console.log('[DEBUG] Current User API Response:', d);
+        
+        if (d.success && d.user) {
+            currentUser = d.user;
+            console.log('[DEBUG] Current User Set:', currentUser);
             return currentUser;
+        } else {
+            console.error('[ERROR] API returned no user');
         }
     } catch(e) {
         console.error('[GET USER ERROR]', e);
     }
     return null;
 }
-    
-    function initSocket(){
+    function initSocket() {
     socket = io(window.location.origin, {
         transports: ['polling', 'websocket'],
         reconnection: true
     });
     
-    socket.on('connect', function(){
-        if(currentUser) {
+    socket.on('connect', function() {
+        console.log('[SOCKET] Connected!');
+        if (currentUser) {
             socket.emit('user_online', {
                 userId: currentUser.id,
                 username: currentUser.username
             });
+            // ✅ Force load rooms & users on connect
+            loadRooms();
+            loadUsersList();
         }
     });
     
@@ -1862,26 +1872,25 @@ async function deleteMessage() {
         showToast('Server error', true);
     }
       }
-async function init(){
+async function init() {
     const po = await checkPageAccess();
     if (!po) return;
     
-    // ✅ Initialize sounds
     initSounds();
     
-    // Tab listeners
     document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(t => 
         t.addEventListener('click', () => switchTab(t.getAttribute('data-tab')))
     );
     
-    // Load user & start
+    // ✅ Get user FIRST
     const u = await getCurrentUser();
     if (!u) return;
+    
+    // ✅ THEN init socket & load data
     await checkPremiumStatus();
     initSocket();
     loadRooms();
 }
-init();
 </script>
 </body>
 </html>
