@@ -1448,8 +1448,30 @@ async function confirmUpload(){
 }
 
 // ==================== USER & SOCKET ====================
-async function getCurrentUser(){const t=localStorage.getItem('auth_token');if(!t||t==='guest'){document.body.innerHTML='<div style="text-align:center;padding:50px"><h3>Please login</h3><a href="/">Login</a></div>';return null}try{const r=await fetch('/api/chat/current_user',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});const d=await r.json();if(d.success){currentUser=d.user;return currentUser}}catch(e){}return null}
-function initSocket(){
+async function getCurrentUser() {
+    const t = localStorage.getItem('auth_token');
+    if (!t || t === 'guest') {
+        document.body.innerHTML = '<div style="text-align:center;padding:50px"><h3>Please login</h3><a href="/">Login</a></div>';
+        return null;
+    }
+    try {
+        const r = await fetch('/api/chat/current_user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: t })
+        });
+        const d = await r.json();
+        if (d.success) {
+            currentUser = d.user; // ✅ ဒီ line က သေချာနေဖို့လိုတယ်
+            return currentUser;
+        }
+    } catch(e) {
+        console.error('[GET USER ERROR]', e);
+    }
+    return null;
+}
+    
+    function initSocket(){
     socket = io(window.location.origin, {
         transports: ['polling', 'websocket'],
         reconnection: true
@@ -1542,14 +1564,45 @@ function switchTab(t){
 }
 
 // ==================== ROOMS ====================
-async function loadRooms(){
-    if(!currentUser)return;
-    try{const r=await fetch('/api/chat/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();const c=document.getElementById('roomList');
-    if(d.rooms?.length){c.innerHTML=d.rooms.map(room=>{
-        let av=room.avatar_url?`<img src="${room.avatar_url}" class="tg-avatar" onerror="this.style.display='none'">`:`<div class="tg-avatar">${room.room_type==='admin'?'👑':room.room_type==='group'?'👥':'💬'}</div>`;
-        return`<div class="tg-room" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')">${av}<div class="tg-room-info"><div class="tg-room-name">${escapeHtml(room.room_name)}</div><div class="tg-room-last">${escapeHtml(room.last_message||'No messages')}</div></div>${room.unread>0?`<div class="tg-room-badge">${room.unread}</div>`:''}</div>`;
-    }).join('')}else{c.innerHTML='<div class="empty-state"><p>No chats yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>'}}catch(e){}
+async function loadRooms() {
+    if (!currentUser) return;
+    try {
+        const r = await fetch('/api/chat/rooms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        const d = await r.json();
+        const c = document.getElementById('roomList');
+        if (d.rooms && d.rooms.length > 0) {
+            c.innerHTML = d.rooms.map(room => {
+                // ✅ Avatar ကို ပုံမှန်အတိုင်း ပြမယ် (onerror မှာ icon ပြောင်းပြမယ်)
+                let av = `<div class="tg-avatar" style="background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:18px; color:rgba(255,255,255,0.3);">
+                    ${room.room_type === 'admin' ? '👑' : room.room_type === 'group' ? '👥' : '💬'}
+                </div>`;
+                
+                if (room.avatar_url) {
+                    av = `<img src="${room.avatar_url}" class="tg-avatar" onerror="this.style.display='none'; this.parentElement.innerHTML='${av}'">`;
+                }
+                
+                return `<div class="tg-room" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')">
+                    ${av}
+                    <div class="tg-room-info">
+                        <div class="tg-room-name">${escapeHtml(room.room_name)}</div>
+                        <div class="tg-room-last">${escapeHtml(room.last_message || 'No messages')}</div>
+                    </div>
+                    ${room.unread > 0 ? `<div class="tg-room-badge">${room.unread}</div>` : ''}
+                </div>`;
+            }).join('');
+        } else {
+            c.innerHTML = '<div class="empty-state"><p>No chats yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>';
+        }
+    } catch(e) {
+        console.error('[LOAD ROOMS ERROR]', e);
+        document.getElementById('roomList').innerHTML = '<div class="empty-state">Error loading rooms</div>';
+    }
 }
+    
 async function loadUsersList(){
     if(!currentUser)return;
     try{const r=await fetch('/api/chat/online_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();const ou=(d.users||[]).filter(u=>u.user_id!==currentUser.id);
@@ -1620,7 +1673,7 @@ function addMessageToUI(msg, isMine, spt) {
 }
 function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 
-function sendMessage() {
+    function sendMessage() {
     const i = document.getElementById('msgInput');
     const m = i.value.trim();
     if (!m) return;
@@ -1635,13 +1688,14 @@ function sendMessage() {
         message: m,
         userId: currentUser.id,
         username: currentUser.username,
-        senderPremiumTier: premiumTier
+        senderPremiumTier: premiumTier // ✅ ဒါကို ထည့်ပေးဖို့ လိုတယ်
     });
     
     i.value = '';
     i.focus();
     setTimeout(function() { i.focus(); }, 50);
-}
+    }
+    
 function playSendSound() {
     if (sendSound) {
         sendSound.currentTime = 0;
