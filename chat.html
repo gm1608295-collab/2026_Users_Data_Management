@@ -1463,6 +1463,12 @@ async function getCurrentUser() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: t })
         });
+        
+        if (!r.ok) {
+            console.error('[ERROR] Server returned:', r.status);
+            return null;
+        }
+        
         const d = await r.json();
         console.log('[DEBUG] Current User API Response:', d);
         
@@ -1475,6 +1481,8 @@ async function getCurrentUser() {
         }
     } catch(e) {
         console.error('[GET USER ERROR]', e);
+        // Database connection error ဖြစ်ရင် ဒီမှာ ပြပါမယ်
+        document.getElementById('roomList').innerHTML = '<div class="empty-state" style="color:#e74c3c;">Database connection error. Please wait a moment and refresh.</div>';
     }
     return null;
 }
