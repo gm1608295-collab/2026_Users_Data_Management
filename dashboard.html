@@ -141,7 +141,7 @@ body {
 .time-panel,
 .id-panel {
     background: linear-gradient(rgba(12, 14, 39, 0.7), rgba(12, 14, 39, 0.7)), 
-                url('https://i.ibb.co/wFKmxrCT/Picsart-26-05-23-23-44-24-799.jpg') center/cover no-repeat;
+                url('https://i.ibb.co/wFKmxrCT/Picsart-26-05-23-23-44-24-799.jpg') center/contain no-repeat; /* cover -> contain */
 }
 
 .time-panel {
@@ -1418,7 +1418,7 @@ function showMLBBEventInfo() {
     async function loadNotice(){const ca=localStorage.getItem('noticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderNotice(d)}catch(e){}}try{const r=await fetch("/api/notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('noticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('noticeCache',JSON.stringify(cn));renderNotice(cn)}}else{localStorage.removeItem('noticeCache')}}catch(e){}}
 
     // ==================== VIDEO PLAYER (FIXED) ====================
-async function loadDashboardVideo() {
+     async function loadDashboardVideo() {
     const c = document.getElementById('videoContainer');
     const v = document.getElementById('dashboardVideo');
     const yt = document.getElementById('dashboardYoutube');
@@ -1433,6 +1433,7 @@ async function loadDashboardVideo() {
         console.log('[VIDEO] API Response:', d);
         
         if (d.success && d.url) {
+            // ✅ Video ရှိရင် container ကို ချက်ချင်းပြမယ်
             c.style.display = 'block';
             
             if (d.isYouTube) {
@@ -1467,7 +1468,7 @@ async function loadDashboardVideo() {
     } catch(e) {
         console.error('[VIDEO] Error:', e.message);
     }
-}
+     }
     // ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess() {
     try {
@@ -1588,24 +1589,62 @@ function getCookie(name) {
 }
     // ==================== INIT ====================
     window.onload = async function() {
-    // ✅ Page access check first
     const pageOn = await checkPageAccess();
     if (!pageOn) return;
     
-    if(!localStorage.getItem("auth_token")){window.location.href="/";return}
-    try{
-    const user=JSON.parse(localStorage.getItem("user")||'{}');
-    document.getElementById("myUserIdDisp").textContent=user.id?'U ID - '+user.id.toString().padStart(6,'0'):'U ID - ------';
-            document.getElementById("myEmail").textContent=maskEmail(user.email||'');
-            document.getElementById("sidebarName").textContent=user.username||'User';
-            document.getElementById("sidebarEmail").textContent=user.email||'user@mlbb.com';
-            document.getElementById("sidebarAvatar").textContent=(user.username||'U').charAt(0).toUpperCase();
-            loadSliderImages();loadNotice();loadDashboardVideo();checkPageTimer();
-            setInterval(loadSliderImages,5000);setInterval(loadNotice,3000);setInterval(loadDashboardVideo,30000);
-            setInterval(async()=>{try{const r=await fetch('/api/video');const d=await r.json();const v=document.getElementById('dashboardVideo');const yt=document.getElementById('dashboardYoutube');if(d.success&&d.url){const cur=v.style.display!=='none'?v.src:yt.src;if(d.url!==cur&&d.originalUrl!==cur){v.src='';yt.src='';loadDashboardVideo()}}}catch(e){}},30000);
-            if(user.id){fetch("/api/check_banned",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({userId:user.id.toString()})}).then(r=>r.json()).then(d=>{if(d.banned){document.body.innerHTML=`<div class="banned-container"><div class="banned-icon">🚫</div><h2 class="banned-title">သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><div class="banned-contact"><h4>ဆက်သွယ်ရန်</h4><p>📧 gm1608295@gmail.com</p><p>📞 09672093790</p><p>💬 @Solo_m28</p></div><div class="banned-btns"><button class="btn-stay" onclick="location.reload()">ဆက်နေမည်</button><button class="btn-new" onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button></div></div>`}}).catch(()=>{})}
-        }catch(e){console.error('[DASHBOARD ERROR]',e)}
-    };
+    if (!localStorage.getItem("auth_token")) { window.location.href="/"; return; }
+    
+    try {
+        const user = JSON.parse(localStorage.getItem("user") || '{}');
+        document.getElementById("myUserIdDisp").textContent = user.id ? 'U ID - '+user.id.toString().padStart(6,'0') : 'U ID - ------';
+        document.getElementById("myEmail").textContent = maskEmail(user.email || '');
+        document.getElementById("sidebarName").textContent = user.username || 'User';
+        document.getElementById("sidebarEmail").textContent = user.email || 'user@mlbb.com';
+        
+        // ✅ ဒီ line ကို ဖယ်လိုက်ပါ (မရှိတော့လို့ Error တက်နေတာ)
+        // document.getElementById("sidebarAvatar").textContent = (user.username || 'U').charAt(0).toUpperCase();
+        
+        loadSliderImages();
+        loadNotice();
+        loadDashboardVideo();
+        checkPageTimer();
+        
+        setInterval(loadSliderImages, 5000);
+        setInterval(loadNotice, 3000);
+        setInterval(loadDashboardVideo, 30000);
+        
+        setInterval(async() => {
+            try {
+                const r = await fetch('/api/video');
+                const d = await r.json();
+                const v = document.getElementById('dashboardVideo');
+                const yt = document.getElementById('dashboardYoutube');
+                if (d.success && d.url) {
+                    const cur = v.style.display !== 'none' ? v.src : yt.src;
+                    if (d.url !== cur && d.originalUrl !== cur) {
+                        v.src = '';
+                        yt.src = '';
+                        loadDashboardVideo();
+                    }
+                }
+            } catch(e) {}
+        }, 30000);
+        
+        if(user.id) {
+            fetch("/api/check_banned", {
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({userId:user.id.toString()})
+            }).then(r=>r.json()).then(d=>{
+                if(d.banned){
+                    document.body.innerHTML=`<div class="banned-container"><div class="banned-icon">🚫</div><h2 class="banned-title">သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><div class="banned-contact"><h4>ဆက်သွယ်ရန်</h4><p>📧 gm1608295@gmail.com</p><p>📞 09672093790</p><p>💬 @Solo_m28</p></div><div class="banned-btns"><button class="btn-stay" onclick="location.reload()">ဆက်နေမည်</button><button class="btn-new" onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button></div></div>`;
+                }
+            }).catch(()=>{});
+        }
+    } catch(e) {
+        console.error('[DASHBOARD ERROR]', e);
+    }
+};
     // ==================== REAL-TIME ACCOUNT CHECK (BAN + DELETE) ====================
 async function checkAccountStatus() {
     const token = localStorage.getItem('auth_token');
