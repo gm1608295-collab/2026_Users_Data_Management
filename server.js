@@ -8444,7 +8444,6 @@ app.post('/api/upload_image', async (req, res) => {
         res.json({ success: false, message: e.message }); 
     }
 });
-
 // View User Profile (public)
 app.post('/api/chat/user_profile', async (req, res) => {
     // ✅ Body ထဲက userId (target) နဲ့ viewerId ကို ယူမယ်
@@ -8491,6 +8490,7 @@ app.post('/api/chat/user_profile', async (req, res) => {
         
         res.json({
             success: true,
+            id: u.id, // ✅ Frontend မှာ isSelf စစ်ဖို့ user id ကိုပါ ပြန်ပို့မယ်
             username: u.username,
             email: u.email,
             premium_tier: u.premium_tier || 0,
@@ -8503,7 +8503,6 @@ app.post('/api/chat/user_profile', async (req, res) => {
         res.json({ success: false });
     }
 });
-
 // ==================== GROUP MANAGEMENT APIs ====================
 
 // Get Group Info
