@@ -7254,11 +7254,11 @@ socket.on('send_message', async (data) => {
             avatar_url: avatarUrl // ✅ Avatar ကို ထည့်ပေးလိုက်ပါ
         };
         
-        // Send to room (Broadcast)
-        io.to('room_' + roomId).emit('new_message', msgData);
-        console.log('✅ Message sent to room:', roomId);
-        
-    } catch(e) { 
+// ✅ အခန်းထဲရှိသူတိုင်းကို Room List Update လုပ်ဖို့ အချက်ပြပေးမယ်
+io.to('room_' + roomId).emit('room_list_update'); 
+console.log('✅ Message sent to room:', roomId);
+   
+ } catch(e) { 
         console.error('Send message error:', e.message);
         socket.emit('error', { message: 'Failed to send message' });
     }
@@ -7703,7 +7703,7 @@ app.post('/api/chat/online_users', async (req, res) => {
     }
 });
 
-// Update /api/chat/rooms to include avatar_url (Fixed JOIN)
+// Update /api/chat/rooms to include avatar_url
 app.post('/api/chat/rooms', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.json({ rooms: [] });
@@ -7736,7 +7736,6 @@ app.post('/api/chat/rooms', async (req, res) => {
         res.json({ rooms: [] }); 
     }
 });
-
 // Get messages (with Avatar)
 app.get('/api/chat/messages/:roomId', async (req, res) => {
     const { roomId } = req.params;
