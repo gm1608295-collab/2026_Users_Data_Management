@@ -1487,14 +1487,19 @@ async function getCurrentUser() {
     return null;
 }
     function initSocket() {
-    // ✅ Reconnection timeout ကို ပိုကြာအောင် ထားမယ်
-    socket = io(window.location.origin, {
-        transports: ['websocket', 'polling'], // WebSocket ကို ဦးစားပေး
+    // ✅ Socket URL ကို window.location.origin မသုံးတော့ဘဲ အတိအကျ သတ်မှတ်မယ်
+    // (Render.com အတွက် လိုအပ်ပါတယ်)
+    const socketUrl = window.location.protocol + '//' + window.location.host;
+    
+    socket = io(socketUrl, {
+        transports: ['polling', 'websocket'], // ✅ နှစ်ခုလုံး ခွင့်ပြု
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
-        timeout: 20000
+        timeout: 20000,
+        upgrade: true, // polling ကနေ websocket ကို အလိုအလျောက် upgrade လုပ်ဖို့
+        forceNew: true  // connection အသစ်ကို အတင်းဖွင့်ဖို့
     });
     
     socket.on('connect', function() {
