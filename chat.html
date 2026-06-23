@@ -1697,30 +1697,30 @@ function initSocket() {
     
     socket.on('disconnect', function(reason) { console.log('[SOCKET] Disconnected:', reason); });
     
+    // ✅ 1. Message အသစ်ရောက်ရင် Chat ထဲမှာ ပြပါ
     socket.on('new_message', function(msg) {
         if (currentRoom === msg.roomId) {
             addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
             scrollToBottom();
         }
-        // ✅ Room List Update ကို နားထောင်မယ်
-socket.on('room_list_update', function() {
-    loadRooms(); // Room List ကို ချက်ချင်း Refresh လုပ်မယ် (User အတွက်)
-});
+    });
+
+    // ✅ 2. Room List Update Event ကို သီးသန့်ထားပါ (ဒါမှ Message ရောက်တိုင်း Room List ပါ Update ဖြစ်မယ်)
+    socket.on('room_list_update', function() {
+        loadRooms(); 
+    });
     
     socket.on('online_users', function(u) {
         document.getElementById('onlineCount').innerHTML = (u?.length || 0) + ' online';
         loadUsersList();
     });
     
-    // ✅ Typing Indicator ကို ပြင်ဆင်ထားသော Real-time အပိုင်း
+    // ✅ Typing Indicator
     socket.on('user_typing', function(d) {
-        // ကိုယ်တိုင် ရိုက်နေတာကို မပြပါနဲ့ (သူများရိုက်နေမှသာ ပြပါ)
         if (currentRoom === d.roomId && d.userId !== currentUser?.id) {
             const ind = document.getElementById('typingIndicator');
             ind.style.display = 'block';
             ind.innerHTML = `<span style="color:var(--gold);font-weight:600;">${escapeHtml(d.username)}</span> <span style="color:rgba(255,255,255,0.5);font-size:11px;">is typing...</span>`;
-            
-            // အကယ်၍ 3 စက္ကန့်အတွင်း စာမရိုက်တော့ရင် အလိုအလျောက် ပျောက်သွားအောင်
             clearTimeout(typingTimeout);
             typingTimeout = setTimeout(function() {
                 ind.style.display = 'none';
@@ -1743,10 +1743,9 @@ socket.on('room_list_update', function() {
         }
     });
 
-    // ✅ 3. Reaction တင်ခြင်း/ဖျက်ခြင်းကို ချက်ချင်းပြောင်းအောင်
+    // ✅ 3. Reaction တင်ခြင်း/ဖျက်ခြင်း
     socket.on('message_reacted', function(data) {
         if (currentRoom) {
-            // အခန်းထဲက Messages အကုန်ကို ပြန်ဆွဲပြီး ပြန်တင်မယ် (Real-time update)
             fetch(`/api/chat/messages/${currentRoom}`).then(r => r.json()).then(d => {
                 const mc = document.getElementById('messages');
                 mc.innerHTML = '';
@@ -1771,7 +1770,7 @@ socket.on('room_list_update', function() {
         }
     });
     
-    // ✅ 4. Message Edit/Delete ကို ချက်ချင်းပြောင်းအောင် (Refresh မလိုအောင်)
+    // ✅ 4. Message Edit/Delete
     socket.on('message_edited', function(msg) {
         if (currentRoom === msg.room_id) {
             var row = document.querySelector('.msg-row[data-msg-id="' + msg.id + '"]');
@@ -1782,7 +1781,6 @@ socket.on('room_list_update', function() {
                     var timeHtml = timeEl ? timeEl.outerHTML : '';
                     var senderEl = bubble.querySelector('.msg-sender');
                     var senderHtml = senderEl ? senderEl.outerHTML : '';
-                    // အချိန်ကို မပြောင်းပါနဲ့၊ Edit လုပ်ထားတဲ့ အချိန်ကိုပါ ထည့်ပြမယ်
                     bubble.innerHTML = senderHtml + escapeHtml(msg.message) + ' <small style="font-size:7px;color:rgba(255,255,255,0.3)">(edited)</small>' + timeHtml;
                 }
             }
@@ -1799,8 +1797,7 @@ socket.on('room_list_update', function() {
     socket.on('group_updated', function() { loadRooms(); });
     
     console.log('[SOCKET] ✅ Listener registered');
-     }
-    
+}
 // ==================== TABS ====================
 function switchTab(t) {
     document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(x => x.classList.remove('active'));
