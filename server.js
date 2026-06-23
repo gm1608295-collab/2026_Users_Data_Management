@@ -363,6 +363,7 @@ async function initTables(p) {
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     PRIMARY KEY (room_id, user_id)
 )`,
+// ဒီ query ကို အစားထိုးပါ
 `CREATE TABLE IF NOT EXISTS chat_messages (
     id SERIAL PRIMARY KEY, 
     room_id INT NOT NULL, 
@@ -370,6 +371,7 @@ async function initTables(p) {
     username VARCHAR(100), 
     message TEXT, 
     is_read BOOLEAN DEFAULT false, 
+    sender_premium_tier INT DEFAULT 0,  // ✅ ဒီစာကြောင်းကို ထည့်ပါ
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
 `CREATE TABLE IF NOT EXISTS chat_online_users (
