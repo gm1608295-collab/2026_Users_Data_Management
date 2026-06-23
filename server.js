@@ -363,6 +363,7 @@ async function initTables(p) {
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     PRIMARY KEY (room_id, user_id)
 )`,
+        // ========== CHAT SYSTEM ==========
 `CREATE TABLE IF NOT EXISTS chat_messages (
     id SERIAL PRIMARY KEY, 
     room_id INT NOT NULL, 
@@ -373,6 +374,7 @@ async function initTables(p) {
     sender_premium_tier INT DEFAULT 0, 
     created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Asia/Yangon')
 )`,
+        
 `CREATE TABLE IF NOT EXISTS chat_online_users (
     user_id INT PRIMARY KEY,
     socket_id VARCHAR(100),
@@ -7202,58 +7204,57 @@ io.on('connection', (socket) => {
     });
     
     // ========== SEND MESSAGE ==========
-    socket.on('send_message', async (data) => {
-        const { roomId, message, userId, username, senderPremiumTier } = data;
+socket.on('send_message', async (data) => {
+    const { roomId, message, userId, username, senderPremiumTier } = data;
+    
+    if (!roomId || !message || !userId) {
+        console.log('⚠️ Invalid message data:', data);
+        return;
+    }
+    
+    console.log('📨 Message received:', { roomId, userId, message: message?.substring(0,30), tier: senderPremiumTier });
+    
+    try {
+        const p = await getPool();
         
-        if (!roomId || !message || !userId) {
-            console.log('⚠️ Invalid message data:', data);
+        // Check if user is in room
+        const check = await p.query(
+            'SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2',
+            [roomId, userId]
+        );
+        
+        if (check.rows.length === 0) {
+            console.log('⚠️ User not in room:', userId, roomId);
+            socket.emit('error', { message: 'You are not in this chat room' });
             return;
         }
         
-        console.log('📨 Message received:', { roomId, userId, message: message?.substring(0,30), tier: senderPremiumTier });
+        // ✅ Save message to database (Syntax Error မဖြစ်အောင် ဒီအတိုင်း သေချာထားပါ)
+        const result = await p.query(
+            `INSERT INTO chat_messages (room_id, sender_id, username, message, sender_premium_tier, created_at) 
+             VALUES ($1, $2, $3, $4, $5, NOW() AT TIME ZONE 'Asia/Yangon') RETURNING id, created_at`,
+            [roomId, userId, username, message, senderPremiumTier || 0]
+        );
         
-        try {
-            const p = await getPool();
-            
-            // Check if user is in room
-            const check = await p.query(
-                'SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2',
-                [roomId, userId]
-            );
-            
-            if (check.rows.length === 0) {
-                console.log('⚠️ User not in room:', userId, roomId);
-                socket.emit('error', { message: 'You are not in this chat room' });
-                return;
-            }
-            
-            // Save message to database
-            const result = await p.query(
-// ✅ ဒီအတိုင်း ပြင်ပါ (NOW() အစား Asia/Yangon ထည့်မယ်):
-`INSERT INTO chat_messages (room_id, sender_id, username, message, sender_premium_tier, created_at) 
- VALUES ($1, $2, $3, $4, $5, NOW() AT TIME ZONE 'Asia/Yangon') RETURNING id, created_at`
-                [roomId, userId, username, message, senderPremiumTier || 0]
-            );
-            
-            const msgData = {
-                id: result.rows[0].id,
-                roomId: roomId,
-                sender_id: userId,
-                username: username,
-                message: message,
-                sender_premium_tier: senderPremiumTier || 0,
-                created_at: result.rows[0].created_at
-            };
-            
-            // Send to room (Broadcast)
-            io.to('room_' + roomId).emit('new_message', msgData);
-            console.log('✅ Message sent to room:', roomId);
-            
-        } catch(e) { 
-            console.error('Send message error:', e.message);
-            socket.emit('error', { message: 'Failed to send message' });
-        }
-    });
+        const msgData = {
+            id: result.rows[0].id,
+            roomId: roomId,
+            sender_id: userId,
+            username: username,
+            message: message,
+            sender_premium_tier: senderPremiumTier || 0,
+            created_at: result.rows[0].created_at
+        };
+        
+        // Send to room (Broadcast)
+        io.to('room_' + roomId).emit('new_message', msgData);
+        console.log('✅ Message sent to room:', roomId);
+        
+    } catch(e) { 
+        console.error('Send message error:', e.message);
+        socket.emit('error', { message: 'Failed to send message' });
+    }
+});
     
     // ========== TYPING INDICATOR ==========
     socket.on('typing', (data) => {
