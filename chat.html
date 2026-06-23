@@ -1990,9 +1990,16 @@ async function openRoom(rid, rn, rt) {
     let seenHtml = '';
     if (isMine) {
         if (msg.is_read) {
-            const seenAt = msg.read_at ? new Date(msg.read_at) : null;
-            const timeStr = seenAt ? seenAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon'}) : '';
-            seenHtml = `<span style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${timeStr}">✓✓</span>`;
+            // Server က read_at ကို မပေးသေးရင် fallback
+            const seenAt = msg.read_at ? new Date(msg.read_at) : new Date();
+            // Server Timezone (Asia/Yangon) နဲ့ Format ချမယ်
+            const seenTimeStr = seenAt.toLocaleTimeString('en-GB', { 
+                hour12: true, 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'Asia/Yangon'
+            });
+            seenHtml = `<span style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${seenTimeStr}">✓✓</span>`;
         } else {
             seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
         }
@@ -2010,20 +2017,28 @@ async function openRoom(rid, rn, rt) {
         reactionsHtml = `<div class="msg-reactions">`;
         for (const [emoji, data] of Object.entries(grouped)) {
             const isMineReact = data.users.includes(currentUser?.id);
-            // ✅ toggleReaction ကို event နဲ့ခေါ်ပါ
             reactionsHtml += `<span class="reaction-badge ${isMineReact ? 'mine' : ''}" onclick="toggleReaction(${msg.id}, '${emoji}', event)">${emoji} ${data.count}</span>`;
         }
         reactionsHtml += `</div>`;
     }
 
-    // ✅ အချိန်ကို Asia/Yangon Timezone အတိုင်း သေချာပြမယ်
+    // ✅ ဒီနေရာမှာ သေချာ Format ချပြီး ပြမယ်။
+    // Server က ပို့လာတဲ့ created_at ကို UTC အဖြစ် ယူပြီး Asia/Yangon အချိန်ကို တွက်မယ်။
+    // JavaScript ရဲ့ toLocaleTimeString ကို timeZone နဲ့ သုံးလိုက်ရင် သင့်ဖုန်းအချိန်ကို မူတည်မပြဘဲ၊ Server အချိန်ကို တွက်ပြပါလိမ့်မယ်။
     const msgDate = new Date(msg.created_at);
-    const timeString = msgDate.toLocaleTimeString('en-GB', { 
+    let timeString = msgDate.toLocaleTimeString('en-GB', { 
         hour12: true, 
         hour: '2-digit', 
         minute: '2-digit',
         timeZone: 'Asia/Yangon' 
     });
+
+    // ✅ အကယ်၍ Browser က timeZone ကို မတွက်နိုင်ရင် Fallback အနေနဲ့ UTC+6:30 ကို တိုက်ရိုက် တွက်မယ်
+    if (timeString === 'Invalid Date' || !timeString) {
+        const utcTime = msgDate.getTime() + (msgDate.getTimezoneOffset() * 60000);
+        const yangonTime = new Date(utcTime + (6.5 * 3600000));
+        timeString = yangonTime.toLocaleTimeString('en-GB', { hour12: true, hour: '2-digit', minute: '2-digit' });
+    }
 
     d.innerHTML = `
         ${av}
