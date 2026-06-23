@@ -7892,14 +7892,47 @@ app.post('/api/chat/delete_message', async (req, res) => {
 });
 // ==================== CHAT FILE UPLOAD API ====================
 app.post('/api/chat/upload_file', async (req, res) => {
-    const { token, base64, fileName, fileType } = req.body;
+    // ✅ 1. Token ကို နေရာသုံးခုကနေ ရှာဖတ်ပါ (Body, Cookie, Header)
+    let token = req.body.token; 
+    if (!token) token = req.cookies?.auth_token; 
+    if (!token) {
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.substring(7); 
+        }
+    }
     
     if (!token || token === 'guest') return res.json({ success: false, message: 'Login required' });
-    if (!base64) return res.json({ success: false, message: 'No file data' });
+    if (!req.body.base64) return res.json({ success: false, message: 'No file data' });
     
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid = null;
+        
+        // ✅ 2. Token ကနေ User ID ထုတ်ယူခြင်း (JWT / Old Format)
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId || decoded.id || decoded.uid;
+            } catch(e) {
+                return res.json({ success: false, message: 'Invalid token' });
+            }
+        } 
+        else if (token.startsWith('token_')) {
+            const uidStr = token.replace('token_', '');
+            if (/^\d+$/.test(uidStr)) {
+                uid = parseInt(uidStr, 10);
+            }
+        } 
+        else if (/^\d+$/.test(token)) {
+            uid = parseInt(token, 10);
+        }
+        
+        // ✅ 3. uid က NaN ဖြစ်နေရင် Error ပြန်ပို့ပါ
+        if (!uid || isNaN(uid)) {
+            console.error('[CHAT FILE UPLOAD ERROR] Invalid UID from token:', token?.substring(0, 20));
+            return res.json({ success: false, message: 'Invalid user session (NaN)' });
+        }
         
         // Check if user has chat premium
         const premCheck = await p.query(
@@ -7912,6 +7945,7 @@ app.post('/api/chat/upload_file', async (req, res) => {
         }
         
         let resultUrl = '';
+        const { base64, fileName, fileType } = req.body;
         
         // Check if it's an image
         const isImage = fileType && fileType.startsWith('image/');
