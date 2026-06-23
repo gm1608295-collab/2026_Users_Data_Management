@@ -1966,91 +1966,94 @@ async function openRoom(rid, rn, rt) {
     }
 
     function addMessageToUI(msg, isMine, spt) {
-spt = spt || 0;
-const c = document.getElementById('messages');
-if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) c.innerHTML = '';
-
-let mh = '';
-const mt = msg.message || '';
-if (mt.startsWith('📷 IMAGE:')) {
-    mh = `<div class="media-message" onclick="downloadMedia('${mt.replace('📷 IMAGE:', '')}', 'image')"><img src="${mt.replace('📷 IMAGE:', '')}" loading="lazy"></div>`;
-} else if (mt.startsWith('📎 FILE:')) {
-    const p = mt.replace('📎 FILE:', '').split('|');
-    mh = `<div class="file-message" onclick="downloadMedia('${p[0]}', 'file', '${p[1] || 'File'}')"><i class="fas fa-file"></i> ${escapeHtml(p[1] || 'File')}</div>`;
-} else {
-    mh = escapeHtml(mt);
-}
-
-const d = document.createElement('div');
-d.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
-if (msg.id) d.setAttribute('data-msg-id', msg.id);
-
-let bc = 'normal-tier';
-if (spt === 1) bc = 'bronze-tier';
-else if (spt === 2) bc = 'silver-tier';
-else if (spt === 3) bc = 'gold-tier';
-
-let av = '';
-if (!isMine) {
-    // ✅ Chat Message Avatar ကိုလည်း Cache ရှင်းဖို့ `?t=` ထည့်ပါ
-    const avatarUrl = msg.avatar_url ? msg.avatar_url + '?t=' + Date.now() : '';
-    // ✅ Avatar ကို နှိပ်ရင် profile.html ကို သွားမယ် (User ID ပါပို့မယ်)
-    av = avatarUrl 
-        ? `<img src="${avatarUrl}" class="msg-avatar-xs" onclick="window.location.href='/profile.html?userId=${msg.sender_id}'" onerror="this.style.display='none'">` 
-        : `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
-}
-
-let seenHtml = '';
-if (isMine) {
-    if (msg.is_read) {
-        const seenAt = msg.read_at ? new Date(msg.read_at) : new Date();
-        const seenTimeStr = seenAt.toLocaleTimeString('en-GB', { 
-            hour12: true, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon'
-        });
-        seenHtml = `<span style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${seenTimeStr}">✓✓</span>`;
+    spt = spt || 0;
+    const c = document.getElementById('messages');
+    if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) c.innerHTML = '';
+    
+    let mh = '';
+    const mt = msg.message || '';
+    if (mt.startsWith('📷 IMAGE:')) {
+        mh = `<div class="media-message" onclick="downloadMedia('${mt.replace('📷 IMAGE:', '')}', 'image')"><img src="${mt.replace('📷 IMAGE:', '')}" loading="lazy"></div>`;
+    } else if (mt.startsWith('📎 FILE:')) {
+        const p = mt.replace('📎 FILE:', '').split('|');
+        mh = `<div class="file-message" onclick="downloadMedia('${p[0]}', 'file', '${p[1] || 'File'}')"><i class="fas fa-file"></i> ${escapeHtml(p[1] || 'File')}</div>`;
     } else {
-        seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
+        mh = escapeHtml(mt);
     }
-}
+    
+    const d = document.createElement('div');
+    d.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
+    if (msg.id) d.setAttribute('data-msg-id', msg.id);
+    
+    let bc = 'normal-tier';
+    if (spt === 1) bc = 'bronze-tier';
+    else if (spt === 2) bc = 'silver-tier';
+    else if (spt === 3) bc = 'gold-tier';
+    
+    let av = '';
+    if (!isMine) {
+        // ✅ Chat Message Avatar ကိုလည်း Cache ရှင်းဖို့ `?t=` ထည့်ပါ
+        const avatarUrl = msg.avatar_url ? msg.avatar_url + '?t=' + Date.now() : '';
+        // ✅ Avatar ကို နှိပ်ရင် profile.html ကို သွားမယ် (User ID ပါပို့မယ်)
+        // ⚠️ ဒါကို သေချာစေရန်: msg.sender_id ကိုပါ ထည့်ပေးမယ်
+        if (avatarUrl) {
+            av = `<img src="${avatarUrl}" class="msg-avatar-xs" onclick="window.location.href='/profile.html?userId=${msg.sender_id}'" onerror="this.style.display='none'">`;
+        } else {
+            av = `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
+        }
+    }
+    
+    let seenHtml = '';
+    if (isMine) {
+        if (msg.is_read) {
+            const seenAt = msg.read_at ? new Date(msg.read_at) : new Date();
+            const seenTimeStr = seenAt.toLocaleTimeString('en-GB', { 
+                hour12: true, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon'
+            });
+            seenHtml = `<span style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${seenTimeStr}">✓✓</span>`;
+        } else {
+            seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
+        }
+    }
 
-let reactionsHtml = '';
-if (msg.reactions && msg.reactions.length > 0) {
-    const grouped = {};
-    msg.reactions.forEach(r => {
-        if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, users: [] };
-        grouped[r.emoji].count++;
-        grouped[r.emoji].users.push(r.user_id);
+    let reactionsHtml = '';
+    if (msg.reactions && msg.reactions.length > 0) {
+        const grouped = {};
+        msg.reactions.forEach(r => {
+            if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, users: [] };
+            grouped[r.emoji].count++;
+            grouped[r.emoji].users.push(r.user_id);
+        });
+        reactionsHtml = `<div class="msg-reactions">`;
+        for (const [emoji, data] of Object.entries(grouped)) {
+            const isMineReact = data.users.includes(currentUser?.id);
+            reactionsHtml += `<span class="reaction-badge ${isMineReact ? 'mine' : ''}" onclick="toggleReaction(${msg.id}, '${emoji}', event)">${emoji} ${data.count}</span>`;
+        }
+        reactionsHtml += `</div>`;
+    }
+
+    const msgDate = new Date(msg.created_at);
+    const timeString = msgDate.toLocaleTimeString('en-GB', { 
+        hour12: true, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon' 
     });
-    reactionsHtml = `<div class="msg-reactions">`;
-    for (const [emoji, data] of Object.entries(grouped)) {
-        const isMineReact = data.users.includes(currentUser?.id);
-        reactionsHtml += `<span class="reaction-badge ${isMineReact ? 'mine' : ''}" onclick="toggleReaction(${msg.id}, '${emoji}', event)">${emoji} ${data.count}</span>`;
-    }
-    reactionsHtml += `</div>`;
-}
 
-const msgDate = new Date(msg.created_at);
-const timeString = msgDate.toLocaleTimeString('en-GB', { 
-    hour12: true, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon' 
-});
+    d.innerHTML = `
+        ${av}
+        <div class="msg-bubble ${bc}">
+            ${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}
+            ${mh}
+            <div class="msg-time">${timeString}${seenHtml}</div>
+            ${reactionsHtml}
+        </div>
+    `;
 
-d.innerHTML = `
-    ${av}
-    <div class="msg-bubble ${bc}">
-        ${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}
-        ${mh}
-        <div class="msg-time">${timeString}${seenHtml}</div>
-        ${reactionsHtml}
-    </div>
-`;
+    d.querySelector('.msg-bubble').addEventListener('click', function(e) {
+        if (!e.target.closest('.media-message') && !e.target.closest('.file-message') && !e.target.closest('.reaction-badge')) {
+            openReactionPicker(msg.id, e);
+        }
+    });
 
-d.querySelector('.msg-bubble').addEventListener('click', function(e) {
-    if (!e.target.closest('.media-message') && !e.target.closest('.file-message') && !e.target.closest('.reaction-badge')) {
-        openReactionPicker(msg.id, e);
-    }
-});
-
-c.appendChild(d);
+    c.appendChild(d);
     }
     
 function downloadMedia(u, t, fn = 'file') {
