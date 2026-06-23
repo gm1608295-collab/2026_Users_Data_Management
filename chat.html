@@ -1597,11 +1597,11 @@ function switchTab(t){
     document.getElementById('roomList').classList.remove('active');document.getElementById('usersList').classList.remove('active');document.getElementById('chatArea').classList.remove('active');
     if(t==='rooms'){document.getElementById('roomList').classList.add('active');loadRooms()}else if(t==='users'){document.getElementById('usersList').classList.add('active');loadUsersList()}
 }
-
 // ==================== ROOMS ====================
 async function loadRooms() {
     if (!currentUser) return;
     try {
+        // ✅ currentUser.id ကို သေချာပို့မယ်
         const r = await fetch('/api/chat/rooms', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1640,8 +1640,17 @@ async function loadRooms() {
     
 async function loadUsersList(){
     if(!currentUser)return;
-    try{const r=await fetch('/api/chat/online_users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();const ou=(d.users||[]).filter(u=>u.user_id!==currentUser.id);
-    document.getElementById('usersList').innerHTML=ou.length?ou.map(u=>`<div class="tg-user" onclick="startPrivateChat(${u.user_id},'${escapeHtml(u.username)}')"><div class="online-dot"></div><div class="tg-room-info"><div class="tg-room-name">${escapeHtml(u.username)}</div><div class="tg-room-last" style="color:#2ecc71">Online</div></div></div>`).join(''):'<div class="empty-state"><p>No online users</p></div>';}catch(e){}
+    try{
+        // ✅ currentUser.id ကို သေချာပို့မယ်
+        const r=await fetch('/api/chat/online_users',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({userId:currentUser.id})
+        });
+        const d=await r.json();
+        const ou=(d.users||[]).filter(u=>u.user_id!==currentUser.id);
+        document.getElementById('usersList').innerHTML=ou.length?ou.map(u=>`<div class="tg-user" onclick="startPrivateChat(${u.user_id},'${escapeHtml(u.username)}')"><div class="online-dot"></div><div class="tg-room-info"><div class="tg-room-name">${escapeHtml(u.username)}</div><div class="tg-room-last" style="color:#2ecc71">Online</div></div></div>`).join(''):'<div class="empty-state"><p>No online users</p></div>';
+    }catch(e){}
 }
 
 async function startAdminChat(){if(!currentUser)return;try{const r=await fetch('/api/chat/create_admin_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();if(d.success){openRoom(d.room.id,d.room.room_name,'admin');loadRooms()}else showToast('Error',true)}catch(e){}}
@@ -1661,7 +1670,11 @@ async function openRoom(rid,rn,rt){
 function addMessageToUI(msg, isMine, spt) {
     spt = spt || 0;
     const c = document.getElementById('messages');
-    if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) c.innerHTML = '';
+    
+    // ✅ "No messages" သို့မဟုတ် "Loading" ရှိနေရင် ဖျက်ပစ်မယ်
+    if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) {
+        c.innerHTML = '';
+    }
     
     let mh = '';
     const mt = msg.message || '';
@@ -1706,6 +1719,7 @@ function addMessageToUI(msg, isMine, spt) {
     d.innerHTML = `${av}<div class="msg-bubble ${bc}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${mh}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}${seenHtml}</div></div>`;
     c.appendChild(d);
 }
+    
 function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 
     function sendMessage() {
