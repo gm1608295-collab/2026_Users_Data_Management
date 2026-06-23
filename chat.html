@@ -1550,16 +1550,39 @@ async function confirmUpload() {
 
 // ==================== USER & SOCKET ====================
 async function getCurrentUser() {
-    const t = localStorage.getItem('auth_token');
-    console.log('[DEBUG] Token found:', t ? t.substring(0, 15) + '...' : 'None');
+    // ✅ 1. Token ကို localStorage, Cookie, နဲ့ Meta Tag ကနေ ရှာပါ (App Support)
+    let t = localStorage.getItem('auth_token');
+    
+    // Cookie မှာ token ရှိမရှိစစ် (App တွေအတွက်)
+    if (!t || t === 'guest') {
+        const cookieToken = getCookie('auth_token');
+        if (cookieToken && cookieToken !== 'guest') {
+            t = cookieToken;
+        }
+    }
+
+    // Meta tag မှာပါရင် (Telegram Web App / Android WebView တွေအတွက်)
+    if (!t || t === 'guest') {
+        const metaToken = document.querySelector('meta[name="auth_token"]');
+        if (metaToken) {
+            t = metaToken.content;
+        }
+    }
+
+    console.log('[DEBUG] Token found (App/Bot Check):', t ? t.substring(0, 15) + '...' : 'None');
+    
     if (!t || t === 'guest') {
         document.body.innerHTML = '<div style="text-align:center;padding:50px"><h3>Please login</h3><a href="/">Login</a></div>';
         return null;
     }
+    
     try {
         const r = await fetch('/api/chat/current_user', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + t // ✅ App တွေအတွက် Header မှာပါထည့်ပေးမယ်
+            },
             body: JSON.stringify({ token: t })
         });
         if (!r.ok) {
@@ -1581,7 +1604,7 @@ async function getCurrentUser() {
         document.getElementById('roomList').innerHTML = '<div class="empty-state" style="color:#e74c3c;">Error: ' + e.message + '</div>';
     }
     return null;
-}
+    }
 
 function initSocket() {
     // ✅ Socket URL ကို သေချာစေပါ
@@ -1653,9 +1676,7 @@ function initSocket() {
         }
     });
     
-    console.log('[SOCKET] ✅ Listener registered');
-}
-    
+    // ✅ ဒီ Event သုံးခုကို function ထဲမှာ ပြန်ထည့်ထားပါတယ်။
     socket.on('message_edited', function(msg) {
         if (currentRoom === msg.room_id) {
             var row = document.querySelector('.msg-row[data-msg-id="' + msg.id + '"]');
@@ -1682,17 +1703,9 @@ function initSocket() {
     socket.on('group_updated', function() {
         loadRooms();
     });
+    
+    console.log('[SOCKET] ✅ Listener registered');
 }
-
-function onTyping() {
-    if (!currentRoom || !currentUser) return;
-    socket.emit('typing', {
-        roomId: currentRoom,
-        userId: currentUser.id,
-        username: currentUser.username
-    });
-}
-
 // ==================== TABS ====================
 function switchTab(t) {
     document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(x => x.classList.remove('active'));
