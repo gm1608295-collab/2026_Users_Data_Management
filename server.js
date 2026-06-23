@@ -8151,17 +8151,33 @@ app.post('/api/chat/upload_file', async (req, res) => {
 // ==================== CHAT PROFILE APIs ====================
 // Get My Profile (with groups)
 app.post('/api/chat/my_profile', async (req, res) => {
-    const { userId } = req.body;
-    if (!userId) return res.json({ success: false });
-    
+    // ✅ Token ကို Body / Header မှ ရှာယူခြင်း
+    let token = req.body.token || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.json({ success: false });
+
     try {
         const p = await getPool();
+        let uid = null;
+
+        // Token မှ User ID ထုတ်ယူခြင်း (JWT အတွက်)
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId || decoded.id || decoded.uid;
+            } catch(e) { return res.json({ success: false }); }
+        } 
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''), 10);
+        }
         
+        if (!uid || isNaN(uid)) return res.json({ success: false });
+        
+        // Query User Data + Premium Status
         const user = await p.query(
-            `SELECT u.id, u.username, u.email,
+            `SELECT u.id, u.username, u.email, u.premium_tier,
              (SELECT avatar_url FROM user_avatars WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1) as avatar_url
              FROM auth_users u WHERE u.id = $1`,
-            [userId]
+            [uid]
         );
         
         if (user.rows.length === 0) return res.json({ success: false });
@@ -8175,25 +8191,31 @@ app.post('/api/chat/my_profile', async (req, res) => {
             JOIN chat_participants cp ON cr.id = cp.room_id
             WHERE cp.user_id = $1 AND cr.room_type = 'group'
             ORDER BY cr.id DESC
-        `, [userId]);
+        `, [uid]);
         
         res.json({
             success: true,
             username: user.rows[0].username,
-            name: user.rows[0].username,
             email: user.rows[0].email,
+            premium_tier: user.rows[0].premium_tier || 0,
             avatar_url: user.rows[0].avatar_url || '',
             groups: groups.rows
         });
         
-    } catch(e) { res.json({ success: false }); }
+    } catch(e) { 
+        console.error('[MY PROFILE ERROR]', e.message);
+        res.json({ success: false }); 
+    }
 });
+
 // Update Username
 app.post('/api/chat/update_username', async (req, res) => {
-    const { userId, username } = req.body;
+    // ✅ Token ကို Body / Header မှ ရှာယူခြင်း
+    let token = req.body.token || req.headers.authorization?.replace('Bearer ', '');
+    const { username } = req.body;
     
-    if (!userId || !username) {
-        return res.json({ success: false, message: 'Username required' });
+    if (!token || !username) {
+        return res.json({ success: false, message: 'Token and username required' });
     }
     
     // Validate username (letters, numbers, underscore only)
@@ -8207,11 +8229,24 @@ app.post('/api/chat/update_username', async (req, res) => {
     
     try {
         const p = await getPool();
+        let uid = null;
+        
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId || decoded.id || decoded.uid;
+            } catch(e) { return res.json({ success: false, message: 'Invalid session' }); }
+        } 
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''), 10);
+        }
+        
+        if (!uid || isNaN(uid)) return res.json({ success: false, message: 'Invalid user' });
         
         // Check if username already taken
         const existing = await p.query(
             'SELECT id FROM auth_users WHERE LOWER(username) = LOWER($1) AND id != $2',
-            [username, userId]
+            [username, uid]
         );
         
         if (existing.rows.length > 0) {
@@ -8221,13 +8256,13 @@ app.post('/api/chat/update_username', async (req, res) => {
         // Update username
         await p.query(
             'UPDATE auth_users SET username = $1 WHERE id = $2',
-            [username, userId]
+            [username, uid]
         );
         
         // Also update username in chat_messages
         await p.query(
             'UPDATE chat_messages SET username = $1 WHERE sender_id = $2',
-            [username, userId]
+            [username, uid]
         );
         
         res.json({ success: true, message: 'Username updated!' });
@@ -8297,21 +8332,35 @@ app.post('/api/chat/report_group', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 // ==================== PROFILE & AVATAR APIs ====================
-
 // Update Avatar
 app.post('/api/chat/update_avatar', async (req, res) => {
-    const { userId, avatarUrl } = req.body;
+    // ✅ Token ကို Body / Header မှ ရှာယူခြင်း
+    let token = req.body.token || req.headers.authorization?.replace('Bearer ', '');
+    const { avatarUrl } = req.body;
     
-    console.log('[AVATAR] Request received:', { userId, avatarUrl: avatarUrl?.substring(0, 50) });
+    console.log('[AVATAR] Request received:', { token: token?.substring(0, 15), avatarUrl: avatarUrl?.substring(0, 50) });
     
-    if (!userId) {
-        return res.json({ success: false, message: 'User ID required' });
+    if (!token || !avatarUrl) {
+        return res.json({ success: false, message: 'Token and avatar URL required' });
     }
     
     try {
         const p = await getPool();
+        let uid = null;
         
-        // ✅ Table ရှိမရှိ စစ်
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId || decoded.id || decoded.uid;
+            } catch(e) { return res.json({ success: false, message: 'Invalid session' }); }
+        } 
+        else if (token.startsWith('token_')) {
+            uid = parseInt(token.replace('token_', ''), 10);
+        }
+        
+        if (!uid || isNaN(uid)) return res.json({ success: false, message: 'Invalid user' });
+        
+        // ✅ Table auto-create
         await p.query(`
             CREATE TABLE IF NOT EXISTS user_avatars (
                 id SERIAL PRIMARY KEY,
@@ -8326,10 +8375,10 @@ app.post('/api/chat/update_avatar', async (req, res) => {
             `INSERT INTO user_avatars (user_id, avatar_url, updated_at) 
              VALUES ($1, $2, NOW()) 
              ON CONFLICT (user_id) DO UPDATE SET avatar_url = $2, updated_at = NOW()`,
-            [parseInt(userId), avatarUrl || '']
+            [parseInt(uid), avatarUrl || '']
         );
         
-        console.log('[AVATAR] ✅ Updated for user:', userId);
+        console.log('[AVATAR] ✅ Updated for user:', uid);
         
         res.json({ success: true, message: 'Avatar updated!' });
         
@@ -8338,6 +8387,7 @@ app.post('/api/chat/update_avatar', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+
 // View User Profile (public)
 app.post('/api/chat/user_profile', async (req, res) => {
     const { userId, viewerId } = req.body;
