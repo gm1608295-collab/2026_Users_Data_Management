@@ -348,28 +348,34 @@ async function uploadAvatar(event) {
         const token = getToken();
         
         try {
-            showToast('Uploading image to server...');
+            showToast('Uploading image... (please wait)');
             
-            // ✅ 1. ပုံကို Server မှာရှိတဲ့ image upload API ကိုသုံးပြီး URL ရယူမယ်
+            // ✅ 1. Base64 ကို Server API (/api/upload_image) ကိုခေါ်ပြီး URL ရယူမယ် (Key က Server မှာရှိတယ်)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+
             const imgRes = await fetch('/api/upload_image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ base64: base64 })
+                body: JSON.stringify({ base64: base64 }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
+
             const imgData = await imgRes.json();
 
             if (!imgData.success) {
-                showToast('Image upload failed', true);
+                showToast('Image upload failed: ' + (imgData.message || 'Unknown error'), true);
                 return;
             }
 
-            const imageUrl = imgData.url; // ✅ URL ကို ရပြီ
+            const imageUrl = imgData.url; // ✅ URL ရပြီ
 
             // ✅ 2. Avatar URL ကို Server က update_avatar API ကို ပို့မယ်
             const res = await fetch('/api/chat/update_avatar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                body: JSON.stringify({ token: token, avatarUrl: imageUrl }) // ✅ URL ကို ပို့မယ်
+                body: JSON.stringify({ token: token, avatarUrl: imageUrl })
             });
             const data = await res.json();
             
@@ -377,15 +383,19 @@ async function uploadAvatar(event) {
                 document.getElementById('avatarImg').src = imageUrl;
                 showToast('Avatar အသစ် ပြောင်းပြီးပါပြီ!');
             } else {
-                showToast(data.message || 'Avatar upload failed', true);
+                showToast(data.message || 'Avatar update failed', true);
             }
         } catch(err) {
             console.error('[UPLOAD ERROR]', err);
-            showToast('Upload error', true);
+            if (err.name === 'AbortError') {
+                showToast('Request timed out. Please try a smaller image.', true);
+            } else {
+                showToast('Upload error: ' + err.message, true);
+            }
         }
     };
     reader.readAsDataURL(file);
-    }
+}
         // ==================== UPDATE USERNAME ====================
         function openEditUsername() {
             document.getElementById('newUsernameInput').value = document.getElementById('usernameDisplay').textContent;
