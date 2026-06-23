@@ -7695,7 +7695,7 @@ app.post('/api/chat/online_users', async (req, res) => {
     }
 });
 
-// Update /api/chat/rooms to include avatar_url
+// Update /api/chat/rooms to include avatar_url (Fixed JOIN)
 app.post('/api/chat/rooms', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.json({ rooms: [] });
@@ -7709,9 +7709,11 @@ app.post('/api/chat/rooms', async (req, res) => {
                 CASE 
                     WHEN cr.room_type = 'group' THEN (SELECT avatar_url FROM group_avatars WHERE room_id = cr.id ORDER BY updated_at DESC LIMIT 1)
                     WHEN cr.room_type = 'private' THEN (
-                        SELECT avatar_url FROM user_avatars 
-                        WHERE user_id IN (SELECT user_id FROM chat_participants WHERE room_id = cr.id AND user_id != $1 LIMIT 1)
-                        ORDER BY updated_at DESC LIMIT 1
+                        SELECT ua.avatar_url 
+                        FROM user_avatars ua
+                        INNER JOIN chat_participants cp ON cp.user_id = ua.user_id
+                        WHERE cp.room_id = cr.id AND cp.user_id != $1
+                        LIMIT 1
                     )
                     ELSE NULL
                 END as avatar_url
@@ -7721,10 +7723,11 @@ app.post('/api/chat/rooms', async (req, res) => {
             ORDER BY cr.id DESC
         `, [userId]);
         res.json({ rooms: r.rows });
-    } catch(e) { res.json({ rooms: [] }); }
+    } catch(e) { 
+        console.error('[ROOMS ERROR]', e.message);
+        res.json({ rooms: [] }); 
+    }
 });
-
-
 // Get messages
 app.get('/api/chat/messages/:roomId', async (req, res) => {
     const { roomId } = req.params;
