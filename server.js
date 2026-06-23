@@ -24,19 +24,20 @@ app.use(cookieParser());
 setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
 
-// ==================== DATABASE - 5 POOLS AUTO-SWITCH ====================
-// ဒီအတိုင်း ပြန်ထည့်ပါ
+// ==================== DATABASE - 5 POOLS AUTO-SWITCH (FIXED) ====================
 const DB1 = 'postgresql://neondb_owner:npg_3lq1dLYxvgVX@ep-misty-base-amkxcayc-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
 const DB2 = 'postgresql://neondb_owner:npg_6RwnXBl5LKQt@ep-damp-sea-a46t7qil-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
 const DB3 = 'postgresql://neondb_owner:npg_LVD3pNxhd1vi@ep-withered-violet-aprnlbey-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require';
 const DB4 = 'postgresql://neondb_owner:npg_ntqgkA5OVL8P@ep-noisy-resonance-aqy8odea-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
 const DB5 = 'postgresql://neondb_owner:npg_KuFVvHic4m0Y@ep-orange-paper-aqn9ak7c-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
+
+// ✅ Connection Timeout 60 seconds (အရင်က 30s ကနေ 60s တိုးထား)
 const pools = [
-    new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 30000 }),
-    new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 30000 }),
-    new Pool({ connectionString: DB3, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 30000 }),
-    new Pool({ connectionString: DB4, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 30000 }),
-    new Pool({ connectionString: DB5, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 30000 })
+    new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 }),
+    new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 }),
+    new Pool({ connectionString: DB3, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 }),
+    new Pool({ connectionString: DB4, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 }),
+    new Pool({ connectionString: DB5, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 })
 ];
 let currentPoolIndex = 0;
 
@@ -46,7 +47,7 @@ async function getPool() {
         await pools[currentPoolIndex].query('SELECT 1');
         return pools[currentPoolIndex];
     } catch(e) {
-        console.log('DB Switch from pool #' + (currentPoolIndex + 1) + ':', e.message.substring(0, 50));
+        console.log('❌ DB Switch from pool #' + (currentPoolIndex + 1) + ':', e.message.substring(0, 50));
         
         // Try next pools in order
         for (let i = 0; i < pools.length; i++) {
@@ -54,10 +55,10 @@ async function getPool() {
             try {
                 await pools[nextIndex].query('SELECT 1');
                 currentPoolIndex = nextIndex;
-                console.log('Switched to pool #' + (currentPoolIndex + 1));
+                console.log('✅ Switched to pool #' + (currentPoolIndex + 1));
                 return pools[currentPoolIndex];
             } catch(e2) {
-                console.log('Pool #' + (nextIndex + 1) + ' also failed');
+                console.log('❌ Pool #' + (nextIndex + 1) + ' also failed');
             }
         }
         
