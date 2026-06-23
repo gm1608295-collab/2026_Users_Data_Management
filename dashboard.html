@@ -1153,7 +1153,23 @@ function openProfileHelpModal() {
 function closeProfileHelpModal() {
     document.getElementById('profileHelpModal').style.display = 'none';
 }
-    // ==================== FORCE UPDATE SYSTEM (LOCALSTORAGE CONTROL) ====================
+    
+// ==================== TOAST & COPY ====================
+function showToast(msg, t = "success") {
+    const el = document.createElement('div');
+    el.textContent = msg;
+    el.style.cssText = `position:fixed;top:20px;right:20px;background:${t === "success" ? "#2ecc71" : "#e74c3c"};color:#000;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:bold;z-index:9999;animation:fadeInOut 2s forwards`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+}
+
+function copyUserId() {
+    const id = document.getElementById("myUserIdDisp").textContent.replace('U ID - ', '').trim();
+    if (!id || id === '------') return;
+    navigator.clipboard.writeText(id).then(() => showToast('✅ ID Copied: ' + id)).catch(() => showToast('❌ Failed', 'error'));
+}
+
+// ==================== FORCE UPDATE SYSTEM (LOCALSTORAGE CONTROL) ====================
 let forceUpdateActive = false;
 let forceUpdateData = null;
 
@@ -1235,7 +1251,34 @@ function performForceUpdate() {
     forceUpdateActive = false;
 }
 
-    // ✅ Open Sidebar Function (မှန်ကန်သောနေရာ)
+// Admin function to activate (call this from browser console or admin panel)
+window.activateForceUpdateLocal = function(message, version, url) {
+    const settings = {
+        is_active: true,
+        message: message || '📱 APK latest version 4.0.0 ထွက်ရှိပြီးဖြစ်ပါသည်။\nကျေးဇူးပြု၍ နောက်ဆုံးဗားရှင်းသို့ အဆင့်မြှင့်တင်ပါရန်။',
+        apk_url: url || 'https://drive.google.com/file/d/13Adx-ucYt7JzDxR1ZFOxV2pUH6UtLxqd/view?usp=drivesdk',
+        version_code: 4,
+        version_name: version || '4.0.0'
+    };
+    saveForceUpdateSettings(settings);
+    checkForceUpdate();
+    console.log('✅ Force update activated!');
+};
+
+window.deactivateForceUpdateLocal = function() {
+    localStorage.removeItem('force_update_settings');
+    checkForceUpdate();
+    console.log('✅ Force update deactivated!');
+};
+
+// Check immediately
+setTimeout(() => {
+    checkForceUpdate();
+}, 1000);
+
+// ==================== SIDEBAR FUNCTIONS (မှန်ကန်သောနေရာ) ====================
+
+// ✅ Open Sidebar Function
 function openSidebar() {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
     
@@ -1271,60 +1314,21 @@ function openSidebar() {
         icon.className = 'fas fa-chevron-up';
     }
 }
-    
-// Admin function to activate (call this from browser console or admin panel)
-window.activateForceUpdateLocal = function(message, version, url) {
-    const settings = {
-        is_active: true,
-        message: message || '📱 APK latest version 2.0.0 ထွက်ရှိပြီးဖြစ်ပါသည်။\nကျေးဇူးပြု၍ နောက်ဆုံးဗားရှင်းသို့ အဆင့်မြှင့်တင်ပါရန်။',
-        apk_url: url || 'https://drive.google.com/file/d/1M-htRNRJtRBPEpppPRAn84sIn0fXZSDS/view?usp=drivesdk',
-        version_code: 2,
-        version_name: version || '2.0.0'
-    };
-    saveForceUpdateSettings(settings);
-    checkForceUpdate();
-    console.log('✅ Force update activated!');
-};
 
-window.deactivateForceUpdateLocal = function() {
-    localStorage.removeItem('force_update_settings');
-    checkForceUpdate();
-    console.log('✅ Force update deactivated!');
-};
+// ✅ Close Sidebar Function
+function closeSidebar() {
+    document.getElementById("sidebarPanel").classList.remove("active");
+    document.getElementById("sidebarOverlay").classList.remove("active");
+    document.body.style.overflow = '';
+}
 
-// Check immediately
-setTimeout(() => {
-    checkForceUpdate();
-}, 1000);
-
-    // ✅ Load Profile Photo
-    const savedPhoto = localStorage.getItem('profilePhoto_' + u.id);
-    const img = document.getElementById('sidebarAvatarImg');
-    const textAvatar = document.getElementById('sidebarAvatarText');
-    
-    if (savedPhoto) {
-        img.src = savedPhoto;
-        img.style.display = 'block';
-        textAvatar.style.display = 'none';
-        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
-    } else {
-        img.style.display = 'none';
-        textAvatar.style.display = 'flex';
-        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
-    }
-    
-    document.getElementById("sidebarPanel").classList.add("active");
-    document.getElementById("sidebarOverlay").classList.add("active");
-    document.body.style.overflow = 'hidden';
-    }
-    
-// ✅ 3-Dot Menu Toggle (တစ်ခုတည်း)
+// ✅ 3-Dot Menu Toggle
 function toggleProfileMenu() {
     const menu = document.getElementById('profileDeleteMenu');
     menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 }
 
-// ✅ Profile Collapse / Expand Function (တစ်ခုတည်း)
+// ✅ Profile Collapse / Expand Function
 function toggleProfileCollapse() {
     const content = document.getElementById('profileCollapsibleContent');
     const icon = document.getElementById('profileCollapseIcon');
@@ -1340,7 +1344,7 @@ function toggleProfileCollapse() {
     }
 }
 
-// ✅ Upload Profile Photo (Menu ထဲကနေ ခေါ်တာ)
+// ✅ Upload Profile Photo
 function uploadProfilePhoto(input) {
     const file = input.files[0];
     if (!file) return;
@@ -1376,7 +1380,7 @@ function uploadProfilePhoto(input) {
     input.value = '';
 }
 
-// ✅ Delete Profile Photo (တစ်ခုတည်း)
+// ✅ Delete Profile Photo
 function deleteProfilePhoto() {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
     if (!u.id) return;
@@ -1398,8 +1402,6 @@ function deleteProfilePhoto() {
     showToast('🗑️ Photo deleted!', 'error');
 }
     
-    function closeSidebar(){document.getElementById("sidebarPanel").classList.remove("active");document.getElementById("sidebarOverlay").classList.remove("active");document.body.style.overflow=''}
-
     function openMLBBEvent() {
     window.open('https://sg-play.mobilelegends.com/events/v26edf9dgugc/global', '_blank');
 }
