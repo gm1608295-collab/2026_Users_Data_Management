@@ -8456,7 +8456,6 @@ app.post('/api/chat/user_profile', async (req, res) => {
 
         // ✅ userId က null, undefined, 0 ဖြစ်နေရင် Token ကနေ User ID ယူမယ်
         if (!userId || userId === 0 || userId === 'null' || userId === null) {
-            // Token ကနေ User ID ထုတ်ယူခြင်း (JWT / Old Format)
             if (token.startsWith('eyJ')) {
                 try {
                     const decoded = jwt.verify(token, JWT_SECRET);
@@ -8471,7 +8470,6 @@ app.post('/api/chat/user_profile', async (req, res) => {
             }
         } 
         else {
-            // URL က userId ကို Number ပြောင်းမယ်
             if (!isNaN(parseInt(userId))) {
                 targetUid = parseInt(userId);
             } else {
@@ -8479,11 +8477,8 @@ app.post('/api/chat/user_profile', async (req, res) => {
             }
         }
         
-        if (!targetUid || isNaN(targetUid)) {
-            return res.json({ success: false });
-        }
+        if (!targetUid || isNaN(targetUid)) return res.json({ success: false });
 
-        // User Data ကို ဆွဲထုတ်မယ်
         const user = await p.query(
             `SELECT u.id, u.username, u.email, u.premium_tier,
              (SELECT avatar_url FROM user_avatars WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1) as avatar_url
@@ -8494,7 +8489,6 @@ app.post('/api/chat/user_profile', async (req, res) => {
         if (user.rows.length === 0) return res.json({ success: false });
         const u = user.rows[0];
         
-        // Get public groups (User ပါဝင်နေတဲ့ Group တွေ)
         const groups = await p.query(`
             SELECT cr.id, cr.room_name, 
              (SELECT COUNT(*) FROM chat_participants WHERE room_id = cr.id) as member_count
