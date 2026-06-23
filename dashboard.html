@@ -952,19 +952,26 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
          style="width:100%; height:90px; object-fit:cover; display:block;"
          onerror="this.style.display='none'">
 </div>
-      
-    <!-- ==================== SIDEBAR PROFILE (WITH COLLAPSE/EXPAND) ==================== -->
-<div class="sidebar-profile" style="position:relative; text-align:center; padding:15px 15px 15px; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0; background:rgba(0,0,0,0.2); backdrop-filter:blur(4px);">
+       <!-- ==================== SIDEBAR PROFILE (UPLOAD INSIDE MENU) ==================== -->
+<div class="sidebar-profile" style="position:relative; text-align:center; padding:15px 15px 20px; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0; background:rgba(0,0,0,0.2); backdrop-filter:blur(4px);">
     
-    <!-- ✅ 3-Dot Menu (ဘယ်ဘက်အပေါ်ထောင့်) -->
+    <!-- ✅ 3-Dot Menu (ဘယ်ဘက်အပေါ်ထောင့်) - အခုအထဲမှာ Upload Photo ပါသွားပြီ -->
     <div style="position:absolute; top:10px; left:10px; z-index:20;">
         <div class="profile-dots-menu" onclick="toggleProfileMenu()" style="width:28px; height:28px; background:rgba(0,0,0,0.7); border:1px solid rgba(255,255,255,0.2); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; color:#fff; font-size:14px; box-shadow:0 2px 5px rgba(0,0,0,0.3);">
             ⋮
         </div>
         
-        <!-- Delete Photo Dropdown -->
-        <div id="profileDeleteMenu" style="display:none; position:absolute; top:34px; left:0; background:rgba(20,15,35,0.95); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:6px 0; width:120px; box-shadow:0 8px 25px rgba(0,0,0,0.5); z-index:25;">
-            <div onclick="deleteProfilePhoto()" style="padding:8px 14px; font-size:11px; color:#e74c3c; cursor:pointer; display:flex; align-items:center; gap:8px; transition:0.2s;">
+        <!-- Dropdown Menu (အစက်သုံးစက်နှိပ်ရင် ပေါ်လာမယ်) -->
+        <div id="profileDeleteMenu" style="display:none; position:absolute; top:34px; left:0; background:rgba(20,15,35,0.95); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:6px 0; width:150px; box-shadow:0 8px 25px rgba(0,0,0,0.5); z-index:25;">
+            
+            <!-- ✅ Upload Photo ကို Menu ထဲ ထည့်ထားပါတယ် -->
+            <label for="profilePhotoInput" style="padding:8px 14px; font-size:11px; color:#f39c12; cursor:pointer; display:flex; align-items:center; gap:8px; transition:0.2s; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <i class="fas fa-camera" style="font-size:11px;"></i> 📷 Upload Photo
+            </label>
+            <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" onchange="uploadProfilePhoto(this)">
+            
+            <!-- ✅ Delete Photo (အဟောင်းအတိုင်း) -->
+            <div onclick="deleteProfilePhoto()" style="padding:8px 14px; font-size:11px; color:#e74c3c; cursor:pointer; display:flex; align-items:center; gap:8px; transition:0.2s; border-top:1px solid rgba(255,255,255,0.05);">
                 <i class="fas fa-trash-alt" style="font-size:11px;"></i> Delete Photo
             </div>
         </div>
@@ -977,43 +984,21 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
         </div>
     </div>
 
-    <!-- ✅ Profile Collapsible Content -->
-    <div id="profileCollapsibleContent">
-        
-        <!-- ✅ Avatar Image Inside Frame (Top Up Frame Style) -->
-        <div style="position:relative; display:inline-block; margin-bottom:8px;">
-            
-            <!-- ✅ Frame Image -->
-            <div style="width:130px; height:130px; background-image:url('https://i.ibb.co/sp500GPF/817073600ba1f1866ec46ab803562700.jpg'); background-size:100% 100%; background-position:center; background-repeat:no-repeat; position:relative; display:flex; align-items:center; justify-content:center; border-radius:0px;">
-                
-                <!-- Profile Image -->
-                <img id="sidebarAvatarImg" src="" 
-                     style="width:95px; height:95px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.3); display:none; background:#0a0a1a;"
-                     onerror="this.style.display='none'; document.getElementById('sidebarAvatarText').style.display='flex';">
-                
-                <!-- Text Avatar -->
-                <div id="sidebarAvatarText" style="width:95px; height:95px; border-radius:50%; background:linear-gradient(135deg,#4a1c7a,#f39c12); display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; color:#fff; border:2px solid rgba(255,255,255,0.3); box-shadow:0 4px 15px rgba(0,0,0,0.5);">
-                    S
-                </div>
-                
+    <!-- ✅ Avatar Image Inside Frame -->
+    <div style="position:relative; display:inline-block; margin-bottom:8px;">
+        <div style="width:130px; height:130px; background-image:url('https://i.ibb.co/sp500GPF/817073600ba1f1866ec46ab803562700.jpg'); background-size:100% 100%; background-position:center; background-repeat:no-repeat; position:relative; display:flex; align-items:center; justify-content:center; border-radius:0px;">
+            <img id="sidebarAvatarImg" src="" style="width:95px; height:95px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.3); display:none; background:#0a0a1a;" onerror="this.style.display='none'; document.getElementById('sidebarAvatarText').style.display='flex';">
+            <div id="sidebarAvatarText" style="width:95px; height:95px; border-radius:50%; background:linear-gradient(135deg,#4a1c7a,#f39c12); display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; color:#fff; border:2px solid rgba(255,255,255,0.3); box-shadow:0 4px 15px rgba(0,0,0,0.5);">
+                S
             </div>
         </div>
-
-        <!-- ✅ Name & Email -->
-        <div class="sidebar-profile-name" id="sidebarName" style="color:#fff; font-size:15px; font-weight:bold; margin-bottom:2px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">User</div>
-        <div class="sidebar-profile-email" id="sidebarEmail" style="color:rgba(255,255,255,0.8); font-size:11px; word-break:break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">user@mlbb.com</div>
-
-        <!-- ✅ Upload Button -->
-        <div style="margin-top:10px;">
-            <label for="profilePhotoInput" style="display:inline-block; padding:6px 18px; background:rgba(243,156,18,0.2); border:1px solid rgba(243,156,18,0.5); border-radius:20px; color:#f39c12; font-size:10px; font-weight:bold; cursor:pointer; transition:all 0.2s; box-shadow:0 0 10px rgba(243,156,18,0.1);">
-                <i class="fas fa-camera" style="margin-right:6px;"></i> Upload Photo
-            </label>
-            <input type="file" id="profilePhotoInput" accept="image/*" style="display:none;" onchange="uploadProfilePhoto(this)">
-        </div>
-        
     </div>
 
-    <!-- ✅ Collapse / Expand Button (Upload Button ဘေးမှာ - အောက်က row နဲ့ ခွဲထားတယ်) -->
+    <!-- ✅ Name & Email -->
+    <div class="sidebar-profile-name" id="sidebarName" style="color:#fff; font-size:15px; font-weight:bold; margin-bottom:2px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">User</div>
+    <div class="sidebar-profile-email" id="sidebarEmail" style="color:rgba(255,255,255,0.8); font-size:11px; word-break:break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">user@mlbb.com</div>
+
+    <!-- ✅ Collapse Button (အောက်ဘက်ဗဟိုမှာ) -->
     <div style="display:flex; justify-content:center; align-items:center; gap:12px; margin-top:10px; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
         <div onclick="toggleProfileCollapse()" style="width:32px; height:32px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; color:rgba(255,255,255,0.7); font-size:14px;">
             <i class="fas fa-chevron-up" id="profileCollapseIcon"></i>
@@ -1325,7 +1310,7 @@ function toggleProfileCollapse() {
     }
 }
     
-// ✅ Upload Profile Photo
+// ✅ Upload Profile Photo (Menu ထဲကနေ ခေါ်တာ)
 function uploadProfilePhoto(input) {
     const file = input.files[0];
     if (!file) return;
@@ -1350,6 +1335,9 @@ function uploadProfilePhoto(input) {
         img.style.display = 'block';
         textAvatar.style.display = 'none';
         
+        // Close menu
+        document.getElementById('profileDeleteMenu').style.display = 'none';
+        
         showToast('✅ Profile photo uploaded!', 'success');
     };
     reader.readAsDataURL(file);
@@ -1358,6 +1346,34 @@ function uploadProfilePhoto(input) {
     input.value = '';
 }
 
+// ✅ Delete Profile Photo (Menu ထဲက)
+function deleteProfilePhoto() {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!u.id) return;
+    
+    if (!confirm('Are you sure you want to delete your profile photo?')) return;
+    
+    localStorage.removeItem('profilePhoto_' + u.id);
+    
+    // Update sidebar immediately
+    const img = document.getElementById('sidebarAvatarImg');
+    const textAvatar = document.getElementById('sidebarAvatarText');
+    img.style.display = 'none';
+    textAvatar.style.display = 'flex';
+    textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    
+    // Close menu
+    document.getElementById('profileDeleteMenu').style.display = 'none';
+    
+    showToast('🗑️ Photo deleted!', 'error');
+}
+
+// ✅ Toggle Profile Menu
+function toggleProfileMenu() {
+    const menu = document.getElementById('profileDeleteMenu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+    
 // ✅ Delete Profile Photo
 function deleteProfilePhoto() {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
