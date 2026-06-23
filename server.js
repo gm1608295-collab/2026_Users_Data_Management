@@ -7202,6 +7202,7 @@ io.on('connection', (socket) => {
             console.log('📌 User joined room:', roomId);
         }
     });
+
     // ========== SEND MESSAGE ==========
 socket.on('send_message', async (data) => {
     const { roomId, message, userId, username, senderPremiumTier } = data;
@@ -7228,7 +7229,7 @@ socket.on('send_message', async (data) => {
             return;
         }
         
-        // ✅ Save message to database (Syntax Error မဖြစ်အောင် ဒီအတိုင်း သေချာထားပါ)
+        // ✅ Save message to database
         const result = await p.query(
             `INSERT INTO chat_messages (room_id, sender_id, username, message, sender_premium_tier, created_at) 
              VALUES ($1, $2, $3, $4, $5, NOW() AT TIME ZONE 'Asia/Yangon') RETURNING id, created_at`,
@@ -7262,6 +7263,7 @@ socket.on('send_message', async (data) => {
         socket.emit('error', { message: 'Failed to send message' });
     }
 });
+    
     // ========== TYPING INDICATOR ==========
     socket.on('typing', (data) => {
         const { roomId, userId, username } = data;
@@ -7734,21 +7736,22 @@ app.post('/api/chat/rooms', async (req, res) => {
         res.json({ rooms: [] }); 
     }
 });
-// Get messages
+// Get messages (with Avatar)
 app.get('/api/chat/messages/:roomId', async (req, res) => {
     const { roomId } = req.params;
     try {
         const p = await getPool();
         
-        // ✅ 1. Messages တွေကို User Avatar နဲ့အတူ ဆွဲထုတ်မယ် (LEFT JOIN သုံးမယ်)
+        // ✅ 1. Messages တွေကို ဆွဲထုတ်မယ် (User Avatar ပါအောင် LEFT JOIN လုပ်မယ်)
         const r = await p.query(`
             SELECT 
-                cm.*,
+                cm.id, cm.room_id, cm.sender_id, cm.username, cm.message, 
+                cm.is_read, cm.sender_premium_tier, cm.created_at,
                 ua.avatar_url
             FROM chat_messages cm
             LEFT JOIN user_avatars ua ON cm.sender_id = ua.user_id
-            WHERE cm.room_id = $1
-            ORDER BY cm.id ASC
+            WHERE cm.room_id = $1 
+            ORDER BY cm.id ASC 
             LIMIT 100
         `, [roomId]);
         
@@ -7769,7 +7772,6 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
         res.json({ messages: [] }); 
     }
 });
-
 // Create admin room
 app.post('/api/chat/create_admin_room', async (req, res) => {
     const { userId } = req.body;
