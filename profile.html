@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ကျွန်ုပ်၏ Profile - SOLO M Game Shop</title>
+    <title>Profile - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -79,7 +79,7 @@
         .avatar-actions {
             position: absolute;
             bottom: 0;
-            right: -45px; /* Button နှစ်ခုကို ဘေးမှာထားဖို့ */
+            right: -45px;
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -204,31 +204,30 @@
         <!-- Header -->
         <div class="header-nav">
             <a href="/chat.html" class="back-btn"><i class="fas fa-arrow-left"></i></a>
-            <h2>ကျွန်ုပ်၏ Profile</h2>
+            <h2 id="pageTitle">ကျွန်ုပ်၏ Profile</h2>
         </div>
         
         <!-- Avatar -->
-<div class="avatar-wrap">
-    <img src="https://i.ibb.co/MyB60kHF/64a831b950c3e3e7d699368b48618dd6.jpg" alt="Avatar" class="avatar-img" id="avatarImg">
-    <!-- ✅ ဒီ Button နှစ်ခုကို မိမိအတွက်ပဲ ပြမယ် -->
-    <div class="avatar-actions" id="avatarActions" style="display:none;">
-        <div class="avatar-action-btn upload-btn" onclick="document.getElementById('avatarFileInput').click()">
-            <i class="fas fa-upload"></i>
+        <div class="avatar-wrap">
+            <img src="https://i.ibb.co/MyB60kHF/64a831b950c3e3e7d699368b48618dd6.jpg" alt="Avatar" class="avatar-img" id="avatarImg">
+            <div class="avatar-actions" id="avatarActions" style="display: none;">
+                <div class="avatar-action-btn upload-btn" onclick="document.getElementById('avatarFileInput').click()">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <div class="avatar-action-btn delete-btn" onclick="confirmDeleteAvatar()">
+                    <i class="fas fa-trash"></i>
+                </div>
+            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" onchange="uploadAvatar(event)">
         </div>
-        <div class="avatar-action-btn delete-btn" onclick="confirmDeleteAvatar()">
-            <i class="fas fa-trash"></i>
+        
+        <!-- Username -->
+        <div class="username-box">
+            <h3 id="usernameDisplay">Loading...</h3>
+            <span class="edit-icon" id="editIcon" style="display: none;" onclick="openEditUsername()"><i class="fas fa-pen"></i></span>
         </div>
-    </div>
-    <input type="file" id="avatarFileInput" accept="image/*" onchange="uploadAvatar(event)">
-</div>
-
-<!-- Username -->
-<div class="username-box">
-    <h3 id="usernameDisplay">Loading...</h3>
-    <!-- ✅ ဒီ Edit Button ကို မိမိအတွက်ပဲ ပြမယ် -->
-    <span class="edit-icon" id="editIcon" style="display:none;" onclick="openEditUsername()"><i class="fas fa-pen"></i></span>
-</div>
-    
+        <div class="email-text" id="emailDisplay">Loading...</div>
+        
         <!-- Stats -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -247,7 +246,7 @@
         
         <!-- My Groups -->
         <div class="groups-section">
-            <h4><i class="fas fa-users" style="margin-right:6px;"></i> ကျွန်ုပ်၏ Groups</h4>
+            <h4><i class="fas fa-users" style="margin-right:6px;"></i> Groups</h4>
             <div id="groupsList">
                 <div style="color:rgba(255,255,255,0.2); font-size:12px; padding:10px; text-align:center;">Loading groups...</div>
             </div>
@@ -296,131 +295,100 @@
         }
 
         function getToken() {
-    let t = localStorage.getItem('auth_token');
-    
-    // Cookie မှာ token ရှိမရှိစစ် (App တွေအတွက်)
-    if (!t || t === 'guest') {
-        const cookies = document.cookie.split('; ');
-        for (let i = 0; i < cookies.length; i++) {
-            const parts = cookies[i].split('=');
-            if (parts[0] === 'auth_token') {
-                t = decodeURIComponent(parts[1]);
-                break;
-            }
-        }
-    }
-
-    // Meta tag မှာပါရင် (Telegram Web App / Android WebView တွေအတွက်)
-    if (!t || t === 'guest') {
-        const metaToken = document.querySelector('meta[name="auth_token"]');
-        if (metaToken) {
-            t = metaToken.content;
-        }
-    }
-    
-    // ✅ Token ကို String အနေနဲ့ ပြန်ပေးပါ (Number မဖြစ်စေရန်)
-    return t;
-        }
-        
-        // ==================== LOAD PROFILE ====================
-async function loadProfile() {
-    // ✅ 1. URL ကနေ userId ကို ထုတ်ယူမယ်
-    const urlParams = new URLSearchParams(window.location.search);
-    const targetUserId = urlParams.get('userId'); // e.g., ?userId=42
-
-    // ✅ 2. မိမိ Token ကို ရှာမယ်
-    const token = getToken();
-    if (!token) {
-        document.body.innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">အကောင့်ဝင်ရန် လိုအပ်ပါသည်။ <a href="/" style="color:var(--gold);">Login</a></div>';
-        return;
-    }
-
-    try {
-        // ✅ 3. Server ကို API ခေါ်မယ် 
-        const res = await fetch('/api/chat/user_profile', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'Authorization': 'Bearer ' + token 
-            },
-            body: JSON.stringify({ 
-                userId: targetUserId || null, // ✅ null ပို့ရင် Server က Token ကနေပဲ userId ယူပါမယ်။
-                viewerId: token 
-            })
-        });
-        const data = await res.json();
-        
-        if (data.success) {
-            document.getElementById('usernameDisplay').textContent = data.username || 'Unknown';
-            document.getElementById('emailDisplay').textContent = data.email || 'No email';
-            document.getElementById('groupCount').textContent = data.groups?.length || 0;
-            
-            if (data.avatar_url) {
-                document.getElementById('avatarImg').src = data.avatar_url + '?t=' + Date.now();
-            }
-
-            // Premium Tier
-            const tierEl = document.getElementById('premiumTierDisplay');
-            const premiumTier = data.premium_tier || 1;
-            
-            if (premiumTier === 3) { 
-                tierEl.textContent = '🥇 Gold'; 
-                document.body.classList.add('gold-tier'); 
-            }
-            else if (premiumTier === 2) { 
-                tierEl.textContent = '🥈 Silver'; 
-                document.body.classList.add('silver-tier'); 
-            }
-            else if (premiumTier === 1) { 
-                tierEl.textContent = '🥉 Bronze'; 
-                document.body.classList.add('bronze-tier'); 
-            }
-            else { 
-                tierEl.textContent = 'Free'; 
-            }
-
-            // Groups
-            const groupsList = document.getElementById('groupsList');
-            if (data.groups && data.groups.length > 0) {
-                groupsList.innerHTML = data.groups.map(g => `
-                    <div class="group-item" onclick="window.location.href='/chat.html'">
-                        <div class="g-avatar">${g.room_type === 'group' ? '👥' : '💬'}</div>
-                        <div class="g-name">${escapeHtml(g.room_name)}</div>
-                        <div class="g-count">${g.member_count || 0} members</div>
-                    </div>
-                `).join('');
-            } else {
-                groupsList.innerHTML = '<div style="color:rgba(255,255,255,0.2); font-size:12px; padding:10px; text-align:center;">Group မရှိသေးပါ။</div>';
-            }
-
-            // ✅ 4. Self / Other ခွဲခြားပြီး Button ပြရန် (Server က ပြန်ပို့တဲ့ id နဲ့ စစ်မယ်)
-            const isSelf = !targetUserId || targetUserId == token || data.id == token;
-            const avatarActions = document.getElementById('avatarActions');
-            const editIcon = document.getElementById('editIcon');
-
-            if (isSelf) {
-                avatarActions.style.display = 'flex';
-                editIcon.style.display = 'inline-block';
-            } else {
-                avatarActions.style.display = 'none';
-                editIcon.style.display = 'none';
-            }
-
-        } else {
-            console.error('[PROFILE ERROR] API returned no user');
-            document.getElementById('usernameDisplay').textContent = 'Error';
-            showToast('Server error', true); // Error ပေါ်အောင် Toast ပြမယ်
-        }
-    } catch(e) {
-        console.error('[PROFILE ERROR]', e);
-        document.getElementById('usernameDisplay').textContent = 'Error';
-        showToast('Server error', true);
-    }
+            let t = localStorage.getItem('auth_token');
+            if (!t || t === 'guest') {
+                const cookies = document.cookie.split('; ');
+                for (let i = 0; i < cookies.length; i++) {
+                    const parts = cookies[i].split('=');
+                    if (parts[0] === 'auth_token') {
+                        t = decodeURIComponent(parts[1]);
+                        break;
+                    }
                 }
+            }
+            return t;
+        }
+
         function escapeHtml(text) {
             const d = document.createElement('div');
             d.textContent = text;
             return d.innerHTML;
+        }
+
+        // ==================== LOAD PROFILE ====================
+        async function loadProfile() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetUserId = urlParams.get('userId');
+            const token = getToken();
+
+            if (!token) {
+                document.body.innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">အကောင့်ဝင်ရန် လိုအပ်ပါသည်။ <a href="/" style="color:var(--gold);">Login</a></div>';
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/chat/user_profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ userId: targetUserId || null, viewerId: token })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    // ✅ မိမိကိုယ်တိုင်လား၊ တစ်ဖက်လူလား စစ်မယ်
+                    const isSelf = !targetUserId || targetUserId == token || data.id == token;
+
+                    document.getElementById('pageTitle').textContent = isSelf ? 'ကျွန်ုပ်၏ Profile' : data.username + '\'s Profile';
+                    document.getElementById('usernameDisplay').textContent = data.username || 'Unknown';
+                    document.getElementById('emailDisplay').textContent = data.email || 'No email';
+                    document.getElementById('groupCount').textContent = data.groups?.length || 0;
+                    
+                    if (data.avatar_url) {
+                        document.getElementById('avatarImg').src = data.avatar_url + '?t=' + Date.now();
+                    }
+
+                    // Premium Tier
+                    const tierEl = document.getElementById('premiumTierDisplay');
+                    const premiumTier = data.premium_tier || 1;
+                    if (premiumTier === 3) { tierEl.textContent = '🥇 Gold'; document.body.classList.add('gold-tier'); }
+                    else if (premiumTier === 2) { tierEl.textContent = '🥈 Silver'; document.body.classList.add('silver-tier'); }
+                    else if (premiumTier === 1) { tierEl.textContent = '🥉 Bronze'; document.body.classList.add('bronze-tier'); }
+                    else { tierEl.textContent = 'Free'; }
+
+                    // Groups
+                    const groupsList = document.getElementById('groupsList');
+                    if (data.groups && data.groups.length > 0) {
+                        groupsList.innerHTML = data.groups.map(g => `
+                            <div class="group-item" onclick="window.location.href='/chat.html'">
+                                <div class="g-avatar">👥</div>
+                                <div class="g-name">${escapeHtml(g.room_name)}</div>
+                                <div class="g-count">${g.member_count || 0} members</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        groupsList.innerHTML = '<div style="color:rgba(255,255,255,0.2); font-size:12px; padding:10px; text-align:center;">Group မရှိသေးပါ။</div>';
+                    }
+
+                    // ✅ မိမိအတွက်သာ Button ပြရန်
+                    const avatarActions = document.getElementById('avatarActions');
+                    const editIcon = document.getElementById('editIcon');
+                    
+                    if (isSelf) {
+                        avatarActions.style.display = 'flex';
+                        editIcon.style.display = 'inline-block';
+                    } else {
+                        // ❌ ဧည့်သည်အတွက် Button အကုန်ဖျောက်
+                        avatarActions.style.display = 'none';
+                        editIcon.style.display = 'none';
+                    }
+
+                } else {
+                    showToast('Server error', true);
+                }
+            } catch(e) {
+                console.error('[PROFILE ERROR]', e);
+                showToast('Server error', true);
+            }
         }
 
         // ==================== UPDATE AVATAR (Upload) ====================
@@ -436,11 +404,8 @@ async function loadProfile() {
             reader.onload = async (e) => {
                 const base64 = e.target.result;
                 const token = getToken();
-                
                 try {
                     showToast('Uploading image... (please wait)');
-                    
-                    // 1. Base64 ကို Server API (/api/upload_image) ကိုခေါ်ပြီး URL ရယူမယ်
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
@@ -451,38 +416,29 @@ async function loadProfile() {
                         signal: controller.signal
                     });
                     clearTimeout(timeoutId);
-
                     const imgData = await imgRes.json();
 
                     if (!imgData.success) {
                         showToast('Image upload failed: ' + (imgData.message || 'Unknown error'), true);
                         return;
                     }
+                    const imageUrl = imgData.url;
 
-                    const imageUrl = imgData.url; // URL ရပြီ
-
-                    // 2. Avatar URL ကို Server က update_avatar API ကို ပို့မယ်
                     const res = await fetch('/api/chat/update_avatar', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                         body: JSON.stringify({ token: token, avatarUrl: imageUrl })
                     });
                     const data = await res.json();
-                    
                     if (data.success) {
-    // ✅ ပုံအသစ်ကို Cache မှမယူအောင် `?t=` ထည့်ပြီး ပြပါ
-    document.getElementById('avatarImg').src = imageUrl + '?t=' + Date.now();
-    showToast('Avatar အသစ် ပြောင်းပြီးပါပြီ!');
-} else {
-    showToast(data.message || 'Avatar update failed', true);
+                        document.getElementById('avatarImg').src = imageUrl + '?t=' + Date.now();
+                        showToast('Avatar အသစ် ပြောင်းပြီးပါပြီ!');
+                    } else {
+                        showToast(data.message || 'Avatar update failed', true);
                     }
                 } catch(err) {
                     console.error('[UPLOAD ERROR]', err);
-                    if (err.name === 'AbortError') {
-                        showToast('Request timed out. Please try a smaller image.', true);
-                    } else {
-                        showToast('Upload error: ' + err.message, true);
-                    }
+                    showToast('Upload error: ' + err.message, true);
                 }
             };
             reader.readAsDataURL(file);
@@ -494,30 +450,27 @@ async function loadProfile() {
         }
 
         async function deleteAvatar() {
-    const token = getToken();
-    const defaultAvatar = 'https://i.ibb.co/MyB60kHF/64a831b950c3e3e7d699368b48618dd6.jpg';
-
-    try {
-        showToast('Deleting avatar...');
-        const res = await fetch('/api/chat/update_avatar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ token: token, avatarUrl: '' })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            // ✅ ပုံကို Cache မှမယူအောင် `?t=` ထည့်ပြီး ပြပါ
-            document.getElementById('avatarImg').src = defaultAvatar + '?t=' + Date.now();
-            closeModal('confirmDeleteModal');
-            showToast('Avatar ကို ဖျက်ပြီးပါပြီ (Default ပုံသို့ ပြန်ရောက်သွားပါပြီ)');
-        } else {
-            showToast(data.message || 'Delete failed', true);
-        }
-    } catch(e) {
-        console.error('[DELETE ERROR]', e);
-        showToast('Server error', true);
-    }
+            const token = getToken();
+            const defaultAvatar = 'https://i.ibb.co/MyB60kHF/64a831b950c3e3e7d699368b48618dd6.jpg';
+            try {
+                showToast('Deleting avatar...');
+                const res = await fetch('/api/chat/update_avatar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ token: token, avatarUrl: '' })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('avatarImg').src = defaultAvatar + '?t=' + Date.now();
+                    closeModal('confirmDeleteModal');
+                    showToast('Avatar ကို ဖျက်ပြီးပါပြီ (Default ပုံသို့ ပြန်ရောက်သွားပါပြီ)');
+                } else {
+                    showToast(data.message || 'Delete failed', true);
+                }
+            } catch(e) {
+                console.error('[DELETE ERROR]', e);
+                showToast('Server error', true);
+            }
         }
 
         // ==================== UPDATE USERNAME ====================
@@ -532,7 +485,6 @@ async function loadProfile() {
                 showToast('Username သည် ၃ လုံးအထက် ရှိရပါမည်။', true);
                 return;
             }
-
             const token = getToken();
             try {
                 const res = await fetch('/api/chat/update_username', {
