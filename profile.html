@@ -334,7 +334,7 @@ async function loadProfile() {
         }
 
         // ==================== UPDATE AVATAR ====================
-        async function uploadAvatar(event) {
+async function uploadAvatar(event) {
     const file = event.target.files[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
@@ -348,16 +348,33 @@ async function loadProfile() {
         const token = getToken();
         
         try {
-            showToast('Uploading avatar...');
+            showToast('Uploading image to server...');
+            
+            // ✅ 1. ပုံကို Server မှာရှိတဲ့ image upload API ကိုသုံးပြီး URL ရယူမယ်
+            const imgRes = await fetch('/api/upload_image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ base64: base64 })
+            });
+            const imgData = await imgRes.json();
+
+            if (!imgData.success) {
+                showToast('Image upload failed', true);
+                return;
+            }
+
+            const imageUrl = imgData.url; // ✅ URL ကို ရပြီ
+
+            // ✅ 2. Avatar URL ကို Server က update_avatar API ကို ပို့မယ်
             const res = await fetch('/api/chat/update_avatar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                // ✅ userId မထည့်တော့ပါဘူး၊ Server က token ကနေပဲ ယူပါလိမ့်မယ်
-                body: JSON.stringify({ token: token, avatarUrl: base64 })
+                body: JSON.stringify({ token: token, avatarUrl: imageUrl }) // ✅ URL ကို ပို့မယ်
             });
             const data = await res.json();
+            
             if (data.success) {
-                document.getElementById('avatarImg').src = base64;
+                document.getElementById('avatarImg').src = imageUrl;
                 showToast('Avatar အသစ် ပြောင်းပြီးပါပြီ!');
             } else {
                 showToast(data.message || 'Avatar upload failed', true);
@@ -368,8 +385,7 @@ async function loadProfile() {
         }
     };
     reader.readAsDataURL(file);
-            }
-
+    }
         // ==================== UPDATE USERNAME ====================
         function openEditUsername() {
             document.getElementById('newUsernameInput').value = document.getElementById('usernameDisplay').textContent;
