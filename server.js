@@ -7133,12 +7133,11 @@ app.get('/api/leaderboard/weekly_top_spenders', async (req, res) => {
 // ==================== SOCKET.IO + SERVER START ====================
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { 
-        origin: '*', 
-        methods: ['GET', 'POST'],
-        credentials: true 
+    cors: {
+        origin: '*', // ✅ Render အတွက် အကုန်ခွင့်ပြု
+        methods: ['GET', 'POST']
     },
-    transports: ['polling', 'websocket'],
+    transports: ['polling', 'websocket'], // ✅ နှစ်ခုလုံး ခွင့်ပြု
     allowEIO3: true,
     pingTimeout: 60000,
     pingInterval: 25000,
