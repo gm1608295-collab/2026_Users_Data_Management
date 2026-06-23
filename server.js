@@ -348,7 +348,21 @@ async function initTables(p) {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
-        
+
+        // ========== CHAT SYSTEM ==========
+// ✅ Database အဟောင်းတွေကို ရှင်းပြီး အသစ်ဆောက်ရန် ဒီ line ကို ထည့်ပါ
+`DROP TABLE IF EXISTS chat_rooms CASCADE`,
+`DROP TABLE IF EXISTS chat_participants CASCADE`,
+`DROP TABLE IF EXISTS chat_messages CASCADE`,
+`DROP TABLE IF EXISTS message_reactions CASCADE`,
+
+`CREATE TABLE IF NOT EXISTS chat_rooms (
+    id SERIAL PRIMARY KEY, 
+    room_name VARCHAR(100) NOT NULL, 
+    room_type VARCHAR(20) DEFAULT 'private', 
+    created_by INT, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`,
         // ========== CHAT SYSTEM ==========
 `CREATE TABLE IF NOT EXISTS chat_rooms (
     id SERIAL PRIMARY KEY, 
