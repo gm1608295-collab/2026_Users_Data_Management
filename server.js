@@ -8348,17 +8348,27 @@ app.post('/api/chat/update_avatar', async (req, res) => {
         const p = await getPool();
         let uid = null;
         
+        // ✅ JWT Token စစ်ဆေး
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
                 uid = decoded.userId || decoded.id || decoded.uid;
             } catch(e) { return res.json({ success: false, message: 'Invalid session' }); }
         } 
+        // ✅ Old Token (token_123) ပုံစံ
         else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''), 10);
         }
+        // ✅ Token က Number သက်သက်ဖြစ်နေရင်
+        else if (/^\d+$/.test(token)) {
+            uid = parseInt(token, 10);
+        }
         
-        if (!uid || isNaN(uid)) return res.json({ success: false, message: 'Invalid user' });
+        // ✅ uid က NaN ဖြစ်နေရင် Error ပြန်ပို့မယ်
+        if (!uid || isNaN(uid)) {
+            console.error('[AVATAR ERROR] Invalid UID from token:', token?.substring(0, 20));
+            return res.json({ success: false, message: 'Invalid user ID' });
+        }
         
         // ✅ Table auto-create
         await p.query(`
@@ -8375,7 +8385,7 @@ app.post('/api/chat/update_avatar', async (req, res) => {
             `INSERT INTO user_avatars (user_id, avatar_url, updated_at) 
              VALUES ($1, $2, NOW()) 
              ON CONFLICT (user_id) DO UPDATE SET avatar_url = $2, updated_at = NOW()`,
-            [parseInt(uid), avatarUrl || '']
+            [uid, avatarUrl || '']
         );
         
         console.log('[AVATAR] ✅ Updated for user:', uid);
@@ -8383,7 +8393,7 @@ app.post('/api/chat/update_avatar', async (req, res) => {
         res.json({ success: true, message: 'Avatar updated!' });
         
     } catch(e) {
-        console.error('[AVATAR ERROR]', e.message, e.stack);
+        console.error('[AVATAR ERROR]', e.message);
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
