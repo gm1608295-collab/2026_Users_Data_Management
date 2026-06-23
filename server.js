@@ -8343,8 +8343,11 @@ app.post('/api/chat/update_avatar', async (req, res) => {
     
     console.log('[AVATAR] Request received:', { token: token?.substring(0, 15), avatarUrl: avatarUrl?.substring(0, 50) });
     
-    if (!token || !avatarUrl) {
-        return res.json({ success: false, message: 'Token and avatar URL required' });
+    // ❌ ဒီ line ကို ဖယ်လိုက်ပါ (Delete လုပ်ဖို့ Empty string လက်ခံအောင်)
+    // if (!token || !avatarUrl) { return res.json({ success: false, message: 'Token and avatar URL required' }); }
+    
+    if (!token) {
+        return res.json({ success: false, message: 'Token required' });
     }
     
     try {
@@ -8383,7 +8386,7 @@ app.post('/api/chat/update_avatar', async (req, res) => {
             )
         `);
         
-        // ✅ Insert or Update
+        // ✅ Insert or Update (avatarUrl က Empty ဖြစ်နေရင်လည်း DB မှာ Update လုပ်ပါမယ်)
         await p.query(
             `INSERT INTO user_avatars (user_id, avatar_url, updated_at) 
              VALUES ($1, $2, NOW()) 
