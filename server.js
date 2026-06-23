@@ -7734,11 +7734,17 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
     try {
         const p = await getPool();
         
-        // ✅ 1. Messages တွေကို ဆွဲထုတ်မယ်
-        const r = await p.query(
-            'SELECT * FROM chat_messages WHERE room_id = $1 ORDER BY id ASC LIMIT 100',
-            [roomId]
-        );
+        // ✅ 1. Messages တွေကို User Avatar နဲ့အတူ ဆွဲထုတ်မယ် (LEFT JOIN သုံးမယ်)
+        const r = await p.query(`
+            SELECT 
+                cm.*,
+                ua.avatar_url
+            FROM chat_messages cm
+            LEFT JOIN user_avatars ua ON cm.sender_id = ua.user_id
+            WHERE cm.room_id = $1
+            ORDER BY cm.id ASC
+            LIMIT 100
+        `, [roomId]);
         
         const messages = r.rows;
         
@@ -7748,7 +7754,6 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
                 'SELECT user_id, emoji FROM message_reactions WHERE message_id = $1',
                 [msg.id]
             );
-            // reactions array ကို msg object ထဲ ထည့်လိုက်မယ်
             msg.reactions = reactions.rows;
         }
         
