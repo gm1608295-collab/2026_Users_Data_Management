@@ -275,45 +275,50 @@
                 });
                 const data = await res.json();
                 
-                if (data.success) {
-                    document.getElementById('usernameDisplay').textContent = data.username || 'Unknown';
-                    document.getElementById('emailDisplay').textContent = data.email || 'No email';
-                    document.getElementById('groupCount').textContent = data.groups?.length || 0;
-                    
-                    if (data.avatar_url) {
-                        document.getElementById('avatarImg').src = data.avatar_url;
-                    }
+if (data.success) {
+    document.getElementById('usernameDisplay').textContent = data.username || 'Unknown';
+    document.getElementById('emailDisplay').textContent = data.email || 'No email';
+    document.getElementById('groupCount').textContent = data.groups?.length || 0;
+    
+    if (data.avatar_url) {
+        document.getElementById('avatarImg').src = data.avatar_url;
+    }
 
-                    // Premium Tier
-                    const tierEl = document.getElementById('premiumTierDisplay');
-                    const premiumTier = data.premium_tier || 1;
-                    if (premiumTier === 3) { tierEl.textContent = '🥇 Gold'; document.body.classList.add('gold-tier'); }
-                    else if (premiumTier === 2) { tierEl.textContent = '🥈 Silver'; document.body.classList.add('silver-tier'); }
-                    else if (premiumTier === 1) { tierEl.textContent = '🥉 Bronze'; document.body.classList.add('bronze-tier'); }
-                    else { tierEl.textContent = 'Free'; }
+    // Premium Tier
+    const tierEl = document.getElementById('premiumTierDisplay');
+    const premiumTier = data.premium_tier || 1;
+    
+    // ✅ Bronze Tier ကိုပါ သေချာအောင်ပြင်မယ်
+    if (premiumTier === 3) { 
+        tierEl.textContent = '🥇 Gold'; 
+        document.body.classList.add('gold-tier'); 
+    }
+    else if (premiumTier === 2) { 
+        tierEl.textContent = '🥈 Silver'; 
+        document.body.classList.add('silver-tier'); 
+    }
+    else if (premiumTier === 1) { 
+        tierEl.textContent = '🥉 Bronze'; 
+        document.body.classList.add('bronze-tier'); 
+    }
+    else { 
+        tierEl.textContent = 'Free'; 
+    }
 
-                    // Groups
-                    const groupsList = document.getElementById('groupsList');
-                    if (data.groups && data.groups.length > 0) {
-                        groupsList.innerHTML = data.groups.map(g => `
-                            <div class="group-item" onclick="window.location.href='/chat.html'">
-                                <div class="g-avatar">${g.room_type === 'group' ? '👥' : '💬'}</div>
-                                <div class="g-name">${escapeHtml(g.room_name)}</div>
-                                <div class="g-count">${g.member_count || 0} members</div>
-                            </div>
-                        `).join('');
-                    } else {
-                        groupsList.innerHTML = '<div style="color:rgba(255,255,255,0.2); font-size:12px; padding:10px; text-align:center;">Group မရှိသေးပါ။</div>';
-                    }
-                } else {
-                    showToast('Profile data ရယူရန် မအောင်မြင်ပါ', true);
-                }
-            } catch(e) {
-                console.error('[PROFILE ERROR]', e);
-                showToast('Server error', true);
-            }
-        }
-
+    // Groups
+    const groupsList = document.getElementById('groupsList');
+    if (data.groups && data.groups.length > 0) {
+        groupsList.innerHTML = data.groups.map(g => `
+            <div class="group-item" onclick="window.location.href='/chat.html'">
+                <div class="g-avatar">${g.room_type === 'group' ? '👥' : '💬'}</div>
+                <div class="g-name">${escapeHtml(g.room_name)}</div>
+                <div class="g-count">${g.member_count || 0} members</div>
+            </div>
+        `).join('');
+    } else {
+        groupsList.innerHTML = '<div style="color:rgba(255,255,255,0.2); font-size:12px; padding:10px; text-align:center;">Group မရှိသေးပါ။</div>';
+    }
+}
         function escapeHtml(text) {
             const d = document.createElement('div');
             d.textContent = text;
@@ -322,37 +327,40 @@
 
         // ==================== UPDATE AVATAR ====================
         async function uploadAvatar(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('File size must be less than 5MB', true);
-                return;
-            }
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('File size must be less than 5MB', true);
+        return;
+    }
 
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const base64 = e.target.result;
-                const token = getToken();
-                
-                try {
-                    const res = await fetch('/api/chat/update_avatar', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify({ userId: token, avatarUrl: base64 })
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                        document.getElementById('avatarImg').src = base64;
-                        showToast('Avatar အသစ် ပြောင်းပြီးပါပြီ!');
-                    } else {
-                        showToast(data.message || 'Avatar upload failed', true);
-                    }
-                } catch(err) {
-                    showToast('Upload error', true);
-                }
-            };
-            reader.readAsDataURL(file);
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const base64 = e.target.result;
+        const token = getToken();
+        
+        try {
+            showToast('Uploading avatar...');
+            const res = await fetch('/api/chat/update_avatar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                // ✅ userId မထည့်တော့ပါဘူး၊ Server က token ကနေပဲ ယူပါလိမ့်မယ်
+                body: JSON.stringify({ token: token, avatarUrl: base64 })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('avatarImg').src = base64;
+                showToast('Avatar အသစ် ပြောင်းပြီးပါပြီ!');
+            } else {
+                showToast(data.message || 'Avatar upload failed', true);
+            }
+        } catch(err) {
+            console.error('[UPLOAD ERROR]', err);
+            showToast('Upload error', true);
         }
+    };
+    reader.readAsDataURL(file);
+            }
 
         // ==================== UPDATE USERNAME ====================
         function openEditUsername() {
