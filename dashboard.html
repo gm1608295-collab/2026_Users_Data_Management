@@ -953,8 +953,7 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
          onerror="this.style.display='none'">
 </div>
        
-    
-<!-- ==================== SIDEBAR PROFILE (WITH COLLAPSE BUTTON) ==================== -->
+    <!-- ==================== SIDEBAR PROFILE (NO CIRCLE BORDER FOR ^ ICON) ==================== -->
 <div class="sidebar-profile" style="position:relative; text-align:center; padding:15px 15px 20px; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0; background:rgba(0,0,0,0.2); backdrop-filter:blur(4px);">
     
     <!-- ✅ 3-Dot Menu (ဘယ်ဘက်အပေါ်ထောင့်) -->
@@ -980,25 +979,30 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
         <span style="color:#f39c12; font-size:18px; font-weight:bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">?</span>
     </div>
 
-    <!-- ✅ Avatar Image Inside Frame -->
-    <div style="position:relative; display:inline-block; margin-bottom:8px;">
-        <div style="width:130px; height:130px; background-image:url('https://i.ibb.co/sp500GPF/817073600ba1f1866ec46ab803562700.jpg'); background-size:100% 100%; background-position:center; background-repeat:no-repeat; position:relative; display:flex; align-items:center; justify-content:center; border-radius:0px;">
-            <img id="sidebarAvatarImg" src="" style="width:95px; height:95px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.3); display:none; background:#0a0a1a;" onerror="this.style.display='none'; document.getElementById('sidebarAvatarText').style.display='flex';">
-            <div id="sidebarAvatarText" style="width:95px; height:95px; border-radius:50%; background:linear-gradient(135deg,#4a1c7a,#f39c12); display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; color:#fff; border:2px solid rgba(255,255,255,0.3); box-shadow:0 4px 15px rgba(0,0,0,0.5);">
-                S
+    <!-- ✅ Collapsible Content -->
+    <div id="profileCollapsibleContent">
+        
+        <!-- ✅ Avatar Image Inside Frame -->
+        <div style="position:relative; display:inline-block; margin-bottom:8px;">
+            <div style="width:130px; height:130px; background-image:url('https://i.ibb.co/sp500GPF/817073600ba1f1866ec46ab803562700.jpg'); background-size:100% 100%; background-position:center; background-repeat:no-repeat; position:relative; display:flex; align-items:center; justify-content:center; border-radius:0px;">
+                <img id="sidebarAvatarImg" src="" style="width:95px; height:95px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.3); display:none; background:#0a0a1a;" onerror="this.style.display='none'; document.getElementById('sidebarAvatarText').style.display='flex';">
+                <div id="sidebarAvatarText" style="width:95px; height:95px; border-radius:50%; background:linear-gradient(135deg,#4a1c7a,#f39c12); display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:bold; color:#fff; border:2px solid rgba(255,255,255,0.3); box-shadow:0 4px 15px rgba(0,0,0,0.5);">
+                    S
+                </div>
             </div>
         </div>
+
+        <!-- ✅ Name (အပေါ်တန်း) -->
+        <div class="sidebar-profile-name" id="sidebarName" style="color:#fff; font-size:15px; font-weight:bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">User</div>
+        
+        <!-- ✅ Email (အောက်တန်း - သီးသန့်ခွဲထား) -->
+        <div class="sidebar-profile-email" id="sidebarEmail" style="color:rgba(255,255,255,0.8); font-size:11px; word-break:break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">user@mlbb.com</div>
+
     </div>
 
-    <!-- ✅ Name (အပေါ်တန်း) -->
-    <div class="sidebar-profile-name" id="sidebarName" style="color:#fff; font-size:15px; font-weight:bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">User</div>
-    
-    <!-- ✅ Email + ^ Collapse Button (အောက်တန်းမှာ အတူတူထား) -->
-    <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:2px;">
-        <div class="sidebar-profile-email" id="sidebarEmail" style="color:rgba(255,255,255,0.8); font-size:11px; word-break:break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">user@mlbb.com</div>
-        
-        <!-- ✅ ^ Collapse Button (Email ရဲ့ ညာဘက်မှာ) -->
-        <div onclick="toggleProfileCollapse()" style="width:28px; height:28px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; color:rgba(255,255,255,0.5); font-size:14px; flex-shrink:0;">
+    <!-- ✅ ^ Collapse Button (အဝိုင်းဘောင်၊ နောက်ခံမပါ၊ Icon သက်သက်) -->
+    <div style="display:flex; align-items:center; justify-content:center; margin-top:6px;">
+        <div onclick="toggleProfileCollapse()" style="cursor:pointer; transition:all 0.2s; color:rgba(255,255,255,0.5); font-size:14px; padding:2px;">
             <i class="fas fa-chevron-up" id="profileCollapseIcon"></i>
         </div>
     </div>
@@ -1256,13 +1260,6 @@ setTimeout(() => {
     checkForceUpdate();
 }, 1000);
 
-    function openSidebar() {
-    const u = JSON.parse(localStorage.getItem('user') || '{}');
-    
-    // Update Name & Email
-    document.getElementById("sidebarName").textContent = u.username || 'User';
-    document.getElementById("sidebarEmail").textContent = u.email || 'user@mlbb.com';
-    
     // ✅ Load Profile Photo
     const savedPhoto = localStorage.getItem('profilePhoto_' + u.id);
     const img = document.getElementById('sidebarAvatarImg');
@@ -1290,14 +1287,12 @@ function toggleProfileMenu() {
     menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 }
 
-    // ✅ Profile Collapse / Expand Function
+// ✅ Profile Collapse / Expand Function
 function toggleProfileCollapse() {
-    // 💡 သတိပြုရန်: ဒီ content ID က သင့် HTML ထဲမှာ ရှိနေဖို့ လိုပါတယ်။ 
-    // အကယ်၍ မရှိသေးရင် Avatar, Name, Email တွေကို <div id="profileCollapsibleContent"> ထဲ ထည့်ပေးရပါမယ်။
     const content = document.getElementById('profileCollapsibleContent');
     const icon = document.getElementById('profileCollapseIcon');
     
-    if (!content) return; // content မရှိရင် ဘာမှမလုပ်ပါနဲ့
+    if (!content) return; // မရှိရင် ဘာမှမလုပ်ပါနဲ့
     
     if (content.style.display === 'none') {
         content.style.display = 'block';
@@ -1305,6 +1300,43 @@ function toggleProfileCollapse() {
     } else {
         content.style.display = 'none';
         icon.className = 'fas fa-chevron-down';
+    }
+}
+
+// ✅ Open Sidebar Function (အသစ်)
+function openSidebar() {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    // Update Name & Email
+    document.getElementById("sidebarName").textContent = u.username || 'User';
+    document.getElementById("sidebarEmail").textContent = u.email || 'user@mlbb.com';
+    
+    // Load Profile Photo
+    const savedPhoto = localStorage.getItem('profilePhoto_' + u.id);
+    const img = document.getElementById('sidebarAvatarImg');
+    const textAvatar = document.getElementById('sidebarAvatarText');
+    
+    if (savedPhoto) {
+        img.src = savedPhoto;
+        img.style.display = 'block';
+        textAvatar.style.display = 'none';
+        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    } else {
+        img.style.display = 'none';
+        textAvatar.style.display = 'flex';
+        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    }
+    
+    document.getElementById("sidebarPanel").classList.add("active");
+    document.getElementById("sidebarOverlay").classList.add("active");
+    document.body.style.overflow = 'hidden';
+    
+    // ✅ Profile ကို ပုံမှန်အတိုင်း ဖွင့်ထားမယ်
+    const content = document.getElementById('profileCollapsibleContent');
+    const icon = document.getElementById('profileCollapseIcon');
+    if (content) {
+        content.style.display = 'block';
+        icon.className = 'fas fa-chevron-up';
     }
 }
     
