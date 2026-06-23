@@ -363,7 +363,10 @@ async function initTables(p) {
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     PRIMARY KEY (room_id, user_id)
 )`,
-// ဒီ query ကို အစားထိုးပါ
+// ❌ အခုရှိနေတဲ့ Code (ဒီဟာက Error ဖြစ်စေတယ်)
+// `CREATE TABLE IF NOT EXISTS chat_messages ( ... sender_premium_tier INT DEFAULT 0, // ✅ ဒီစာကြောင်းကို ထည့်ပါ ... )`,
+
+// ✅ ဒီအတိုင်း ပြင်ပါ (Comment အတွက် `//` အစား `--` သုံးပါ သို့မဟုတ် Comment ကိုဖယ်ပါ)
 `CREATE TABLE IF NOT EXISTS chat_messages (
     id SERIAL PRIMARY KEY, 
     room_id INT NOT NULL, 
@@ -371,7 +374,7 @@ async function initTables(p) {
     username VARCHAR(100), 
     message TEXT, 
     is_read BOOLEAN DEFAULT false, 
-    sender_premium_tier INT DEFAULT 0,  // ✅ ဒီစာကြောင်းကို ထည့်ပါ
+    sender_premium_tier INT DEFAULT 0, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
 `CREATE TABLE IF NOT EXISTS chat_online_users (
@@ -7480,14 +7483,41 @@ app.post('/api/admin/revoke_chat_premium', async (req, res) => {
     }
 });
 // ==================== CHAT API ROUTES ====================
-
-// Get current user
 app.post('/api/chat/current_user', async (req, res) => {
     const { token } = req.body;
     if (!token || token === 'guest') return res.json({ success: false });
+    
     try {
         const p = await getPool();
-        const uid = parseInt(token.replace('token_', ''));
+        let uid = null;
+        
+        // ✅ JWT Token ဖြစ်ရင် စစ်ပါ (eyJ နဲ့ စတယ်ဆိုရင်)
+        if (token.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                uid = decoded.userId || decoded.id || decoded.uid;
+            } catch(e) {
+                return res.json({ success: false });
+            }
+        } 
+        // ✅ Old Token Format (token_xxx) ဖြစ်ရင်
+        else if (token.startsWith('token_')) {
+            const uidStr = token.replace('token_', ''); // "token_123" -> "123"
+            if (/^\d+$/.test(uidStr)) { // ဂဏန်းသက်သက်ဖြစ်မဖြစ်စစ်
+                uid = parseInt(uidStr, 10);
+            }
+        } 
+        // ✅ Direct Numeric (ပုံမှန်မဟုတ်ရင်)
+        else if (/^\d+$/.test(token)) {
+            uid = parseInt(token, 10);
+        }
+        
+        // ✅ uid က NaN ဖြစ်နေရင် fail ပြန်ပို့ပါ
+        if (!uid || isNaN(uid)) {
+            console.error('[CURRENT USER ERROR] Invalid UID from token:', token?.substring(0, 20));
+            return res.json({ success: false });
+        }
+        
         const r = await p.query('SELECT id, username, email FROM auth_users WHERE id=$1', [uid]);
         if (r.rows.length > 0) {
             res.json({ success: true, user: r.rows[0] });
