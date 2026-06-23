@@ -1823,11 +1823,13 @@ async function loadRooms() {
         const c = document.getElementById('roomList');
         if (d.rooms && d.rooms.length > 0) {
             c.innerHTML = d.rooms.map(room => {
+                // Avatar ကို Cache မှမယူအောင် `?t=` ထည့်ပြီး ပြပါ
+                let avatarSrc = room.avatar_url ? room.avatar_url + '?t=' + Date.now() : '';
                 let av = `<div class="tg-avatar" style="background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:18px; color:rgba(255,255,255,0.3);">
                     ${room.room_type === 'admin' ? '👑' : room.room_type === 'group' ? '👥' : '💬'}
                 </div>`;
-                if (room.avatar_url) {
-                    av = `<img src="${room.avatar_url}" class="tg-avatar" onerror="this.style.display='none'; this.parentElement.innerHTML='${av}'">`;
+                if (avatarSrc) {
+                    av = `<img src="${avatarSrc}" class="tg-avatar" onerror="this.style.display='none'; this.parentElement.innerHTML='${av}'">`;
                 }
                 return `<div class="tg-room" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')">
                     ${av}
@@ -1846,7 +1848,6 @@ async function loadRooms() {
         document.getElementById('roomList').innerHTML = '<div class="empty-state">Error loading rooms</div>';
     }
 }
-
 async function loadUsersList() {
     if (!currentUser) return;
     try {
@@ -1984,20 +1985,17 @@ async function openRoom(rid, rn, rt) {
     
     let av = '';
     if (!isMine) {
-        av = msg.avatar_url ? `<img src="${msg.avatar_url}" class="msg-avatar-xs" onerror="this.style.display='none'">` : `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
+        // ✅ Chat Message Avatar ကိုလည်း Cache ရှင်းဖို့ `?t=` ထည့်ပါ
+        const avatarUrl = msg.avatar_url ? msg.avatar_url + '?t=' + Date.now() : '';
+        av = avatarUrl ? `<img src="${avatarUrl}" class="msg-avatar-xs" onerror="this.style.display='none'">` : `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
     }
     
     let seenHtml = '';
     if (isMine) {
         if (msg.is_read) {
-            // Server က read_at ကို မပေးသေးရင် fallback
             const seenAt = msg.read_at ? new Date(msg.read_at) : new Date();
-            // Server Timezone (Asia/Yangon) နဲ့ Format ချမယ်
             const seenTimeStr = seenAt.toLocaleTimeString('en-GB', { 
-                hour12: true, 
-                hour: '2-digit', 
-                minute: '2-digit',
-                timeZone: 'Asia/Yangon'
+                hour12: true, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon'
             });
             seenHtml = `<span style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${seenTimeStr}">✓✓</span>`;
         } else {
@@ -2013,7 +2011,6 @@ async function openRoom(rid, rn, rt) {
             grouped[r.emoji].count++;
             grouped[r.emoji].users.push(r.user_id);
         });
-        
         reactionsHtml = `<div class="msg-reactions">`;
         for (const [emoji, data] of Object.entries(grouped)) {
             const isMineReact = data.users.includes(currentUser?.id);
@@ -2022,23 +2019,10 @@ async function openRoom(rid, rn, rt) {
         reactionsHtml += `</div>`;
     }
 
-    // ✅ ဒီနေရာမှာ သေချာ Format ချပြီး ပြမယ်။
-    // Server က ပို့လာတဲ့ created_at ကို UTC အဖြစ် ယူပြီး Asia/Yangon အချိန်ကို တွက်မယ်။
-    // JavaScript ရဲ့ toLocaleTimeString ကို timeZone နဲ့ သုံးလိုက်ရင် သင့်ဖုန်းအချိန်ကို မူတည်မပြဘဲ၊ Server အချိန်ကို တွက်ပြပါလိမ့်မယ်။
     const msgDate = new Date(msg.created_at);
-    let timeString = msgDate.toLocaleTimeString('en-GB', { 
-        hour12: true, 
-        hour: '2-digit', 
-        minute: '2-digit',
-        timeZone: 'Asia/Yangon' 
+    const timeString = msgDate.toLocaleTimeString('en-GB', { 
+        hour12: true, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon' 
     });
-
-    // ✅ အကယ်၍ Browser က timeZone ကို မတွက်နိုင်ရင် Fallback အနေနဲ့ UTC+6:30 ကို တိုက်ရိုက် တွက်မယ်
-    if (timeString === 'Invalid Date' || !timeString) {
-        const utcTime = msgDate.getTime() + (msgDate.getTimezoneOffset() * 60000);
-        const yangonTime = new Date(utcTime + (6.5 * 3600000));
-        timeString = yangonTime.toLocaleTimeString('en-GB', { hour12: true, hour: '2-digit', minute: '2-digit' });
-    }
 
     d.innerHTML = `
         ${av}
