@@ -1147,30 +1147,18 @@
     border-color: var(--gold);
     background: rgba(243, 156, 18, 0.1);
 }
-.reaction-picker {
-    position: fixed;
-    background: #1a1f4b;
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px;
-    padding: 10px 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    z-index: 5000;
-    display: none;
-    gap: 6px;
-    flex-wrap: wrap;
-    max-width: 200px;
-}
-.reaction-picker span {
-    font-size: 22px;
+.reaction-picker-grid-item {
+    font-size: 28px;
+    text-align: center;
     cursor: pointer;
-    padding: 4px;
-    border-radius: 50%;
+    padding: 6px 0;
+    border-radius: 8px;
     transition: 0.15s;
 }
-.reaction-picker span:hover {
-    transform: scale(1.3);
-    background: rgba(255,255,255,0.05);
-}
+.reaction-picker-grid-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.2);
+    }
 </style>
 </head>
 <body class="normal-theme">
@@ -1280,9 +1268,16 @@
         </div>
     </div>
 </div>
-    <!-- Reaction Picker -->
-<div class="reaction-picker" id="reactionPicker">
-    ${EMOJI_REACTIONS.map(e => `<span onclick="handleReactionClick(${activeReactionMsgId}, '${e}')">${e}</span>`).join('')}
+   
+    <!-- Reaction Picker (Modal Style) -->
+<div class="reaction-picker-overlay" id="reactionPickerOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:5000;background:rgba(0,0,0,0.4);backdrop-filter:blur(2px);" onclick="closeReactionPicker(event)">
+    <div class="reaction-picker-box" style="position:absolute;background:#1a1f4b;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:12px;box-shadow:0 10px 40px rgba(0,0,0,0.7);width:90%;max-width:350px;max-height:60vh;overflow-y:auto;" onclick="event.stopPropagation()">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:6px;">
+            <span style="font-size:12px;font-weight:600;color:var(--gold);">Select Reaction</span>
+            <span onclick="closeReactionPicker(event)" style="cursor:pointer;color:rgba(255,255,255,0.3);font-size:14px;"><i class="fas fa-times"></i></span>
+        </div>
+        <div id="reactionPickerGrid" style="display:grid;grid-template-columns:repeat(7, 1fr);gap:6px;padding:4px 0;"></div>
+    </div>
 </div>
 <script>
 // ==================== AUDIO EFFECTS ====================
@@ -1659,10 +1654,8 @@ async function getCurrentUser() {
     return null;
     }
 
-function initSocket() {
-    // ✅ Socket URL ကို သေချာစေပါ
+    function initSocket() {
     const socketUrl = window.location.protocol + '//' + window.location.host;
-    
     socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
         reconnection: true,
@@ -1676,8 +1669,6 @@ function initSocket() {
     
     socket.on('connect', function() {
         console.log('[SOCKET] Connected!');
-        
-        // ✅ User Online Event ကို သေချာပို့ပါ
         if (currentUser) {
             socket.emit('user_online', {
                 userId: currentUser.id,
@@ -1688,16 +1679,14 @@ function initSocket() {
         }
     });
     
-    socket.on('disconnect', function(reason) {
-        console.log('[SOCKET] Disconnected:', reason);
-    });
+    socket.on('disconnect', function(reason) { console.log('[SOCKET] Disconnected:', reason); });
     
     socket.on('new_message', function(msg) {
         if (currentRoom === msg.roomId) {
             addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
             scrollToBottom();
         }
-        loadRooms(); // အခန်းစာရင်း Update လုပ်ရန်
+        loadRooms();
     });
     
     socket.on('online_users', function(u) {
@@ -1711,9 +1700,7 @@ function initSocket() {
             ind.style.display = 'block';
             ind.innerHTML = '<i class="fas fa-ellipsis-h"></i> ' + escapeHtml(d.username) + ' typing...';
             clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(function() {
-                ind.style.display = 'none';
-            }, 2000);
+            typingTimeout = setTimeout(function() { ind.style.display = 'none'; }, 2000);
         }
     });
     
@@ -1729,7 +1716,7 @@ function initSocket() {
         }
     });
 
-    // ✅ Reaction Events နှစ်ခုကို ဒီနေရာမှာ သေချာထည့်ပါ
+    // ✅ Reaction Events ကို Function ထဲမှာပဲ ထားပါ။
     socket.on('message_reacted', function(data) {
         if (currentRoom) {
             fetch(`/api/chat/messages/${currentRoom}`).then(r => r.json()).then(d => {
@@ -1756,7 +1743,6 @@ function initSocket() {
         }
     });
     
-    // ✅ ဒီ Event သုံးခုကို function ထဲမှာ ပြန်ထည့်ထားပါတယ်။
     socket.on('message_edited', function(msg) {
         if (currentRoom === msg.room_id) {
             var row = document.querySelector('.msg-row[data-msg-id="' + msg.id + '"]');
@@ -1780,12 +1766,10 @@ function initSocket() {
         }
     });
     
-    socket.on('group_updated', function() {
-        loadRooms();
-    });
+    socket.on('group_updated', function() { loadRooms(); });
     
     console.log('[SOCKET] ✅ Listener registered');
-}
+    }
 // ==================== TABS ====================
 function switchTab(t) {
     document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(x => x.classList.remove('active'));
@@ -1952,8 +1936,10 @@ async function openRoom(rid, rn, rt) {
 function addMessageToUI(msg, isMine, spt) {
     spt = spt || 0;
     const c = document.getElementById('messages');
+    // Clear placeholder if needed
     if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) c.innerHTML = '';
     
+    // Process message content
     let mh = '';
     const mt = msg.message || '';
     if (mt.startsWith('📷 IMAGE:')) {
@@ -1965,30 +1951,34 @@ function addMessageToUI(msg, isMine, spt) {
         mh = escapeHtml(mt);
     }
     
+    // Create message row
     const d = document.createElement('div');
     d.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
     if (msg.id) d.setAttribute('data-msg-id', msg.id);
     
+    // Premium theme bubble
     let bc = 'normal-tier';
     if (spt === 1) bc = 'bronze-tier';
     else if (spt === 2) bc = 'silver-tier';
     else if (spt === 3) bc = 'gold-tier';
     
+    // Avatar for other users
     let av = '';
     if (!isMine) {
         av = msg.avatar_url ? `<img src="${msg.avatar_url}" class="msg-avatar-xs" onerror="this.style.display='none'">` : `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
     }
     
+    // Seen status
     let seenHtml = '';
     if (isMine) {
         if (msg.is_read) seenHtml = '<span style="color:#2ecc71;font-size:9px;margin-left:3px">✓✓</span>';
         else seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
     }
 
-    // ✅ Reaction UI ထည့်ရန်
+    // ========== ✅ REACTION UI BUILD ==========
     let reactionsHtml = '';
     if (msg.reactions && msg.reactions.length > 0) {
-        // Reaction တွေကို စုစည်းပြီး ဖော်ပြမယ်
+        // Group reactions by emoji
         const grouped = {};
         msg.reactions.forEach(r => {
             if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, users: [] };
@@ -2003,8 +1993,9 @@ function addMessageToUI(msg, isMine, spt) {
         }
         reactionsHtml += `</div>`;
     }
+    // =========================================
 
-    // ✅ Message Container
+    // Build full message
     d.innerHTML = `
         ${av}
         <div class="msg-bubble ${bc}" onclick="openReactionPicker(${msg.id}, event)">
@@ -2313,34 +2304,45 @@ async function checkPageAccess() {
     } catch(e) { return true; }
 }
 // ==================== REACTION SYSTEM ====================
-const EMOJI_REACTIONS = ['❤️', '😂', '😍', '🔥', '👍', '😮', '😢', '😡'];
-
 let activeReactionMsgId = null;
 
 function openReactionPicker(msgId, event) {
     activeReactionMsgId = msgId;
-    const picker = document.getElementById('reactionPicker');
+    const overlay = document.getElementById('reactionPickerOverlay');
+    const box = overlay.querySelector('.reaction-picker-box');
+    const grid = document.getElementById('reactionPickerGrid');
+    
+    // 1. Emoji Grid ကို ပြန်တည်ဆောက်ပါ (EMOJI_CATS အကုန်သုံးမယ်)
+    grid.innerHTML = '';
+    for (const category of Object.values(EMOJI_CATS)) {
+        category.forEach(emoji => {
+            const el = document.createElement('span');
+            el.className = 'reaction-picker-grid-item';
+            el.textContent = emoji;
+            el.onclick = () => handleReactionClick(activeReactionMsgId, emoji);
+            grid.appendChild(el);
+        });
+    }
+
+    // 2. Picker ကို Message ဘေးမှာ နေရာချပါ
     const rect = event.currentTarget.getBoundingClientRect();
+    let leftPos = rect.left + rect.width/2 - 175;
+    let topPos = rect.top - 200;
+    if (leftPos < 10) leftPos = 10;
+    if (leftPos + 350 > window.innerWidth) leftPos = window.innerWidth - 360;
+    if (topPos < 10) topPos = rect.bottom + 10;
     
-    // Picker ကို Message Bubble အနားမှာ နေရာချမယ်
-    picker.style.left = Math.min(rect.left + rect.width - 180, window.innerWidth - 200) + 'px';
-    picker.style.top = (rect.top - 40) + 'px';
-    picker.style.display = 'flex';
-    
-    // ပြင်ပကိုနှိပ်ရင် ပိတ်သွားအောင်
-    setTimeout(() => {
-        document.addEventListener('click', closeReactionPicker, { once: true });
-    }, 100);
+    box.style.left = leftPos + 'px';
+    box.style.top = topPos + 'px';
+    overlay.style.display = 'block';
 }
 
 function closeReactionPicker(e) {
-    const picker = document.getElementById('reactionPicker');
-    if (e && e.target.closest('.reaction-picker')) return;
-    picker.style.display = 'none';
+    if (e && e.target.closest('.reaction-picker-box')) return;
+    document.getElementById('reactionPickerOverlay').style.display = 'none';
 }
 
 async function toggleReaction(msgId, emoji) {
-    // 🟢 Reaction ပေးရန်
     try {
         const token = localStorage.getItem('auth_token');
         await fetch('/api/chat/react', {
@@ -2348,7 +2350,6 @@ async function toggleReaction(msgId, emoji) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token, messageId: msgId, emoji: emoji })
         });
-        // UI ပြန်တင်ရန် မလိုပါ၊ Socket က update လုပ်ပေးပါလိမ့်မယ်
     } catch(e) {
         showToast('Error reacting', true);
     }
@@ -2358,38 +2359,6 @@ async function handleReactionClick(msgId, emoji) {
     closeReactionPicker();
     await toggleReaction(msgId, emoji);
 }
-
-// ✅ Socket Events ထဲ ဒီနှစ်ခုကို ထည့်ပါ (initSocket() ထဲက socket.on list ထဲမှာ)
-// `socket.on('new_message', ...)` အောက်မှာ ဒါတွေကို ထည့်ပါ။
-socket.on('message_reacted', function(data) {
-    // UI ကို Refresh လုပ်ရန် (သို့) အလွယ်ဆုံးကတော့ Room ကို ပြန်ယူတာပါပဲ
-    if (currentRoom) {
-        // Message list ကို ပြန်ဆွဲထုတ်မယ် (သို့) DOM ကိုတိုက်ရိုက်ပြင်မယ်။
-        // ဒီနေရာမှာ အလွယ်ဆုံးကတော့ messages ကို ပြန်ယူတာပါ။
-        fetch(`/api/chat/messages/${currentRoom}`).then(r => r.json()).then(d => {
-            const mc = document.getElementById('messages');
-            mc.innerHTML = '';
-            if(d.messages && d.messages.length) {
-                d.messages.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
-                scrollToBottom();
-            }
-        });
-    }
-});
-
-socket.on('message_unreacted', function(data) {
-    // Reaction ဖျက်လိုက်ရင် UI ပြန်တင်ရန်
-    if (currentRoom) {
-        fetch(`/api/chat/messages/${currentRoom}`).then(r => r.json()).then(d => {
-            const mc = document.getElementById('messages');
-            mc.innerHTML = '';
-            if(d.messages && d.messages.length) {
-                d.messages.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
-                scrollToBottom();
-            }
-        });
-    }
-});
     
 // ==================== INIT ====================
 async function init() {
