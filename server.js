@@ -7146,14 +7146,15 @@ app.get('/api/leaderboard/weekly_top_spenders', async (req, res) => {
         res.json({ success: false, leaders: [] });
     }
 });
+
 // ==================== SOCKET.IO + SERVER START ====================
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: '*', // ✅ Render အတွက် အကုန်ခွင့်ပြု
+        origin: '*',
         methods: ['GET', 'POST']
     },
-    transports: ['polling', 'websocket'], // ✅ နှစ်ခုလုံး ခွင့်ပြု
+    transports: ['polling', 'websocket'],
     allowEIO3: true,
     pingTimeout: 60000,
     pingInterval: 25000,
@@ -7167,6 +7168,7 @@ const onlineUsersMap = new Map();
 io.on('connection', (socket) => {
     console.log('✅ User connected:', socket.id);
     
+    // ========== USER ONLINE ==========
     socket.on('user_online', async (data) => {
         socket.userId = data.userId;
         socket.username = data.username;
@@ -7195,6 +7197,7 @@ io.on('connection', (socket) => {
         io.emit('online_users', onlineList);
     });
     
+    // ========== JOIN ROOM ==========
     socket.on('join_room', (roomId) => {
         if (roomId) {
             socket.join('room_' + roomId);
@@ -7202,7 +7205,7 @@ io.on('connection', (socket) => {
         }
     });
     
-    // ========== SEND MESSAGE (WITH PREMIUM TIER) ==========
+    // ========== SEND MESSAGE ==========
     socket.on('send_message', async (data) => {
         const { roomId, message, userId, username, senderPremiumTier } = data;
         
@@ -7228,10 +7231,10 @@ io.on('connection', (socket) => {
                 return;
             }
             
-            // Save message to database with sender_premium_tier
+            // Save message to database
             const result = await p.query(
                 `INSERT INTO chat_messages (room_id, sender_id, username, message, sender_premium_tier, created_at) 
-                 VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id`,
+                 VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, created_at`,
                 [roomId, userId, username, message, senderPremiumTier || 0]
             );
             
@@ -7242,10 +7245,10 @@ io.on('connection', (socket) => {
                 username: username,
                 message: message,
                 sender_premium_tier: senderPremiumTier || 0,
-                created_at: new Date().toISOString()
+                created_at: result.rows[0].created_at
             };
             
-            // Send to room
+            // Send to room (Broadcast)
             io.to('room_' + roomId).emit('new_message', msgData);
             console.log('✅ Message sent to room:', roomId);
             
@@ -7255,13 +7258,28 @@ io.on('connection', (socket) => {
         }
     });
     
+    // ========== TYPING INDICATOR ==========
     socket.on('typing', (data) => {
         const { roomId, userId, username } = data;
-        if (roomId && userId) {
-            socket.to('room_' + roomId).emit('user_typing', { userId, username, roomId });
-        }
+        // Room ထဲက မိမိကိုယ်တိုင်မှလွဲ၍ ကျန်သူများဆီသို့ typing အချက်ပြပို့ပါ
+        socket.to('room_' + roomId).emit('user_typing', {
+            roomId: roomId,
+            userId: userId,
+            username: username
+        });
     });
     
+    // ========== EDIT / DELETE MESSAGE ==========
+    socket.on('edit_message', async (data) => {
+        // (Optional: Server မှာ edit လုပ်ဖို့အတွက် API ကို သုံးနိုင်ပြီး၊ Socket မှတဆင့် အခြားသူများဆီ Update ပို့ရန်)
+        io.to('room_' + data.roomId).emit('message_edited', data);
+    });
+    
+    socket.on('delete_message', async (data) => {
+        io.to('room_' + data.roomId).emit('message_deleted', data);
+    });
+    
+    // ========== DISCONNECT ==========
     socket.on('disconnect', async () => {
         if (socket.userId) {
             onlineUsersMap.delete(socket.userId);
