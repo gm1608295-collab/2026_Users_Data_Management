@@ -7202,7 +7202,6 @@ io.on('connection', (socket) => {
             console.log('📌 User joined room:', roomId);
         }
     });
-    
     // ========== SEND MESSAGE ==========
 socket.on('send_message', async (data) => {
     const { roomId, message, userId, username, senderPremiumTier } = data;
@@ -7236,6 +7235,13 @@ socket.on('send_message', async (data) => {
             [roomId, userId, username, message, senderPremiumTier || 0]
         );
         
+        // ✅ User Avatar ကို ရှာမယ်
+        const avatarResult = await p.query(
+            'SELECT avatar_url FROM user_avatars WHERE user_id = $1',
+            [userId]
+        );
+        const avatarUrl = avatarResult.rows.length > 0 ? avatarResult.rows[0].avatar_url : null;
+
         const msgData = {
             id: result.rows[0].id,
             roomId: roomId,
@@ -7243,7 +7249,8 @@ socket.on('send_message', async (data) => {
             username: username,
             message: message,
             sender_premium_tier: senderPremiumTier || 0,
-            created_at: result.rows[0].created_at
+            created_at: result.rows[0].created_at,
+            avatar_url: avatarUrl // ✅ Avatar ကို ထည့်ပေးလိုက်ပါ
         };
         
         // Send to room (Broadcast)
@@ -7255,7 +7262,6 @@ socket.on('send_message', async (data) => {
         socket.emit('error', { message: 'Failed to send message' });
     }
 });
-    
     // ========== TYPING INDICATOR ==========
     socket.on('typing', (data) => {
         const { roomId, userId, username } = data;
