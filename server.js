@@ -7714,11 +7714,26 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
     const { roomId } = req.params;
     try {
         const p = await getPool();
+        
+        // ✅ 1. Messages တွေကို ဆွဲထုတ်မယ်
         const r = await p.query(
             'SELECT * FROM chat_messages WHERE room_id = $1 ORDER BY id ASC LIMIT 100',
             [roomId]
         );
-        res.json({ messages: r.rows });
+        
+        const messages = r.rows;
+        
+        // ✅ 2. Message တစ်ခုချင်းစီအတွက် Reactions တွေကို ဆွဲထုတ်ပြီး ထည့်ပေးမယ်
+        for (let msg of messages) {
+            const reactions = await p.query(
+                'SELECT user_id, emoji FROM message_reactions WHERE message_id = $1',
+                [msg.id]
+            );
+            // reactions array ကို msg object ထဲ ထည့်လိုက်မယ်
+            msg.reactions = reactions.rows;
+        }
+        
+        res.json({ messages });
     } catch(e) { 
         console.error('[MESSAGES ERROR]', e.message);
         res.json({ messages: [] }); 
