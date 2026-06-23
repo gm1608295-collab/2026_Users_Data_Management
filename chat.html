@@ -1936,10 +1936,8 @@ async function openRoom(rid, rn, rt) {
     function addMessageToUI(msg, isMine, spt) {
     spt = spt || 0;
     const c = document.getElementById('messages');
-    // Clear placeholder if needed
     if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) c.innerHTML = '';
     
-    // Process message content
     let mh = '';
     const mt = msg.message || '';
     if (mt.startsWith('📷 IMAGE:')) {
@@ -1951,34 +1949,29 @@ async function openRoom(rid, rn, rt) {
         mh = escapeHtml(mt);
     }
     
-    // Create message row
     const d = document.createElement('div');
     d.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
     if (msg.id) d.setAttribute('data-msg-id', msg.id);
     
-    // Premium theme bubble
     let bc = 'normal-tier';
     if (spt === 1) bc = 'bronze-tier';
     else if (spt === 2) bc = 'silver-tier';
     else if (spt === 3) bc = 'gold-tier';
     
-    // Avatar for other users
     let av = '';
     if (!isMine) {
         av = msg.avatar_url ? `<img src="${msg.avatar_url}" class="msg-avatar-xs" onerror="this.style.display='none'">` : `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
     }
     
-    // Seen status
     let seenHtml = '';
     if (isMine) {
         if (msg.is_read) seenHtml = '<span style="color:#2ecc71;font-size:9px;margin-left:3px">✓✓</span>';
         else seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
     }
 
-    // ========== ✅ REACTION UI BUILD ==========
+    // ========== Reaction UI BUILD (Toggle အတွက် event ထည့်ထားပါတယ်) ==========
     let reactionsHtml = '';
     if (msg.reactions && msg.reactions.length > 0) {
-        // Group reactions by emoji
         const grouped = {};
         msg.reactions.forEach(r => {
             if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, users: [] };
@@ -1989,13 +1982,13 @@ async function openRoom(rid, rn, rt) {
         reactionsHtml = `<div class="msg-reactions">`;
         for (const [emoji, data] of Object.entries(grouped)) {
             const isMineReact = data.users.includes(currentUser?.id);
-            reactionsHtml += `<span class="reaction-badge ${isMineReact ? 'mine' : ''}" onclick="event.stopPropagation(); toggleReaction(${msg.id}, '${emoji}')">${emoji} ${data.count}</span>`;
+            // ✅ onclick မှာ event ကို သေချာထည့်ထားပါတယ်
+            reactionsHtml += `<span class="reaction-badge ${isMineReact ? 'mine' : ''}" onclick="toggleReaction(${msg.id}, '${emoji}', event)">${emoji} ${data.count}</span>`;
         }
         reactionsHtml += `</div>`;
     }
-    // =========================================
 
-    // Build full message
+    // Build message container (Bubble အပြင်ဘက်မှာ click event ထားမယ်)
     d.innerHTML = `
         ${av}
         <div class="msg-bubble ${bc}">
@@ -2006,12 +1999,9 @@ async function openRoom(rid, rn, rt) {
         </div>
     `;
 
-    // ✅ Bubble တစ်ခုလုံးကို နှိပ်ရင် Reaction Picker ပေါ်လာအောင် event listener ထည့်မယ်
-    // Media (image/file) ကိုနှိပ်ရင် ဒီ event က run မှာမဟုတ်ဘူး (stopPropagation ကြောင့်)
+    // Bubble တစ်ခုလုံးကို နှိပ်ရင် Reaction Picker ပေါ်လာအောင်
     d.querySelector('.msg-bubble').addEventListener('click', function(e) {
-        // Media ပေါ်မှာနှိပ်ရင် reaction picker မပေါ်ပါဘူး
-        if (!e.target.closest('.media-message') && !e.target.closest('.file-message')) {
-            // ✅ event object ကို သေချာပေးလိုက်ပါ
+        if (!e.target.closest('.media-message') && !e.target.closest('.file-message') && !e.target.closest('.reaction-badge')) {
             openReactionPicker(msg.id, e);
         }
     });
@@ -2323,20 +2313,20 @@ function openReactionPicker(msgId, event) {
     const box = overlay.querySelector('.reaction-picker-box');
     const grid = document.getElementById('reactionPickerGrid');
     
-    // 1. Emoji Grid ကို ပြန်တည်ဆောက်ပါ (EMOJI_CATS အကုန်သုံးမယ်)
     grid.innerHTML = '';
     for (const category of Object.values(EMOJI_CATS)) {
         category.forEach(emoji => {
             const el = document.createElement('span');
             el.className = 'reaction-picker-grid-item';
             el.textContent = emoji;
-            el.onclick = () => handleReactionClick(activeReactionMsgId, emoji);
+            el.onclick = () => {
+                closeReactionPicker();
+                toggleReaction(activeReactionMsgId, emoji, { target: null }); // event မလိုအပ်တဲ့အတွက် dummy ပေးလိုက်မယ်
+            };
             grid.appendChild(el);
         });
     }
 
-    // 2. Picker ကို Message ဘေးမှာ နေရာချပါ
-    // event.currentTarget က နှိပ်လိုက်တဲ့ msg-bubble ဖြစ်ပါလိမ့်မယ်
     const rect = event.currentTarget.getBoundingClientRect();
     let leftPos = rect.left + rect.width/2 - 175;
     let topPos = rect.top - 200;
@@ -2354,18 +2344,65 @@ function closeReactionPicker(e) {
     document.getElementById('reactionPickerOverlay').style.display = 'none';
 }
 
-async function toggleReaction(msgId, emoji) {
+async function toggleReaction(msgId, emoji, event) {
     try {
         const token = localStorage.getItem('auth_token');
-        await fetch('/api/chat/react', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, messageId: msgId, emoji: emoji })
-        });
+        const badge = event.target.closest('.reaction-badge');
+        const isMine = badge && badge.classList.contains('mine');
+
+        if (isMine) {
+            // ✅ 1. မိမိတင်ထားတဲ့ Emoji ကို ပြန်နှိပ်ရင် -> ဖျက်မယ် (Unreact)
+            const res = await fetch('/api/chat/unreact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, messageId: msgId })
+            });
+            
+            if (res.ok) {
+                // UI ပေါ်က Badge ကို ချက်ချင်း ပြင်မယ် (Refresh မလိုအောင်)
+                if (badge) {
+                    let count = parseInt(badge.textContent.split(' ')[1]); // ဂဏန်းကို ထုတ်ယူ
+                    if (count > 1) {
+                        // တစ်ယောက်ထက်ပိုရှိရင် ကိန်းဂဏန်းကို လျှော့ပြီး mine class ဖယ်မယ်
+                        badge.textContent = `${emoji} ${count - 1}`;
+                        badge.classList.remove('mine');
+                    } else {
+                        // ကိုယ်တစ်ယောက်တည်းဆိုရင် Badge ကိုပဲ ဖျက်ပစ်မယ်
+                        badge.remove();
+                        // Reactions container မှာ ဘာမှမရှိတော့ရင် container ကိုဖျက်မယ်
+                        const container = document.querySelector(`.msg-row[data-msg-id="${msgId}"] .msg-reactions`);
+                        if (container && container.children.length === 0) {
+                            container.remove();
+                        }
+                    }
+                }
+            }
+        } else {
+            // ✅ 2. အသစ်တင်ရန် (React)
+            const res = await fetch('/api/chat/react', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, messageId: msgId, emoji: emoji })
+            });
+            
+            if (res.ok) {
+                // UI မှာ တိုက်ရိုက်ပြင်ဖို့ ခက်တဲ့အတွက် Room ကိုပြန်ယူပြီး Refresh လုပ်မယ် (Server က Socket မှတဆင့်လည်း ပို့ပေးပါတယ်)
+                if (currentRoom) {
+                    fetch(`/api/chat/messages/${currentRoom}`).then(r => r.json()).then(d => {
+                        const mc = document.getElementById('messages');
+                        mc.innerHTML = '';
+                        if(d.messages && d.messages.length) {
+                            d.messages.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
+                            scrollToBottom();
+                        }
+                    });
+                }
+            }
+        }
     } catch(e) {
         showToast('Error reacting', true);
     }
-}
+  }
 
 async function handleReactionClick(msgId, emoji) {
     closeReactionPicker();
