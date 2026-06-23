@@ -1936,45 +1936,81 @@ async function openRoom(rid, rn, rt) {
 function addMessageToUI(msg, isMine, spt) {
     spt = spt || 0;
     const c = document.getElementById('messages');
-    // Clear placeholder if needed
     if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) c.innerHTML = '';
     
-    // Process message content
     let mh = '';
+    let mediaClick = ''; // ✅ Media အတွက် click event ကို သီးသန့်ထားမယ်
     const mt = msg.message || '';
     if (mt.startsWith('📷 IMAGE:')) {
-        mh = `<div class="media-message" onclick="downloadMedia('${mt.replace('📷 IMAGE:', '')}', 'image')"><img src="${mt.replace('📷 IMAGE:', '')}" loading="lazy"></div>`;
+        const url = mt.replace('📷 IMAGE:', '');
+        mediaClick = `onclick="event.stopPropagation(); downloadMedia('${url}', 'image')"`;
+        mh = `<div class="media-message" ${mediaClick}><img src="${url}" loading="lazy"></div>`;
     } else if (mt.startsWith('📎 FILE:')) {
         const p = mt.replace('📎 FILE:', '').split('|');
-        mh = `<div class="file-message" onclick="downloadMedia('${p[0]}', 'file', '${p[1] || 'File'}')"><i class="fas fa-file"></i> ${escapeHtml(p[1] || 'File')}</div>`;
+        mediaClick = `onclick="event.stopPropagation(); downloadMedia('${p[0]}', 'file', '${escapeHtml(p[1] || 'File')}')"`;
+        mh = `<div class="file-message" ${mediaClick}><i class="fas fa-file"></i> ${escapeHtml(p[1] || 'File')}</div>`;
     } else {
         mh = escapeHtml(mt);
     }
     
-    // Create message row
     const d = document.createElement('div');
     d.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
     if (msg.id) d.setAttribute('data-msg-id', msg.id);
     
-    // Premium theme bubble
     let bc = 'normal-tier';
     if (spt === 1) bc = 'bronze-tier';
     else if (spt === 2) bc = 'silver-tier';
     else if (spt === 3) bc = 'gold-tier';
     
-    // Avatar for other users
     let av = '';
     if (!isMine) {
         av = msg.avatar_url ? `<img src="${msg.avatar_url}" class="msg-avatar-xs" onerror="this.style.display='none'">` : `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
     }
     
-    // Seen status
     let seenHtml = '';
     if (isMine) {
         if (msg.is_read) seenHtml = '<span style="color:#2ecc71;font-size:9px;margin-left:3px">✓✓</span>';
         else seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
     }
 
+    let reactionsHtml = '';
+    if (msg.reactions && msg.reactions.length > 0) {
+        const grouped = {};
+        msg.reactions.forEach(r => {
+            if (!grouped[r.emoji]) grouped[r.emoji] = { count: 0, users: [] };
+            grouped[r.emoji].count++;
+            grouped[r.emoji].users.push(r.user_id);
+        });
+        
+        reactionsHtml = `<div class="msg-reactions">`;
+        for (const [emoji, data] of Object.entries(grouped)) {
+            const isMineReact = data.users.includes(currentUser?.id);
+            reactionsHtml += `<span class="reaction-badge ${isMineReact ? 'mine' : ''}" onclick="event.stopPropagation(); toggleReaction(${msg.id}, '${emoji}')">${emoji} ${data.count}</span>`;
+        }
+        reactionsHtml += `</div>`;
+    }
+
+    // ✅ Bubble တစ်ခုလုံးမှာ onClick မထားတော့ပါ။ Wrapper တစ်ခုနဲ့ ထိန်းမယ်။
+    d.innerHTML = `
+        ${av}
+        <div class="msg-bubble ${bc}">
+            ${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}
+            ${mh}
+            <div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}${seenHtml}</div>
+            ${reactionsHtml}
+        </div>
+    `;
+    
+    // ✅ Message အပြင်ဘက်မှာ click event ကို ထည့်မယ်။ (Bubble တစ်ခုလုံး နှိပ်ရင် Reaction Picker ပေါ်မယ်၊ ဒါပေမယ့် Media နှိပ်ရင် download ပဲလုပ်မယ်)
+    d.querySelector('.msg-bubble').addEventListener('click', function(e) {
+        // Media (image/file) ပေါ်မှာ နှိပ်ရင် reaction picker မပေါ်ပါဘူး (event ကို media က stopPropagation လုပ်ထားလို့)
+        if (!e.target.closest('.media-message') && !e.target.closest('.file-message')) {
+            openReactionPicker(msg.id, e);
+        }
+    });
+
+    c.appendChild(d);
+}
     // ========== ✅ REACTION UI BUILD ==========
     let reactionsHtml = '';
     if (msg.reactions && msg.reactions.length > 0) {
@@ -2312,7 +2348,7 @@ function openReactionPicker(msgId, event) {
     const box = overlay.querySelector('.reaction-picker-box');
     const grid = document.getElementById('reactionPickerGrid');
     
-    // 1. Emoji Grid ကို ပြန်တည်ဆောက်ပါ (EMOJI_CATS အကုန်သုံးမယ်)
+    // 1. Emoji Grid ကို ပြန်တည်ဆောက်ပါ
     grid.innerHTML = '';
     for (const category of Object.values(EMOJI_CATS)) {
         category.forEach(emoji => {
@@ -2324,13 +2360,16 @@ function openReactionPicker(msgId, event) {
         });
     }
 
-    // 2. Picker ကို Message ဘေးမှာ နေရာချပါ
+    // 2. Picker ကို Message ဘေးမှာ နေရာချပါ (ပိုပြီးတိကျအောင်)
     const rect = event.currentTarget.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
     let leftPos = rect.left + rect.width/2 - 175;
-    let topPos = rect.top - 200;
+    let topPos = rect.top + scrollTop - 200;
+    
     if (leftPos < 10) leftPos = 10;
     if (leftPos + 350 > window.innerWidth) leftPos = window.innerWidth - 360;
-    if (topPos < 10) topPos = rect.bottom + 10;
+    if (topPos < 10) topPos = rect.bottom + scrollTop + 10;
     
     box.style.left = leftPos + 'px';
     box.style.top = topPos + 'px';
