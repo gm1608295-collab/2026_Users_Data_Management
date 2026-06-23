@@ -363,10 +363,6 @@ async function initTables(p) {
     joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     PRIMARY KEY (room_id, user_id)
 )`,
-// ❌ အခုရှိနေတဲ့ Code (ဒီဟာက Error ဖြစ်စေတယ်)
-// `CREATE TABLE IF NOT EXISTS chat_messages ( ... sender_premium_tier INT DEFAULT 0, // ✅ ဒီစာကြောင်းကို ထည့်ပါ ... )`,
-
-// ✅ ဒီအတိုင်း ပြင်ပါ (Comment အတွက် `//` အစား `--` သုံးပါ သို့မဟုတ် Comment ကိုဖယ်ပါ)
 `CREATE TABLE IF NOT EXISTS chat_messages (
     id SERIAL PRIMARY KEY, 
     room_id INT NOT NULL, 
@@ -375,7 +371,7 @@ async function initTables(p) {
     message TEXT, 
     is_read BOOLEAN DEFAULT false, 
     sender_premium_tier INT DEFAULT 0, 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT (NOW() AT TIME ZONE 'Asia/Yangon')
 )`,
 `CREATE TABLE IF NOT EXISTS chat_online_users (
     user_id INT PRIMARY KEY,
@@ -7233,8 +7229,9 @@ io.on('connection', (socket) => {
             
             // Save message to database
             const result = await p.query(
-                `INSERT INTO chat_messages (room_id, sender_id, username, message, sender_premium_tier, created_at) 
-                 VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING id, created_at`,
+// ✅ ဒီအတိုင်း ပြင်ပါ (NOW() အစား Asia/Yangon ထည့်မယ်):
+`INSERT INTO chat_messages (room_id, sender_id, username, message, sender_premium_tier, created_at) 
+ VALUES ($1, $2, $3, $4, $5, NOW() AT TIME ZONE 'Asia/Yangon') RETURNING id, created_at`
                 [roomId, userId, username, message, senderPremiumTier || 0]
             );
             
