@@ -7736,6 +7736,7 @@ app.post('/api/chat/rooms', async (req, res) => {
         res.json({ rooms: [] }); 
     }
 });
+
 // Get messages (with Avatar)
 app.get('/api/chat/messages/:roomId', async (req, res) => {
     const { roomId } = req.params;
@@ -8446,36 +8447,53 @@ app.post('/api/upload_image', async (req, res) => {
 
 // View User Profile (public)
 app.post('/api/chat/user_profile', async (req, res) => {
+    // ✅ Body ထဲက userId (target) နဲ့ viewerId ကို ယူမယ်
     const { userId, viewerId } = req.body;
-    if (!userId) return res.json({ success: false });
     
+    // Token ကနေ စစ်ဆေးဖို့လည်း လိုပါတယ် (Security အတွက်)
+    let token = req.body.token || req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!userId) return res.json({ success: false });
+    if (!token) return res.json({ success: false });
+
     try {
         const p = await getPool();
+        let targetUid = null;
         
+        // User ID ကို Number အနေနဲ့ သေချာပြောင်းမယ်
+        if (!isNaN(parseInt(userId))) {
+            targetUid = parseInt(userId);
+        } else {
+            return res.json({ success: false });
+        }
+        
+        // User Data ကို ဆွဲထုတ်မယ်
         const user = await p.query(
-            `SELECT u.id, u.username, 
+            `SELECT u.id, u.username, u.email, u.premium_tier,
              (SELECT avatar_url FROM user_avatars WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1) as avatar_url
              FROM auth_users u WHERE u.id = $1`,
-            [userId]
+            [targetUid]
         );
         
         if (user.rows.length === 0) return res.json({ success: false });
         
         const u = user.rows[0];
         
-        // Get public groups
+        // Get public groups (User ပါဝင်နေတဲ့ Group တွေ)
         const groups = await p.query(`
-            SELECT cr.id, cr.room_name 
+            SELECT cr.id, cr.room_name, 
+             (SELECT COUNT(*) FROM chat_participants WHERE room_id = cr.id) as member_count
             FROM chat_rooms cr
             JOIN chat_participants cp ON cr.id = cp.room_id
             WHERE cp.user_id = $1 AND cr.room_type = 'group'
             ORDER BY cr.id DESC LIMIT 10
-        `, [userId]);
+        `, [targetUid]);
         
         res.json({
             success: true,
             username: u.username,
-            name: u.username,
+            email: u.email,
+            premium_tier: u.premium_tier || 0,
             avatar_url: u.avatar_url || '',
             groups: groups.rows
         });
