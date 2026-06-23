@@ -1702,8 +1702,10 @@ function initSocket() {
             addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
             scrollToBottom();
         }
-        loadRooms();
-    });
+        // ✅ Room List Update ကို နားထောင်မယ်
+socket.on('room_list_update', function() {
+    loadRooms(); // Room List ကို ချက်ချင်း Refresh လုပ်မယ် (User အတွက်)
+});
     
     socket.on('online_users', function(u) {
         document.getElementById('onlineCount').innerHTML = (u?.length || 0) + ' online';
@@ -1836,7 +1838,6 @@ async function loadRooms() {
                 if (avatarSrc) {
                     av = `<img src="${avatarSrc}" class="tg-avatar" onerror="this.style.display='none'; this.parentElement.innerHTML='${av}'">`;
                 }
-                // ✅ Avatar နဲ့ စာတွေ တစ်တန်းတည်း ဖြစ်အောင် HTML ကို သေချာပြင်ထားပါတယ်။
                 return `<div class="tg-room" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')">
                     ${av}
                     <div class="tg-room-info">
@@ -1995,7 +1996,6 @@ async function openRoom(rid, rn, rt) {
         // ✅ Chat Message Avatar ကိုလည်း Cache ရှင်းဖို့ `?t=` ထည့်ပါ
         const avatarUrl = msg.avatar_url ? msg.avatar_url + '?t=' + Date.now() : '';
         // ✅ Avatar ကို နှိပ်ရင် profile.html ကို သွားမယ် (User ID ပါပို့မယ်)
-        // ⚠️ ဒါကို သေချာစေရန်: msg.sender_id ကိုပါ ထည့်ပေးမယ်
         if (avatarUrl) {
             av = `<img src="${avatarUrl}" class="msg-avatar-xs" onclick="window.location.href='/profile.html?userId=${msg.sender_id}'" onerror="this.style.display='none'">`;
         } else {
