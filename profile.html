@@ -296,14 +296,33 @@
         }
 
         function getToken() {
-            let t = localStorage.getItem('auth_token');
-            if (!t || t === 'guest') {
-                const cookieToken = document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1];
-                if (cookieToken && cookieToken !== 'guest') t = decodeURIComponent(cookieToken);
+    let t = localStorage.getItem('auth_token');
+    
+    // Cookie မှာ token ရှိမရှိစစ် (App တွေအတွက်)
+    if (!t || t === 'guest') {
+        // ဒီနေရာမှာ Cookie ကို ရှင်းရှင်းလင်းလင်း ရှာပါမယ်
+        const cookies = document.cookie.split('; ');
+        for (let i = 0; i < cookies.length; i++) {
+            const parts = cookies[i].split('=');
+            if (parts[0] === 'auth_token') {
+                t = decodeURIComponent(parts[1]);
+                break;
             }
-            return t;
         }
-        // ==================== LOAD PROFILE ====================
+    }
+
+    // Meta tag မှာပါရင် (Telegram Web App / Android WebView တွေအတွက်)
+    if (!t || t === 'guest') {
+        const metaToken = document.querySelector('meta[name="auth_token"]');
+        if (metaToken) {
+            t = metaToken.content;
+        }
+    }
+    
+    return t;
+        }
+        
+            // ==================== LOAD PROFILE ====================
 async function loadProfile() {
     // ✅ 1. URL ကနေ userId ကို ထုတ်ယူမယ်
     const urlParams = new URLSearchParams(window.location.search);
@@ -320,7 +339,10 @@ async function loadProfile() {
         // ✅ 3. Server ကို API ခေါ်မယ် (targetUserId ရှိရင် အဲ့ဒါကို ယူ၊ မရှိရင် မိမိ Token ကို ယူ)
         const res = await fetch('/api/chat/user_profile', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': 'Bearer ' + token // ✅ App အတွက် Header မှာပါထည့်ပေးမယ်
+            },
             body: JSON.stringify({ 
                 userId: targetUserId || token, 
                 viewerId: token 
@@ -387,13 +409,14 @@ async function loadProfile() {
         } else {
             console.error('[PROFILE ERROR] API returned no user');
             document.getElementById('usernameDisplay').textContent = 'Error';
+            showToast('Server error', true); // Error ပေါ်အောင် Toast ပြမယ်
         }
     } catch(e) {
         console.error('[PROFILE ERROR]', e);
         document.getElementById('usernameDisplay').textContent = 'Error';
         showToast('Server error', true);
     }
-}
+        }
         
         function escapeHtml(text) {
             const d = document.createElement('div');
