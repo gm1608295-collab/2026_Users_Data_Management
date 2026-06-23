@@ -8455,8 +8455,8 @@ app.post('/api/chat/user_profile', async (req, res) => {
         const p = await getPool();
         let targetUid = null;
 
-        // ✅ userId က 0 ဖြစ်နေရင် Token ကနေ User ID ယူမယ်
-        if (!userId || userId === 0) {
+        // ✅ userId က null, undefined, 0 ဖြစ်နေရင် Token ကနေ User ID ယူမယ်
+        if (!userId || userId === 0 || userId === 'null' || userId === null) {
             // Token ကနေ User ID ထုတ်ယူခြင်း (JWT / Old Format)
             if (token.startsWith('eyJ')) {
                 try {
