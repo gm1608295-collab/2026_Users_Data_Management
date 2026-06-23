@@ -1235,6 +1235,43 @@ function performForceUpdate() {
     forceUpdateActive = false;
 }
 
+    // ✅ Open Sidebar Function (မှန်ကန်သောနေရာ)
+function openSidebar() {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    // Update Name & Email
+    document.getElementById("sidebarName").textContent = u.username || 'User';
+    document.getElementById("sidebarEmail").textContent = u.email || 'user@mlbb.com';
+    
+    // Load Profile Photo
+    const savedPhoto = localStorage.getItem('profilePhoto_' + u.id);
+    const img = document.getElementById('sidebarAvatarImg');
+    const textAvatar = document.getElementById('sidebarAvatarText');
+    
+    if (savedPhoto) {
+        img.src = savedPhoto;
+        img.style.display = 'block';
+        textAvatar.style.display = 'none';
+        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    } else {
+        img.style.display = 'none';
+        textAvatar.style.display = 'flex';
+        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
+    }
+    
+    document.getElementById("sidebarPanel").classList.add("active");
+    document.getElementById("sidebarOverlay").classList.add("active");
+    document.body.style.overflow = 'hidden';
+    
+    // ✅ Profile ကို ပုံမှန်အတိုင်း ဖွင့်ထားမယ်
+    const content = document.getElementById('profileCollapsibleContent');
+    const icon = document.getElementById('profileCollapseIcon');
+    if (content) {
+        content.style.display = 'block';
+        icon.className = 'fas fa-chevron-up';
+    }
+}
+    
 // Admin function to activate (call this from browser console or admin panel)
 window.activateForceUpdateLocal = function(message, version, url) {
     const settings = {
@@ -1281,18 +1318,18 @@ setTimeout(() => {
     document.body.style.overflow = 'hidden';
     }
     
-    // ✅ 3-Dot Menu Toggle
+// ✅ 3-Dot Menu Toggle (တစ်ခုတည်း)
 function toggleProfileMenu() {
     const menu = document.getElementById('profileDeleteMenu');
     menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 }
 
-// ✅ Profile Collapse / Expand Function
+// ✅ Profile Collapse / Expand Function (တစ်ခုတည်း)
 function toggleProfileCollapse() {
     const content = document.getElementById('profileCollapsibleContent');
     const icon = document.getElementById('profileCollapseIcon');
     
-    if (!content) return; // မရှိရင် ဘာမှမလုပ်ပါနဲ့
+    if (!content) return;
     
     if (content.style.display === 'none') {
         content.style.display = 'block';
@@ -1303,43 +1340,6 @@ function toggleProfileCollapse() {
     }
 }
 
-// ✅ Open Sidebar Function (အသစ်)
-function openSidebar() {
-    const u = JSON.parse(localStorage.getItem('user') || '{}');
-    
-    // Update Name & Email
-    document.getElementById("sidebarName").textContent = u.username || 'User';
-    document.getElementById("sidebarEmail").textContent = u.email || 'user@mlbb.com';
-    
-    // Load Profile Photo
-    const savedPhoto = localStorage.getItem('profilePhoto_' + u.id);
-    const img = document.getElementById('sidebarAvatarImg');
-    const textAvatar = document.getElementById('sidebarAvatarText');
-    
-    if (savedPhoto) {
-        img.src = savedPhoto;
-        img.style.display = 'block';
-        textAvatar.style.display = 'none';
-        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
-    } else {
-        img.style.display = 'none';
-        textAvatar.style.display = 'flex';
-        textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
-    }
-    
-    document.getElementById("sidebarPanel").classList.add("active");
-    document.getElementById("sidebarOverlay").classList.add("active");
-    document.body.style.overflow = 'hidden';
-    
-    // ✅ Profile ကို ပုံမှန်အတိုင်း ဖွင့်ထားမယ်
-    const content = document.getElementById('profileCollapsibleContent');
-    const icon = document.getElementById('profileCollapseIcon');
-    if (content) {
-        content.style.display = 'block';
-        icon.className = 'fas fa-chevron-up';
-    }
-}
-    
 // ✅ Upload Profile Photo (Menu ထဲကနေ ခေါ်တာ)
 function uploadProfilePhoto(input) {
     const file = input.files[0];
@@ -1376,7 +1376,7 @@ function uploadProfilePhoto(input) {
     input.value = '';
 }
 
-// ✅ Delete Profile Photo (Menu ထဲက)
+// ✅ Delete Profile Photo (တစ်ခုတည်း)
 function deleteProfilePhoto() {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
     if (!u.id) return;
@@ -1397,43 +1397,7 @@ function deleteProfilePhoto() {
     
     showToast('🗑️ Photo deleted!', 'error');
 }
-
-// ✅ Toggle Profile Menu
-function toggleProfileMenu() {
-    const menu = document.getElementById('profileDeleteMenu');
-    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-}
     
-// ✅ Delete Profile Photo
-function deleteProfilePhoto() {
-    const u = JSON.parse(localStorage.getItem('user') || '{}');
-    if (!u.id) return;
-    
-    if (!confirm('Are you sure you want to delete your profile photo?')) return;
-    
-    localStorage.removeItem('profilePhoto_' + u.id);
-    
-    // Update sidebar immediately
-    const img = document.getElementById('sidebarAvatarImg');
-    const textAvatar = document.getElementById('sidebarAvatarText');
-    img.style.display = 'none';
-    textAvatar.style.display = 'flex';
-    textAvatar.textContent = (u.username || 'U').charAt(0).toUpperCase();
-    
-    // Close menu
-    document.getElementById('profileDeleteMenu').style.display = 'none';
-    
-    showToast('🗑️ Photo deleted!', 'error');
-}
-
-// ✅ Close menu when clicking outside
-document.addEventListener('click', function(e) {
-    const menu = document.getElementById('profileDeleteMenu');
-    const dotBtn = document.querySelector('.profile-dots-menu');
-    if (menu && dotBtn && !dotBtn.contains(e.target) && !menu.contains(e.target)) {
-        menu.style.display = 'none';
-    }
-});
     function closeSidebar(){document.getElementById("sidebarPanel").classList.remove("active");document.getElementById("sidebarOverlay").classList.remove("active");document.body.style.overflow=''}
 
     function openMLBBEvent() {
