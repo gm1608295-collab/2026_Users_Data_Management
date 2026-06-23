@@ -1990,16 +1990,14 @@ async function openRoom(rid, rn, rt) {
     let seenHtml = '';
     if (isMine) {
         if (msg.is_read) {
-            // Seen အချိန်ကိုပါ ထည့်ပြမယ်
             const seenAt = msg.read_at ? new Date(msg.read_at) : null;
-            const timeStr = seenAt ? seenAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '';
+            const timeStr = seenAt ? seenAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon'}) : '';
             seenHtml = `<span style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${timeStr}">✓✓</span>`;
         } else {
             seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
         }
     }
 
-    // ========== Reaction UI ==========
     let reactionsHtml = '';
     if (msg.reactions && msg.reactions.length > 0) {
         const grouped = {};
@@ -2012,14 +2010,14 @@ async function openRoom(rid, rn, rt) {
         reactionsHtml = `<div class="msg-reactions">`;
         for (const [emoji, data] of Object.entries(grouped)) {
             const isMineReact = data.users.includes(currentUser?.id);
+            // ✅ toggleReaction ကို event နဲ့ခေါ်ပါ
             reactionsHtml += `<span class="reaction-badge ${isMineReact ? 'mine' : ''}" onclick="toggleReaction(${msg.id}, '${emoji}', event)">${emoji} ${data.count}</span>`;
         }
         reactionsHtml += `</div>`;
     }
 
-    // ✅ အချိန်ကို Server Timezone (Myanmar) အတိုင်း ပြန်ပြမယ်
+    // ✅ အချိန်ကို Asia/Yangon Timezone အတိုင်း သေချာပြမယ်
     const msgDate = new Date(msg.created_at);
-    // Asia/Yangon Timezone အတိုင်း ပြရန် (UTC+6:30)
     const timeString = msgDate.toLocaleTimeString('en-GB', { 
         hour12: true, 
         hour: '2-digit', 
@@ -2045,7 +2043,7 @@ async function openRoom(rid, rn, rt) {
 
     c.appendChild(d);
     }
-
+    
 function downloadMedia(u, t, fn = 'file') {
     const a = document.createElement('a');
     a.href = u;
@@ -2356,9 +2354,10 @@ function openReactionPicker(msgId, event) {
             const el = document.createElement('span');
             el.className = 'reaction-picker-grid-item';
             el.textContent = emoji;
+            // ✅ Picker ကနေရွေးရင် event မပါဘဲခေါ်မယ် (toggleReaction ထဲမှာ handle လုပ်ထားပြီးသား)
             el.onclick = () => {
                 closeReactionPicker();
-                toggleReaction(activeReactionMsgId, emoji, { target: null }); // event မလိုအပ်တဲ့အတွက် dummy ပေးလိုက်မယ်
+                toggleReaction(activeReactionMsgId, emoji, null);
             };
             grid.appendChild(el);
         });
@@ -2380,14 +2379,34 @@ function closeReactionPicker(e) {
     if (e && e.target.closest('.reaction-picker-box')) return;
     document.getElementById('reactionPickerOverlay').style.display = 'none';
 }
-
+    
 async function toggleReaction(msgId, emoji, event) {
     try {
         const token = localStorage.getItem('auth_token');
-        const badge = event.target.closest('.reaction-badge');
-        const isMine = badge && badge.classList.contains('mine');
+        let badge = null;
+        let isMine = false;
 
-        if (isMine) {
+        // ✅ event ရှိရင် (Badge ပေါ်ကနေ နှိပ်ရင်)
+        if (event && event.target) {
+            badge = event.target.closest('.reaction-badge');
+            isMine = badge && badge.classList.contains('mine');
+        } else {
+            // ✅ event မရှိရင် (Picker ကနေ ရွေးရင်) -> DOM ကို ရှာပြီး စစ်မယ်
+            const row = document.querySelector(`.msg-row[data-msg-id="${msgId}"]`);
+            if (row) {
+                // ကိုယ်တိုင်တင်ထားတဲ့ Emoji ကို ရှာမယ်
+                const existingBadge = row.querySelector(`.reaction-badge.mine[onclick*="${emoji}"]`);
+                if (existingBadge) {
+                    badge = existingBadge;
+                    isMine = true;
+                } else {
+                    // မတင်ရသေးဘူးဆိုရင် normal react လုပ်မယ်
+                    isMine = false;
+                }
+            }
+        }
+
+        if (isMine && badge) {
             // ✅ မိမိတင်ထားတဲ့ Emoji ကို ပြန်နှိပ်ရင် -> ဖျက်မယ် (Unreact)
             const res = await fetch('/api/chat/unreact', {
                 method: 'POST',
@@ -2396,7 +2415,7 @@ async function toggleReaction(msgId, emoji, event) {
             });
             
             if (res.ok) {
-                // ချက်ချင်း UI ပြောင်းရန်
+                // UI မှာ ချက်ချင်းပြောင်းရန်
                 if (badge) {
                     let count = parseInt(badge.textContent.split(' ')[1]);
                     if (count > 1) {
@@ -2412,14 +2431,29 @@ async function toggleReaction(msgId, emoji, event) {
                 }
             }
         } else {
-            // ✅ အသစ်တင်ရန် (React) - Server မှ Socket မှတဆင့် Real-time ပြောင်းသွားပါမည်
+            // ✅ အသစ်တင်ရန် (React)
             const res = await fetch('/api/chat/react', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token, messageId: msgId, emoji: emoji })
             });
+            
+            if (res.ok) {
+                // Room ကို ပြန်ယူပြီး Messages ပြန်တင်မယ် (Real-time ပြောင်းဖို့)
+                if (currentRoom) {
+                    fetch(`/api/chat/messages/${currentRoom}`).then(r => r.json()).then(d => {
+                        const mc = document.getElementById('messages');
+                        mc.innerHTML = '';
+                        if(d.messages && d.messages.length) {
+                            d.messages.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
+                            scrollToBottom();
+                        }
+                    });
+                }
+            }
         }
     } catch(e) {
+        console.error('[REACTION ERROR]', e);
         showToast('Error reacting', true);
     }
 }
