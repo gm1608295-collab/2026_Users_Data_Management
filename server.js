@@ -8159,7 +8159,7 @@ app.post('/api/chat/my_profile', async (req, res) => {
         const p = await getPool();
         let uid = null;
 
-        // Token မှ User ID ထုတ်ယူခြင်း (JWT အတွက်)
+        // Token မှ User ID ထုတ်ယူခြင်း (JWT / Old Format)
         if (token.startsWith('eyJ')) {
             try {
                 const decoded = jwt.verify(token, JWT_SECRET);
@@ -8168,6 +8168,9 @@ app.post('/api/chat/my_profile', async (req, res) => {
         } 
         else if (token.startsWith('token_')) {
             uid = parseInt(token.replace('token_', ''), 10);
+        }
+        else if (/^\d+$/.test(token)) {
+            uid = parseInt(token, 10);
         }
         
         if (!uid || isNaN(uid)) return res.json({ success: false });
