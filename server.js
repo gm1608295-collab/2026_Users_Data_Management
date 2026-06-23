@@ -8400,6 +8400,30 @@ app.post('/api/chat/update_avatar', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+// ==================== IMAGE UPLOAD ====================
+app.post('/api/upload_image', async (req, res) => {
+    const { base64 } = req.body;
+    if (!base64) return res.json({ success: false, message: 'No image data' });
+    try {
+        const imageData = base64.replace(/^data:image\/\w+;base64,/, '');
+        const formData = new URLSearchParams(); 
+        formData.append('key', IMGBB_API_KEY); 
+        formData.append('image', imageData);
+        
+        // ✅ Timeout 30000ms (30 seconds) ထားမယ်
+        const response = await fetch('https://api.imgbb.com/1/upload', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, 
+            body: formData.toString(), 
+            signal: AbortSignal.timeout(30000) 
+        });
+        const data = await response.json();
+        data.success ? res.json({ success: true, url: data.data.url }) : res.json({ success: false, message: 'Upload failed' });
+    } catch(e) { 
+        console.error('[UPLOAD ERROR]', e.message);
+        res.json({ success: false, message: e.message }); 
+    }
+});
 
 // View User Profile (public)
 app.post('/api/chat/user_profile', async (req, res) => {
