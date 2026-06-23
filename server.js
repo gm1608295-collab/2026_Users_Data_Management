@@ -8446,26 +8446,44 @@ app.post('/api/upload_image', async (req, res) => {
 });
 // View User Profile (public)
 app.post('/api/chat/user_profile', async (req, res) => {
-    // ✅ Body ထဲက userId (target) နဲ့ viewerId ကို ယူမယ်
     const { userId, viewerId } = req.body;
-    
-    // Token ကနေ စစ်ဆေးဖို့လည်း လိုပါတယ် (Security အတွက်)
     let token = req.body.token || req.headers.authorization?.replace('Bearer ', '');
     
-    if (!userId) return res.json({ success: false });
     if (!token) return res.json({ success: false });
 
     try {
         const p = await getPool();
         let targetUid = null;
-        
-        // User ID ကို Number အနေနဲ့ သေချာပြောင်းမယ်
-        if (!isNaN(parseInt(userId))) {
-            targetUid = parseInt(userId);
-        } else {
-            return res.json({ success: false });
+
+        // ✅ userId က 0 ဖြစ်နေရင် Token ကနေ User ID ယူမယ်
+        if (!userId || userId === 0) {
+            // Token ကနေ User ID ထုတ်ယူခြင်း (JWT / Old Format)
+            if (token.startsWith('eyJ')) {
+                try {
+                    const decoded = jwt.verify(token, JWT_SECRET);
+                    targetUid = decoded.userId || decoded.id || decoded.uid;
+                } catch(e) { return res.json({ success: false }); }
+            } 
+            else if (token.startsWith('token_')) {
+                targetUid = parseInt(token.replace('token_', ''), 10);
+            }
+            else if (/^\d+$/.test(token)) {
+                targetUid = parseInt(token, 10);
+            }
+        } 
+        else {
+            // URL က userId ကို Number ပြောင်းမယ်
+            if (!isNaN(parseInt(userId))) {
+                targetUid = parseInt(userId);
+            } else {
+                return res.json({ success: false });
+            }
         }
         
+        if (!targetUid || isNaN(targetUid)) {
+            return res.json({ success: false });
+        }
+
         // User Data ကို ဆွဲထုတ်မယ်
         const user = await p.query(
             `SELECT u.id, u.username, u.email, u.premium_tier,
@@ -8475,7 +8493,6 @@ app.post('/api/chat/user_profile', async (req, res) => {
         );
         
         if (user.rows.length === 0) return res.json({ success: false });
-        
         const u = user.rows[0];
         
         // Get public groups (User ပါဝင်နေတဲ့ Group တွေ)
@@ -8490,14 +8507,13 @@ app.post('/api/chat/user_profile', async (req, res) => {
         
         res.json({
             success: true,
-            id: u.id, // ✅ Frontend မှာ isSelf စစ်ဖို့ user id ကိုပါ ပြန်ပို့မယ်
+            id: u.id,
             username: u.username,
             email: u.email,
             premium_tier: u.premium_tier || 0,
             avatar_url: u.avatar_url || '',
             groups: groups.rows
         });
-        
     } catch(e) {
         console.error('[USER PROFILE ERROR]', e.message);
         res.json({ success: false });
