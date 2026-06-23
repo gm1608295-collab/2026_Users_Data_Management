@@ -1801,6 +1801,7 @@ async function openRoom(rid, rn, rt) {
     document.getElementById('usersList').classList.remove('active');
     document.getElementById('chatArea').classList.add('active');
     document.getElementById('chatRoomTitle').textContent = rn;
+    
     if (rt === 'group') {
         try {
             const r = await fetch('/api/chat/group_info', {
@@ -1819,9 +1820,13 @@ async function openRoom(rid, rn, rt) {
     } else {
         document.getElementById('chatRoomAvatar').style.display = 'none';
     }
+    
     const mc = document.getElementById('messages');
     mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">Loading...</div>';
-    if (socket && socket.connected) socket.emit('join_room', rid);
+    
+    // ✅ ဒီမှာ parseInt(rid) ကို သေချာထည့်ပေးလိုက်ပါတယ်။
+    if (socket && socket.connected) socket.emit('join_room', parseInt(rid));
+    
     try {
         const r = await fetch(`/api/chat/messages/${rid}`);
         const d = await r.json();
@@ -1832,14 +1837,18 @@ async function openRoom(rid, rn, rt) {
         } else {
             mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">No messages yet</div>';
         }
+        // Mark messages as read
         await fetch('/api/chat/read', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roomId: rid, userId: currentUser.id })
         });
-    } catch(e) {}
-}
-
+    } catch(e) {
+        console.error('[OPEN ROOM ERROR]', e);
+        mc.innerHTML = '<div style="text-align:center;padding:30px;color:#e74c3c;">Failed to load messages</div>';
+    }
+    }
+    
 function addMessageToUI(msg, isMine, spt) {
     spt = spt || 0;
     const c = document.getElementById('messages');
