@@ -300,7 +300,6 @@
     
     // Cookie မှာ token ရှိမရှိစစ် (App တွေအတွက်)
     if (!t || t === 'guest') {
-        // ဒီနေရာမှာ Cookie ကို ရှင်းရှင်းလင်းလင်း ရှာပါမယ်
         const cookies = document.cookie.split('; ');
         for (let i = 0; i < cookies.length; i++) {
             const parts = cookies[i].split('=');
@@ -319,9 +318,9 @@
         }
     }
     
+    // ✅ Token ကို String အနေနဲ့ ပြန်ပေးပါ (Number မဖြစ်စေရန်)
     return t;
         }
-        
         // ==================== LOAD PROFILE ====================
 async function loadProfile() {
     // ✅ 1. URL ကနေ userId ကို ထုတ်ယူမယ်
@@ -336,15 +335,15 @@ async function loadProfile() {
     }
 
     try {
-        // ✅ 3. Server ကို API ခေါ်မယ် (targetUserId ရှိရင် အဲ့ဒါကို ယူ၊ မရှိရင် မိမိ Token ကို ယူ)
+        // ✅ 3. Server ကို API ခေါ်မယ် 
         const res = await fetch('/api/chat/user_profile', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 
-                'Authorization': 'Bearer ' + token // ✅ App အတွက် Header မှာပါထည့်ပေးမယ်
+                'Authorization': 'Bearer ' + token 
             },
             body: JSON.stringify({ 
-                userId: targetUserId || token, 
+                userId: targetUserId || parseInt(token), // ✅ အရေးကြီးဆုံးပြင်ချက်
                 viewerId: token 
             })
         });
@@ -416,7 +415,7 @@ async function loadProfile() {
         document.getElementById('usernameDisplay').textContent = 'Error';
         showToast('Server error', true);
     }
-      }
+        }
         
         function escapeHtml(text) {
             const d = document.createElement('div');
