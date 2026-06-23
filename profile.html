@@ -260,65 +260,73 @@
         }
 
         // ==================== LOAD PROFILE ====================
-        async function loadProfile() {
-            const token = getToken();
-            if (!token) {
-                document.body.innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">အကောင့်ဝင်ရန် လိုအပ်ပါသည်။ <a href="/" style="color:var(--gold);">Login</a></div>';
-                return;
+async function loadProfile() {
+    const token = getToken();
+    if (!token) {
+        document.body.innerHTML = '<div style="text-align:center;padding:50px;color:#e74c3c;">အကောင့်ဝင်ရန် လိုအပ်ပါသည်။ <a href="/" style="color:var(--gold);">Login</a></div>';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/chat/my_profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ token: token }) // ✅ Server ကိုလည်း token ပဲ ပို့မယ်
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            document.getElementById('usernameDisplay').textContent = data.username || 'Unknown';
+            document.getElementById('emailDisplay').textContent = data.email || 'No email';
+            document.getElementById('groupCount').textContent = data.groups?.length || 0;
+            
+            if (data.avatar_url) {
+                document.getElementById('avatarImg').src = data.avatar_url;
             }
 
-            try {
-                const res = await fetch('/api/chat/my_profile', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({ userId: token }) // Server logic ပေါ်မူတည်၍ adjust
-                });
-                const data = await res.json();
-                
-if (data.success) {
-    document.getElementById('usernameDisplay').textContent = data.username || 'Unknown';
-    document.getElementById('emailDisplay').textContent = data.email || 'No email';
-    document.getElementById('groupCount').textContent = data.groups?.length || 0;
-    
-    if (data.avatar_url) {
-        document.getElementById('avatarImg').src = data.avatar_url;
-    }
+            // Premium Tier
+            const tierEl = document.getElementById('premiumTierDisplay');
+            const premiumTier = data.premium_tier || 1;
+            
+            if (premiumTier === 3) { 
+                tierEl.textContent = '🥇 Gold'; 
+                document.body.classList.add('gold-tier'); 
+            }
+            else if (premiumTier === 2) { 
+                tierEl.textContent = '🥈 Silver'; 
+                document.body.classList.add('silver-tier'); 
+            }
+            else if (premiumTier === 1) { 
+                tierEl.textContent = '🥉 Bronze'; 
+                document.body.classList.add('bronze-tier'); 
+            }
+            else { 
+                tierEl.textContent = 'Free'; 
+            }
 
-    // Premium Tier
-    const tierEl = document.getElementById('premiumTierDisplay');
-    const premiumTier = data.premium_tier || 1;
-    
-    // ✅ Bronze Tier ကိုပါ သေချာအောင်ပြင်မယ်
-    if (premiumTier === 3) { 
-        tierEl.textContent = '🥇 Gold'; 
-        document.body.classList.add('gold-tier'); 
+            // Groups
+            const groupsList = document.getElementById('groupsList');
+            if (data.groups && data.groups.length > 0) {
+                groupsList.innerHTML = data.groups.map(g => `
+                    <div class="group-item" onclick="window.location.href='/chat.html'">
+                        <div class="g-avatar">${g.room_type === 'group' ? '👥' : '💬'}</div>
+                        <div class="g-name">${escapeHtml(g.room_name)}</div>
+                        <div class="g-count">${g.member_count || 0} members</div>
+                    </div>
+                `).join('');
+            } else {
+                groupsList.innerHTML = '<div style="color:rgba(255,255,255,0.2); font-size:12px; padding:10px; text-align:center;">Group မရှိသေးပါ။</div>';
+            }
+        } else {
+            console.error('[PROFILE ERROR] API returned no user');
+            document.getElementById('usernameDisplay').textContent = 'Error';
+        }
+    } catch(e) {
+        console.error('[PROFILE ERROR]', e);
+        document.getElementById('usernameDisplay').textContent = 'Error';
+        showToast('Server error', true);
     }
-    else if (premiumTier === 2) { 
-        tierEl.textContent = '🥈 Silver'; 
-        document.body.classList.add('silver-tier'); 
-    }
-    else if (premiumTier === 1) { 
-        tierEl.textContent = '🥉 Bronze'; 
-        document.body.classList.add('bronze-tier'); 
-    }
-    else { 
-        tierEl.textContent = 'Free'; 
-    }
-
-    // Groups
-    const groupsList = document.getElementById('groupsList');
-    if (data.groups && data.groups.length > 0) {
-        groupsList.innerHTML = data.groups.map(g => `
-            <div class="group-item" onclick="window.location.href='/chat.html'">
-                <div class="g-avatar">${g.room_type === 'group' ? '👥' : '💬'}</div>
-                <div class="g-name">${escapeHtml(g.room_name)}</div>
-                <div class="g-count">${g.member_count || 0} members</div>
-            </div>
-        `).join('');
-    } else {
-        groupsList.innerHTML = '<div style="color:rgba(255,255,255,0.2); font-size:12px; padding:10px; text-align:center;">Group မရှိသေးပါ။</div>';
-    }
-}
+            }
         function escapeHtml(text) {
             const d = document.createElement('div');
             d.textContent = text;
@@ -369,32 +377,31 @@ if (data.success) {
         }
 
         async function saveUsername() {
-            const newUsername = document.getElementById('newUsernameInput').value.trim();
-            if (!newUsername || newUsername.length < 3) {
-                showToast('Username သည် ၃ လုံးအထက် ရှိရပါမည်။', true);
-                return;
-            }
+    const newUsername = document.getElementById('newUsernameInput').value.trim();
+    if (!newUsername || newUsername.length < 3) {
+        showToast('Username သည် ၃ လုံးအထက် ရှိရပါမည်။', true);
+        return;
+    }
 
-            const token = getToken();
-            try {
-                const res = await fetch('/api/chat/update_username', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({ userId: token, username: newUsername })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('usernameDisplay').textContent = newUsername;
-                    closeModal('editUsernameModal');
-                    showToast('Username ပြောင်းပြီးပါပြီ!');
-                } else {
-                    showToast(data.message || 'Username update failed', true);
-                }
-            } catch(e) {
-                showToast('Server error', true);
-            }
+    const token = getToken();
+    try {
+        const res = await fetch('/api/chat/update_username', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ token: token, username: newUsername }) // ✅ userId အစား token ပို့မယ်
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('usernameDisplay').textContent = newUsername;
+            closeModal('editUsernameModal');
+            showToast('Username ပြောင်းပြီးပါပြီ!');
+        } else {
+            showToast(data.message || 'Username update failed', true);
         }
-
+    } catch(e) {
+        showToast('Server error', true);
+    }
+        }
         // ==================== INIT ====================
         document.addEventListener('DOMContentLoaded', loadProfile);
 
