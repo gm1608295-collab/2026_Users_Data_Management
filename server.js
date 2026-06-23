@@ -383,6 +383,16 @@ async function initTables(p) {
     username VARCHAR(100),
     last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )`,
+
+    `CREATE TABLE IF NOT EXISTS message_reactions (
+    id SERIAL PRIMARY KEY,
+    message_id INT NOT NULL,
+    user_id INT NOT NULL,
+    emoji VARCHAR(10) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(message_id, user_id)
+)`,
+        
 //========== CHAT PREMIUM (NEW - Composite PK) ==========
 `CREATE TABLE IF NOT EXISTS chat_premium (
     user_id INT NOT NULL,
@@ -7270,6 +7280,107 @@ io.on('connection', (socket) => {
     });
 });
 
+// ==================== MESSAGE REACTIONS (Emoji) ====================
+// 1. Reaction တင်ရန် (သို့) အစားထိုးရန် (Toggle)
+app.post('/api/chat/react', async (req, res) => {
+    const { token, messageId, emoji } = req.body;
+    
+    // Token ကို Body / Header မှ ရှာယူခြင်း
+    let tokenFinal = token || req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!tokenFinal || !messageId || !emoji) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+
+    try {
+        const p = await getPool();
+        let uid = null;
+        
+        // Token မှ User ID ထုတ်ယူခြင်း (JWT အတွက်)
+        if (tokenFinal.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(tokenFinal, JWT_SECRET);
+                uid = decoded.userId || decoded.id || decoded.uid;
+            } catch(e) { return res.json({ success: false, message: 'Invalid token' }); }
+        } 
+        else if (tokenFinal.startsWith('token_')) {
+            uid = parseInt(tokenFinal.replace('token_', ''), 10);
+        }
+        
+        if (!uid || isNaN(uid)) return res.json({ success: false, message: 'Invalid user' });
+
+        // Upsert: ရှိရင် Update (emoji ပြောင်းမယ်)၊ မရှိရင် Insert
+        await p.query(
+            `INSERT INTO message_reactions (message_id, user_id, emoji) 
+             VALUES ($1, $2, $3) 
+             ON CONFLICT (message_id, user_id) 
+             DO UPDATE SET emoji = $3, created_at = NOW()`,
+            [messageId, uid, emoji]
+        );
+
+        // (Optional) Socket မှတစ်ဆင့် အခန်းထဲရှိလူများကို Real-time အသိပေးရန်
+        const msgInfo = await p.query('SELECT room_id FROM chat_messages WHERE id=$1', [messageId]);
+        if (msgInfo.rows.length > 0) {
+            io.to('room_' + msgInfo.rows[0].room_id).emit('message_reacted', {
+                messageId: parseInt(messageId),
+                userId: uid,
+                emoji: emoji
+            });
+        }
+
+        res.json({ success: true, message: 'Reacted!' });
+    } catch(e) {
+        console.error('[REACT ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
+// 2. Reaction ဖျက်ရန် (မိမိတင်ထားတာကို ပြန်ဖျက်ရန်)
+app.post('/api/chat/unreact', async (req, res) => {
+    const { token, messageId } = req.body;
+    
+    let tokenFinal = token || req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!tokenFinal || !messageId) {
+        return res.json({ success: false, message: 'Missing data' });
+    }
+
+    try {
+        const p = await getPool();
+        let uid = null;
+        
+        if (tokenFinal.startsWith('eyJ')) {
+            try {
+                const decoded = jwt.verify(tokenFinal, JWT_SECRET);
+                uid = decoded.userId || decoded.id || decoded.uid;
+            } catch(e) { return res.json({ success: false }); }
+        } else if (tokenFinal.startsWith('token_')) {
+            uid = parseInt(tokenFinal.replace('token_', ''), 10);
+        }
+        
+        if (!uid || isNaN(uid)) return res.json({ success: false });
+
+        // မိမိရဲ့ reaction ကိုပဲ ဖျက်ခွင့်ပြုပါမည်
+        await p.query(
+            'DELETE FROM message_reactions WHERE message_id=$1 AND user_id=$2',
+            [messageId, uid]
+        );
+
+        // Socket အသိပေးရန်
+        const msgInfo = await p.query('SELECT room_id FROM chat_messages WHERE id=$1', [messageId]);
+        if (msgInfo.rows.length > 0) {
+            io.to('room_' + msgInfo.rows[0].room_id).emit('message_unreacted', {
+                messageId: parseInt(messageId),
+                userId: uid
+            });
+        }
+
+        res.json({ success: true, message: 'Reaction removed!' });
+    } catch(e) {
+        console.error('[UNREACT ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== CHAT PREMIUM SYSTEM ====================
 
 // Get chat premium status
