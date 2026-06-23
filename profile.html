@@ -208,26 +208,27 @@
         </div>
         
         <!-- Avatar -->
-        <div class="avatar-wrap">
-            <img src="https://i.ibb.co/MyB60kHF/64a831b950c3e3e7d699368b48618dd6.jpg" alt="Avatar" class="avatar-img" id="avatarImg">
-            <div class="avatar-actions">
-                <div class="avatar-action-btn upload-btn" onclick="document.getElementById('avatarFileInput').click()">
-                    <i class="fas fa-upload"></i>
-                </div>
-                <div class="avatar-action-btn delete-btn" onclick="confirmDeleteAvatar()">
-                    <i class="fas fa-trash"></i>
-                </div>
-            </div>
-            <input type="file" id="avatarFileInput" accept="image/*" onchange="uploadAvatar(event)">
+<div class="avatar-wrap">
+    <img src="https://i.ibb.co/MyB60kHF/64a831b950c3e3e7d699368b48618dd6.jpg" alt="Avatar" class="avatar-img" id="avatarImg">
+    <!-- ✅ ဒီ Button နှစ်ခုကို မိမိအတွက်ပဲ ပြမယ် -->
+    <div class="avatar-actions" id="avatarActions" style="display:none;">
+        <div class="avatar-action-btn upload-btn" onclick="document.getElementById('avatarFileInput').click()">
+            <i class="fas fa-upload"></i>
         </div>
-        
-        <!-- Username -->
-        <div class="username-box">
-            <h3 id="usernameDisplay">Loading...</h3>
-            <span class="edit-icon" onclick="openEditUsername()"><i class="fas fa-pen"></i></span>
+        <div class="avatar-action-btn delete-btn" onclick="confirmDeleteAvatar()">
+            <i class="fas fa-trash"></i>
         </div>
-        <div class="email-text" id="emailDisplay">Loading...</div>
-        
+    </div>
+    <input type="file" id="avatarFileInput" accept="image/*" onchange="uploadAvatar(event)">
+</div>
+
+<!-- Username -->
+<div class="username-box">
+    <h3 id="usernameDisplay">Loading...</h3>
+    <!-- ✅ ဒီ Edit Button ကို မိမိအတွက်ပဲ ပြမယ် -->
+    <span class="edit-icon" id="editIcon" style="display:none;" onclick="openEditUsername()"><i class="fas fa-pen"></i></span>
+</div>
+    
         <!-- Stats -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -302,7 +303,6 @@
             }
             return t;
         }
-
         // ==================== LOAD PROFILE ====================
 async function loadProfile() {
     // ✅ 1. URL ကနေ userId ကို ထုတ်ယူမယ်
@@ -317,13 +317,12 @@ async function loadProfile() {
     }
 
     try {
-        // ✅ 3. Server ကို API ခေါ်မယ် (သင်ကိုယ်တိုင် ကြည့်နေတာလား၊ တစ်ဖက်သူ့ကို ကြည့်နေတာလား ဆိုတာ သိအောင်)
-        // တစ်ဖက်သူရဲ့ Profile ကိုကြည့်ရင် viewerId ကိုပါ ပို့ပေးမယ်
+        // ✅ 3. Server ကို API ခေါ်မယ် (targetUserId ရှိရင် အဲ့ဒါကို ယူ၊ မရှိရင် မိမိ Token ကို ယူ)
         const res = await fetch('/api/chat/user_profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({ 
-                userId: targetUserId || token, // targetUserId ရှိရင် အဲ့ဒါကို ယူ၊ မရှိရင် မိမိ Token ကို ယူ
+                userId: targetUserId || token, 
                 viewerId: token 
             })
         });
@@ -371,6 +370,20 @@ async function loadProfile() {
             } else {
                 groupsList.innerHTML = '<div style="color:rgba(255,255,255,0.2); font-size:12px; padding:10px; text-align:center;">Group မရှိသေးပါ။</div>';
             }
+
+            // ✅ 4. Self / Other ခွဲခြားပြီး Button ပြရန်
+            const isSelf = !targetUserId || targetUserId === token || targetUserId === data.id;
+            const avatarActions = document.getElementById('avatarActions');
+            const editIcon = document.getElementById('editIcon');
+
+            if (isSelf) {
+                avatarActions.style.display = 'flex';
+                editIcon.style.display = 'inline-block';
+            } else {
+                avatarActions.style.display = 'none';
+                editIcon.style.display = 'none';
+            }
+
         } else {
             console.error('[PROFILE ERROR] API returned no user');
             document.getElementById('usernameDisplay').textContent = 'Error';
@@ -380,7 +393,7 @@ async function loadProfile() {
         document.getElementById('usernameDisplay').textContent = 'Error';
         showToast('Server error', true);
     }
-        }
+}
         
         function escapeHtml(text) {
             const d = document.createElement('div');
