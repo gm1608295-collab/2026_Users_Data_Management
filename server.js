@@ -7484,7 +7484,17 @@ app.post('/api/admin/revoke_chat_premium', async (req, res) => {
 });
 // ==================== CHAT API ROUTES ====================
 app.post('/api/chat/current_user', async (req, res) => {
-    const { token } = req.body;
+    // ✅ 1. Token ကို နေရာသုံးခုကနေ ရှာဖတ်ပါ (Body, Cookie, Header)
+    let token = req.body.token; // Body မှာရှိရင်
+    if (!token) token = req.cookies?.auth_token; // Cookie မှာရှိရင်
+    if (!token) {
+        // Header မှာ Bearer Token ရှိရင်
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.substring(7); // "Bearer " ကိုဖြုတ်ပြီး Token ယူ
+        }
+    }
+    
     if (!token || token === 'guest') return res.json({ success: false });
     
     try {
@@ -7507,14 +7517,14 @@ app.post('/api/chat/current_user', async (req, res) => {
                 uid = parseInt(uidStr, 10);
             }
         } 
-        // ✅ Direct Numeric (ပုံမှန်မဟုတ်ရင်)
+        // ✅ Direct Numeric
         else if (/^\d+$/.test(token)) {
             uid = parseInt(token, 10);
         }
         
         // ✅ uid က NaN ဖြစ်နေရင် fail ပြန်ပို့ပါ
         if (!uid || isNaN(uid)) {
-            console.error('[CURRENT USER ERROR] Invalid UID from token:', token?.substring(0, 20));
+            console.error('[CURRENT USER ERROR] Invalid UID from token (App):', token?.substring(0, 20));
             return res.json({ success: false });
         }
         
