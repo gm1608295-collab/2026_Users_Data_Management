@@ -1584,7 +1584,9 @@ async function getCurrentUser() {
 }
 
 function initSocket() {
+    // ✅ Socket URL ကို သေချာစေပါ
     const socketUrl = window.location.protocol + '//' + window.location.host;
+    
     socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
         reconnection: true,
@@ -1598,6 +1600,8 @@ function initSocket() {
     
     socket.on('connect', function() {
         console.log('[SOCKET] Connected!');
+        
+        // ✅ User Online Event ကို သေချာပို့ပါ
         if (currentUser) {
             socket.emit('user_online', {
                 userId: currentUser.id,
@@ -1617,7 +1621,7 @@ function initSocket() {
             addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
             scrollToBottom();
         }
-        loadRooms();
+        loadRooms(); // အခန်းစာရင်း Update လုပ်ရန်
     });
     
     socket.on('online_users', function(u) {
@@ -1648,6 +1652,9 @@ function initSocket() {
             });
         }
     });
+    
+    console.log('[SOCKET] ✅ Listener registered');
+}
     
     socket.on('message_edited', function(msg) {
         if (currentRoom === msg.room_id) {
