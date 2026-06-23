@@ -953,7 +953,8 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
          onerror="this.style.display='none'">
 </div>
        
-    <!-- ==================== SIDEBAR PROFILE (SIMPLIFIED) ==================== -->
+    
+<!-- ==================== SIDEBAR PROFILE (WITH COLLAPSE BUTTON) ==================== -->
 <div class="sidebar-profile" style="position:relative; text-align:center; padding:15px 15px 20px; border-bottom:1px solid rgba(255,255,255,0.08); flex-shrink:0; background:rgba(0,0,0,0.2); backdrop-filter:blur(4px);">
     
     <!-- ✅ 3-Dot Menu (ဘယ်ဘက်အပေါ်ထောင့်) -->
@@ -992,8 +993,15 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
     <!-- ✅ Name (အပေါ်တန်း) -->
     <div class="sidebar-profile-name" id="sidebarName" style="color:#fff; font-size:15px; font-weight:bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">User</div>
     
-    <!-- ✅ Email (အောက်တန်း - သီးသန့်ခွဲထား) -->
-    <div class="sidebar-profile-email" id="sidebarEmail" style="color:rgba(255,255,255,0.8); font-size:11px; word-break:break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">user@mlbb.com</div>
+    <!-- ✅ Email + ^ Collapse Button (အောက်တန်းမှာ အတူတူထား) -->
+    <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin-top:2px;">
+        <div class="sidebar-profile-email" id="sidebarEmail" style="color:rgba(255,255,255,0.8); font-size:11px; word-break:break-all; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">user@mlbb.com</div>
+        
+        <!-- ✅ ^ Collapse Button (Email ရဲ့ ညာဘက်မှာ) -->
+        <div onclick="toggleProfileCollapse()" style="width:28px; height:28px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; color:rgba(255,255,255,0.5); font-size:14px; flex-shrink:0;">
+            <i class="fas fa-chevron-up" id="profileCollapseIcon"></i>
+        </div>
+    </div>
 
 </div>
     
@@ -1282,9 +1290,14 @@ function toggleProfileMenu() {
     menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 }
 
-    function toggleProfileCollapse() {
+    // ✅ Profile Collapse / Expand Function
+function toggleProfileCollapse() {
+    // 💡 သတိပြုရန်: ဒီ content ID က သင့် HTML ထဲမှာ ရှိနေဖို့ လိုပါတယ်။ 
+    // အကယ်၍ မရှိသေးရင် Avatar, Name, Email တွေကို <div id="profileCollapsibleContent"> ထဲ ထည့်ပေးရပါမယ်။
     const content = document.getElementById('profileCollapsibleContent');
     const icon = document.getElementById('profileCollapseIcon');
+    
+    if (!content) return; // content မရှိရင် ဘာမှမလုပ်ပါနဲ့
     
     if (content.style.display === 'none') {
         content.style.display = 'block';
@@ -1293,7 +1306,7 @@ function toggleProfileMenu() {
         content.style.display = 'none';
         icon.className = 'fas fa-chevron-down';
     }
-    }
+}
     
 // ✅ Upload Profile Photo (Menu ထဲကနေ ခေါ်တာ)
 function uploadProfilePhoto(input) {
