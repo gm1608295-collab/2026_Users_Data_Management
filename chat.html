@@ -1232,7 +1232,7 @@
     </div>
 </div>
 <script>
-// Audio elements (created once)
+// ==================== AUDIO EFFECTS ====================
 let sendSound = null;
 let receiveSound = null;
 
@@ -1240,46 +1240,60 @@ function initSounds() {
     try {
         sendSound = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
         sendSound.volume = 0.3;
-        
         receiveSound = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
         receiveSound.volume = 0.2;
     } catch(e) {}
 }
-// ============================================
-// TELEGRAM STYLE CHAT SYSTEM
-// ============================================
-let socket=null,currentUser=null,currentRoom=null,typingTimeout=null,isPremium=false,premiumTier=0;
-let selectedFile=null,selectedFileType=null,selectedFileName=null,uploadCancelled=false;
-const IMGBB_KEY='55854bc5e01a19fd4793d1df84326d00';
 
-function showToast(m,e){e=e||false;const t=document.getElementById('toast');t.textContent=m;t.style.background=e?'#e74c3c':'#2ecc71';t.style.color=e?'#fff':'#000';t.style.display='block';setTimeout(()=>t.style.display='none',2500)}
-function escapeHtml(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML}
-function scrollToBottom(){const m=document.getElementById('messages');if(m)m.scrollTop=m.scrollHeight}
-function closeModal(id){document.getElementById(id).classList.remove('active')}
-function handleImageClick() {
-    if (!isPremium) {
-        showPremiumLockModal('📷');
-        return;
-    }
-    selectImage();
+// ==================== VARIABLES ====================
+let socket = null;
+let currentUser = null;
+let currentRoom = null;
+let typingTimeout = null;
+let isPremium = false;
+let premiumTier = 0;
+let selectedFile = null;
+let selectedFileType = null;
+let selectedFileName = null;
+let uploadCancelled = false;
+let selectedMsgId = null;
+let selectedMsgText = null;
+let selectedMsgElement = null;
+const IMGBB_KEY = '55854bc5e01a19fd4793d1df84326d00';
+
+// ==================== UTILITY FUNCTIONS ====================
+function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = isError ? '#e74c3c' : '#2ecc71';
+    t.style.color = isError ? '#fff' : '#000';
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 2500);
 }
 
-function handleFileClick() {
-    if (!isPremium) {
-        showPremiumLockModal('📎');
-        return;
-    }
-    selectFile();
+function escapeHtml(text) {
+    if (!text) return '';
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
 }
 
-// ✅ Premium Lock Modal
+function scrollToBottom() {
+    const m = document.getElementById('messages');
+    if (m) m.scrollTop = m.scrollHeight;
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+
+// ==================== PREMIUM LOCK MODAL ====================
 function showPremiumLockModal(icon) {
     var overlay = document.createElement('div');
     overlay.className = 'premium-lock-overlay';
     overlay.onclick = function(e) {
         if (e.target === overlay) overlay.remove();
     };
-    
     overlay.innerHTML = `
         <div class="premium-lock-card" onclick="event.stopPropagation()">
             <div class="premium-lock-icon">${icon}</div>
@@ -1294,50 +1308,150 @@ function showPremiumLockModal(icon) {
                 <span class="premium-tier-icon gold">🥇 Gold</span>
             </div>
             <div class="premium-lock-buttons">
-                <button class="btn-go-premium" onclick="window.location.href='/chatpremium.html'">
-                    👑 Go Premium
-                </button>
-                <button class="btn-cancel-premium" onclick="this.closest('.premium-lock-overlay').remove()">
-                    Cancel
-                </button>
+                <button class="btn-go-premium" onclick="window.location.href='/chatpremium.html'">👑 Go Premium</button>
+                <button class="btn-cancel-premium" onclick="this.closest('.premium-lock-overlay').remove()">Cancel</button>
             </div>
         </div>
     `;
-    
     document.body.appendChild(overlay);
 }
-// ==================== PREMIUM ====================
-async function checkPremiumStatus(){
-    const t=localStorage.getItem('auth_token');if(!t||t==='guest')return;
-    try{const r=await fetch('/api/chat/premium/all_tiers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});const d=await r.json();
-    if(d.success&&d.tiers){let h=0;for(let i=3;i>=1;i--){if(d.tiers[i]){h=i;break}}isPremium=h>0;premiumTier=h;isPremium?(applyPremiumTheme(premiumTier),updateMediaButtons(true)):(applyNormalTheme(),updateMediaButtons(false))}
-    else{isPremium=false;premiumTier=0;applyNormalTheme();updateMediaButtons(false)}}catch(e){}
-}
-function applyNormalTheme(){document.body.classList.remove('bronze-tier','silver-tier','gold-tier');document.body.classList.add('normal-theme');document.getElementById('premiumBadge').style.display='none'}
-function applyPremiumTheme(t){
-    const b=document.body,ba=document.getElementById('premiumBadge'),pb=document.getElementById('premiumBtn');
-    b.classList.remove('normal-theme','bronze-tier','silver-tier','gold-tier');
-    function w(tx,ic){let h=ic+' <span class="wave-text">';for(let i=0;i<tx.length;i++)h+=`<span class="wave-letter">${tx[i]}</span>`;return h+='</span>'}
-    if(t===1){b.classList.add('bronze-tier');ba.textContent='🥉 BRONZE';ba.style.display='inline-block';if(pb){pb.style.background='linear-gradient(135deg,#CD7F32,#8B4513)';pb.style.color='#fff';pb.style.border='2px solid #E8A87C';pb.innerHTML=w('Bronze','🥉')}}
-    else if(t===2){b.classList.add('silver-tier');ba.textContent='🥈 SILVER';ba.style.display='inline-block';if(pb){pb.style.background='linear-gradient(135deg,#C0C0C0,#808080)';pb.style.color='#0a0a0a';pb.style.border='2px solid #E8E8E8';pb.innerHTML=w('Silver','🥈')}}
-    else if(t===3){b.classList.add('gold-tier');ba.textContent='🥇 GOLD';ba.style.display='inline-block';if(pb){pb.style.background='linear-gradient(135deg,#FFD700,#B8860B)';pb.style.color='#1a0a00';pb.style.border='2px solid #FFF8DC';pb.innerHTML=w('Gold','🥇')}}
-    else{applyNormalTheme()}
-}
-function updateMediaButtons(h){const i=document.getElementById('imageBtn'),f=document.getElementById('fileBtn');if(h){i.disabled=false;f.disabled=false;i.classList.remove('locked');f.classList.remove('locked')}else{i.disabled=true;f.disabled=true;i.classList.add('locked');f.classList.add('locked')}}
 
-// ==================== FILE UPLOAD ====================
-function selectImage(){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=e=>{if(e.target.files[0]){selectedFile=e.target.files[0];selectedFileType='image';selectedFileName=selectedFile.name;showUploadPreview(selectedFile,'image')}};i.click()}
-function selectFile(){const i=document.createElement('input');i.type='file';i.onchange=e=>{if(e.target.files[0]){selectedFile=e.target.files[0];selectedFileType='file';selectedFileName=selectedFile.name;showUploadPreview(selectedFile,'file')}};i.click()}
+// ==================== PREMIUM STATUS ====================
+async function checkPremiumStatus() {
+    const t = localStorage.getItem('auth_token');
+    if (!t || t === 'guest') return;
+    try {
+        const r = await fetch('/api/chat/premium/all_tiers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: t })
+        });
+        const d = await r.json();
+        if (d.success && d.tiers) {
+            let h = 0;
+            for (let i = 3; i >= 1; i--) {
+                if (d.tiers[i]) { h = i; break; }
+            }
+            isPremium = h > 0;
+            premiumTier = h;
+            isPremium ? (applyPremiumTheme(premiumTier), updateMediaButtons(true)) : (applyNormalTheme(), updateMediaButtons(false));
+        } else {
+            isPremium = false;
+            premiumTier = 0;
+            applyNormalTheme();
+            updateMediaButtons(false);
+        }
+    } catch(e) {}
+}
+
+function applyNormalTheme() {
+    document.body.classList.remove('bronze-tier', 'silver-tier', 'gold-tier');
+    document.body.classList.add('normal-theme');
+    document.getElementById('premiumBadge').style.display = 'none';
+}
+
+function applyPremiumTheme(t) {
+    const b = document.body, ba = document.getElementById('premiumBadge'), pb = document.getElementById('premiumBtn');
+    b.classList.remove('normal-theme', 'bronze-tier', 'silver-tier', 'gold-tier');
+    function w(tx, ic) {
+        let h = ic + ' <span class="wave-text">';
+        for (let i = 0; i < tx.length; i++) h += `<span class="wave-letter">${tx[i]}</span>`;
+        return h += '</span>';
+    }
+    if (t === 1) {
+        b.classList.add('bronze-tier');
+        ba.textContent = '🥉 BRONZE';
+        ba.style.display = 'inline-block';
+        if (pb) {
+            pb.style.background = 'linear-gradient(135deg,#CD7F32,#8B4513)';
+            pb.style.color = '#fff';
+            pb.style.border = '2px solid #E8A87C';
+            pb.innerHTML = w('Bronze', '🥉');
+        }
+    } else if (t === 2) {
+        b.classList.add('silver-tier');
+        ba.textContent = '🥈 SILVER';
+        ba.style.display = 'inline-block';
+        if (pb) {
+            pb.style.background = 'linear-gradient(135deg,#C0C0C0,#808080)';
+            pb.style.color = '#0a0a0a';
+            pb.style.border = '2px solid #E8E8E8';
+            pb.innerHTML = w('Silver', '🥈');
+        }
+    } else if (t === 3) {
+        b.classList.add('gold-tier');
+        ba.textContent = '🥇 GOLD';
+        ba.style.display = 'inline-block';
+        if (pb) {
+            pb.style.background = 'linear-gradient(135deg,#FFD700,#B8860B)';
+            pb.style.color = '#1a0a00';
+            pb.style.border = '2px solid #FFF8DC';
+            pb.innerHTML = w('Gold', '🥇');
+        }
+    } else {
+        applyNormalTheme();
+    }
+}
+
+function updateMediaButtons(hasPremium) {
+    const i = document.getElementById('imageBtn'), f = document.getElementById('fileBtn');
+    if (hasPremium) {
+        i.disabled = false;
+        f.disabled = false;
+        i.classList.remove('locked');
+        f.classList.remove('locked');
+    } else {
+        i.disabled = true;
+        f.disabled = true;
+        i.classList.add('locked');
+        f.classList.add('locked');
+    }
+}
+
+// ==================== FILE UPLOAD HANDLERS ====================
+function handleImageClick() {
+    if (!isPremium) { showPremiumLockModal('📷'); return; }
+    selectImage();
+}
+function handleFileClick() {
+    if (!isPremium) { showPremiumLockModal('📎'); return; }
+    selectFile();
+}
+function selectImage() {
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = 'image/*';
+    i.onchange = e => {
+        if (e.target.files[0]) {
+            selectedFile = e.target.files[0];
+            selectedFileType = 'image';
+            selectedFileName = selectedFile.name;
+            showUploadPreview(selectedFile, 'image');
+        }
+    };
+    i.click();
+}
+function selectFile() {
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.onchange = e => {
+        if (e.target.files[0]) {
+            selectedFile = e.target.files[0];
+            selectedFileType = 'file';
+            selectedFileName = selectedFile.name;
+            showUploadPreview(selectedFile, 'file');
+        }
+    };
+    i.click();
+}
 function showUploadPreview(f, t) {
     const modal = document.getElementById('uploadPreviewModal');
     const imageWrap = document.getElementById('uploadImagePreview');
     const fileWrap = document.getElementById('uploadFilePreview');
-    
     modal.style.display = 'flex';
     document.getElementById('uploadProgress').style.display = 'none';
     document.getElementById('sendUploadBtn').disabled = false;
     uploadCancelled = false;
-    
     if (t === 'image') {
         imageWrap.style.display = 'block';
         fileWrap.innerHTML = '';
@@ -1360,7 +1474,6 @@ function showUploadPreview(f, t) {
         `;
     }
 }
-
 function cancelUpload() {
     uploadCancelled = true;
     selectedFile = null;
@@ -1368,43 +1481,36 @@ function cancelUpload() {
     document.getElementById('uploadImagePreview').innerHTML = '';
     document.getElementById('uploadFilePreview').innerHTML = '';
 }
-async function confirmUpload(){
-    if(!selectedFile||uploadCancelled||!currentRoom){
-        if(!currentRoom) showToast('Select a chat room first',true);
+async function confirmUpload() {
+    if (!selectedFile || uploadCancelled || !currentRoom) {
+        if (!currentRoom) showToast('Select a chat room first', true);
         cancelUpload();
         return;
     }
-    
     const progressDiv = document.getElementById('uploadProgress');
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
     const sendBtn = document.getElementById('sendUploadBtn');
-    
     progressDiv.style.display = 'block';
     progressFill.style.width = '0%';
     progressText.textContent = '0%';
     sendBtn.disabled = true;
-    
     let p = 0;
     const pi = setInterval(() => {
-        if(uploadCancelled) return;
+        if (uploadCancelled) return;
         p = Math.min(p + 8, 90);
         progressFill.style.width = p + '%';
         progressText.textContent = p + '%';
     }, 150);
-    
-    try{
+    try {
         const r = new FileReader();
         const b64 = await new Promise(res => {
             r.onload = e => res(e.target.result);
             r.readAsDataURL(selectedFile);
         });
-        
-        if(uploadCancelled){ clearInterval(pi); cancelUpload(); return; }
-        
+        if (uploadCancelled) { clearInterval(pi); cancelUpload(); return; }
         progressFill.style.width = '95%';
         progressText.textContent = '95%';
-        
         const res = await fetch('/api/chat/upload_file', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1415,18 +1521,13 @@ async function confirmUpload(){
                 fileType: selectedFile.type
             })
         });
-        
         const d = await res.json();
         clearInterval(pi);
-        
-        if(uploadCancelled){ cancelUpload(); return; }
-        
-        if(d.success){
+        if (uploadCancelled) { cancelUpload(); return; }
+        if (d.success) {
             progressFill.style.width = '100%';
             progressText.textContent = 'Sent!';
-            
             await new Promise(r => setTimeout(r, 200));
-            
             socket.emit('send_message', {
                 roomId: currentRoom,
                 message: selectedFileType === 'image' ? `📷 IMAGE:${d.url}` : `📎 FILE:${d.url}|${d.fileName||selectedFileName}`,
@@ -1434,7 +1535,6 @@ async function confirmUpload(){
                 username: currentUser.username,
                 senderPremiumTier: premiumTier
             });
-            
             showToast('Sent!');
             cancelUpload();
         } else {
@@ -1452,7 +1552,6 @@ async function confirmUpload(){
 async function getCurrentUser() {
     const t = localStorage.getItem('auth_token');
     console.log('[DEBUG] Token found:', t ? t.substring(0, 15) + '...' : 'None');
-    
     if (!t || t === 'guest') {
         document.body.innerHTML = '<div style="text-align:center;padding:50px"><h3>Please login</h3><a href="/">Login</a></div>';
         return null;
@@ -1463,43 +1562,38 @@ async function getCurrentUser() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token: t })
         });
-        
         if (!r.ok) {
             console.error('[ERROR] Server returned:', r.status);
             return null;
         }
-        
         const d = await r.json();
         console.log('[DEBUG] Current User API Response:', d);
-        
         if (d.success && d.user) {
             currentUser = d.user;
             console.log('[DEBUG] Current User Set:', currentUser);
             return currentUser;
         } else {
             console.error('[ERROR] API returned no user');
+            document.getElementById('roomList').innerHTML = '<div class="empty-state" style="color:#e74c3c;">User not found. Please login again.</div>';
         }
     } catch(e) {
         console.error('[GET USER ERROR]', e);
-        // Database connection error ဖြစ်ရင် ဒီမှာ ပြပါမယ်
-        document.getElementById('roomList').innerHTML = '<div class="empty-state" style="color:#e74c3c;">Database connection error. Please wait a moment and refresh.</div>';
+        document.getElementById('roomList').innerHTML = '<div class="empty-state" style="color:#e74c3c;">Error: ' + e.message + '</div>';
     }
     return null;
 }
-    function initSocket() {
-    // ✅ Socket URL ကို window.location.origin မသုံးတော့ဘဲ အတိအကျ သတ်မှတ်မယ်
-    // (Render.com အတွက် လိုအပ်ပါတယ်)
+
+function initSocket() {
     const socketUrl = window.location.protocol + '//' + window.location.host;
-    
     socket = io(socketUrl, {
-        transports: ['polling', 'websocket'], // ✅ နှစ်ခုလုံး ခွင့်ပြု
+        transports: ['polling', 'websocket'],
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         timeout: 20000,
-        upgrade: true, // polling ကနေ websocket ကို အလိုအလျောက် upgrade လုပ်ဖို့
-        forceNew: true  // connection အသစ်ကို အတင်းဖွင့်ဖို့
+        upgrade: true,
+        forceNew: true
     });
     
     socket.on('connect', function() {
@@ -1509,49 +1603,45 @@ async function getCurrentUser() {
                 userId: currentUser.id,
                 username: currentUser.username
             });
-            // Force load rooms & users on connect
             loadRooms();
             loadUsersList();
         }
     });
     
-    // ✅ Disconnect ဖြစ်ရင် Auto-reconnect လုပ်မယ်
     socket.on('disconnect', function(reason) {
         console.log('[SOCKET] Disconnected:', reason);
-        // Reconnect logic ကို socket.io က auto လုပ်ပေးမှာပါ
     });
     
-    socket.on('new_message', function(msg){
-        if(currentRoom === msg.roomId){
+    socket.on('new_message', function(msg) {
+        if (currentRoom === msg.roomId) {
             addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
             scrollToBottom();
         }
         loadRooms();
     });
     
-    socket.on('online_users', function(u){
+    socket.on('online_users', function(u) {
         document.getElementById('onlineCount').innerHTML = (u?.length || 0) + ' online';
         loadUsersList();
     });
     
-    socket.on('user_typing', function(d){
-        if(currentRoom === d.roomId && d.userId !== currentUser?.id){
+    socket.on('user_typing', function(d) {
+        if (currentRoom === d.roomId && d.userId !== currentUser?.id) {
             var ind = document.getElementById('typingIndicator');
             ind.style.display = 'block';
             ind.innerHTML = '<i class="fas fa-ellipsis-h"></i> ' + escapeHtml(d.username) + ' typing...';
             clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(function(){
+            typingTimeout = setTimeout(function() {
                 ind.style.display = 'none';
             }, 2000);
         }
     });
     
-    // ✅ Real-time Seen Update
-    socket.on('messages_read', function(data){
-        if(currentRoom === data.roomId){
+    socket.on('messages_read', function(data) {
+        if (currentRoom === data.roomId) {
             var bubbles = document.querySelectorAll('.msg-row.mine .msg-time');
-            bubbles.forEach(function(timeEl){
-                if(!timeEl.innerHTML.includes('✓✓')){
+            bubbles.forEach(function(timeEl) {
+                if (!timeEl.innerHTML.includes('✓✓')) {
                     timeEl.innerHTML = timeEl.innerHTML.replace('✓', '✓✓');
                     timeEl.style.color = '#2ecc71';
                 }
@@ -1559,7 +1649,6 @@ async function getCurrentUser() {
         }
     });
     
-    // ✅ Real-time Edit
     socket.on('message_edited', function(msg) {
         if (currentRoom === msg.room_id) {
             var row = document.querySelector('.msg-row[data-msg-id="' + msg.id + '"]');
@@ -1575,8 +1664,7 @@ async function getCurrentUser() {
             }
         }
     });
-
-    // ✅ Real-time Delete
+    
     socket.on('message_deleted', function(data) {
         if (currentRoom === data.roomId) {
             var row = document.querySelector('.msg-row[data-msg-id="' + data.messageId + '"]');
@@ -1584,24 +1672,40 @@ async function getCurrentUser() {
         }
     });
     
-    socket.on('group_updated', function(){
+    socket.on('group_updated', function() {
         loadRooms();
     });
 }
-function onTyping(){if(!currentRoom||!currentUser)return;socket.emit('typing',{roomId:currentRoom,userId:currentUser.id,username:currentUser.username})}
+
+function onTyping() {
+    if (!currentRoom || !currentUser) return;
+    socket.emit('typing', {
+        roomId: currentRoom,
+        userId: currentUser.id,
+        username: currentUser.username
+    });
+}
 
 // ==================== TABS ====================
-function switchTab(t){
-    document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(x=>x.classList.remove('active'));
+function switchTab(t) {
+    document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(x => x.classList.remove('active'));
     document.querySelector(`.tg-tab[data-tab="${t}"]`).classList.add('active');
-    document.getElementById('roomList').classList.remove('active');document.getElementById('usersList').classList.remove('active');document.getElementById('chatArea').classList.remove('active');
-    if(t==='rooms'){document.getElementById('roomList').classList.add('active');loadRooms()}else if(t==='users'){document.getElementById('usersList').classList.add('active');loadUsersList()}
+    document.getElementById('roomList').classList.remove('active');
+    document.getElementById('usersList').classList.remove('active');
+    document.getElementById('chatArea').classList.remove('active');
+    if (t === 'rooms') {
+        document.getElementById('roomList').classList.add('active');
+        loadRooms();
+    } else if (t === 'users') {
+        document.getElementById('usersList').classList.add('active');
+        loadUsersList();
+    }
 }
-// ==================== ROOMS ====================
+
+// ==================== ROOMS & USERS ====================
 async function loadRooms() {
     if (!currentUser) return;
     try {
-        // ✅ currentUser.id ကို သေချာပို့မယ်
         const r = await fetch('/api/chat/rooms', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1611,15 +1715,12 @@ async function loadRooms() {
         const c = document.getElementById('roomList');
         if (d.rooms && d.rooms.length > 0) {
             c.innerHTML = d.rooms.map(room => {
-                // ✅ Avatar ကို ပုံမှန်အတိုင်း ပြမယ် (onerror မှာ icon ပြောင်းပြမယ်)
                 let av = `<div class="tg-avatar" style="background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:18px; color:rgba(255,255,255,0.3);">
                     ${room.room_type === 'admin' ? '👑' : room.room_type === 'group' ? '👥' : '💬'}
                 </div>`;
-                
                 if (room.avatar_url) {
                     av = `<img src="${room.avatar_url}" class="tg-avatar" onerror="this.style.display='none'; this.parentElement.innerHTML='${av}'">`;
                 }
-                
                 return `<div class="tg-room" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')">
                     ${av}
                     <div class="tg-room-info">
@@ -1637,45 +1738,112 @@ async function loadRooms() {
         document.getElementById('roomList').innerHTML = '<div class="empty-state">Error loading rooms</div>';
     }
 }
-    
-async function loadUsersList(){
-    if(!currentUser)return;
-    try{
-        // ✅ currentUser.id ကို သေချာပို့မယ်
-        const r=await fetch('/api/chat/online_users',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({userId:currentUser.id})
+
+async function loadUsersList() {
+    if (!currentUser) return;
+    try {
+        const r = await fetch('/api/chat/online_users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
         });
-        const d=await r.json();
-        const ou=(d.users||[]).filter(u=>u.user_id!==currentUser.id);
-        document.getElementById('usersList').innerHTML=ou.length?ou.map(u=>`<div class="tg-user" onclick="startPrivateChat(${u.user_id},'${escapeHtml(u.username)}')"><div class="online-dot"></div><div class="tg-room-info"><div class="tg-room-name">${escapeHtml(u.username)}</div><div class="tg-room-last" style="color:#2ecc71">Online</div></div></div>`).join(''):'<div class="empty-state"><p>No online users</p></div>';
-    }catch(e){}
+        const d = await r.json();
+        const ou = (d.users || []).filter(u => u.user_id !== currentUser.id);
+        document.getElementById('usersList').innerHTML = ou.length ? ou.map(u => `
+            <div class="tg-user" onclick="startPrivateChat(${u.user_id},'${escapeHtml(u.username)}')">
+                <div class="online-dot"></div>
+                <div class="tg-room-info">
+                    <div class="tg-room-name">${escapeHtml(u.username)}</div>
+                    <div class="tg-room-last" style="color:#2ecc71">Online</div>
+                </div>
+            </div>
+        `).join('') : '<div class="empty-state"><p>No online users</p></div>';
+    } catch(e) {
+        console.error('[LOAD USERS ERROR]', e);
+    }
 }
 
-async function startAdminChat(){if(!currentUser)return;try{const r=await fetch('/api/chat/create_admin_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id})});const d=await r.json();if(d.success){openRoom(d.room.id,d.room.room_name,'admin');loadRooms()}else showToast('Error',true)}catch(e){}}
-async function startPrivateChat(oid,oun){if(!currentUser)return;try{const r=await fetch('/api/chat/create_private_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUser.id,otherUserId:oid})});const d=await r.json();if(d.success)openRoom(d.room.id,oun,'private')}catch(e){}}
+// ==================== START CHAT FUNCTIONS ====================
+async function startAdminChat() {
+    if (!currentUser) return;
+    try {
+        const r = await fetch('/api/chat/create_admin_room', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+        const d = await r.json();
+        if (d.success) {
+            openRoom(d.room.id, d.room.room_name, 'admin');
+            loadRooms();
+        } else {
+            showToast('Error', true);
+        }
+    } catch(e) {}
+}
 
-async function openRoom(rid,rn,rt){
-    currentRoom=rid;document.getElementById('roomList').classList.remove('active');document.getElementById('usersList').classList.remove('active');
-    document.getElementById('chatArea').classList.add('active');document.getElementById('chatRoomTitle').textContent=rn;
-    if(rt==='group'){try{const r=await fetch('/api/chat/group_info',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})});const d=await r.json();if(d.success&&d.avatar_url){document.getElementById('chatRoomAvatar').src=d.avatar_url;document.getElementById('chatRoomAvatar').style.display='inline-block'}else{document.getElementById('chatRoomAvatar').style.display='none'}}catch(e){}}
-    else{document.getElementById('chatRoomAvatar').style.display='none'}
-    const mc=document.getElementById('messages');mc.innerHTML='<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">Loading...</div>';
-    if(socket&&socket.connected)socket.emit('join_room',rid);
-    try{const r=await fetch(`/api/chat/messages/${rid}`);const d=await r.json();if(d.messages?.length){mc.innerHTML='';d.messages.forEach(msg=>addMessageToUI(msg,msg.sender_id===currentUser?.id,msg.sender_premium_tier||0));scrollToBottom()}else mc.innerHTML='<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">No messages yet</div>';
-    await fetch('/api/chat/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:rid,userId:currentUser.id})})}catch(e){}
+async function startPrivateChat(oid, oun) {
+    if (!currentUser) return;
+    try {
+        const r = await fetch('/api/chat/create_private_room', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.id, otherUserId: oid })
+        });
+        const d = await r.json();
+        if (d.success) openRoom(d.room.id, oun, 'private');
+    } catch(e) {}
+}
+
+async function openRoom(rid, rn, rt) {
+    currentRoom = rid;
+    document.getElementById('roomList').classList.remove('active');
+    document.getElementById('usersList').classList.remove('active');
+    document.getElementById('chatArea').classList.add('active');
+    document.getElementById('chatRoomTitle').textContent = rn;
+    if (rt === 'group') {
+        try {
+            const r = await fetch('/api/chat/group_info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId: rid, userId: currentUser.id })
+            });
+            const d = await r.json();
+            if (d.success && d.avatar_url) {
+                document.getElementById('chatRoomAvatar').src = d.avatar_url;
+                document.getElementById('chatRoomAvatar').style.display = 'inline-block';
+            } else {
+                document.getElementById('chatRoomAvatar').style.display = 'none';
+            }
+        } catch(e) {}
+    } else {
+        document.getElementById('chatRoomAvatar').style.display = 'none';
+    }
+    const mc = document.getElementById('messages');
+    mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">Loading...</div>';
+    if (socket && socket.connected) socket.emit('join_room', rid);
+    try {
+        const r = await fetch(`/api/chat/messages/${rid}`);
+        const d = await r.json();
+        if (d.messages && d.messages.length) {
+            mc.innerHTML = '';
+            d.messages.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
+            scrollToBottom();
+        } else {
+            mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">No messages yet</div>';
+        }
+        await fetch('/api/chat/read', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roomId: rid, userId: currentUser.id })
+        });
+    } catch(e) {}
 }
 
 function addMessageToUI(msg, isMine, spt) {
     spt = spt || 0;
     const c = document.getElementById('messages');
-    
-    // ✅ "No messages" သို့မဟုတ် "Loading" ရှိနေရင် ဖျက်ပစ်မယ်
-    if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) {
-        c.innerHTML = '';
-    }
-    
+    if (c.innerHTML.includes('No messages') || c.innerHTML.includes('Loading')) c.innerHTML = '';
     let mh = '';
     const mt = msg.message || '';
     if (mt.startsWith('📷 IMAGE:')) {
@@ -1686,141 +1854,142 @@ function addMessageToUI(msg, isMine, spt) {
     } else {
         mh = escapeHtml(mt);
     }
-    
     const d = document.createElement('div');
     d.className = `msg-row ${isMine ? 'mine msg-mine' : 'other msg-other'}`;
-    
-    // ✅ Message ID
-    if (msg.id) {
-        d.setAttribute('data-msg-id', msg.id);
-    }
-    
+    if (msg.id) d.setAttribute('data-msg-id', msg.id);
     let bc = 'normal-tier';
     if (spt === 1) bc = 'bronze-tier';
     else if (spt === 2) bc = 'silver-tier';
     else if (spt === 3) bc = 'gold-tier';
-    
     let av = '';
     if (!isMine) {
-        av = msg.avatar_url ? 
-            `<img src="${msg.avatar_url}" class="msg-avatar-xs" onerror="this.style.display='none'">` : 
-            `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
+        av = msg.avatar_url ? `<img src="${msg.avatar_url}" class="msg-avatar-xs" onerror="this.style.display='none'">` : `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
     }
-    
     let seenHtml = '';
     if (isMine) {
-        if (msg.is_read) {
-            seenHtml = '<span style="color:#2ecc71;font-size:9px;margin-left:3px">✓✓</span>';
-        } else {
-            seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
-        }
+        if (msg.is_read) seenHtml = '<span style="color:#2ecc71;font-size:9px;margin-left:3px">✓✓</span>';
+        else seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
     }
-    
     d.innerHTML = `${av}<div class="msg-bubble ${bc}">${!isMine ? `<div class="msg-sender">${escapeHtml(msg.username || 'User')}</div>` : ''}${mh}<div class="msg-time">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}${seenHtml}</div></div>`;
     c.appendChild(d);
 }
-    
-function downloadMedia(u,t,fn='file'){const a=document.createElement('a');a.href=u;a.download=t==='image'?'image.jpg':fn;document.body.appendChild(a);a.click();document.body.removeChild(a)}
 
-    function sendMessage() {
+function downloadMedia(u, t, fn = 'file') {
+    const a = document.createElement('a');
+    a.href = u;
+    a.download = t === 'image' ? 'image.jpg' : fn;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// ==================== SEND / DELETE / CLOSE ====================
+function sendMessage() {
     const i = document.getElementById('msgInput');
     const m = i.value.trim();
-    if (!m) return;
-    if (!currentRoom) return;
-    
-    // ✅ Sent sound
-    playSendSound();
-    
-    // Emit message
+    if (!m || !currentRoom) return;
+    if (sendSound) { sendSound.currentTime = 0; sendSound.play().catch(() => {}); }
     socket.emit('send_message', {
         roomId: currentRoom,
         message: m,
         userId: currentUser.id,
         username: currentUser.username,
-        senderPremiumTier: premiumTier // ✅ ဒါကို ထည့်ပေးဖို့ လိုတယ်
+        senderPremiumTier: premiumTier
     });
-    
     i.value = '';
     i.focus();
-    setTimeout(function() { i.focus(); }, 50);
-    }
-    
-function playSendSound() {
-    if (sendSound) {
-        sendSound.currentTime = 0;
-        sendSound.play().catch(() => {});
-    }
+    setTimeout(() => i.focus(), 50);
 }
 
-function playReceiveSound() {
-    if (receiveSound) {
-        receiveSound.currentTime = 0;
-        receiveSound.play().catch(() => {});
-    }
+function closeChat() {
+    currentRoom = null;
+    document.getElementById('chatArea').classList.remove('active');
+    document.getElementById('roomList').classList.add('active');
+    loadRooms();
 }
-function closeChat(){currentRoom=null;document.getElementById('chatArea').classList.remove('active');document.getElementById('roomList').classList.add('active');loadRooms()}
-function deleteCurrentRoom(){if(!currentRoom||!confirm('Delete?'))return;fetch('/api/chat/delete_room',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({roomId:currentRoom,userId:currentUser.id})}).then(()=>{showToast('Deleted');closeChat()}).catch(()=>showToast('Error',true))}
+
+function deleteCurrentRoom() {
+    if (!currentRoom || !confirm('Delete?')) return;
+    fetch('/api/chat/delete_room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id })
+    }).then(() => {
+        showToast('Deleted');
+        closeChat();
+    }).catch(() => showToast('Error', true));
+}
 
 // ==================== EMOJI ====================
-function insertEmoji(e){const i=document.getElementById('msgInput');const p=i.selectionStart;i.value=i.value.substring(0,p)+e+i.value.substring(p);i.focus();i.setSelectionRange(p+e.length,p+e.length)}
-const EMOJI_CATS={smileys:['😀','😂','😍','😎','😢','😡','🤔','😴','🥰','😇','🤗','😊','🙂','😉','😋','😛','😜','🤪','😝','🤑','🤓','🤩','🥳','😏','😒','😞','😔','😟','😕','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','💀','💩','🤡','👻','👽','🤖'],people:['👶','👦','👧','🧑','👨','👩','🧓','👴','👵','👨‍⚕️','👩‍⚕️','👨‍🎓','👩‍🎓','👨‍🏫','👩‍🏫','👨‍🍳','👩‍🍳','👨‍💻','👩‍💻','👨‍🎤','👩‍🎤','👮','🕵️','💂','👷','🤴','👸','👳','🧕','🤵','👰','🤰','👼','🎅','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟'],animals:['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐴','🦄','🐝','🦋','🐞','🐜','🕷️','🦂','🐢','🐍','🦎','🦖','🐙','🦑','🦀','🐠','🐟','🐬','🐳','🦈','🐊','🐅','🐘','🦏','🐪','🦒'],food:['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🍒','🍑','🍍','🥝','🍅','🍆','🥑','🥕','🍞','🧀','🥚','🍳','🥩','🍗','🌭','🍔','🍟','🍕','🥪','🌮','🌯','🥗','🍝','🍜','🍣','🍱','🍤','🍙','🍚','🍧','🍨','🍦','🍰','🎂','🍩','☕','🍵','🍺','🍻','🥂','🍷'],sports:['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🏓','🏸','🏒','🏏','⛳','🎣','🥊','🥋','🎽','🛹','⛸️','🎿','🏂','🏋️','🤼','🤸','🏌️','🏇','🏄','🏊','🚣','🚵'],travel:['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚚','🏍️','🚲','🛴','🚡','🚃','🚋','🚄','🚅','✈️','🛫','🚀','🛸','🚁','⛵','🚤','🚢','⚓','⛽','🚦','🗺️','🗽','🏰','🎡','🏠','🏥','🏦','🏨','🏫','⛪','🕌'],flags:['🏳️','🏁','🚩','🏳️‍🌈','🏴‍☠️','🇲🇲','🇹🇭','🇯🇵','🇰🇷','🇨🇳','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇮🇳','🇷🇺','🇧🇷','🇨🇦','🇦🇺','🇮🇹','🇪🇸','🇸🇬','🇮🇩','🇵🇭','🇻🇳','🇱🇦','🇰🇭'],hearts:['❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💌','💑','💏'],symbols:['✅','❌','⚠️','💡','🔑','🔒','🔓','🔔','📢','💬','🕒','📍','🔗','💰','🏆','🎯','📱','💻','📷','🎵','🎤','🎧','🎹','🎸','🎮','⚡','🔥','🌈','⭐','✨','☀️','🌙','🌸','🌺','🍀']};
-let currentEmojiCat='smileys';
-function toggleMoreEmojis(){buildEmojiCatTabs();renderEmojiGrid('smileys');document.getElementById('moreEmojisModal').classList.add('active')}
-function buildEmojiCatTabs(){const c=document.getElementById('emojiCatTabs');c.innerHTML=Object.keys(EMOJI_CATS).map(cat=>`<span class="emoji-cat-tab${cat===currentEmojiCat?' active':''}" onclick="renderEmojiGrid('${cat}')">${cat==='smileys'?'😀':cat==='people'?'👤':cat==='animals'?'🐱':cat==='food'?'🍕':cat==='sports'?'⚽':cat==='travel'?'🚗':cat==='flags'?'🏳️':cat==='hearts'?'❤️':cat==='symbols'?'💡':''} ${cat}</span>`).join('')}
-function renderEmojiGrid(cat){currentEmojiCat=cat;buildEmojiCatTabs();const g=document.getElementById('moreEmojisGrid');g.innerHTML=(EMOJI_CATS[cat]||[]).map(e=>`<span class="emoji-grid-item" onclick="insertEmoji('${e}');closeModal('moreEmojisModal')">${e}</span>`).join('')}
-
-// ==================== PAGE TIMER ====================
-function setCookie(n,v,d){let e='';if(d){const dt=new Date();dt.setTime(dt.getTime()+(d*24*60*60*1000));e='; expires='+dt.toUTCString()}document.cookie=n+'='+encodeURIComponent(v||'')+e+'; path=/'}
-function getCookie(n){const ne=n+'=';const ca=document.cookie.split(';');for(let i=0;i<ca.length;i++){let c=ca[i];while(c.charAt(0)===' ')c=c.substring(1);if(c.indexOf(ne)===0)return c.substring(ne.length)}return null}
-async function checkPageTimer(){const pid='chat';let t=null;try{const s=localStorage.getItem('pageTimers');if(s){const tm=JSON.parse(s);t=tm[pid]}if(!t){const ck=getCookie('pageTimers');if(ck){const tm=JSON.parse(decodeURIComponent(ck));t=tm[pid]}}if(!t){const ss=sessionStorage.getItem('pageTimers');if(ss){const tm=JSON.parse(ss);t=tm[pid]}}}catch(e){}if(t&&t>Date.now()){showMaintenanceMode(t);return false}return true}
-function showMaintenanceMode(te){
-    document.querySelector('.tg-header').style.display='none';document.querySelector('.tg-tabs').style.display='none';document.querySelector('.chat-body').style.display='none';
-    document.body.insertAdjacentHTML('beforeend',`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:var(--gold);margin-bottom:15px"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:700;color:var(--gold);margin-bottom:8px">ပြုပြင်နေပါသည်</div><div id="maintCountdown" style="font-size:26px;font-weight:700;color:var(--gold);font-family:monospace;margin:12px 0">--:--:--</div><a href="/dashboard" style="padding:10px 25px;background:var(--gold);color:#000;text-decoration:none;border-radius:10px;font-weight:700;font-size:13px;margin-top:8px"><i class="fas fa-arrow-left"></i> Dashboard</a></div>`);
-    const ce=document.getElementById('maintCountdown');function up(){const r=te-Date.now();if(r<=0){try{const s=localStorage.getItem('pageTimers');if(s){const tm=JSON.parse(s);delete tm['chat'];localStorage.setItem('pageTimers',JSON.stringify(tm))}setCookie('pageTimers','',-1);sessionStorage.removeItem('pageTimers')}catch(e){}location.reload();return}const ss=Math.floor(r/1000),h=Math.floor(ss/3600),m=Math.floor((ss%3600)/60),s=ss%60;ce.textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')}up();setInterval(up,1000)}
-async function checkPageAccess(){
-    try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const cp=d.pages.find(p=>p.id==='chat');if(cp&&cp.status==='off'){const ht=await checkPageTimer();if(ht===false)return false;
-    document.querySelector('.tg-header').style.display='none';document.querySelector('.tg-tabs').style.display='none';document.querySelector('.chat-body').style.display='none';
-    document.body.insertAdjacentHTML('beforeend','<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px"><div style="font-size:60px;color:var(--gold)"><i class="fas fa-tools"></i></div><div style="font-size:18px;font-weight:700;color:var(--gold);margin:10px 0">ပြုပြင်နေပါသည်</div><a href="/dashboard" style="padding:10px 25px;background:var(--gold);color:#000;text-decoration:none;border-radius:10px;font-weight:700;font-size:13px"><i class="fas fa-arrow-left"></i> Dashboard</a></div>');return false}}return true}catch(e){return true}
+function insertEmoji(e) {
+    const i = document.getElementById('msgInput');
+    const p = i.selectionStart;
+    i.value = i.value.substring(0, p) + e + i.value.substring(p);
+    i.focus();
+    i.setSelectionRange(p + e.length, p + e.length);
 }
-setInterval(async()=>{try{const r=await fetch('/api/admin/page_status');const d=await r.json();if(d.pages){const cp=d.pages.find(p=>p.id==='chat');if(cp&&cp.status==='off')location.reload()}}catch(e){}},30000);
-// ==================== MESSAGE EDIT/DELETE ====================
-let selectedMsgId = null;
-let selectedMsgText = null;
-let selectedMsgElement = null;
 
-// Right-click / Long-press on message
+const EMOJI_CATS = {
+    smileys: ['😀','😂','😍','😎','😢','😡','🤔','😴','🥰','😇','🤗','😊','🙂','😉','😋','😛','😜','🤪','😝','🤑','🤓','🤩','🥳','😏','😒','😞','😔','😟','😕','😣','😖','😫','😩','🥺','😢','😭','😤','😠','😡','🤬','💀','💩','🤡','👻','👽','🤖'],
+    people: ['👶','👦','👧','🧑','👨','👩','🧓','👴','👵','👨‍⚕️','👩‍⚕️','👨‍🎓','👩‍🎓','👨‍🏫','👩‍🏫','👨‍🍳','👩‍🍳','👨‍💻','👩‍💻','👨‍🎤','👩‍🎤','👮','🕵️','💂','👷','🤴','👸','👳','🧕','🤵','👰','🤰','👼','🎅','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟'],
+    animals: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🦆','🦅','🦉','🦇','🐺','🐴','🦄','🐝','🦋','🐞','🐜','🕷️','🦂','🐢','🐍','🦎','🦖','🐙','🦑','🦀','🐠','🐟','🐬','🐳','🦈','🐊','🐅','🐘','🦏','🐪','🦒'],
+    food: ['🍎','🍊','🍋','🍌','🍉','🍇','🍓','🍒','🍑','🍍','🥝','🍅','🍆','🥑','🥕','🍞','🧀','🥚','🍳','🥩','🍗','🌭','🍔','🍟','🍕','🥪','🌮','🌯','🥗','🍝','🍜','🍣','🍱','🍤','🍙','🍚','🍧','🍨','🍦','🍰','🎂','🍩','☕','🍵','🍺','🍻','🥂','🍷'],
+    sports: ['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🏓','🏸','🏒','🏏','⛳','🎣','🥊','🥋','🎽','🛹','⛸️','🎿','🏂','🏋️','🤼','🤸','🏌️','🏇','🏄','🏊','🚣','🚵'],
+    travel: ['🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚚','🏍️','🚲','🛴','🚡','🚃','🚋','🚄','🚅','✈️','🛫','🚀','🛸','🚁','⛵','🚤','🚢','⚓','⛽','🚦','🗺️','🗽','🏰','🎡','🏠','🏥','🏦','🏨','🏫','⛪','🕌'],
+    flags: ['🏳️','🏁','🚩','🏳️‍🌈','🏴‍☠️','🇲🇲','🇹🇭','🇯🇵','🇰🇷','🇨🇳','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇮🇳','🇷🇺','🇧🇷','🇨🇦','🇦🇺','🇮🇹','🇪🇸','🇸🇬','🇮🇩','🇵🇭','🇻🇳','🇱🇦','🇰🇭'],
+    hearts: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💌','💑','💏'],
+    symbols: ['✅','❌','⚠️','💡','🔑','🔒','🔓','🔔','📢','💬','🕒','📍','🔗','💰','🏆','🎯','📱','💻','📷','🎵','🎤','🎧','🎹','🎸','🎮','⚡','🔥','🌈','⭐','✨','☀️','🌙','🌸','🌺','🍀']
+};
+
+let currentEmojiCat = 'smileys';
+
+function toggleMoreEmojis() {
+    buildEmojiCatTabs();
+    renderEmojiGrid('smileys');
+    document.getElementById('moreEmojisModal').classList.add('active');
+}
+
+function buildEmojiCatTabs() {
+    const c = document.getElementById('emojiCatTabs');
+    c.innerHTML = Object.keys(EMOJI_CATS).map(cat => `
+        <span class="emoji-cat-tab${cat === currentEmojiCat ? ' active' : ''}" onclick="renderEmojiGrid('${cat}')">
+            ${cat === 'smileys' ? '😀' : cat === 'people' ? '👤' : cat === 'animals' ? '🐱' : cat === 'food' ? '🍕' : cat === 'sports' ? '⚽' : cat === 'travel' ? '🚗' : cat === 'flags' ? '🏳️' : cat === 'hearts' ? '❤️' : cat === 'symbols' ? '💡' : ''} ${cat}
+        </span>
+    `).join('');
+}
+
+function renderEmojiGrid(cat) {
+    currentEmojiCat = cat;
+    buildEmojiCatTabs();
+    const g = document.getElementById('moreEmojisGrid');
+    g.innerHTML = (EMOJI_CATS[cat] || []).map(e => `
+        <span class="emoji-grid-item" onclick="insertEmoji('${e}');closeModal('moreEmojisModal')">${e}</span>
+    `).join('');
+}
+
+// ==================== MESSAGE EDIT / DELETE ====================
 document.addEventListener('contextmenu', function(e) {
     var bubble = e.target.closest('.msg-bubble');
     if (!bubble) return;
-    
     var row = bubble.closest('.msg-row');
-    if (!row || !row.classList.contains('mine')) return; // Only own messages
-    
+    if (!row || !row.classList.contains('mine')) return;
     e.preventDefault();
-    
-    // Get message ID
     var msgData = row.getAttribute('data-msg-id');
     if (!msgData) return;
-    
     selectedMsgId = parseInt(msgData);
     selectedMsgElement = row;
-    
-    // Get text (exclude sender name and time)
     var clone = bubble.cloneNode(true);
     var sender = clone.querySelector('.msg-sender');
     var time = clone.querySelector('.msg-time');
     if (sender) sender.remove();
     if (time) time.remove();
     selectedMsgText = clone.textContent.trim();
-    
-    // Show context menu
     var menu = document.getElementById('msgContextMenu');
     menu.style.display = 'block';
     menu.style.left = Math.min(e.clientX, window.innerWidth - 160) + 'px';
     menu.style.top = Math.min(e.clientY, window.innerHeight - 120) + 'px';
-    
     setTimeout(function() {
-        document.addEventListener('click', hideContextMenu, {once: true});
+        document.addEventListener('click', hideContextMenu, { once: true });
     }, 100);
 });
 
@@ -1831,7 +2000,6 @@ function hideContextMenu() {
 function editMessage() {
     hideContextMenu();
     if (!selectedMsgId) return;
-    
     document.getElementById('editOriginalMsg').textContent = selectedMsgText;
     document.getElementById('editMsgInput').value = selectedMsgText;
     document.getElementById('editMsgModal').classList.add('active');
@@ -1841,10 +2009,8 @@ async function saveEditMessage() {
     var newText = document.getElementById('editMsgInput').value.trim();
     if (!newText) { showToast('Message cannot be empty', true); return; }
     if (newText === selectedMsgText) { closeModal('editMsgModal'); return; }
-    
     closeModal('editMsgModal');
     showToast('Saving...');
-    
     try {
         var r = await fetch('/api/chat/edit_message', {
             method: 'POST',
@@ -1856,13 +2022,10 @@ async function saveEditMessage() {
             })
         });
         var d = await r.json();
-        
         if (d.success) {
-            // Update UI
             if (selectedMsgElement) {
                 var bubble = selectedMsgElement.querySelector('.msg-bubble');
                 if (bubble) {
-                    // Replace text (keep sender & time)
                     var timeEl = bubble.querySelector('.msg-time');
                     var timeHtml = timeEl ? timeEl.outerHTML : '';
                     var senderEl = bubble.querySelector('.msg-sender');
@@ -1882,11 +2045,8 @@ async function saveEditMessage() {
 async function deleteMessage() {
     hideContextMenu();
     if (!selectedMsgId) return;
-    
     if (!confirm('Delete this message?')) return;
-    
     showToast('Deleting...');
-    
     try {
         var r = await fetch('/api/chat/delete_message', {
             method: 'POST',
@@ -1897,12 +2057,8 @@ async function deleteMessage() {
             })
         });
         var d = await r.json();
-        
         if (d.success) {
-            // Remove from UI
-            if (selectedMsgElement) {
-                selectedMsgElement.remove();
-            }
+            if (selectedMsgElement) selectedMsgElement.remove();
             showToast('✅ Message deleted!');
         } else {
             showToast(d.message || 'Error', true);
@@ -1910,26 +2066,139 @@ async function deleteMessage() {
     } catch(e) {
         showToast('Server error', true);
     }
-      }
+}
+
+// ==================== PAGE TIMER ====================
+function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + encodeURIComponent(value || '') + expires + '; path=/';
+}
+
+function getCookie(name) {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+async function checkPageTimer() {
+    const pid = 'chat';
+    let t = null;
+    try {
+        const saved = localStorage.getItem('pageTimers');
+        if (saved) { const timers = JSON.parse(saved); t = timers[pid]; }
+        if (!t) {
+            const cookieTimers = getCookie('pageTimers');
+            if (cookieTimers) { const timers = JSON.parse(decodeURIComponent(cookieTimers)); t = timers[pid]; }
+        }
+        if (!t) {
+            const sessionTimers = sessionStorage.getItem('pageTimers');
+            if (sessionTimers) { const timers = JSON.parse(sessionTimers); t = timers[pid]; }
+        }
+    } catch(e) {}
+    if (t && t > Date.now()) {
+        showMaintenanceMode(t);
+        return false;
+    }
+    return true;
+}
+
+function showMaintenanceMode(te) {
+    document.querySelector('.tg-header').style.display = 'none';
+    document.querySelector('.tg-tabs').style.display = 'none';
+    document.querySelector('.chat-body').style.display = 'none';
+    document.body.insertAdjacentHTML('beforeend', `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px">
+            <div style="font-size:60px;color:var(--gold);margin-bottom:15px"><i class="fas fa-tools"></i></div>
+            <div style="font-size:18px;font-weight:700;color:var(--gold);margin-bottom:8px">ပြုပြင်နေပါသည်</div>
+            <div id="maintCountdown" style="font-size:26px;font-weight:700;color:var(--gold);font-family:monospace;margin:12px 0">--:--:--</div>
+            <a href="/dashboard" style="padding:10px 25px;background:var(--gold);color:#000;text-decoration:none;border-radius:10px;font-weight:700;font-size:13px;margin-top:8px"><i class="fas fa-arrow-left"></i> Dashboard</a>
+        </div>
+    `);
+    const ce = document.getElementById('maintCountdown');
+    function up() {
+        const r = te - Date.now();
+        if (r <= 0) {
+            try {
+                const saved = localStorage.getItem('pageTimers');
+                if (saved) { const timers = JSON.parse(saved); delete timers['chat']; localStorage.setItem('pageTimers', JSON.stringify(timers)); }
+                setCookie('pageTimers', '', -1);
+                sessionStorage.removeItem('pageTimers');
+            } catch(e) {}
+            location.reload();
+            return;
+        }
+        const ss = Math.floor(r / 1000), h = Math.floor(ss / 3600), m = Math.floor((ss % 3600) / 60), s = ss % 60;
+        ce.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+    up();
+    setInterval(up, 1000);
+}
+
+async function checkPageAccess() {
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const cp = d.pages.find(p => p.id === 'chat');
+            if (cp && cp.status === 'off') {
+                const ht = await checkPageTimer();
+                if (ht === false) return false;
+                document.querySelector('.tg-header').style.display = 'none';
+                document.querySelector('.tg-tabs').style.display = 'none';
+                document.querySelector('.chat-body').style.display = 'none';
+                document.body.insertAdjacentHTML('beforeend', `
+                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px">
+                        <div style="font-size:60px;color:var(--gold)"><i class="fas fa-tools"></i></div>
+                        <div style="font-size:18px;font-weight:700;color:var(--gold);margin:10px 0">ပြုပြင်နေပါသည်</div>
+                        <a href="/dashboard" style="padding:10px 25px;background:var(--gold);color:#000;text-decoration:none;border-radius:10px;font-weight:700;font-size:13px"><i class="fas fa-arrow-left"></i> Dashboard</a>
+                    </div>
+                `);
+                return false;
+            }
+        }
+        return true;
+    } catch(e) { return true; }
+}
+
+// ==================== INIT ====================
 async function init() {
     const po = await checkPageAccess();
     if (!po) return;
-    
     initSounds();
-    
     document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(t => 
         t.addEventListener('click', () => switchTab(t.getAttribute('data-tab')))
     );
-    
-    // ✅ Get user FIRST
     const u = await getCurrentUser();
     if (!u) return;
-    
-    // ✅ THEN init socket & load data
     await checkPremiumStatus();
     initSocket();
     loadRooms();
 }
+
+// Start the app
+init();
+
+// Refresh online status every 10 seconds
+setInterval(async () => {
+    try {
+        const r = await fetch('/api/admin/page_status');
+        const d = await r.json();
+        if (d.pages) {
+            const cp = d.pages.find(p => p.id === 'chat');
+            if (cp && cp.status === 'off') location.reload();
+        }
+    } catch(e) {}
+}, 30000);
 </script>
 </body>
 </html>
