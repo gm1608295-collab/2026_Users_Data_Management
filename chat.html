@@ -1817,6 +1817,20 @@ function switchTab(t) {
 // ==================== ROOMS & USERS ====================
 async function loadRooms() {
     if (!currentUser) return;
+    const c = document.getElementById('roomList');
+    
+    // ✅ 1. Cache ထဲက Room List ကို အရင်ပြပါ (ချက်ချင်းပေါ်အောင်)
+    const cachedRooms = localStorage.getItem('chatRoomCache_' + currentUser.id);
+    if (cachedRooms) {
+        try {
+            const rooms = JSON.parse(cachedRooms);
+            renderRoomList(rooms, c);
+        } catch(e) {}
+    } else {
+        c.innerHTML = '<div class="empty-state">Chat များ ရယူနေသည်...</div>';
+    }
+
+    // ✅ 2. Server ကို သွားပြီး အသစ်တွေ ယူမယ် (နောက်ခံ)
     try {
         const r = await fetch('/api/chat/rooms', {
             method: 'POST',
@@ -1824,34 +1838,42 @@ async function loadRooms() {
             body: JSON.stringify({ userId: currentUser.id })
         });
         const d = await r.json();
-        const c = document.getElementById('roomList');
+        
         if (d.rooms && d.rooms.length > 0) {
-            c.innerHTML = d.rooms.map(room => {
-                // Avatar ကို Cache မှမယူအောင် `?t=` ထည့်ပြီး ပြပါ
-                let avatarSrc = room.avatar_url ? room.avatar_url + '?t=' + Date.now() : '';
-                let av = `<div class="tg-avatar" style="background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:18px; color:rgba(255,255,255,0.3);">
-                    ${room.room_type === 'admin' ? '👑' : room.room_type === 'group' ? '👥' : '💬'}
-                </div>`;
-                if (avatarSrc) {
-                    av = `<img src="${avatarSrc}" class="tg-avatar" onerror="this.style.display='none'; this.parentElement.innerHTML='${av}'">`;
-                }
-                return `<div class="tg-room" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')">
-                    ${av}
-                    <div class="tg-room-info">
-                        <div class="tg-room-name">${escapeHtml(room.room_name)}</div>
-                        <div class="tg-room-last">${escapeHtml(room.last_message || 'No messages')}</div>
-                    </div>
-                    ${room.unread > 0 ? `<div class="tg-room-badge">${room.unread}</div>` : ''}
-                </div>`;
-            }).join('');
+            // Cache ထဲ သိမ်းမယ်
+            localStorage.setItem('chatRoomCache_' + currentUser.id, JSON.stringify(d.rooms));
+            renderRoomList(d.rooms, c);
         } else {
             c.innerHTML = '<div class="empty-state"><p>No chats yet</p><button class="admin-btn" onclick="startAdminChat()">📞 Chat with Admin</button></div>';
+            localStorage.removeItem('chatRoomCache_' + currentUser.id);
         }
     } catch(e) {
         console.error('[LOAD ROOMS ERROR]', e);
-        document.getElementById('roomList').innerHTML = '<div class="empty-state">Error loading rooms</div>';
+        // Cache ရှိရင် ပြီးသားပြထားပြီ၊ မရှိရင် Error ပြ
+        if (!cachedRooms) c.innerHTML = '<div class="empty-state">Error loading rooms</div>';
     }
 }
+
+// ✅ Room List ကို Render လုပ်တဲ့ Function ခွဲထုတ်မယ်
+function renderRoomList(rooms, container) {
+    container.innerHTML = rooms.map(room => {
+        let avatarSrc = room.avatar_url ? room.avatar_url + '?t=' + Date.now() : '';
+        let av = `<div class="tg-avatar" style="background:rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:center; font-size:18px; color:rgba(255,255,255,0.3);">
+            ${room.room_type === 'admin' ? '👑' : room.room_type === 'group' ? '👥' : '💬'}
+        </div>`;
+        if (avatarSrc) {
+            av = `<img src="${avatarSrc}" class="tg-avatar" onerror="this.style.display='none'; this.parentElement.innerHTML='${av}'">`;
+        }
+        return `<div class="tg-room" onclick="openRoom(${room.id},'${escapeHtml(room.room_name)}','${room.room_type}')">
+            ${av}
+            <div class="tg-room-info">
+                <div class="tg-room-name">${escapeHtml(room.room_name)}</div>
+                <div class="tg-room-last">${escapeHtml(room.last_message || 'No messages')}</div>
+            </div>
+            ${room.unread > 0 ? `<div class="tg-room-badge">${room.unread}</div>` : ''}
+        </div>`;
+    }).join('');
+    }
     
 async function loadUsersList() {
     if (!currentUser) return;
@@ -1910,12 +1932,16 @@ async function startPrivateChat(oid, oun) {
 }
 
 async function openRoom(rid, rn, rt) {
+    // 1. Room ID သိမ်းမယ်
     currentRoom = rid;
+    
+    // 2. UI ကို ချက်ချင်းပြောင်းမယ် (Title, Avatar, Area)
     document.getElementById('roomList').classList.remove('active');
     document.getElementById('usersList').classList.remove('active');
     document.getElementById('chatArea').classList.add('active');
     document.getElementById('chatRoomTitle').textContent = rn;
     
+    // Group Avatar ဆွဲတာ (မူရင်းအတိုင်း)
     if (rt === 'group') {
         try {
             const r = await fetch('/api/chat/group_info', {
@@ -1934,35 +1960,72 @@ async function openRoom(rid, rn, rt) {
     } else {
         document.getElementById('chatRoomAvatar').style.display = 'none';
     }
-    
+
     const mc = document.getElementById('messages');
-    mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">Loading...</div>';
     
-    // ✅ ဒီမှာ parseInt(rid) ကို သေချာထည့်ပေးလိုက်ပါတယ်။
-    if (socket && socket.connected) socket.emit('join_room', parseInt(rid));
-    
+    // 3. ✅ Cache ထဲက Messages ကို အရင်ပြပါ (ချက်ချင်းပေါ်အောင်)
+    // ဒါကို Loading မပြခင် အရင်လုပ်ပါ
+    const cachedMessages = localStorage.getItem('chatMessages_' + rid);
+    if (cachedMessages) {
+        try {
+            const msgs = JSON.parse(cachedMessages);
+            mc.innerHTML = '';
+            msgs.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
+            scrollToBottom();
+        } catch(e) {
+            mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">Loading messages...</div>';
+        }
+    } else {
+        // Cache မရှိရင် Loading ပြမယ်
+        mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">Loading messages...</div>';
+    }
+
+    // 4. Socket Join Room (Real-time အတွက်)
+    if (socket && socket.connected) {
+        socket.emit('join_room', parseInt(rid));
+    }
+
+    // 5. ✅ Server ကို သွားပြီး အသစ်တွေ ယူမယ် (နောက်ခံ)
     try {
         const r = await fetch(`/api/chat/messages/${rid}`);
         const d = await r.json();
-        if (d.messages && d.messages.length) {
-            mc.innerHTML = '';
-            d.messages.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
-            scrollToBottom();
+        
+        if (d.messages && d.messages.length > 0) {
+            // ✅ Server Data နဲ့ Cache Data ကို နှိုင်းယှဉ်ပါ (Update ဖြစ်မှသာ ပြန်ပြ)
+            const serverMsgs = JSON.stringify(d.messages);
+            const cachedMsgs = localStorage.getItem('chatMessages_' + rid);
+            
+            if (serverMsgs !== cachedMsgs) {
+                // Data ပြောင်းသွားရင် Cache အသစ် သိမ်းပြီး UI ပြန်ပြ
+                localStorage.setItem('chatMessages_' + rid, serverMsgs);
+                mc.innerHTML = '';
+                d.messages.forEach(msg => addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0));
+                scrollToBottom();
+            }
+            // Data အတူတူဆိုရင် ဘာမှမလုပ်ပါနဲ့ (Cache ထဲက UI က ဆက်ပြီးနေပါလိမ့်မယ်)
+            
         } else {
+            // Server မှာ Message မရှိရင်
             mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">No messages yet</div>';
+            localStorage.removeItem('chatMessages_' + rid);
         }
-        // Mark messages as read
+        
+        // Mark messages as read (နောက်ခံ)
         await fetch('/api/chat/read', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roomId: rid, userId: currentUser.id })
         });
+        
     } catch(e) {
         console.error('[OPEN ROOM ERROR]', e);
-        mc.innerHTML = '<div style="text-align:center;padding:30px;color:#e74c3c;">Failed to load messages</div>';
+        // Error ဖြစ်ရင် Cache ရှိရင် အဲ့ဒါပဲ ဆက်ပြပါ
+        if (!cachedMessages) {
+            mc.innerHTML = '<div style="text-align:center;padding:30px;color:#e74c3c;">Failed to load messages</div>';
+        }
     }
-    }
-
+}
+    
     function addMessageToUI(msg, isMine, spt) {
     spt = spt || 0;
     const c = document.getElementById('messages');
@@ -2472,35 +2535,38 @@ async function handleReactionClick(msgId, emoji) {
     await toggleReaction(msgId, emoji);
 }
     
-// ==================== INIT ====================
 async function init() {
-    const po = await checkPageAccess();
-    if (!po) return;
+    // ✅ 1. UI ကို ချက်ချင်းပြပါ (Loading screen မရှိအောင်)
+    document.querySelector('.tg-header').style.display = 'flex';
+    document.querySelector('.tg-tabs').style.display = 'flex';
+    document.querySelector('.chat-body').style.display = 'flex';
+    document.getElementById('roomList').innerHTML = '<div class="empty-state">ခဏစောင့်ပါ၊ Chat များ ရယူနေသည်...</div>'; // အစား Loading စာသားပြမယ်
+
+    // ✅ 2. နောက်ခံမှာ Page Access စစ်မယ် (ပျက်သွားရင် ပြန်ပို့မယ်)
+    checkPageAccess().then(po => {
+        if (!po) {
+            // Page ပိတ်ထားရင် Maintenance ပြမယ်
+            document.querySelector('.tg-header').style.display = 'none';
+            document.querySelector('.tg-tabs').style.display = 'none';
+            document.querySelector('.chat-body').style.display = 'none';
+            document.body.insertAdjacentHTML('beforeend', `<div style="text-align:center;padding:50px;color:var(--gold)"><i class="fas fa-tools"></i> Chat page is under maintenance</div>`);
+            return;
+        }
+    });
+
+    // ✅ 3. Sound, User, Socket စသဖြင့် နောက်ခံမှာ တင်မယ်
     initSounds();
     document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(t => 
         t.addEventListener('click', () => switchTab(t.getAttribute('data-tab')))
     );
+    
+    // User ကို ချက်ချင်းယူမယ်
     const u = await getCurrentUser();
     if (!u) return;
     await checkPremiumStatus();
     initSocket();
     loadRooms();
 }
-
-// Start the app
-init();
-
-// Refresh online status every 10 seconds
-setInterval(async () => {
-    try {
-        const r = await fetch('/api/admin/page_status');
-        const d = await r.json();
-        if (d.pages) {
-            const cp = d.pages.find(p => p.id === 'chat');
-            if (cp && cp.status === 'off') location.reload();
-        }
-    } catch(e) {}
-}, 30000);
 </script>
 </body>
 </html>
