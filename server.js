@@ -16,7 +16,17 @@ const app = express();
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(express.static(__dirname));
+// ✅ ဒါကို အစားထိုးပါ
+app.use(express.static(__dirname, {
+    maxAge: '1h', // 1 နာရီကြာအောင် Browser မှာ သိမ်းထားမယ်
+    etag: false,
+    setHeaders: (res, path) => {
+        if (path.endsWith('.html')) {
+            // HTML ဖိုင်တွေကို 1 နာရီ Cache လုပ်မယ်
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+        }
+    }
+}));
 
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
@@ -7703,32 +7713,24 @@ app.post('/api/chat/online_users', async (req, res) => {
     }
 });
 
-// Update /api/chat/rooms to include avatar_url
 app.post('/api/chat/rooms', async (req, res) => {
     const { userId } = req.body;
     if (!userId) return res.json({ rooms: [] });
     try {
         const p = await getPool();
+        // ✅ Query ကို ပိုမြန်အောင် ပြင်ထားပါတယ် (Subquery တွေကို လျှော့ထား)
         const r = await p.query(`
             SELECT 
-                cr.*,
+                cr.id, cr.room_name, cr.room_type,
                 (SELECT COUNT(*) FROM chat_messages cm WHERE cm.room_id = cr.id AND cm.is_read = false AND cm.sender_id != $1) as unread,
                 (SELECT message FROM chat_messages WHERE room_id = cr.id ORDER BY id DESC LIMIT 1) as last_message,
-                CASE 
-                    WHEN cr.room_type = 'group' THEN (SELECT avatar_url FROM group_avatars WHERE room_id = cr.id ORDER BY updated_at DESC LIMIT 1)
-                    WHEN cr.room_type = 'private' THEN (
-                        SELECT ua.avatar_url 
-                        FROM user_avatars ua
-                        INNER JOIN chat_participants cp ON cp.user_id = ua.user_id
-                        WHERE cp.room_id = cr.id AND cp.user_id != $1
-                        LIMIT 1
-                    )
-                    ELSE NULL
-                END as avatar_url
+                (SELECT avatar_url FROM user_avatars WHERE user_id = (
+                    SELECT user_id FROM chat_participants WHERE room_id = cr.id AND user_id != $1 LIMIT 1
+                ) LIMIT 1) as avatar_url
             FROM chat_rooms cr
             JOIN chat_participants cp ON cr.id = cp.room_id
             WHERE cp.user_id = $1
-            ORDER BY cr.id DESC
+            ORDER BY (SELECT id FROM chat_messages WHERE room_id = cr.id ORDER BY id DESC LIMIT 1) DESC NULLS LAST
         `, [userId]);
         res.json({ rooms: r.rows });
     } catch(e) { 
@@ -7736,13 +7738,13 @@ app.post('/api/chat/rooms', async (req, res) => {
         res.json({ rooms: [] }); 
     }
 });
-// Get messages (with Avatar)
+
 app.get('/api/chat/messages/:roomId', async (req, res) => {
     const { roomId } = req.params;
     try {
         const p = await getPool();
         
-        // ✅ 1. Messages တွေကို ဆွဲထုတ်မယ် (User Avatar ပါအောင် LEFT JOIN လုပ်မယ်)
+        // ✅ LIMIT 50 ထည့်ပြီး နောက်ဆုံး 50 ခုကိုပဲ ဆွဲမယ်
         const r = await p.query(`
             SELECT 
                 cm.id, cm.room_id, cm.sender_id, cm.username, cm.message, 
@@ -7751,13 +7753,14 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
             FROM chat_messages cm
             LEFT JOIN user_avatars ua ON cm.sender_id = ua.user_id
             WHERE cm.room_id = $1 
-            ORDER BY cm.id ASC 
-            LIMIT 100
+            ORDER BY cm.id DESC 
+            LIMIT 50
         `, [roomId]);
         
-        const messages = r.rows;
+        // ASC အတိုင်း ပြန်စီမယ် (Chat ထဲမှာ အဟောင်းဆုံးက အပေါ်ဆုံးဖြစ်အောင်)
+        const messages = r.rows.reverse();
         
-        // ✅ 2. Message တစ်ခုချင်းစီအတွက် Reactions တွေကို ဆွဲထုတ်ပြီး ထည့်ပေးမယ်
+        // Reactions ဆွဲတဲ့ Code က မူရင်းအတိုင်းပါပဲ
         for (let msg of messages) {
             const reactions = await p.query(
                 'SELECT user_id, emoji FROM message_reactions WHERE message_id = $1',
@@ -7772,6 +7775,7 @@ app.get('/api/chat/messages/:roomId', async (req, res) => {
         res.json({ messages: [] }); 
     }
 });
+
 // Create admin room
 app.post('/api/chat/create_admin_room', async (req, res) => {
     const { userId } = req.body;
@@ -7968,16 +7972,35 @@ app.post('/api/chat/delete_room', async (req, res) => {
     
     try {
         const p = await getPool();
-        const check = await p.query("SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role='owner'", [roomId, userId]);
-        if (check.rows.length === 0) return res.json({ success: false, message: 'Only owner can delete group' });
         
+        // 1. Owner စစ်ဆေး (Owner ပဲ ဖျက်ခွင့်ရှိမယ်)
+        const check = await p.query(
+            "SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role='owner'", 
+            [roomId, userId]
+        );
+        if (check.rows.length === 0) {
+            return res.json({ success: false, message: 'Only owner can delete this room' });
+        }
+        
+        // 2. Room နဲ့ ဆက်စပ်နေတဲ့ Data အကုန် ဖျက်မယ်
         await p.query('DELETE FROM chat_messages WHERE room_id=$1', [roomId]);
         await p.query('DELETE FROM chat_participants WHERE room_id=$1', [roomId]);
         await p.query('DELETE FROM chat_rooms WHERE id=$1', [roomId]);
+        
+        // 3. ✅ Socket ကိုသုံးပြီး Room ထဲရှိသူတွေကို အသိပေးမယ် (Real-time Update အတွက်)
+        io.to('room_' + roomId).emit('room_deleted', { roomId: roomId });
+        
+        // 4. ✅ Online User တွေအားလုံးကို Room List ပြန်တင်ဖို့ အချက်ပြမယ်
+        io.emit('force_room_list_refresh');
+        
+        console.log('[DELETE ROOM] Room ' + roomId + ' deleted by user ' + userId);
         res.json({ success: true });
-    } catch(e) { res.json({ success: false }); }
+        
+    } catch(e) {
+        console.error('[DELETE ROOM ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
 });
-
 // Debug endpoint
 app.get('/api/debug/chat', async (req, res) => {
     try {
