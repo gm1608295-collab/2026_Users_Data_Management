@@ -1793,6 +1793,19 @@ function initSocket() {
             if (row) row.remove();
         }
     });
+
+    // ✅ Room တစ်ခု Delete ခံလိုက်ရင် (အဲ့ဒီ Room ထဲရှိနေရင် Chat Area ပိတ်မယ်)
+    socket.on('room_deleted', function(data) {
+        if (currentRoom === data.roomId) {
+            showToast('⚠️ This room has been deleted by the owner.');
+            closeChat();
+        }
+    });
+
+    // ✅ ဘယ် Room ကိုမဆို Delete ဖြစ်သွားရင် Room List ကို ပြန်တင်မယ် (ကျန်တဲ့ User တွေအတွက်)
+    socket.on('force_room_list_refresh', function() {
+        loadRooms();
+    });
     
     socket.on('group_updated', function() { loadRooms(); });
     
@@ -2151,17 +2164,34 @@ function closeChat() {
 }
 
 function deleteCurrentRoom() {
-    if (!currentRoom || !confirm('Delete?')) return;
+    if (!currentRoom || !confirm('Delete this chat room?')) return;
+    
+    // Server ကို Delete Request ပို့မယ်
     fetch('/api/chat/delete_room', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomId: currentRoom, userId: currentUser.id })
-    }).then(() => {
-        showToast('Deleted');
-        closeChat();
-    }).catch(() => showToast('Error', true));
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ Chat deleted successfully!');
+            
+            // ✅ 1. ဒီ Room အတွက် Cache ကို ဖျက်ပစ်မယ် (ပြန်မပေါ်အောင်)
+            localStorage.removeItem('chatMessages_' + currentRoom);
+            
+            // ✅ 2. Room List ကို ပြန်တင်မယ် (Server ကနေ အသစ်ပြန်ယူ)
+            currentRoom = null;
+            closeChat(); // Chat Area ကို ပိတ်မယ်
+            loadRooms(); // Room List ကို ပြန်ဆွဲမယ်
+        } else {
+            showToast('❌ Delete failed: ' + (data.message || 'Unknown error'), true);
+        }
+    })
+    .catch(() => {
+        showToast('❌ Network error', true);
+    });
 }
-
 // ==================== EMOJI ====================
 function insertEmoji(e) {
     const i = document.getElementById('msgInput');
