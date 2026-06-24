@@ -2566,15 +2566,13 @@ async function handleReactionClick(msgId, emoji) {
 }
     
 async function init() {
-    // ✅ 1. UI ကို ချက်ချင်းပြပါ (Loading screen မရှိအောင်)
+    // UI ကို ချက်ချင်းပြမယ်
     document.querySelector('.tg-header').style.display = 'flex';
     document.querySelector('.tg-tabs').style.display = 'flex';
     document.querySelector('.chat-body').style.display = 'flex';
-    
-    // ချက်ချင်း Loading စာသား ပြမယ်
-    document.getElementById('roomList').innerHTML = '<div class="empty-state">ခေတ္တစောင့်ပါ၊ Chat များ ရယူနေသည်...</div>'; 
+    document.getElementById('roomList').innerHTML = '<div class="empty-state">ခေတ္တစောင့်ပါ...</div>'; 
 
-    // ✅ 2. နောက်ခံမှာ Page Access စစ်မယ် (await မသုံးပါနဲ့၊ ပိတ်ထားရင် ပြန်ပို့မယ်)
+    // ✅ Page Access ကို နောက်ခံမှာ စစ်မယ် (await မသုံးပါနဲ့)
     checkPageAccess().then(po => {
         if (!po) {
             document.querySelector('.tg-header').style.display = 'none';
@@ -2585,14 +2583,22 @@ async function init() {
         }
     });
 
-    // ✅ 3. Sound, User, Socket စသဖြင့် နောက်ခံမှာ တင်မယ်
     initSounds();
     document.querySelectorAll('.tg-tab:not(.nav-link)').forEach(t => 
         t.addEventListener('click', () => switchTab(t.getAttribute('data-tab')))
     );
     
-    const u = await getCurrentUser();
-    if (!u) return;
+    // User ကို ယူမယ်။ Error ရှိရင် ပြပါ။
+    const u = await getCurrentUser().catch(e => {
+        alert('User Error: ' + e.message);
+        return null;
+    });
+    
+    if (!u) {
+        // User မရှိရင် အောက်က Code တွေ ဆက်မလုပ်ပါနဲ့
+        return; 
+    }
+    
     await checkPremiumStatus();
     initSocket();
     loadRooms();
