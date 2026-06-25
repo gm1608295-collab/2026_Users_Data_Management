@@ -340,31 +340,37 @@ async function loadProfile() {
                 document.getElementById('avatarImg').src = data.avatar_url;
             }
 
-            // ========== ✅ Premium Tier (ဒီနေရာမှာ ထည့်ရပါမယ်) ==========
-            const tierEl = document.getElementById('premiumTierDisplay');
-            const premiumTier = data.premium_tier || 0; // 0 ဆိုရင် Free ဖြစ်မယ်
-            
-            // ✅ Server က expiry_date (premium_expiry) ကို ပို့ပေးရပါမယ်
-            const expiryDate = data.expiry_date ? new Date(data.expiry_date).toLocaleDateString('en-GB', { timeZone: 'Asia/Yangon' }) : '-';
-            
-            if (premiumTier === 3) { 
-                tierEl.textContent = '🥇 Gold (Expires: ' + expiryDate + ')'; 
-                document.body.classList.add('gold-tier'); 
-            }
-            else if (premiumTier === 2) { 
-                tierEl.textContent = '🥈 Silver (Expires: ' + expiryDate + ')'; 
-                document.body.classList.add('silver-tier'); 
-            }
-            else if (premiumTier === 1) { 
-                tierEl.textContent = '🥉 Bronze (Expires: ' + expiryDate + ')'; 
-                document.body.classList.add('bronze-tier'); 
-            }
-            else { 
-                tierEl.textContent = 'Free'; 
-                document.body.classList.remove('bronze-tier', 'silver-tier', 'gold-tier');
-            }
-            // =========================================================
+            // ========== ✅ Premium Tier ==========
+const tierEl = document.getElementById('premiumTierDisplay');
+const premiumTier = data.premium_tier || 0; 
 
+// ✅ Server က expiry_date ကို ပို့ပေးရင် ဒီမှာ Format လုပ်မယ်
+let expiryDisplay = '-';
+if (data.expiry_date) {
+    const expiryDate = new Date(data.expiry_date);
+    // Myanmar Time Zone နဲ့ ပြမယ် (ဥပမာ - 25 Jun 2026)
+    expiryDisplay = expiryDate.toLocaleDateString('en-GB', { 
+        day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Yangon' 
+    });
+}
+
+if (premiumTier === 3) { 
+    tierEl.textContent = '🥇 Gold (Expires: ' + expiryDisplay + ')'; 
+    document.body.classList.add('gold-tier'); 
+}
+else if (premiumTier === 2) { 
+    tierEl.textContent = '🥈 Silver (Expires: ' + expiryDisplay + ')'; 
+    document.body.classList.add('silver-tier'); 
+}
+else if (premiumTier === 1) { 
+    tierEl.textContent = '🥉 Bronze (Expires: ' + expiryDisplay + ')'; 
+    document.body.classList.add('bronze-tier'); 
+}
+else { 
+    tierEl.textContent = 'Free'; 
+    document.body.classList.remove('bronze-tier', 'silver-tier', 'gold-tier');
+}
+            
             // Groups
             const groupsList = document.getElementById('groupsList');
             if (data.groups && data.groups.length > 0) {
