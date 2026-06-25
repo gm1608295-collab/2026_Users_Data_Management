@@ -8187,10 +8187,11 @@ app.post('/api/chat/upload_file', async (req, res) => {
         res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
+
 // ==================== CHAT PROFILE APIs ====================
 // Get My Profile (with groups)
 app.post('/api/chat/my_profile', async (req, res) => {
-    // ✅ Token ကို Body / Header မှ ရှာယူခြင်း
+    // Token ကို Body / Header မှ ရှာယူခြင်း
     let token = req.body.token || req.headers.authorization?.replace('Bearer ', '');
     if (!token) return res.json({ success: false });
 
@@ -8214,9 +8215,9 @@ app.post('/api/chat/my_profile', async (req, res) => {
         
         if (!uid || isNaN(uid)) return res.json({ success: false });
         
-        // Query User Data + Premium Status
+        // ✅ Query User Data + Premium Status (premium_expiry ကို ထည့်ထုတ်မယ်)
         const user = await p.query(
-            `SELECT u.id, u.username, u.email, u.premium_tier,
+            `SELECT u.id, u.username, u.email, u.premium_tier, u.premium_expiry,
              (SELECT avatar_url FROM user_avatars WHERE user_id = u.id ORDER BY updated_at DESC LIMIT 1) as avatar_url
              FROM auth_users u WHERE u.id = $1`,
             [uid]
@@ -8240,6 +8241,7 @@ app.post('/api/chat/my_profile', async (req, res) => {
             username: user.rows[0].username,
             email: user.rows[0].email,
             premium_tier: user.rows[0].premium_tier || 0,
+            expiry_date: user.rows[0].premium_expiry || null, // ✅ ဒါကို ထည့်ပေးလိုက်တယ်
             avatar_url: user.rows[0].avatar_url || '',
             groups: groups.rows
         });
