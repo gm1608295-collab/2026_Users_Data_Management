@@ -1449,7 +1449,7 @@ const DISCOUNT_CONFIG = {
     durationHours: 23,
     durationMinutes: 59,
     durationSeconds: 59,
-    minPrice: 500,
+    minPrice: 400,
     absoluteMin: 100,
     
     productDiscounts: {
@@ -1696,12 +1696,18 @@ function checkAndStartDiscount() {
             if (now < endTime) {
                 discountActive = true;
                 discountEndTime = endTime;
-                updateProductsPricesWithDiscount();
-                renderProducts(PRODUCTS, currentCategory);
-                setTimeout(() => {
-                    applyDiscountToProducts();
-                    startDiscountTimerDisplay();
-                }, 100);
+                
+                // ✅ ဒါကို ထည့်ပါ (Page ပြန်တက်လာတိုင်း Discount ပြန်စမနေအောင်)
+                // ဒါမှ ပစ္စည်းဈေးနှုန်းတွေကို ပြန်ပြောင်းမှာ မဟုတ်ဘူး
+                if (discountActive) {
+                    // Product Data တွေကို မူရင်းအတိုင်း ထားပါ (ပြန်မပြောင်းပါနဲ့)
+                    updateProductsPricesWithDiscount();
+                    renderProducts(PRODUCTS, currentCategory);
+                    setTimeout(() => {
+                        applyDiscountToProducts();
+                        startDiscountTimerDisplay();
+                    }, 100);
+                }
                 return true;
             } else {
                 // ✅ အချိန်ကုန်သွားပြီဆိုရင် Local Storage က ဖျက်ပစ်မယ်
@@ -1711,7 +1717,9 @@ function checkAndStartDiscount() {
                 removeDiscountFromProducts();
                 return false;
             }
-        } catch(e) {}
+        } catch(e) {
+            console.error('[DISCOUNT ERROR]', e);
+        }
     }
     
     // ✅ 2. Local Storage ထဲမှာ မရှိသေးရင်၊ အခုအချိန်က စတင်ချိန် ရောက်ပြီလား စစ်ပါ
@@ -1757,7 +1765,7 @@ function checkAndStartDiscount() {
         startWaitingTimer(targetStart);
         return false;
     }
-    }
+}
 
 function initDiscountSystem() {
     console.log('[DISCOUNT] Initializing...');
