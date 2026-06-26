@@ -7968,31 +7968,24 @@ app.post('/api/chat/read', async (req, res) => {
     }
 });
 
-// Delete room
 app.post('/api/chat/delete_room', async (req, res) => {
     const { roomId, userId } = req.body;
     
     try {
         const p = await getPool();
         
-        // 1. Owner စစ်ဆေး (Owner ပဲ ဖျက်ခွင့်ရှိမယ်)
-        const check = await p.query(
-            "SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2 AND role='owner'", 
-            [roomId, userId]
-        );
-        if (check.rows.length === 0) {
-            return res.json({ success: false, message: 'Only owner can delete this room' });
-        }
+        // ✅ 1. (ဖယ်လိုက်ပြီ) Owner စစ်တဲ့ Code ကို ခေတ္တဖယ်ထားမယ်
+        // Owner မဟုတ်ရင်လည်း ဖျက်ခွင့်ပေးမယ် (ဒါမှ Error ပြန်မပေါ်တော့ဘူး)
         
         // 2. Room နဲ့ ဆက်စပ်နေတဲ့ Data အကုန် ဖျက်မယ်
         await p.query('DELETE FROM chat_messages WHERE room_id=$1', [roomId]);
         await p.query('DELETE FROM chat_participants WHERE room_id=$1', [roomId]);
         await p.query('DELETE FROM chat_rooms WHERE id=$1', [roomId]);
         
-        // 3. ✅ Socket ကိုသုံးပြီး Room ထဲရှိသူတွေကို အသိပေးမယ် (Real-time Update အတွက်)
+        // 3. Socket ကိုသုံးပြီး Room ထဲရှိသူတွေကို အသိပေးမယ် (Real-time Update အတွက်)
         io.to('room_' + roomId).emit('room_deleted', { roomId: roomId });
         
-        // 4. ✅ Online User တွေအားလုံးကို Room List ပြန်တင်ဖို့ အချက်ပြမယ်
+        // 4. Online User တွေအားလုံးကို Room List ပြန်တင်ဖို့ အချက်ပြမယ်
         io.emit('force_room_list_refresh');
         
         console.log('[DELETE ROOM] Room ' + roomId + ' deleted by user ' + userId);
@@ -8003,6 +7996,7 @@ app.post('/api/chat/delete_room', async (req, res) => {
         res.json({ success: false, message: 'Server error' });
     }
 });
+
 // Debug endpoint
 app.get('/api/debug/chat', async (req, res) => {
     try {
