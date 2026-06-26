@@ -1695,18 +1695,17 @@ function initSocket() {
     
     socket.on('disconnect', function(reason) { console.log('[SOCKET] Disconnected:', reason); });
     
+    // ✅ 1. အသစ်စက်စက် Message ရောက်လာရင် ချက်ချင်းပြပါ
     socket.on('new_message', function(msg) {
         if (currentRoom === msg.roomId) {
             addMessageToUI(msg, msg.sender_id === currentUser?.id, msg.sender_premium_tier || 0);
             scrollToBottom();
         }
-        // ✅ Telegram ပုံစံ: Room List ကို ချက်ချင်းပြောင်းရန်
-        loadRooms();
     });
     
-    // ✅ အခန်းအသစ်တွေ / အပြောင်းအလဲတွေ ရှိရင် Room List ကို ချက်ချင်းပြန်တင်မယ်
+    // ✅ 2. Room List ကို Update လုပ်ပါ
     socket.on('room_list_update', function() {
-        loadRooms();
+        loadRooms(); 
     });
     
     socket.on('online_users', function(u) {
@@ -1714,6 +1713,7 @@ function initSocket() {
         loadUsersList();
     });
     
+    // ✅ 3. Typing Indicator
     socket.on('user_typing', function(d) {
         if (currentRoom === d.roomId && d.userId !== currentUser?.id) {
             const ind = document.getElementById('typingIndicator');
@@ -1726,20 +1726,26 @@ function initSocket() {
         }
     });
     
+    // ✅ 4. Seen / Read Receipts (အရေးကြီးဆုံး - Message ID အလိုက် Update လုပ်မယ်)
     socket.on('messages_read', function(data) {
         if (currentRoom === data.roomId) {
-            const msgRows = document.querySelectorAll('.msg-row.mine');
-            msgRows.forEach(function(row) {
-                const timeEl = row.querySelector('.msg-time');
-                if (timeEl && !timeEl.innerHTML.includes('✓✓')) {
-                    const now = new Date();
-                    const seenTimeStr = now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-                    timeEl.innerHTML = timeEl.innerHTML.replace('✓', `<span style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${seenTimeStr}">✓✓</span>`);
+            data.messageIds.forEach(function(msgId) {
+                var row = document.querySelector(`.msg-row.mine[data-msg-id="${msgId}"]`);
+                if (row) {
+                    var seenEl = row.querySelector('.seen-check');
+                    if (seenEl) {
+                        const now = new Date();
+                        const seenTimeStr = now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                        seenEl.innerHTML = '✓✓';
+                        seenEl.style.color = '#2ecc71';
+                        seenEl.title = 'Read at ' + seenTimeStr;
+                    }
                 }
             });
         }
     });
 
+    // ✅ 5. Reaction တင်ခြင်း/ဖျက်ခြင်း
     socket.on('message_reacted', function(data) {
         if (currentRoom) {
             fetch(`/api/chat/messages/${currentRoom}`).then(r => r.json()).then(d => {
@@ -1766,6 +1772,7 @@ function initSocket() {
         }
     });
     
+    // ✅ 6. Message Edit/Delete
     socket.on('message_edited', function(msg) {
         if (currentRoom === msg.room_id) {
             var row = document.querySelector('.msg-row[data-msg-id="' + msg.id + '"]');
@@ -1787,6 +1794,18 @@ function initSocket() {
             var row = document.querySelector('.msg-row[data-msg-id="' + data.messageId + '"]');
             if (row) row.remove();
         }
+    });
+    
+    // ✅ 7. Room Delete
+    socket.on('room_deleted', function(data) {
+        if (currentRoom === data.roomId) {
+            showToast('⚠️ This room has been deleted by the owner.');
+            closeChat();
+        }
+    });
+
+    socket.on('force_room_list_refresh', function() {
+        loadRooms();
     });
     
     socket.on('group_updated', function() { loadRooms(); });
@@ -1945,12 +1964,14 @@ async function openRoom(rid, rn, rt) {
         } else {
             mc.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,0.2)">No messages yet</div>';
         }
-        // Mark messages as read
+        
+        // ✅ Mark messages as read (ဒီမှာ Server ကို ခေါ်ပြီး Socket အချက်ပြပို့မယ်)
         await fetch('/api/chat/read', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ roomId: rid, userId: currentUser.id })
         });
+        
     } catch(e) {
         console.error('[OPEN ROOM ERROR]', e);
         mc.innerHTML = '<div style="text-align:center;padding:30px;color:#e74c3c;">Failed to load messages</div>';
@@ -1965,7 +1986,8 @@ function addMessageToUI(msg, isMine, spt) {
     let mh = '';
     const mt = msg.message || '';
     if (mt.startsWith('📷 IMAGE:')) {
-        mh = `<div class="media-message" onclick="downloadMedia('${mt.replace('📷 IMAGE:', '')}', 'image')"><img src="${mt.replace('📷 IMAGE:', '')}" loading="lazy"></div>`;
+        // ✅ Image ကို loading="lazy" နဲ့ decoding="async" ထည့်ပြီး မြန်အောင်လုပ်မယ်
+        mh = `<div class="media-message" onclick="downloadMedia('${mt.replace('📷 IMAGE:', '')}', 'image')"><img src="${mt.replace('📷 IMAGE:', '')}" loading="lazy" decoding="async" style="width:100%;height:auto;"></div>`;
     } else if (mt.startsWith('📎 FILE:')) {
         const p = mt.replace('📎 FILE:', '').split('|');
         mh = `<div class="file-message" onclick="downloadMedia('${p[0]}', 'file', '${p[1] || 'File'}')"><i class="fas fa-file"></i> ${escapeHtml(p[1] || 'File')}</div>`;
@@ -1984,9 +2006,10 @@ function addMessageToUI(msg, isMine, spt) {
     
     let av = '';
     if (!isMine) {
+        // ✅ Avatar ကိုလည်း loading="lazy" ထည့်
         const avatarUrl = msg.avatar_url ? msg.avatar_url + '?t=' + Date.now() : '';
         if (avatarUrl) {
-            av = `<img src="${avatarUrl}" class="msg-avatar-xs" onclick="window.location.href='/profile.html?userId=${msg.sender_id}'" onerror="this.style.display='none'">`;
+            av = `<img src="${avatarUrl}" class="msg-avatar-xs" loading="lazy" decoding="async" onclick="window.location.href='/profile.html?userId=${msg.sender_id}'" onerror="this.style.display='none'">`;
         } else {
             av = `<div class="msg-avatar-xs" style="background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:10px">👤</div>`;
         }
@@ -1999,9 +2022,9 @@ function addMessageToUI(msg, isMine, spt) {
             const seenTimeStr = seenAt.toLocaleTimeString('en-GB', { 
                 hour12: true, hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Yangon'
             });
-            seenHtml = `<span style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${seenTimeStr}">✓✓</span>`;
+            seenHtml = `<span class="seen-check" style="color:#2ecc71;font-size:9px;margin-left:3px" title="Read at ${seenTimeStr}">✓✓</span>`;
         } else {
-            seenHtml = '<span style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
+            seenHtml = '<span class="seen-check" style="color:rgba(255,255,255,0.25);font-size:9px;margin-left:3px">✓</span>';
         }
     }
 
@@ -2043,8 +2066,8 @@ function addMessageToUI(msg, isMine, spt) {
     });
 
     c.appendChild(d);
-}
-
+   }
+        
 function downloadMedia(u, t, fn = 'file') {
     const a = document.createElement('a');
     a.href = u;
