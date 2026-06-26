@@ -7213,46 +7213,37 @@ io.on('connection', (socket) => {
         }
     });
 
-    // ========== SEND MESSAGE ==========
+    // ==================== SOCKET.IO: SEND MESSAGE ====================
 socket.on('send_message', async (data) => {
     const { roomId, message, userId, username, senderPremiumTier } = data;
     
-    if (!roomId || !message || !userId) {
-        console.log('⚠️ Invalid message data:', data);
-        return;
-    }
-    
-    console.log('📨 Message received:', { roomId, userId, message: message?.substring(0,30), tier: senderPremiumTier });
-    
+    if (!roomId || !message || !userId) return;
+
     try {
         const p = await getPool();
         
-        // Check if user is in room
+        // ✅ 1. User က Room ထဲမှာ ရှိမရှိ စစ်
         const check = await p.query(
             'SELECT * FROM chat_participants WHERE room_id=$1 AND user_id=$2',
             [roomId, userId]
         );
-        
-        if (check.rows.length === 0) {
-            console.log('⚠️ User not in room:', userId, roomId);
-            socket.emit('error', { message: 'You are not in this chat room' });
-            return;
-        }
-        
-        // ✅ Save message to database
+        if (check.rows.length === 0) return;
+
+        // ✅ 2. Message ကို DB မှာ Save လုပ်
         const result = await p.query(
             `INSERT INTO chat_messages (room_id, sender_id, username, message, sender_premium_tier, created_at) 
              VALUES ($1, $2, $3, $4, $5, NOW() AT TIME ZONE 'Asia/Yangon') RETURNING id, created_at`,
             [roomId, userId, username, message, senderPremiumTier || 0]
         );
-        
-        // ✅ User Avatar ကို ရှာမယ်
+
+        // ✅ 3. Sender ရဲ့ Avatar ကို ရှာ
         const avatarResult = await p.query(
             'SELECT avatar_url FROM user_avatars WHERE user_id = $1',
             [userId]
         );
         const avatarUrl = avatarResult.rows.length > 0 ? avatarResult.rows[0].avatar_url : null;
 
+        // ✅ 4. Message Data ကို ပြင်ဆင်
         const msgData = {
             id: result.rows[0].id,
             roomId: roomId,
@@ -7261,16 +7252,20 @@ socket.on('send_message', async (data) => {
             message: message,
             sender_premium_tier: senderPremiumTier || 0,
             created_at: result.rows[0].created_at,
-            avatar_url: avatarUrl // ✅ Avatar ကို ထည့်ပေးလိုက်ပါ
+            avatar_url: avatarUrl,
+            is_read: false // ✅ အသစ်စက်စက် မဖတ်ရသေး
         };
         
-// ✅ အခန်းထဲရှိသူတိုင်းကို Room List Update လုပ်ဖို့ အချက်ပြပေးမယ်
-io.to('room_' + roomId).emit('room_list_update'); 
-console.log('✅ Message sent to room:', roomId);
-   
- } catch(e) { 
-        console.error('Send message error:', e.message);
-        socket.emit('error', { message: 'Failed to send message' });
+        // ✅ 5. Room ထဲရှိသူတိုင်းကို Real-time ပို့မယ် (ဒါမှ ချက်ချင်းပေါ်မယ်)
+        io.to('room_' + roomId).emit('new_message', msgData);
+        
+        // ✅ 6. Room List ကို Update လုပ်ဖို့ အချက်ပြမယ် (Sidebar အတွက်)
+        io.to('room_' + roomId).emit('room_list_update');
+        
+        console.log('✅ [SOCKET] Message sent to room:', roomId);
+
+    } catch(e) { 
+        console.error('[SOCKET ERROR]', e.message);
     }
 });
     
@@ -7948,17 +7943,23 @@ app.post('/api/chat/read', async (req, res) => {
     try {
         const p = await getPool();
         
-        // Mark as read
-        await p.query(
-            'UPDATE chat_messages SET is_read = true WHERE room_id = $1 AND sender_id != $2 AND is_read = false',
+        // ✅ 1. Database မှာ is_read = true လုပ်မယ်
+        const result = await p.query(
+            'UPDATE chat_messages SET is_read = true WHERE room_id = $1 AND sender_id != $2 AND is_read = false RETURNING id',
             [roomId, userId]
         );
         
-        // ✅ Socket emit - Real-time seen update
-        io.to('room_' + roomId).emit('messages_read', {
-            roomId: roomId,
-            readerId: userId
-        });
+        // ✅ 2. Socket မှတဆင့် Room ထဲရှိသူတိုင်းကို အသိပေးမယ်
+        if (result.rows.length > 0) {
+            // Read လုပ်ထားတဲ့ Message ID တွေကို ပို့မယ်
+            const readMessageIds = result.rows.map(row => row.id);
+            
+            io.to('room_' + roomId).emit('messages_read', {
+                roomId: roomId,
+                readerId: userId,
+                messageIds: readMessageIds // ✅ ဘယ် Message တွေ Read သွားလဲ သိအောင်
+            });
+        }
         
         res.json({ success: true });
     } catch(e) { 
@@ -7966,6 +7967,7 @@ app.post('/api/chat/read', async (req, res) => {
         res.json({ success: false }); 
     }
 });
+
 // Delete room
 app.post('/api/chat/delete_room', async (req, res) => {
     const { roomId, userId } = req.body;
