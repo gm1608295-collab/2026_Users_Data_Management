@@ -3370,31 +3370,36 @@ const oldPasswordVerified = {
 async function generateAndShowMiniPassword(type) {
     const token = localStorage.getItem('auth_token');
     if (!token || token === 'guest' || token === 'null') {
-        n('❌ Please login first!', 'error');
+        alert('⛔ Session expired. Please login again.');
+        window.location.href = '/';
         return;
     }
     
     try {
         const statusRes = await fetch('/api/check_gen_status', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token 
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
             body: JSON.stringify({ type })
         });
         const statusData = await statusRes.json();
         
-        // ✅ Invalid session ဖြစ်နေရင် Login Page ကို ပြန်ပို့ပါ
-        if (statusData.message === 'Invalid session' || !statusData.success) {
-            n('⛔ Session expired. Please login again.', 'error');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            setTimeout(() => { window.location.href = '/'; }, 1500);
+        // ✅ Error ဖြစ်ရင် အကုန်လုံးကို Login မပို့ပါနဲ့
+        if (!statusData.success) {
+            // ✅ Invalid session ဖြစ်မှသာ Login ကို ပို့ပါ
+            if (statusData.message === 'Invalid session' || statusData.message === 'Invalid or expired token') {
+                alert('⛔ Session expired. Please login again.');
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+                return;
+            }
+            // ✅ တခြား Error (Cooldown, ...) ဆိုရင် Toast နဲ့ ပြပါ
+            n('❌ ' + (statusData.message || 'Error'), 'error');
             return;
         }
         
         if (statusData.isFirstTime) return generateAndShowPassword(type);
+        
         if (statusData.cooldownActive) {
             document.getElementById(type + 'CooldownBox').style.display = 'block';
             document.getElementById(type + 'OldPassBox').style.display = 'none';
@@ -3403,6 +3408,7 @@ async function generateAndShowMiniPassword(type) {
             n('⏳ ' + statusData.remainingText, 'error');
             return;
         }
+        
         if (statusData.needsOldPassword) {
             if (oldPasswordVerified[type]) return generateAndShowPassword(type);
             document.getElementById(type + 'OldPassBox').style.display = 'block';
@@ -3416,7 +3422,6 @@ async function generateAndShowMiniPassword(type) {
             return;
         }
     } catch(e) { 
-        // Network Error အတွက်
         n('❌ Connection error', 'error');
     }
     }
@@ -3499,19 +3504,26 @@ function startCooldownTimer(type, remainingMs) {
     
     try {
         const token = localStorage.getItem('auth_token');
-        const options = { useLower: activeCharTypes[type].lower, useUpper: activeCharTypes[type].upper, useNumbers: activeCharTypes[type].numbers, useSymbols: activeCharTypes[type].symbols, length: parseInt(document.getElementById(type + 'PassLength').value) || 10 };
+        const options = {
+            useLower: activeCharTypes[type].lower,
+            useUpper: activeCharTypes[type].upper,
+            useNumbers: activeCharTypes[type].numbers,
+            useSymbols: activeCharTypes[type].symbols,
+            length: parseInt(document.getElementById(type + 'PassLength').value) || 10
+        };
         
         const r = await fetch('/api/regenerate_password', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token // ✅ Header မှာ Token ပို့မယ်
-            },
-            body: JSON.stringify({ type, oldPassword, options }) // ✅ Body မှာ token မပါတော့ဘူး
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ type, oldPassword, options })
         });
         const d = await r.json();
+        
         if (d.success) {
-            if (oldPassword) { oldPasswordVerified[type] = true; setTimeout(() => { oldPasswordVerified[type] = false; }, 5 * 60 * 1000); }
+            if (oldPassword) { 
+                oldPasswordVerified[type] = true; 
+                setTimeout(() => { oldPasswordVerified[type] = false; }, 5 * 60 * 1000); 
+            }
             currentPasswords[type] = d.password;
             document.getElementById(type + 'GeneratedPassword').textContent = d.password;
             document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
@@ -3543,11 +3555,8 @@ async function saveMiniPassword(type) {
     try {
         const r = await fetch('/api/save_type_password', {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token // ✅ Header မှာ Token ပို့မယ်
-            },
-            body: JSON.stringify({ type, password }) // ✅ Body မှာ token မပါတော့ဘူး
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ type, password })
         });
         const d = await r.json();
         if (d.success) {
@@ -3578,27 +3587,27 @@ function syncMiniLength(type, value) {
     const types = ['gmail', 'mlbb', 'tiktok'];
     const token = localStorage.getItem('auth_token');
     
-    // ✅ Token မရှိရင် API ကို မခေါ်ပါနဲ့ (Error မပေါ်အောင်)
+    // ✅ Token မရှိရင် API ကို မခေါ်ပါနဲ့
     if (!token || token === 'guest' || token === 'null') return;
     
     for (const type of types) {
         try {
             const r = await fetch('/api/check_gen_status', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token 
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                 body: JSON.stringify({ type })
             });
             const d = await r.json();
-            if (d.success && d.cooldownActive && d.remainingMs > 0) {
+            
+            // ✅ Error ဖြစ်ရင် Toast မပြပါနဲ့ (Login မပို့ပါနဲ့)
+            if (!d.success) continue;
+            
+            if (d.cooldownActive && d.remainingMs > 0) {
                 document.getElementById(type + 'CooldownBox').style.display = 'block';
                 disableGenButton(type);
                 startCooldownTimer(type, d.remainingMs);
             }
         } catch(e) { 
-            // ✅ Error ဖြစ်ရင် ဘာမှမလုပ်ပါနဲ့ (Toast မပေါ်အောင်)
             console.error('Check cooldown error for ' + type, e); 
         }
     }
