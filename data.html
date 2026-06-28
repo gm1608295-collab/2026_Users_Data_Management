@@ -3369,8 +3369,7 @@ const oldPasswordVerified = {
 
 async function generateAndShowMiniPassword(type) {
     const token = localStorage.getItem('auth_token');
-    
-    if (!token || token === 'guest' || token === 'null' || token === 'undefined') {
+    if (!token || token === 'guest' || token === 'null') {
         n('❌ Please login first!', 'error');
         return;
     }
@@ -3378,23 +3377,16 @@ async function generateAndShowMiniPassword(type) {
     try {
         const statusRes = await fetch('/api/check_gen_status', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, type })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token  // ✅ Header မှာ Token ပို့မယ်
+            },
+            body: JSON.stringify({ type }) // ✅ Body မှာ token မပါတော့ဘူး
         });
         const statusData = await statusRes.json();
         
-        if (!statusData.success) {
-            n('❌ ' + (statusData.message || 'Error'), 'error');
-            return;
-        }
-        
-        // ✅ First time - can generate directly
-        if (statusData.isFirstTime) {
-            generateAndShowPassword(type);
-            return;
-        }
-        
-        // ✅ Cooldown active - show timer
+        if (!statusData.success) return n('❌ ' + (statusData.message || 'Error'), 'error');
+        if (statusData.isFirstTime) return generateAndShowPassword(type);
         if (statusData.cooldownActive) {
             document.getElementById(type + 'CooldownBox').style.display = 'block';
             document.getElementById(type + 'OldPassBox').style.display = 'none';
@@ -3403,34 +3395,20 @@ async function generateAndShowMiniPassword(type) {
             n('⏳ ' + statusData.remainingText, 'error');
             return;
         }
-        
-        // ✅ Cooldown passed - check if old password already verified
         if (statusData.needsOldPassword) {
-            if (oldPasswordVerified[type]) {
-                // ✅ Already verified - can generate directly
-                generateAndShowPassword(type);
-                return;
-            }
-            
-            // Need old password
+            if (oldPasswordVerified[type]) return generateAndShowPassword(type);
             document.getElementById(type + 'OldPassBox').style.display = 'block';
             document.getElementById(type + 'CooldownBox').style.display = 'none';
-            
             const btn = document.querySelector(`#${type}Sub .btn-w`);
             if (btn) {
                 btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
                 btn.onclick = () => regeneratePassword(type);
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
+                btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
             }
             return;
         }
-        
-    } catch(e) {
-        n('❌ Connection error', 'error');
+    } catch(e) { n('❌ Connection error', 'error'); }
     }
-}
 
 // ✅ Helper function
 function generateAndShowPassword(type) {
@@ -3506,69 +3484,36 @@ function startCooldownTimer(type, remainingMs) {
     async function regeneratePassword(type) {
     const oldPassInput = document.getElementById(type + 'OldPassInput');
     const oldPassword = oldPassInput ? oldPassInput.value.trim() : '';
-    
-    // ✅ Old Password မထည့်ရသေးရင် တောင်းမယ်
-    if (!oldPassword && !oldPasswordVerified[type]) {
-        n('❌ Password အဟောင်း ထည့်ပါ', 'error');
-        return;
-    }
+    if (!oldPassword && !oldPasswordVerified[type]) return n('❌ Password အဟောင်း ထည့်ပါ', 'error');
     
     try {
         const token = localStorage.getItem('auth_token');
-        
-        const options = {
-            useLower: activeCharTypes[type].lower,
-            useUpper: activeCharTypes[type].upper,
-            useNumbers: activeCharTypes[type].numbers,
-            useSymbols: activeCharTypes[type].symbols,
-            length: parseInt(document.getElementById(type + 'PassLength').value) || 10
-        };
-        
-        // ✅ Old Password ရှိရင် API ကို ပို့၊ မရှိရင် (already verified) မပို့
-        const body = oldPassword ? 
-            { token, type, oldPassword, options } : 
-            { token, type, options };
+        const options = { useLower: activeCharTypes[type].lower, useUpper: activeCharTypes[type].upper, useNumbers: activeCharTypes[type].numbers, useSymbols: activeCharTypes[type].symbols, length: parseInt(document.getElementById(type + 'PassLength').value) || 10 };
         
         const r = await fetch('/api/regenerate_password', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token // ✅ Header မှာ Token ပို့မယ်
+            },
+            body: JSON.stringify({ type, oldPassword, options }) // ✅ Body မှာ token မပါတော့ဘူး
         });
         const d = await r.json();
-        
         if (d.success) {
-            // ✅ Old Password မှန်ရင် ၅ မိနစ် Flag ထား
-            if (oldPassword) {
-                oldPasswordVerified[type] = true;
-                
-                // ၅ မိနစ်ကြာရင် Flag ပြန်ဖျက်
-                setTimeout(() => {
-                    oldPasswordVerified[type] = false;
-                }, 5 * 60 * 1000);
-            }
-            
-            // Show new password
+            if (oldPassword) { oldPasswordVerified[type] = true; setTimeout(() => { oldPasswordVerified[type] = false; }, 5 * 60 * 1000); }
             currentPasswords[type] = d.password;
             document.getElementById(type + 'GeneratedPassword').textContent = d.password;
             document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
             document.getElementById(type + 'SavePasswordBtn').style.display = 'block';
             document.getElementById(type + 'OldPassBox').style.display = 'none';
             document.getElementById(type + 'CooldownBox').style.display = 'none';
-            
             if (oldPassInput) oldPassInput.value = '';
-            
-            // Button ကို Generate Mode ပြန်ပြောင်း
             enableGenButton(type);
-            
             n('✅ Password အသစ် ထုတ်ပေးပြီးပါပြီ', 'success');
-            
         } else {
             n('❌ ' + (d.message || 'Error'), 'error');
         }
-        
-    } catch(e) {
-        n('❌ Connection error', 'error');
-    }
+    } catch(e) { n('❌ Connection error', 'error'); }
     }
 
 function copyMiniPassword(type) {
@@ -3579,37 +3524,32 @@ function copyMiniPassword(type) {
 
 async function saveMiniPassword(type) {
     const password = currentPasswords[type];
-    if (!password) { n('❌ Password အရင် Generate လုပ်ပါ', 'error'); return; }
+    if (!password) return n('❌ Password အရင် Generate လုပ်ပါ', 'error');
     
-    // ✅ Token ရှိမရှိ အရင်စစ်
     const token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest' || token === 'null' || token === 'undefined') {
-        n('❌ Please login first!', 'error');
-        return;
-    }
+    if (!token || token === 'guest') return n('❌ Please login first!', 'error');
     
     try {
         const r = await fetch('/api/save_type_password', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, type, password })
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token // ✅ Header မှာ Token ပို့မယ်
+            },
+            body: JSON.stringify({ type, password }) // ✅ Body မှာ token မပါတော့ဘူး
         });
         const d = await r.json();
-        
         if (d.success) {
             n('✅ ' + type.toUpperCase() + ' Password Saved!', 'success');
             document.getElementById(type + 'PasswordDisplayBox').style.display = 'none';
             document.getElementById(type + 'SavePasswordBtn').style.display = 'none';
             currentPasswords[type] = '';
-            
             document.getElementById(type + 'CooldownBox').style.display = 'block';
             startCooldownTimer(type, 7 * 24 * 60 * 60 * 1000);
         } else {
             n('❌ ' + (d.message || 'Save failed'), 'error');
         }
-    } catch(e) {
-        n('❌ Connection error', 'error');
-    }
+    } catch(e) { n('❌ Connection error', 'error'); }
     }
     
 function syncMiniLength(type, value) {
@@ -3623,36 +3563,31 @@ function syncMiniLength(type, value) {
     generateMiniPassword(type);
     }
     // ==================== CHECK ALL COOLDOWNS ON PAGE LOAD ====================
-async function checkAllCooldowns() {
+    async function checkAllCooldowns() {
     const types = ['gmail', 'mlbb', 'tiktok'];
     const token = localStorage.getItem('auth_token');
-    
     if (!token || token === 'guest') return;
     
     for (const type of types) {
         try {
             const r = await fetch('/api/check_gen_status', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, type })
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token // ✅ Header မှာ Token ပို့မယ်
+                },
+                body: JSON.stringify({ type }) // ✅ Body မှာ token မပါတော့ဘူး
             });
             const d = await r.json();
-            
             if (d.success && d.cooldownActive && d.remainingMs > 0) {
-                // Show cooldown box
                 document.getElementById(type + 'CooldownBox').style.display = 'block';
-                
-                // Disable generate button
                 disableGenButton(type);
-                
-                // Start timer
                 startCooldownTimer(type, d.remainingMs);
             }
-        } catch(e) {
-            console.error('Check cooldown error for ' + type, e);
-        }
+        } catch(e) { console.error('Check cooldown error for ' + type, e); }
     }
     }
+    
     // ==================== DISABLE/ENABLE GENERATE BUTTON ====================
 function disableGenButton(type) {
     const btn = document.querySelector(`#${type}Sub .btn-w`);
