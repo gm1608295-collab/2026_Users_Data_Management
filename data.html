@@ -3379,13 +3379,21 @@ async function generateAndShowMiniPassword(type) {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token  // ✅ Header မှာ Token ပို့မယ်
+                'Authorization': 'Bearer ' + token 
             },
-            body: JSON.stringify({ type }) // ✅ Body မှာ token မပါတော့ဘူး
+            body: JSON.stringify({ type })
         });
         const statusData = await statusRes.json();
         
-        if (!statusData.success) return n('❌ ' + (statusData.message || 'Error'), 'error');
+        // ✅ Invalid session ဖြစ်နေရင် Login Page ကို ပြန်ပို့ပါ
+        if (statusData.message === 'Invalid session' || !statusData.success) {
+            n('⛔ Session expired. Please login again.', 'error');
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            setTimeout(() => { window.location.href = '/'; }, 1500);
+            return;
+        }
+        
         if (statusData.isFirstTime) return generateAndShowPassword(type);
         if (statusData.cooldownActive) {
             document.getElementById(type + 'CooldownBox').style.display = 'block';
@@ -3407,9 +3415,12 @@ async function generateAndShowMiniPassword(type) {
             }
             return;
         }
-    } catch(e) { n('❌ Connection error', 'error'); }
+    } catch(e) { 
+        // Network Error အတွက်
+        n('❌ Connection error', 'error');
     }
-
+    }
+    
 // ✅ Helper function
 function generateAndShowPassword(type) {
     const password = generateMiniPassword(type);
@@ -3566,7 +3577,9 @@ function syncMiniLength(type, value) {
     async function checkAllCooldowns() {
     const types = ['gmail', 'mlbb', 'tiktok'];
     const token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest') return;
+    
+    // ✅ Token မရှိရင် API ကို မခေါ်ပါနဲ့ (Error မပေါ်အောင်)
+    if (!token || token === 'guest' || token === 'null') return;
     
     for (const type of types) {
         try {
@@ -3574,9 +3587,9 @@ function syncMiniLength(type, value) {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token // ✅ Header မှာ Token ပို့မယ်
+                    'Authorization': 'Bearer ' + token 
                 },
-                body: JSON.stringify({ type }) // ✅ Body မှာ token မပါတော့ဘူး
+                body: JSON.stringify({ type })
             });
             const d = await r.json();
             if (d.success && d.cooldownActive && d.remainingMs > 0) {
@@ -3584,7 +3597,10 @@ function syncMiniLength(type, value) {
                 disableGenButton(type);
                 startCooldownTimer(type, d.remainingMs);
             }
-        } catch(e) { console.error('Check cooldown error for ' + type, e); }
+        } catch(e) { 
+            // ✅ Error ဖြစ်ရင် ဘာမှမလုပ်ပါနဲ့ (Toast မပေါ်အောင်)
+            console.error('Check cooldown error for ' + type, e); 
+        }
     }
     }
     
