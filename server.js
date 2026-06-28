@@ -35,13 +35,13 @@ setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onr
 app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
 
 // ==================== DATABASE - 5 POOLS AUTO-SWITCH (FIXED) ====================
-const DB1 = 'postgresql://neondb_owner:npg_3lq1dLYxvgVX@ep-misty-base-amkxcayc-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB2 = 'postgresql://neondb_owner:npg_6RwnXBl5LKQt@ep-damp-sea-a46t7qil-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB3 = 'postgresql://neondb_owner:npg_LVD3pNxhd1vi@ep-withered-violet-aprnlbey-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB4 = 'postgresql://neondb_owner:npg_ntqgkA5OVL8P@ep-noisy-resonance-aqy8odea-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
-const DB5 = 'postgresql://neondb_owner:npg_KuFVvHic4m0Y@ep-orange-paper-aqn9ak7c-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require';
+// ✅ ဒါကို ဒီအတိုင်း ပြင်ပါ (Render Env ကနေ ယူမယ်)
+const DB1 = process.env.DB1;
+const DB2 = process.env.DB2;
+const DB3 = process.env.DB3;
+const DB4 = process.env.DB4;
+const DB5 = process.env.DB5;
 
-// ✅ Connection Timeout 60 seconds (အရင်က 30s ကနေ 60s တိုးထား)
 const pools = [
     new Pool({ connectionString: DB1, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 }),
     new Pool({ connectionString: DB2, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 }),
@@ -49,6 +49,7 @@ const pools = [
     new Pool({ connectionString: DB4, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 }),
     new Pool({ connectionString: DB5, ssl: { rejectUnauthorized: false }, max: 3, idleTimeoutMillis: 30000, connectionTimeoutMillis: 60000 })
 ];
+
 let currentPoolIndex = 0;
 
 async function getPool() {
