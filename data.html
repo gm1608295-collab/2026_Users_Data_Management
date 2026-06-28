@@ -2124,65 +2124,6 @@
     </button>
 </div>
     
-    <!-- ==================== GMAIL PASSWORD GENERATOR ==================== -->
-    <div class="inline-generator-box">
-        <p class="inline-generator-title">🔐 Gmail Password Generator</p>
-        
-        <div class="char-options-mini">
-            <label class="char-check-simple" id="gmailOptLower">
-                <input type="checkbox" id="gmailChkLower" checked onchange="updateMiniChar('gmail', 'lower', this.checked)"> 
-                <span>a-z</span>
-            </label>
-            <label class="char-check-simple" id="gmailOptUpper">
-                <input type="checkbox" id="gmailChkUpper" checked onchange="updateMiniChar('gmail', 'upper', this.checked)"> 
-                <span>A-Z</span>
-            </label>
-            <label class="char-check-simple" id="gmailOptNumbers">
-                <input type="checkbox" id="gmailChkNumbers" checked onchange="updateMiniChar('gmail', 'numbers', this.checked)"> 
-                <span>0-9</span>
-            </label>
-            <label class="char-check-simple" id="gmailOptSymbols">
-                <input type="checkbox" id="gmailChkSymbols" onchange="updateMiniChar('gmail', 'symbols', this.checked)"> 
-                <span>@#*!?"</span>
-            </label>
-        </div>
-        
-        <div class="length-control-mini">
-            <span>Length:</span>
-            <input type="number" id="gmailPassLength" class="length-input-mini" value="10" min="6" max="30" onchange="syncMiniLength('gmail', this.value)">
-            <input type="range" id="gmailPassLengthSlider" class="length-slider-mini" min="6" max="30" value="10" oninput="syncMiniLength('gmail', this.value)">
-        </div>
-        
-        <!-- Cooldown Timer -->
-        <div id="gmailCooldownBox" style="display:none;text-align:center;padding:10px;background:rgba(231,76,60,0.1);border-radius:8px;margin-bottom:8px;border:1px solid rgba(231,76,60,0.3);">
-            <p style="font-size:10px;color:#e74c3c;margin:0 0 4px;">⏳ နောက်တစ်ကြိမ် ထုတ်ရန် စောင့်ဆိုင်းပါ</p>
-            <p style="font-size:16px;font-weight:bold;color:#fff;margin:0;font-family:'Courier New',monospace;" id="gmailCooldownTimer">--:--:--</p>
-        </div>
-        
-        <!-- Old Password Input -->
-        <div id="gmailOldPassBox" style="display:none;margin-bottom:8px;">
-            <p style="font-size:9px;color:rgba(255,255,255,0.5);text-align:center;margin-bottom:4px;">🔑 Password အဟောင်းထည့်ပါ</p>
-            <div class="pass-wrapper">
-                <input type="password" id="gmailOldPassInput" placeholder="Password အဟောင်းထည့်ပါ">
-                <button class="eye-btn" onclick="togglePass('gmailOldPassInput', this)"><i class="fas fa-eye"></i></button>
-            </div>
-        </div>
-        
-        <div class="password-display-mini" id="gmailPasswordDisplayBox" style="display:none;">
-            <span class="password-text-mini" id="gmailGeneratedPassword"></span>
-            <button class="copy-btn-mini" onclick="copyMiniPassword('gmail')">📋</button>
-        </div>
-        
-        <div class="generator-actions-mini">
-            <button class="btn btn-w" onclick="generateAndShowMiniPassword('gmail')" style="flex:1;">
-                <i class="fas fa-magic"></i> Generate
-            </button>
-            <button class="btn btn-g" id="gmailSavePasswordBtn" style="display:none;flex:1;" onclick="saveMiniPassword('gmail')">
-                <i class="fas fa-save"></i> Save
-            </button>
-        </div>
-    </div>
-    
     <!-- Unlock Section -->
     <div class="form-group">
         <label>🔐 Enter Password to Unlock</label>
@@ -3375,262 +3316,202 @@ const activeCharTypes = {
 
 const currentPasswords = { gmail: '', mlbb: '', tiktok: '' };
 
-function updateMiniChar(type, charType, isChecked) {
-    activeCharTypes[type][charType] = isChecked;
-    const chk = document.getElementById(type + 'Chk' + charType.charAt(0).toUpperCase() + charType.slice(1));
-    if (chk) chk.checked = isChecked;
-    const opt = document.getElementById(type + 'Opt' + charType.charAt(0).toUpperCase() + charType.slice(1));
-    if (opt) {
-        if (isChecked) { opt.classList.remove('disabled'); }
-        else { opt.classList.add('disabled'); }
-    }
-    const anyChecked = Object.values(activeCharTypes[type]).some(v => v);
-    if (!anyChecked) {
-        activeCharTypes[type][charType] = true;
-        if (chk) chk.checked = true;
-        if (opt) opt.classList.remove('disabled');
-        n('⚠️ အနည်းဆုံး တစ်ခုရွေးထားရပါမည်', 'error');
-    }
-    generateMiniPassword(type);
-}
-
-function generateMiniPassword(type) {
-    let chars = '';
-    for (const [charType, isActive] of Object.entries(activeCharTypes[type])) {
-        if (isActive) chars += CHAR_SETS[charType];
-    }
-    if (!chars) return '';
-    const length = parseInt(document.getElementById(type + 'PassLength').value) || 10;
-    let password = '';
-    for (let i = 0; i < length; i++) { password += chars.charAt(Math.floor(Math.random() * chars.length)); }
-    currentPasswords[type] = password;
-    const displayEl = document.getElementById(type + 'GeneratedPassword');
-    if (displayEl) displayEl.textContent = password;
-    return password;
-}
-
-// ✅ Old Password Verified Flag (5 min valid)
-const oldPasswordVerified = {
-    gmail: false,
-    mlbb: false,
-    tiktok: false
-};
-
-async function generateAndShowMiniPassword(type) {
+    // ==================== SAVE CUSTOM PASSWORD ====================
+async function saveCustomPassword(type) {
     const token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest' || token === 'null') {
+    if (!token) {
         alert('⛔ Session expired. Please login again.');
         window.location.href = '/';
         return;
     }
-    
-    try {
-        const statusRes = await fetch('/api/check_gen_status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ type })
-        });
-        const statusData = await statusRes.json();
-        
-        // ✅ Error ဖြစ်ရင် အကုန်လုံးကို Login မပို့ပါနဲ့
-        if (!statusData.success) {
-            // ✅ Invalid session ဖြစ်မှသာ Login ကို ပို့ပါ
-            if (statusData.message === 'Invalid session' || statusData.message === 'Invalid or expired token') {
-                alert('⛔ Session expired. Please login again.');
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user');
-                window.location.href = '/';
-                return;
-            }
-            // ✅ တခြား Error (Cooldown, ...) ဆိုရင် Toast နဲ့ ပြပါ
-            n('❌ ' + (statusData.message || 'Error'), 'error');
-            return;
-        }
-        
-        if (statusData.isFirstTime) return generateAndShowPassword(type);
-        
-        if (statusData.cooldownActive) {
-            document.getElementById(type + 'CooldownBox').style.display = 'block';
-            document.getElementById(type + 'OldPassBox').style.display = 'none';
-            disableGenButton(type);
-            startCooldownTimer(type, statusData.remainingMs);
-            n('⏳ ' + statusData.remainingText, 'error');
-            return;
-        }
-        
-        if (statusData.needsOldPassword) {
-            if (oldPasswordVerified[type]) return generateAndShowPassword(type);
-            document.getElementById(type + 'OldPassBox').style.display = 'block';
-            document.getElementById(type + 'CooldownBox').style.display = 'none';
-            const btn = document.querySelector(`#${type}Sub .btn-w`);
-            if (btn) {
-                btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
-                btn.onclick = () => regeneratePassword(type);
-                btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
-            }
-            return;
-        }
-    } catch(e) { 
-        n('❌ Connection error', 'error');
-    }
-    }
-    
-// ✅ Helper function
-function generateAndShowPassword(type) {
-    const password = generateMiniPassword(type);
-    if (password) {
-        document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
-        document.getElementById(type + 'SavePasswordBtn').style.display = 'block';
-        document.getElementById(type + 'OldPassBox').style.display = 'none';
-        document.getElementById(type + 'CooldownBox').style.display = 'none';
-        enableGenButton(type);
-    }
-    }
-    // ==================== COOLDOWN TIMER ====================
-const cooldownIntervals = {};
 
-function startCooldownTimer(type, remainingMs) {
-    // Clear existing interval
-    if (cooldownIntervals[type]) {
-        clearInterval(cooldownIntervals[type]);
+    const passwordInput = document.getElementById(type + 'CustomPassword');
+    const password = passwordInput.value.trim();
+
+    if (!password) {
+        alert('❌ Please enter a password.');
+        return;
     }
-    
+
+    if (password.length < 6) {
+        alert('❌ Password must be at least 6 characters.');
+        return;
+    }
+
+    try {
+        // 1. Check cooldown first
+        const cooldownRes = await fetch('/api/check_cooldown', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token 
+            },
+            body: JSON.stringify({ token })
+        });
+        const cooldownData = await cooldownRes.json();
+
+        if (cooldownData.cooldown_active) {
+            alert(`⏳ Please wait ${formatTime(cooldownData.remaining_seconds)} before changing password again.`);
+            return;
+        }
+
+        // 2. Save custom password
+        const saveRes = await fetch('/api/save_custom_password', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token 
+            },
+            body: JSON.stringify({ type, password })
+        });
+        const saveData = await saveRes.json();
+
+        if (saveData.success) {
+            alert('✅ Password saved successfully!');
+            passwordInput.value = '';
+            // Show cooldown
+            document.getElementById(type + 'CooldownBox').style.display = 'block';
+            startCooldownTimer(type, 7 * 24 * 60 * 60 * 1000);
+        } else {
+            alert('❌ ' + (saveData.message || 'Failed to save password.'));
+        }
+
+    } catch(e) {
+        console.error('[SAVE CUSTOM PASSWORD ERROR]', e);
+        alert('❌ Connection error');
+    }
+}
+
+// ==================== AUTO-GENERATE PASSWORD (Modified) ====================
+async function generateAndSavePassword(type) {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        alert('⛔ Session expired. Please login again.');
+        window.location.href = '/';
+        return;
+    }
+
+    // 1. Build options
+    const options = {
+        useLower: document.getElementById(type + 'ChkLower').checked,
+        useUpper: document.getElementById(type + 'ChkUpper').checked,
+        useNumbers: document.getElementById(type + 'ChkNumbers').checked,
+        useSymbols: document.getElementById(type + 'ChkSymbols').checked,
+        length: parseInt(document.getElementById(type + 'PassLength').value) || 10
+    };
+
+    // Check if at least one option is selected
+    if (!options.useLower && !options.useUpper && !options.useNumbers && !options.useSymbols) {
+        alert('⚠️ Please select at least one character type.');
+        return;
+    }
+
+    try {
+        // 2. Generate Password
+        const genRes = await fetch('/api/generate_password', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token 
+            },
+            body: JSON.stringify({ type, options })
+        });
+        const genData = await genRes.json();
+
+        if (!genData.success) {
+            if (genData.remaining_seconds) {
+                alert('⏳ Please wait ' + formatTime(genData.remaining_seconds) + ' before generating again.');
+            } else {
+                alert('❌ ' + (genData.message || 'Error'));
+            }
+            return;
+        }
+
+        // 3. Show password
+        document.getElementById(type + 'GeneratedPassword').textContent = genData.password;
+        document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
+
+        // 4. Save password automatically
+        const saveRes = await fetch('/api/save_password', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token 
+            },
+            body: JSON.stringify({ type, password: genData.password })
+        });
+        const saveData = await saveRes.json();
+
+        if (saveData.success) {
+            alert('✅ Password saved!');
+            document.getElementById(type + 'PasswordDisplayBox').style.display = 'none';
+            document.getElementById(type + 'CooldownBox').style.display = 'block';
+            startCooldownTimer(type, 7 * 24 * 60 * 60 * 1000);
+        } else {
+            alert('❌ Failed to save password. Please try again.');
+        }
+
+    } catch(e) {
+        console.error('[GENERATE ERROR]', e);
+        alert('❌ Connection error');
+    }
+}
+
+// ==================== COOLDOWN TIMER ====================
+function startCooldownTimer(type, remainingSeconds) {
     const timerEl = document.getElementById(type + 'CooldownTimer');
     const boxEl = document.getElementById(type + 'CooldownBox');
-    const oldPassBox = document.getElementById(type + 'OldPassBox');
     
     if (!timerEl || !boxEl) return;
     
     boxEl.style.display = 'block';
-    if (oldPassBox) oldPassBox.style.display = 'none';
     
-    // Disable button
-    disableGenButton(type);
-    
-    let remaining = remainingMs;
-    
-    const update = () => {
-        if (remaining <= 0) {
-            clearInterval(cooldownIntervals[type]);
+    const interval = setInterval(() => {
+        if (remainingSeconds <= 0) {
+            clearInterval(interval);
             boxEl.style.display = 'none';
-            
-            // Show old password input
-            if (oldPassBox) oldPassBox.style.display = 'block';
-            
-            // Enable button and change to Regenerate
-            const btn = document.querySelector(`#${type}Sub .btn-w`);
-            if (btn) {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
-                btn.innerHTML = '<i class="fas fa-redo"></i> Regenerate';
-                btn.onclick = () => regeneratePassword(type);
-            }
-            
-            n('✅ စောင့်ဆိုင်းချိန် ပြည့်ပါပြီ။ Password အဟောင်းထည့်၍ အသစ်ထုတ်နိုင်ပါပြီ', 'success');
             return;
         }
         
-        const totalSec = Math.floor(remaining / 1000);
-        const days = Math.floor(totalSec / 86400);
-        const hours = Math.floor((totalSec % 86400) / 3600);
-        const min = Math.floor((totalSec % 3600) / 60);
-        const sec = totalSec % 60;
-        
-        timerEl.textContent = `${days}ရက် ${hours.toString().padStart(2,'0')}:${min.toString().padStart(2,'0')}:${sec.toString().padStart(2,'0')}`;
-        
-        remaining -= 1000;
-    };
-    
-    update();
-    cooldownIntervals[type] = setInterval(update, 1000);
-    }
-
-    async function regeneratePassword(type) {
-    const oldPassInput = document.getElementById(type + 'OldPassInput');
-    const oldPassword = oldPassInput ? oldPassInput.value.trim() : '';
-    if (!oldPassword && !oldPasswordVerified[type]) return n('❌ Password အဟောင်း ထည့်ပါ', 'error');
-    
-    try {
-        const token = localStorage.getItem('auth_token');
-        const options = {
-            useLower: activeCharTypes[type].lower,
-            useUpper: activeCharTypes[type].upper,
-            useNumbers: activeCharTypes[type].numbers,
-            useSymbols: activeCharTypes[type].symbols,
-            length: parseInt(document.getElementById(type + 'PassLength').value) || 10
-        };
-        
-        const r = await fetch('/api/regenerate_password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ type, oldPassword, options })
-        });
-        const d = await r.json();
-        
-        if (d.success) {
-            if (oldPassword) { 
-                oldPasswordVerified[type] = true; 
-                setTimeout(() => { oldPasswordVerified[type] = false; }, 5 * 60 * 1000); 
-            }
-            currentPasswords[type] = d.password;
-            document.getElementById(type + 'GeneratedPassword').textContent = d.password;
-            document.getElementById(type + 'PasswordDisplayBox').style.display = 'flex';
-            document.getElementById(type + 'SavePasswordBtn').style.display = 'block';
-            document.getElementById(type + 'OldPassBox').style.display = 'none';
-            document.getElementById(type + 'CooldownBox').style.display = 'none';
-            if (oldPassInput) oldPassInput.value = '';
-            enableGenButton(type);
-            n('✅ Password အသစ် ထုတ်ပေးပြီးပါပြီ', 'success');
-        } else {
-            n('❌ ' + (d.message || 'Error'), 'error');
-        }
-    } catch(e) { n('❌ Connection error', 'error'); }
-    }
-
-function copyMiniPassword(type) {
-    const password = currentPasswords[type];
-    if (!password) { n('❌ Password အရင် Generate လုပ်ပါ', 'error'); return; }
-    navigator.clipboard.writeText(password).then(() => { n('✅ Copied!', 'success'); }).catch(() => { n('❌ Copy Failed', 'error'); });
+        timerEl.textContent = formatTime(remainingSeconds);
+        remainingSeconds--;
+    }, 1000);
 }
 
-async function saveMiniPassword(type) {
-    const password = currentPasswords[type];
-    if (!password) return n('❌ Password အရင် Generate လုပ်ပါ', 'error');
+function formatTime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
     
-    const token = localStorage.getItem('auth_token');
-    if (!token || token === 'guest') return n('❌ Please login first!', 'error');
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    return `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+}
+
+function copyPassword(type) {
+    const passwordEl = document.getElementById(type + 'GeneratedPassword');
+    const password = passwordEl.textContent;
     
-    try {
-        const r = await fetch('/api/save_type_password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({ type, password })
-        });
-        const d = await r.json();
-        if (d.success) {
-            n('✅ ' + type.toUpperCase() + ' Password Saved!', 'success');
-            document.getElementById(type + 'PasswordDisplayBox').style.display = 'none';
-            document.getElementById(type + 'SavePasswordBtn').style.display = 'none';
-            currentPasswords[type] = '';
-            document.getElementById(type + 'CooldownBox').style.display = 'block';
-            startCooldownTimer(type, 7 * 24 * 60 * 60 * 1000);
-        } else {
-            n('❌ ' + (d.message || 'Save failed'), 'error');
-        }
-    } catch(e) { n('❌ Connection error', 'error'); }
+    navigator.clipboard.writeText(password).then(() => {
+        alert('✅ Password copied!');
+    }).catch(() => {
+        alert('❌ Copy failed');
+    });
+}
+
+function togglePass(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
     }
     
-function syncMiniLength(type, value) {
-    let numValue = parseInt(value);
-    if (isNaN(numValue) || numValue < 6) { numValue = 6; }
-    else if (numValue > 30) { numValue = 30; }
-    const numInput = document.getElementById(type + 'PassLength');
-    if (numInput) numInput.value = numValue;
-    const slider = document.getElementById(type + 'PassLengthSlider');
-    if (slider) slider.value = numValue;
-    generateMiniPassword(type);
-    }
     // ==================== CHECK ALL COOLDOWNS ON PAGE LOAD ====================
     async function checkAllCooldowns() {
     const types = ['gmail', 'mlbb', 'tiktok'];
