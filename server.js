@@ -1088,9 +1088,12 @@ app.post('/api/upload_music', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 // ==================== AUTH ====================
+// ==================== LOGIN API ====================
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) return res.json({ success: false, message: 'All fields required' });
+    if (!email || !password) {
+        return res.json({ success: false, message: 'All fields required' });
+    }
     
     try { 
         const p = await getPool(); 
@@ -1105,13 +1108,18 @@ app.post('/api/login', async (req, res) => {
         
         const u = r.rows[0];
         
-        // ✅ JWT Token Generate
-        const token = generateToken({ ...u, login_type: 'local' });
+        // ✅ JWT Token Generate (ဒါကို သေချာထုတ်ပေးမယ်)
+        const token = generateToken({ 
+            id: u.id, 
+            username: u.username, 
+            email: u.email, 
+            login_type: 'local' 
+        });
         
         res.json({ 
             success: true, 
             message: 'Password verified',
-            token: token,  // ✅ JWT Token
+            token: token,  // ✅ JWT Token ကို ပို့ပေးမယ်
             user: { id: u.id, username: u.username, email: u.email }
         }); 
     }
