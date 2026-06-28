@@ -424,34 +424,12 @@ async function initTables(p) {
         // ========== PASSWORD GENERATION COOLDOWN COLUMNS ==========
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS last_password_gen TIMESTAMP`,
 `ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS password_gen_cooldown TIMESTAMP`,
-
-        // ✅ Tab တစ်ခုချင်းစီအတွက် သီးသန့် Cooldown Columns
-`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS gmail_last_gen TIMESTAMP`,
-`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS gmail_gen_cooldown TIMESTAMP`,
-`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS mlbb_last_gen TIMESTAMP`,
-`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS mlbb_gen_cooldown TIMESTAMP`,
-`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tiktok_last_gen TIMESTAMP`,
-`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS tiktok_gen_cooldown TIMESTAMP`,
-
-        `CREATE TABLE IF NOT EXISTS user_gmail_data (
-    id SERIAL PRIMARY KEY, user_id INT, name VARCHAR(200), emails TEXT,
-    phones TEXT, password VARCHAR(200), dob VARCHAR(50),
-    country VARCHAR(100), region VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)`,
-`CREATE TABLE IF NOT EXISTS user_mlbb_data (
-    id SERIAL PRIMARY KEY, user_id INT, ingame_name VARCHAR(200), ingame_id VARCHAR(100),
-    server_id VARCHAR(100), emails TEXT, password VARCHAR(200),
-    dob VARCHAR(50), country VARCHAR(100), region VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)`,
-`CREATE TABLE IF NOT EXISTS user_tiktok_data (
-    id SERIAL PRIMARY KEY, user_id INT, full_name VARCHAR(200), last_name VARCHAR(200),
-    emails TEXT, phones TEXT, password VARCHAR(200),
-    dob VARCHAR(50), country VARCHAR(100), region VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)`,
     
 `ALTER TABLE user_gmail_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
 `ALTER TABLE user_mlbb_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
 `ALTER TABLE user_tiktok_data ADD COLUMN IF NOT EXISTS title VARCHAR(200)`,
+        
+`ALTER TABLE auth_users ADD COLUMN IF NOT EXISTS password_gen_cooldown TIMESTAMP`,
 
         // ========== ORDERS TABLE - ADD MISSING COLUMNS ==========
 `ALTER TABLE orders ADD COLUMN IF NOT EXISTS product_name TEXT`,
@@ -2906,6 +2884,69 @@ app.post('/api/verify_user_id', async (req, res) => {
         console.error('[VERIFY USER ID ERROR]', e.message);
         res.json({ success: false, verified: false, message: 'Server error' });
     }
+});
+app.post('/api/save_custom_password', async (req, res) => {
+  const { token, type, password } = req.body;
+  
+  // 1. Verify token
+  const uid = verifyToken(token);
+  if (!uid) return res.json({ success: false, message: 'Invalid session' });
+
+  // 2. Validate password length
+  if (password.length < 6) {
+    return res.json({ success: false, message: 'Password must be at least 6 characters' });
+  }
+
+  // 3. Check cooldown
+  const cooldownCheck = await checkCooldown(uid);
+  if (cooldownCheck.active) {
+    return res.json({ 
+      success: false, 
+      message: `Cooldown active. Please wait ${formatTime(cooldownCheck.remaining)} before changing password again.`,
+      remaining_seconds: cooldownCheck.remaining
+    });
+  }
+
+  // 4. Hash the password
+  const bcrypt = require('bcrypt');
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // 5. Determine column name
+  const hashCol = type === 'gmail' ? 'gmail_pass_hash' : 
+                  type === 'mlbb' ? 'mlbb_pass_hash' : 'tiktok_pass_hash';
+
+  // 6. Set cooldown (7 days)
+  const cooldownDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  // 7. Update database
+  await p.query(
+    `UPDATE auth_users SET 
+      ${hashCol} = $1,
+      last_password_gen = NOW(),
+      password_gen_cooldown = $2
+    WHERE id = $3`,
+    [hashedPassword, cooldownDate, uid]
+  );
+
+  res.json({
+    success: true,
+    message: 'Password saved successfully!',
+    cooldown_end: cooldownDate.toISOString()
+  });
+});
+app.post('/api/check_cooldown', async (req, res) => {
+  const { token } = req.body;
+  
+  const uid = verifyToken(token);
+  if (!uid) return res.json({ success: false, message: 'Invalid session' });
+
+  const cooldownCheck = await checkCooldown(uid);
+  
+  res.json({
+    success: true,
+    cooldown_active: cooldownCheck.active,
+    remaining_seconds: cooldownCheck.remaining
+  });
 });
 // ==================== SLIDER ====================
 app.get('/api/slider_images', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT image_urls FROM slider_images ORDER BY id DESC LIMIT 1'); if (r.rows.length === 0) return res.json({ images: [] }); res.json({ success: true, images: JSON.parse(r.rows[0].image_urls || '[]') }); } catch(e) { res.json({ images: [] }); } });
