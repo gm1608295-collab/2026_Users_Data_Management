@@ -532,6 +532,36 @@ ALL_PAGES.forEach(async (pg) => {
 // ============================================================
 // MONITORING & SECURITY SYSTEM APIS (FULL HISTORY VERSION)
 // ============================================================
+// ==================== COOLDOWN HELPER FUNCTION ====================
+async function checkCooldown(uid) {
+  const p = await getPool();
+  const user = await p.query(
+    'SELECT password_gen_cooldown FROM auth_users WHERE id = $1',
+    [uid]
+  );
+  
+  if (user.rows.length === 0) {
+    return { active: false, remaining: 0 };
+  }
+  
+  const cooldownEnd = user.rows[0].password_gen_cooldown;
+  
+  if (!cooldownEnd) {
+    return { active: false, remaining: 0 };
+  }
+  
+  const now = new Date();
+  const cooldownTime = new Date(cooldownEnd);
+  
+  if (now >= cooldownTime) {
+    return { active: false, remaining: 0 };
+  }
+  
+  const remainingMs = cooldownTime.getTime() - now.getTime();
+  const remainingSeconds = Math.floor(remainingMs / 1000);
+  
+  return { active: true, remaining: remainingSeconds };
+}
 
 // 1. Dashboard Stats (Today + Total Accounts)
 app.post('/api/monitor/stats', async (req, res) => {
