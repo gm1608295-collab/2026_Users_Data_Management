@@ -30,9 +30,6 @@ app.use(express.static(__dirname, {
 
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
-// ==================== AUTO WAKE-UP ====================
-setInterval(() => { https.get(`https://solo-m-store-security-system-and-user.onrender.com/api/ping`, (res) => {}); }, 600000);
-app.get('/api/ping', (req, res) => { res.json({ success: true, time: new Date().toISOString() }); });
 
 // ==================== DATABASE - 5 POOLS AUTO-SWITCH (FIXED) ====================
 // ✅ ဒါကို ဒီအတိုင်း ပြင်ပါ (Render Env ကနေ ယူမယ်)
