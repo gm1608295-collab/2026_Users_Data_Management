@@ -683,12 +683,12 @@ body {
     </div>
 
     <!-- ✅ Timer ကုန်သွားရင် (ပြန်ဖွင့်တဲ့အခါ) ဒီခလုတ်ကို ပြမယ် -->
-    <a id="advanceServerButton" href="https://new-version-web-advance-test-server.onrender.com" target="_blank" 
-       style="display: none; padding: 6px 14px; border-radius: 6px; background: rgba(15, 10, 30, 0.95); border: 2px solid #e74c3c; color: #fff; text-decoration: none; font-size: 12px; font-weight: bold; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">
-        <i class="fas fa-flask" style="color: #ffd700; font-size: 14px;"></i>
-        A.T Server
-    </a>
-</div>
+<button id="advanceServerButton" 
+        style="display: none; padding: 6px 14px; border-radius: 6px; background: rgba(15, 10, 30, 0.95); border: 2px solid #e74c3c; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);"
+        onclick="showATServerConfirm()">
+    <i class="fas fa-flask" style="color: #ffd700; font-size: 14px;"></i>
+    A.T Server
+</button>
     
     <!-- LED Corner Lights -->
     <div class="led-corner-left"></div>
@@ -1163,12 +1163,83 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
 </div>
     
 <script>
+    // ==================== A.T SERVER CONFIRM MODAL ====================
+function showATServerConfirm() {
+    // Modal ကို ဖန်တီးမယ်
+    const overlay = document.createElement('div');
+    overlay.id = 'atServerConfirmModal';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(4px);
+        z-index: 99999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    `;
+    
+    overlay.innerHTML = `
+        <div style="
+            background: linear-gradient(160deg, #1a1f4b, #0a0a1a);
+            border: 2px solid #f39c12;
+            border-radius: 16px;
+            padding: 25px;
+            width: 90%;
+            max-width: 380px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            color: #fff;
+        ">
+            <div style="font-size: 40px; margin-bottom: 10px;">
+                <i class="fas fa-flask" style="color: #f39c12;"></i>
+            </div>
+            <h3 style="color: #f39c12; margin-bottom: 8px; font-size: 18px;">A.T Server သို့ ပြောင်းမည်</h3>
+            
+            <div style="font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.6; margin-bottom: 15px;">
+                သင်သည် <strong style="color: #f39c12;">Advance Test Server</strong> သို့ သွားရောက်တော့မည် ဖြစ်ပါသည်။<br>
+                <span style="font-size: 11px; color: rgba(255,255,255,0.5);">ဤ Server သည် အသစ်စက်စက် Version များကို စမ်းသပ်ရန် ဖြစ်ပါသည်။</span>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="closeATServerConfirm()" 
+                        style="flex: 1; padding: 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; font-weight: bold; cursor: pointer; font-size: 13px;">
+                    ပယ်မည် (Cancel)
+                </button>
+                <button onclick="goToATServer()" 
+                        style="flex: 1; padding: 10px; border: none; border-radius: 8px; background: #e74c3c; color: #fff; font-weight: bold; cursor: pointer; font-size: 13px;">
+                    <i class="fas fa-arrow-right"></i> ဆက်သွားမည်
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+// Modal ပိတ်ရန် Function
+function closeATServerConfirm() {
+    const modal = document.getElementById('atServerConfirmModal');
+    if (modal) modal.remove();
+}
+
+// A.T Server သို့ သွားရန် Function
+function goToATServer() {
+    // Modal ကို ဖယ်ရှားမယ်
+    closeATServerConfirm();
+    
+    // URL ကို သွားမယ်
+    window.open('https://new-version-web-advance-test-server.onrender.com', '_blank');
+    }
+    
     // ==================== ADVANCE SERVER TIMER SYSTEM ====================
 (function() {
-    // ✅ သတ်မှတ်ချိန်: June 30, 2026, 2:10 PM (Local Time)
-    // (ခင်ဗျားရဲ့ Local Time Zone အတိုင်း အလိုအလျောက် ရေတွက်သွားပါမယ်)
-    const TARGET_DATE = new Date('2026-06-30T14:10:00').getTime();
 
+    
     // ✅ Timer ကို LocalStorage မှာ သိမ်းမယ် (Refresh/Deploy လုပ်ရင် အစကနေ ပြန်မစအောင်)
     const STORAGE_KEY = 'advance_server_timer_start';
 
@@ -1182,24 +1253,28 @@ document.getElementById('googleVerifyModal').addEventListener('click', function(
         startTime = parseInt(startTime, 10);
     }
 
-    // ✅ Timer Update Function
-    function updateTimer() {
-        const now = Date.now();
-        const remaining = TARGET_DATE - now;
+    // ✅ Timer Update Function (ပြင်ထားတဲ့ version)
+function updateTimer() {
+    const now = Date.now();
+    const remaining = TARGET_DATE - now;
 
-        const timerDisplay = document.getElementById('advanceServerTimerDisplay');
-        const timerText = document.getElementById('advanceTimerText');
-        const serverButton = document.getElementById('advanceServerButton');
+    const timerDisplay = document.getElementById('advanceServerTimerDisplay');
+    const timerText = document.getElementById('advanceTimerText');
+    const serverButton = document.getElementById('advanceServerButton');
 
-        if (remaining <= 0) {
-            // ✅ သတ်မှတ်ချိန်ရောက်ပြီဆိုရင် Timer ကို ဖျောက်ပြီး Button ပြမယ်
-            if (timerDisplay) timerDisplay.style.display = 'none';
-            if (serverButton) serverButton.style.display = 'flex';
-            localStorage.removeItem(STORAGE_KEY); // သိမ်းထားတဲ့ Timer ကို ဖျက်မယ်
-            return;
+    if (remaining <= 0) {
+        // ✅ သတ်မှတ်ချိန်ရောက်ပြီဆိုရင် Timer ကို ဖျောက်ပြီး Button ပြမယ်
+        if (timerDisplay) timerDisplay.style.display = 'none';
+        if (serverButton) {
+            serverButton.style.display = 'flex';
+            serverButton.onclick = function() { showATServerConfirm(); }; // ✅ ဒီ line ကို ပြင်ပါ
         }
-
-        // ✅ ကျန်နေသေးတဲ့ အချိန်ကို တွက်မယ်
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+    }
+}
+     
+    // ✅ ကျန်နေသေးတဲ့ အချိန်ကို တွက်မယ်
         const totalSec = Math.floor(remaining / 1000);
         const days = Math.floor(totalSec / 86400);
         const hours = Math.floor((totalSec % 86400) / 3600);
