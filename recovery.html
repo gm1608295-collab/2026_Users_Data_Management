@@ -6,23 +6,572 @@
     <title>Recovery - SOLO M Game Shop</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root{--bg:#0c0e27;--p:#1a1f4b;--a:#4a1c7a;--w:#f39c12;--t:#fff}
-        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
-        body{background:linear-gradient(135deg,#0c0e27,#1a1f4b,#2c3e50);color:var(--t);min-height:100vh;display:flex;justify-content:center;align-items:center;text-align:center;padding:20px}
-        .header a{color:var(--w);font-size:20px;text-decoration:none;position:fixed;top:15px;left:15px}
-        i{font-size:60px;color:var(--w);display:block;margin-bottom:20px}
-        h2{color:var(--w);margin-bottom:10px}
-        p{color:rgba(255,255,255,0.7);font-size:14px}
-        a.back{color:var(--w);text-decoration:none;margin-top:20px;display:inline-block;padding:10px 20px;border:1px solid var(--w);border-radius:5px}
+        :root {
+            --bg: #0c0e27;
+            --p: #1a1f4b;
+            --a: #4a1c7a;
+            --w: #f39c12;
+            --r: #e74c3c;
+            --g: #2ecc71;
+            --b: #3498db;
+            --t: #fff;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0c0e27, #1a1f4b, #2c3e50);
+            color: var(--t);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            padding-top: 70px;
+        }
+        .container {
+            max-width: 500px;
+            width: 100%;
+            padding-bottom: 30px;
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px 20px;
+            background: linear-gradient(to right, var(--a), var(--p));
+            border-bottom: 3px solid var(--w);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .header a {
+            color: var(--w);
+            font-size: 22px;
+            text-decoration: none;
+            transition: transform 0.2s;
+        }
+        .header a:hover {
+            transform: scale(1.1);
+        }
+        .header h2 {
+            color: var(--w);
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* ========== PANEL ========== */
+        .panel {
+            background: rgba(26, 31, 75, 0.7);
+            border: 1px solid rgba(74, 28, 122, 0.5);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .panel h3 {
+            color: var(--w);
+            font-size: 14px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid rgba(74, 28, 122, 0.5);
+            padding-bottom: 8px;
+        }
+
+        /* ========== FORM ========== */
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            color: #ccc;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            color: var(--t);
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--w);
+            box-shadow: 0 0 12px rgba(243, 156, 18, 0.15);
+        }
+        .form-group select option {
+            background: var(--bg);
+            color: var(--t);
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        /* ========== BUTTONS ========== */
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-w {
+            background: linear-gradient(135deg, var(--w), #e67e22);
+            color: #000;
+        }
+        .btn-w:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(243, 156, 18, 0.3);
+        }
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        /* ========== TOAST ========== */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 20px;
+            border-radius: 10px;
+            z-index: 9999;
+            font-size: 13px;
+            font-weight: bold;
+            color: #000;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            transform: translateX(120%);
+            transition: transform 0.4s ease;
+            max-width: 350px;
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+        .toast.success {
+            background: #2ecc71;
+        }
+        .toast.error {
+            background: #e74c3c;
+        }
+        .toast.info {
+            background: #3498db;
+        }
+        .toast.warning {
+            background: #f39c12;
+        }
+
+        /* ========== LOADING ========== */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading i {
+            font-size: 30px;
+            color: var(--w);
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ========== PLATFORM SPECIFIC FIELDS ========== */
+        .platform-fields {
+            display: none;
+        }
+        .platform-fields.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 480px) {
+            .header h2 { font-size: 16px; }
+            .panel { padding: 14px; }
+        }
     </style>
 </head>
 <body>
-    <a href="/dashboard" class="header"><i class="fas fa-arrow-left"></i></a>
-    <div>
-        <i class="fas fa-tools"></i>
-        <h2>Recovery</h2>
-        <p>Feature Coming Soon</p>
-        <a href="/dashboard" class="back">Back to Dashboard</a>
+
+    <!-- Header -->
+    <div class="header">
+        <a href="/dashboard"><i class="fas fa-arrow-left"></i></a>
+        <h2><i class="fas fa-history"></i> Account Recovery</h2>
     </div>
+
+    <!-- Container -->
+    <div class="container">
+
+        <!-- Main Panel -->
+        <div class="panel">
+            <h3>🔄 အကောင့် ပြန်လည်ရယူရန်</h3>
+            <p style="font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 12px;">
+                သင့်အကောင့် ပျောက်သွားပါက (သို့) ပြန်လည်ရယူလိုပါက အောက်ပါ Form ကို ဖြည့်သွင်းပါ။
+            </p>
+
+            <!-- Form -->
+            <form id="recoveryForm" onsubmit="return submitRecovery(event)">
+
+                <!-- Platform Select -->
+                <div class="form-group">
+                    <label>📱 Platform ရွေးချယ်ပါ</label>
+                    <select id="platform" onchange="updateFields()" required>
+                        <option value="">-- Select Platform --</option>
+                        <option value="MLBB">🎮 Mobile Legends (MLBB)</option>
+                        <option value="TikTok">🎵 TikTok</option>
+                        <option value="Telegram">📨 Telegram</option>
+                        <option value="Facebook">📘 Facebook</option>
+                        <option value="Instagram">📸 Instagram</option>
+                        <option value="WhatsApp">💬 WhatsApp</option>
+                        <option value="Discord">🎧 Discord</option>
+                        <option value="Snapchat">👻 Snapchat</option>
+                        <option value="Viber">📞 Viber</option>
+                        <option value="Messenger">💬 Messenger</option>
+                        <option value="PUBG">🔫 PUBG Mobile</option>
+                        <option value="HOK">⚔️ Honor of Kings (HOK)</option>
+                    </select>
+                </div>
+
+                <!-- Platform Specific Fields -->
+                <!-- MLBB Fields -->
+                <div class="platform-fields" id="fields-MLBB">
+                    <div class="form-group">
+                        <label>🎮 In-Game Name</label>
+                        <input type="text" id="mlbbName" placeholder="Enter your MLBB name">
+                    </div>
+                    <div class="form-group">
+                        <label>🆔 User ID</label>
+                        <input type="text" id="mlbbId" placeholder="Enter your MLBB User ID">
+                    </div>
+                    <div class="form-group">
+                        <label>🖥️ Server ID</label>
+                        <input type="text" id="mlbbServer" placeholder="Enter your Server ID">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Linked Email</label>
+                        <input type="email" id="mlbbEmail" placeholder="Enter linked email (optional)">
+                    </div>
+                </div>
+
+                <!-- TikTok Fields -->
+                <div class="platform-fields" id="fields-TikTok">
+                    <div class="form-group">
+                        <label>👤 Username</label>
+                        <input type="text" id="tiktokUsername" placeholder="Enter TikTok username">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Email / Phone</label>
+                        <input type="text" id="tiktokContact" placeholder="Enter email or phone">
+                    </div>
+                    <div class="form-group">
+                        <label>🆔 User ID (optional)</label>
+                        <input type="text" id="tiktokId" placeholder="Enter TikTok ID">
+                    </div>
+                </div>
+
+                <!-- Telegram Fields -->
+                <div class="platform-fields" id="fields-Telegram">
+                    <div class="form-group">
+                        <label>👤 Username</label>
+                        <input type="text" id="tgUsername" placeholder="Enter Telegram username (without @)">
+                    </div>
+                    <div class="form-group">
+                        <label>📱 Phone Number</label>
+                        <input type="text" id="tgPhone" placeholder="Enter phone number">
+                    </div>
+                    <div class="form-group">
+                        <label>🆔 User ID (optional)</label>
+                        <input type="text" id="tgId" placeholder="Enter Telegram ID">
+                    </div>
+                </div>
+
+                <!-- Facebook Fields -->
+                <div class="platform-fields" id="fields-Facebook">
+                    <div class="form-group">
+                        <label>👤 Full Name</label>
+                        <input type="text" id="fbName" placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Email / Phone</label>
+                        <input type="text" id="fbContact" placeholder="Enter email or phone">
+                    </div>
+                    <div class="form-group">
+                        <label>🔗 Profile Link (optional)</label>
+                        <input type="text" id="fbLink" placeholder="Enter Facebook profile link">
+                    </div>
+                </div>
+
+                <!-- Instagram Fields -->
+                <div class="platform-fields" id="fields-Instagram">
+                    <div class="form-group">
+                        <label>👤 Username</label>
+                        <input type="text" id="igUsername" placeholder="Enter Instagram username">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Email / Phone</label>
+                        <input type="text" id="igContact" placeholder="Enter email or phone">
+                    </div>
+                </div>
+
+                <!-- WhatsApp Fields -->
+                <div class="platform-fields" id="fields-WhatsApp">
+                    <div class="form-group">
+                        <label>📱 Phone Number</label>
+                        <input type="text" id="waPhone" placeholder="Enter WhatsApp number">
+                    </div>
+                    <div class="form-group">
+                        <label>👤 Name (optional)</label>
+                        <input type="text" id="waName" placeholder="Enter your name">
+                    </div>
+                </div>
+
+                <!-- Discord Fields -->
+                <div class="platform-fields" id="fields-Discord">
+                    <div class="form-group">
+                        <label>👤 Username</label>
+                        <input type="text" id="discordUsername" placeholder="Enter Discord username (e.g. user#1234)">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Email</label>
+                        <input type="email" id="discordEmail" placeholder="Enter Discord email">
+                    </div>
+                </div>
+
+                <!-- Snapchat Fields -->
+                <div class="platform-fields" id="fields-Snapchat">
+                    <div class="form-group">
+                        <label>👤 Username</label>
+                        <input type="text" id="snapUsername" placeholder="Enter Snapchat username">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Email / Phone</label>
+                        <input type="text" id="snapContact" placeholder="Enter email or phone">
+                    </div>
+                </div>
+
+                <!-- Viber Fields -->
+                <div class="platform-fields" id="fields-Viber">
+                    <div class="form-group">
+                        <label>📱 Phone Number</label>
+                        <input type="text" id="viberPhone" placeholder="Enter Viber number">
+                    </div>
+                    <div class="form-group">
+                        <label>👤 Name (optional)</label>
+                        <input type="text" id="viberName" placeholder="Enter your name">
+                    </div>
+                </div>
+
+                <!-- Messenger Fields -->
+                <div class="platform-fields" id="fields-Messenger">
+                    <div class="form-group">
+                        <label>👤 Full Name</label>
+                        <input type="text" id="msgrName" placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Email / Phone</label>
+                        <input type="text" id="msgrContact" placeholder="Enter email or phone">
+                    </div>
+                </div>
+
+                <!-- PUBG Fields -->
+                <div class="platform-fields" id="fields-PUBG">
+                    <div class="form-group">
+                        <label>🎮 In-Game Name</label>
+                        <input type="text" id="pubgName" placeholder="Enter your PUBG name">
+                    </div>
+                    <div class="form-group">
+                        <label>🆔 User ID</label>
+                        <input type="text" id="pubgId" placeholder="Enter PUBG ID">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Linked Email</label>
+                        <input type="email" id="pubgEmail" placeholder="Enter linked email (optional)">
+                    </div>
+                </div>
+
+                <!-- HOK Fields -->
+                <div class="platform-fields" id="fields-HOK">
+                    <div class="form-group">
+                        <label>🎮 In-Game Name</label>
+                        <input type="text" id="hokName" placeholder="Enter your HOK name">
+                    </div>
+                    <div class="form-group">
+                        <label>🆔 User ID</label>
+                        <input type="text" id="hokId" placeholder="Enter HOK ID">
+                    </div>
+                    <div class="form-group">
+                        <label>📧 Linked Email</label>
+                        <input type="email" id="hokEmail" placeholder="Enter linked email (optional)">
+                    </div>
+                </div>
+
+                <!-- Common Fields -->
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>📞 သင့်ဆက်သွယ်ရန် (Phone / Email)</label>
+                    <input type="text" id="contactInfo" placeholder="Enter your phone or email" required>
+                </div>
+                <div class="form-group">
+                    <label>📝 အသေးစိတ်ဖော်ပြချက် (ထပ်လောင်းပြောလိုပါက)</label>
+                    <textarea id="description" placeholder="ဥပမာ - အကောင့်ကို ဘယ်လိုပျောက်သွားလဲ၊ ဘာတွေလိုချင်လဲ..."></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-w" id="submitBtn">
+                    <i class="fas fa-paper-plane"></i> ပို့ရန် (Submit)
+                </button>
+
+                <!-- Loading -->
+                <div class="loading" id="loadingIndicator">
+                    <i class="fas fa-spinner"></i>
+                    <p style="margin-top: 10px; font-size: 13px; color: rgba(255,255,255,0.7);">ပို့နေပါသည်...</p>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- Support Section -->
+        <div class="panel" style="border-color: rgba(52, 152, 219, 0.4);">
+            <h3 style="color: var(--b);">📞 အကူအညီ လိုအပ်ပါသလား?</h3>
+            <p style="font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 10px;">
+                အထက်ပါနည်းဖြင့် မရပါက Admin သို့ တိုက်ရိုက်ဆက်သွယ်ပါ။
+            </p>
+            <a href="https://t.me/Solo_m28" target="_blank" style="display: block; text-align: center; padding: 10px; background: rgba(52, 152, 219, 0.2); border: 1px solid var(--b); border-radius: 8px; color: var(--b); text-decoration: none; font-weight: bold; font-size: 13px;">
+                <i class="fab fa-telegram"></i> Admin သို့ ဆက်သွယ်ရန်
+            </a>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==================== PLATFORM FIELDS UPDATE ====================
+        function updateFields() {
+            const platform = document.getElementById('platform').value;
+            // Hide all platform fields
+            document.querySelectorAll('.platform-fields').forEach(el => {
+                el.classList.remove('active');
+            });
+            // Show selected platform fields
+            if (platform) {
+                const target = document.getElementById('fields-' + platform);
+                if (target) {
+                    target.classList.add('active');
+                }
+            }
+        }
+
+        // ==================== TOAST NOTIFICATION ====================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            clearTimeout(toast._timeout);
+            toast._timeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // ==================== SUBMIT RECOVERY ====================
+        async function submitRecovery(event) {
+            event.preventDefault();
+            
+            const platform = document.getElementById('platform').value;
+            const contactInfo = document.getElementById('contactInfo').value.trim();
+            const description = document.getElementById('description').value.trim();
+
+            if (!platform) {
+                showToast('❌ Platform ရွေးချယ်ပါ', 'error');
+                return false;
+            }
+            if (!contactInfo) {
+                showToast('❌ ဆက်သွယ်ရန် အချက်အလက် ထည့်ပါ', 'error');
+                return false;
+            }
+
+            // Collect platform-specific fields
+            let accountDetails = {};
+            let platformFields = document.querySelectorAll('#fields-' + platform + ' input');
+            platformFields.forEach(input => {
+                if (input.value.trim()) {
+                    accountDetails[input.id] = input.value.trim();
+                }
+            });
+
+            // Show loading
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('loadingIndicator').style.display = 'block';
+
+            // Prepare data
+            const data = {
+                platform: platform,
+                account_details: accountDetails,
+                contact_info: contactInfo,
+                description: description
+            };
+
+            // Send to server (which will forward to Telegram Bot)
+            try {
+                const response = await fetch('/api/recovery/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('✅ Recovery Request ပို့ပြီးပါပြီ။ Admin မှ မကြာမီ ဆက်သွယ်ပါမည်။', 'success');
+                    // Reset form
+                    document.getElementById('recoveryForm').reset();
+                    updateFields();
+                } else {
+                    showToast('❌ ' + (result.message || 'ပို့ရန် မအောင်မြင်ပါ'), 'error');
+                }
+            } catch (e) {
+                showToast('❌ Server နှင့် ချိတ်ဆက်မရပါ', 'error');
+            } finally {
+                document.getElementById('submitBtn').style.display = 'flex';
+                document.getElementById('loadingIndicator').style.display = 'none';
+            }
+
+            return false;
+        }
+
+        // Initialize
+        updateFields();
+    </script>
+
 </body>
 </html>
