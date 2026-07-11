@@ -3906,32 +3906,33 @@ app.post('/api/admin/buycode_notices/delete_all', async (req, res) => {
         res.json({ success: false }); 
     } 
 });
-// ==================== BOT MESSAGE (DEBUG MODE) ====================
+// ==================== ADMIN BOT MESSAGE (IMAGE/VIDEO/GIF SUPPORT) ====================
 app.post('/api/admin/bot_message', async (req, res) => {
-    const { message, sound, title, images } = req.body;
-    console.log('[BOT MESSAGE DEBUG] Received:', {
-        message: message?.substring(0,30),
-        imageCount: images?.length || 0
+    const { message, sound, title, media } = req.body;
+    console.log('[BOT MESSAGE]', { 
+        message: message?.substring(0,30), 
+        sound, 
+        title, 
+        mediaType: media?.type || 'none',
+        mediaCount: media?.urls?.length || 0
     });
     
-    if (!message && (!images || images.length === 0)) {
-        return res.json({ success: false, message: 'Message or images required' });
+    if (!message && (!media || !media.urls || media.urls.length === 0)) {
+        return res.json({ success: false, message: 'Message or media required' });
     }
     
     try {
         const p = await getPool();
-        let imageUrls = [];
+        let mediaUrls = [];
         
-        // ✅ 1. IMGBB UPLOAD DEBUG
-        if (images && images.length > 0) {
-            console.log(`[BOT MESSAGE] 🔄 Uploading ${images.length} images to ImgBB...`);
-            
-            for (let i = 0; i < images.length; i++) {
+        // ✅ 1. Media Upload (Image/Video/GIF)
+        if (media && media.urls && media.urls.length > 0) {
+            for (let i = 0; i < media.urls.length; i++) {
                 try {
-                    const imageData = images[i].replace(/^data:image\/\w+;base64,/, '');
+                    const base64Data = media.urls[i].replace(/^data:(image|video)\/\w+;base64,/, '');
                     const formData = new URLSearchParams();
                     formData.append('key', IMGBB_API_KEY);
-                    formData.append('image', imageData);
+                    formData.append('image', base64Data);
                     
                     const response = await fetch('https://api.imgbb.com/1/upload', {
                         method: 'POST',
@@ -3939,66 +3940,80 @@ app.post('/api/admin/bot_message', async (req, res) => {
                         body: formData.toString(),
                         signal: AbortSignal.timeout(15000)
                     });
-                    
                     const data = await response.json();
-                    console.log(`[BOT MESSAGE] ImgBB Response for image ${i+1}:`, data);
-                    
                     if (data.success) {
-                        imageUrls.push(data.data.url);
-                        console.log(`[BOT MESSAGE] ✅ Image ${i+1} uploaded:`, data.data.url);
-                    } else {
-                        console.error(`[BOT MESSAGE] ❌ ImgBB upload failed for image ${i+1}:`, data);
+                        mediaUrls.push(data.data.url);
                     }
                 } catch(e) {
-                    console.error(`[BOT MESSAGE] ❌ ImgBB fetch error for image ${i+1}:`, e.message);
+                    console.error('[MEDIA UPLOAD ERROR]', e.message);
                 }
             }
-            console.log(`[BOT MESSAGE] Total uploaded: ${imageUrls.length}`);
         }
         
-        // ✅ 2. TELEGRAM SEND DEBUG
+        // ✅ 2. Telegram Send (Auto detect media type)
         const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'");
-        console.log(`[BOT MESSAGE] Found ${users.rows.length} Telegram users.`);
-        
         let telegramCount = 0;
-        let lastError = null;
         
         for (const user of users.rows) {
             const tid = user.google_id.replace('tg_', '');
             try {
-                let telegramResponse;
-                
-                if (imageUrls.length > 1) {
-                    // Multiple Images
-                    const media = imageUrls.map((url, index) => ({
-                        type: 'photo',
-                        media: url,
-                        caption: index === 0 ? `📢 ${message}` : undefined,
-                        parse_mode: 'HTML'
-                    }));
-                    
-                    telegramResponse = await fetch(`${TELEGRAM_API}/sendMediaGroup`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ chat_id: tid, media })
-                    });
-                    
-                } else if (imageUrls.length === 1) {
-                    // Single Image
-                    telegramResponse = await fetch(`${TELEGRAM_API}/sendPhoto`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: tid,
-                            photo: imageUrls[0],
-                            caption: `📢 ${message}`,
+                if (mediaUrls.length > 1) {
+                    // Media Group (Multiple)
+                    const mediaGroup = mediaUrls.map((url, index) => {
+                        const type = media.type === 'video' ? 'video' : 'photo';
+                        return {
+                            type: type,
+                            media: url,
+                            caption: index === 0 ? `📢 ${message}` : undefined,
                             parse_mode: 'HTML'
-                        })
+                        };
                     });
-                    
+                    await fetch(`${TELEGRAM_API}/sendMediaGroup`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_id: tid, media: mediaGroup })
+                    });
+                } else if (mediaUrls.length === 1) {
+                    // Single Media
+                    const singleUrl = mediaUrls[0];
+                    if (media.type === 'video') {
+                        await fetch(`${TELEGRAM_API}/sendVideo`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: tid,
+                                video: singleUrl,
+                                caption: `📢 ${message}`,
+                                parse_mode: 'HTML'
+                            })
+                        });
+                    } else if (media.type === 'gif') {
+                        await fetch(`${TELEGRAM_API}/sendAnimation`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: tid,
+                                animation: singleUrl,
+                                caption: `📢 ${message}`,
+                                parse_mode: 'HTML'
+                            })
+                        });
+                    } else {
+                        // Default: Photo
+                        await fetch(`${TELEGRAM_API}/sendPhoto`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                chat_id: tid,
+                                photo: singleUrl,
+                                caption: `📢 ${message}`,
+                                parse_mode: 'HTML'
+                            })
+                        });
+                    }
                 } else {
                     // Text Only
-                    telegramResponse = await fetch(`${TELEGRAM_API}/sendMessage`, {
+                    await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -4008,45 +4023,26 @@ app.post('/api/admin/bot_message', async (req, res) => {
                         })
                     });
                 }
-                
-                const result = await telegramResponse.json();
-                
-                if (result.ok) {
-                    telegramCount++;
-                } else {
-                    console.error(`[BOT MESSAGE] ❌ Telegram error for user ${tid}:`, result);
-                    lastError = result;
-                }
-                
+                telegramCount++;
             } catch(e) {
-                console.error(`[BOT MESSAGE] ❌ Telegram send error for user ${tid}:`, e.message);
-                lastError = e;
+                console.error('[TELEGRAM SEND ERROR]', e.message);
             }
         }
         
-        // ✅ 3. ONESIGNAL
+        // ✅ 3. OneSignal Push
         const selectedSound = sound || 'notification';
         const selectedTitle = title || 'SOLO M Game Shop';
-        try {
-            sendOnesignal(message, selectedSound, selectedTitle);
-        } catch(e) {
-            console.error('[BOT MESSAGE] OneSignal error:', e.message);
-        }
+        sendOnesignal(message, selectedSound, selectedTitle);
         
-        console.log(`[BOT MESSAGE] ✅ Sent to ${telegramCount} users`);
-        
-        res.json({ 
-            success: true, 
-            count: telegramCount,
-            push_sent: true,
-            sound: selectedSound
-        });
+        console.log('[BOT MESSAGE] ✅ Sent - Telegram: ' + telegramCount + ', Push: yes');
+        res.json({ success: true, count: telegramCount, push_sent: true });
         
     } catch(e) {
-        console.error('[BOT MESSAGE SERVER ERROR]', e);
-        res.json({ success: false, message: 'Server error: ' + e.message });
+        console.error('[BOT MESSAGE ERROR]', e);
+        res.json({ success: false, message: 'Server error' });
     }
 });
+
 // ==================== TELEGRAM BOT (မြန်မာလို - ALL FIXED) ====================
 let lastUpdateId = 0;
 
@@ -4101,12 +4097,23 @@ async function createTelegramUser(userId, firstName) {
         tgSend(`🆕 Telegram User အသစ်\n👤 ${displayName}\n🆔 ${tgId}`);
         
         return { id: nu.rows[0].id, isNew: true, balance: 0 };
-    } catch(e) { return null; }
+    } catch(e) { 
+        console.error('[CREATE TELEGRAM USER ERROR]', e.message);
+        return null; 
+    }
 }
 
 async function getUserBalance(userId) {
-    try { const p = await getPool(); const r = await p.query("SELECT balance FROM auth_users WHERE google_id = $1", ['tg_' + userId]); return r.rows.length > 0 ? (r.rows[0].balance || 0) : null; }
-    catch(e) { return null; }
+    try {
+        const p = await getPool();
+        const user = await p.query("SELECT id FROM auth_users WHERE google_id = $1", ['tg_' + userId]);
+        if (user.rows.length === 0) return null;
+        const r = await p.query("SELECT balance FROM auth_users WHERE id = $1", [user.rows[0].id]);
+        return r.rows.length > 0 ? (r.rows[0].balance || 0) : null;
+    } catch(e) { 
+        console.error('[GET BALANCE ERROR]', e.message);
+        return null; 
+    }
 }
 
 async function getUserOrders(userId) {
@@ -4359,109 +4366,45 @@ function startLongPolling() {
         }
     }
     
-    // ==================== MESSAGE HANDLER ====================
-    async function handleMessage(msg) {
-        const chatId = msg.chat.id;
-        const text = (msg.text || '').trim();
-        const firstName = msg.from.first_name || 'User';
+    // ==================== MESSAGE HANDLER (FIXED) ====================
+async function handleMessage(msg) {
+    const chatId = msg.chat.id;
+    const text = (msg.text || '').trim();
+    const firstName = msg.from.first_name || 'User';
+    const userId = msg.from.id;
+    
+    try {
+        // ✅ 1. User ကို Database ထဲမှာ ရှိမရှိ အရင်စစ်ပါ (Create if not exists)
+        const user = await createTelegramUser(userId, firstName);
+        if (!user) {
+            sendTelegramMessage(chatId, '❌ Database error. Please try again later.', quickKeyboard);
+            return;
+        }
         
+        // ✅ 2. Commands တွေကို လုပ်ဆောင်ပါ
         if (text === '/start' || text === '/login') {
-            const user = await createTelegramUser(msg.from.id, firstName);
-            const welcomeMsg = user.isNew ? 
-                `🎉 <b>SOLO M Game Shop မှ ကြိုဆိုပါတယ်!</b>\n\nမင်္ဂလာပါ ${firstName}!\n\nသင့်အကောင့်ကို အလိုအလျောက် ဖွင့်ပေးပြီးပါပြီ。` :
-                `👋 ပြန်လည်ကြိုဆိုပါတယ် ${firstName}!`;
-            
-            sendTelegramMessage(chatId, 
-                welcomeMsg + '\n\n' +
-                '💳 လက်ကျန်: <b>' + (user.balance || 0).toLocaleString() + ' ကျပ်</b>\n\n' +
-                '<b>🆕 Update အသစ်များ:</b>\n' +
-                '• 🔐 OTP 2-Step Login System\n' +
-                '• 🎰 Lucky Spin 2.0\n' +
-                '• 👑 Premium Tier System\n' +
-                '• 📅 Daily Check-in Rewards\n' +
-                '• 💱 USD Exchange\n' +
-                '• 💬 Chat System\n\n' +
-                'အောက်ပါ ခလုတ်များကို အသုံးပြုနိုင်ပါသည်။',
-                quickKeyboard
-            );
+            await handleStart(chatId, firstName, userId);
         }
         else if (text === '/help') {
-            sendTelegramMessage(chatId,
-                `📖 <b>SOLO M Game Shop</b>\n\n` +
-                `<b>Commands များ:</b>\n` +
-                `/start - အကောင့်ဝင်ရန်\n` +
-                `/help - အကူအညီ\n` +
-                `/balance - လက်ကျန်ကြည့်ရန်\n` +
-                `/otp - OTP Code\n` +
-                `/status - Order စစ်ရန်\n` +
-                `/premium - Premium Status\n` +
-                `/spins - Spin History\n` +
-                `/buy - Code ဝယ်ရန်\n\n` +
-                `<b>🆕 Features:</b>\n` +
-                '• 🔐 OTP 2-Step Login\n' +
-                '• 🎰 Lucky Spin Game\n' +
-                '• 👑 Bronze/Silver/Gold Premium\n' +
-                '• 📅 Daily Check-in System\n' +
-                '• 💱 USD Exchange\n' +
-                '• 💬 Live Chat\n\n' +
-                `<b>🌐 Website:</b> ${BASE_URL}\n` +
-                `<b>ဆက်သွယ်ရန်:</b> @Solo_m28`,
-                quickKeyboard
-            );
+            handleHelp(chatId);
         }
         else if (text === '/balance') {
-            const user = await createTelegramUser(msg.from.id, firstName);
-            const balance = user ? (user.balance || 0) : 0;
-            sendTelegramMessage(chatId, 
-                `💳 <b>သင့်လက်ကျန်</b>\n\n` +
-                `💰 <b>${balance.toLocaleString()} ကျပ်</b>\n` +
-                `💵 ≈ $${(balance/2100).toFixed(2)} USD`,
-                quickKeyboard
-            );
+            await handleBalance(chatId, userId);
+        }
+        else if (text === '/status') {
+            await handleStatus(chatId, userId);
+        }
+        else if (text === '/premium') {
+            await handlePremium(chatId, userId);
         }
         else if (text === '/otp') {
-            const user = await createTelegramUser(msg.from.id, firstName);
-            if (user) {
-                const otp = await createOTP(user.id);
+            const otp = await createOTP(user.id);
+            if (otp) {
                 sendTelegramMessage(chatId, 
                     `🔐 <b>သင့် OTP ကုဒ်</b>\n\n🔢 <b>${otp}</b>\n\n⏰ ၆၀ စက္ကန့်အတွင်း အသုံးပြုပါ。\n\n🌐 ${BASE_URL}`
                 );
-            }
-        }
-        else if (text === '/status') {
-            const orders = await getUserOrders(msg.from.id);
-            if (orders.length === 0) {
-                sendTelegramMessage(chatId, '📋 မှာယူမှုမရှိသေးပါ။');
             } else {
-                let msg = '📋 <b>နောက်ဆုံး မှာယူမှုများ</b>\n\n';
-                orders.forEach(o => {
-                    const st = o.status === 'approved' ? '✅' : o.status === 'rejected' ? '❌' : '⏳';
-                    msg += `${st} #${o.id} | 💰 ${o.amount} Ks | 💳 ${o.payment_method}\n📅 ${new Date(o.created_at).toLocaleDateString()}\n\n`;
-                });
-                sendTelegramMessage(chatId, msg);
-            }
-        }
-        else if (text === '/premium') {
-            const premium = await getUserPremium(msg.from.id);
-            if (premium) {
-                let msg = `👑 <b>သင့် Premium Status</b>\n\n`;
-                msg += `⭐ Tier: <b>${premium.tierName}</b>\n`;
-                if (premium.expiry) {
-                    msg += `📅 သက်တမ်းကုန်: <b>${new Date(premium.expiry).toLocaleDateString()}</b>\n`;
-                }
-                sendTelegramMessage(chatId, msg, quickKeyboard);
-            }
-        }
-        else if (text === '/spins') {
-            const spins = await getUserSpinHistory(msg.from.id);
-            if (spins.length === 0) {
-                sendTelegramMessage(chatId, '🎰 Spin မလုပ်ရသေးပါ။');
-            } else {
-                let msg = '🎰 <b>သင့် Spin မှတ်တမ်း</b>\n\n';
-                spins.forEach(s => {
-                    msg += `🎁 ${s.reward_amount} ${s.reward_type?.toUpperCase() || ''} | 📅 ${new Date(s.created_at).toLocaleDateString()}\n`;
-                });
-                sendTelegramMessage(chatId, msg, quickKeyboard);
+                sendTelegramMessage(chatId, '❌ OTP generation failed. Try again later.');
             }
         }
         else if (text === '/buy') {
@@ -4489,21 +4432,25 @@ function startLongPolling() {
             sendTelegramMessage(chatId, '💰 ဖြည့်လိုသော Stars ပမာဏကို ရွေးချယ်ပါ -', topupKeyboard);
         }
         else {
+            // Unknown command → Auto Reply Help
             sendTelegramMessage(chatId, 
                 `အောက်ပါ Commands များကို အသုံးပြုပါ။\n\n` +
                 `/start - စတင်ရန်\n` +
                 `/help - အကူအညီ\n` +
                 `/balance - လက်ကျန်ကြည့်ရန်\n` +
-                `/otp - OTP Code\n` +
                 `/status - Order မှတ်တမ်း\n` +
                 `/premium - Premium Status\n` +
-                `/spins - Spin History\n` +
                 `/buy - Code ဝယ်ယူရန်\n` +
                 `/topup - Stars ဖြည့်ရန်`,
                 quickKeyboard
             );
         }
+    } catch(e) {
+        console.error('[BOT MESSAGE ERROR]', e.message);
+        // ✅ Error ရှိရင် User ကို /start နှိပ်ဖို့ အကြံပြုပါ
+        sendTelegramMessage(chatId, '❌ Error ရှိနေပါသည်။ ကျေးဇူးပြု၍ /start ကိုနှိပ်ပြီး ပြန်ကြိုးစားပါ။', quickKeyboard);
     }
+}
     
     // ==================== PRE CHECKOUT HANDLER ====================
     async function handlePreCheckout(pq) {
