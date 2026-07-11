@@ -2745,66 +2745,78 @@ async function handleLogin() {
     const password = document.getElementById('loginPassword').value.trim();
     
     if (!email || !password) {
-        alert('Please enter email and password');
+        showToast('Please enter email and password', 'error');
         return;
     }
     
-    // ✅ reCAPTCHA စစ်ဆေးခြင်း
+    // ✅ reCAPTCHA စစ်
     const recaptchaResponse = grecaptcha.getResponse();
     if (!recaptchaResponse) {
-        alert('Please complete the reCAPTCHA');
+        showToast('Please complete the reCAPTCHA', 'error');
         return;
     }
     
-    document.getElementById('loginBtn').disabled = true;
-    document.getElementById('loginBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending OTP...';
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
     
     try {
-        // ✅ 1. Email ကို Database မှာ ရှိမရှိ အရင်စစ်ပါ
+        // ✅ Step 1: Password စစ်
         const checkResponse = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
         const checkData = await checkResponse.json();
-
-        // ✅ 2. အကောင့်မရှိရင် (သို့) Password မမှန်ရင် Error ပြန်ပြပါ
+        
+        console.log('🔍 Login Response:', checkData); // ✅ Debug
+        
+        // ❌ Password မှား
         if (!checkData.success) {
-            alert(checkData.message || 'Invalid email or password');
-            document.getElementById('loginBtn').disabled = false;
-            document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            showToast(checkData.message || 'Invalid credentials', 'error');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            grecaptcha.reset();
             return;
         }
-
-        // ✅ 3. အကောင့်ရှိပြီး Password မှန်ရင် OTP ပို့ပါ
-        const otpResponse = await fetch('/api/otp/request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
         
-        const otpData = await otpResponse.json();
-        
-        if (otpData.success) {
-            // ✅ OTP ပို့ပြီးရင် Modal ဖွင့်မယ်
-            otpEmail = email; // OTP Modal အတွက် Email သိမ်းမယ်
-            showOTPModal(90); // 90 seconds countdown
-            document.getElementById('loginBtn').disabled = false;
-            document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-            showToast('✅ OTP ကို သင့်အီးမေးလ်သို့ ပေးပို့ပြီးပါပြီ။', '‌ပေးပို့ခြင်းအောင်မြင်ပါသည်');
+        // ✅ Password မှန် - Token မပါရင် OTP ပို့
+        if (!checkData.token) {
+            // ✅ OTP Request
+            const otpRes = await fetch('/api/otp/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const otpData = await otpRes.json();
+            
+            console.log('🔍 OTP Response:', otpData); // ✅ Debug
+            
+            if (otpData.success) {
+                otpEmail = email;
+                showOTPModal(90);
+                showToast('✅ OTP sent to your email!');
+            } else {
+                showToast(otpData.message || 'Failed to send OTP', 'error');
+            }
         } else {
-            // OTP မရရင် Error ပြမယ်
-            alert(otpData.message || 'Failed to send OTP. Please try again.');
-            document.getElementById('loginBtn').disabled = false;
-            document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            // ⚠️ Token ပါလာရင် တန်းဝင် (ဒါမဖြစ်သင့်)
+            console.log('⚠️ Token received unexpectedly!');
+            localStorage.setItem('auth_token', checkData.token);
+            localStorage.setItem('user', JSON.stringify(checkData.user));
+            window.location.href = '/dashboard';
         }
+        
     } catch(err) {
-        console.error(err);
-        alert('Connection error. Please try again.');
-        document.getElementById('loginBtn').disabled = false;
-        document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+        console.error('Login Error:', err);
+        showToast('Connection error', 'error');
+        grecaptcha.reset();
     }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
 }
+    
 // Show OTP Modal
 function showOTPModal(startSeconds) {
     clearOTPDisplay();
