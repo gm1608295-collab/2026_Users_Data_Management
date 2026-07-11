@@ -190,7 +190,7 @@ body {
 .notice-msg{font-size:12px;font-weight:bold;line-height:1.5}
 .notice-time{font-size:9px;color:rgba(255,255,255,0.5);margin-top:6px;text-align:right}
 
- /* ========== VIDEO PLAYER WITH LED BORDER ========== */
+ <!-- ========== VIDEO PLAYER WITH LED BORDER (NEW - AUTO DETECT) ========== -->
 .video-container {
     position: relative;
     background: #000;
@@ -238,7 +238,7 @@ body {
     border-radius: 10px;
     z-index: 0;
 }
-       
+
 /* Video/iframe on top */
 .video-container video,
 .video-container iframe {
@@ -250,10 +250,46 @@ body {
     background: #000;
 }
 
-.video-container iframe {
+/* YouTube Embed */
+.video-container iframe.youtube {
     height: 220px;
     border: none;
-}      
+    aspect-ratio: 16/9;
+}
+
+/* TikTok Embed */
+.video-container iframe.tiktok {
+    height: 480px;
+    border: none;
+    aspect-ratio: 9/16;
+}
+
+/* Twitch / Facebook / Live Streams */
+.video-container iframe.live {
+    height: 350px;
+    border: none;
+    aspect-ratio: 16/9;
+}
+
+/* Direct Video */
+.video-container video.direct {
+    max-height: 250px;
+    object-fit: contain;
+    background: #000;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .video-container iframe.tiktok {
+        height: 360px;
+    }
+    .video-container iframe.youtube {
+        height: 180px;
+    }
+    .video-container iframe.live {
+        height: 250px;
+    }
+}
 /* ========== PAGE TIMER ========== */
 .page-timer-banner{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:10px;padding:12px 15px;display:none;text-align:center}
 .page-timer-banner .timer-icon{font-size:24px;color:var(--r);margin-bottom:5px}
@@ -1767,8 +1803,8 @@ function showMLBBEventInfo() {
     function renderNotice(d){const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
     async function loadNotice(){const ca=localStorage.getItem('noticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderNotice(d)}catch(e){}}try{const r=await fetch("/api/notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('noticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('noticeCache',JSON.stringify(cn));renderNotice(cn)}}else{localStorage.removeItem('noticeCache')}}catch(e){}}
 
-    // ==================== VIDEO PLAYER (FIXED) ====================
-     async function loadDashboardVideo() {
+// ==================== VIDEO PLAYER (NEW - AUTO DETECT & ASPECT RATIO) ====================
+async function loadDashboardVideo() {
     const c = document.getElementById('videoContainer');
     const v = document.getElementById('dashboardVideo');
     const yt = document.getElementById('dashboardYoutube');
@@ -1786,15 +1822,39 @@ function showMLBBEventInfo() {
             // ✅ Video ရှိရင် container ကို ချက်ချင်းပြမယ်
             c.style.display = 'block';
             
-            if (d.isYouTube) {
+            // ✅ Remove old classes
+            v.className = '';
+            yt.className = '';
+            
+            if (d.videoType === 'youtube') {
                 console.log('[VIDEO] YouTube detected');
                 v.style.display = 'none';
                 yt.style.display = 'block';
+                yt.className = 'youtube'; // 16:9
                 yt.src = d.url;
+                yt.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+                yt.allowFullscreen = true;
+            } else if (d.videoType === 'tiktok') {
+                console.log('[VIDEO] TikTok detected');
+                v.style.display = 'none';
+                yt.style.display = 'block';
+                yt.className = 'tiktok'; // 9:16
+                yt.src = d.url;
+                yt.allow = 'autoplay; encrypted-media; picture-in-picture';
+                yt.allowFullscreen = true;
+            } else if (d.videoType === 'twitch' || d.videoType === 'facebook' || d.url.includes('live')) {
+                console.log('[VIDEO] Live Stream detected');
+                v.style.display = 'none';
+                yt.style.display = 'block';
+                yt.className = 'live'; // 16:9
+                yt.src = d.url;
+                yt.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+                yt.allowFullscreen = true;
             } else {
                 console.log('[VIDEO] Direct video detected');
                 yt.style.display = 'none';
                 v.style.display = 'block';
+                v.className = 'direct';
                 v.src = d.url;
                 v.muted = true;
                 v.autoplay = true;
@@ -1818,7 +1878,8 @@ function showMLBBEventInfo() {
     } catch(e) {
         console.error('[VIDEO] Error:', e.message);
     }
-     }
+}
+    
     // ==================== PAGE ACCESS CHECK ====================
 async function checkPageAccess() {
     try {
