@@ -1184,44 +1184,49 @@ app.post('/api/upload_music', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 // ==================== AUTH ====================
-// ==================== LOGIN API ====================
+// ==================== LOGIN (OTP MODE - NO TOKEN) ====================
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
+    
     if (!email || !password) {
-        return res.json({ success: false, message: 'All fields required' });
+        return res.json({ success: false, message: 'Email and password required' });
     }
     
-    try { 
-        const p = await getPool(); 
-        const r = await p.query(
-            "SELECT id, username, email FROM auth_users WHERE email=$1 AND password=$2 AND login_type='local'", 
-            [email, password]
-        ); 
+    try {
+        const p = await getPool();
+        const user = await p.query(
+            "SELECT id, username, email, password FROM auth_users WHERE email = $1 AND login_type = 'local'",
+            [email]
+        );
         
-        if (r.rows.length === 0) {
-            return res.json({ success: false, message: 'Invalid email or password' }); 
+        if (user.rows.length === 0) {
+            return res.json({ success: false, message: 'Invalid email or password' });
         }
         
-        const u = r.rows[0];
+        const u = user.rows[0];
         
-        // ✅ JWT Token Generate (ဒါကို သေချာထုတ်ပေးမယ်)
-        const token = generateToken({ 
-            id: u.id, 
-            username: u.username, 
-            email: u.email, 
-            login_type: 'local' 
-        });
+        // ✅ bcrypt compare
+        const bcrypt = require('bcrypt');
+        const match = await bcrypt.compare(password, u.password);
         
+        if (!match) {
+            // Plain text fallback
+            if (password !== u.password) {
+                return res.json({ success: false, message: 'Invalid email or password' });
+            }
+        }
+        
+        // ✅ OTP စနစ်အတွက် Token မပို့ဘဲ success ပဲ ပြန်
         res.json({ 
             success: true, 
-            message: 'Password verified',
-            token: token,  // ✅ JWT Token ကို ပို့ပေးမယ်
-            user: { id: u.id, username: u.username, email: u.email }
-        }); 
-    }
-    catch(e) { 
+            message: 'Password verified. OTP sent to email.',
+            user_id: u.id,
+            email: u.email
+        });
+        
+    } catch(e) {
         console.error('[LOGIN ERROR]', e.message);
-        res.json({ success: false, message: 'Server error' }); 
+        res.json({ success: false, message: 'Server error' });
     }
 });
 
@@ -1364,7 +1369,7 @@ app.post('/api/otp/request', async (req, res) => {
     }
 });
 
-// Verify OTP + Login
+// ==================== OTP VERIFY (GENERATE TOKEN HERE) ====================
 app.post('/api/otp/verify', async (req, res) => {
     const { email, otp } = req.body;
     
@@ -1374,8 +1379,7 @@ app.post('/api/otp/verify', async (req, res) => {
     
     try {
         const p = await getPool();
-        
-        const user = await p.query("SELECT id, username FROM auth_users WHERE email=$1", [email]);
+        const user = await p.query("SELECT id, username, email FROM auth_users WHERE email = $1", [email]);
         
         if (user.rows.length === 0) {
             return res.json({ success: false, message: 'User not found' });
@@ -1383,33 +1387,32 @@ app.post('/api/otp/verify', async (req, res) => {
         
         const uid = user.rows[0].id;
         
+        // ✅ OTP စစ်
         const otpCheck = await p.query(
-            "SELECT * FROM otp_codes WHERE user_id=$1 AND code=$2 AND expires_at > NOW() AND used=false ORDER BY id DESC LIMIT 1",
+            "SELECT * FROM otp_codes WHERE user_id = $1 AND code = $2 AND expires_at > NOW() AND used = false ORDER BY id DESC LIMIT 1",
             [uid, otp]
         );
         
         if (otpCheck.rows.length === 0) {
-            return res.json({ success: false, message: 'OTP မှားယွင်းနေပါသည် သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ' });
+            return res.json({ success: false, message: 'Invalid or expired OTP' });
         }
         
-        await p.query('UPDATE otp_codes SET used=true WHERE id=$1', [otpCheck.rows[0].id]);
-        await p.query('UPDATE otp_codes SET used=true WHERE user_id=$1 AND used=false', [uid]);
-        await p.query('UPDATE auth_users SET last_login=NOW() WHERE id=$1', [uid]);
+        // ✅ OTP used လုပ်
+        await p.query('UPDATE otp_codes SET used = true WHERE id = $1', [otpCheck.rows[0].id]);
         
-        trackLogin(uid, user.rows[0].username, 'local', req);
-        
-        // ✅ JWT Token Generate
-        const token = generateToken({ 
-            id: uid, 
-            username: user.rows[0].username, 
-            email: email, 
-            login_type: 'local' 
-        });
+        // ✅ JWT Token ထုတ်
+        const jwt = require('jsonwebtoken');
+        const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
+        const token = jwt.sign(
+            { userId: uid, username: user.rows[0].username, email: user.rows[0].email },
+            JWT_SECRET,
+            { expiresIn: '30d' }
+        );
         
         res.json({
             success: true,
-            token: token,  // ✅ JWT Token
-            user: { id: uid, username: user.rows[0].username, email: email, login_type: 'local' }
+            token: token,
+            user: { id: uid, username: user.rows[0].username, email: user.rows[0].email }
         });
         
     } catch(e) {
