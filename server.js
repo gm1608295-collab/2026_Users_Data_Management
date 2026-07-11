@@ -4534,7 +4534,7 @@ function startLongPolling() {
 }
 
 startLongPolling();
-// ==================== VIDEO SYSTEM (NEW - SUPPORTS YT, TT, BROWSER LIVE) ====================
+// ==================== VIDEO SYSTEM (NEW - SUPPORTS YT, TT, BROWSER LIVE, FIFA) ====================
 function getEmbedUrl(url) {
     if (!url) return '';
     
@@ -4552,18 +4552,24 @@ function getEmbedUrl(url) {
     const tiktokMatch = url.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/);
     if (tiktokMatch) return `https://www.tiktok.com/embed/${tiktokMatch[1]}`;
     
-    // 4. Browser Live Streams (Twitch, etc.)
+    // 4. Twitch
     if (url.includes('twitch.tv')) {
         const twitchMatch = url.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
-        if (twitchMatch) return `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${req.get('host')}`;
+        if (twitchMatch) return `https://player.twitch.tv/?channel=${twitchMatch[1]}`;
     }
     
-    // 5. Facebook Live / Video
+    // 5. Facebook
     if (url.includes('facebook.com') || url.includes('fb.watch')) {
         return url.replace('www.facebook.com', 'www.facebook.com/plugins/video.php?href=') + '&width=500&show_text=false&autoplay=true';
     }
     
-    // 6. Default: Treat as iframe src
+    // ✅ 6. FIFA (အသစ်ထည့်ထားတာ)
+    if (url.includes('fifa.com')) {
+        // FIFA Link ကို Iframe အဖြစ် တိုက်ရိုက် ပြသမယ်
+        return url;
+    }
+    
+    // 7. Default: Treat as iframe src
     return url;
 }
 
