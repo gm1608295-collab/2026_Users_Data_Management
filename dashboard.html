@@ -1803,90 +1803,71 @@ function showMLBBEventInfo() {
     function renderNotice(d){const b=document.getElementById('noticeBanner'),m=document.getElementById('noticeMsgDisplay'),t=document.getElementById('noticeTime');if(d&&d.message){b.style.display='block';m.textContent=d.message;m.style.color=d.color||'var(--t)';t.textContent=new Date(d.created_at).toLocaleString()}else{b.style.display='none'}}
     async function loadNotice(){const ca=localStorage.getItem('noticeCache');if(ca){try{const d=JSON.parse(ca);if(d.message)renderNotice(d)}catch(e){}}try{const r=await fetch("/api/notice");const d=await r.json();if(d.success&&d.message){const cn={message:d.message,color:d.color,id:d.id,created_at:d.created_at};const old=localStorage.getItem('noticeCache');if(old!==JSON.stringify(cn)){localStorage.setItem('noticeCache',JSON.stringify(cn));renderNotice(cn)}}else{localStorage.removeItem('noticeCache')}}catch(e){}}
 
-// ==================== VIDEO PLAYER (NEW - AUTO DETECT & ASPECT RATIO) ====================
+// ==================== VIDEO PLAYER (FIXED) ====================
 async function loadDashboardVideo() {
     const c = document.getElementById('videoContainer');
     const v = document.getElementById('dashboardVideo');
     const yt = document.getElementById('dashboardYoutube');
-    
-    // Don't reload if already playing
-    if (v.src && !v.paused && v.currentTime > 0) return;
-    if (yt.src && yt.style.display !== 'none') return;
     
     try {
         const r = await fetch('/api/video');
         const d = await r.json();
         console.log('[VIDEO] API Response:', d);
         
-        if (d.success && d.url) {
-            // ✅ Video ရှိရင် container ကို ချက်ချင်းပြမယ်
-            c.style.display = 'block';
-            
-            // ✅ Remove old classes
-            v.className = '';
-            yt.className = '';
-            
-            if (d.videoType === 'youtube') {
-                console.log('[VIDEO] YouTube detected');
-                v.style.display = 'none';
-                yt.style.display = 'block';
-                yt.className = 'youtube'; // 16:9
-                yt.src = d.url;
-                yt.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-                yt.allowFullscreen = true;
-            } else if (d.videoType === 'tiktok') {
-                console.log('[VIDEO] TikTok detected');
-                v.style.display = 'none';
-                yt.style.display = 'block';
-                yt.className = 'tiktok'; // 9:16
-                yt.src = d.url;
-                yt.allow = 'autoplay; encrypted-media; picture-in-picture';
-                yt.allowFullscreen = true;
-            } else if (d.videoType === 'twitch' || d.videoType === 'facebook' || d.url.includes('live')) {
-                console.log('[VIDEO] Live Stream detected');
-                v.style.display = 'none';
-                yt.style.display = 'block';
-                yt.className = 'live'; // 16:9
-                yt.src = d.url;
-                yt.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-                yt.allowFullscreen = true;
-            } else {
-                console.log('[VIDEO] Direct video detected');
-                yt.style.display = 'none';
-                v.style.display = 'block';
-                v.className = 'direct';
-                v.src = d.url;
-                v.muted = true;
-                v.autoplay = true;
-                v.playsInline = true;
-                v.setAttribute('playsinline', '');
-                v.setAttribute('webkit-playsinline', '');
-                v.load();
-                
-                // Force play
-                setTimeout(() => {
-                    v.play().catch(e => {
-                        console.log('[VIDEO] Play failed:', e.message);
-                        v.controls = true;
-                    });
-                }, 500);
-            }
-        } else {
-            console.log('[VIDEO] No video found');
+        // ✅ 1. Error ရှိရင် Video Container ကို ဖျောက်မယ်
+        if (!d || !d.success || !d.url) {
             c.style.display = 'none';
+            return;
+        }
+        
+        // ✅ 2. Video ရှိရင် Container ကို ပြမယ်
+        c.style.display = 'block';
+        v.className = '';
+        yt.className = '';
+        
+        if (d.videoType === 'youtube') {
+            v.style.display = 'none';
+            yt.style.display = 'block';
+            yt.className = 'youtube';
+            yt.src = d.url;
+        } else if (d.videoType === 'tiktok') {
+            v.style.display = 'none';
+            yt.style.display = 'block';
+            yt.className = 'tiktok';
+            yt.src = d.url;
+        } else if (d.videoType === 'twitch' || d.videoType === 'facebook' || d.url.includes('live')) {
+            v.style.display = 'none';
+            yt.style.display = 'block';
+            yt.className = 'live';
+            yt.src = d.url;
+        } else {
+            yt.style.display = 'none';
+            v.style.display = 'block';
+            v.className = 'direct';
+            v.src = d.url;
+            v.muted = true;
+            v.autoplay = true;
+            v.load();
+            setTimeout(() => {
+                v.play().catch(() => {
+                    v.controls = true;
+                });
+            }, 500);
         }
     } catch(e) {
         console.error('[VIDEO] Error:', e.message);
+        c.style.display = 'none'; // ✅ Error ရှိရင် Container ကို ဖျောက်မယ်
     }
 }
-    
-    // ==================== PAGE ACCESS CHECK (FIXED FOR TELEGRAM) ====================
+// ==================== PAGE ACCESS CHECK (FIXED) ====================
 async function checkPageAccess() {
-    // ✅ Telegram WebView မှာ localStorage မရှိရင် Login Page ကို ပြန်ပို့မယ်
+    // ✅ 1. Token မရှိရင် Guest အနေနဲ့ ဆက်သုံးမယ် (Login Page ကို ပြန်မပို့ဘူး)
     const token = localStorage.getItem("auth_token");
-    if (!token || token === 'guest') {
-        window.location.href = "/";
-        return false;
+    if (!token) {
+        // Guest mode အတွက် dummy user သတ်မှတ်မယ်
+        localStorage.setItem("user", JSON.stringify({ username: 'Guest', login_type: 'guest' }));
+        localStorage.setItem("auth_token", 'guest');
+        return true;
     }
     
     try {
@@ -1896,18 +1877,17 @@ async function checkPageAccess() {
             const dp = d.pages.find(p => p.id === 'dashboard');
             if (dp && dp.status === 'off') {
                 document.getElementById('maintenanceMessage').style.display = 'block';
-                // Hide all content
                 const content = document.querySelector('.content');
                 const footer = document.querySelector('.footer');
                 if (content) content.style.display = 'none';
                 if (footer) footer.style.display = 'none';
-                checkPageTimer();  // ✅ Start timer
+                checkPageTimer();
                 return false;
             }
         }
         return true;
     } catch(e) { return true; }
-    }
+}
     
     // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
 async function checkPageTimer() {
@@ -2006,60 +1986,39 @@ function getCookie(name) {
     }
     return null;
 }
-    // ==================== INIT ====================
-    window.onload = async function() {
+    // ==================== INIT (FIXED) ====================
+window.onload = async function() {
     const pageOn = await checkPageAccess();
     if (!pageOn) return;
     
-    if (!localStorage.getItem("auth_token")) { window.location.href="/"; return; }
+    // ✅ 1. Token မရှိရင် Guest အနေနဲ့ ဆက်သုံးမယ်
+    const token = localStorage.getItem("auth_token");
+    if (!token || token === 'guest') {
+        // Guest mode အတွက် dummy user သတ်မှတ်မယ်
+        localStorage.setItem("user", JSON.stringify({ username: 'Guest', login_type: 'guest' }));
+        localStorage.setItem("auth_token", 'guest');
+        // Guest အတွက် ID မပြဘူး
+        document.getElementById("myUserIdDisp").textContent = 'U ID - Guest';
+        document.getElementById("myEmail").textContent = 'Guest Mode';
+    } else {
+        // ✅ 2. Registered User အတွက် Data တွေ Load မယ်
+        try {
+            const user = JSON.parse(localStorage.getItem("user") || '{}');
+            document.getElementById("myUserIdDisp").textContent = user.id ? 'U ID - '+user.id.toString().padStart(6,'0') : 'U ID - ------';
+            document.getElementById("myEmail").textContent = maskEmail(user.email || '');
+            document.getElementById("sidebarName").textContent = user.username || 'User';
+            document.getElementById("sidebarEmail").textContent = user.email || 'user@mlbb.com';
+        } catch(e) {}
+    }
     
     try {
-        const user = JSON.parse(localStorage.getItem("user") || '{}');
-        document.getElementById("myUserIdDisp").textContent = user.id ? 'U ID - '+user.id.toString().padStart(6,'0') : 'U ID - ------';
-        document.getElementById("myEmail").textContent = maskEmail(user.email || '');
-        document.getElementById("sidebarName").textContent = user.username || 'User';
-        document.getElementById("sidebarEmail").textContent = user.email || 'user@mlbb.com';
-        
-        // ✅ ဒီ line ကို ဖယ်လိုက်ပါ (မရှိတော့လို့ Error တက်နေတာ)
-        // document.getElementById("sidebarAvatar").textContent = (user.username || 'U').charAt(0).toUpperCase();
-        
         loadSliderImages();
         loadNotice();
         loadDashboardVideo();
         checkPageTimer();
-        
         setInterval(loadSliderImages, 5000);
         setInterval(loadNotice, 3000);
         setInterval(loadDashboardVideo, 30000);
-        
-        setInterval(async() => {
-            try {
-                const r = await fetch('/api/video');
-                const d = await r.json();
-                const v = document.getElementById('dashboardVideo');
-                const yt = document.getElementById('dashboardYoutube');
-                if (d.success && d.url) {
-                    const cur = v.style.display !== 'none' ? v.src : yt.src;
-                    if (d.url !== cur && d.originalUrl !== cur) {
-                        v.src = '';
-                        yt.src = '';
-                        loadDashboardVideo();
-                    }
-                }
-            } catch(e) {}
-        }, 30000);
-        
-        if(user.id) {
-            fetch("/api/check_banned", {
-                method:"POST",
-                headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({userId:user.id.toString()})
-            }).then(r=>r.json()).then(d=>{
-                if(d.banned){
-                    document.body.innerHTML=`<div class="banned-container"><div class="banned-icon">🚫</div><h2 class="banned-title">သင်၏အကောင့် ဘန်းခံထားရပါသည်</h2><div class="banned-contact"><h4>ဆက်သွယ်ရန်</h4><p>📧 gm1608295@gmail.com</p><p>📞 09672093790</p><p>💬 @Solo_m28</p></div><div class="banned-btns"><button class="btn-stay" onclick="location.reload()">ဆက်နေမည်</button><button class="btn-new" onclick="localStorage.clear();window.location.href='/'">အကောင့်သစ်ဖွင့်မည်</button></div></div>`;
-                }
-            }).catch(()=>{});
-        }
     } catch(e) {
         console.error('[DASHBOARD ERROR]', e);
     }
@@ -2088,39 +2047,6 @@ document.getElementById('downloadGuideModal').addEventListener('click', function
     if (e.target === this) closeDownloadGuide();
 });
 
-    // ==================== TELEGRAM WEBVIEW FALLBACK ====================
-// ✅ Telegram WebView မှာ localStorage မရှိရင် Cookie ကို သုံးမယ်
-function getAuthToken() {
-    let token = localStorage.getItem("auth_token");
-    if (!token) {
-        // Cookie ကနေ ရှာမယ်
-        const cookies = document.cookie.split(';');
-        for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'auth_token') {
-                token = value;
-                break;
-            }
-        }
-    }
-    return token;
-}
-
-// ✅ localStorage မရှိရင် Cookie ကို သုံးပြီး Login လုပ်မယ်
-function ensureLogin() {
-    const token = getAuthToken();
-    if (!token || token === 'guest') {
-        window.location.href = "/";
-        return false;
-    }
-    return true;
-}
-
-// Page Load တိုင်း စစ်မယ်
-if (!ensureLogin()) {
-    // Login မရှိရင် Redirect
-    window.location.href = "/";
-}
     // ==================== REAL-TIME ACCOUNT CHECK (BAN + DELETE) ====================
 async function checkAccountStatus() {
     const token = localStorage.getItem('auth_token');
