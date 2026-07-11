@@ -4534,22 +4534,93 @@ function startLongPolling() {
 }
 
 startLongPolling();
-// ==================== VIDEO SYSTEM ====================
+// ==================== VIDEO SYSTEM (NEW - SUPPORTS YT, TT, BROWSER LIVE) ====================
 function getEmbedUrl(url) {
     if (!url) return '';
+    
+    // 1. Direct video files (mp4, webm, etc.)
     if (url.match(/\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i)) return url;
     if (url.includes('catbox.moe') || url.includes('files.')) return url;
+    
+    // 2. YouTube (Standard & Shorts)
     const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
     if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&playsinline=1`;
     const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
     if (shortsMatch) return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&mute=1&playsinline=1`;
+    
+    // 3. TikTok
+    const tiktokMatch = url.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/);
+    if (tiktokMatch) return `https://www.tiktok.com/embed/${tiktokMatch[1]}`;
+    
+    // 4. Browser Live Streams (Twitch, etc.)
+    if (url.includes('twitch.tv')) {
+        const twitchMatch = url.match(/twitch\.tv\/([a-zA-Z0-9_]+)/);
+        if (twitchMatch) return `https://player.twitch.tv/?channel=${twitchMatch[1]}&parent=${req.get('host')}`;
+    }
+    
+    // 5. Facebook Live / Video
+    if (url.includes('facebook.com') || url.includes('fb.watch')) {
+        return url.replace('www.facebook.com', 'www.facebook.com/plugins/video.php?href=') + '&width=500&show_text=false&autoplay=true';
+    }
+    
+    // 6. Default: Treat as iframe src
     return url;
 }
 
-app.post('/api/admin/video', async (req, res) => { const { url } = req.body; if (!url) return res.json({ success: false }); try { const p = await getPool(); await p.query('DELETE FROM videos'); await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
-app.get('/api/video', async (req, res) => { try { const p = await getPool(); const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1'); if (r.rows.length > 0) { const rawUrl = r.rows[0].video_url; const embedUrl = getEmbedUrl(rawUrl); res.json({ success: true, url: embedUrl, originalUrl: rawUrl, isYouTube: embedUrl.includes('youtube.com/embed') }); } else { res.json({ success: false, url: '' }); } } catch(e) { res.json({ success: false, url: '' }); } });
-app.post('/api/admin/video/delete', async (req, res) => { try { const p = await getPool(); await p.query('DELETE FROM videos'); res.json({ success: true }); } catch(e) { res.json({ success: false }); } });
+app.post('/api/admin/video', async (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.json({ success: false, message: 'URL required' });
+    
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM videos'); // Clear old video
+        await p.query('INSERT INTO videos (video_url) VALUES ($1)', [url]); // Save new
+        res.json({ success: true, message: 'Video updated!' });
+    } catch(e) {
+        console.error('[VIDEO ADMIN ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 
+app.get('/api/video', async (req, res) => {
+    try {
+        const p = await getPool();
+        const r = await p.query('SELECT * FROM videos ORDER BY id DESC LIMIT 1');
+        
+        if (r.rows.length > 0) {
+            const rawUrl = r.rows[0].video_url;
+            const embedUrl = getEmbedUrl(rawUrl);
+            
+            let videoType = 'direct';
+            if (embedUrl.includes('youtube.com/embed')) videoType = 'youtube';
+            else if (embedUrl.includes('tiktok.com/embed')) videoType = 'tiktok';
+            else if (embedUrl.includes('twitch.tv')) videoType = 'twitch';
+            else if (embedUrl.includes('facebook.com/plugins')) videoType = 'facebook';
+            
+            res.json({ 
+                success: true, 
+                url: embedUrl, 
+                originalUrl: rawUrl, 
+                videoType: videoType
+            });
+        } else {
+            res.json({ success: false, url: '' });
+        }
+    } catch(e) {
+        console.error('[VIDEO FETCH ERROR]', e.message);
+        res.json({ success: false, url: '' });
+    }
+});
+
+app.post('/api/admin/video/delete', async (req, res) => {
+    try {
+        const p = await getPool();
+        await p.query('DELETE FROM videos');
+        res.json({ success: true, message: 'Video deleted!' });
+    } catch(e) {
+        res.json({ success: false, message: 'Server error' });
+    }
+});
 // ==================== BUY CODE SYSTEM ====================
 app.get('/api/redeem_codes', async (req, res) => {
     try {
