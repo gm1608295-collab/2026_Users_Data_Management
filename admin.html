@@ -4200,18 +4200,18 @@ function addBotTemplate(t) {
     ta.value = temps[t] || '';
     ta.focus();
 }
-// ==================== BOT SENDING UI (ADVANCED) ====================
-// ✅ Send Bot Message (With Animation & Status)
+        
 async function sendBotMessage() {
     const msg = document.getElementById('botCustomMsg').value.trim();
     const sound = document.getElementById('botSound').value;
     
+    // 1. Validate input
     if (!msg && botMediaBase64.length === 0) {
         showToast('❌ Enter message or attach media', 'error');
         return;
     }
     
-    // ✅ 1. UI Reset & Start Sending Animation
+    // 2. UI Loading State
     const btn = document.getElementById('botSendBtn');
     const icon = document.getElementById('botSendIcon');
     const text = document.getElementById('botSendText');
@@ -4223,17 +4223,18 @@ async function sendBotMessage() {
     
     btn.disabled = true;
     icon.className = 'fas fa-spinner fa-spin';
-    text.textContent = 'Sending...';
+    text.textContent = 'Uploading to Server...';
     badge.style.display = 'none';
     progress.style.display = 'block';
     progressBar.style.width = '0%';
     progressPercent.textContent = '0%';
-    progressText.textContent = '⏳ Uploading media to server...';
-    
-    // ✅ 2. Simulate Progress (0% → 40%)
+    progressText.textContent = '⏳ Preparing files...';
+    progressBar.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)'; // Reset color
+
+    // 3. Simulate local progress up to 30% (UI Feedback)
     let p = 0;
     const simInterval = setInterval(() => {
-        if (p < 40) {
+        if (p < 30) {
             p += 5;
             progressBar.style.width = p + '%';
             progressPercent.textContent = p + '%';
@@ -4243,8 +4244,8 @@ async function sendBotMessage() {
     }, 100);
     
     try {
-        // ✅ 3. API Request
-        progressText.textContent = '⏳ Sending to Telegram users...';
+        // 4. Send API Request to Server
+        progressText.textContent = '⏳ Uploading to ImgBB / Catbox (May take time)...';
         const response = await fetch('/api/admin/bot_message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -4252,95 +4253,78 @@ async function sendBotMessage() {
                 message: msg || '📸 Media from Admin',
                 sound: sound,
                 media: {
-                    type: botMediaType,
+                    type: botMediaType, // Make sure botMediaType is defined globally
                     urls: botMediaBase64.length > 0 ? botMediaBase64 : null
                 }
             })
         });
         
-        progressBar.style.width = '80%';
-        progressPercent.textContent = '80%';
-        progressText.textContent = '⏳ Waiting for Telegram response...';
+        // 5. Success - Update UI
+        progressBar.style.width = '70%';
+        progressPercent.textContent = '70%';
+        progressText.textContent = '⏳ Sending to Telegram users...';
         
         const data = await response.json();
         
-        // ✅ 4. Success
         if (data.success) {
             progressBar.style.width = '100%';
             progressPercent.textContent = '100%';
             progressText.textContent = '✅ Done!';
             
-            // Show Success Badge
             badge.style.display = 'inline-block';
             badge.style.background = 'rgba(46, 204, 113, 0.2)';
             badge.style.border = '1px solid #2ecc71';
             badge.style.color = '#2ecc71';
             badge.textContent = `✅ Sent to ${data.count} users!`;
             
-            // Reset Form
             document.getElementById('botCustomMsg').value = '';
             removeAllBotMedia();
-            
             showToast(`✅ Sent to ${data.count} Telegram users!`, 'success');
             
-            // Auto hide after 3 seconds
             setTimeout(() => {
                 badge.style.display = 'none';
                 progress.style.display = 'none';
-            }, 3000);
+                progressBar.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)'; // Reset
+            }, 4000);
             
         } else {
-            // ❌ Error
-            progressBar.style.width = '100%';
-            progressPercent.textContent = '100%';
-            progressText.textContent = '❌ Failed!';
-            progressBar.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
-            
-            badge.style.display = 'inline-block';
-            badge.style.background = 'rgba(231, 76, 60, 0.2)';
-            badge.style.border = '1px solid #e74c3c';
-            badge.style.color = '#e74c3c';
-            badge.textContent = '❌ ' + (data.message || 'Error');
-            
-            showToast('❌ ' + (data.message || 'Error'), 'error');
-            
-            setTimeout(() => {
-                badge.style.display = 'none';
-                progress.style.display = 'none';
-                progressBar.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
-            }, 3000);
+            // Server returned error message (e.g., from ImgBB/Catbox)
+            throw new Error(data.message || 'Server failed to send message.');
         }
         
     } catch(e) {
-        // ❌ Connection Error
+        // 6. ERROR HANDLING (Display exact error)
         console.error('[BOT SEND ERROR]', e);
+        
+        // Stop fake progress, show actual error
+        clearInterval(simInterval);
         progressBar.style.width = '100%';
         progressPercent.textContent = '100%';
-        progressText.textContent = '❌ Connection Error!';
-        progressBar.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+        progressText.textContent = '❌ Error: ' + e.message;
+        progressBar.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)'; // RED
         
         badge.style.display = 'inline-block';
         badge.style.background = 'rgba(231, 76, 60, 0.2)';
         badge.style.border = '1px solid #e74c3c';
         badge.style.color = '#e74c3c';
-        badge.textContent = '❌ Connection Error';
+        badge.textContent = '❌ ' + e.message;
         
-        showToast('❌ Connection error', 'error');
+        showToast('❌ ' + e.message, 'error');
         
         setTimeout(() => {
             badge.style.display = 'none';
             progress.style.display = 'none';
-            progressBar.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
-        }, 3000);
+            progressBar.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)'; // Reset
+        }, 5000);
     }
     
-    // ✅ 5. Reset Button
+    // 7. Reset Button
     clearInterval(simInterval);
     btn.disabled = false;
     icon.className = 'fas fa-paper-plane';
     text.textContent = 'Send';
 }
-        
+
 // ==================== SLIDER IMAGES ====================
 async function saveSliderImages() {
     const urls = [];
