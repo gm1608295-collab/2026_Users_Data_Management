@@ -1500,35 +1500,25 @@ body.modal-open .container {
                     <div style="margin-bottom:10px"><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📋 Promo Code List</h4><div id="promoCodeList" style="max-height:250px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div>
                 </div>
                 <div class="divider"><h3><i class="fas fa-key"></i> API Key & Reseller Management</h3><div class="video-card" style="margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center"><div class="form-group" style="flex:1;margin-bottom:0"><label>💱 Exchange Rate (1 USD = ? Ks)</label><input type="number" id="exchangeRateInput" value="3500" min="1" style="font-size:14px;font-weight:bold"></div><button class="btn btn-w" onclick="updateExchangeRate()" style="height:38px;margin-top:18px"><i class="fas fa-save"></i> Update</button></div></div><div class="video-card" style="margin-bottom:10px"><h4 style="color:var(--w);font-size:12px;margin-bottom:8px">➕ Create New Reseller</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>Name</label><input type="text" id="newResellerName" placeholder="Shop name"></div><div class="form-group"><label>Currency</label><select id="newResellerCurrency"><option value="MMK">MMK (Ks)</option><option value="USD">USD ($)</option></select></div><div class="form-group"><label>Markup %</label><input type="number" id="newResellerMarkup" value="10" min="0" max="100"></div><div class="form-group"><label>Initial Balance</label><input type="number" id="newResellerBalance" value="0" min="0"></div><div class="form-group"><label>📅 Expiry Date</label><input type="date" id="newResellerExpiry"></div><div class="form-group"><label>🔢 Max/Day</label><input type="number" id="newResellerMaxDaily" value="50" min="1"></div></div><button class="btn btn-g" onclick="createReseller()" style="width:100%;margin-top:8px"><i class="fas fa-plus"></i> Create Reseller & Generate API Key</button></div><div style="margin-bottom:10px"><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📋 Reseller List</h4><div id="resellerList" style="max-height:300px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div><div><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📊 Recent Transactions</h4><div id="resellerTransactions" style="max-height:200px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div></div>
-                <div class="divider">
-    <h3><i class="fab fa-telegram"></i> Bot Message (Text + Images)</h3>
+                <!-- Bot Message with Media Upload + Sending Animation -->
+<div class="divider" id="botMessageSection">
+    <h3><i class="fab fa-telegram"></i> Bot Message (Text + Media)</h3>
     
-    <!-- Message -->
     <div class="form-group">
         <label>📝 Message</label>
         <textarea id="botCustomMsg" rows="3" placeholder="Type message..."></textarea>
     </div>
     
-    <!-- Templates -->
-    <div class="template-btns">
-        <button class="template-btn" style="background:#e74c3c;color:#fff" onclick="addBotTemplate('announcement')">📢 Announcement</button>
-        <button class="template-btn" style="background:#2ecc71;color:#000" onclick="addBotTemplate('promo')">🎉 Promo</button>
-        <button class="template-btn" style="background:#3498db;color:#fff" onclick="addBotTemplate('update')">🔧 Update</button>
-        <button class="template-btn" style="background:#f39c12;color:#000" onclick="addBotTemplate('warning')">⚠️ Warning</button>
+    <div class="form-group">
+        <label>🖼️ Media (Image / Video / GIF)</label>
+        <input type="file" id="botMediaInput" accept="image/*,video/*" multiple onchange="previewBotMedia(this)" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 11px;">
+        <div id="botMediaPreviewContainer" style="display:none; margin-top: 8px;">
+            <div id="botMediaPreviewList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+            <span onclick="removeAllBotMedia()" style="display: inline-block; margin-top: 6px; background: #e74c3c; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">🗑️ Clear All</span>
+        </div>
+        <div id="botMediaCount" style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; display: none;"></div>
     </div>
     
-    <!-- Multiple Images Upload -->
-    <div class="form-group" style="margin-top: 8px;">
-    <label>🖼️ Attach Images (Select multiple)</label>
-    <input type="file" id="botImageInput" accept="image/*" multiple onchange="previewBotImages(this)" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 11px;">
-    <div id="botImagePreviewContainer" style="display:none; margin-top: 8px;">
-        <div id="botImagePreviewList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
-        <span onclick="removeAllBotImages()" style="display: inline-block; margin-top: 6px; background: #e74c3c; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">🗑️ Clear All</span>
-    </div>
-    <div id="botImageCount" style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; display: none;"></div>
-    </div>
-    
-    <!-- Sound Selector -->
     <div class="form-group">
         <label>🔊 Sound</label>
         <select id="botSound" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 11px;">
@@ -1540,11 +1530,28 @@ body.modal-open .container {
         </select>
     </div>
     
-    <!-- Send Button -->
-    <button class="btn btn-b" onclick="sendBotMessage()" style="width:100%">
-        <i class="fas fa-paper-plane"></i> Send
-    </button>
-                </div>
+    <!-- ✅ Send Button with Status Display -->
+    <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="btn btn-b" id="botSendBtn" onclick="sendBotMessage()" style="flex: 1;">
+            <i class="fas fa-paper-plane" id="botSendIcon"></i> 
+            <span id="botSendText">Send</span>
+        </button>
+        
+        <!-- ✅ Status Badge (ပို့ပြီးတဲ့အခါ ဒီမှာ ပြမယ်) -->
+        <div id="botStatusBadge" style="display: none; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; white-space: nowrap;"></div>
+    </div>
+    
+    <!-- ✅ Sending Progress Bar (ပို့နေစဉ် ပြမယ်) -->
+    <div id="botSendingProgress" style="display: none; margin-top: 8px;">
+        <div style="display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,0.6); margin-bottom: 4px;">
+            <span id="botProgressText">⏳ Sending to Telegram users...</span>
+            <span id="botProgressPercent">0%</span>
+        </div>
+        <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+            <div id="botProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #f39c12, #e67e22); border-radius: 3px; transition: width 0.3s ease;"></div>
+        </div>
+    </div>
+</div>
                 <div class="divider"><h3><i class="fas fa-images"></i> Image Slider</h3><div class="form-group"><input type="text" id="sliderUrl1" placeholder="Image URL 1"></div><div class="form-group"><input type="text" id="sliderUrl2" placeholder="Image URL 2"></div><div class="form-group"><input type="text" id="sliderUrl3" placeholder="Image URL 3"></div><div class="form-group"><input type="text" id="sliderUrl4" placeholder="Image URL 4"></div><div class="form-group"><input type="text" id="sliderUrl5" placeholder="Image URL 5"></div><div class="btn-row"><button class="btn btn-g" onclick="saveSliderImages()">Save</button><button class="btn btn-r" onclick="clearSliderImages()">Clear</button></div><div id="sliderPreviewList" style="margin-top:5px;font-size:10px"></div></div>
                 <div class="divider"><h3><i class="fas fa-music"></i> Background Music</h3><div id="musicSlots"></div><div class="btn-row"><button class="btn btn-g" onclick="savePlaylist()"><i class="fas fa-save"></i> Save</button><button class="btn btn-r" onclick="clearAllSlots()"><i class="fas fa-trash"></i> Clear All</button></div></div>
             </div>
@@ -4193,52 +4200,147 @@ function addBotTemplate(t) {
     ta.value = temps[t] || '';
     ta.focus();
 }
-// ✅ Updated sendBotMessage() with Debug Logs
+// ==================== BOT SENDING UI (ADVANCED) ====================
+// ✅ Send Bot Message (With Animation & Status)
 async function sendBotMessage() {
     const msg = document.getElementById('botCustomMsg').value.trim();
     const sound = document.getElementById('botSound').value;
     
-    console.log('[BOT MESSAGE UI] Sending:', { message: msg, imageCount: botImagesBase64.length });
-    
-    if (!msg && botImagesBase64.length === 0) {
-        showToast('❌ Enter message or attach images', 'error');
+    if (!msg && botMediaBase64.length === 0) {
+        showToast('❌ Enter message or attach media', 'error');
         return;
     }
     
-    const btn = document.querySelector('.btn-b');
+    // ✅ 1. UI Reset & Start Sending Animation
+    const btn = document.getElementById('botSendBtn');
+    const icon = document.getElementById('botSendIcon');
+    const text = document.getElementById('botSendText');
+    const badge = document.getElementById('botStatusBadge');
+    const progress = document.getElementById('botSendingProgress');
+    const progressBar = document.getElementById('botProgressBar');
+    const progressText = document.getElementById('botProgressText');
+    const progressPercent = document.getElementById('botProgressPercent');
+    
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    icon.className = 'fas fa-spinner fa-spin';
+    text.textContent = 'Sending...';
+    badge.style.display = 'none';
+    progress.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressPercent.textContent = '0%';
+    progressText.textContent = '⏳ Uploading media to server...';
+    
+    // ✅ 2. Simulate Progress (0% → 40%)
+    let p = 0;
+    const simInterval = setInterval(() => {
+        if (p < 40) {
+            p += 5;
+            progressBar.style.width = p + '%';
+            progressPercent.textContent = p + '%';
+        } else {
+            clearInterval(simInterval);
+        }
+    }, 100);
     
     try {
+        // ✅ 3. API Request
+        progressText.textContent = '⏳ Sending to Telegram users...';
         const response = await fetch('/api/admin/bot_message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            // ✅ images: botImagesBase64 ကို သေချာပို့မယ်
             body: JSON.stringify({
-                message: msg || '📸 Images from Admin',
+                message: msg || '📸 Media from Admin',
                 sound: sound,
-                images: botImagesBase64.length > 0 ? botImagesBase64 : null
+                media: {
+                    type: botMediaType,
+                    urls: botMediaBase64.length > 0 ? botMediaBase64 : null
+                }
             })
         });
         
-        const data = await response.json();
-        console.log('[BOT MESSAGE UI] Server response:', data);
+        progressBar.style.width = '80%';
+        progressPercent.textContent = '80%';
+        progressText.textContent = '⏳ Waiting for Telegram response...';
         
+        const data = await response.json();
+        
+        // ✅ 4. Success
         if (data.success) {
-            showToast(`✅ Sent to ${data.count} Telegram users!`, 'success');
+            progressBar.style.width = '100%';
+            progressPercent.textContent = '100%';
+            progressText.textContent = '✅ Done!';
+            
+            // Show Success Badge
+            badge.style.display = 'inline-block';
+            badge.style.background = 'rgba(46, 204, 113, 0.2)';
+            badge.style.border = '1px solid #2ecc71';
+            badge.style.color = '#2ecc71';
+            badge.textContent = `✅ Sent to ${data.count} users!`;
+            
+            // Reset Form
             document.getElementById('botCustomMsg').value = '';
-            removeAllBotImages();
+            removeAllBotMedia();
+            
+            showToast(`✅ Sent to ${data.count} Telegram users!`, 'success');
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                badge.style.display = 'none';
+                progress.style.display = 'none';
+            }, 3000);
+            
         } else {
+            // ❌ Error
+            progressBar.style.width = '100%';
+            progressPercent.textContent = '100%';
+            progressText.textContent = '❌ Failed!';
+            progressBar.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+            
+            badge.style.display = 'inline-block';
+            badge.style.background = 'rgba(231, 76, 60, 0.2)';
+            badge.style.border = '1px solid #e74c3c';
+            badge.style.color = '#e74c3c';
+            badge.textContent = '❌ ' + (data.message || 'Error');
+            
             showToast('❌ ' + (data.message || 'Error'), 'error');
+            
+            setTimeout(() => {
+                badge.style.display = 'none';
+                progress.style.display = 'none';
+                progressBar.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
+            }, 3000);
         }
+        
     } catch(e) {
-        console.error('[BOT MESSAGE UI] Fetch error:', e);
+        // ❌ Connection Error
+        console.error('[BOT SEND ERROR]', e);
+        progressBar.style.width = '100%';
+        progressPercent.textContent = '100%';
+        progressText.textContent = '❌ Connection Error!';
+        progressBar.style.background = 'linear-gradient(90deg, #e74c3c, #c0392b)';
+        
+        badge.style.display = 'inline-block';
+        badge.style.background = 'rgba(231, 76, 60, 0.2)';
+        badge.style.border = '1px solid #e74c3c';
+        badge.style.color = '#e74c3c';
+        badge.textContent = '❌ Connection Error';
+        
         showToast('❌ Connection error', 'error');
+        
+        setTimeout(() => {
+            badge.style.display = 'none';
+            progress.style.display = 'none';
+            progressBar.style.background = 'linear-gradient(90deg, #f39c12, #e67e22)';
+        }, 3000);
     }
     
+    // ✅ 5. Reset Button
+    clearInterval(simInterval);
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
-        }
+    icon.className = 'fas fa-paper-plane';
+    text.textContent = 'Send';
+}
+        
 // ==================== SLIDER IMAGES ====================
 async function saveSliderImages() {
     const urls = [];
