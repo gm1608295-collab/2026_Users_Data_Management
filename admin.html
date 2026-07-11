@@ -1519,13 +1519,13 @@ body.modal-open .container {
     
     <!-- Multiple Images Upload -->
     <div class="form-group" style="margin-top: 8px;">
-        <label>🖼️ Attach Images (Select multiple)</label>
-        <input type="file" id="botImageInput" accept="image/*" multiple onchange="previewBotImages(this)" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 11px;">
-        <div id="botImagePreviewContainer" style="display:none; margin-top: 8px;">
-            <div id="botImagePreviewList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
-            <span onclick="removeAllBotImages()" style="display: inline-block; margin-top: 6px; background: #e74c3c; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">🗑️ Clear All</span>
-        </div>
-        <div id="botImageCount" style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; display: none;"></div>
+    <label>🖼️ Attach Images (Select multiple)</label>
+    <input type="file" id="botImageInput" accept="image/*" multiple onchange="previewBotImages(this)" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 11px;">
+    <div id="botImagePreviewContainer" style="display:none; margin-top: 8px;">
+        <div id="botImagePreviewList" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+        <span onclick="removeAllBotImages()" style="display: inline-block; margin-top: 6px; background: #e74c3c; color: #fff; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">🗑️ Clear All</span>
+    </div>
+    <div id="botImageCount" style="font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 4px; display: none;"></div>
     </div>
     
     <!-- Sound Selector -->
@@ -4193,26 +4193,52 @@ function addBotTemplate(t) {
     ta.value = temps[t] || '';
     ta.focus();
 }
-
+// ✅ Updated sendBotMessage() with Debug Logs
 async function sendBotMessage() {
     const msg = document.getElementById('botCustomMsg').value.trim();
-    if (!msg) return n('Enter message', 'error');
+    const sound = document.getElementById('botSound').value;
+    
+    console.log('[BOT MESSAGE UI] Sending:', { message: msg, imageCount: botImagesBase64.length });
+    
+    if (!msg && botImagesBase64.length === 0) {
+        showToast('❌ Enter message or attach images', 'error');
+        return;
+    }
+    
+    const btn = document.querySelector('.btn-b');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    
     try {
-        const r = await fetch('/api/admin/bot_message', {
+        const response = await fetch('/api/admin/bot_message', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: msg })
+            // ✅ images: botImagesBase64 ကို သေချာပို့မယ်
+            body: JSON.stringify({
+                message: msg || '📸 Images from Admin',
+                sound: sound,
+                images: botImagesBase64.length > 0 ? botImagesBase64 : null
+            })
         });
-        const d = await r.json();
-        if (d.success) {
-            n('✅ Sent to ' + d.count + ' users!');
+        
+        const data = await response.json();
+        console.log('[BOT MESSAGE UI] Server response:', data);
+        
+        if (data.success) {
+            showToast(`✅ Sent to ${data.count} Telegram users!`, 'success');
             document.getElementById('botCustomMsg').value = '';
+            removeAllBotImages();
         } else {
-            n(d.message || 'Error', 'error');
+            showToast('❌ ' + (data.message || 'Error'), 'error');
         }
-    } catch(e) { n('Error', 'error'); }
-}
-
+    } catch(e) {
+        console.error('[BOT MESSAGE UI] Fetch error:', e);
+        showToast('❌ Connection error', 'error');
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
+        }
 // ==================== SLIDER IMAGES ====================
 async function saveSliderImages() {
     const urls = [];
