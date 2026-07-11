@@ -1810,49 +1810,32 @@ async function loadDashboardVideo() {
     const v = document.getElementById('dashboardVideo');
     const yt = document.getElementById('dashboardYoutube');
     
-    // Don't reload if already playing
-    if (v.src && !v.paused && v.currentTime > 0) return;
-    if (yt.src && yt.style.display !== 'none') return;
-    
     try {
         const r = await fetch('/api/video');
         const d = await r.json();
-        console.log('[VIDEO] API Response:', d);
         
         if (d && d.success && d.url) {
-            // ✅ Video ရှိရင် container ကို ချက်ချင်းပြမယ်
             c.style.display = 'block';
-            
-            // ✅ Remove old classes
             v.className = '';
             yt.className = '';
             
             if (d.videoType === 'youtube') {
-                console.log('[VIDEO] YouTube detected');
                 v.style.display = 'none';
                 yt.style.display = 'block';
-                yt.className = 'youtube'; // 16:9
+                yt.className = 'youtube';
                 yt.src = d.url;
-                yt.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-                yt.allowFullscreen = true;
             } else if (d.videoType === 'tiktok') {
-                console.log('[VIDEO] TikTok detected');
                 v.style.display = 'none';
                 yt.style.display = 'block';
-                yt.className = 'tiktok'; // 9:16
+                yt.className = 'tiktok';
                 yt.src = d.url;
-                yt.allow = 'autoplay; encrypted-media; picture-in-picture';
-                yt.allowFullscreen = true;
-            } else if (d.videoType === 'twitch' || d.videoType === 'facebook' || d.url.includes('live')) {
-                console.log('[VIDEO] Live Stream detected');
+            } else if (d.videoType === 'twitch' || d.videoType === 'facebook' || d.videoType === 'fifa' || d.url.includes('live')) {
+                // ✅ FIFA အတွက် live class ကိုပဲ သုံးမယ်
                 v.style.display = 'none';
                 yt.style.display = 'block';
                 yt.className = 'live'; // 16:9
                 yt.src = d.url;
-                yt.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-                yt.allowFullscreen = true;
             } else {
-                console.log('[VIDEO] Direct video detected');
                 yt.style.display = 'none';
                 v.style.display = 'block';
                 v.className = 'direct';
@@ -1860,11 +1843,7 @@ async function loadDashboardVideo() {
                 v.muted = true;
                 v.autoplay = true;
                 v.playsInline = true;
-                v.setAttribute('playsinline', '');
-                v.setAttribute('webkit-playsinline', '');
                 v.load();
-                
-                // Force play
                 setTimeout(() => {
                     v.play().catch(e => {
                         console.log('[VIDEO] Play failed:', e.message);
@@ -1873,11 +1852,11 @@ async function loadDashboardVideo() {
                 }, 500);
             }
         } else {
-            console.log('[VIDEO] No video found');
             c.style.display = 'none';
         }
     } catch(e) {
         console.error('[VIDEO] Error:', e.message);
+        c.style.display = 'none';
     }
 }
     
