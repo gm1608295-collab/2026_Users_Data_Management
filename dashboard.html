@@ -1880,8 +1880,15 @@ async function loadDashboardVideo() {
     }
 }
     
-    // ==================== PAGE ACCESS CHECK ====================
+    // ==================== PAGE ACCESS CHECK (FIXED FOR TELEGRAM) ====================
 async function checkPageAccess() {
+    // ✅ Telegram WebView မှာ localStorage မရှိရင် Login Page ကို ပြန်ပို့မယ်
+    const token = localStorage.getItem("auth_token");
+    if (!token || token === 'guest') {
+        window.location.href = "/";
+        return false;
+    }
+    
     try {
         const r = await fetch('/api/admin/page_status');
         const d = await r.json();
@@ -1900,7 +1907,8 @@ async function checkPageAccess() {
         }
         return true;
     } catch(e) { return true; }
-}
+    }
+    
     // ==================== PAGE TIMER COUNTDOWN (LIVE - MEDIAN FIX) ====================
 async function checkPageTimer() {
     const pageId = window.location.pathname.replace('.html','').replace('/','') || 'dashboard';
@@ -2093,7 +2101,40 @@ function detectChineseBrowser() {
 
 // Run on page load
 detectChineseBrowser();
-    
+
+    // ==================== TELEGRAM WEBVIEW FALLBACK ====================
+// ✅ Telegram WebView မှာ localStorage မရှိရင် Cookie ကို သုံးမယ်
+function getAuthToken() {
+    let token = localStorage.getItem("auth_token");
+    if (!token) {
+        // Cookie ကနေ ရှာမယ်
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'auth_token') {
+                token = value;
+                break;
+            }
+        }
+    }
+    return token;
+}
+
+// ✅ localStorage မရှိရင် Cookie ကို သုံးပြီး Login လုပ်မယ်
+function ensureLogin() {
+    const token = getAuthToken();
+    if (!token || token === 'guest') {
+        window.location.href = "/";
+        return false;
+    }
+    return true;
+}
+
+// Page Load တိုင်း စစ်မယ်
+if (!ensureLogin()) {
+    // Login မရှိရင် Redirect
+    window.location.href = "/";
+}
     // ==================== REAL-TIME ACCOUNT CHECK (BAN + DELETE) ====================
 async function checkAccountStatus() {
     const token = localStorage.getItem('auth_token');
