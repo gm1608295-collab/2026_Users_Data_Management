@@ -702,8 +702,9 @@ body {
         
         <div class="header">
     <!-- LED Animated Menu Button -->
-    <span class="menu-btn" onclick="openSidebar()">
-        <img src="https://i.ibb.co/7tvvPm7T/file-00000000e43471fa9d7a0ad636aaaacc.png" 
+    <!-- အသစ် (ပြောင်းရန်) -->
+<span class="menu-btn" onclick="openSidebar(event)">
+            <img src="https://i.ibb.co/7tvvPm7T/file-00000000e43471fa9d7a0ad636aaaacc.png" 
              alt="Menu"
              style="width:24px;height:24px;object-fit:contain;border-radius:3px;position:relative;z-index:2;"
              onerror="this.style.display='none';">
@@ -1530,9 +1531,14 @@ setTimeout(() => {
 }, 1000);
 
 // ==================== SIDEBAR FUNCTIONS (မှန်ကန်သောနေရာ) ====================
+// ✅ Open Sidebar Function (Desktop + Mobile Compatible)
+function openSidebar(event) {
+    if (event) {
+        // Media App / Touch တွေမှာ Double Tap မဖြစ်အောင် ကာကွယ်မယ်
+        event.preventDefault();
+        event.stopPropagation();
+    }
 
-// ✅ Open Sidebar Function
-function openSidebar() {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
     
     // Update Name & Email
@@ -1596,7 +1602,24 @@ function toggleProfileCollapse() {
         icon.className = 'fas fa-chevron-down';
     }
 }
-
+// ==================== MENU BUTTON UNIVERSAL CLICK/TAP SUPPORT ====================
+document.addEventListener('DOMContentLoaded', function() {
+    const menuBtn = document.querySelector('.menu-btn');
+    if (menuBtn) {
+        // Desktop Click
+        menuBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openSidebar(e);
+        });
+        
+        // Mobile Touch (Media App, UC, etc.)
+        menuBtn.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            openSidebar(e);
+        });
+    }
+});
+    
 // ✅ Upload Profile Photo
 function uploadProfilePhoto(input) {
     const file = input.files[0];
