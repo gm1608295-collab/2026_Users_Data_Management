@@ -3906,19 +3906,26 @@ app.post('/api/admin/buycode_notices/delete_all', async (req, res) => {
         res.json({ success: false }); 
     } 
 });
-// ==================== BOT MESSAGE (MULTIPLE IMAGES SUPPORT) ====================
+// ==================== BOT MESSAGE (DEBUG MODE) ====================
 app.post('/api/admin/bot_message', async (req, res) => {
     const { message, sound, title, images } = req.body;
-    console.log('[BOT MESSAGE]', { message: message?.substring(0,30), sound, title, imageCount: images?.length || 0 });
+    console.log('[BOT MESSAGE DEBUG] Received:', {
+        message: message?.substring(0,30),
+        imageCount: images?.length || 0
+    });
     
-    if (!message) return res.json({ success: false, message: 'Message required' });
+    if (!message && (!images || images.length === 0)) {
+        return res.json({ success: false, message: 'Message or images required' });
+    }
     
     try {
         const p = await getPool();
-        
-        // ✅ 1. Images ရှိရင် ImgBB ကို Upload လုပ်မယ် (Multiple)
         let imageUrls = [];
+        
+        // ✅ 1. IMGBB UPLOAD DEBUG
         if (images && images.length > 0) {
+            console.log(`[BOT MESSAGE] 🔄 Uploading ${images.length} images to ImgBB...`);
+            
             for (let i = 0; i < images.length; i++) {
                 try {
                     const imageData = images[i].replace(/^data:image\/\w+;base64,/, '');
@@ -3932,25 +3939,37 @@ app.post('/api/admin/bot_message', async (req, res) => {
                         body: formData.toString(),
                         signal: AbortSignal.timeout(15000)
                     });
+                    
                     const data = await response.json();
+                    console.log(`[BOT MESSAGE] ImgBB Response for image ${i+1}:`, data);
+                    
                     if (data.success) {
                         imageUrls.push(data.data.url);
+                        console.log(`[BOT MESSAGE] ✅ Image ${i+1} uploaded:`, data.data.url);
+                    } else {
+                        console.error(`[BOT MESSAGE] ❌ ImgBB upload failed for image ${i+1}:`, data);
                     }
                 } catch(e) {
-                    console.error('[IMAGE UPLOAD ERROR]', e.message);
+                    console.error(`[BOT MESSAGE] ❌ ImgBB fetch error for image ${i+1}:`, e.message);
                 }
             }
+            console.log(`[BOT MESSAGE] Total uploaded: ${imageUrls.length}`);
         }
         
-        // ✅ 2. Telegram Bot ကို ပို့မယ် (Images ပါရင် Media Group အဖြစ်ပို့မယ်)
+        // ✅ 2. TELEGRAM SEND DEBUG
         const users = await p.query("SELECT DISTINCT google_id FROM auth_users WHERE login_type='telegram'");
+        console.log(`[BOT MESSAGE] Found ${users.rows.length} Telegram users.`);
+        
         let telegramCount = 0;
+        let lastError = null;
         
         for (const user of users.rows) {
             const tid = user.google_id.replace('tg_', '');
             try {
+                let telegramResponse;
+                
                 if (imageUrls.length > 1) {
-                    // ✅ Images အများကြီးရှိရင် Media Group (Album) အဖြစ်ပို့မယ်
+                    // Multiple Images
                     const media = imageUrls.map((url, index) => ({
                         type: 'photo',
                         media: url,
@@ -3958,17 +3977,15 @@ app.post('/api/admin/bot_message', async (req, res) => {
                         parse_mode: 'HTML'
                     }));
                     
-                    await fetch(`${TELEGRAM_API}/sendMediaGroup`, {
+                    telegramResponse = await fetch(`${TELEGRAM_API}/sendMediaGroup`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            chat_id: tid,
-                            media: media
-                        })
+                        body: JSON.stringify({ chat_id: tid, media })
                     });
+                    
                 } else if (imageUrls.length === 1) {
-                    // ✅ Image တစ်ခုပဲရှိရင် sendPhoto ကို သုံးမယ်
-                    await fetch(`${TELEGRAM_API}/sendPhoto`, {
+                    // Single Image
+                    telegramResponse = await fetch(`${TELEGRAM_API}/sendPhoto`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -3978,9 +3995,10 @@ app.post('/api/admin/bot_message', async (req, res) => {
                             parse_mode: 'HTML'
                         })
                     });
+                    
                 } else {
-                    // ✅ Image မပါရင် sendMessage ကို သုံးမယ်
-                    await fetch(`${TELEGRAM_API}/sendMessage`, {
+                    // Text Only
+                    telegramResponse = await fetch(`${TELEGRAM_API}/sendMessage`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -3990,18 +4008,32 @@ app.post('/api/admin/bot_message', async (req, res) => {
                         })
                     });
                 }
-                telegramCount++;
+                
+                const result = await telegramResponse.json();
+                
+                if (result.ok) {
+                    telegramCount++;
+                } else {
+                    console.error(`[BOT MESSAGE] ❌ Telegram error for user ${tid}:`, result);
+                    lastError = result;
+                }
+                
             } catch(e) {
-                console.error('[TELEGRAM SEND ERROR]', e.message);
+                console.error(`[BOT MESSAGE] ❌ Telegram send error for user ${tid}:`, e.message);
+                lastError = e;
             }
         }
         
-        // ✅ 3. OneSignal Push Notification (Sound နဲ့အတူ)
+        // ✅ 3. ONESIGNAL
         const selectedSound = sound || 'notification';
         const selectedTitle = title || 'SOLO M Game Shop';
-        sendOnesignal(message, selectedSound, selectedTitle);
+        try {
+            sendOnesignal(message, selectedSound, selectedTitle);
+        } catch(e) {
+            console.error('[BOT MESSAGE] OneSignal error:', e.message);
+        }
         
-        console.log('[BOT MESSAGE] ✅ Sent - Telegram: ' + telegramCount + ', Push: yes, Sound: ' + selectedSound);
+        console.log(`[BOT MESSAGE] ✅ Sent to ${telegramCount} users`);
         
         res.json({ 
             success: true, 
@@ -4011,11 +4043,10 @@ app.post('/api/admin/bot_message', async (req, res) => {
         });
         
     } catch(e) {
-        console.error('[BOT MESSAGE ERROR]', e);
-        res.json({ success: false, message: 'Server error' });
+        console.error('[BOT MESSAGE SERVER ERROR]', e);
+        res.json({ success: false, message: 'Server error: ' + e.message });
     }
 });
-
 // ==================== TELEGRAM BOT (မြန်မာလို - ALL FIXED) ====================
 let lastUpdateId = 0;
 
