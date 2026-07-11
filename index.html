@@ -2739,7 +2739,7 @@ const btnVerifyOTP = document.getElementById('btnVerifyOTP');
 const btnResendOTP = document.getElementById('btnResendOTP');
 const otpErrorMsg = document.getElementById('otpErrorMsg');
 
-// ==================== LOGIN SYSTEM (Token Clear & Save) ====================
+    // ==================== LOGIN SYSTEM (WITH OTP) ====================
 async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
@@ -2749,17 +2749,18 @@ async function handleLogin() {
         return;
     }
     
-    // ✅ reCAPTCHA စစ်ဆေးခြင်း (အကယ်၍ ရှိရင်)
-    // const recaptchaResponse = grecaptcha.getResponse();
-    // if (!recaptchaResponse) {
-    //     alert('Please complete the reCAPTCHA');
-    //     return;
-    // }
+    // ✅ reCAPTCHA စစ်ဆေးခြင်း
+    const recaptchaResponse = grecaptcha.getResponse();
+    if (!recaptchaResponse) {
+        alert('Please complete the reCAPTCHA');
+        return;
+    }
     
     document.getElementById('loginBtn').disabled = true;
     document.getElementById('loginBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
     
     try {
+        // ✅ 1. ပုံမှန် Login API ကို ခေါ်မယ်
         const response = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2769,20 +2770,36 @@ async function handleLogin() {
         const data = await response.json();
         
         if (data.success) {
-            // ✅ အဟောင်းကို ရှင်းမယ်
+            // ✅ အောင်မြင်ရင် Dashboard သွားမယ်
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            
-            // ✅ အသစ်ကို သိမ်းမယ်
             localStorage.setItem('auth_token', data.token);
             localStorage.setItem('user', JSON.stringify(data.user));
-            
-            // Dashboard ကို သွားမယ်
             window.location.href = '/dashboard';
         } else {
-            alert(data.message || 'Login failed');
-            document.getElementById('loginBtn').disabled = false;
-            document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            // ✅ 2. Login မအောင်မြင်ရင် OTP Request လုပ်မယ်
+            // ဒါက "Password မမှန်လို့ OTP နဲ့ ဝင်ခွင့်ပေးမယ်" ဆိုတဲ့သဘောပါ
+            const otpResponse = await fetch('/api/otp/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            
+            const otpData = await otpResponse.json();
+            
+            if (otpData.success) {
+                // ✅ OTP ပို့ပြီးရင် Modal ဖွင့်မယ်
+                otpEmail = email;
+                showOTPModal(90); // 90 seconds
+                document.getElementById('loginBtn').disabled = false;
+                document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                showToast('✅ OTP sent to your email!', 'success');
+            } else {
+                // OTP မရရင် မူရင်း Error ပြမယ်
+                alert(data.message || otpData.message || 'Login failed. Please try again.');
+                document.getElementById('loginBtn').disabled = false;
+                document.getElementById('loginBtn').innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+            }
         }
     } catch(err) {
         console.error(err);
