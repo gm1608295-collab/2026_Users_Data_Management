@@ -3906,7 +3906,8 @@ app.post('/api/admin/buycode_notices/delete_all', async (req, res) => {
         res.json({ success: false }); 
     } 
 });
-// ==================== ADMIN BOT MESSAGE (IMAGE/VIDEO/GIF SUPPORT) ====================
+
+// server.js ထဲက app.post('/api/admin/bot_message', ...) ကို ဒါနဲ့ အစားထိုးပါ
 app.post('/api/admin/bot_message', async (req, res) => {
     const { message, sound, title, media } = req.body;
     console.log('[BOT MESSAGE]', { 
@@ -3925,11 +3926,19 @@ app.post('/api/admin/bot_message', async (req, res) => {
         const p = await getPool();
         let mediaUrls = [];
         
-        // ✅ 1. Media Upload (Image/Video/GIF)
+        // ✅ 1. Media Upload (Image/Video/GIF) with Better Error Handling
         if (media && media.urls && media.urls.length > 0) {
+            console.log('[BOT] Starting upload of', media.urls.length, 'files...');
             for (let i = 0; i < media.urls.length; i++) {
                 try {
                     const base64Data = media.urls[i].replace(/^data:(image|video)\/\w+;base64,/, '');
+                    
+                    // Check file size (ImgBB max is ~10MB, Base64 string is ~33% larger)
+                    // If base64 string is > 15MB, it's too big for free ImgBB
+                    if (base64Data.length > 15 * 1024 * 1024) {
+                        throw new Error(`File #${i+1} is too large for ImgBB (Max ~10MB). Please reduce size.`);
+                    }
+
                     const formData = new URLSearchParams();
                     formData.append('key', IMGBB_API_KEY);
                     formData.append('image', base64Data);
@@ -3938,14 +3947,23 @@ app.post('/api/admin/bot_message', async (req, res) => {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: formData.toString(),
-                        signal: AbortSignal.timeout(15000)
+                        signal: AbortSignal.timeout(30000) // 30 seconds timeout
                     });
+                    
                     const data = await response.json();
                     if (data.success) {
                         mediaUrls.push(data.data.url);
+                        console.log(`[BOT] Uploaded ${i+1}/${media.urls.length}`);
+                    } else {
+                        throw new Error(data.error?.message || `Upload failed for file #${i+1}`);
                     }
                 } catch(e) {
                     console.error('[MEDIA UPLOAD ERROR]', e.message);
+                    // Return error to frontend immediately so user knows what happened
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `Upload error: ${e.message}` 
+                    });
                 }
             }
         }
@@ -4039,7 +4057,8 @@ app.post('/api/admin/bot_message', async (req, res) => {
         
     } catch(e) {
         console.error('[BOT MESSAGE ERROR]', e);
-        res.json({ success: false, message: 'Server error' });
+        // If server catches anything else, send error back
+        res.status(500).json({ success: false, message: 'Server error: ' + e.message });
     }
 });
 
