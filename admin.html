@@ -1500,7 +1500,50 @@ body.modal-open .container {
                     <div style="margin-bottom:10px"><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📋 Promo Code List</h4><div id="promoCodeList" style="max-height:250px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div>
                 </div>
                 <div class="divider"><h3><i class="fas fa-key"></i> API Key & Reseller Management</h3><div class="video-card" style="margin-bottom:10px"><div style="display:flex;gap:8px;align-items:center"><div class="form-group" style="flex:1;margin-bottom:0"><label>💱 Exchange Rate (1 USD = ? Ks)</label><input type="number" id="exchangeRateInput" value="3500" min="1" style="font-size:14px;font-weight:bold"></div><button class="btn btn-w" onclick="updateExchangeRate()" style="height:38px;margin-top:18px"><i class="fas fa-save"></i> Update</button></div></div><div class="video-card" style="margin-bottom:10px"><h4 style="color:var(--w);font-size:12px;margin-bottom:8px">➕ Create New Reseller</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="form-group"><label>Name</label><input type="text" id="newResellerName" placeholder="Shop name"></div><div class="form-group"><label>Currency</label><select id="newResellerCurrency"><option value="MMK">MMK (Ks)</option><option value="USD">USD ($)</option></select></div><div class="form-group"><label>Markup %</label><input type="number" id="newResellerMarkup" value="10" min="0" max="100"></div><div class="form-group"><label>Initial Balance</label><input type="number" id="newResellerBalance" value="0" min="0"></div><div class="form-group"><label>📅 Expiry Date</label><input type="date" id="newResellerExpiry"></div><div class="form-group"><label>🔢 Max/Day</label><input type="number" id="newResellerMaxDaily" value="50" min="1"></div></div><button class="btn btn-g" onclick="createReseller()" style="width:100%;margin-top:8px"><i class="fas fa-plus"></i> Create Reseller & Generate API Key</button></div><div style="margin-bottom:10px"><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📋 Reseller List</h4><div id="resellerList" style="max-height:300px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div><div><h4 style="color:var(--w);font-size:12px;margin-bottom:6px">📊 Recent Transactions</h4><div id="resellerTransactions" style="max-height:200px;overflow-y:auto"><p style="font-size:10px;color:rgba(255,255,255,0.4);text-align:center;padding:15px">Loading...</p></div></div></div>
-                <div class="divider"><h3><i class="fab fa-telegram"></i> Bot Message</h3><div class="form-group"><label>Message</label><textarea id="botCustomMsg" rows="3" placeholder="Type message..."></textarea></div><div class="template-btns"><button class="template-btn" style="background:#e74c3c;color:#fff" onclick="addBotTemplate('announcement')">📢 Announcement</button><button class="template-btn" style="background:#2ecc71;color:#000" onclick="addBotTemplate('promo')">🎉 Promo</button><button class="template-btn" style="background:#3498db;color:#fff" onclick="addBotTemplate('update')">🔧 Update</button><button class="template-btn" style="background:#f39c12;color:#000" onclick="addBotTemplate('warning')">⚠️ Warning</button></div><button class="btn btn-b" onclick="sendBotMessage()" style="width:100%"><i class="fas fa-paper-plane"></i> Send</button></div>
+                <div class="divider">
+    <h3><i class="fab fa-telegram"></i> Bot Message (Text + Image)</h3>
+    
+    <!-- Message -->
+    <div class="form-group">
+        <label>📝 Message</label>
+        <textarea id="botCustomMsg" rows="3" placeholder="Type message..."></textarea>
+    </div>
+    
+    <!-- Templates -->
+    <div class="template-btns">
+        <button class="template-btn" style="background:#e74c3c;color:#fff" onclick="addBotTemplate('announcement')">📢 Announcement</button>
+        <button class="template-btn" style="background:#2ecc71;color:#000" onclick="addBotTemplate('promo')">🎉 Promo</button>
+        <button class="template-btn" style="background:#3498db;color:#fff" onclick="addBotTemplate('update')">🔧 Update</button>
+        <button class="template-btn" style="background:#f39c12;color:#000" onclick="addBotTemplate('warning')">⚠️ Warning</button>
+    </div>
+    
+    <!-- Image Upload -->
+    <div class="form-group" style="margin-top: 8px;">
+        <label>🖼️ Attach Image (Optional)</label>
+        <input type="file" id="botImageInput" accept="image/*" onchange="previewBotImage(this)" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 11px;">
+        <div id="botImagePreview" style="display:none; margin-top: 6px; position: relative;">
+            <img id="botImagePreviewImg" src="" style="max-width: 100%; max-height: 150px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2);">
+            <span onclick="removeBotImage()" style="position: absolute; top: -6px; right: -6px; background: #e74c3c; color: #fff; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px; font-weight: bold;">✕</span>
+        </div>
+    </div>
+    
+    <!-- Sound Selector -->
+    <div class="form-group">
+        <label>🔊 Sound</label>
+        <select id="botSound" style="width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #fff; font-size: 11px;">
+            <option value="default">Default</option>
+            <option value="notification" selected>Notification</option>
+            <option value="alert">Alert</option>
+            <option value="success">Success</option>
+            <option value="error">Error</option>
+        </select>
+    </div>
+    
+    <!-- Send Button -->
+    <button class="btn btn-b" onclick="sendBotMessage()" style="width:100%">
+        <i class="fas fa-paper-plane"></i> Send
+    </button>
+                </div>
                 <div class="divider"><h3><i class="fas fa-images"></i> Image Slider</h3><div class="form-group"><input type="text" id="sliderUrl1" placeholder="Image URL 1"></div><div class="form-group"><input type="text" id="sliderUrl2" placeholder="Image URL 2"></div><div class="form-group"><input type="text" id="sliderUrl3" placeholder="Image URL 3"></div><div class="form-group"><input type="text" id="sliderUrl4" placeholder="Image URL 4"></div><div class="form-group"><input type="text" id="sliderUrl5" placeholder="Image URL 5"></div><div class="btn-row"><button class="btn btn-g" onclick="saveSliderImages()">Save</button><button class="btn btn-r" onclick="clearSliderImages()">Clear</button></div><div id="sliderPreviewList" style="margin-top:5px;font-size:10px"></div></div>
                 <div class="divider"><h3><i class="fas fa-music"></i> Background Music</h3><div id="musicSlots"></div><div class="btn-row"><button class="btn btn-g" onclick="savePlaylist()"><i class="fas fa-save"></i> Save</button><button class="btn btn-r" onclick="clearAllSlots()"><i class="fas fa-trash"></i> Clear All</button></div></div>
             </div>
@@ -1777,6 +1820,97 @@ function startAutoRefresh() {
         ]);
     }, 5000);
 }
+
+// ==================== BOT IMAGE FUNCTIONS ====================
+let botImageBase64 = null;
+
+// ✅ Image Preview
+function previewBotImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        botImageBase64 = e.target.result;
+        const preview = document.getElementById('botImagePreview');
+        const img = document.getElementById('botImagePreviewImg');
+        img.src = botImageBase64;
+        preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+// ✅ Remove Image
+function removeBotImage() {
+    botImageBase64 = null;
+    document.getElementById('botImagePreview').style.display = 'none';
+    document.getElementById('botImageInput').value = '';
+}
+
+// ✅ Send Bot Message (Updated)
+async function sendBotMessage() {
+    const msg = document.getElementById('botCustomMsg').value.trim();
+    const sound = document.getElementById('botSound').value;
+    
+    if (!msg && !botImageBase64) {
+        showToast('❌ Enter message or attach image', 'error');
+        return;
+    }
+    
+    // ✅ ပုံမရှိရင် စာသားပဲပို့မယ်
+    if (!msg && botImageBase64) {
+        showToast('⚠️ Image only (no text) is not supported. Adding default text.', 'warning');
+        // ပုံပဲပို့ချင်ရင် "📸 Image" ဆိုပြီး default message ထည့်ပေးမယ်
+        const defaultMsg = '📸 Image from Admin';
+        // ဆက်လုပ်မယ်
+    }
+    
+    const btn = document.querySelector('#botMessageSection .btn-b');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    
+    try {
+        const response = await fetch('/api/admin/bot_message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: msg || '📸 Image from Admin',
+                sound: sound,
+                image: botImageBase64 || null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast(`✅ Sent to ${data.count} Telegram users!`, 'success');
+            document.getElementById('botCustomMsg').value = '';
+            removeBotImage();
+        } else {
+            showToast('❌ ' + (data.message || 'Error'), 'error');
+        }
+    } catch(e) {
+        showToast('❌ Connection error', 'error');
+    }
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
+}
+
+// ✅ Toast Notification (for admin.html)
+function showToast(msg, type = 'success') {
+    const toast = document.getElementById('notif');
+    if (toast) {
+        toast.textContent = msg;
+        toast.style.background = type === 'success' ? '#2ecc71' : '#e74c3c';
+        toast.style.display = 'block';
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
+        }
+        
 // ==================== ADMIN EVENT MANAGEMENT ====================
 async function loadAdminEvents() {
     try {
