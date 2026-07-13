@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <!-- ✅ Cloudflare Turnstile Script (Invisible) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
     :root {
         --bg: #060a18;
@@ -921,13 +922,13 @@ input, textarea, select {
         </div>
     </div>
 
-    <!-- ✅ Google reCAPTCHA v2 -->
-    <div class="g-recaptcha" data-sitekey="6LcobYosAAAAAEfs-2onaMV2C86o_yE06JeA90vw" style="margin-bottom:12px;transform:scale(0.85);transform-origin:left center"></div>
+    <!-- ✅ Cloudflare Turnstile (Invisible) -->
+<div class="cf-turnstile" data-sitekey="0x4AAAAAAD1BB90jOUZfk4IR" data-size="invisible" data-callback="onTurnstileSuccess"></div>
 
-    <button class="btn btn-login" id="loginBtn" onclick="handleLogin()">
-        <i class="fas fa-sign-in-alt"></i> Login
-    </button>
-
+<button class="btn btn-login" id="loginBtn" onclick="handleLogin()">
+    <i class="fas fa-sign-in-alt"></i> Login
+</button>
+    
     <!-- Forget Password -->
     <div class="forget-password" id="forgetPassword">
         <span style="color:rgba(255,255,255,0.5)">Password မေ့နေပါသလား?</span><br>
@@ -2694,27 +2695,27 @@ function togglePassword(){
     else { i.type = 'password'; ic.className = 'fas fa-eye'; }
 }
 
-// ==================== GOOGLE RECAPTCHA V2 ====================
+// ==================== CLOUDFLARE TURNSTILE (INVISIBLE) ====================
+let turnstilePassed = false;
 
-// reCAPTCHA Callback - Google က အောင်မြင်ရင် Auto ခေါ်မယ်
-function onRecaptchaSuccess() {
+// ✅ Turnstile Success Callback
+function onTurnstileSuccess(token) {
+    turnstilePassed = true;
     updateLoginBtn();
 }
 
-// reCAPTCHA Expired
-function onRecaptchaExpired() {
-    updateLoginBtn();
-}
-
-function updateLoginBtn(){
-    const b = document.getElementById('loginBtn'),
-          e = document.getElementById('loginEmail').value.trim(),
-          p = document.getElementById('loginPassword').value.trim();
+// ✅ Update Login Button
+function updateLoginBtn() {
+    const b = document.getElementById('loginBtn');
+    const e = document.getElementById('loginEmail').value.trim();
+    const p = document.getElementById('loginPassword').value.trim();
     
-    // ✅ reCAPTCHA စစ်
-    var recaptchaOk = (typeof grecaptcha !== 'undefined') && grecaptcha.getResponse() !== '';
-    b.disabled = !(recaptchaOk && e && p);
+    b.disabled = !(turnstilePassed && e && p);
 }
+
+// ✅ Update Login Button (Initial call)
+document.getElementById('loginEmail').addEventListener('input', updateLoginBtn);
+document.getElementById('loginPassword').addEventListener('input', updateLoginBtn);
 
 // ==================== REGISTER TOGGLE ====================
 function toggleRegister(){
@@ -2739,7 +2740,7 @@ const btnVerifyOTP = document.getElementById('btnVerifyOTP');
 const btnResendOTP = document.getElementById('btnResendOTP');
 const otpErrorMsg = document.getElementById('otpErrorMsg');
 
-// ==================== LOGIN SYSTEM (WITH OTP - ALWAYS ON) ====================
+// ==================== LOGIN SYSTEM (TURNSTILE + OTP) ====================
 async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
@@ -2749,10 +2750,10 @@ async function handleLogin() {
         return;
     }
     
-    // ✅ reCAPTCHA စစ်
-    const recaptchaResponse = grecaptcha.getResponse();
-    if (!recaptchaResponse) {
-        showToast('Please complete the reCAPTCHA', 'error');
+    // ✅ Turnstile Token ရယူမယ် (reCAPTCHA အစား)
+    const turnstileToken = window.turnstile?.getResponse();
+    if (!turnstileToken) {
+        showToast('Please wait for Turnstile verification', 'error');
         return;
     }
     
@@ -2761,11 +2762,15 @@ async function handleLogin() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
     
     try {
-        // ✅ Step 1: Password စစ်
+        // ✅ Step 1: Password စစ် (Turnstile Token ပါပို့မယ်)
         const checkResponse = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ 
+                email, 
+                password,
+                turnstileToken  // ✅ Turnstile Token ထည့်ပေးမယ်
+            })
         });
         const checkData = await checkResponse.json();
         
@@ -2776,7 +2781,7 @@ async function handleLogin() {
             showToast(checkData.message || 'Invalid credentials', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-            grecaptcha.reset();
+            window.turnstile?.reset(); // ✅ Turnstile Reset
             return;
         }
         
@@ -2810,7 +2815,7 @@ async function handleLogin() {
     } catch(err) {
         console.error('Login Error:', err);
         showToast('Connection error', 'error');
-        grecaptcha.reset();
+        window.turnstile?.reset(); // ✅ Turnstile Reset
     }
     
     btn.disabled = false;
