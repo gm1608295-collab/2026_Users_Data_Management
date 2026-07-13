@@ -20,7 +20,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
-
+app.use(policyMiddleware);
 // ✅ static ကို တစ်ခါပဲ ထားပါ
 app.use(express.static(__dirname, {
     maxAge: '1h',
@@ -43,12 +43,6 @@ function policyMiddleware(req, res, next) {
     }
     next();
 }
-app.use(policyMiddleware);
-
-app.use(cookieParser());
-// ✅ ဒါကို အစားထိုးပါ
-
-const cookieParser = require('cookie-parser');
 
 // ==================== DATABASE - 5 POOLS AUTO-SWITCH (FIXED) ====================
 // ✅ ဒါကို ဒီအတိုင်း ပြင်ပါ (Render Env ကနေ ယူမယ်)
