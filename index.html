@@ -2739,7 +2739,7 @@ const btnVerifyOTP = document.getElementById('btnVerifyOTP');
 const btnResendOTP = document.getElementById('btnResendOTP');
 const otpErrorMsg = document.getElementById('otpErrorMsg');
 
-// ==================== LOGIN SYSTEM (ORIGINAL OTP FIXED) ====================
+// ==================== LOGIN SYSTEM (FIXED - FORCE OTP FLOW) ====================
 async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
@@ -2749,7 +2749,6 @@ async function handleLogin() {
         return;
     }
     
-    // 1. Turnstile Token ကို တိုက်ရိုက်ရယူမယ်
     let turnstileToken = '';
     try {
         turnstileToken = window.turnstile?.getResponse();
@@ -2765,15 +2764,11 @@ async function handleLogin() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
     
     try {
-        // ✅ Step 1: Server ကို Login Request ပို့မယ် (Password စစ်ဖို့)
+        // ✅ 1. Server ကို Request ပို့မယ်
         const checkResponse = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                email, 
-                password,
-                turnstileToken 
-            })
+            body: JSON.stringify({ email, password, turnstileToken })
         });
         const checkData = await checkResponse.json();
         
@@ -2788,53 +2783,35 @@ async function handleLogin() {
             return;
         }
         
-        // ============ OTP LOGIC (အဓိက ပြင်ထားတာ) ============
-        // ✅ Server က Token ကို ပြန်ပေးလာရင် (User က OTP မလိုတဲ့ Account ဖြစ်နေရင်)
-        if (checkData.token) {
-            // "token" ပါလာတယ်ဆိုရင် ချက်ချင်းဝင်မယ်
-            localStorage.setItem('auth_token', checkData.token);
-            localStorage.setItem('user', JSON.stringify(checkData.user));
-            showToast('✅ Login success!');
-            setTimeout(() => { window.location.href = '/dashboard'; }, 500);
-        } 
-        // ✅ Server က Token မပြန်ဘဲ success true ပြန်လာရင် (OTP ပို့ပြီးပြီ)
-        else if (checkData.success) {
-            // OTP Email ကို သိမ်းထားမယ်
-            otpEmail = email;
+        // ✅ 2. Server က success: true ပြန်လာရင် (Password မှန်ပြီ)
+        // OTP ကို ချက်ချင်းခေါ်မယ် (Server က Token မပြန်တော့ဘူး)
+        if (checkData.success) {
+            // OTP Request ပို့မယ်
+            const otpRes = await fetch('/api/otp/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const otpData = await otpRes.json();
             
-            // သင့် original OTP Request ကို ပြန်ခေါ်မယ် (ဒါမှ OTP Modal ပေါ်လာမယ်)
-            try {
-                // (Original code ထဲက OTP request ကို သုံးနေတာ)
-                const otpRes = await fetch('/api/otp/request', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
-                });
-                const otpData = await otpRes.json();
-                
-                if (otpData.success) {
-                    showOTPModal(90); // ✅ OTP Modal ကို ခေါ်မယ်
-                    showToast('✅ OTP sent to your email!');
-                } else {
-                    showToast(otpData.message || 'Failed to send OTP', 'error');
-                }
-            } catch(e) {
-                showToast('OTP request error', 'error');
+            if (otpData.success) {
+                otpEmail = email;
+                showOTPModal(90); // ✅ OTP Modal ပေါ်လာမယ်
+                showToast('✅ OTP sent to your email!');
+            } else {
+                showToast(otpData.message || 'Failed to send OTP', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
             }
         } 
-        else {
-            showToast('Unknown server response', 'error');
-        }
-        // ======================================================
         
     } catch(err) {
         console.error('Login Error:', err);
         showToast('Connection error', 'error');
         window.turnstile?.reset();
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
     }
-    
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
 }
     
 // Show OTP Modal
@@ -2910,7 +2887,7 @@ function startOTPTimer() {
     }, 1000);
 }
 
-// Verify OTP
+// Verify OTP (FIXED - TOKEN GENERATION HERE)
 async function verifyOTP() {
     const otp = otpHiddenInput.value.trim();
     
@@ -2924,6 +2901,7 @@ async function verifyOTP() {
     btnVerifyOTP.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
     
     try {
+        // ✅ OTP Verify API ကို ခေါ်မယ်
         const r = await fetch('/api/otp/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2931,9 +2909,10 @@ async function verifyOTP() {
         });
         const d = await r.json();
         
+        // ✅ OTP မှန်ရင် Server က Token ပြန်ပေးမယ်
         if (d.success) {
             clearInterval(otpCountdown);
-            localStorage.setItem('auth_token', d.token);
+            localStorage.setItem('auth_token', d.token); // Token ကို သိမ်းမယ်
             localStorage.setItem('user', JSON.stringify(d.user));
             showToast('✅ Login success!');
             setTimeout(() => { window.location.href = '/dashboard'; }, 500);
