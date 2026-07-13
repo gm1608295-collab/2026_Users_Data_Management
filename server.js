@@ -235,6 +235,77 @@ function sendOnesignal(msg, sound, title) {
         console.error('[ONESIGNAL ERROR]', e.message);
     } 
 }
+// ==================== QR CODE GENERATOR API (SERVER-SIDE) ====================
+// ✅ Environment Variables ကနေ QR API Keys တွေကို ယူမယ်
+const QR_API_KEYS = [
+    process.env.QR_API_KEY_1,
+    process.env.QR_API_KEY_2
+].filter(key => key); // ✅ null/undefined ဖြစ်နေတာတွေ ဖယ်မယ်
+
+let currentQRKeyIndex = 0;
+
+// ✅ Auto-Switch QR API Key (Retry up to 5 keys)
+async function generateQRWithAutoSwitch(qrData) {
+    if (!QR_API_KEYS || QR_API_KEYS.length === 0) {
+        // ❌ Key မရှိရင် Free API ကို သုံးမယ်
+        return 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrData);
+    }
+    
+    const maxRetries = QR_API_KEYS.length;
+    
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const key = QR_API_KEYS[currentQRKeyIndex];
+        
+        try {
+            const response = await fetch('https://app.qr-code-generator.com/api/v1/qr', {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + key,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    content: qrData,
+                    size: 300,
+                    format: 'png'
+                })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                return data.data || data.url || data.image;
+            }
+            
+            console.warn(`[QR SWITCH] Key #${currentQRKeyIndex + 1} failed. Switching to next...`);
+            currentQRKeyIndex = (currentQRKeyIndex + 1) % maxRetries;
+            
+        } catch(e) {
+            console.error(`[QR SWITCH] Key #${currentQRKeyIndex + 1} error:`, e.message);
+            currentQRKeyIndex = (currentQRKeyIndex + 1) % maxRetries;
+        }
+    }
+    
+    // ✅ Key အကုန်လုံး မအောင်မြင်ရင် Fallback (Free QR API) ကို သုံးမယ်
+    console.warn('[QR SWITCH] All keys failed. Using fallback API.');
+    return 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrData);
+}
+
+// ✅ API Endpoint: /api/generate_qr
+app.post('/api/generate_qr', async (req, res) => {
+    const { qrData } = req.body;
+    
+    if (!qrData) {
+        return res.json({ success: false, message: 'qrData required' });
+    }
+    
+    try {
+        const qrImageUrl = await generateQRWithAutoSwitch(qrData);
+        res.json({ success: true, qrImageUrl });
+    } catch(e) {
+        console.error('[QR GENERATE ERROR]', e.message);
+        res.json({ success: false, message: 'Server error' });
+    }
+});
+
 // ==================== JWT CONFIG ====================
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'solom-game-shop-secret-key-2026';
