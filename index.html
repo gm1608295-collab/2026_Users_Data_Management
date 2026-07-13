@@ -3018,28 +3018,25 @@ async function verifyOTP() {
     btnVerifyOTP.innerHTML = '<i class="fas fa-check-circle"></i> Verify & Login';
 }
 
-// Cancel OTP (Modal close, timer continues on server)
+// Cancel OTP (Modal close & Reset Login Button)
 function cancelOTP() {
     clearInterval(otpCountdown);
     otpModal.classList.remove('active');
     clearOTPDisplay();
     otpErrorMsg.classList.remove('show');
-}
-
-// Auto-paste OTP
-document.addEventListener('paste', function(e) {
-    if (!otpModal.classList.contains('active')) return;
     
-    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
-    const otpMatch = pastedText.match(/\d{6}/);
-    
-    if (otpMatch) {
-        e.preventDefault();
-        otpHiddenInput.value = otpMatch[0];
-        updateOTPDisplay(otpMatch[0]);
-        btnVerifyOTP.disabled = false;
+    // ✅ ဒီနေရာက အရေးကြီးဆုံးပါ။ Login Button ကို ပြန်အလုပ်လုပ်အောင် Reset လုပ်ပေးရမယ်။
+    const btn = document.getElementById('loginBtn');
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
     }
-});
+    
+    // Turnstile ကိုလည်း ပြန်အသစ်လုပ်ပေးတာ ကောင်းပါတယ်။
+    if (window.turnstile) {
+        window.turnstile.reset();
+    }
+}
 // ==================== REGISTER ====================
 async function handleRegister(){
     const un = document.getElementById('regUsername').value.trim();
