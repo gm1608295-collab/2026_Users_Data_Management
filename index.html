@@ -3054,112 +3054,159 @@ async function handleRegister(){
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-user-plus"></i> Register';
 }
-// ==================== QR CODE DISPLAY MODAL ====================
-function showQRCodeModal(qrData, email) {
+
+// ============================================================
+// QR CODE SYSTEM (FULL VERSION - SERVER SIDE + AUTO SWITCH)
+// ============================================================
+
+// ==================== 1. QR CODE GENERATE MODAL ====================
+async function showQRCodeModal(qrData, email) {
+    // Create overlay
     var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;justify-content:center;align-items:center';
-    overlay.onclick = function(e) { if(e.target === overlay) overlay.remove(); };
+    overlay.style.cssText = `
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,0.9);
+        z-index:9999;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+    `;
+    overlay.onclick = function(e) { 
+        if (e.target === overlay) overlay.remove(); 
+    };
     
-    // ✅ QR Code Data ကို Google Chart API နဲ့ QR Image အဖြစ် ပြောင်း
-    var qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrData);
+    // Show loading text
+    overlay.innerHTML = `
+        <div style="background:#1a1f4b;border-radius:14px;padding:20px;width:90%;max-width:340px;text-align:center" onclick="event.stopPropagation()">
+            <h3 style="color:#f39c12;margin-bottom:6px">⏳ Generating QR Code...</h3>
+            <p style="font-size:9px;color:rgba(255,255,255,0.5);">Please wait a moment</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
     
+    // ✅ Call Server API to generate QR
+    let qrImageUrl = '';
+    try {
+        const response = await fetch('/api/generate_qr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ qrData: qrData })
+        });
+        const data = await response.json();
+        if (data.success) {
+            qrImageUrl = data.qrImageUrl;
+        } else {
+            // ❌ Fallback to free API if server fails
+            qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrData);
+        }
+    } catch(e) {
+        console.error('[QR GENERATE ERROR]', e);
+        qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrData);
+    }
+    
+    // ✅ Update modal with QR image
     overlay.innerHTML = `
         <div style="background:#1a1f4b;border-radius:14px;padding:20px;width:90%;max-width:340px;text-align:center" onclick="event.stopPropagation()">
             <h3 style="color:#f39c12;margin-bottom:6px">✅ Register Success!</h3>
             <p style="font-size:9px;color:rgba(255,255,255,0.5);margin-bottom:10px">သင်၏ Recovery QR Code ကို Save လုပ်ထားပါ</p>
             
-            <!-- ✅ QR Code Image (API ကနေ Generate) -->
             <img src="${qrImageUrl}" alt="QR Code" style="width:180px;height:180px;border-radius:10px;margin-bottom:10px;background:#fff;padding:10px" id="qrCodeImage">
             
             <p style="font-size:8px;color:#e74c3c;margin-bottom:10px">⚠️ Password မေ့ပါက ဤ QR Code ဖြင့် ပြန်လည်ရယူနိုင်ပါသည်</p>
-            <button onclick="saveQRCode()" style="width:100%;padding:10px;background:#f39c12;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;margin-bottom:6px">💾 Save QR Code</button>
-            <button onclick="this.closest('div').parentElement.remove()" style="width:100%;padding:10px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:#fff;cursor:pointer">Close</button>
+            
+            <button onclick="saveQRCode()" style="width:100%;padding:10px;background:#f39c12;color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;margin-bottom:6px">
+                💾 Save QR Code
+            </button>
+            
+            <button onclick="this.closest('div').parentElement.remove()" style="width:100%;padding:10px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:#fff;cursor:pointer">
+                Close
+            </button>
         </div>
     `;
-    
-    document.body.appendChild(overlay);
 }
 
-// ==================== SAVE QR CODE ====================
+// ==================== 2. SAVE QR CODE ====================
 function saveQRCode() {
-    // ✅ Canvas ကို ရှာမယ်
-    var canvas = document.querySelector('#qrCodeDisplay canvas');
-    
-    if (canvas) {
-        // ✅ Canvas ကနေ Image Data ယူ
-        var imageData = canvas.toDataURL('image/png');
-        
-        // ✅ Download Link ဖန်တီး
-        var link = document.createElement('a');
-        link.download = 'SOLO_M_Recovery_QR.png';
-        link.href = imageData;
-        
-        // ✅ Click လုပ်
-        document.body.appendChild(link);
-        link.click();
-        
-        // ✅ Cleanup
-        setTimeout(function() {
-            document.body.removeChild(link);
-        }, 100);
-        
-        showToast('✅ QR Code saved! Check Downloads folder');
-    } 
-    // ✅ Canvas မရှိရင် Image ကို သုံး
-    else {
-        var img = document.getElementById('qrCodeImage');
-        if (img) {
-            var link = document.createElement('a');
-            link.download = 'SOLO_M_Recovery_QR.png';
-            link.href = img.src;
-            document.body.appendChild(link);
-            link.click();
-            setTimeout(function() {
-                document.body.removeChild(link);
-            }, 100);
-            showToast('✅ QR Code saved! Check Downloads folder');
-        } else {
-            showToast('❌ QR Code not ready', 'error');
-        }
+    // ✅ Get QR image from modal
+    var img = document.getElementById('qrCodeImage');
+    if (!img) {
+        showToast('❌ QR Code not found', 'error');
+        return;
     }
+    
+    // ✅ Create download link
+    var link = document.createElement('a');
+    link.download = 'SOLO_M_Recovery_QR.png';
+    link.href = img.src;
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(function() {
+        document.body.removeChild(link);
+    }, 100);
+    
+    showToast('✅ QR Code saved! Check Downloads folder', 'success');
 }
-// ==================== QR CODE SCAN FOR LOGIN ====================
+
+// ==================== 3. QR SCAN FOR LOGIN ====================
 function startQRScan() {
+    // ✅ Median App WebView Camera
     if (typeof median !== 'undefined' && median.barcode) {
         median.barcode.setPrompt('Register QR Code ကို Scan လုပ်ပါ');
         median.barcode.scan(function(data) {
             if (data.success) {
                 processQRLogin(data.code);
+            } else {
+                showToast('❌ Scan failed or cancelled', 'error');
             }
         });
     } else {
+        // ✅ Browser fallback: Upload modal
         showQRUploadModal();
     }
 }
 
+// ==================== 4. PROCESS QR LOGIN DATA ====================
 function processQRLogin(qrData) {
     try {
         var userData = JSON.parse(qrData);
         
-        // ✅ System QR စစ်ဆေး
+        // ✅ Check if valid SOLO M QR
         if (userData.email && userData.password) {
-            // ✅ Auto-Fill Login Form
+            // Auto-fill login form
             document.getElementById('loginEmail').value = userData.email || '';
             document.getElementById('loginPassword').value = userData.password || '';
             updateLoginBtn();
-            showToast('✅ QR Code loaded! Click Login to continue');
+            showToast('✅ QR Code loaded! Click Login to continue', 'success');
         } else {
             showToast('❌ Invalid QR Code - Not a SOLO M recovery QR', 'error');
         }
     } catch(e) {
-        showToast('❌ Invalid QR Code', 'error');
+        showToast('❌ Invalid QR Code format', 'error');
     }
 }
 
+// ==================== 5. QR UPLOAD MODAL (BROWSER) ====================
 function showQRUploadModal() {
     var overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;justify-content:center;align-items:center';
-    overlay.onclick = function(e) { if(e.target === overlay) overlay.remove(); };
+    overlay.style.cssText = `
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,0.9);
+        z-index:9999;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+    `;
+    overlay.onclick = function(e) { 
+        if (e.target === overlay) overlay.remove(); 
+    };
     
     overlay.innerHTML = `
         <div style="background:#1a1f4b;border-radius:14px;padding:20px;width:90%;max-width:360px;text-align:center" onclick="event.stopPropagation()">
@@ -3176,11 +3223,13 @@ function showQRUploadModal() {
     document.body.appendChild(overlay);
 }
 
+// ==================== 6. READ QR FROM UPLOADED IMAGE ====================
 async function readQRImage(input) {
     var file = input.files[0];
     if (!file) return;
     
-    document.getElementById('qrResult').innerHTML = '⏳ Reading QR Code...';
+    var resultDiv = document.getElementById('qrResult');
+    resultDiv.innerHTML = '⏳ Reading QR Code...';
     
     try {
         var img = new Image();
@@ -3191,7 +3240,7 @@ async function readQRImage(input) {
                 var canvas = document.createElement('canvas');
                 var ctx = canvas.getContext('2d');
                 
-                // ✅ ပုံအရွယ်ကို ချိန်
+                // Resize image for better performance
                 var maxSize = 600;
                 var width = img.width;
                 var height = img.height;
@@ -3220,40 +3269,87 @@ async function readQRImage(input) {
                             var qrData = JSON.parse(code.data);
                             
                             if (qrData.email && qrData.password) {
-                                document.getElementById('qrResult').innerHTML = '✅ SOLO M QR Code detected!';
+                                resultDiv.innerHTML = '✅ SOLO M QR Code detected!';
                                 document.getElementById('loginEmail').value = qrData.email || '';
                                 document.getElementById('loginPassword').value = qrData.password || '';
                                 updateLoginBtn();
-                                showToast('✅ Login credentials loaded! Click Login');
+                                showToast('✅ Login credentials loaded! Click Login', 'success');
                             } else {
-                                document.getElementById('qrResult').innerHTML = '❌ Not a SOLO M QR code';
+                                resultDiv.innerHTML = '❌ Not a SOLO M QR code';
                             }
                         } catch(e) {
-                            document.getElementById('qrResult').innerHTML = '❌ Invalid QR data';
+                            resultDiv.innerHTML = '❌ Invalid QR data';
                         }
                     } else {
-                        document.getElementById('qrResult').innerHTML = '❌ No QR Code found. Use a clear image.';
+                        resultDiv.innerHTML = '❌ No QR Code found. Use a clear image.';
                     }
                 } else {
-                    document.getElementById('qrResult').innerHTML = '❌ QR reader not loaded';
+                    resultDiv.innerHTML = '❌ QR reader not loaded';
                 }
             } catch(e) {
-                document.getElementById('qrResult').innerHTML = '❌ Error: ' + e.message;
+                resultDiv.innerHTML = '❌ Error: ' + e.message;
             }
             
             URL.revokeObjectURL(url);
         };
         
         img.onerror = function() {
-            document.getElementById('qrResult').innerHTML = '❌ Cannot load image';
+            resultDiv.innerHTML = '❌ Cannot load image';
         };
         
         img.src = url;
         
     } catch(e) {
-        document.getElementById('qrResult').innerHTML = '❌ Error: ' + e.message;
+        resultDiv.innerHTML = '❌ Error: ' + e.message;
     }
-      }
+}
+
+// ==================== 7. QR RECOVERY GUIDE ====================
+function showQRRecoveryGuide() {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position:fixed;
+        top:0;
+        left:0;
+        width:100%;
+        height:100%;
+        background:rgba(0,0,0,0.9);
+        z-index:9999;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+    `;
+    overlay.onclick = function(e) { 
+        if (e.target === overlay) overlay.remove(); 
+    };
+    
+    overlay.innerHTML = `
+        <div style="background:#1a1f4b;border-radius:14px;padding:20px;width:90%;max-width:360px;max-height:80vh;overflow-y:auto" onclick="event.stopPropagation()">
+            <h3 style="color:#f39c12;margin-bottom:10px">🔐 QR Code ဖြင့် ပြန်လည်ရယူနည်း</h3>
+            
+            <div style="font-size:10px;color:rgba(255,255,255,0.7);line-height:1.8">
+                <p style="margin-bottom:8px">Register လုပ်စဉ်က ရခဲ့သော QR Code သည် သင့် Email နှင့် Password ကို သိမ်းဆည်းထားပါသည်။</p>
+                
+                <p style="color:#f39c12;font-weight:600;margin-bottom:4px">📌 နည်းလမ်း (၂) မျိုး -</p>
+                
+                <p style="margin-bottom:6px"><b>နည်းလမ်း ၁ - QR Code Scan</b><br>
+                • Login Page မှ "Scan QR Code to Login" ကိုနှိပ်ပါ<br>
+                • ဖုန်းထဲရှိ QR Code ကို Scan လုပ်ပါ<br>
+                • Email & Password အလိုလျောက်ထည့်ပေးပါမည်</p>
+                
+                <p style="margin-bottom:6px"><b>နည်းလမ်း ၂ - QR Code Upload</b><br>
+                • QR Code ပုံကို Upload လုပ်ပါ<br>
+                • Server မှ QR Code ကို ဖတ်ပေးပါမည်</p>
+                
+                <p style="color:#e74c3c;margin-top:8px">⚠️ QR Code မရှိပါက Admin ကို ဆက်သွယ်ပါ</p>
+            </div>
+            
+            <button onclick="this.closest('div').parentElement.remove()" style="width:100%;padding:10px;background:rgba(255,255,255,0.1);border:none;border-radius:8px;color:#fff;margin-top:12px;cursor:pointer">Close</button>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
 // ==================== QR RECOVERY GUIDE ====================
 function showQRRecoveryGuide() {
     var overlay = document.createElement('div');
