@@ -170,6 +170,30 @@ const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 const TELEGRAM_PAYMENT_TOKEN = process.env.TELEGRAM_PAYMENT_TOKEN;
 const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 const ADMIN_PASSWORD_HASH = '$2b$10$XeN/2HtPBf4DLh1.SjNKmuUzpjCRjhEa.wwknw6enjJc5a27l7ZkK';
+// ==================== CLOUDFLARE TURNSTILE VERIFY (SERVER-SIDE) ====================
+// ✅ Environment Variable ကနေ Secret Key ကို ယူမယ်
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
+
+async function verifyTurnstile(token) {
+    // ✅ Secret Key မရှိရင် Error ပြမယ်
+    if (!TURNSTILE_SECRET_KEY) {
+        console.error('[TURNSTILE] SECRET_KEY not found in .env');
+        return false;
+    }
+    
+    try {
+        const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `secret=${TURNSTILE_SECRET_KEY}&response=${token}`
+        });
+        const data = await response.json();
+        return data.success;
+    } catch(e) {
+        console.error('[TURNSTILE VERIFY ERROR]', e.message);
+        return false;
+    }
+}
 // EmailJS Config
 const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
 const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
@@ -1255,44 +1279,47 @@ app.post('/api/upload_music', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 // ==================== AUTH ====================
-// ==================== LOGIN (OTP MODE - NO TOKEN) ====================
+// ==================== LOGIN API (WITH TURNSTILE) ====================
 app.post('/api/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, turnstileToken } = req.body;
     
-    if (!email || !password) {
-        return res.json({ success: false, message: 'Email and password required' });
+    // ✅ 1. Turnstile Verify
+    if (!turnstileToken) {
+        return res.json({ success: false, message: 'Turnstile token required' });
     }
     
+    const isValid = await verifyTurnstile(turnstileToken);
+    if (!isValid) {
+        return res.json({ success: false, message: 'Invalid Turnstile token' });
+    }
+    
+    // ✅ 2. Database ကို Query လုပ်ပြီး User ကို စစ်မယ်
     try {
         const p = await getPool();
-        const user = await p.query(
-            "SELECT id, username, email, password FROM auth_users WHERE email = $1 AND login_type = 'local'",
-            [email]
-        );
+        const r = await p.query(
+            "SELECT id, username, email FROM auth_users WHERE email=$1 AND password=$2 AND login_type='local'", 
+            [email, password]
+        ); 
         
-        if (user.rows.length === 0) {
-            return res.json({ success: false, message: 'Invalid email or password' });
+        if (r.rows.length === 0) {
+            return res.json({ success: false, message: 'Invalid email or password' }); 
         }
         
-        const u = user.rows[0];
+        const u = r.rows[0];
         
-        // ✅ bcrypt compare
-        const bcrypt = require('bcrypt');
-        const match = await bcrypt.compare(password, u.password);
+        // ✅ JWT Token Generate
+        const token = generateToken({ 
+            id: u.id, 
+            username: u.username, 
+            email: u.email, 
+            login_type: 'local' 
+        });
         
-        if (!match) {
-            // Plain text fallback
-            if (password !== u.password) {
-                return res.json({ success: false, message: 'Invalid email or password' });
-            }
-        }
-        
-        // ✅ OTP စနစ်အတွက် Token မပို့ဘဲ success ပဲ ပြန်
         res.json({ 
             success: true, 
-            message: 'Password verified. OTP sent to email.',
-            user_id: u.id,
-            email: u.email
+            message: 'Password verified',
+            token: token,
+            user: { id: u.id, username: u.username, email: u.email }
         });
         
     } catch(e) {
