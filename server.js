@@ -13,9 +13,14 @@ const http = require('http');
 const { Server } = require('socket.io');
 const app = express();
 
-app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.static(__dirname, { maxAge: '1h', etag: false }));
+
+// ✅ Policy Middleware ကို ဒီနေရာမှာ ထည့်ပါ (Routes တွေမတိုင်ခင်)
+app.use(policyMiddleware);
+
+app.use(cookieParser());
 // ✅ ဒါကို အစားထိုးပါ
 app.use(express.static(__dirname, {
     maxAge: '1h', // 1 နာရီကြာအောင် Browser မှာ သိမ်းထားမယ်
@@ -81,6 +86,76 @@ function getClientIP(req) {
         || req.ip 
         || '0.0.0.0';
 }
+// ==================== POLICY SYSTEM (BLOCK TERMUX & UNALLOWED CLIENTS) ====================
+const BLOCKED_USER_AGENTS = [
+    /termux/i,          // Termux
+    /curl/i,            // curl
+    /wget/i,            // wget
+    /python-requests/i, // Python scripts
+    /node-fetch/i,      // Node.js fetch
+    /postman/i,         // Postman
+    /insomnia/i         // Insomnia
+];
+
+// IP Blacklist (သင်ကိုယ်တိုင် Block လုပ်ချင်တဲ့ IP တွေ ထည့်နိုင်ပါတယ်)
+let ipBlacklist = new Set();
+
+// Policy Middleware
+function policyMiddleware(req, res, next) {
+    const userAgent = req.headers['user-agent'] || '';
+    const clientIP = req.headers['x-forwarded-for']?.split(',')[0]?.trim() 
+                    || req.socket?.remoteAddress 
+                    || req.ip 
+                    || '0.0.0.0';
+    
+    // ✅ 1. Termux နဲ့ Unallowed User-Agent တွေကို Block လုပ်မယ်
+    for (const pattern of BLOCKED_USER_AGENTS) {
+        if (pattern.test(userAgent)) {
+            console.log(`[POLICY BLOCK] Blocked User-Agent: ${userAgent.substring(0, 50)}... from IP: ${clientIP}`);
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Access denied. This client is not allowed.',
+                code: 'BLOCKED_USER_AGENT'
+            });
+        }
+    }
+    
+    // ✅ 2. IP Blacklist ထဲရှိရင် Block လုပ်မယ်
+    if (ipBlacklist.has(clientIP)) {
+        console.log(`[POLICY BLOCK] Blocked IP: ${clientIP}`);
+        return res.status(403).json({ 
+            success: false, 
+            message: 'Access denied. Your IP has been blocked.',
+            code: 'BLOCKED_IP'
+        });
+    }
+    
+    next();
+}
+
+// Admin: Add IP to Blacklist
+app.post('/api/admin/block_ip_policy', (req, res) => {
+    const { ip } = req.body;
+    if (!ip) return res.json({ success: false, message: 'IP required' });
+    ipBlacklist.add(ip);
+    console.log(`[POLICY] IP added to blacklist: ${ip}`);
+    res.json({ success: true, message: `IP ${ip} blocked!` });
+});
+
+// Admin: Remove IP from Blacklist
+app.post('/api/admin/unblock_ip_policy', (req, res) => {
+    const { ip } = req.body;
+    if (!ip) return res.json({ success: false, message: 'IP required' });
+    ipBlacklist.delete(ip);
+    console.log(`[POLICY] IP removed from blacklist: ${ip}`);
+    res.json({ success: true, message: `IP ${ip} unblocked!` });
+});
+
+// Admin: View Blacklist
+app.get('/api/admin/blacklist', (req, res) => {
+    res.json({ success: true, blocked_ips: Array.from(ipBlacklist) });
+});
+
 // ==================== DEVICE DETECTION ====================
 function detectDevice(ua) {
     const parser = new UAParser(ua);
