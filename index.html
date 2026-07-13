@@ -248,17 +248,6 @@ body::after {
     .pw-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); cursor: pointer; color: rgba(255,255,255,0.2); font-size: 11px; padding: 6px; z-index: 2; }
     .pw-toggle:hover { color: var(--gold); }
 
-    /* ========== RECAPTCHA ========== */
-    .recaptcha-box { background: var(--input-bg); border: 1.5px solid var(--input-border); border-radius: 8px; padding: 9px 10px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; cursor: pointer; transition: all 0.3s; user-select: none; }
-    .recaptcha-box:hover { border-color: var(--gold); }
-    .recaptcha-box.verified { border-color: var(--green); background: rgba(46,204,113,0.05); }
-    .recaptcha-check { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.3s; }
-    .recaptcha-box.verified .recaptcha-check { background: var(--green); border-color: var(--green); }
-    .recaptcha-check i { font-size: 9px; color: #fff; display: none; }
-    .recaptcha-box.verified .recaptcha-check i { display: block; }
-    .recaptcha-text { font-size: 10px; color: var(--text-muted); flex: 1; }
-    .recaptcha-box.verified .recaptcha-text { color: var(--green); }
-
     /* ========== BUTTONS ========== */
     .btn { width: 100%; padding: 11px; border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
     .btn-login { background: var(--gold); color: #060a18; box-shadow: 0 3px 12px rgba(243,156,18,0.25); margin-bottom: 12px; }
@@ -581,6 +570,47 @@ body::after {
     }
     .otp-error-msg.show { display: block; }
 
+    /* ========== OTP MODAL STYLE UPDATES ========== */
+.otp-modal-box {
+    /* Position relative ရှိဖို့လိုတယ် (အပေါ်ထောင့် Cancel အတွက်) */
+    position: relative;
+}
+
+/* Cancel Button (Top-Right Corner) */
+.otp-cancel-btn {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.3s ease;
+    line-height: 1;
+    padding: 4px;
+}
+.otp-cancel-btn:hover {
+    color: #e74c3c; /* Hover နှိပ်ရင် အနီရောင်ပြောင်းမယ် */
+}
+
+/* Resend Button (Disabled State - Timer မကုန်ခင်) */
+.otp-modal-box .btn-resend:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.2);
+    /* နှိပ်လို့မရတော့ဘူးဆိုတဲ့ အသွင်အပြင် */
+    background: rgba(255, 255, 255, 0.02);
+    filter: grayscale(80%);
+}
+.otp-modal-box .btn-resend:disabled:hover {
+    border-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.2);
+    transform: none;
+}
+        
     /* ============================================================== */
 /* DESIGN UPGRADE: ALL SHARP CORNERS & ALL 4-CORNER CUTS          */
 /* ============================================================== */
@@ -1222,9 +1252,13 @@ input, textarea, select {
     </p>
 </div>
         
-         <!-- MLBB Style OTP Modal -->
+<!-- MLBB Style OTP Modal -->
 <div class="otp-modal-overlay" id="otpModal">
     <div class="otp-modal-box" onclick="event.stopPropagation()">
+        
+        <!-- ✅ Cancel Button (Top-Right Corner - Icon Only) -->
+        <button class="otp-cancel-btn" onclick="cancelOTP()" title="Close Modal">✕</button>
+        
         <img src="https://i.ibb.co/ynxh4Qzn/file-000000002a2072089eaa1aa8ec69df28.png" 
              alt="Logo" 
              class="modal-logo"
@@ -1243,30 +1277,30 @@ input, textarea, select {
             <div class="otp-digit" id="otpD6"></div>
         </div>
         
-        <!-- Hidden Input ကို မြင်နိုင်တဲ့ Text Input အဖြစ် ပြောင်းပါ -->
-<input 
-    type="text" 
-    id="otpHiddenInput" 
-    maxlength="6" 
-    inputmode="numeric" 
-    pattern="[0-9]*" 
-    autocomplete="one-time-code"
-    style="
-        width: 100%;
-        padding: 14px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(243,156,18,0.3);
-        border-radius: 8px;
-        color: #ffd700;
-        font-size: 18px;
-        text-align: center;
-        letter-spacing: 8px;
-        font-weight: 700;
-        margin-bottom: 12px;
-        outline: none;
-    "
-    placeholder="• • • • • •"
->
+        <!-- Hidden Input -->
+        <input 
+            type="text" 
+            id="otpHiddenInput" 
+            maxlength="6" 
+            inputmode="numeric" 
+            pattern="[0-9]*" 
+            autocomplete="one-time-code"
+            style="
+                width: 100%;
+                padding: 14px;
+                background: rgba(255,255,255,0.05);
+                border: 1px solid rgba(243,156,18,0.3);
+                border-radius: 8px;
+                color: #ffd700;
+                font-size: 18px;
+                text-align: center;
+                letter-spacing: 8px;
+                font-weight: 700;
+                margin-bottom: 12px;
+                outline: none;
+            "
+            placeholder="• • • • • •"
+        >
         <p class="otp-error-msg" id="otpErrorMsg">❌ OTP မှားယွင်းနေပါသည်</p>
         
         <!-- Timer Display -->
@@ -1281,14 +1315,14 @@ input, textarea, select {
             <i class="fas fa-check-circle"></i> Verify & Login
         </button>
         
-        <!-- Resend Button -->
+        <!-- Resend Button (Timer မကုန်ခင် disabled ဖြစ်နေမယ်) -->
         <button class="btn-resend" id="btnResendOTP" onclick="resendOTP()" disabled>
             🔄 Resend OTP
         </button>
         
-        <button class="btn-cancel" onclick="cancelOTP()">✕ Cancel</button>
     </div>
 </div>
+        
         <!-- Footer -->
 <div class="footer">
     <span onclick="openUserGuide()">📖 User Guide</span> &nbsp;|&nbsp;
@@ -2864,10 +2898,15 @@ function clearOTPDisplay() {
     });
 }
 
-// ✅ Timer - 90 seconds with warning at 30s
+// ✅ Timer - 90 seconds (Resend Button Disabled Logic)
 function startOTPTimer() {
     clearInterval(otpCountdown);
-    btnResendOTP.disabled = true;
+    
+    // Timer စချိန်မှာ Resend ကို Disable လုပ်မယ်
+    const resendBtn = document.getElementById('btnResendOTP');
+    resendBtn.disabled = true;
+    resendBtn.style.opacity = '0.4';
+    resendBtn.style.cursor = 'not-allowed';
     
     otpCountdown = setInterval(() => {
         otpSeconds--;
@@ -2877,16 +2916,65 @@ function startOTPTimer() {
             otpTimerRing.classList.add('warning');
         }
         
+        // ⏰ Timer ကုန်သွားရင် (0 ရောက်ရင်)
         if (otpSeconds <= 0) {
             clearInterval(otpCountdown);
             otpTimerRing.textContent = '0';
-            btnResendOTP.disabled = false;  // ✅ Timer ends → Resend enabled
+            
+            // ✅ Resend ကို Enable လုပ်မယ် (နှိပ်လို့ရပြီ)
+            resendBtn.disabled = false;
+            resendBtn.style.opacity = '1';
+            resendBtn.style.cursor = 'pointer';
+            
             btnVerifyOTP.disabled = true;
             showToast('❌ OTP expired. Request new one.', 'error');
         }
     }, 1000);
 }
 
+// ✅ Resend OTP
+async function resendOTP() {
+    // Button ကို Loading ပြောင်းမယ်
+    const resendBtn = document.getElementById('btnResendOTP');
+    resendBtn.disabled = true; // နှိပ်ပြီးသွားရင် ပြန်ပိတ်မယ်
+    resendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+    
+    clearOTPDisplay();
+    otpErrorMsg.classList.remove('show');
+    
+    try {
+        const r = await fetch('/api/otp/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: otpEmail })
+        });
+        const d = await r.json();
+        
+        if (d.success) {
+            showToast('✅ OTP resent!');
+            otpSeconds = 90;
+            otpTimerRing.classList.remove('warning');
+            otpTimerRing.textContent = otpSeconds;
+            clearInterval(otpCountdown);
+            startOTPTimer(); // Timer ကို ပြန်စမယ်
+            otpHiddenInput.focus();
+        } else {
+            showToast(d.message || 'Failed', 'error');
+            // မအောင်မြင်ရင် ပြန်ဖွင့်ပေးမယ်
+            resendBtn.disabled = false;
+            resendBtn.style.opacity = '1';
+            resendBtn.style.cursor = 'pointer';
+        }
+    } catch(e) {
+        showToast('Connection error', 'error');
+        resendBtn.disabled = false;
+        resendBtn.style.opacity = '1';
+        resendBtn.style.cursor = 'pointer';
+    }
+    
+    resendBtn.innerHTML = '🔄 Resend OTP';
+}
+    
 // Verify OTP (FIXED - TOKEN GENERATION HERE)
 async function verifyOTP() {
     const otp = otpHiddenInput.value.trim();
@@ -2928,41 +3016,6 @@ async function verifyOTP() {
     
     btnVerifyOTP.disabled = false;
     btnVerifyOTP.innerHTML = '<i class="fas fa-check-circle"></i> Verify & Login';
-}
-
-// ✅ Resend OTP (Timer ends မှ နှိပ်လို့ရ)
-async function resendOTP() {
-    btnResendOTP.disabled = true;
-    btnResendOTP.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-    clearOTPDisplay();
-    otpErrorMsg.classList.remove('show');
-    
-    try {
-        const r = await fetch('/api/otp/request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: otpEmail })
-        });
-        const d = await r.json();
-        
-        if (d.success) {
-            showToast('✅ OTP resent!');
-            otpSeconds = 90;
-            otpTimerRing.classList.remove('warning');
-            otpTimerRing.textContent = otpSeconds;
-            clearInterval(otpCountdown);
-            startOTPTimer();
-            otpHiddenInput.focus();
-        } else {
-            showToast(d.message || 'Failed', 'error');
-            btnResendOTP.disabled = false;
-        }
-    } catch(e) {
-        showToast('Connection error', 'error');
-        btnResendOTP.disabled = false;
-    }
-    
-    btnResendOTP.innerHTML = '🔄 Resend OTP';
 }
 
 // Cancel OTP (Modal close, timer continues on server)
