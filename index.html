@@ -923,8 +923,7 @@ input, textarea, select {
     </div>
 
     <!-- ✅ Cloudflare Turnstile (Invisible) -->
-<div class="cf-turnstile" data-sitekey="0x4AAAAAAD1BB90jOUZfk4IR" data-size="invisible" data-callback="onTurnstileSuccess"></div>
-
+<div class="cf-turnstile" data-sitekey="0x4AAAAAAD1BB90jOUZfk4IR" data-theme="dark" data-callback="onTurnstileSuccess"></div>
 <button class="btn btn-login" id="loginBtn" onclick="handleLogin()">
     <i class="fas fa-sign-in-alt"></i> Login
 </button>
@@ -2740,62 +2739,77 @@ const btnVerifyOTP = document.getElementById('btnVerifyOTP');
 const btnResendOTP = document.getElementById('btnResendOTP');
 const otpErrorMsg = document.getElementById('otpErrorMsg');
 
-// ==================== LOGIN SYSTEM (TURNSTILE + OTP) ====================
+// ==================== LOGIN SYSTEM (NEW FIXED VERSION) ====================
 async function handleLogin() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
     
+    // 1. အခြေခံ Input စစ်ဆေး
     if (!email || !password) {
         showToast('Please enter email and password', 'error');
         return;
     }
     
-    // ✅ Turnstile Token ရယူမယ် (reCAPTCHA အစား)
-    const turnstileToken = window.turnstile?.getResponse();
+    // 2. Turnstile Token ကို တိုက်ရိုက်ရယူမယ် (passive မစစ်တော့ဘူး)
+    let turnstileToken = '';
+    try {
+        turnstileToken = window.turnstile?.getResponse();
+    } catch(e) {
+        // fallback
+    }
+
+    // 3. Token မရှိရင် အမှားပြပြီး ရပ်လိုက်မယ် (User က Box မနှိပ်ရသေးဘူး)
     if (!turnstileToken) {
-        showToast('Please wait for Turnstile verification', 'error');
+        showToast('❌ Please check the "I am not a robot" box first!', 'error');
         return;
     }
     
+    // 4. Login Button ကို Loading လုပ်မယ်
     const btn = document.getElementById('loginBtn');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
     
     try {
-        // ✅ Step 1: Password စစ် (Turnstile Token ပါပို့မယ်)
+        // 5. Server ကို Request ပို့မယ် (Turnstile Token ပါထည့်မယ်)
         const checkResponse = await fetch('/api/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 email, 
                 password,
-                turnstileToken  // ✅ Turnstile Token ထည့်ပေးမယ်
+                turnstileToken  // ✅ ဒါကို ထည့်ပေးလိုက်တယ်
             })
         });
         const checkData = await checkResponse.json();
         
-        console.log('🔍 Login Response:', checkData); // ✅ Debug
+        console.log('🔍 Login Response:', checkData);
         
-        // ❌ Password မှား
+        // 6. Server က ငြင်းလိုက်ရင် (Password မှား/Token မမှန်)
         if (!checkData.success) {
             showToast(checkData.message || 'Invalid credentials', 'error');
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
-            window.turnstile?.reset(); // ✅ Turnstile Reset
+            window.turnstile?.reset(); // ✅ Turnstile ကို ပြန်လည်သတ်မှတ်မယ်
             return;
         }
         
-        // ✅ Password မှန် - Token မပါရင် OTP ပို့
+        // 7. Server က အတည်ပြုပြီး Token ပြန်ပေးရင် (Login အောင်မြင်ပြီ)
+        if (checkData.token) {
+            localStorage.setItem('auth_token', checkData.token);
+            localStorage.setItem('user', JSON.stringify(checkData.user));
+            showToast('✅ Login success!');
+            setTimeout(() => { window.location.href = '/dashboard'; }, 500);
+            return;
+        }
+
+        // 8. (Optional) Token မပါဘဲ OTP လိုနေသေးရင် OTP ပို့မယ် (သင့် Code ထဲက OTP အတိုင်း)
         if (!checkData.token) {
-            // ✅ OTP Request
             const otpRes = await fetch('/api/otp/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
             });
             const otpData = await otpRes.json();
-            
-            console.log('🔍 OTP Response:', otpData); // ✅ Debug
             
             if (otpData.success) {
                 otpEmail = email;
@@ -2804,20 +2818,15 @@ async function handleLogin() {
             } else {
                 showToast(otpData.message || 'Failed to send OTP', 'error');
             }
-        } else {
-            // ⚠️ Token ပါလာရင် တန်းဝင် (ဒါမဖြစ်သင့်)
-            console.log('⚠️ Token received unexpectedly!');
-            localStorage.setItem('auth_token', checkData.token);
-            localStorage.setItem('user', JSON.stringify(checkData.user));
-            window.location.href = '/dashboard';
         }
         
     } catch(err) {
         console.error('Login Error:', err);
         showToast('Connection error', 'error');
-        window.turnstile?.reset(); // ✅ Turnstile Reset
+        window.turnstile?.reset();
     }
     
+    // Button ကို ပြန်ဖွင့်မယ်
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
 }
