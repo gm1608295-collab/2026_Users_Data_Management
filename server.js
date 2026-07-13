@@ -13,28 +13,42 @@ const http = require('http');
 const { Server } = require('socket.io');
 const app = express();
 
+// Middleware Setup
+app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'Authorization'] }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use(express.static(__dirname, { maxAge: '1h', etag: false }));
 
-// ✅ Policy Middleware ကို ဒီနေရာမှာ ထည့်ပါ (Routes တွေမတိုင်ခင်)
-app.use(policyMiddleware);
-
+const cookieParser = require('cookie-parser');
 app.use(cookieParser());
-// ✅ ဒါကို အစားထိုးပါ
+
+// ✅ static ကို တစ်ခါပဲ ထားပါ
 app.use(express.static(__dirname, {
-    maxAge: '1h', // 1 နာရီကြာအောင် Browser မှာ သိမ်းထားမယ်
+    maxAge: '1h',
     etag: false,
     setHeaders: (res, path) => {
         if (path.endsWith('.html')) {
-            // HTML ဖိုင်တွေကို 1 နာရီ Cache လုပ်မယ်
             res.setHeader('Cache-Control', 'public, max-age=3600');
         }
     }
 }));
 
-const cookieParser = require('cookie-parser');
+// ✅ Policy Middleware (ဒါကို အောက်မှာ ရေးပြီးမှ သုံးပါ)
+function policyMiddleware(req, res, next) {
+    const userAgent = req.headers['user-agent'] || '';
+    const blockedPatterns = [/termux/i, /curl/i, /wget/i, /python-requests/i, /postman/i];
+    for (const pattern of blockedPatterns) {
+        if (pattern.test(userAgent)) {
+            return res.status(403).json({ success: false, message: 'Access denied. Termux and bots are not allowed.' });
+        }
+    }
+    next();
+}
+app.use(policyMiddleware);
+
 app.use(cookieParser());
+// ✅ ဒါကို အစားထိုးပါ
+
+const cookieParser = require('cookie-parser');
 
 // ==================== DATABASE - 5 POOLS AUTO-SWITCH (FIXED) ====================
 // ✅ ဒါကို ဒီအတိုင်း ပြင်ပါ (Render Env ကနေ ယူမယ်)
