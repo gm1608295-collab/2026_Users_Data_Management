@@ -1279,11 +1279,10 @@ app.post('/api/upload_music', async (req, res) => {
     } catch(e) { res.json({ success: false }); }
 });
 // ==================== AUTH ====================
-// ==================== LOGIN API (WITH TURNSTILE) ====================
+// ==================== LOGIN API (OTP CHECK VERSION) ====================
 app.post('/api/login', async (req, res) => {
     const { email, password, turnstileToken } = req.body;
     
-    // ✅ 1. Turnstile Verify
     if (!turnstileToken) {
         return res.json({ success: false, message: 'Turnstile token required' });
     }
@@ -1293,7 +1292,6 @@ app.post('/api/login', async (req, res) => {
         return res.json({ success: false, message: 'Invalid Turnstile token' });
     }
     
-    // ✅ 2. Database ကို Query လုပ်ပြီး User ကို စစ်မယ်
     try {
         const p = await getPool();
         const r = await p.query(
@@ -1307,19 +1305,12 @@ app.post('/api/login', async (req, res) => {
         
         const u = r.rows[0];
         
-        // ✅ JWT Token Generate
-        const token = generateToken({ 
-            id: u.id, 
-            username: u.username, 
-            email: u.email, 
-            login_type: 'local' 
-        });
-        
+        // ✅ Password မှန်ပြီ။ ဒါပေမယ့် Token ကို ချက်ချင်းမပြန်ဘူး။ Frontend က OTP ခေါ်အောင် success: true ပဲပြန်မယ်
         res.json({ 
             success: true, 
-            message: 'Password verified',
-            token: token,
+            message: 'Password verified. Please verify OTP.',
             user: { id: u.id, username: u.username, email: u.email }
+            // token ကို ဖယ်လိုက်ပြီ
         });
         
     } catch(e) {
